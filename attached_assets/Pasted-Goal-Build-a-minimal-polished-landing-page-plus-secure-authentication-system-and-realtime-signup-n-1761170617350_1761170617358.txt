@@ -1,0 +1,282 @@
+Goal: Build a minimal, polished landing page plus secure authentication system and realtime signup notification system. The result must be deployable on Replit, integrate with Supabase Auth (Google & Apple only), store users in Supabase, and push realtime updates to the landing page (so the site can say “X people have joined” or show a live onboarding toast). No dashboard required yet — users are redirected to /dashboard placeholder after login.
+
+Tech stack (required):
+
+Frontend: Next.js (or React with Vite) + Tailwind CSS + Framer Motion for small UI motion
+
+Backend & Auth: Supabase (Auth + Postgres + Realtime)
+
+Runtime/host: Replit (Node)
+
+Language: TypeScript preferred (but JS acceptable)
+
+Build: single repo with frontend/ and optional api/ (Edge functions not required)
+
+Environment: keep all secrets in Replit Secrets (or .env for local dev)
+
+
+Deliverables (what generator must output):
+
+1. Landing page (single-page, responsive) with:
+
+Hero (headline, tagline: “Follow up like a human, close deals like a pro — Audnix AI.”)
+
+Short features section (3 bullets)
+
+Social proof area (live counter “People joined” that updates realtime)
+
+CTA buttons: “Start free (3 days)” → opens auth modal / redirects to /auth
+
+Footer with privacy & contact links
+
+Minimal hero animation (Framer Motion)
+
+No hard-coded colors — use theme variables (user chooses later)
+
+
+
+2. Auth pages & flows:
+
+/auth page with:
+
+Google Sign-In button (Supabase OAuth)
+
+Apple Sign-In button (Supabase OAuth)
+
+Small microcopy: “No card required. 3-day free trial.”
+
+After successful auth, redirect to /dashboard (placeholder page)
+
+
+Callback handling using Supabase client (session management)
+
+On new signup, create user row in users table (if not exists) and emit realtime event
+
+On login, update last_login timestamp
+
+All tokens & keys stored in env; no secrets in client-side code beyond NEXT_PUBLIC_ safe keys
+
+
+
+3. Realtime update integration:
+
+users table change feed (Supabase Realtime subscription) used to:
+
+Update the live “People joined” counter on landing page in near real-time
+
+Optionally show a toast “Welcome [first_name]” to visitors when someone signs up (demo mode)
+
+
+Demo fallback when NEXT_PUBLIC_DEMO=true (seeded demo counts + fake events every minute)
+
+
+
+4. Minimal /dashboard placeholder page:
+
+Simple UI showing “Welcome @username” (fetched from Supabase)
+
+Animated welcome microinteraction (typing effect)
+
+Button to “Go back to landing” and CTA to connect later
+
+
+
+5. Backend helpers (on Replit):
+
+Small server route POST /api/webhook/demo for testing realtime pushes (demo mode)
+
+Helper scripts/seed_demo.ts that seeds demo users into Supabase for testing
+
+
+
+6. Security & best practices:
+
+Use NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY only on client
+
+Use SUPABASE_SERVICE_ROLE_KEY only server-side if needed (do not expose)
+
+Input validation on auth callbacks
+
+Use environment variables via Replit Secrets in instructions
+
+
+
+7. Code quality:
+
+TypeScript + JSDoc where applicable
+
+README with local dev & Replit deploy steps, where to paste env vars
+
+.env.example with required keys
+
+Minimal unit test(s) skeleton (Jest) for auth flow (optional)
+
+
+
+
+
+---
+
+Required SQL migration (generator must include)
+
+Create users table (simple):
+
+-- migrations/001_create_users.sql
+create extension if not exists "pgcrypto";
+
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  supabase_id text unique,
+  email text not null,
+  name text,
+  username text,
+  plan text default 'trial',
+  trial_expires_at timestamptz,
+  created_at timestamptz default now(),
+  last_login timestamptz
+);
+
+-- index for quick lookup
+create index if not exists idx_users_email on users(email);
+
+(Generator should include run/migrate instructions.)
+
+
+---
+
+Required Environment variables (.env.example)
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=   # server only, do NOT expose
+SUPABASE_JWT_SECRET=
+NEXT_PUBLIC_API_BASE=/api
+NODE_ENV=development
+DISABLE_EXTERNAL_API=false
+NEXT_PUBLIC_DEMO=false
+INVITE_TRIAL_DAYS=3
+
+
+---
+
+API endpoints (minimal)
+
+GET /api/health → simple health check
+
+POST /api/webhook/demo → for demo pushes (server-only)
+
+Client uses Supabase JS SDK directly for OAuth flows; server endpoints optional
+
+
+
+---
+
+UX details & behaviors you must implement
+
+When user clicks “Start free (3 days)” → open /auth where they choose Google/Apple
+
+After OAuth complete:
+
+If new user → insert into users (set trial_expires_at = now() + INTERVAL '3 days')
+
+Emit a realtime event (row insert) — frontend landing listening to users table will catch it
+
+
+Landing page live counter uses Supabase Realtime to count users and subscribes to INSERT events to increment UI live
+
+In demo mode (NEXT_PUBLIC_DEMO=true), seed fake joins every 30–90 seconds to show live behavior
+
+Keep motion subtle: Framer Motion fade + minor slide on hero and CTA hover
+
+
+
+---
+
+Replit deployment instructions (add to README & include in generated README)
+
+1. Create Supabase project
+
+Enable Auth providers: Google and Apple (add redirect URL https://<replit-url>/auth/callback or https://<replit-app>.repl.co/api/auth/callback depending on routing)
+
+Run the provided SQL migration in Supabase SQL editor or via CLI
+
+
+
+2. On Replit
+
+Create a new Replit (Node + Next.js) or import the generated repo
+
+In Replit Secrets (🔒 icon) add:
+
+NEXT_PUBLIC_SUPABASE_URL
+
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+SUPABASE_SERVICE_ROLE_KEY (server only)
+
+SUPABASE_JWT_SECRET
+
+NEXT_PUBLIC_DEMO (true/false)
+
+INVITE_TRIAL_DAYS=3
+
+
+Set Run command: npm run dev (or npm start for production)
+
+Deploy via Replit Deploy — set public URL
+
+
+
+3. Supabase OAuth redirect setup
+
+For Google & Apple, add the Replit app URL as allowed redirect URI in Supabase OAuth config (e.g., https://<replit>.repl.co/api/auth/callback)
+
+
+
+4. Test flow
+
+Visit landing page → click “Start free” → authenticate with Google → confirm redirect → check Supabase users table has new record
+
+Landing page should automatically increment live counter
+
+If demo mode enabled, watch seeding script add users and live counter update
+
+
+
+
+
+---
+
+Post-generation test checklist (copy this and run)
+
+[ ] Run npm install
+
+[ ] Start dev server: npm run dev
+
+[ ] Visit http://localhost:3000
+
+[ ] Click “Start free” → complete Google OAuth (use test Google account)
+
+[ ] Confirm new row in Supabase users
+
+[ ] Confirm landing page counter updates live (open 2 tabs to observe realtime)
+
+[ ] Run node scripts/seed_demo.js to see demo events if NEXT_PUBLIC_DEMO=true
+
+[ ] Confirm redirect to /dashboard shows welcome @username
+
+
+
+---
+
+Notes (short & important)
+
+No credit card on signup — the signup flow only registers user and sets trial expiry (3 days by default).
+
+Voice / ElevenLabs is not included in this prompt — it's Phase 2. The backend scaffold must include hooks to add it later.
+
+Use Supabase Realtime for in-browser live updates. No polling required.
+
+Keep SUPABASE_SERVICE_ROLE_KEY secret — used only server-side if the generator creates server endpoints that need elevated privileges.
+
+This version focuses on reliability and real-time behavior on Replit. It’s intentionally lightweight so your Replit credits and tokens don’t burn fast.
