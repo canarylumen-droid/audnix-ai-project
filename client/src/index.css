@@ -76,7 +76,7 @@
   --chart-4: 280 70% 45%;
   --chart-5: 340 80% 48%;
 
-  --font-sans: Open Sans, sans-serif;
+  --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem; /* 8px */
@@ -132,17 +132,17 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 220 5% 8%;
+  --background: 217 91% 4%;
 
-  --foreground: 220 8% 92%;
+  --foreground: 0 0% 100%;
 
   --border: 220 6% 18%;
 
-  --card: 220 5% 10%;
+  --card: 217 91% 6%;
 
-  --card-foreground: 220 8% 92%;
+  --card-foreground: 0 0% 100%;
 
-  --card-border: 220 6% 16%;
+  --card-border: 217 91% 12%;
 
   --sidebar: 220 5% 12%;
 
@@ -166,9 +166,9 @@
 
   --popover-border: 220 6% 22%;
 
-  --primary: 200 95% 50%;
+  --primary: 195 100% 53%;
 
-  --primary-foreground: 200 95% 98%;
+  --primary-foreground: 0 0% 100%;
 
   --secondary: 220 6% 20%;
 
@@ -234,6 +234,40 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Dark mode is default for Audnix */
+  html {
+    @apply dark;
+  }
+}
+
+/* Glassmorphism utility classes */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(10, 15, 31, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 170, 255, 0.1);
+  }
+
+  .glow {
+    box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 30px rgba(0, 170, 255, 0.5);
   }
 }
 
