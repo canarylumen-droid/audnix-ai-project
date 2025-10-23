@@ -9,16 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Landing() {
-  const [userCount, setUserCount] = useState(247);
+  const [userCount, setUserCount] = useState(0);
   const { toast } = useToast();
-  const demoMode = import.meta.env.NEXT_PUBLIC_DEMO === "true";
-  const demoIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const demoNames = useRef(['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Riley', 'Avery', 'Quinn', 'Skyler', 'Cameron']);
 
-  // Fetch initial user count from API (only if not in demo mode)
-  const { data: countData } = useQuery({
+  // Fetch initial user count from API
+  const { data: countData } = useQuery<{ count: number }>({
     queryKey: ["/api/users/count"],
-    enabled: !demoMode && isSupabaseConfigured(),
+    enabled: isSupabaseConfigured(),
   });
 
   useEffect(() => {
@@ -27,36 +24,8 @@ export default function Landing() {
     }
   }, [countData]);
 
-  // Set up Supabase Realtime subscription or Demo mode
+  // Set up Supabase Realtime subscription
   useEffect(() => {
-    // Demo mode: simulate user joins with variable intervals
-    if (demoMode) {
-      const scheduleDemoJoin = () => {
-        const randomDelay = Math.random() * 60000 + 30000; // 30-90 seconds
-        demoIntervalRef.current = setTimeout(() => {
-          setUserCount(prev => {
-            const newCount = prev + 1;
-            const name = demoNames.current[Math.floor(Math.random() * demoNames.current.length)];
-            toast({
-              title: "New user joined!",
-              description: `${name} just started their free trial`,
-              duration: 3000,
-            });
-            return newCount;
-          });
-          scheduleDemoJoin(); // Schedule next join
-        }, randomDelay);
-      };
-      
-      scheduleDemoJoin();
-      
-      return () => {
-        if (demoIntervalRef.current) {
-          clearTimeout(demoIntervalRef.current);
-        }
-      };
-    }
-
     // Real-time mode: only if Supabase is configured
     if (!isSupabaseConfigured() || !supabase) {
       return;
@@ -89,9 +58,11 @@ export default function Landing() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [demoMode, toast]);
+  }, [toast]);
 
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });

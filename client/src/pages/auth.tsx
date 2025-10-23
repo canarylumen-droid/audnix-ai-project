@@ -15,7 +15,7 @@ export default function Auth() {
   const handleGoogleLogin = async () => {
     setLoading('google');
 
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !supabase) {
       toast({
         title: "Demo Mode",
         description: "Supabase is not configured. Redirecting to dashboard...",
@@ -58,7 +58,7 @@ export default function Auth() {
   const handleAppleLogin = async () => {
     setLoading('apple');
 
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !supabase) {
       toast({
         title: "Demo Mode",
         description: "Supabase is not configured. Redirecting to dashboard...",

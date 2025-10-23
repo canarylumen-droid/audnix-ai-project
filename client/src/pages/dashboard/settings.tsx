@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
@@ -12,308 +11,246 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  User,
-  Shield,
-  Users,
-  Webhook,
-  Eye,
-  EyeOff,
-  Copy,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { User, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
-  const [showApiKey, setShowApiKey] = useState(false);
-
-  // Mock user data
-  const user = {
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    company: "Audnix Inc",
+  const { toast } = useToast();
+  const [hasChanges, setHasChanges] = useState(false);
+  
+  // Local state for form fields
+  const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    company: "",
     timezone: "America/New_York",
-    replyTone: "professional",
+  });
+
+  // Fetch real user profile
+  const { data: user, isLoading, error } = useQuery({
+    queryKey: ["/api/user/profile"],
+    retry: false,
+  });
+
+  // Update local state when user data loads
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        username: user.username || "",
+        company: user.company || "",
+        timezone: user.timezone || "America/New_York",
+      });
+    }
+  }, [user]);
+
+  // Save profile mutation with auto-save on field change
+  const saveMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      return apiRequest("/api/user/profile", {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      setHasChanges(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (hasChanges && user) {
+      const timer = setTimeout(() => {
+        saveMutation.mutate(formData);
+      }, 1000); // Auto-save after 1 second of inactivity
+      
+      return () => clearTimeout(timer);
+    }
+  }, [formData, hasChanges, user]);
+
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setHasChanges(true);
   };
 
-  const teamMembers = [
-    { id: "1", name: "Alex Johnson", email: "alex@example.com", role: "Admin" },
-    { id: "2", name: "Sarah Chen", email: "sarah@example.com", role: "Member" },
-  ];
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
-  const webhooks = [
-    { id: "1", url: "https://api.example.com/webhook", events: ["lead.created", "lead.converted"], isActive: true },
-  ];
+  // Show message if no user data available
+  if (error || !user) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="text-center py-12">
+          <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">No Profile Data</h2>
+          <p className="text-muted-foreground">
+            Please sign in to view and edit your profile.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-settings">
-          Settings
+          Profile Settings
         </h1>
         <p className="text-muted-foreground mt-1">
-          Manage your account and preferences
+          Manage your account information
         </p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList data-testid="tabs-settings">
-          <TabsTrigger value="profile" data-testid="tab-profile">
-            <User className="h-4 w-4 mr-2" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="security" data-testid="tab-security">
-            <Shield className="h-4 w-4 mr-2" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="team" data-testid="tab-team">
-            <Users className="h-4 w-4 mr-2" />
-            Team
-          </TabsTrigger>
-          <TabsTrigger value="webhooks" data-testid="tab-webhooks">
-            <Webhook className="h-4 w-4 mr-2" />
-            Webhooks
-          </TabsTrigger>
-        </TabsList>
+      {/* Profile Card */}
+      <Card data-testid="card-profile">
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>
+            Update your account details - changes save automatically
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Avatar Section */}
+          <div className="flex items-center gap-6">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={user.avatar || undefined} />
+              <AvatarFallback className="text-2xl">
+                {(user.name || user.email || "U").charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-medium text-lg">
+                {user.name || user.username || "User"}
+              </p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              {user.plan && (
+                <p className="text-sm text-muted-foreground capitalize">
+                  {user.plan} Plan
+                </p>
+              )}
+            </div>
+          </div>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <Card data-testid="card-profile">
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your account details and preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={undefined} />
-                  <AvatarFallback className="text-2xl">{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <Button variant="outline" data-testid="button-change-avatar">Change Avatar</Button>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    JPG, PNG or GIF. Max 2MB.
-                  </p>
-                </div>
-              </div>
+          {/* Form Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input 
+                id="name" 
+                value={formData.name}
+                onChange={(e) => handleFieldChange("name", e.target.value)}
+                placeholder="Enter your full name"
+                data-testid="input-name" 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input 
+                id="username" 
+                value={formData.username}
+                onChange={(e) => handleFieldChange("username", e.target.value)}
+                placeholder="Choose a username"
+                data-testid="input-username" 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input 
+                id="email" 
+                type="email" 
+                value={user.email || ""}
+                disabled
+                className="bg-muted"
+                data-testid="input-email"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="company">Company</Label>
+              <Input 
+                id="company" 
+                value={formData.company}
+                onChange={(e) => handleFieldChange("company", e.target.value)}
+                placeholder="Your company name"
+                data-testid="input-company" 
+              />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="timezone">Timezone</Label>
+              <Select 
+                value={formData.timezone}
+                onValueChange={(value) => handleFieldChange("timezone", value)}
+              >
+                <SelectTrigger id="timezone" data-testid="select-timezone">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                  <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                  <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                  <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                  <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                  <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                  <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                  <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                  <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input id="name" defaultValue={user.name} data-testid="input-name" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user.email} data-testid="input-email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input id="company" defaultValue={user.company} data-testid="input-company" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
-                  <Select defaultValue={user.timezone}>
-                    <SelectTrigger id="timezone" data-testid="select-timezone">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/New_York">Eastern Time</SelectItem>
-                      <SelectItem value="America/Chicago">Central Time</SelectItem>
-                      <SelectItem value="America/Denver">Mountain Time</SelectItem>
-                      <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="reply-tone">Default Reply Tone</Label>
-                <Select defaultValue={user.replyTone}>
-                  <SelectTrigger id="reply-tone" data-testid="select-reply-tone">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="friendly">Friendly</SelectItem>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="short">Short & Direct</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button data-testid="button-save-profile">Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Security Tab */}
-        <TabsContent value="security" className="space-y-6">
-          <Card data-testid="card-api-keys">
-            <CardHeader>
-              <CardTitle>API Keys</CardTitle>
-              <CardDescription>
-                Manage your API keys for integrations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Input
-                  type={showApiKey ? "text" : "password"}
-                  value="sk_live_1234567890abcdefghijklmnopqrstuvwxyz"
-                  readOnly
-                  data-testid="input-api-key"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  data-testid="button-toggle-api-key"
-                >
-                  {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-                <Button variant="outline" size="icon" data-testid="button-copy-api-key">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button variant="outline" data-testid="button-generate-key">
-                Generate New Key
+          {/* Save Status */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {saveMutation.isPending && (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving changes...
+                </span>
+              )}
+              {!saveMutation.isPending && !hasChanges && user && (
+                <span className="text-green-600">All changes saved</span>
+              )}
+              {hasChanges && !saveMutation.isPending && (
+                <span>Unsaved changes</span>
+              )}
+            </div>
+            
+            {hasChanges && (
+              <Button 
+                onClick={() => saveMutation.mutate(formData)}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-profile"
+              >
+                {saveMutation.isPending ? "Saving..." : "Save Now"}
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="card-brand-assets">
-            <CardHeader>
-              <CardTitle>Brand Assets</CardTitle>
-              <CardDescription>
-                Upload your brand materials for AI personalization
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Brand Guidelines PDF</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop or click to upload
-                  </p>
-                  <Button variant="outline" className="mt-3" data-testid="button-upload-pdf">
-                    Upload PDF
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Team Tab */}
-        <TabsContent value="team" className="space-y-6">
-          <Card data-testid="card-team-members">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Team Members</CardTitle>
-                  <CardDescription>
-                    Invite and manage team members
-                  </CardDescription>
-                </div>
-                <Button data-testid="button-invite-member">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Invite Member
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {teamMembers.map((member, index) => (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between p-4 rounded-lg border"
-                    data-testid={`team-member-${index}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium" data-testid={`text-member-name-${index}`}>{member.name}</p>
-                        <p className="text-sm text-muted-foreground">{member.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select defaultValue={member.role.toLowerCase()}>
-                        <SelectTrigger className="w-32" data-testid={`select-role-${index}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="member">Member</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" data-testid={`button-remove-member-${index}`}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Webhooks Tab */}
-        <TabsContent value="webhooks" className="space-y-6">
-          <Card data-testid="card-webhooks">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Webhooks</CardTitle>
-                  <CardDescription>
-                    Configure webhooks for real-time events
-                  </CardDescription>
-                </div>
-                <Button data-testid="button-create-webhook">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Webhook
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {webhooks.map((webhook, index) => (
-                  <div
-                    key={webhook.id}
-                    className="flex items-start justify-between p-4 rounded-lg border"
-                    data-testid={`webhook-${index}`}
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium font-mono text-sm" data-testid={`text-webhook-url-${index}`}>
-                        {webhook.url}
-                      </p>
-                      <div className="flex gap-2 mt-2">
-                        {webhook.events.map((event) => (
-                          <code key={event} className="text-xs bg-muted px-2 py-1 rounded">
-                            {event}
-                          </code>
-                        ))}
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" data-testid={`button-delete-webhook-${index}`}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

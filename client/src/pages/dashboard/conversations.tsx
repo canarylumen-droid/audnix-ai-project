@@ -28,14 +28,13 @@ import {
   Mic,
   MoreVertical,
   Clock,
-  Play,
-  Pause,
+  Loader2,
+  MessageSquare,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
-
-// Import demo data
-import demoLeads from "@/data/demo-leads.json";
-import demoMessages from "@/data/demo-messages.json";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const channelIcons = {
   instagram: Instagram,
@@ -45,15 +44,52 @@ const channelIcons = {
 
 export default function ConversationsPage() {
   const params = useParams();
-  const leadId = params.id || "lead-1";
+  const leadId = params.id;
   const [message, setMessage] = useState("");
   const [selectedChannel, setSelectedChannel] = useState("instagram");
   const [isGenerating, setIsGenerating] = useState(false);
   const [typedText, setTypedText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const lead = demoLeads.find((l) => l.id === leadId);
-  const messages = (demoMessages as any)[leadId] || [];
+  // Fetch lead details
+  const { data: lead, isLoading: leadLoading } = useQuery({
+    queryKey: ["/api/leads", leadId],
+    enabled: !!leadId,
+    retry: false,
+  });
+
+  // Fetch messages for this lead
+  const { data: messagesData, isLoading: messagesLoading } = useQuery({
+    queryKey: ["/api/messages", leadId],
+    refetchInterval: 10000, // Refresh every 10 seconds
+    enabled: !!leadId,
+    retry: false,
+  });
+
+  const messages = messagesData?.messages || [];
+
+  // Send message mutation
+  const sendMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest(`/api/messages/${leadId}`, {
+        method: "POST",
+        body: JSON.stringify({ content, channel: selectedChannel }),
+      });
+    },
+    onSuccess: () => {
+      setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -78,14 +114,20 @@ export default function ConversationsPage() {
         index++;
       } else {
         clearInterval(interval);
-        setIsGenerating(false);
         setMessage(aiResponse);
+        setIsGenerating(false);
       }
-    }, 30);
+    }, 20);
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
+  const handleSendMessage = () => {
+    if (message.trim() && leadId) {
+      sendMutation.mutate(message);
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
@@ -93,256 +135,245 @@ export default function ConversationsPage() {
     });
   };
 
-  if (!lead) {
+  if (!leadId) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <p className="text-muted-foreground">Lead not found</p>
-          </CardContent>
-        </Card>
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="text-center py-12">
+          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Select a conversation</h2>
+          <p className="text-muted-foreground">
+            Choose a lead from your inbox to start messaging
+          </p>
+        </div>
       </div>
     );
   }
 
+  if (leadLoading || messagesLoading) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!lead) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="text-center py-12">
+          <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Lead not found</h2>
+          <p className="text-muted-foreground">
+            This lead may have been removed or doesn't exist
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons] || Mail;
+
   return (
-    <div className="h-full flex">
-      {/* Main Conversation Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="border-b p-4" data-testid="header-conversation">
+    <div className="p-4 md:p-6 lg:p-8 h-full flex flex-col">
+      {/* Lead Header */}
+      <Card className="mb-4" data-testid="card-lead-header">
+        <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarFallback>{lead.name.charAt(0)}</AvatarFallback>
+              <Avatar className="h-10 w-10">
+                <AvatarFallback>{lead.name?.charAt(0) || "L"}</AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="font-semibold" data-testid="text-lead-name">
+                <h2 className="text-lg font-semibold" data-testid="text-lead-name">
                   {lead.name}
                 </h2>
-                <p className="text-sm text-muted-foreground">{lead.email}</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ChannelIcon className="h-3 w-3" />
+                  <span>{lead.channel}</span>
+                  {lead.email && <span>· {lead.email}</span>}
+                </div>
               </div>
             </div>
-
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" data-testid="badge-lead-score">
-                Score: {lead.leadScore}
+              <Badge variant="outline" data-testid="badge-status">
+                {lead.status?.replace('_', ' ')}
               </Badge>
               <Button variant="ghost" size="icon" data-testid="button-more">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4" data-testid="container-messages">
-          <AnimatePresence>
-            {messages.map((msg: any, index: number) => {
-              const isInbound = msg.direction === "inbound";
-              const ChannelIcon = channelIcons[msg.channel as keyof typeof channelIcons];
-
-              return (
-                <motion.div
-                  key={msg.id}
-                  className={`flex ${isInbound ? "justify-start" : "justify-end"}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  data-testid={`message-${index}`}
-                >
-                  <div className={`max-w-[70%] ${isInbound ? "" : "items-end"}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <ChannelIcon className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(msg.sentAt)}
-                      </span>
-                      {msg.isAiGenerated && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          AI
-                        </Badge>
-                      )}
-                    </div>
+      {/* Chat Area */}
+      <div className="flex-1 flex gap-4">
+        <Card className="flex-1 flex flex-col" data-testid="card-chat">
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Conversation</CardTitle>
+              <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+                <SelectTrigger className="w-40" data-testid="select-channel">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center py-12">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No messages yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Start the conversation by sending a message below
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg: any, index: number) => (
+                  <motion.div
+                    key={msg.id || index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                    data-testid={`message-${index}`}
+                  >
                     <div
-                      className={`rounded-lg p-3 ${
-                        isInbound
-                          ? "bg-muted"
-                          : "bg-primary text-primary-foreground"
+                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                        msg.sender === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
                       }`}
                     >
                       <p className="text-sm">{msg.content}</p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          msg.sender === "user"
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatTime(msg.timestamp)}
+                      </p>
                     </div>
+                  </motion.div>
+                ))
+              )}
+              
+              {isGenerating && typedText && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-end"
+                >
+                  <div className="max-w-[70%] rounded-lg px-4 py-2 bg-primary/10 border border-primary/20">
+                    <p className="text-sm">{typedText}</p>
                   </div>
                 </motion.div>
-              );
-            })}
-          </AnimatePresence>
-
-          {/* AI Typing Indicator */}
-          {isGenerating && typedText && (
-            <motion.div
-              className="flex justify-end"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              data-testid="ai-typing-indicator"
-            >
-              <div className="max-w-[70%]">
-                <div className="flex items-center gap-2 mb-1 justify-end">
-                  <Badge variant="secondary" className="text-xs">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    AI Generating...
-                  </Badge>
-                </div>
-                <div className="rounded-lg p-3 bg-primary text-primary-foreground">
-                  <p className="text-sm">
-                    {typedText}
-                    <motion.span
-                      animate={{ opacity: [1, 0] }}
-                      transition={{ duration: 0.5, repeat: Infinity }}
-                    >
-                      |
-                    </motion.span>
-                  </p>
-                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+          </CardContent>
+          
+          {/* Message Input */}
+          <div className="border-t p-4">
+            <div className="flex gap-2">
+              <Textarea
+                placeholder="Type your message..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                className="min-h-[80px] flex-1"
+                disabled={sendMutation.isPending || isGenerating}
+                data-testid="textarea-message"
+              />
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleGenerateReply}
+                  disabled={sendMutation.isPending || isGenerating}
+                  data-testid="button-ai-generate"
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  AI Reply
+                </Button>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!message.trim() || sendMutation.isPending}
+                  data-testid="button-send"
+                >
+                  {sendMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
-            </motion.div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Composer */}
-        <div className="border-t p-4 space-y-3" data-testid="composer">
-          <div className="flex items-center gap-2">
-            <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-              <SelectTrigger className="w-40" data-testid="select-channel">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="instagram">
-                  <div className="flex items-center gap-2">
-                    <Instagram className="h-4 w-4" />
-                    Instagram
-                  </div>
-                </SelectItem>
-                <SelectItem value="whatsapp">
-                  <div className="flex items-center gap-2">
-                    <SiWhatsapp className="h-4 w-4" />
-                    WhatsApp
-                  </div>
-                </SelectItem>
-                <SelectItem value="email">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              onClick={handleGenerateReply}
-              disabled={isGenerating}
-              data-testid="button-generate-reply"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {isGenerating ? "Generating..." : "Generate Reply"}
-            </Button>
-          </div>
-
-          <div className="flex gap-2">
-            <Textarea
-              placeholder="Type your message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="resize-none"
-              rows={3}
-              data-testid="textarea-message"
-            />
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" size="icon" data-testid="button-attach">
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="icon" data-testid="button-voice">
-                <Mic className="h-4 w-4" />
-              </Button>
-              <Button size="icon" data-testid="button-send">
-                <Send className="h-4 w-4" />
-              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* Right Sidebar - Timeline */}
-      <div className="w-80 border-l p-4 space-y-4 hidden lg:block" data-testid="sidebar-timeline">
-        <div>
-          <h3 className="font-semibold mb-3">Follow-up Schedule</h3>
-          
-          <div className="space-y-3">
-            {[
-              { delay: "12h", action: "Send message", channel: "instagram", status: "completed" },
-              { delay: "24h", action: "Escalate to WhatsApp", channel: "whatsapp", status: "completed" },
-              { delay: "48h", action: "Send voice note", channel: "whatsapp", status: "pending" },
-              { delay: "72h", action: "Send email", channel: "email", status: "pending" },
-              { delay: "7d", action: "Final follow-up", channel: "email", status: "pending" },
-            ].map((item, index) => {
-              const ChannelIcon = channelIcons[item.channel as keyof typeof channelIcons];
-              return (
-                <motion.div
-                  key={index}
-                  className={`flex items-start gap-3 p-3 rounded-lg ${
-                    item.status === "completed" ? "bg-emerald-500/10" : "bg-muted"
-                  }`}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  data-testid={`timeline-item-${index}`}
-                >
-                  <div className={`p-2 rounded-full ${
-                    item.status === "completed" ? "bg-emerald-500/20" : "bg-background"
-                  }`}>
-                    <ChannelIcon className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs font-medium">{item.delay}</span>
-                    </div>
-                    <p className="text-sm mt-1">{item.action}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="font-semibold mb-3">Human Timing</h3>
-          <Card>
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                Add randomization to make follow-ups feel more natural
-              </p>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Delay variance</span>
-                  <span className="font-medium">2-5 min</span>
+        {/* Sidebar */}
+        <Card className="w-80" data-testid="card-sidebar">
+          <CardHeader>
+            <CardTitle className="text-lg">Lead Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Score</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${lead.score || 0}%` }}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="60"
-                  defaultValue="3"
-                  className="w-full"
-                  data-testid="slider-delay-variance"
-                />
+                <span className="text-sm font-medium">{lead.score || 0}%</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Tags</p>
+              {lead.tags && lead.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {lead.tags.map((tag: string) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No tags</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">History</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="h-3 w-3" />
+                  <span>First contact: {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "Unknown"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <MessageSquare className="h-3 w-3" />
+                  <span>{messages.length} messages exchanged</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

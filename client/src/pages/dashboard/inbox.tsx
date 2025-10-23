@@ -31,12 +31,10 @@ import {
   Phone,
   AlertCircle,
   Loader2,
+  Users,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Link } from "wouter";
-
-// Import demo data as fallback
-import demoLeads from "@/data/demo-leads.json";
 
 const channelIcons = {
   instagram: Instagram,
@@ -62,17 +60,24 @@ export default function InboxPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
 
-  // Fetch leads from backend (with fallback to demo data)
-  const { data: leadsData, isLoading } = useQuery({
-    queryKey: ["/api/leads", { channel: channelFilter !== "all" ? channelFilter : undefined, status: statusFilter !== "all" ? statusFilter : undefined }],
+  // Fetch real leads from backend
+  const { data: leadsData, isLoading, error } = useQuery({
+    queryKey: ["/api/leads", { 
+      channel: channelFilter !== "all" ? channelFilter : undefined, 
+      status: statusFilter !== "all" ? statusFilter : undefined 
+    }],
     retry: false,
   });
 
-  const leads = leadsData?.leads ?? demoLeads;
+  // Get real user data
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile"],
+    retry: false,
+  });
 
-  // Mock user plan
-  const userPlan = "trial";
-  const leadsLimit = 100;
+  const leads = leadsData?.leads || [];
+  const userPlan = user?.plan || "trial";
+  const leadsLimit = userPlan === "trial" ? 100 : userPlan === "starter" ? 1000 : 10000;
   const currentLeadCount = leads.length;
   const isAtLimit = currentLeadCount >= leadsLimit;
 
@@ -125,14 +130,28 @@ export default function InboxPage() {
     if (hours < 1) return "Just now";
     if (hours < 24) return `${hours}h ago`;
     if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d ago`;
+    if (days < 7) return `${days} days ago`;
     return date.toLocaleDateString();
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Unable to load leads</h2>
+          <p className="text-muted-foreground">
+            Please check your connection and try again.
+          </p>
+        </div>
       </div>
     );
   }
@@ -140,292 +159,310 @@ export default function InboxPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold" data-testid="heading-inbox">
-              Inbox
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              {filteredLeads.length} {filteredLeads.length === 1 ? "lead" : "leads"}
-              {selectedLeads.size > 0 && ` · ${selectedLeads.size} selected`}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")} data-testid="button-toggle-view">
-              {viewMode === "table" ? <Grid3x3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" data-testid="button-bulk-actions">
-                  <MoreVertical className="h-4 w-4 mr-2" />
-                  Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem data-testid="menu-item-export">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem data-testid="menu-item-tag">
-                  <TagIcon className="h-4 w-4 mr-2" />
-                  Add Tag
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold" data-testid="heading-inbox">
+            Lead Inbox
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {leads.length > 0 
+              ? `${leads.length} lead${leads.length !== 1 ? 's' : ''} · ${filteredLeads.length} shown`
+              : "Your leads will appear here"}
+          </p>
         </div>
 
-        {/* Trial Limit Warning */}
-        {isAtLimit && userPlan === "trial" && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4"
-          >
-            <Card className="border-orange-500/50 bg-orange-500/5" data-testid="card-trial-limit">
-              <CardContent className="flex items-start gap-3 p-4">
-                <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium text-orange-500">Lead limit reached</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    You've reached the {leadsLimit} lead limit for trial accounts. Upgrade to continue adding leads.
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3" data-testid="button-upgrade-trial">
-                    View Plans
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {isAtLimit && (
+          <Badge variant="destructive" data-testid="badge-limit">
+            Lead limit reached ({currentLeadCount}/{leadsLimit})
+          </Badge>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search leads..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-            data-testid="input-search-leads"
-          />
-        </div>
-        
-        <Select value={channelFilter} onValueChange={setChannelFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-channel">
-            <SelectValue placeholder="All Channels" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
-            <SelectItem value="instagram">Instagram</SelectItem>
-            <SelectItem value="whatsapp">WhatsApp</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Filters and Search */}
+      <Card data-testid="card-filters">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search leads by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search"
+                />
+              </div>
+            </div>
+            
+            <Select value={channelFilter} onValueChange={setChannelFilter}>
+              <SelectTrigger className="w-40" data-testid="select-channel">
+                <SelectValue placeholder="All channels" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All channels</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-status">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="replied">Replied</SelectItem>
-            <SelectItem value="converted">Converted</SelectItem>
-            <SelectItem value="not_interested">Not Interested</SelectItem>
-            <SelectItem value="cold">Cold</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40" data-testid="select-status">
+                <SelectValue placeholder="All status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All status</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="open">Open</SelectItem>
+                <SelectItem value="replied">Replied</SelectItem>
+                <SelectItem value="converted">Converted</SelectItem>
+                <SelectItem value="not_interested">Not interested</SelectItem>
+              </SelectContent>
+            </Select>
 
-      {/* Leads List */}
-      {viewMode === "table" ? (
-        <Card>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("table")}
+                data-testid="button-view-table"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "cards" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("cards")}
+                data-testid="button-view-cards"
+              >
+                <Grid3x3 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {selectedLeads.size > 0 && (
+            <div className="flex items-center gap-4 mt-4 p-3 bg-muted rounded-lg">
+              <span className="text-sm">
+                {selectedLeads.size} lead{selectedLeads.size !== 1 ? 's' : ''} selected
+              </span>
+              <Button size="sm" variant="outline" data-testid="button-bulk-tag">
+                <TagIcon className="h-3 w-3 mr-1" />
+                Add Tag
+              </Button>
+              <Button size="sm" variant="outline" data-testid="button-bulk-export">
+                <Download className="h-3 w-3 mr-1" />
+                Export
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Leads Display */}
+      {filteredLeads.length === 0 ? (
+        <Card className="border-dashed" data-testid="card-empty-state">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {leads.length === 0 ? "No leads yet" : "No matching leads"}
+            </h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              {leads.length === 0 
+                ? "Connect your Instagram, WhatsApp, or Email accounts to start receiving leads."
+                : "Try adjusting your filters or search query."}
+            </p>
+            {leads.length === 0 && (
+              <Link href="/dashboard/integrations">
+                <Button data-testid="button-connect-accounts">
+                  Connect Your Accounts
+                </Button>
+              </Link>
+            )}
+          </CardContent>
+        </Card>
+      ) : viewMode === "table" ? (
+        <Card data-testid="card-leads-table">
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr className="text-sm text-muted-foreground">
-                    <th className="text-left p-4 font-medium">
-                      <input
-                        type="checkbox"
-                        checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
-                        onChange={toggleSelectAll}
-                        className="rounded"
-                        data-testid="checkbox-select-all"
-                      />
-                    </th>
-                    <th className="text-left p-4 font-medium">Name</th>
-                    <th className="text-left p-4 font-medium">Channel</th>
-                    <th className="text-left p-4 font-medium">Status</th>
-                    <th className="text-left p-4 font-medium">Score</th>
-                    <th className="text-left p-4 font-medium">Last Message</th>
-                    <th className="text-left p-4 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLeads.map((lead: any) => {
-                    const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons];
-                    const statusColor = statusColors[lead.status as keyof typeof statusColors];
-
-                    return (
-                      <tr
-                        key={lead.id}
-                        className="border-b hover-elevate cursor-pointer"
-                        data-testid={`row-lead-${lead.id}`}
-                      >
-                        <td className="p-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedLeads.has(lead.id)}
-                            onChange={() => toggleLeadSelection(lead.id)}
-                            className="rounded"
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`checkbox-lead-${lead.id}`}
-                          />
-                        </td>
-                        <td className="p-4">
-                          <div>
-                            <Link href={`/dashboard/conversations?lead=${lead.id}`}>
-                              <a className="font-medium hover:text-primary" data-testid={`link-lead-${lead.id}`}>
-                                {lead.name}
-                              </a>
-                            </Link>
+            <table className="w-full">
+              <thead className="border-b">
+                <tr>
+                  <th className="p-4 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedLeads.size === filteredLeads.length && filteredLeads.length > 0}
+                      onChange={toggleSelectAll}
+                      data-testid="checkbox-select-all"
+                    />
+                  </th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Name</th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Channel</th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Score</th>
+                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">Last Message</th>
+                  <th className="p-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLeads.map((lead: any, index) => {
+                  const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons];
+                  const statusColor = statusColors[lead.status as keyof typeof statusColors];
+                  return (
+                    <motion.tr
+                      key={lead.id}
+                      className="border-b hover:bg-muted/50 transition-colors"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                      data-testid={`lead-row-${index}`}
+                    >
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedLeads.has(lead.id)}
+                          onChange={() => toggleLeadSelection(lead.id)}
+                          data-testid={`checkbox-lead-${index}`}
+                        />
+                      </td>
+                      <td className="p-4">
+                        <Link href={`/dashboard/conversations/${lead.id}`}>
+                          <div className="hover:underline cursor-pointer">
+                            <p className="font-medium" data-testid={`text-lead-name-${index}`}>{lead.name}</p>
                             {lead.email && (
                               <p className="text-sm text-muted-foreground">{lead.email}</p>
                             )}
                           </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <ChannelIcon className="h-4 w-4 text-muted-foreground" />
-                            <span className="capitalize text-sm">{lead.channel}</span>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <Badge variant="outline" className={statusColor}>
-                            {lead.status.replace("_", " ")}
-                          </Badge>
-                        </td>
-                        <td className="p-4">
-                          <span className={`font-medium ${getScoreColor(lead.score || lead.leadScore || 0)}`}>
-                            {lead.score || lead.leadScore || 0}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="max-w-xs">
-                            {lead.lastMessageAt && (
-                              <p className="text-sm text-muted-foreground">
-                                {formatDate(lead.lastMessageAt)}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" data-testid={`button-actions-${lead.id}`}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem data-testid={`menu-item-view-${lead.id}`}>
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem data-testid={`menu-item-tag-${lead.id}`}>
-                                Add Tag
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-500" data-testid={`menu-item-archive-${lead.id}`}>
-                                Archive
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </Link>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <ChannelIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm capitalize">{lead.channel}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <Badge variant="secondary" className={statusColor} data-testid={`badge-status-${index}`}>
+                          {lead.status.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="p-4">
+                        <span className={`text-sm font-medium ${getScoreColor(lead.score || 0)}`}>
+                          {lead.score || 0}%
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-muted-foreground">
+                        {lead.lastMessageAt ? formatDate(lead.lastMessageAt) : "No messages"}
+                      </td>
+                      <td className="p-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" data-testid={`button-menu-${index}`}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/dashboard/conversations/${lead.id}`}>
+                                View Conversation
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>Add Tag</DropdownMenuItem>
+                            <DropdownMenuItem>Mark as Converted</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">Remove</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLeads.map((lead: any, index: number) => {
+          {filteredLeads.map((lead: any, index) => {
             const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons];
             const statusColor = statusColors[lead.status as keyof typeof statusColors];
-
             return (
               <motion.div
                 key={lead.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <Card className="hover-elevate" data-testid={`card-lead-${lead.id}`}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <Link href={`/dashboard/conversations?lead=${lead.id}`}>
-                          <a className="font-medium hover:text-primary">
-                            {lead.name}
-                          </a>
-                        </Link>
-                        {lead.email && (
-                          <p className="text-sm text-muted-foreground">{lead.email}</p>
-                        )}
+                <Card className="hover-elevate" data-testid={`card-lead-${index}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-muted">
+                          <ChannelIcon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <Link href={`/dashboard/conversations/${lead.id}`}>
+                            <p className="font-semibold hover:underline cursor-pointer" data-testid={`text-card-lead-name-${index}`}>
+                              {lead.name}
+                            </p>
+                          </Link>
+                          {lead.email && (
+                            <p className="text-sm text-muted-foreground">{lead.email}</p>
+                          )}
+                        </div>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={selectedLeads.has(lead.id)}
-                        onChange={() => toggleLeadSelection(lead.id)}
-                        className="rounded"
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" data-testid={`button-card-menu-${index}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/dashboard/conversations/${lead.id}`}>
+                              View Conversation
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Add Tag</DropdownMenuItem>
+                          <DropdownMenuItem>Mark as Converted</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">Remove</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1">
-                        <ChannelIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="capitalize text-muted-foreground">{lead.channel}</span>
-                      </div>
-                      <Badge variant="outline" className={statusColor}>
-                        {lead.status.replace("_", " ")}
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className={statusColor} data-testid={`badge-card-status-${index}`}>
+                        {lead.status.replace('_', ' ')}
                       </Badge>
-                      <span className={`font-medium ml-auto ${getScoreColor(lead.score || lead.leadScore || 0)}`}>
-                        {lead.score || lead.leadScore || 0}
+                      <span className={`text-sm font-medium ${getScoreColor(lead.score || 0)}`}>
+                        Score: {lead.score || 0}%
                       </span>
                     </div>
 
-                    {lead.lastMessageAt && (
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(lead.lastMessageAt)}
-                      </p>
+                    {lead.tags && lead.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-3">
+                        {lead.tags.map((tag: string) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
+
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Last message: {lead.lastMessageAt ? formatDate(lead.lastMessageAt) : "No messages yet"}
+                    </div>
+
+                    <Link href={`/dashboard/conversations/${lead.id}`}>
+                      <Button className="w-full mt-3" variant="outline" data-testid={`button-view-conversation-${index}`}>
+                        <Phone className="h-4 w-4 mr-2" />
+                        View Conversation
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </motion.div>
             );
           })}
         </div>
-      )}
-
-      {filteredLeads.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Filter className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">No leads found</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Try adjusting your filters or search query
-            </p>
-          </CardContent>
-        </Card>
       )}
     </div>
   );
