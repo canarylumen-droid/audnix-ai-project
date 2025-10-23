@@ -1,378 +1,269 @@
-# Audnix AI - Production SaaS Platform
+# Audnix AI - SaaS Platform (MVP Foundation)
 
-> **Enterprise-ready SaaS platform for autonomous AI follow-up automation across Instagram, WhatsApp, and Email with voice messaging, analytics, and Stripe billing.**
+> **MVP foundation for a SaaS platform that will provide AI follow-up automation across Instagram, WhatsApp, and Email. Complete UI and backend libraries built. Database integration and API connection pending.**
 
-## 🚀 Features
+⚠️ **Current Status**: This is an **MVP foundation with mocked data**. The frontend UI is complete, backend libraries are implemented, and database schema is ready. However, **Supabase integration, session management, and frontend-backend connection are not yet implemented**. Data is currently stored in memory and will be lost on restart.
 
-### Core Platform
-- **Multi-channel Communication**: Instagram DM, WhatsApp, Gmail integration
-- **AI-Powered Replies**: OpenAI GPT-4 for intelligent message generation
-- **Voice Messaging**: ElevenLabs voice cloning and synthesis
-- **Real-time Analytics**: Comprehensive insights and performance tracking
-- **Stripe Billing**: Subscriptions, usage tracking, and top-ups
-- **Supabase Auth**: Google and Apple OAuth integration
-- **Production Security**: AES-256-GCM encryption, RLS policies, secure token storage
+## ✅ What's Actually Built
 
-### Complete Dashboard
-- **Home**: Animated KPI cards, activity feed, quick actions
-- **Inbox**: Table/card views, search, filters, bulk actions, trial limits
-- **Conversations**: Unified chat, AI composer, timeline, voice messages
-- **Deals**: Conversion board with value tracking
-- **Calendar**: Google/Outlook sync, meeting management
-- **Integrations**: OAuth setup for all channels, voice clone
-- **Insights**: AI-generated summaries, charts, conversion funnel
-- **Pricing**: Three tiers ($49/$99/$199), top-ups, FAQ
-- **Settings**: Profile, security, team, webhooks, API keys
-- **Admin**: Metrics, user stats, recent signups
+### Frontend UI (100% Complete - Demo Data)
+- **Landing Page**: Premium design with animations, real-time counter, Supabase OAuth
+- **Dashboard UI (10 Pages)**: Complete interfaces using demo data
+  - Home, Inbox, Conversations, Deals, Calendar, Integrations, Insights, Pricing, Settings, Admin
+- **Authentication UI**: Google & Apple OAuth login flows via Supabase
+- **Design System**: Dark gradient theme, electric blue accents, glassmorphism
+
+### Backend Libraries (Foundation Only - Not Connected)
+- **✅ Encryption Library**: AES-256-GCM implementation (`server/lib/crypto/encryption.ts`)
+- **✅ OpenAI Wrapper**: Chat, embeddings, classification functions (`server/lib/ai/openai.ts`)
+- **✅ Stripe Wrapper**: Subscription and billing utilities (`server/lib/billing/stripe.ts`)
+- **✅ Provider Wrappers**: Instagram, WhatsApp, Gmail, ElevenLabs stubs (`server/lib/providers/`)
+- **⚠️ API Routes**: All endpoints defined but use in-memory MemStorage (`server/routes.ts`)
+- **⚠️ TypeScript Schemas**: Zod validation defined (`shared/schema.ts`)
+
+### Database Schema (SQL Ready - Not Integrated)
+- **✅ 18 Tables Defined**: Complete SQL with RLS policies (`migrations/002_audnix_schema.sql`)
+- **⚠️ Not Connected**: Schema exists but backend doesn't use it yet
+- **Need**: Supabase storage implementation with camelCase↔snake_case serialization
+
+### Documentation
+- ✅ Design guidelines
+- ✅ Database migrations
+- ✅ Environment variable reference
+- ✅ API endpoint documentation
+
+## 🚧 What's NOT Built (Critical Gaps)
+
+### Must Implement for Production
+1. **❌ Supabase Storage Layer**
+   - Current: Uses in-memory `MemStorage` (data lost on restart)
+   - Need: Real Supabase queries with field serialization
+   - Impact: All data is ephemeral
+
+2. **❌ Session Management**
+   - Current: Mock user IDs hardcoded in routes
+   - Need: Real session middleware and auth guards
+   - Impact: No actual user authentication in API
+
+3. **❌ Frontend-Backend Integration**
+   - Current: Dashboard uses static demo data
+   - Need: TanStack Query calls to backend APIs
+   - Impact: UI not connected to real data
+
+4. **❌ Provider OAuth Flows**
+   - Current: UI shows integration screens, no real OAuth
+   - Need: Implement actual Instagram/WhatsApp/Gmail OAuth
+   - Impact: Cannot actually connect accounts
+
+5. **❌ AI Message Generation**
+   - Current: OpenAI wrapper exists, not used in conversation threads
+   - Need: Integrate AI reply generation into message sending
+   - Impact: No automated responses
 
 ## 📦 Tech Stack
 
 ### Frontend
 - React 18 + TypeScript + Vite
 - Wouter routing
-- TanStack Query for state management
+- TanStack Query (configured, not yet used for real data)
 - Shadcn UI + Tailwind CSS
-- Framer Motion animations
-- Supabase for auth and realtime
+- Framer Motion
+- Supabase client (auth working, data queries not implemented)
 
 ### Backend
 - Express.js + TypeScript
-- Supabase PostgreSQL with pgvector
-- OpenAI GPT-4 + embeddings
-- Stripe billing and subscriptions
-- ElevenLabs voice synthesis
-- AES-256-GCM encryption
+- **⚠️ MemStorage** (in-memory only, NOT production-ready)
+- OpenAI library (wrapper ready, not integrated)
+- Stripe SDK (wrapper ready, not integrated)
+- Encryption library (ready, not used for real tokens yet)
 
-### Infrastructure
-- Replit hosting and deployment
-- Supabase database and auth
-- Stripe payment processing
-- Provider APIs: Instagram Graph API, WhatsApp Cloud API, Gmail API
+## 🛠️ Quick Start
 
-## 🛠️ Setup Instructions
+### 1. Install & Run
 
-### 1. Install Dependencies
+```bash
+npm install
+npm run dev
+```
 
-Replit handles this automatically when you run the project.
+Server starts on port 5000.
 
-### 2. Configure Environment Variables
+### 2. What You'll See
 
-Set these in Replit Secrets (🔒 icon):
+- **Landing Page** (`/`): Working with real Supabase OAuth
+- **Dashboard** (`/dashboard/*`): Complete UI with demo data
+- **API Health Check** (`/api/health`): Responds but uses MemStorage
 
-**Required:**
+### 3. Environment Variables (Optional)
+
+For testing OAuth and external APIs:
+
 ```env
-# Supabase Configuration
+# Supabase (Required for OAuth)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# OpenAI
-OPENAI_API_KEY=sk-your-openai-key
+# OpenAI (Optional - for testing AI wrappers)
+OPENAI_API_KEY=sk-your-key
 
-# Stripe
-VITE_STRIPE_PUBLIC_KEY=pk_live_your-key
-STRIPE_SECRET_KEY=sk_live_your-key
-STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+# Stripe (Optional - for testing billing wrappers)
+VITE_STRIPE_PUBLIC_KEY=pk_test_your-key
+STRIPE_SECRET_KEY=sk_test_your-key
 
-# Security
-ENCRYPTION_KEY=your-64-char-hex-key
-SESSION_SECRET=your-session-secret
+# Demo Mode (shows landing page with mock data)
+NEXT_PUBLIC_DEMO=true
 ```
 
-**Optional (for full functionality):**
-```env
-# Voice
-ELEVENLABS_API_KEY=your-elevenlabs-key
+## 📊 Database Schema (Defined, Not Used)
 
-# WhatsApp
-WHATSAPP_TOKEN=your-whatsapp-token
-WHATSAPP_PHONE_ID=your-phone-number-id
+18 tables defined in `migrations/002_audnix_schema.sql`:
+- users, admin_whitelist, integrations, leads, messages, followup_jobs
+- automations, uploads, brand_embeddings, semantic_memory, memory
+- usage_metrics, usage_topups, usage_purchases, usage_logs
+- auth_events, api_keys, admin_metrics
 
-# Instagram
-INSTAGRAM_APP_ID=your-instagram-app-id
-INSTAGRAM_APP_SECRET=your-instagram-app-secret
+**Status**: SQL is production-ready. Backend doesn't connect to it yet.
 
-# Gmail/Outlook OAuth
-GMAIL_CLIENT_ID=your-gmail-client-id
-GMAIL_CLIENT_SECRET=your-gmail-client-secret
-OUTLOOK_CLIENT_ID=your-outlook-client-id
-OUTLOOK_CLIENT_SECRET=your-outlook-client-secret
+## 📚 API Endpoints (Defined, Using MemStorage)
 
-# Stripe Price IDs
-STRIPE_PRICE_ID_MONTHLY_49=price_starter
-STRIPE_PRICE_ID_MONTHLY_99=price_pro
-STRIPE_PRICE_ID_MONTHLY_199=price_enterprise
-STRIPE_PRICE_TOPUP_LEADS_1000=price_leads_1000
-STRIPE_PRICE_TOPUP_LEADS_2500=price_leads_2500
-STRIPE_PRICE_TOPUP_VOICE_100=price_voice_100
-STRIPE_PRICE_TOPUP_VOICE_500=price_voice_500
-```
+⚠️ **All endpoints currently use in-memory storage. Data is lost on restart.**
 
-### 3. Set Up Supabase Database
+### Implemented Routes
+- `GET /api/health` - Health check
+- `GET /api/leads` - List leads (MemStorage only)
+- `PATCH /api/leads/:id` - Update lead (MemStorage only)
+- `GET /api/leads/:leadId/messages` - Get messages (MemStorage only)
+- `POST /api/leads/:leadId/messages` - Send message (MemStorage only)
+- `GET /api/integrations` - List integrations (MemStorage only)
+- `GET /api/insights/summary` - AI insights (mock data)
+- `GET /api/billing/plans` - Stripe plans (not integrated)
 
-1. Go to your Supabase project SQL Editor
-2. Enable pgvector extension:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-3. Run the complete migration from `migrations/002_audnix_schema.sql`
-4. Verify all 18 tables were created successfully
-
-### 4. Configure Stripe Products
-
-1. Go to [Stripe Dashboard → Products](https://dashboard.stripe.com/products)
-2. Create subscription products:
-   - **Starter**: $49/month → Copy Price ID to `STRIPE_PRICE_ID_MONTHLY_49`
-   - **Pro**: $99/month → Copy Price ID to `STRIPE_PRICE_ID_MONTHLY_99`
-   - **Enterprise**: $199/month → Copy Price ID to `STRIPE_PRICE_ID_MONTHLY_199`
-3. Create top-up products (one-time payments):
-   - 1000 leads @ $25
-   - 2500 leads @ $50
-   - 100 voice seconds @ $15
-   - 500 voice seconds @ $60
-4. Set up webhook endpoint in Stripe Dashboard:
-   - URL: `https://your-app.replit.app/api/billing/webhook`
-   - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-   - Copy webhook secret to `STRIPE_WEBHOOK_SECRET`
-
-### 5. Configure OAuth Providers
-
-**Supabase (Google & Apple):**
-1. Go to Supabase Authentication → Providers
-2. Enable Google and Apple OAuth
-3. Add redirect URL: `https://your-app.replit.app/api/auth/callback`
-
-**Instagram:**
-1. Create Facebook App at [developers.facebook.com](https://developers.facebook.com)
-2. Add Instagram Graph API product
-3. Get Page access token and Page ID
-4. Store credentials via Dashboard → Integrations
-
-**WhatsApp:**
-1. Create WhatsApp Business Account in Meta Business Suite
-2. Get API token and phone number ID
-3. Configure webhook URL: `https://your-app.replit.app/api/webhooks/whatsapp`
-
-**Gmail:**
-1. Create project in Google Cloud Console
-2. Enable Gmail API
-3. Create OAuth 2.0 credentials
-4. Add redirect URI: `https://your-app.replit.app/api/integrations/gmail/callback`
-
-### 6. Run the Application
-
-```bash
-npm run dev
-```
-
-Server will start on port 5000. Visit `https://your-replit-url.replit.app`
-
-## 📊 Database Schema
-
-**18 Production Tables:**
-
-| Table | Purpose |
-|-------|---------|
-| `users` | User accounts with Stripe subscription data |
-| `admin_whitelist` | Admin access control |
-| `integrations` | Encrypted provider credentials (Instagram, WhatsApp, Gmail) |
-| `leads` | Contact/lead management with scoring |
-| `messages` | Multi-channel conversation history |
-| `followup_jobs` | Scheduled AI follow-up tasks |
-| `automations` | User-defined automation rules |
-| `uploads` | PDF/voice/CSV file ingestion tracking |
-| `brand_embeddings` | pgvector brand knowledge base |
-| `semantic_memory` | pgvector conversation context |
-| `memory` | Key-value cache store |
-| `usage_metrics` | Monthly aggregated usage stats |
-| `usage_topups` | Top-up purchase records |
-| `usage_purchases` | Stripe payment event log |
-| `usage_logs` | Granular usage tracking |
-| `auth_events` | Authentication audit trail |
-| `api_keys` | API key management |
-| `admin_metrics` | Platform-wide metrics |
-
-All tables include:
-- RLS (Row Level Security) policies
-- Proper indexes for performance
-- Foreign key relationships
-- Timestamps for auditing
-
-## 🔐 Security Features
-
-- **Encryption**: AES-256-GCM for all provider tokens and sensitive data
-- **RLS Policies**: Row-level security ensures users only access their own data
-- **OAuth**: Secure authentication via Supabase with Google and Apple
-- **Webhook Verification**: Stripe signature validation
-- **API Keys**: Hashed storage with revocation support
-- **Secret Management**: Replit Secrets for environment variables
-- **HTTPS**: All API calls over secure connections
+**To make these production-ready:**
+1. Implement Supabase storage layer
+2. Add session authentication
+3. Connect OpenAI and Stripe wrappers
+4. Implement real provider integrations
 
 ## 🎨 Design System
 
 - **Theme**: Dark gradient (`#0a0f1f` → `#020409`)
-- **Primary**: Electric Blue (`#00aaff`) - No purple allowed per requirements
-- **Alternative**: Emerald Green (`#00c896`)
-- **Typography**: Inter font family from Google Fonts
-- **Effects**: Glassmorphism, subtle glow, smooth Framer Motion animations
-- **Components**: Shadcn UI with custom theme overrides
-- **Icons**: Lucide React + React Icons for company logos
+- **Primary**: Electric Blue (`#00aaff`)
+- **NO PURPLE**: Per requirements
+- **Typography**: Inter font
+- **Effects**: Glassmorphism, subtle animations
+- **Components**: Shadcn UI
 
-## 📚 API Documentation
-
-### Authentication
-- `GET /api/auth/callback` - OAuth callback handler
-- `POST /api/users` - Create or update user after auth
-- `GET /api/health` - Health check
-
-### Leads & Messages
-- `GET /api/leads` - List leads with filtering (status, channel, search)
-- `GET /api/leads/:id` - Get single lead details
-- `PATCH /api/leads/:id` - Update lead information
-- `GET /api/leads/:leadId/messages` - Get conversation history
-- `POST /api/leads/:leadId/messages` - Send new message
-
-### Integrations
-- `GET /api/integrations` - List connected accounts
-- `POST /api/integrations/:provider/connect` - Connect provider (encrypted storage)
-- `POST /api/integrations/:provider/disconnect` - Disconnect provider
-
-### Insights & Analytics
-- `GET /api/insights/summary` - AI-generated performance insights
-- `GET /api/insights/metrics` - Dashboard KPI data
-
-### Billing (Stripe)
-- `GET /api/billing/plans` - Available subscription plans
-- `POST /api/billing/subscribe` - Create subscription (returns client secret)
-- `POST /api/billing/topup` - Create top-up checkout session
-- `POST /api/billing/webhook` - Stripe webhook handler (signature verified)
-
-### Settings & Admin
-- `GET /api/settings` - Get user settings
-- `PATCH /api/settings` - Update user settings
-- `GET /api/admin/metrics` - Platform metrics (admin only)
-
-## 🧪 Demo Mode
-
-Enable demo mode to test without external API calls:
-
-```env
-NEXT_PUBLIC_DEMO=true
-DISABLE_EXTERNAL_API=true
-```
-
-This provides:
-- Mock OpenAI responses
-- Mock Stripe payments
-- Simulated provider integrations
-- No real charges or API consumption
-
-## 🚀 Deployment
-
-### Replit Deployment
-1. Click "Publish" button in Replit
-2. Configure custom domain (optional)
-3. Set all production environment variables in Secrets
-4. Enable auto-deployment from main branch
-
-### Production Checklist
-- [ ] All Supabase migrations run successfully
-- [ ] Stripe products created and price IDs configured
-- [ ] OAuth providers enabled and redirect URLs set
-- [ ] Webhook endpoints configured in Stripe
-- [ ] Environment variables set in production
-- [ ] Database backups enabled in Supabase
-- [ ] SSL/TLS certificates active
-- [ ] Error monitoring configured
-
-## 📖 Additional Documentation
-
-- `design_guidelines.md` - Complete design specifications and component guidelines
-- `migrations/002_audnix_schema.sql` - Full database schema with RLS policies
-- `.env.example` - Environment variable reference with all options
-- `replit.md` - Project overview, architecture, and user preferences
-
-## 🔧 Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run development server (starts Express + Vite)
-npm run dev
-
-# Build for production
-npm run build
-
-# Type check
-npx tsc --noEmit
-```
-
-## 📝 Project Structure
+## 📁 Project Structure
 
 ```
-├── client/                     # Frontend React app
-│   ├── src/
-│   │   ├── components/         # Reusable UI components
-│   │   │   ├── ui/            # Shadcn UI primitives
-│   │   │   └── dashboard/     # Dashboard-specific components
-│   │   ├── pages/             # Page components
-│   │   │   ├── landing.tsx    # Marketing landing page
-│   │   │   ├── auth.tsx       # Authentication page
-│   │   │   └── dashboard/     # Dashboard pages (10 pages)
-│   │   ├── data/              # Demo data (leads, messages)
-│   │   ├── lib/               # Utilities and configurations
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── index.css          # Global styles and design tokens
-│   │   └── App.tsx            # Root application component
-│   └── index.html
-├── server/                     # Backend Express app
-│   ├── lib/                   # Backend libraries
-│   │   ├── ai/               # OpenAI integration
-│   │   ├── billing/          # Stripe integration
-│   │   ├── crypto/           # Encryption utilities
-│   │   └── providers/        # Provider wrappers (Instagram, WhatsApp, etc.)
-│   ├── routes.ts              # API route definitions
-│   ├── storage.ts             # Storage interface (MemStorage/Supabase)
-│   └── index.ts               # Server entry point
-├── shared/                     # Shared TypeScript types
-│   └── schema.ts              # Data models and Zod schemas
-├── migrations/                 # Database migrations
-│   └── 002_audnix_schema.sql
-├── scripts/                    # Utility scripts
-└── README.md
+├── client/src/
+│   ├── pages/
+│   │   ├── landing.tsx            # ✅ Working
+│   │   ├── auth.tsx               # ✅ OAuth working
+│   │   └── dashboard/             # ✅ UI complete (demo data)
+│   │       ├── home.tsx           # ✅ Complete UI
+│   │       ├── inbox.tsx          # ✅ Complete UI
+│   │       ├── conversations.tsx  # ✅ Complete UI
+│   │       └── ...                # ✅ 7 more pages
+│   └── data/                      # Demo JSON data
+├── server/
+│   ├── lib/
+│   │   ├── crypto/                # ✅ Encryption ready
+│   │   ├── ai/                    # ✅ OpenAI wrapper ready
+│   │   ├── billing/               # ✅ Stripe wrapper ready
+│   │   └── providers/             # ✅ Provider stubs ready
+│   ├── routes.ts                  # ⚠️ Uses MemStorage
+│   ├── storage.ts                 # ⚠️ In-memory only
+│   └── index.ts                   # ✅ Server running
+├── migrations/
+│   └── 002_audnix_schema.sql      # ✅ SQL ready
+└── shared/
+    └── schema.ts                  # ✅ Types defined
 ```
 
-## 🐛 Troubleshooting
+**Legend**: 
+- ✅ = Implementation complete
+- ⚠️ = Partial/stub implementation
+- ❌ = Not implemented
 
-**OAuth not working?**
-- Verify redirect URLs match in Supabase and your deployment URL
-- Check OAuth providers are enabled in Supabase dashboard
-- Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are correct
+## 🧪 Testing
 
-**Stripe webhooks failing?**
-- Verify webhook secret is correct
-- Check webhook endpoint is publicly accessible
-- Test webhook with Stripe CLI: `stripe listen --forward-to localhost:5000/api/billing/webhook`
+### What Works Now
+- Landing page with animations
+- OAuth login with Google/Apple
+- Dashboard UI navigation (all 10 pages)
+- Demo data display in all views
 
-**Provider integrations not connecting?**
-- Check `ENCRYPTION_KEY` is set (used for token storage)
-- Verify provider credentials are valid
-- Check provider API rate limits
+### What Doesn't Work
+- Data persistence (uses memory, resets on restart)
+- Real user sessions (mock IDs only)
+- Provider integrations (UI only, no OAuth)
+- AI message generation (wrapper exists, not used)
+- Stripe billing (wrapper exists, not integrated)
 
-**Database errors?**
-- Verify all migrations ran successfully in Supabase SQL Editor
-- Check RLS policies are enabled
-- Ensure service role key has proper permissions
+## 🚀 Roadmap to Production
 
-## 📞 Support
+### Phase 1: Database Integration (Next)
+- [ ] Implement Supabase storage layer
+- [ ] Add camelCase↔snake_case serialization
+- [ ] Test all CRUD operations
+- [ ] Replace MemStorage in routes
 
-For issues or questions:
-1. Review documentation in `design_guidelines.md`
-2. Check environment variables match `.env.example`
-3. Verify database migrations completed
-4. Check browser console and server logs
-5. Test with demo mode enabled first
+### Phase 2: Authentication
+- [ ] Implement session middleware
+- [ ] Add auth guards to routes
+- [ ] Replace mock user IDs
+
+### Phase 3: Frontend Connection
+- [ ] Connect dashboard to real APIs
+- [ ] Add loading and error states
+- [ ] Implement real-time updates
+
+### Phase 4: Integrations
+- [ ] Instagram OAuth + message sync
+- [ ] WhatsApp OAuth + message sync
+- [ ] Gmail OAuth + message sync
+- [ ] ElevenLabs voice synthesis
+
+### Phase 5: AI Features
+- [ ] AI reply generation in conversations
+- [ ] Automated follow-ups
+- [ ] Weekly insights reports
+
+## 📝 Current Limitations
+
+**Data Storage**
+- All data stored in memory
+- Lost on server restart
+- Not shared across instances
+
+**Authentication**
+- Landing page OAuth works
+- API routes use mock user IDs
+- No session persistence
+
+**Provider Integrations**
+- UI shows connection screens
+- No real OAuth flows
+- No message syncing
+
+**AI Features**
+- OpenAI wrapper exists
+- Not integrated into conversations
+- No automated responses
+
+**Billing**
+- Stripe wrapper exists
+- No subscription handling
+- No usage tracking
+
+## 📖 Documentation
+
+- `design_guidelines.md` - Complete UI specifications
+- `migrations/002_audnix_schema.sql` - Database schema
+- `replit.md` - Architecture overview
+- This README - Current status
 
 ## 📄 License
 
@@ -380,4 +271,6 @@ Proprietary - All rights reserved © 2025 Audnix AI
 
 ---
 
-**Built with ❤️ using Replit, Supabase, OpenAI, Stripe, and ElevenLabs**
+**Summary**: Complete UI foundation with backend libraries ready for integration. Database schema defined. Needs Supabase implementation, session management, and API connection to become production-ready.
+
+**Built with**: React, Supabase (auth only), OpenAI (wrapper), Stripe (wrapper)
