@@ -87,6 +87,7 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
       }, {
         onConflict: 'user_id,provider'
       });
+    }
 
     res.redirect('/dashboard/integrations?success=instagram_connected');
   } catch (error) {
@@ -118,6 +119,7 @@ router.post('/oauth/instagram/disconnect', async (req: Request, res: Response) =
       })
       .eq('user_id', userId)
       .eq('provider', 'instagram');
+    }
 
     res.json({ success: true });
   } catch (error) {
