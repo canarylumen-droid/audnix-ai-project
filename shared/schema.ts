@@ -14,6 +14,8 @@ export const userSchema = z.object({
   trialExpiresAt: z.date().nullable(),
   replyTone: z.enum(["friendly", "professional", "short"]).default("professional"),
   role: z.enum(["admin", "member"]).default("member"),
+  stripeCustomerId: z.string().nullable(),
+  stripeSubscriptionId: z.string().nullable(),
   createdAt: z.date(),
   lastLogin: z.date().nullable(),
 });
