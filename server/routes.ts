@@ -499,6 +499,204 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== File Upload API ====================
+  
+  const { uploadVoice, uploadPDF, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } = require("./lib/file-upload");
+
+  // Upload voice sample for ElevenLabs voice cloning
+  app.post("/api/uploads/voice", uploadVoice.single("voice"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // TODO: Get userId from session
+      const mockUserId = "mock_user_1";
+
+      // Upload to Supabase Storage
+      const fileUrl = await uploadToSupabase(
+        "voice-samples",
+        `${mockUserId}/${Date.now()}-${req.file.originalname}`,
+        req.file.path
+      );
+
+      // Store voice sample record
+      await storeVoiceSample(mockUserId, fileUrl, req.file.originalname);
+
+      res.json({
+        success: true,
+        fileUrl,
+        fileName: req.file.originalname,
+      });
+    } catch (error: any) {
+      console.error("Error uploading voice:", error);
+      res.status(500).json({ error: error.message || "Failed to upload voice sample" });
+    }
+  });
+
+  // Upload PDF for brand knowledge embeddings
+  app.post("/api/uploads/pdf", uploadPDF.single("pdf"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // TODO: Get userId from session
+      const mockUserId = "mock_user_1";
+
+      // Upload to Supabase Storage
+      const fileUrl = await uploadToSupabase(
+        "documents",
+        `${mockUserId}/${Date.now()}-${req.file.originalname}`,
+        req.file.path
+      );
+
+      // Queue PDF processing for embeddings
+      await processPDFEmbeddings(mockUserId, fileUrl, req.file.originalname);
+
+      res.json({
+        success: true,
+        fileUrl,
+        fileName: req.file.originalname,
+        status: "processing",
+      });
+    } catch (error: any) {
+      console.error("Error uploading PDF:", error);
+      res.status(500).json({ error: error.message || "Failed to upload PDF" });
+    }
+  });
+
+  // ==================== Provider OAuth API ====================
+
+  // Instagram OAuth initiation
+  app.post("/api/integrations/instagram/connect", async (req, res) => {
+    try {
+      const { accessToken, pageId, pageName } = req.body;
+
+      if (!accessToken || !pageId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // TODO: Get userId from session
+      const mockUserId = "mock_user_1";
+
+      // Encrypt and store credentials
+      const { encrypt } = require("./lib/crypto/encryption");
+      const encryptedMeta = encrypt(JSON.stringify({
+        accessToken,
+        pageId,
+        pageName,
+      }));
+
+      const integration = await storage.createIntegration({
+        userId: mockUserId,
+        provider: "instagram",
+        encryptedMeta,
+        connected: true,
+        accountType: pageName || "Instagram Business",
+      });
+
+      res.json({
+        success: true,
+        integration: {
+          id: integration.id,
+          provider: integration.provider,
+          connected: integration.connected,
+          accountType: integration.accountType,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error connecting Instagram:", error);
+      res.status(500).json({ error: "Failed to connect Instagram" });
+    }
+  });
+
+  // WhatsApp OAuth initiation
+  app.post("/api/integrations/whatsapp/connect", async (req, res) => {
+    try {
+      const { phoneNumberId, accessToken, phoneNumber } = req.body;
+
+      if (!phoneNumberId || !accessToken) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // TODO: Get userId from session
+      const mockUserId = "mock_user_1";
+
+      // Encrypt and store credentials
+      const { encrypt } = require("./lib/crypto/encryption");
+      const encryptedMeta = encrypt(JSON.stringify({
+        phoneNumberId,
+        accessToken,
+        phoneNumber,
+      }));
+
+      const integration = await storage.createIntegration({
+        userId: mockUserId,
+        provider: "whatsapp",
+        encryptedMeta,
+        connected: true,
+        accountType: phoneNumber || "WhatsApp Business",
+      });
+
+      res.json({
+        success: true,
+        integration: {
+          id: integration.id,
+          provider: integration.provider,
+          connected: integration.connected,
+          accountType: integration.accountType,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error connecting WhatsApp:", error);
+      res.status(500).json({ error: "Failed to connect WhatsApp" });
+    }
+  });
+
+  // Gmail OAuth initiation
+  app.post("/api/integrations/gmail/connect", async (req, res) => {
+    try {
+      const { accessToken, refreshToken, email } = req.body;
+
+      if (!accessToken || !email) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // TODO: Get userId from session
+      const mockUserId = "mock_user_1";
+
+      // Encrypt and store credentials
+      const { encrypt } = require("./lib/crypto/encryption");
+      const encryptedMeta = encrypt(JSON.stringify({
+        accessToken,
+        refreshToken,
+        email,
+      }));
+
+      const integration = await storage.createIntegration({
+        userId: mockUserId,
+        provider: "gmail",
+        encryptedMeta,
+        connected: true,
+        accountType: email,
+      });
+
+      res.json({
+        success: true,
+        integration: {
+          id: integration.id,
+          provider: integration.provider,
+          connected: integration.connected,
+          accountType: integration.accountType,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error connecting Gmail:", error);
+      res.status(500).json({ error: "Failed to connect Gmail" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

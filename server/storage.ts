@@ -227,4 +227,13 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Try to use Supabase storage if available, fall back to MemStorage
+import { supabaseStorage } from "./supabase-storage";
+
+export const storage: IStorage = supabaseStorage || new MemStorage();
+
+if (supabaseStorage) {
+  console.log("✓ Using Supabase storage (production mode)");
+} else {
+  console.log("⚠ Using MemStorage (development mode - data will be lost on restart)");
+}
