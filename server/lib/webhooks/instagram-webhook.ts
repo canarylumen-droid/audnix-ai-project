@@ -110,6 +110,11 @@ async function processInstagramMessage(message: any) {
     if (!messageText) return;
 
     // Find user by Instagram page ID
+    if (!supabaseAdmin) {
+      console.error('Supabase admin not configured');
+      return;
+    }
+
     const { data: integration } = await supabaseAdmin
       .from('integrations')
       .select('user_id')
@@ -209,7 +214,7 @@ async function processInstagramMessage(message: any) {
       .from('leads')
       .update({
         status: newStatus,
-        tags: [...new Set(newTags)],
+        tags: Array.from(new Set(newTags)),
         last_message_at: new Date().toISOString(),
         lead_score: calculateLeadScore(intent, lead),
         intent_analysis: intent
@@ -260,6 +265,11 @@ async function processInstagramComment(comment: any) {
     const { from, text, media } = comment;
     
     // Find user by Instagram account
+    if (!supabaseAdmin) {
+      console.error('Supabase admin not configured');
+      return;
+    }
+
     const { data: integration } = await supabaseAdmin
       .from('integrations')
       .select('user_id')
@@ -340,6 +350,11 @@ async function processInstagramComment(comment: any) {
 async function fetchInstagramProfile(userId: string, appUserId: string): Promise<any> {
   try {
     // Get access token
+    if (!supabaseAdmin) {
+      console.error('Supabase admin not configured');
+      return { username: 'Instagram User' };
+    }
+
     const { data: tokenData } = await supabaseAdmin
       .from('oauth_tokens')
       .select('access_token')
@@ -424,6 +439,11 @@ function getSmartScheduleTime(intent: any, lead: any): string {
 async function scheduleCalendarMeeting(lead: any, userId: string) {
   // This will be implemented with Google Calendar API
   // For now, we'll create a calendar event record
+  if (!supabaseAdmin) {
+    console.error('Supabase admin not configured');
+    return;
+  }
+
   await supabaseAdmin
     .from('calendar_events')
     .insert({

@@ -1,7 +1,7 @@
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 import { supabaseAdmin } from '../supabase-admin';
 
-interface IntentAnalysis {
+export interface IntentAnalysis {
   isInterested: boolean;
   isNegative: boolean;
   hasQuestion: boolean;
@@ -15,11 +15,9 @@ interface IntentAnalysis {
   keywords: string[];
 }
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
 });
-
-const openai = new OpenAIApi(configuration);
 
 /**
  * Analyze lead message intent using GPT-4
@@ -30,12 +28,14 @@ export async function analyzeLeadIntent(
 ): Promise<IntentAnalysis> {
   try {
     // Get conversation history for context
-    const { data: history } = await supabaseAdmin
-      .from('messages')
-      .select('content, role')
-      .eq('lead_id', lead.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const { data: history } = supabaseAdmin ? 
+      await supabaseAdmin
+        .from('messages')
+        .select('content, role')
+        .eq('lead_id', lead.id)
+        .order('created_at', { ascending: false })
+        .limit(5) :
+      { data: null };
 
     const conversationContext = history?.map(m => 
       `${m.role === 'user' ? 'Lead' : 'Agent'}: ${m.content}`
@@ -82,8 +82,8 @@ Negative signals:
 
 Return ONLY valid JSON, no explanation.`;
 
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
@@ -95,10 +95,11 @@ Return ONLY valid JSON, no explanation.`;
         }
       ],
       temperature: 0.3,
-      max_tokens: 500
+      max_completion_tokens: 500,
+      response_format: { type: 'json_object' }
     });
 
-    const response = completion.data.choices[0].message?.content;
+    const response = completion.choices[0].message?.content;
     if (!response) {
       throw new Error('No response from OpenAI');
     }
@@ -107,14 +108,16 @@ Return ONLY valid JSON, no explanation.`;
     const analysis = JSON.parse(response) as IntentAnalysis;
     
     // Save analysis to lead record
-    await supabaseAdmin
-      .from('lead_analysis')
-      .insert({
-        lead_id: lead.id,
-        message,
-        analysis,
-        created_at: new Date().toISOString()
-      });
+    if (supabaseAdmin) {
+      await supabaseAdmin
+        .from('lead_analysis')
+        .insert({
+          lead_id: lead.id,
+          message,
+          analysis,
+          created_at: new Date().toISOString()
+        });
+    }
 
     return analysis;
 
@@ -187,12 +190,14 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
  */
 export async function shouldAutoConvert(lead: any): Promise<boolean> {
   // Get recent messages
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('content, role')
-    .eq('lead_id', lead.id)
-    .order('created_at', { ascending: false })
-    .limit(3);
+  const { data: messages } = supabaseAdmin ?
+    await supabaseAdmin
+      .from('messages')
+      .select('content, role')
+      .eq('lead_id', lead.id)
+      .order('created_at', { ascending: false })
+      .limit(3) :
+    { data: null };
 
   if (!messages || messages.length === 0) return false;
 
@@ -213,11 +218,13 @@ export async function suggestLeadTags(lead: any): Promise<string[]> {
   const tags: string[] = [];
   
   // Get all messages
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('content')
-    .eq('lead_id', lead.id)
-    .eq('role', 'user');
+  const { data: messages } = supabaseAdmin ?
+    await supabaseAdmin
+      .from('messages')
+      .select('content')
+      .eq('lead_id', lead.id)
+      .eq('role', 'user') :
+    { data: null };
 
   if (!messages || messages.length === 0) {
     return ['new', lead.channel];
@@ -247,7 +254,7 @@ export async function suggestLeadTags(lead: any): Promise<string[]> {
   // Always include channel
   tags.push(lead.channel);
   
-  return [...new Set(tags)];
+  return Array.from(new Set(tags));
 }
 
 /**
@@ -264,18 +271,22 @@ export async function calculateLeadQualityScore(lead: any): Promise<{
   recommendation: string;
 }> {
   // Get all interactions
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('content, role, created_at')
-    .eq('lead_id', lead.id)
-    .order('created_at', { ascending: false });
+  const { data: messages } = supabaseAdmin ?
+    await supabaseAdmin
+      .from('messages')
+      .select('content, role, created_at')
+      .eq('lead_id', lead.id)
+      .order('created_at', { ascending: false }) :
+    { data: null };
 
-  const { data: analyses } = await supabaseAdmin
-    .from('lead_analysis')
-    .select('analysis')
-    .eq('lead_id', lead.id)
-    .order('created_at', { ascending: false })
-    .limit(5);
+  const { data: analyses } = supabaseAdmin ?
+    await supabaseAdmin
+      .from('lead_analysis')
+      .select('analysis')
+      .eq('lead_id', lead.id)
+      .order('created_at', { ascending: false })
+      .limit(5) :
+    { data: null };
 
   // Calculate engagement score
   const messageCount = messages?.length || 0;

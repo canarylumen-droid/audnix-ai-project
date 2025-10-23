@@ -220,76 +220,84 @@ export default function IntegrationsPage() {
   };
 
   const handleConnect = async (provider: string) => {
-    if (provider === "instagram") {
-      // Use OAuth flow for Instagram
-      try {
-        // Get OAuth URL from backend
-        const response = await fetch("/api/connect/instagram", {
-          method: "GET",
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          throw new Error("Failed to get OAuth URL");
-        }
-        
-        const { authUrl } = await response.json();
-        
-        // Open OAuth URL in popup
-        const width = 600;
-        const height = 700;
-        const left = window.screen.width / 2 - width / 2;
-        const top = window.screen.height / 2 - height / 2;
-        
-        const popup = window.open(
-          authUrl,
-          "instagram-oauth",
-          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
-        );
-        
-        // Check if popup was blocked
-        if (!popup) {
-          // Fallback to redirect
-          window.location.href = authUrl;
-          return;
-        }
-        
-        // Poll to check if popup is closed and refresh data
-        const checkInterval = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkInterval);
-            // Refresh integrations data
-            queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-          }
-        }, 1000);
-      } catch (error) {
-        toast({
-          title: "Connection failed",
-          description: error instanceof Error ? error.message : "Failed to connect Instagram",
-          variant: "destructive",
-        });
-      }
-    } else if (provider === "whatsapp") {
-      // For WhatsApp, still use prompt for now (can be replaced with OAuth later)
-      const phoneNumberId = prompt("Enter WhatsApp Phone Number ID:");
-      const accessToken = prompt("Enter Access Token:");
-      const phoneNumber = prompt("Enter Phone Number:");
-      if (!phoneNumberId || !accessToken) return;
+    try {
+      // Get OAuth URL from backend for all providers
+      const response = await fetch(`/api/connect/${provider}`, {
+        method: "GET",
+        credentials: "include",
+      });
       
-      connectProviderMutation.mutate({ 
-        provider, 
-        credentials: {
-          phoneNumberId,
-          accessToken,
-          phoneNumber
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to connect ${provider}`);
+      }
+      
+      const { authUrl } = await response.json();
+      
+      if (!authUrl) {
+        throw new Error(`No authorization URL received for ${provider}`);
+      }
+      
+      // Open OAuth URL in popup
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      
+      const popup = window.open(
+        authUrl,
+        `${provider}-oauth`,
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=yes,status=yes`
+      );
+      
+      // Check if popup was blocked
+      if (!popup) {
+        // Fallback to redirect in same window
+        if (confirm(`Popup was blocked. Open ${provider} authorization in this window?`)) {
+          window.location.href = authUrl;
         }
-      });
-    } else if (provider === "gmail" || provider === "outlook") {
-      // For email providers, show a message
+        return;
+      }
+      
+      // Poll to check if popup is closed and refresh data
+      const checkInterval = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkInterval);
+          // Refresh integrations data after a short delay
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+            // Also check connection status
+            checkProviderStatus(provider);
+          }, 1500);
+        }
+      }, 1000);
+    } catch (error) {
       toast({
-        title: "Email OAuth Coming Soon",
-        description: `${provider} OAuth integration will be available soon`,
+        title: "Connection failed",
+        description: error instanceof Error ? error.message : `Failed to connect ${provider}`,
+        variant: "destructive",
       });
+    }
+  };
+
+  const checkProviderStatus = async (provider: string) => {
+    try {
+      const response = await fetch(`/api/oauth/${provider}/status`, {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.connected) {
+          toast({
+            title: `${provider} Connected`,
+            description: data.email || data.username || `Successfully connected to ${provider}`,
+          });
+        }
+      }
+    } catch (error) {
+      console.error(`Error checking ${provider} status:`, error);
     }
   };
 
