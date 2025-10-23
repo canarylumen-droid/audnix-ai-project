@@ -7,7 +7,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "mock-key", {
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2025-09-30.clover" as any,
 });
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";

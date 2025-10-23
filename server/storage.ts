@@ -20,7 +20,7 @@ export interface IStorage {
   
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
-  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; content: string }): Promise<Message>;
+  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
   
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
@@ -169,7 +169,7 @@ export class MemStorage implements IStorage {
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
-  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; content: string }): Promise<Message> {
+  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message> {
     const id = randomUUID();
     const now = new Date();
 
@@ -177,17 +177,10 @@ export class MemStorage implements IStorage {
       id,
       leadId: message.leadId,
       userId: message.userId,
-      channel: message.channel || "instagram",
+      provider: message.provider || "instagram",
       direction: message.direction,
-      content: message.content,
-      isAiGenerated: message.isAiGenerated || false,
-      hasVoiceNote: message.hasVoiceNote || false,
-      voiceNoteUrl: message.voiceNoteUrl || null,
-      voiceNoteDuration: message.voiceNoteDuration || null,
-      attachments: message.attachments || [],
-      status: message.status || "sent",
-      scheduledFor: message.scheduledFor || null,
-      sentAt: message.sentAt || now,
+      body: message.body,
+      audioUrl: message.audioUrl || null,
       metadata: message.metadata || {},
       createdAt: now,
     };
@@ -212,17 +205,11 @@ export class MemStorage implements IStorage {
       id,
       userId: integration.userId,
       provider: integration.provider as any,
-      isConnected: integration.isConnected ?? true,
-      accountName: integration.accountName || null,
-      accountId: integration.accountId || null,
-      lastSyncAt: integration.lastSyncAt || null,
-      messageVolume: integration.messageVolume || 0,
-      accessToken: integration.accessToken || null,
-      refreshToken: integration.refreshToken || null,
-      expiresAt: integration.expiresAt || null,
-      metadata: integration.metadata || {},
+      encryptedMeta: integration.encryptedMeta,
+      connected: integration.connected ?? true,
+      accountType: integration.accountType || null,
+      lastSync: integration.lastSync || null,
       createdAt: now,
-      updatedAt: now,
     };
 
     this.integrations.set(id, newIntegration);

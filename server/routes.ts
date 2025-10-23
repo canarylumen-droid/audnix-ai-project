@@ -216,9 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.createMessage({
         leadId,
         userId: mockUserId,
-        channel: "instagram",
+        provider: "instagram",
         direction: "outbound",
-        content: body,
+        body,
       });
 
       res.json({ message });
@@ -255,9 +255,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Encrypt and store integration
       const integration = await storage.createIntegration({
         userId: mockUserId,
-        provider: provider as "instagram" | "whatsapp" | "gmail" | "outlook",
+        provider: provider as "instagram" | "whatsapp" | "gmail" | "outlook" | "manychat",
         encryptedMeta: JSON.stringify({ tokens, metadata }),
-        isConnected: true,
+        connected: true,
       });
 
       res.json({ integration });

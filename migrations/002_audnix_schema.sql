@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS integrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   provider TEXT NOT NULL CHECK (provider IN ('instagram', 'whatsapp', 'gmail', 'outlook', 'manychat')),
-  encrypted_meta JSONB NOT NULL, -- encrypted tokens and metadata
+  encrypted_meta TEXT NOT NULL, -- encrypted tokens and metadata as string (iv:tag:ciphertext)
   connected BOOLEAN DEFAULT false,
   account_type TEXT CHECK (account_type IN ('personal', 'creator', 'business')),
   last_sync TIMESTAMPTZ,

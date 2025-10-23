@@ -27,18 +27,16 @@ export type InsertUser = Omit<User, "id" | "createdAt">;
 export const leadSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
+  externalId: z.string().nullable(),
   name: z.string(),
+  channel: z.enum(["instagram", "whatsapp", "email"]),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
-  channel: z.enum(["instagram", "whatsapp", "email"]),
-  status: z.enum(["open", "replied", "converted", "uninterested", "paused"]).default("open"),
-  leadScore: z.number().min(0).max(100).default(0),
-  tags: z.array(z.string()).default([]),
-  assignedTo: z.string().uuid().nullable(),
+  status: z.enum(["new", "open", "replied", "converted", "not_interested", "cold"]).default("new"),
+  score: z.number().min(0).max(100).default(0),
+  warm: z.boolean().default(false),
   lastMessageAt: z.date().nullable(),
-  lastMessageSnippet: z.string().nullable(),
-  dealValue: z.number().nullable(),
-  source: z.string().nullable(),
+  tags: z.array(z.string()).default([]),
   metadata: z.record(z.any()).default({}),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -52,17 +50,10 @@ export const messageSchema = z.object({
   id: z.string().uuid(),
   leadId: z.string().uuid(),
   userId: z.string().uuid(),
-  channel: z.enum(["instagram", "whatsapp", "email"]),
+  provider: z.enum(["instagram", "whatsapp", "gmail"]),
   direction: z.enum(["inbound", "outbound"]),
-  content: z.string(),
-  isAiGenerated: z.boolean().default(false),
-  hasVoiceNote: z.boolean().default(false),
-  voiceNoteUrl: z.string().url().nullable(),
-  voiceNoteDuration: z.number().nullable(),
-  attachments: z.array(z.string().url()).default([]),
-  status: z.enum(["sent", "delivered", "read", "failed"]).default("sent"),
-  scheduledFor: z.date().nullable(),
-  sentAt: z.date().nullable(),
+  body: z.string(),
+  audioUrl: z.string().url().nullable(),
   metadata: z.record(z.any()).default({}),
   createdAt: z.date(),
 });
@@ -93,22 +84,16 @@ export type InsertDeal = Omit<Deal, "id" | "createdAt">;
 export const integrationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  provider: z.enum(["instagram", "whatsapp", "gmail", "outlook"]),
-  isConnected: z.boolean().default(false),
-  accountName: z.string().nullable(),
-  accountId: z.string().nullable(),
-  lastSyncAt: z.date().nullable(),
-  messageVolume: z.number().default(0),
-  accessToken: z.string().nullable(), // Encrypted on backend
-  refreshToken: z.string().nullable(), // Encrypted on backend
-  expiresAt: z.date().nullable(),
-  metadata: z.record(z.any()).default({}),
+  provider: z.enum(["instagram", "whatsapp", "gmail", "outlook", "manychat"]),
+  encryptedMeta: z.string(), // Encrypted credentials as string (iv:tag:ciphertext)
+  connected: z.boolean().default(false),
+  accountType: z.enum(["personal", "creator", "business"]).nullable(),
+  lastSync: z.date().nullable(),
   createdAt: z.date(),
-  updatedAt: z.date(),
 });
 
 export type Integration = z.infer<typeof integrationSchema>;
-export type InsertIntegration = Omit<Integration, "id" | "createdAt" | "updatedAt">;
+export type InsertIntegration = Omit<Integration, "id" | "createdAt">;
 
 // ========== VOICE SETTINGS ==========
 export const voiceSettingSchema = z.object({
