@@ -16,6 +16,8 @@ import {
   processTopupSuccess
 } from "./lib/billing/stripe";
 import { generateInsights } from "./lib/ai/openai";
+import { uploadVoice, uploadPDF, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
+import { encrypt } from "./lib/crypto/encryption";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
@@ -500,8 +502,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== File Upload API ====================
-  
-  const { uploadVoice, uploadPDF, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } = require("./lib/file-upload");
 
   // Upload voice sample for ElevenLabs voice cloning
   app.post("/api/uploads/voice", uploadVoice.single("voice"), async (req, res) => {
@@ -581,7 +581,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mockUserId = "mock_user_1";
 
       // Encrypt and store credentials
-      const { encrypt } = require("./lib/crypto/encryption");
       const encryptedMeta = encrypt(JSON.stringify({
         accessToken,
         pageId,
@@ -624,7 +623,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mockUserId = "mock_user_1";
 
       // Encrypt and store credentials
-      const { encrypt } = require("./lib/crypto/encryption");
       const encryptedMeta = encrypt(JSON.stringify({
         phoneNumberId,
         accessToken,
@@ -667,7 +665,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const mockUserId = "mock_user_1";
 
       // Encrypt and store credentials
-      const { encrypt } = require("./lib/crypto/encryption");
       const encryptedMeta = encrypt(JSON.stringify({
         accessToken,
         refreshToken,
