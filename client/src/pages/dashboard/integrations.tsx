@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Instagram,
   Mail,
@@ -14,73 +19,254 @@ import {
   Play,
   Mic,
   Shield,
+  Loader2,
+  FileText,
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
 
-const integrations = [
-  {
-    id: "instagram",
-    name: "Instagram",
-    icon: Instagram,
-    description: "Connect Instagram DMs for automated follow-ups",
-    isConnected: true,
-    accountName: "@audnix_ai",
-    lastSync: "2 minutes ago",
-    messageVolume: 1248,
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    icon: SiWhatsapp,
-    description: "Sync WhatsApp Business conversations",
-    isConnected: true,
-    accountName: "+1 (234) 567-8900",
-    lastSync: "5 minutes ago",
-    messageVolume: 892,
-  },
-  {
-    id: "gmail",
-    name: "Gmail",
-    icon: SiGoogle,
-    description: "Connect Gmail for email automation",
-    isConnected: false,
-    accountName: null,
-    lastSync: null,
-    messageVolume: 0,
-  },
-  {
-    id: "outlook",
-    name: "Outlook",
-    icon: Mail,
-    description: "Connect Outlook for email automation",
-    isConnected: false,
-    accountName: null,
-    lastSync: null,
-    messageVolume: 0,
-  },
-];
+const channelIcons = {
+  instagram: Instagram,
+  whatsapp: SiWhatsapp,
+  gmail: SiGoogle,
+  outlook: Mail,
+};
 
 export default function IntegrationsPage() {
   const [voiceConsent, setVoiceConsent] = useState(false);
-  const [voiceUploaded, setVoiceUploaded] = useState(false);
+  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
+  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  const voiceInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Mock user plan
+  // Fetch integrations from backend
+  const { data: integrationsData, isLoading } = useQuery({
+    queryKey: ["/api/integrations"],
+  });
+
+  const integrations = integrationsData?.integrations ?? [];
+
+  // Voice upload mutation
+  const uploadVoiceMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("voice", file);
+      
+      const response = await fetch("/api/uploads/voice", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Voice sample uploaded",
+        description: `Successfully uploaded ${data.fileName}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // PDF upload mutation
+  const uploadPDFMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("pdf", file);
+      
+      const response = await fetch("/api/uploads/pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Upload failed");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "PDF uploaded",
+        description: `Processing ${data.fileName} for brand knowledge`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Connect provider mutation
+  const connectProviderMutation = useMutation({
+    mutationFn: async ({ provider, credentials }: { provider: string; credentials: any }) => {
+      return await apiRequest(`/api/integrations/${provider}/connect`, {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: "Connected successfully",
+        description: `${variables.provider} has been connected`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Connection failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Disconnect provider mutation
+  const disconnectProviderMutation = useMutation({
+    mutationFn: async (provider: string) => {
+      return await apiRequest(`/api/integrations/${provider}/disconnect`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: "Integration has been disconnected",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+    },
+  });
+
+  const handleVoiceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an MP3, WAV, or M4A file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Voice samples must be under 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingVoice(true);
+    try {
+      await uploadVoiceMutation.mutateAsync(file);
+    } finally {
+      setIsUploadingVoice(false);
+      if (voiceInputRef.current) voiceInputRef.current.value = "";
+    }
+  };
+
+  const handlePDFFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "PDFs must be under 50MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingPDF(true);
+    try {
+      await uploadPDFMutation.mutateAsync(file);
+    } finally {
+      setIsUploadingPDF(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
+  };
+
+  const handleConnect = (provider: string) => {
+    // In a real app, this would open OAuth popup or show a credential input dialog
+    // For demo, we'll prompt for credentials
+    const credentials: any = {};
+    
+    if (provider === "instagram") {
+      const accessToken = prompt("Enter Instagram access token:");
+      const pageId = prompt("Enter Page ID:");
+      const pageName = prompt("Enter Page Name:");
+      if (!accessToken || !pageId) return;
+      credentials.accessToken = accessToken;
+      credentials.pageId = pageId;
+      credentials.pageName = pageName;
+    } else if (provider === "whatsapp") {
+      const phoneNumberId = prompt("Enter WhatsApp Phone Number ID:");
+      const accessToken = prompt("Enter Access Token:");
+      const phoneNumber = prompt("Enter Phone Number:");
+      if (!phoneNumberId || !accessToken) return;
+      credentials.phoneNumberId = phoneNumberId;
+      credentials.accessToken = accessToken;
+      credentials.phoneNumber = phoneNumber;
+    } else if (provider === "gmail") {
+      const email = prompt("Enter Gmail address:");
+      const accessToken = prompt("Enter Access Token:");
+      const refreshToken = prompt("Enter Refresh Token:");
+      if (!email || !accessToken) return;
+      credentials.email = email;
+      credentials.accessToken = accessToken;
+      credentials.refreshToken = refreshToken;
+    }
+
+    connectProviderMutation.mutate({ provider, credentials });
+  };
+
+  const handleDisconnect = (provider: string) => {
+    if (confirm(`Are you sure you want to disconnect ${provider}?`)) {
+      disconnectProviderMutation.mutate(provider);
+    }
+  };
+
+  // Check if voice sample has been uploaded
+  const hasVoiceSample = integrations.some((i: any) => 
+    i.provider === "voice" || uploadVoiceMutation.isSuccess
+  );
+
   const voiceMinutesUsed = 89;
   const voiceMinutesLimit = 400;
   const voicePercentage = (voiceMinutesUsed / voiceMinutesLimit) * 100;
-
-  const handleConnect = (integrationId: string) => {
-    console.log(`Connecting ${integrationId}...`);
-    // In real app, trigger OAuth flow
-  };
-
-  const handleDisconnect = (integrationId: string) => {
-    console.log(`Disconnecting ${integrationId}...`);
-  };
-
-  const handleVoiceUpload = () => {
-    setVoiceUploaded(true);
-  };
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -101,7 +287,7 @@ export default function IntegrationsPage() {
           <div>
             <p className="font-medium text-primary">Your data is encrypted</p>
             <p className="text-sm text-muted-foreground mt-1">
-              All tokens are encrypted and stored securely. You can revoke access anytime.
+              All tokens are encrypted with AES-256-GCM and stored securely. You can revoke access anytime.
             </p>
           </div>
         </CardContent>
@@ -110,94 +296,110 @@ export default function IntegrationsPage() {
       {/* Channel Integrations */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Connected Channels</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {integrations.map((integration, index) => {
-            const Icon = integration.icon;
-            return (
-              <motion.div
-                key={integration.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card
-                  className={`hover-elevate ${
-                    integration.isConnected ? "border-emerald-500/50" : ""
-                  }`}
-                  data-testid={`card-integration-${integration.id}`}
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {["instagram", "whatsapp", "gmail", "outlook"].map((providerId, index) => {
+              const integration = integrations.find((i: any) => i.provider === providerId);
+              const isConnected = !!integration;
+              const Icon = channelIcons[providerId as keyof typeof channelIcons];
+
+              return (
+                <motion.div
+                  key={providerId}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" data-testid={`icon-${integration.id}`} />
+                  <Card
+                    className={`hover-elevate ${
+                      isConnected ? "border-emerald-500/50" : ""
+                    }`}
+                    data-testid={`card-integration-${providerId}`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
+                          </div>
+                          <div>
+                            <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                              {providerId}
+                            </CardTitle>
+                            <CardDescription className="text-sm">
+                              {providerId === "instagram" && "Connect Instagram DMs for automated follow-ups"}
+                              {providerId === "whatsapp" && "Sync WhatsApp Business conversations"}
+                              {providerId === "gmail" && "Connect Gmail for email automation"}
+                              {providerId === "outlook" && "Connect Outlook for email automation"}
+                            </CardDescription>
+                          </div>
                         </div>
-                        <div>
-                          <CardTitle className="text-base" data-testid={`text-name-${integration.id}`}>
-                            {integration.name}
-                          </CardTitle>
-                          <CardDescription className="text-sm">
-                            {integration.description}
-                          </CardDescription>
-                        </div>
+                        {isConnected && (
+                          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500" data-testid={`badge-connected-${providerId}`}>
+                            <Check className="h-3 w-3 mr-1" />
+                            Connected
+                          </Badge>
+                        )}
                       </div>
-                      {integration.isConnected && (
-                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500" data-testid={`badge-connected-${integration.id}`}>
-                          <Check className="h-3 w-3 mr-1" />
-                          Connected
-                        </Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {isConnected ? (
+                        <>
+                          <div className="text-sm space-y-1">
+                            <p className="text-muted-foreground">
+                              Account: <span className="font-medium text-foreground" data-testid={`text-account-${providerId}`}>{integration.accountType || "Connected"}</span>
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleDisconnect(providerId)}
+                              disabled={disconnectProviderMutation.isPending}
+                              data-testid={`button-disconnect-${providerId}`}
+                            >
+                              {disconnectProviderMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Disconnect"
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              data-testid={`button-sync-${providerId}`}
+                            >
+                              Sync Now
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          onClick={() => handleConnect(providerId)}
+                          disabled={connectProviderMutation.isPending}
+                          data-testid={`button-connect-${providerId}`}
+                        >
+                          {connectProviderMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
+                          Connect {providerId}
+                        </Button>
                       )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {integration.isConnected ? (
-                      <>
-                        <div className="text-sm space-y-1">
-                          <p className="text-muted-foreground">
-                            Account: <span className="font-medium text-foreground" data-testid={`text-account-${integration.id}`}>{integration.accountName}</span>
-                          </p>
-                          <p className="text-muted-foreground">
-                            Last sync: <span className="font-medium text-foreground">{integration.lastSync}</span>
-                          </p>
-                          <p className="text-muted-foreground">
-                            Messages: <span className="font-medium text-foreground" data-testid={`text-volume-${integration.id}`}>{integration.messageVolume.toLocaleString()}</span>
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={() => handleDisconnect(integration.id)}
-                            data-testid={`button-disconnect-${integration.id}`}
-                          >
-                            Disconnect
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            data-testid={`button-sync-${integration.id}`}
-                          >
-                            Sync Now
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <Button
-                        className="w-full"
-                        onClick={() => handleConnect(integration.id)}
-                        data-testid={`button-connect-${integration.id}`}
-                      >
-                        Connect {integration.name}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Voice Clone Setup */}
@@ -224,23 +426,38 @@ export default function IntegrationsPage() {
 
             {/* Upload Section */}
             <div className="space-y-4">
+              <input
+                ref={voiceInputRef}
+                type="file"
+                accept="audio/mpeg,audio/wav,audio/x-m4a,audio/mp4,.mp3,.wav,.m4a"
+                onChange={handleVoiceFileSelect}
+                className="hidden"
+                data-testid="input-voice-file"
+              />
+              
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                {voiceUploaded ? (
+                {hasVoiceSample && !isUploadingVoice ? (
                   <div className="space-y-3">
                     <div className="flex items-center justify-center gap-2 text-emerald-500">
                       <Check className="h-5 w-5" />
                       <span className="font-medium" data-testid="text-voice-uploaded">Voice sample uploaded</span>
                     </div>
                     <div className="flex items-center justify-center gap-3">
-                      <Button variant="outline" size="sm" data-testid="button-play-sample">
-                        <Play className="h-4 w-4 mr-2" />
-                        Play Sample
-                      </Button>
-                      <Button variant="ghost" size="sm" data-testid="button-upload-new">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => voiceInputRef.current?.click()}
+                        data-testid="button-upload-new"
+                      >
                         <Upload className="h-4 w-4 mr-2" />
                         Upload New
                       </Button>
                     </div>
+                  </div>
+                ) : isUploadingVoice ? (
+                  <div className="space-y-3">
+                    <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
+                    <p className="font-medium">Uploading voice sample...</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -248,10 +465,13 @@ export default function IntegrationsPage() {
                     <div>
                       <p className="font-medium">Upload voice sample</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Record or upload a 30-60 second audio clip
+                        Record or upload a 30-60 second audio clip (MP3, WAV, or M4A)
                       </p>
                     </div>
-                    <Button onClick={handleVoiceUpload} data-testid="button-upload-voice">
+                    <Button
+                      onClick={() => voiceInputRef.current?.click()}
+                      data-testid="button-upload-voice"
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Audio
                     </Button>
@@ -280,10 +500,10 @@ export default function IntegrationsPage() {
               {/* Activate */}
               <Button
                 className="w-full"
-                disabled={!voiceConsent || !voiceUploaded}
+                disabled={!voiceConsent || !hasVoiceSample}
                 data-testid="button-activate-voice"
               >
-                {voiceUploaded && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
+                {hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
               </Button>
             </div>
 
@@ -294,6 +514,58 @@ export default function IntegrationsPage() {
                 Voice cloning uses advanced AI to replicate your natural speaking patterns and tone.
                 For best results, speak clearly and naturally in your recording.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* PDF Upload for Brand Knowledge */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Brand Knowledge</h2>
+        <Card data-testid="card-pdf-upload">
+          <CardHeader>
+            <CardTitle>Upload Brand Documents</CardTitle>
+            <CardDescription>
+              Upload PDFs to teach the AI about your brand, products, and services
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <input
+              ref={pdfInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              onChange={handlePDFFileSelect}
+              className="hidden"
+              data-testid="input-pdf-file"
+            />
+            
+            <div className="border-2 border-dashed rounded-lg p-8 text-center">
+              {isUploadingPDF ? (
+                <div className="space-y-3">
+                  <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
+                  <p className="font-medium">Processing PDF...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Extracting text and generating embeddings
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Upload PDF Documents</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Brand guidelines, product specs, FAQs, etc. (Max 50MB)
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => pdfInputRef.current?.click()}
+                    data-testid="button-upload-pdf"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload PDF
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
