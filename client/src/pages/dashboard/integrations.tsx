@@ -219,38 +219,78 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleConnect = (provider: string) => {
-    // In a real app, this would open OAuth popup or show a credential input dialog
-    // For demo, we'll prompt for credentials
-    const credentials: any = {};
-    
+  const handleConnect = async (provider: string) => {
     if (provider === "instagram") {
-      const accessToken = prompt("Enter Instagram access token:");
-      const pageId = prompt("Enter Page ID:");
-      const pageName = prompt("Enter Page Name:");
-      if (!accessToken || !pageId) return;
-      credentials.accessToken = accessToken;
-      credentials.pageId = pageId;
-      credentials.pageName = pageName;
+      // Use OAuth flow for Instagram
+      try {
+        // Get OAuth URL from backend
+        const response = await fetch("/api/connect/instagram", {
+          method: "GET",
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          throw new Error("Failed to get OAuth URL");
+        }
+        
+        const { authUrl } = await response.json();
+        
+        // Open OAuth URL in popup
+        const width = 600;
+        const height = 700;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+        
+        const popup = window.open(
+          authUrl,
+          "instagram-oauth",
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
+        );
+        
+        // Check if popup was blocked
+        if (!popup) {
+          // Fallback to redirect
+          window.location.href = authUrl;
+          return;
+        }
+        
+        // Poll to check if popup is closed and refresh data
+        const checkInterval = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkInterval);
+            // Refresh integrations data
+            queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+          }
+        }, 1000);
+      } catch (error) {
+        toast({
+          title: "Connection failed",
+          description: error instanceof Error ? error.message : "Failed to connect Instagram",
+          variant: "destructive",
+        });
+      }
     } else if (provider === "whatsapp") {
+      // For WhatsApp, still use prompt for now (can be replaced with OAuth later)
       const phoneNumberId = prompt("Enter WhatsApp Phone Number ID:");
       const accessToken = prompt("Enter Access Token:");
       const phoneNumber = prompt("Enter Phone Number:");
       if (!phoneNumberId || !accessToken) return;
-      credentials.phoneNumberId = phoneNumberId;
-      credentials.accessToken = accessToken;
-      credentials.phoneNumber = phoneNumber;
-    } else if (provider === "gmail") {
-      const email = prompt("Enter Gmail address:");
-      const accessToken = prompt("Enter Access Token:");
-      const refreshToken = prompt("Enter Refresh Token:");
-      if (!email || !accessToken) return;
-      credentials.email = email;
-      credentials.accessToken = accessToken;
-      credentials.refreshToken = refreshToken;
+      
+      connectProviderMutation.mutate({ 
+        provider, 
+        credentials: {
+          phoneNumberId,
+          accessToken,
+          phoneNumber
+        }
+      });
+    } else if (provider === "gmail" || provider === "outlook") {
+      // For email providers, show a message
+      toast({
+        title: "Email OAuth Coming Soon",
+        description: `${provider} OAuth integration will be available soon`,
+      });
     }
-
-    connectProviderMutation.mutate({ provider, credentials });
   };
 
   const handleDisconnect = (provider: string) => {

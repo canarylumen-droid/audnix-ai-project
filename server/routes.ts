@@ -18,6 +18,10 @@ import {
 import { generateInsights } from "./lib/ai/openai";
 import { uploadVoice, uploadPDF, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
 import { encrypt } from "./lib/crypto/encryption";
+import oauthRoutes from "./routes/oauth";
+import webhookRoutes from "./routes/webhook";
+import workerRoutes from "./routes/worker";
+import { followUpWorker } from "./lib/ai/follow-up-worker";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
@@ -694,7 +698,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Register OAuth routes
+  app.use("/api", oauthRoutes);
+  
+  // Register webhook routes
+  app.use("/api", webhookRoutes);
+  
+  // Register worker control routes
+  app.use("/api", workerRoutes);
+
   const httpServer = createServer(app);
+
+  // Initialize follow-up worker on server start
+  console.log("Initializing follow-up worker...");
+  followUpWorker.start();
 
   return httpServer;
 }

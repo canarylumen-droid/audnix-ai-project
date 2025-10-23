@@ -1,0 +1,320 @@
+Absolutely. We can upgrade your backend prompt to be fully production-ready for Audnix AI, integrating real-time lead capture, AI follow-ups, and Instagram OAuth, so that once a lead is captured and the user is signed up, the AI automatically follows up without any manual token pasting. Here's a carefully structured updated prompt for Rocket.new or your Replit backend build:
+
+
+---
+
+🔥 Audnix AI Backend Prompt v4.0 — Real-Time Follow-Up & Instagram OAuth
+
+Goal:
+Build a production-ready, fully automated SaaS backend for Audnix AI. Once a lead is captured, the system autonomously follows up across Instagram, WhatsApp, and Email with human-like timing, smart personalization, and optional voice messages. Include secure OAuth token storage, automatic token refresh, payment integration via links, and real-time analytics.
+
+
+---
+
+🧩 Core Features
+
+1. User Signup & Auth
+
+Google & Apple OAuth only (no OTP/email signup)
+
+Users stored in Supabase users table:
+
+id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+email text UNIQUE NOT NULL,
+name text,
+plan text DEFAULT 'trial',
+leads_used int DEFAULT 0,
+voice_minutes_used int DEFAULT 0,
+trial_expires_at timestamptz,
+created_at timestamptz DEFAULT now(),
+instagram_access_token text,
+instagram_token_expires timestamptz,
+last_login timestamptz
+
+On signup → set trial_expires_at = now() + 3 days
+
+Last login updated on each login
+
+
+
+
+
+---
+
+2. Instagram Connection via OAuth
+
+Remove manual token entry
+
+Add /api/connect/instagram route:
+
+Redirects user to Instagram OAuth consent screen
+
+Backend receives code → exchanges for short-lived token
+
+Save encrypted token in Supabase
+
+Automatically refresh token before expiration via /oauth/refresh (Meta Graph API)
+
+
+Verify token validity:
+
+Fetch basic profile (/me?fields=id,username)
+
+Update connection status (Connected ✅ / Not Connected ❌)
+
+
+Use token for AI follow-ups (DMs, comments) through secure server-side calls only
+
+
+
+
+
+---
+
+3. Lead Capture
+
+Any inbound message from Instagram, WhatsApp, or Email → creates a lead in Supabase:
+
+id uuid PRIMARY KEY,
+user_id uuid REFERENCES users(id),
+external_id text,
+name text,
+channel text,
+email text,
+phone text,
+status text DEFAULT 'new',
+last_message_at timestamptz,
+tags text[],
+created_at timestamptz DEFAULT now()
+
+Real-time triggers via Supabase Realtime / Webhooks
+
+
+
+
+
+---
+
+4. AI Follow-Up Worker
+
+Queue-based (BullMQ/Redis or Supabase scheduled functions)
+
+On new lead capture:
+
+1. Gather context (last messages, memory facts, retrieved snippets)
+
+
+2. Build OpenAI prompt with:
+
+Brand voice rules
+
+Lead first name
+
+Conversation history
+
+Human-like response constraints
+
+
+
+3. Generate AI reply
+
+
+4. Decide channel (Instagram → WhatsApp → Email)
+
+
+5. Randomized delay + jitter (configurable, e.g., 10 min–2 hrs)
+
+
+6. Send via provider wrapper
+
+
+7. Log message in messages table
+
+
+8. Update lead status, schedule next follow-up if needed
+
+
+
+Voice Notes:
+
+Optional, controlled by voice_enabled flag
+
+Randomized duration 14–20s
+
+Use ElevenLabs placeholder (ready for activation)
+
+
+
+
+
+
+---
+
+5. Payments & Plans
+
+Remove API key billing → use payment links
+
+STARTER_PAYMENT_LINK=
+GROWTH_PAYMENT_LINK=
+PRO_PAYMENT_LINK=
+
+After payment webhook → backend updates:
+
+plan
+
+leads_used / voice_minutes_used limits
+
+
+Pricing matches landing page:
+
+Starter: 100 leads / 10 voice mins
+
+Growth: 500 leads / 30 voice mins
+
+Pro: 2000 leads / 150 voice mins
+
+
+Stripe or Lemon Squeezy webhook endpoint: /api/webhook/payment
+
+
+
+
+
+---
+
+6. Memory & Semantic Retrieval
+
+Short-term memory: Redis for sliding window of recent conversation
+
+Long-term memory: Supabase pgvector (brand_embeddings, semantic_memory) for RAG
+
+Structured facts: preferred_name, timezone, tags
+
+Lead first name dynamically injected into AI messages
+
+
+
+
+
+---
+
+7. Realtime Analytics
+
+Supabase Realtime feeds frontend with:
+
+Total leads
+
+Follow-ups done
+
+Conversions
+
+Engagement over time
+
+
+Live dashboard updates without refresh
+
+
+
+
+
+---
+
+8. Security
+
+Tokens always encrypted server-side (AES-256-GCM)
+
+Webhooks verified (Instagram, Stripe, WhatsApp)
+
+RLS enforced on all user-specific tables
+
+Never log full tokens
+
+Sensitive info only stored in DB
+
+
+
+
+
+---
+
+9. Frontend Flow
+
+Landing → “Start Free Trial” → /auth (Google/Apple)
+
+Post-auth → /dashboard
+
+Dashboard:
+
+Connect Instagram
+
+Connect WhatsApp (optional)
+
+See plan, usage stats, follow-up status
+
+Trigger manual AI follow-ups or simulate
+
+
+
+
+
+
+---
+
+10. Environment Variables (.env.example)
+
+
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
+ENABLE_VOICE=false
+STARTER_PAYMENT_LINK=
+GROWTH_PAYMENT_LINK=
+PRO_PAYMENT_LINK=
+INSTAGRAM_APP_ID=
+INSTAGRAM_APP_SECRET=
+INSTAGRAM_REDIRECT_URI=
+ENCRYPTION_KEY=
+JWT_SECRET=
+NODE_ENV=development
+
+
+---
+
+11. Behavior & UX
+
+
+
+First outbound message always calls lead by first name
+
+Messages human-timed & randomized
+
+Escalation across channels if lead inactive
+
+Weekly AI summary report (optional)
+
+
+
+---
+
+✅ Upgrade Notes
+
+This prompt removes the manual token entry entirely.
+
+Real-time follow-ups fire automatically on lead capture.
+
+Instagram tokens handled via OAuth + auto-refresh.
+
+Payment handled via links and webhook updates.
+
+Fully production-ready for Replit + Supabase.
+
+
+
+---
+
+If you want, I can now write the matching updated Rocket.new landing page prompt that ties directly into this backend — so “Start Free Trial” triggers the auth flow and backend immediately starts tracking leads in real-time, no demo numbers, with a clean branded Audnix experience.
+
+Do you want me to do that next?
+
