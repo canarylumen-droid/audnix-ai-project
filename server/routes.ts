@@ -22,6 +22,7 @@ import oauthRoutes from "./routes/oauth";
 import webhookRoutes from "./routes/webhook";
 import workerRoutes from "./routes/worker";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
+import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
@@ -158,15 +159,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Leads API ====================
 
-  app.get("/api/leads", async (req, res) => {
+  app.get("/api/leads", requireAuth, async (req, res) => {
     try {
       const { status, channel, search, limit = 50 } = req.query;
-      
-      // TODO: Get userId from session/auth
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
       
       const leads = await storage.getLeads({
-        userId: mockUserId,
+        userId,
         status: status as string,
         channel: channel as string,
         search: search as string,
@@ -228,18 +227,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:leadId/messages", async (req, res) => {
+  app.post("/api/leads/:leadId/messages", requireAuth, async (req, res) => {
     try {
       const { leadId } = req.params;
       const { body, useVoice } = req.body;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Create message
       const message = await storage.createMessage({
         leadId,
-        userId: mockUserId,
+        userId,
         provider: "instagram",
         direction: "outbound",
         body,
@@ -254,12 +251,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Integrations API ====================
 
-  app.get("/api/integrations", async (req, res) => {
+  app.get("/api/integrations", requireAuth, async (req, res) => {
     try {
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
-      
-      const integrations = await storage.getIntegrations(mockUserId);
+      const userId = getCurrentUserId(req)!;
+      const integrations = await storage.getIntegrations(userId);
 
       res.json({ integrations });
     } catch (error) {
@@ -268,17 +263,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/integrations/:provider/connect", async (req, res) => {
+  app.post("/api/integrations/:provider/connect", requireAuth, async (req, res) => {
     try {
       const { provider } = req.params;
       const { tokens, metadata } = req.body;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Encrypt and store integration
       const integration = await storage.createIntegration({
-        userId: mockUserId,
+        userId,
         provider: provider as "instagram" | "whatsapp" | "gmail" | "outlook" | "manychat",
         encryptedMeta: JSON.stringify({ tokens, metadata }),
         connected: true,
@@ -291,14 +284,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/integrations/:provider/disconnect", async (req, res) => {
+  app.post("/api/integrations/:provider/disconnect", requireAuth, async (req, res) => {
     try {
       const { provider } = req.params;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
-      await storage.disconnectIntegration(mockUserId, provider);
+      await storage.disconnectIntegration(userId, provider);
 
       res.json({ success: true });
     } catch (error) {
@@ -309,13 +300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Insights API ====================
 
-  app.get("/api/insights/summary", async (req, res) => {
+  app.get("/api/insights/summary", requireAuth, async (req, res) => {
     try {
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Get data for insights
-      const leads = await storage.getLeads({ userId: mockUserId, limit: 1000 });
+      const leads = await storage.getLeads({ userId, limit: 1000 });
       
       const analyticsData = {
         total_leads: leads.length,
@@ -365,13 +355,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ plans: PLANS });
   });
 
-  app.post("/api/billing/subscribe", async (req, res) => {
+  app.post("/api/billing/subscribe", requireAuth, async (req, res) => {
     try {
       const { planKey } = req.body;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
-      const user = await storage.getUserById(mockUserId);
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -400,13 +388,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/billing/topup", async (req, res) => {
+  app.post("/api/billing/topup", requireAuth, async (req, res) => {
     try {
       const { topupKey } = req.body;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
-      const user = await storage.getUserById(mockUserId);
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
 
       if (!user || !user.stripeCustomerId) {
         return res.status(400).json({ error: "User not configured for billing" });
@@ -463,11 +449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Settings API ====================
 
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings", requireAuth, async (req, res) => {
     try {
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
-      const user = await storage.getUserById(mockUserId);
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -480,14 +465,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/settings", async (req, res) => {
+  app.patch("/api/settings", requireAuth, async (req, res) => {
     try {
       const updates = req.body;
-      
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
-      const user = await storage.updateUser(mockUserId, updates);
+      const user = await storage.updateUser(userId, updates);
 
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -673,19 +656,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== Admin API ====================
 
-  app.get("/api/admin/metrics", async (req, res) => {
+  app.get("/api/admin/metrics", requireAdmin, async (req, res) => {
     try {
-      const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Get user to check if admin
-      const user = await storage.getUserById(userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ error: "Not authorized" });
-      }
       
       const totalUsers = await storage.getUserCount();
       const totalLeads = await storage.getTotalLeadsCount();
