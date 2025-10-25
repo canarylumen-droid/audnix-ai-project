@@ -12,10 +12,10 @@ declare module "express-session" {
 
 /**
  * Authentication middleware - requires user to be logged in
- * Checks for userId in session or x-user-id header (for API testing)
+ * Only accepts authenticated sessions - no header bypass
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const userId = req.session?.userId || req.headers['x-user-id'] as string;
+  const userId = req.session?.userId;
   
   if (!userId) {
     return res.status(401).json({ 
@@ -43,7 +43,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
  * Does not require authentication, but provides user context if available
  */
 export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
-  const userId = req.session?.userId || req.headers['x-user-id'] as string;
+  const userId = req.session?.userId;
   
   if (userId) {
     const user = await storage.getUserById(userId);
@@ -59,7 +59,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
  * Admin-only middleware - requires user to be an admin
  */
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const userId = req.session?.userId || req.headers['x-user-id'] as string;
+  const userId = req.session?.userId;
   
   if (!userId) {
     return res.status(401).json({ 
@@ -98,5 +98,5 @@ export function getCurrentUser(req: Request) {
  * Helper function to get current user ID from request
  */
 export function getCurrentUserId(req: Request): string | undefined {
-  return req.session?.userId || req.headers['x-user-id'] as string;
+  return req.session?.userId;
 }

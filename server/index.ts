@@ -6,24 +6,43 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// Validate required environment variables for production
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  console.error('FATAL: SESSION_SECRET environment variable is required in production');
+  console.error('Generate a secure secret with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+  process.exit(1);
+}
+
+// Trust proxy for deployments behind reverse proxies (Vercel, Netlify, etc.)
+// This is required for secure cookies to work correctly in production
+app.set('trust proxy', 1);
+
 // Configure session storage
+// NOTE: MemoryStore is suitable for development but NOT for production
+// For production, use connect-pg-simple with Supabase or Redis session store
 const MemStore = MemoryStore(session);
 const sessionStore = new MemStore({
   checkPeriod: 86400000 // Prune expired entries every 24h
 });
 
+if (process.env.NODE_ENV === 'production') {
+  console.warn('⚠️  WARNING: Using MemoryStore for sessions in production');
+  console.warn('   Sessions will be lost on restart. Consider using connect-pg-simple with Supabase.');
+}
+
 // Session middleware
 app.use(session({
   store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'audnix-dev-secret-change-in-production',
+  secret: process.env.SESSION_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax'
-  }
+    sameSite: 'lax' // 'lax' required for OAuth callbacks to work
+  },
+  name: 'audnix.sid', // Custom session name
 }));
 
 declare module 'http' {

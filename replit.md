@@ -271,15 +271,41 @@ REDIS_URL=redis://...                # Background jobs
 Before deploying to production:
 
 - [ ] All environment variables set
-- [ ] Session secret is random and secure (32+ characters)
-- [ ] Encryption key is random and secure (32 bytes hex)
+- [ ] `SESSION_SECRET` is set to a random, secure value (generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`)
+- [ ] `ENCRYPTION_KEY` is set to a random, secure value (32 bytes hex)
 - [ ] Service role key never exposed to frontend
-- [ ] CORS configured for your domain
-- [ ] Rate limiting enabled on sensitive endpoints
 - [ ] OAuth redirect URIs updated to production domain
 - [ ] Webhook signatures verified
 - [ ] HTTPS enforced
 - [ ] Cookie security enabled (httpOnly, secure, sameSite)
+
+### Known Limitations
+
+**⚠️ Session Store:** Currently uses MemoryStore which:
+- Loses all sessions on restart
+- Cannot scale horizontally across multiple servers
+- Is not suitable for high-traffic production
+
+**For production:** Consider upgrading to connect-pg-simple with Supabase:
+```typescript
+import connectPgSimple from 'connect-pg-simple';
+const PgSession = connectPgSimple(session);
+const sessionStore = new PgSession({
+  conString: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  tableName: 'session'
+});
+```
+
+**Why this matters:**
+- Vercel/Netlify deployments use serverless functions
+- Each request might hit a different function instance
+- Sessions must be stored in a shared database
+- Without this, users will randomly lose their login
+
+**Workaround for now:**
+- App works fine for single-user or low-traffic scenarios
+- For Netlify/Vercel, consider Supabase Auth's built-in session management
+- Sessions will persist for 7 days or until server restart
 
 ## Implementation Status
 
