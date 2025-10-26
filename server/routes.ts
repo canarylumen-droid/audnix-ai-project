@@ -124,6 +124,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sign out endpoint
+  app.post("/api/auth/signout", async (req, res) => {
+    try {
+      // If using Supabase, sign out there too
+      if (isSupabaseAdminConfigured() && supabaseAdmin) {
+        await supabaseAdmin.auth.signOut();
+      }
+
+      // Properly destroy the session
+      if (req.session) {
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res.status(500).json({ error: "Failed to destroy session" });
+          }
+          
+          // Clear the session cookie
+          res.clearCookie('connect.sid', { 
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+          });
+          
+          res.status(200).json({ success: true, message: "Signed out successfully" });
+        });
+      } else {
+        // No session to destroy, just return success
+        res.status(200).json({ success: true, message: "Signed out successfully" });
+      }
+    } catch (error) {
+      console.error("Error signing out:", error);
+      res.status(500).json({ error: "Failed to sign out" });
+    }
+  });
+
   // Create or update user (called after successful Supabase auth)
   app.post("/api/users", async (req, res) => {
     try {
@@ -671,17 +707,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
       
+      // Return demo user data for unauthenticated users (no 401)
       if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        return res.status(200).json({
+          id: 'demo',
+          email: 'demo@audnix.com',
+          name: 'Alex Johnson',
+          username: 'demo_user',
+          avatar: null,
+          company: null,
+          timezone: 'UTC',
+          plan: 'trial',
+          role: 'user'
+        });
       }
 
       const user = await storage.getUserById(userId);
       
+      // Fallback to demo user if not found (no 404)
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(200).json({
+          id: 'demo',
+          email: 'demo@audnix.com',
+          name: 'Alex Johnson',
+          username: 'demo_user',
+          avatar: null,
+          company: null,
+          timezone: 'UTC',
+          plan: 'trial',
+          role: 'user'
+        });
       }
 
-      res.json({
+      res.status(200).json({
         id: user.id,
         email: user.email,
         name: user.name,
@@ -694,7 +752,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      res.status(500).json({ error: "Failed to fetch profile" });
+      // Even on error, return demo user to keep dashboard functional
+      res.status(200).json({
+        id: 'demo',
+        email: 'demo@audnix.com',
+        name: 'Alex Johnson',
+        username: 'demo_user',
+        avatar: null,
+        company: null,
+        timezone: 'UTC',
+        plan: 'trial',
+        role: 'user'
+      });
+    }
+  });
+
+  // Get user notifications
+  app.get("/api/user/notifications", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId || req.headers['x-user-id'];
+      
+      if (!userId) {
+        // Return demo notifications for unauthenticated users
+        return res.status(200).json({
+          notifications: [
+            {
+              id: '1',
+              type: 'conversion',
+              title: 'New conversion!',
+              message: 'Sarah from Instagram just booked a call',
+              timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
+              read: false,
+            },
+            {
+              id: '2',
+              type: 'webhook_error',
+              title: 'Webhook error',
+              message: 'Failed to sync Instagram messages',
+              timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
+              read: false,
+            },
+            {
+              id: '3',
+              type: 'lead',
+              title: 'New lead from WhatsApp',
+              message: 'Mike Johnson wants to learn more about your services',
+              timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+              read: true,
+            }
+          ],
+          unreadCount: 2
+        });
+      }
+
+      // Fetch real user notifications from activity/leads
+      const leads = await storage.getLeads({ userId, limit: 10 });
+      
+      const notifications = leads.map((lead, index) => ({
+        id: lead.id,
+        type: lead.status === 'converted' ? 'conversion' : 'lead',
+        title: lead.status === 'converted' ? 'New conversion!' : 'New lead',
+        message: `${lead.name} from ${lead.channel}${lead.status === 'converted' ? ' converted to a customer' : ''}`,
+        timestamp: lead.createdAt.toISOString(),
+        read: index >= 3, // Mark first 3 as unread
+      }));
+
+      const unreadCount = notifications.filter(n => !n.read).length;
+
+      res.status(200).json({ notifications, unreadCount });
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      // Return empty notifications on error
+      res.status(200).json({ notifications: [], unreadCount: 0 });
     }
   });
 

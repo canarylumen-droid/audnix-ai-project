@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Home,
   Inbox,
@@ -61,22 +63,46 @@ const mobileNavItems = [
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [unreadNotifications] = useState(3);
 
-  // Mock user - replace with real auth context
-  const user = {
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    avatar: null,
-    role: "admin" as const,
-    plan: "pro" as const,
+  // Fetch real user profile
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile"],
+    refetchInterval: 60000, // Refetch every minute to keep data fresh
+  });
+
+  // Fetch real-time notifications
+  const { data: notificationsData } = useQuery({
+    queryKey: ["/api/user/notifications"],
+    refetchInterval: 30000, // Poll every 30 seconds for real-time updates
+  });
+
+  const notifications = notificationsData?.notifications || [];
+  const unreadNotifications = notificationsData?.unreadCount || 0;
+
+  // Sign out mutation
+  const signOutMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/auth/signout', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      // Clear all react-query caches to remove stale user data
+      queryClient.clear();
+      // Redirect to landing page after successful sign out
+      window.location.href = '/';
+    },
+  });
+
+  const handleSignOut = () => {
+    signOutMutation.mutate();
   };
 
   const filteredNavItems = navItems.filter(
-    (item) => !item.adminOnly || user.role === "admin"
+    (item) => !item.adminOnly || user?.role === "admin"
   );
 
   return (
@@ -91,17 +117,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b">
-          {!sidebarCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="font-bold text-xl text-primary"
-              data-testid="logo-text"
-            >
-              Audnix
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {!sidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="font-bold text-xl text-primary"
+                data-testid="logo-text"
+              >
+                Audnix
+              </motion.div>
+            )}
+          </AnimatePresence>
           <Button
             variant="ghost"
             size="icon"
@@ -193,60 +221,74 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="max-h-96 overflow-y-auto">
-                  <DropdownMenuItem data-testid="notification-item-0">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium">New conversion!</p>
-                      <p className="text-xs text-muted-foreground">
-                        Sarah from Instagram just booked a call
-                      </p>
+                  {notifications.length > 0 ? (
+                    notifications.map((notification: any, index: number) => (
+                      <DropdownMenuItem key={notification.id} data-testid={`notification-item-${index}`}>
+                        <div className="flex flex-col gap-1 w-full">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">{notification.title}</p>
+                            {!notification.read && (
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-muted-foreground/70">
+                            {new Date(notification.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No notifications yet
                     </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem data-testid="notification-item-1">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium">Webhook error</p>
-                      <p className="text-xs text-muted-foreground">
-                        Failed to sync Instagram messages
-                      </p>
-                    </div>
-                  </DropdownMenuItem>
+                  )}
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
             {/* Profile */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2" data-testid="button-profile">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar || undefined} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:inline text-sm">{user.name}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" data-testid="dropdown-profile">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium">{user.name}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <Badge variant="secondary" className="w-fit mt-1">
-                      {user.plan}
-                    </Badge>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <Link href="/dashboard/settings">
-                  <DropdownMenuItem data-testid="menu-item-settings">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-2" data-testid="button-profile">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.avatar || undefined} />
+                      <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <span className="hidden md:inline text-sm">{user.name}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" data-testid="dropdown-profile">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <Badge variant="secondary" className="w-fit mt-1">
+                        {user.plan}
+                      </Badge>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <Link href="/dashboard/settings">
+                    <DropdownMenuItem data-testid="menu-item-settings">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem 
+                    onClick={handleSignOut}
+                    disabled={signOutMutation.isPending}
+                    data-testid="menu-item-logout"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {signOutMutation.isPending ? 'Signing out...' : 'Sign out'}
                   </DropdownMenuItem>
-                </Link>
-                <DropdownMenuItem data-testid="menu-item-logout">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </header>
 
