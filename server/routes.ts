@@ -485,14 +485,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/insights/metrics", async (req, res) => {
+  app.get("/api/insights/metrics", requireAuth, async (req, res) => {
     try {
-      // TODO: Get userId from session and fetch real metrics
+      const userId = getCurrentUserId(req)!;
+      
+      // Fetch real metrics from database
+      const leads = await storage.getLeads({ userId, limit: 1000 });
+      const conversions = leads.filter(l => l.status === 'converted').length;
+      const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
+
       const metrics = {
-        leads: 127,
-        messages: 1043,
-        aiReplies: 342,
-        conversionRate: 23.5,
+        leads: leads.length,
+        messages: 0, // Will be updated when message tracking is implemented
+        aiReplies: 0, // Will be updated when AI tracking is implemented
+        conversionRate: parseFloat(conversionRate.toFixed(1)),
       };
 
       res.json({ metrics });
