@@ -51,15 +51,6 @@ function LoadingSpinner() {
 }
 
 export default function Hero3D() {
-  const hasWebGL = useWebGLSupport();
-
-  if (!hasWebGL) {
-    return <FallbackIllustration />;
-  }
-
-  return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Scene3D />
-    </Suspense>
-  );
+  // Temporarily using fallback illustration for stability
+  return <FallbackIllustration />;
 }
