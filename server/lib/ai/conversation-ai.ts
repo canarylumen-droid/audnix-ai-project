@@ -195,7 +195,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a voice no
 }
 
 /**
- * Generate voice note script (10-15 seconds max)
+ * Generate voice note script (10-20 seconds when spoken)
  */
 export async function generateVoiceScript(
   lead: Lead,
@@ -207,17 +207,19 @@ export async function generateVoiceScript(
 
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');
   
-  const prompt = `Generate a brief, natural-sounding voice note script (10-15 seconds when spoken) for ${lead.name}.
+  const prompt = `Generate a brief, natural-sounding voice note script (10-20 seconds when spoken) for ${lead.name}.
 
 Recent conversation:
 ${lastMessages}
 
 Requirements:
-- Very brief and conversational (max 2-3 sentences)
-- Sound natural when spoken out loud
+- Brief and conversational (2-4 sentences maximum)
+- 10-20 seconds when spoken out loud (aim for 40-80 words)
+- Sound natural and human, not robotic
 - Personally address them by name
 - Suggest booking a call/meeting or ask about their interest
 - End with a clear question or call-to-action
+- Be warm and personal to build trust
 
 Script:`;
 
@@ -225,11 +227,11 @@ Script:`;
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a sales professional creating brief, natural voice note scripts." },
+        { role: "system", content: "You are a sales professional creating brief, natural voice note scripts that sound human and build trust." },
         { role: "user", content: prompt }
       ],
       temperature: 0.7,
-      max_tokens: 100,
+      max_tokens: 120,
     });
 
     return completion.choices[0].message.content || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";

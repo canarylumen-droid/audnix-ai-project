@@ -22,6 +22,7 @@ import oauthRoutes from "./routes/oauth";
 import webhookRoutes from "./routes/webhook";
 import workerRoutes from "./routes/worker";
 import aiRoutes from "./routes/ai-routes";
+import voiceRoutes from "./routes/voice-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
 
@@ -1024,6 +1025,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register AI-powered routes
   app.use("/api/ai", aiRoutes);
+  
+  // Register voice AI routes
+  app.use("/api/voice", voiceRoutes);
 
   const httpServer = createServer(app);
 

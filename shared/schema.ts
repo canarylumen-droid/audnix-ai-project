@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  voiceCloneId: text("voice_clone_id"),
+  voiceSecondsUsed: integer("voice_seconds_used").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastLogin: timestamp("last_login"),
 });
