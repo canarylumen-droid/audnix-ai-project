@@ -15,6 +15,7 @@ export interface IStorage {
   // Lead methods
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
   getLeadById(id: string): Promise<Lead | undefined>;
+  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   getTotalLeadsCount(): Promise<number>;
   
@@ -146,6 +147,32 @@ export class MemStorage implements IStorage {
 
   async getLeadById(id: string): Promise<Lead | undefined> {
     return this.leads.get(id);
+  }
+
+  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
+    const id = randomUUID();
+    const now = new Date();
+
+    const lead: Lead = {
+      id,
+      userId: insertLead.userId,
+      externalId: insertLead.externalId || null,
+      name: insertLead.name,
+      channel: insertLead.channel as any,
+      email: insertLead.email || null,
+      phone: insertLead.phone || null,
+      status: insertLead.status || "new",
+      score: insertLead.score || 0,
+      warm: insertLead.warm || false,
+      lastMessageAt: insertLead.lastMessageAt || null,
+      tags: insertLead.tags || [],
+      metadata: insertLead.metadata || {},
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.leads.set(id, lead);
+    return lead;
   }
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {

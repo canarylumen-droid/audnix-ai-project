@@ -259,13 +259,40 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getLeadById(id: string): Promise<Lead | undefined> {
-    const { data, error } = await this.client
+    const { data, error} = await this.client
       .from("leads")
       .select("*")
       .eq("id", id)
       .single();
 
     if (error || !data) return undefined;
+    return this.mapLeadFromDb(data);
+  }
+
+  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
+    const { data, error } = await this.client
+      .from("leads")
+      .insert({
+        user_id: insertLead.userId,
+        external_id: insertLead.externalId || null,
+        name: insertLead.name,
+        channel: insertLead.channel,
+        email: insertLead.email || null,
+        phone: insertLead.phone || null,
+        status: insertLead.status || "new",
+        score: insertLead.score || 0,
+        warm: insertLead.warm || false,
+        last_message_at: insertLead.lastMessageAt || null,
+        tags: insertLead.tags || [],
+        metadata: insertLead.metadata || {},
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(`Failed to create lead: ${error?.message}`);
+    }
+
     return this.mapLeadFromDb(data);
   }
 
