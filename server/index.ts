@@ -1,8 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+const { Pool } = pg;
 
 const app = express();
 
@@ -17,18 +20,17 @@ if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
 // This is required for secure cookies to work correctly in production
 app.set('trust proxy', 1);
 
-// Configure session storage
-// NOTE: MemoryStore is suitable for development but NOT for production
-// For production, use connect-pg-simple with Supabase or Redis session store
-const MemStore = MemoryStore(session);
-const sessionStore = new MemStore({
-  checkPeriod: 86400000 // Prune expired entries every 24h
+// Configure session storage with PostgreSQL
+const PgSession = connectPgSimple(session);
+const sessionStore = new PgSession({
+  pool: new Pool({
+    connectionString: process.env.DATABASE_URL,
+  }),
+  createTableIfMissing: true,
+  tableName: 'user_sessions',
 });
 
-if (process.env.NODE_ENV === 'production') {
-  console.warn('⚠️  WARNING: Using MemoryStore for sessions in production');
-  console.warn('   Sessions will be lost on restart. Consider using connect-pg-simple with Supabase.');
-}
+console.log('✓ Using PostgreSQL for session storage (persistent across restarts)');
 
 // Session middleware
 app.use(session({

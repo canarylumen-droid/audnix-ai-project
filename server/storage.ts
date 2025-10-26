@@ -254,13 +254,9 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Try to use Supabase storage if available, fall back to MemStorage
-import { supabaseStorage } from "./supabase-storage";
+// Use DrizzleStorage with Replit PostgreSQL database
+import { drizzleStorage } from "./drizzle-storage";
 
-export const storage: IStorage = supabaseStorage || new MemStorage();
+export const storage: IStorage = drizzleStorage;
 
-if (supabaseStorage) {
-  console.log("✓ Using Supabase storage (production mode)");
-} else {
-  console.log("⚠ Using MemStorage (development mode - data will be lost on restart)");
-}
+console.log("✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)");
