@@ -13,12 +13,31 @@ import {
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 
 export default function InsightsPage() {
-  // Fetch real insights from backend
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["/api/insights"],
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
     retry: false,
   });
 
@@ -26,6 +45,7 @@ export default function InsightsPage() {
   const channelData = insightsData?.channels || [];
   const conversionFunnel = insightsData?.funnel || [];
   const hasData = insightsData?.hasData || false;
+  const timeSeriesData = insightsData?.timeSeries || [];
 
   const handleRegenerate = async () => {
     await refetch();
@@ -42,6 +62,28 @@ export default function InsightsPage() {
       default:
         return ChartBar;
     }
+  };
+
+  const COLORS = {
+    Instagram: '#E1306C',
+    WhatsApp: '#25D366',
+    Email: '#3B82F6',
+    primary: 'hsl(var(--primary))',
+  };
+
+  const chartConfig = {
+    Instagram: {
+      label: "Instagram",
+      color: COLORS.Instagram,
+    },
+    WhatsApp: {
+      label: "WhatsApp",
+      color: COLORS.WhatsApp,
+    },
+    Email: {
+      label: "Email",
+      color: COLORS.Email,
+    },
   };
 
   if (isLoading) {
@@ -68,7 +110,6 @@ export default function InsightsPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-insights">
@@ -98,7 +139,6 @@ export default function InsightsPage() {
       </div>
 
       {!hasData ? (
-        // Empty State
         <Card className="border-dashed" data-testid="card-empty-state">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
@@ -114,7 +154,6 @@ export default function InsightsPage() {
         </Card>
       ) : (
         <>
-          {/* AI Summary */}
           {insights && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -136,97 +175,6 @@ export default function InsightsPage() {
             </motion.div>
           )}
 
-          {/* Channel Breakdown */}
-          {channelData.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Card data-testid="card-channel-breakdown">
-                <CardHeader>
-                  <CardTitle>Lead Sources</CardTitle>
-                  <CardDescription>
-                    Where your leads are coming from
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {channelData.map((channel: any, index: number) => {
-                    const Icon = getChannelIcon(channel.channel);
-                    return (
-                      <div key={channel.channel} data-testid={`channel-stat-${index}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Icon className="h-4 w-4" />
-                            <span className="font-medium">{channel.channel}</span>
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {channel.count} leads ({channel.percentage}%)
-                          </div>
-                        </div>
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${
-                              channel.channel === 'Instagram' ? 'bg-pink-500' :
-                              channel.channel === 'WhatsApp' ? 'bg-emerald-500' :
-                              'bg-blue-500'
-                            }`}
-                            style={{ width: `${channel.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Conversion Funnel */}
-          {conversionFunnel.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card data-testid="card-conversion-funnel">
-                <CardHeader>
-                  <CardTitle>Conversion Funnel</CardTitle>
-                  <CardDescription>
-                    Lead progression through your sales process
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {conversionFunnel.map((stage: any, index: number) => (
-                      <div key={stage.stage} data-testid={`funnel-stage-${index}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">{stage.stage}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {stage.count} ({stage.percentage}%)
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <div className="w-full bg-muted rounded-full h-8">
-                            <div
-                              className="h-8 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-end pr-3"
-                              style={{ width: `${stage.percentage}%` }}
-                            >
-                              <span className="text-xs text-primary-foreground font-medium">
-                                {stage.percentage}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card data-testid="card-metric-response">
               <CardHeader className="pb-3">
@@ -267,6 +215,169 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {channelData.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card data-testid="card-channel-chart">
+                  <CardHeader>
+                    <CardTitle>Lead Sources Distribution</CardTitle>
+                    <CardDescription>
+                      Breakdown by channel
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={channelData}
+                            dataKey="count"
+                            nameKey="channel"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={(entry) => `${entry.channel}: ${entry.percentage}%`}
+                          >
+                            {channelData.map((entry: any, index: number) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
+                              />
+                            ))}
+                          </Pie>
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            {channelData.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+              >
+                <Card data-testid="card-channel-breakdown">
+                  <CardHeader>
+                    <CardTitle>Lead Volume by Channel</CardTitle>
+                    <CardDescription>
+                      Total leads per channel
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsBarChart data={channelData}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="channel" className="text-xs" />
+                          <YAxis className="text-xs" />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Bar 
+                            dataKey="count" 
+                            radius={[8, 8, 0, 0]}
+                          >
+                            {channelData.map((entry: any, index: number) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
+                              />
+                            ))}
+                          </Bar>
+                        </RechartsBarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
+
+          {timeSeriesData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Card data-testid="card-trends">
+                <CardHeader>
+                  <CardTitle>Lead Trends</CardTitle>
+                  <CardDescription>
+                    Daily lead activity over the past week
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={timeSeriesData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="date" className="text-xs" />
+                        <YAxis className="text-xs" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="leads" 
+                          stroke={COLORS.primary}
+                          strokeWidth={2}
+                          dot={{ fill: COLORS.primary }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {conversionFunnel.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <Card data-testid="card-conversion-funnel">
+                <CardHeader>
+                  <CardTitle>Conversion Funnel</CardTitle>
+                  <CardDescription>
+                    Lead progression through your sales process
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {conversionFunnel.map((stage: any, index: number) => (
+                      <div key={stage.stage} data-testid={`funnel-stage-${index}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">{stage.stage}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {stage.count} ({stage.percentage}%)
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <div className="w-full bg-muted rounded-full h-8">
+                            <div
+                              className="h-8 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-end pr-3"
+                              style={{ width: `${stage.percentage}%` }}
+                            >
+                              <span className="text-xs text-primary-foreground font-medium">
+                                {stage.percentage}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </>
       )}
     </div>

@@ -3,13 +3,16 @@ import { InstagramOAuth } from '../lib/oauth/instagram';
 import { WhatsAppOAuth } from '../lib/oauth/whatsapp';
 import { GmailOAuth } from '../lib/oauth/gmail';
 import { OutlookOAuth } from '../lib/oauth/outlook';
+import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
 import { supabaseAdmin } from '../lib/supabase-admin';
+import { encrypt } from '../lib/crypto/encryption';
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();
 const whatsappOAuth = new WhatsAppOAuth();
 const gmailOAuth = new GmailOAuth();
 const outlookOAuth = new OutlookOAuth();
+const googleCalendarOAuth = new GoogleCalendarOAuth();
 
 // ==================== INSTAGRAM OAUTH ====================
 
@@ -593,6 +596,236 @@ router.get('/oauth/outlook/status', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error checking Outlook status:', error);
     res.status(500).json({ error: 'Failed to check status' });
+  }
+});
+
+// ==================== GOOGLE CALENDAR OAUTH ====================
+
+/**
+ * Initialize OAuth flow for Google Calendar
+ */
+router.get('/connect/google-calendar', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId || req.query.user_id as string;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const authUrl = googleCalendarOAuth.getAuthUrl(userId);
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Error initiating Google Calendar OAuth:', error);
+    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+  }
+});
+
+/**
+ * Handle OAuth callback from Google Calendar
+ */
+router.get('/oauth/google-calendar/callback', async (req: Request, res: Response) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error === 'access_denied') {
+      return res.redirect('/dashboard/integrations?error=denied');
+    }
+
+    if (!code || !state) {
+      return res.redirect('/dashboard/integrations?error=invalid_request');
+    }
+
+    const userId = state as string;
+
+    // Exchange code for tokens
+    const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
+
+    // Encrypt and store tokens
+    const encryptedTokens = encrypt(JSON.stringify({
+      accessToken: tokenData.accessToken,
+      refreshToken: tokenData.refreshToken,
+      expiresAt: tokenData.expiresAt.toISOString(),
+      email: tokenData.email,
+    }));
+
+    // Save to database using storage layer
+    try {
+      // Import storage at top of file if not already
+      const { storage } = await import('../storage');
+      
+      await storage.createIntegration({
+        userId,
+        provider: 'google_calendar',
+        encryptedMeta: encryptedTokens,
+        connected: true,
+        accountType: tokenData.email,
+        lastSync: new Date(),
+      });
+
+      res.redirect('/dashboard/integrations?success=google_calendar_connected');
+    } catch (error) {
+      console.error('Failed to save Google Calendar integration:', error);
+      res.redirect('/dashboard/integrations?error=save_failed');
+    }
+  } catch (error) {
+    console.error('Google Calendar OAuth callback error:', error);
+    res.redirect('/dashboard/integrations?error=oauth_failed');
+  }
+});
+
+/**
+ * Disconnect Google Calendar
+ */
+router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId || req.body.user_id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    if (supabaseAdmin) {
+      await supabaseAdmin
+        .from('integrations')
+        .update({
+          connected: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('provider', 'google_calendar');
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error disconnecting Google Calendar:', error);
+    res.status(500).json({ error: 'Failed to disconnect' });
+  }
+});
+
+/**
+ * List upcoming events from Google Calendar
+ */
+router.get('/oauth/google-calendar/events', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId || req.query.user_id as string;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Get stored tokens from database
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { data: integration } = await supabaseAdmin
+      .from('integrations')
+      .select('encrypted_meta')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .eq('connected', true)
+      .single();
+
+    if (!integration) {
+      return res.status(404).json({ error: 'Google Calendar not connected' });
+    }
+
+    // Decrypt tokens
+    const tokens = JSON.parse(integration.encrypted_meta);
+    
+    // Check if token needs refresh
+    const expiresAt = new Date(tokens.expiresAt);
+    let accessToken = tokens.accessToken;
+
+    if (expiresAt < new Date() && tokens.refreshToken) {
+      const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
+      accessToken = refreshedTokens.accessToken;
+      
+      // Update stored tokens
+      const updatedTokens = {
+        ...tokens,
+        accessToken: refreshedTokens.accessToken,
+        expiresAt: refreshedTokens.expiresAt.toISOString(),
+      };
+
+      await supabaseAdmin
+        .from('integrations')
+        .update({
+          encrypted_meta: encrypt(JSON.stringify(updatedTokens)),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('provider', 'google_calendar');
+    }
+
+    // Get upcoming events
+    const events = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+    
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching calendar events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
+
+/**
+ * Create a calendar event
+ */
+router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId || req.body.user_id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { summary, description, startTime, endTime, attendeeEmail, location } = req.body;
+
+    if (!summary || !startTime || !endTime) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Get stored tokens
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { data: integration } = await supabaseAdmin
+      .from('integrations')
+      .select('encrypted_meta')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .eq('connected', true)
+      .single();
+
+    if (!integration) {
+      return res.status(404).json({ error: 'Google Calendar not connected' });
+    }
+
+    const tokens = JSON.parse(integration.encrypted_meta);
+    let accessToken = tokens.accessToken;
+
+    // Refresh if expired
+    const expiresAt = new Date(tokens.expiresAt);
+    if (expiresAt < new Date() && tokens.refreshToken) {
+      const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
+      accessToken = refreshedTokens.accessToken;
+    }
+
+    // Create event
+    const event = await googleCalendarOAuth.createEvent(accessToken, {
+      summary,
+      description,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      attendeeEmail,
+      location,
+    });
+
+    res.json({ event });
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    res.status(500).json({ error: 'Failed to create event' });
   }
 });
 

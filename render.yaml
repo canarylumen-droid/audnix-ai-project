@@ -1,0 +1,158 @@
+# ============================================
+# AUDNIX AI - Render.com Deployment Config
+# ============================================
+# This file configures automatic deployment to Render.com
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # Main Web Service (Express + React)
+  - type: web
+    name: audnix-ai
+    env: node
+    region: oregon # Change to your preferred region: oregon, frankfurt, singapore
+    plan: free # Free tier: perfect for 500+ users. Upgrade to starter ($7/mo) for more
+    branch: main
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000 # Render assigns this automatically
+      
+      # Generate these secrets in Render Dashboard
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      
+      # Sync from your .env (add these in Render Dashboard > Environment)
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: VITE_STRIPE_PUBLIC_KEY
+        sync: false
+      
+      # Google integrations (optional)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALENDAR_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CALENDAR_CLIENT_SECRET
+        sync: false
+      
+      # Social media integrations (optional)
+      - key: INSTAGRAM_APP_ID
+        sync: false
+      - key: INSTAGRAM_APP_SECRET
+        sync: false
+      - key: WHATSAPP_APP_ID
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      
+      # AI voice (optional)
+      - key: ELEVENLABS_API_KEY
+        sync: false
+
+databases:
+  # PostgreSQL Database (Free tier: 1GB, perfect for starting)
+  - name: audnix-db
+    databaseName: audnix
+    user: audnix
+    plan: free # Free tier includes 1GB storage, 100 max connections
+
+# ============================================
+# DEPLOYMENT INSTRUCTIONS
+# ============================================
+#
+# 1. AUTOMATIC DEPLOYMENT (Recommended):
+#    - Connect your GitHub repo to Render
+#    - Render will auto-detect this render.yaml
+#    - Click "Apply" to deploy
+#
+# 2. MANUAL SETUP:
+#    a. Create account at https://render.com
+#    b. Click "New +" → "Blueprint"
+#    c. Connect your repo
+#    d. Render reads this file automatically
+#    e. Add environment variables in Render Dashboard
+#
+# 3. CONFIGURE ENVIRONMENT VARIABLES:
+#    After deployment, go to Dashboard → Your Service → Environment
+#    Add all required variables from .env.example:
+#    
+#    CRITICAL (Required):
+#    - NEXT_PUBLIC_SUPABASE_URL
+#    - NEXT_PUBLIC_SUPABASE_ANON_KEY
+#    - SUPABASE_SERVICE_ROLE_KEY
+#    - OPENAI_API_KEY
+#    - STRIPE_SECRET_KEY
+#    
+#    SESSION_SECRET and ENCRYPTION_KEY are auto-generated
+#
+# 4. UPDATE OAUTH REDIRECT URIS:
+#    After deployment, update all OAuth redirect URIs in provider dashboards:
+#    - Replace http://localhost:5000 with https://your-app.onrender.com
+#    - Example: https://your-app.onrender.com/api/oauth/google-calendar/callback
+#
+# 5. CUSTOM DOMAIN (Optional):
+#    - Go to Dashboard → Settings → Custom Domain
+#    - Add your domain and configure DNS
+#    - Update all OAuth redirect URIs to use custom domain
+#
+# ============================================
+# RENDER FREE TIER SPECS
+# ============================================
+# 
+# Web Service:
+# - 512 MB RAM
+# - 0.1 CPU
+# - Free SSL certificate
+# - Automatic deploys from Git
+# - Sleeps after 15 min of inactivity (wakes in <1 min)
+# - Perfect for: 500+ active users with moderate traffic
+#
+# PostgreSQL:
+# - 1 GB storage
+# - 100 max connections
+# - Perfect for: Starting out, testing, MVP
+#
+# WHEN TO UPGRADE:
+# - Need more than 512 MB RAM → Starter ($7/mo, 2GB RAM)
+# - Database >1GB → Standard ($20/mo, 10GB)
+# - Always-on (no sleep) → Starter plan
+# - More than 500 active users → Starter or Standard
+#
+# ============================================
+# POST-DEPLOYMENT CHECKLIST
+# ============================================
+#
+# ✓ Service deployed and healthy (check /api/health)
+# ✓ Database connected (check logs)
+# ✓ Environment variables added
+# ✓ OAuth redirect URIs updated in all providers:
+#   - Google (Calendar, Gmail)
+#   - Instagram
+#   - WhatsApp
+#   - Outlook
+# ✓ Stripe webhook URL configured
+# ✓ Test user registration
+# ✓ Test at least one integration
+# ✓ Monitor logs for errors
+#
+# ============================================
