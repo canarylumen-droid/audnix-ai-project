@@ -953,24 +953,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== File Upload API ====================
 
   // Upload voice sample for ElevenLabs voice cloning
-  app.post("/api/uploads/voice", uploadVoice.single("voice"), async (req, res) => {
+  app.post("/api/uploads/voice", requireAuth, uploadVoice.single("voice"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Upload to Supabase Storage
       const fileUrl = await uploadToSupabase(
         "voice-samples",
-        `${mockUserId}/${Date.now()}-${req.file.originalname}`,
+        `${userId}/${Date.now()}-${req.file.originalname}`,
         req.file.path
       );
 
       // Store voice sample record
-      await storeVoiceSample(mockUserId, fileUrl, req.file.originalname);
+      await storeVoiceSample(userId, fileUrl, req.file.originalname);
 
       res.json({
         success: true,
@@ -984,24 +983,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload PDF for brand knowledge embeddings
-  app.post("/api/uploads/pdf", uploadPDF.single("pdf"), async (req, res) => {
+  app.post("/api/uploads/pdf", requireAuth, uploadPDF.single("pdf"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Upload to Supabase Storage
       const fileUrl = await uploadToSupabase(
         "documents",
-        `${mockUserId}/${Date.now()}-${req.file.originalname}`,
+        `${userId}/${Date.now()}-${req.file.originalname}`,
         req.file.path
       );
 
       // Queue PDF processing for embeddings
-      await processPDFEmbeddings(mockUserId, fileUrl, req.file.originalname);
+      await processPDFEmbeddings(userId, fileUrl, req.file.originalname);
 
       res.json({
         success: true,
@@ -1018,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== Provider OAuth API ====================
 
   // Instagram OAuth initiation
-  app.post("/api/integrations/instagram/connect", async (req, res) => {
+  app.post("/api/integrations/instagram/connect", requireAuth, async (req, res) => {
     try {
       const { accessToken, pageId, pageName } = req.body;
 
@@ -1026,8 +1024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Encrypt and store credentials
       const encryptedMeta = encrypt(JSON.stringify({
@@ -1037,7 +1034,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       const integration = await storage.createIntegration({
-        userId: mockUserId,
+        userId,
         provider: "instagram",
         encryptedMeta,
         connected: true,
@@ -1060,7 +1057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // WhatsApp OAuth initiation
-  app.post("/api/integrations/whatsapp/connect", async (req, res) => {
+  app.post("/api/integrations/whatsapp/connect", requireAuth, async (req, res) => {
     try {
       const { phoneNumberId, accessToken, phoneNumber } = req.body;
 
@@ -1068,8 +1065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Encrypt and store credentials
       const encryptedMeta = encrypt(JSON.stringify({
@@ -1079,7 +1075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       const integration = await storage.createIntegration({
-        userId: mockUserId,
+        userId,
         provider: "whatsapp",
         encryptedMeta,
         connected: true,
@@ -1102,7 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gmail OAuth initiation
-  app.post("/api/integrations/gmail/connect", async (req, res) => {
+  app.post("/api/integrations/gmail/connect", requireAuth, async (req, res) => {
     try {
       const { accessToken, refreshToken, email } = req.body;
 
@@ -1110,8 +1106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // TODO: Get userId from session
-      const mockUserId = "mock_user_1";
+      const userId = getCurrentUserId(req)!;
 
       // Encrypt and store credentials
       const encryptedMeta = encrypt(JSON.stringify({
@@ -1121,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       const integration = await storage.createIntegration({
-        userId: mockUserId,
+        userId,
         provider: "gmail",
         encryptedMeta,
         connected: true,
