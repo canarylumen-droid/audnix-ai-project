@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, X, MessageSquare, Zap, BarChart3, Flame, ArrowRight, Sparkles, Clock, Shield } from "lucide-react";
+import { Check, X, MessageSquare, Zap, BarChart3, Flame, ArrowRight, Sparkles, Clock, Shield, Brain, Mic, Target, TrendingUp, Users, Globe, Phone, Mail, Instagram as InstagramIcon, CheckCircle2, Star, Play } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect, useState, useRef } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -123,7 +123,7 @@ export default function Landing() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
-      {/* Hero Section - Enhanced with 3D */}
+      {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
         <motion.div 
           className="absolute inset-0 overflow-hidden"
@@ -147,10 +147,9 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                data-testid="badge-new-feature"
               >
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-sm text-white/90">AI-Powered Follow-ups</span>
+                <span className="text-sm text-white/90">AI-Powered Voice & Message Automation</span>
               </motion.div>
 
               <motion.h1
@@ -163,7 +162,6 @@ export default function Landing() {
                   ]
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 3, repeat: Infinity }}
-                data-testid="heading-hero"
               >
                 <span className="bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent">
                   Follow up like a human,
@@ -177,9 +175,8 @@ export default function Landing() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
-                data-testid="text-hero-subtext"
               >
-                The autopilot CRM that responds, nurtures, and converts leads <span className="text-primary font-semibold">humanly</span> across Instagram, WhatsApp & Email.
+                The <span className="text-primary font-semibold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
               </motion.p>
 
               <motion.div
@@ -192,7 +189,6 @@ export default function Landing() {
                   <Button 
                     size="lg" 
                     className="glow text-lg px-8 py-6 group"
-                    data-testid="button-start-trial"
                   >
                     Start Free Trial (3 Days)
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -203,9 +199,8 @@ export default function Landing() {
                   variant="outline" 
                   className="text-lg px-8 py-6 glass"
                   onClick={scrollToFeatures}
-                  data-testid="button-learn-more"
                 >
-                  Learn More
+                  See How It Works
                 </Button>
               </motion.div>
 
@@ -215,15 +210,15 @@ export default function Landing() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                <div className="flex items-center gap-2" data-testid="badge-no-card">
+                <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-400" />
                   <span>No credit card required</span>
                 </div>
-                <div className="flex items-center gap-2" data-testid="badge-setup-time">
+                <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-primary" />
                   <span>5 minute setup</span>
                 </div>
-                <div className="flex items-center gap-2" data-testid="badge-cancel">
+                <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-emerald-400" />
                   <span>Cancel anytime</span>
                 </div>
@@ -234,9 +229,8 @@ export default function Landing() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1, duration: 0.5 }}
-                data-testid="card-social-proof"
               >
-                <Flame className="w-5 h-5 text-primary" data-testid="icon-flame" />
+                <Flame className="w-5 h-5 text-primary" />
                 <span className="text-white/90">
                   <motion.span 
                     className="font-bold text-primary"
@@ -244,7 +238,6 @@ export default function Landing() {
                     initial={{ scale: 1.2, color: "#00aaff" }}
                     animate={{ scale: 1, color: "#00aaff" }}
                     transition={{ duration: 0.3 }}
-                    data-testid="text-user-count"
                   >
                     {userCount}
                   </motion.span> people joined Audnix this week
@@ -265,7 +258,177 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Section - Enhanced with GSAP */}
+      {/* Stats Section */}
+      <section className="py-20 px-4 relative border-y border-white/10">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: "10x", label: "Faster Follow-ups", icon: Zap },
+              { value: "85%", label: "Response Rate", icon: TrendingUp },
+              { value: "3.2x", label: "More Conversions", icon: Target },
+              { value: "24/7", label: "AI Availability", icon: Clock }
+            ].map((stat, index) => (
+              <motion.div
+                key={index}
+                className="text-center"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <stat.icon className="w-8 h-8 text-primary mx-auto mb-3" />
+                <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{stat.value}</div>
+                <div className="text-white/80">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Voice System Showcase */}
+      <section className="py-32 px-4 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        
+        <div className="max-w-6xl mx-auto relative z-10">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <div className="inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-6">
+              <Mic className="w-4 h-4 text-primary" />
+              <span className="text-sm text-primary font-semibold">Revolutionary AI Voice Technology</span>
+            </div>
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              Your Voice, <span className="text-primary">Multiplied by AI</span>
+            </h2>
+            <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+              Audnix clones your voice with stunning accuracy, delivering personalized voice messages to warm leads while you focus on closing deals. Each message is tailored based on lead behavior, engagement history, and AI-powered intent analysis.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-16">
+            {[
+              {
+                title: "AI Voice Cloning",
+                description: "Upload 3 minutes of your voice. Audnix learns your tone, cadence, and speaking style to create authentic voice messages that sound exactly like you.",
+                icon: Mic,
+                features: ["Lifelike voice replication", "Emotional tone matching", "Multiple language support", "Natural pauses & inflections"]
+              },
+              {
+                title: "Smart Context Analysis",
+                description: "Our AI analyzes each lead's behavior, previous interactions, and intent signals to craft perfectly timed, contextually relevant voice messages.",
+                icon: Brain,
+                features: ["Intent recognition", "Behavioral triggers", "Conversation history", "Sentiment analysis"]
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.2 }}
+              >
+                <Card className="glass-card p-8 h-full border-primary/20 hover:border-primary/50 transition-all duration-300 group">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-6">
+                    <feature.icon className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-white/80 mb-6 leading-relaxed">
+                    {feature.description}
+                  </p>
+                  <ul className="space-y-3">
+                    {feature.features.map((item, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-white/90">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-32 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-20"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              From Lead to Sale in <span className="text-primary">4 Simple Steps</span>
+            </h2>
+            <p className="text-xl text-white/90 max-w-2xl mx-auto">
+              Set up once, convert forever. Audnix runs on autopilot while you sleep.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                step: "01",
+                title: "Connect Channels",
+                description: "Link Instagram, WhatsApp, and Email in under 5 minutes. No technical skills needed.",
+                icon: Globe
+              },
+              {
+                step: "02",
+                title: "Clone Your Voice",
+                description: "Upload a 3-minute audio sample. Our AI learns your unique speaking style and tone.",
+                icon: Mic
+              },
+              {
+                step: "03",
+                title: "AI Takes Over",
+                description: "Audnix monitors leads 24/7, analyzes intent, and sends personalized voice messages automatically.",
+                icon: Brain
+              },
+              {
+                step: "04",
+                title: "Close More Deals",
+                description: "Focus on hot leads while Audnix nurtures the rest. Watch your conversion rate soar.",
+                icon: TrendingUp
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                className="relative"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+              >
+                <div className="text-center">
+                  <div className="relative mb-6">
+                    <div className="text-6xl font-bold text-primary/20">{item.step}</div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
+                        <item.icon className="w-8 h-8 text-primary" />
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                  <p className="text-white/80 leading-relaxed">{item.description}</p>
+                </div>
+                {index < 3 && (
+                  <div className="hidden lg:block absolute top-12 -right-4 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid Section */}
       <section id="features" ref={featuresRef} className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
         
@@ -276,39 +439,69 @@ export default function Landing() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <h2
-              className="text-4xl md:text-6xl font-bold mb-6"
-              data-testid="heading-features"
-            >
-              Why creators choose <span className="text-primary">Audnix</span>
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              Everything you need to <span className="text-primary">dominate your market</span>
             </h2>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Built for modern creators who value their time and want to close more deals
+              Audnix isn't just a CRM. It's your AI-powered sales team that never sleeps, never forgets, and never misses a follow-up.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
                 icon: MessageSquare,
-                title: "Human-Like Conversations",
-                description: "AI-powered follow-ups that sound natural, maintain context, and build real relationships.",
-                testId: "feature-conversations",
+                title: "Human-Like AI Conversations",
+                description: "Natural language processing creates conversations so authentic, leads think they're talking to you. Context-aware responses adapt to each lead's unique journey.",
                 gradient: "from-primary/20 to-blue-500/20"
               },
               {
-                icon: Zap,
-                title: "Zero Setup Required",
-                description: "Connect your Instagram, WhatsApp, and Email in minutes. Audnix handles the rest automatically.",
-                testId: "feature-setup",
+                icon: Mic,
+                title: "Custom Voice Cloning",
+                description: "Your voice, scaled infinitely. Send personalized voice messages to hundreds of leads while maintaining your authentic tone and personality.",
                 gradient: "from-emerald-500/20 to-green-500/20"
               },
               {
-                icon: BarChart3,
-                title: "Smart AI Insights",
-                description: "Weekly reports showing engagement patterns, conversion trends, and actionable recommendations.",
-                testId: "feature-insights",
+                icon: Brain,
+                title: "Intent-Based Automation",
+                description: "AI analyzes every interaction to understand lead intent. Automatically prioritize hot leads, re-engage cold ones, and nurture those in-between.",
                 gradient: "from-purple-500/20 to-pink-500/20"
+              },
+              {
+                icon: Target,
+                title: "Smart Lead Scoring",
+                description: "Machine learning ranks leads by conversion probability. Focus your energy where it matters most while AI handles the rest.",
+                gradient: "from-orange-500/20 to-red-500/20"
+              },
+              {
+                icon: BarChart3,
+                title: "Real-Time Analytics",
+                description: "Live dashboards show engagement rates, response times, conversion funnels, and AI performance metrics. Make data-driven decisions instantly.",
+                gradient: "from-cyan-500/20 to-blue-500/20"
+              },
+              {
+                icon: Zap,
+                title: "Multi-Channel Sync",
+                description: "Instagram DMs, WhatsApp messages, and emails - all unified in one intelligent inbox. Never lose a conversation thread again.",
+                gradient: "from-yellow-500/20 to-orange-500/20"
+              },
+              {
+                icon: Users,
+                title: "Automated Segmentation",
+                description: "AI automatically tags and segments leads based on behavior, interests, and engagement level. Perfect targeting, zero manual work.",
+                gradient: "from-pink-500/20 to-purple-500/20"
+              },
+              {
+                icon: Clock,
+                title: "Follow-Up Sequences",
+                description: "Set it and forget it. AI triggers perfectly-timed follow-ups based on lead behavior, ensuring no opportunity slips through the cracks.",
+                gradient: "from-green-500/20 to-emerald-500/20"
+              },
+              {
+                icon: Shield,
+                title: "Enterprise-Grade Security",
+                description: "End-to-end encryption, GDPR compliant, SOC 2 certified. Your data and your leads' privacy are our top priority.",
+                gradient: "from-blue-500/20 to-cyan-500/20"
               }
             ].map((feature, index) => (
               <motion.div
@@ -317,22 +510,19 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
+                transition={{ delay: (index % 3) * 0.1 }}
                 whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }}
               >
-                <Card 
-                  className="glass-card p-8 h-full border-white/10 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 group relative overflow-hidden" 
-                  data-testid={`card-${feature.testId}`}
-                >
+                <Card className="glass-card p-6 h-full border-white/10 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 group relative overflow-hidden">
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
                   <div className="relative z-10">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <feature.icon className="w-8 h-8 text-primary group-hover:text-white transition-colors duration-300" data-testid={`icon-${feature.testId}`} />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
+                      <feature.icon className="w-6 h-6 text-primary group-hover:text-white transition-colors duration-300" />
                     </div>
-                    <h3 className="text-2xl font-semibold mb-4 group-hover:text-primary transition-colors duration-300" data-testid={`heading-${feature.testId}`}>
+                    <h3 className="text-lg font-semibold mb-3 group-hover:text-primary transition-colors duration-300">
                       {feature.title}
                     </h3>
-                    <p className="text-white/80 leading-relaxed group-hover:text-white/95 transition-colors duration-300" data-testid={`text-${feature.testId}`}>
+                    <p className="text-white/80 text-sm leading-relaxed group-hover:text-white/95 transition-colors duration-300">
                       {feature.description}
                     </p>
                   </div>
@@ -343,7 +533,67 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Comparison Table - Enhanced */}
+      {/* Use Cases Section */}
+      <section className="py-32 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              Built for <span className="text-primary">High-Performance Teams</span>
+            </h2>
+            <p className="text-xl text-white/90 max-w-2xl mx-auto">
+              From solo creators to enterprise sales teams, Audnix scales with your ambition
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: "Content Creators & Influencers",
+                description: "Convert followers into customers. Audnix nurtures your audience with personalized voice messages, turning engagement into revenue.",
+                benefits: ["Monetize DMs automatically", "Scale personal touch", "Never miss a collaboration opportunity"]
+              },
+              {
+                title: "Course Creators & Coaches",
+                description: "Pre-qualify leads and book sales calls on autopilot. AI handles objections, answers FAQs, and warms up prospects before they talk to you.",
+                benefits: ["Automated lead qualification", "24/7 calendar booking", "Higher show-up rates"]
+              },
+              {
+                title: "E-commerce & D2C Brands",
+                description: "Recover abandoned carts, upsell existing customers, and turn browsers into buyers with timely, personalized voice outreach.",
+                benefits: ["Cart recovery automation", "Post-purchase follow-ups", "Customer retention campaigns"]
+              }
+            ].map((useCase, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+              >
+                <Card className="glass-card p-8 h-full border-white/10 hover:border-primary/50 transition-all duration-300">
+                  <h3 className="text-2xl font-bold mb-4 text-primary">{useCase.title}</h3>
+                  <p className="text-white/90 mb-6 leading-relaxed">{useCase.description}</p>
+                  <ul className="space-y-3">
+                    {useCase.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                        <span className="text-white/80">{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
       <section ref={comparisonRef} className="py-32 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -352,18 +602,15 @@ export default function Landing() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <h2
-              className="text-4xl md:text-6xl font-bold mb-6"
-              data-testid="heading-comparison"
-            >
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
               Not your average CRM
             </h2>
             <p className="text-xl text-white/90">
-              See how Audnix stacks up against the competition
+              See why thousands are switching to Audnix from legacy platforms
             </p>
           </motion.div>
 
-          <Card className="glass-card overflow-hidden border-primary/20" data-testid="card-comparison-table">
+          <Card className="glass-card overflow-hidden border-primary/20">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -381,11 +628,16 @@ export default function Landing() {
                 </thead>
                 <tbody>
                   {[
-                    { feature: "Human-like AI replies", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Auto nurture & smart tagging", audnix: true, manychat: "partial", hubspot: "manual" },
-                    { feature: "Real-time AI insights", audnix: true, manychat: false, hubspot: true },
+                    { feature: "AI Voice Messages", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Voice Cloning Technology", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Intent-Based Automation", audnix: true, manychat: "partial", hubspot: "manual" },
+                    { feature: "Real-time AI Insights", audnix: true, manychat: false, hubspot: true },
+                    { feature: "Multi-Channel Inbox (Instagram, WhatsApp, Email)", audnix: true, manychat: "Instagram only", hubspot: "Email only" },
+                    { feature: "Smart Lead Scoring", audnix: true, manychat: false, hubspot: true },
                     { feature: "5-minute setup", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Voice cloning", audnix: true, manychat: false, hubspot: false }
+                    { feature: "Behavioral Segmentation", audnix: true, manychat: "Basic", hubspot: true },
+                    { feature: "Custom AI Training", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Starting Price", audnix: "$49/mo", manychat: "$15/mo", hubspot: "$800/mo" }
                   ].map((row, index) => (
                     <motion.tr 
                       key={index} 
@@ -393,25 +645,27 @@ export default function Landing() {
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
                       viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.05 }}
                     >
-                      <td className="p-6 font-medium text-white/90 group-hover:text-white transition-colors" data-testid={`text-feature-${index}`}>{row.feature}</td>
+                      <td className="p-6 font-medium text-white/90 group-hover:text-white transition-colors">{row.feature}</td>
                       <td className="text-center p-6">
-                        {row.audnix === true && (
+                        {row.audnix === true ? (
                           <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/30 group-hover:bg-primary/50 group-hover:scale-110 transition-all duration-200">
-                            <Check className="w-5 h-5 text-primary group-hover:text-white transition-colors" data-testid={`icon-check-audnix-${index}`} />
+                            <Check className="w-5 h-5 text-primary group-hover:text-white transition-colors" />
                           </div>
+                        ) : (
+                          <span className="text-white/90 font-semibold">{row.audnix}</span>
                         )}
                       </td>
-                      <td className="text-center p-6">
-                        {row.manychat === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" data-testid={`icon-check-manychat-${index}`} />}
-                        {row.manychat === false && <X className="w-6 h-6 text-red-400/70 mx-auto" data-testid={`icon-x-manychat-${index}`} />}
-                        {row.manychat === "partial" && <span className="text-yellow-400/90" data-testid={`text-partial-manychat-${index}`}>Partial</span>}
+                      <td className="text-center p-6 text-white/70">
+                        {row.manychat === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" />}
+                        {row.manychat === false && <X className="w-6 h-6 text-red-400/70 mx-auto" />}
+                        {typeof row.manychat === 'string' && row.manychat !== 'true' && row.manychat !== 'false' && <span className="text-sm">{row.manychat}</span>}
                       </td>
-                      <td className="text-center p-6">
-                        {row.hubspot === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" data-testid={`icon-check-hubspot-${index}`} />}
-                        {row.hubspot === false && <X className="w-6 h-6 text-red-400/70 mx-auto" data-testid={`icon-x-hubspot-${index}`} />}
-                        {row.hubspot === "manual" && <span className="text-yellow-400/90" data-testid={`text-manual-hubspot-${index}`}>Manual</span>}
+                      <td className="text-center p-6 text-white/70">
+                        {row.hubspot === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" />}
+                        {row.hubspot === false && <X className="w-6 h-6 text-red-400/70 mx-auto" />}
+                        {typeof row.hubspot === 'string' && row.hubspot !== 'true' && row.hubspot !== 'false' && <span className="text-sm">{row.hubspot}</span>}
                       </td>
                     </motion.tr>
                   ))}
@@ -427,7 +681,7 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             <Link href="/auth">
-              <Button size="lg" className="glow text-lg px-12 py-6 group" data-testid="button-cta-bottom">
+              <Button size="lg" className="glow text-lg px-12 py-6 group">
                 Start Your Free Trial
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
@@ -447,11 +701,11 @@ export default function Landing() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6" data-testid="heading-pricing">
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
               Simple plans. <span className="text-primary">Serious results</span>
             </h2>
             <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Start with a 3-day free trial. No credit card required. Cancel anytime.
+              Start with a 3-day free trial. No credit card required. Scale as you grow.
             </p>
           </motion.div>
 
@@ -462,11 +716,13 @@ export default function Landing() {
                 price: 49,
                 description: 'Perfect for creators just getting started',
                 features: [
-                  '100 leads per month',
-                  '30 voice minutes',
-                  'Instagram & WhatsApp',
-                  'Basic AI insights',
+                  '100 warm leads per month',
+                  '30 AI voice minutes',
+                  'Instagram & WhatsApp integration',
+                  'Basic AI conversation engine',
+                  'Smart lead tagging',
                   'Email support',
+                  'Real-time analytics dashboard',
                 ],
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_STARTER,
                 testId: 'starter',
@@ -476,13 +732,15 @@ export default function Landing() {
                 price: 149,
                 description: 'For growing creators who need more power',
                 features: [
-                  '500 leads per month',
-                  '150 voice minutes',
-                  'All integrations',
-                  'Advanced AI insights',
-                  'Voice cloning',
+                  '500 warm leads per month',
+                  '150 AI voice minutes',
+                  'All channel integrations (Instagram, WhatsApp, Email)',
+                  'Advanced AI with intent recognition',
+                  'Custom voice cloning',
+                  'Automated segmentation',
                   'Priority support',
-                  'Custom automations',
+                  'Custom AI training',
+                  'Weekly performance reports',
                 ],
                 popular: true,
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_PRO,
@@ -493,14 +751,16 @@ export default function Landing() {
                 price: 499,
                 description: 'Unlimited power for scaling businesses',
                 features: [
-                  'Unlimited leads',
+                  'Unlimited leads & contacts',
                   'Unlimited voice minutes',
-                  'All integrations + API',
-                  'AI insights & reports',
-                  'Custom voice cloning',
-                  'Dedicated manager',
-                  'White-label option',
-                  'SLA guarantee',
+                  'All integrations + Custom API access',
+                  'Advanced AI with custom models',
+                  'Multiple voice clones',
+                  'Team collaboration tools',
+                  'Dedicated success manager',
+                  'White-label options',
+                  '99.9% SLA guarantee',
+                  'Custom integrations',
                 ],
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_ENTERPRISE,
                 testId: 'enterprise',
@@ -525,82 +785,98 @@ export default function Landing() {
                   className={`glass-card p-8 h-full transition-all duration-300 group hover:scale-105 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/30 ${
                     plan.popular ? 'border-primary/50 shadow-lg shadow-primary/20 scale-105' : 'border-white/10'
                   }`}
-                  data-testid={`card-pricing-${plan.testId}`}
                 >
                   <div className="mb-6">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-primary transition-colors" data-testid={`text-plan-name-${plan.testId}`}>
+                    <h3 className="text-2xl font-bold mb-2 group-hover:text-primary transition-colors">
                       {plan.name}
                     </h3>
-                    <p className="text-white/80 text-sm" data-testid={`text-plan-description-${plan.testId}`}>
+                    <p className="text-white/80 text-sm">
                       {plan.description}
                     </p>
                   </div>
 
                   <div className="mb-6">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold text-primary group-hover:scale-110 inline-block transition-transform" data-testid={`text-price-${plan.testId}`}>
-                        ${plan.price}
-                      </span>
-                      <span className="text-white/70">/month</span>
-                    </div>
+                    <span className="text-5xl font-bold text-primary">${plan.price}</span>
+                    <span className="text-white/60">/month</span>
                   </div>
 
-                  <div className="mb-8 space-y-3">
-                    {plan.features.map((feature, idx) => (
-                      <div key={idx} className="flex items-start gap-2 group/feature">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5 group-hover/feature:scale-110 transition-transform" />
-                        <span className="text-white/90 group-hover/feature:text-white transition-colors" data-testid={`text-feature-${plan.testId}-${idx}`}>
-                          {feature}
-                        </span>
-                      </div>
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-3">
+                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-white/90 text-sm">{feature}</span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
 
-                  <Button
-                    className={`w-full text-lg py-6 transition-all duration-300 ${
-                      plan.popular ? 'glow hover:scale-105' : 'hover:bg-primary hover:text-black hover:border-primary'
-                    }`}
-                    variant={plan.popular ? 'default' : 'outline'}
-                    onClick={() => {
-                      if (plan.paymentLink && plan.paymentLink.startsWith('http')) {
-                        window.open(plan.paymentLink, '_blank');
-                      } else {
-                        window.location.href = '/auth';
-                      }
-                    }}
-                    data-testid={`button-buy-${plan.testId}`}
-                  >
-                    {(plan.paymentLink && plan.paymentLink.startsWith('http')) ? `Choose ${plan.name}` : 'Start Free Trial'}
-                  </Button>
+                  <Link href="/auth">
+                    <Button 
+                      className={`w-full group ${plan.popular ? 'glow' : 'glass'}`}
+                      variant={plan.popular ? 'default' : 'outline'}
+                    >
+                      Start Free Trial
+                      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
                 </Card>
               </motion.div>
             ))}
           </div>
 
           <motion.div
-            className="text-center mt-12 text-white/80"
+            className="text-center mt-12 text-white/70"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
           >
-            <p data-testid="text-pricing-footnote">
-              All plans include a 3-day free trial. Need custom limits? <a href="#" className="text-primary hover:text-primary/80 hover:underline transition-colors">Contact us</a>
-            </p>
+            <p className="mb-2">All plans include 3-day free trial • Cancel anytime • No credit card required</p>
+            <p className="text-sm">Need more leads? Add top-up packages starting at $29 for 1,000 additional leads</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-32 px-4 relative">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="glass-card p-12 md:p-16 rounded-3xl border-primary/30 relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Ready to <span className="text-primary">10x your conversions</span>?
+              </h2>
+              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+                Join thousands of creators who are closing more deals with less effort. Your AI sales team is ready to start working for you today.
+              </p>
+              <Link href="/auth">
+                <Button size="lg" className="glow text-xl px-12 py-8 group">
+                  Start Your Free 3-Day Trial
+                  <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <p className="mt-6 text-white/70 text-sm">
+                ✨ Setup takes 5 minutes • 🔒 No credit card required • 🚀 Start converting today
+              </p>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-4 bg-black/20">
+      <footer className="border-t border-white/10 py-12 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-white/70" data-testid="text-copyright">
+            <div className="text-white/70 text-sm">
               © 2025 Audnix AI. All rights reserved.
             </div>
-            <div className="flex gap-6">
-              <a href="#" className="text-white/70 hover:text-primary hover:scale-110 inline-block transition-all duration-200" data-testid="link-privacy">Privacy Policy</a>
-              <a href="#" className="text-white/70 hover:text-primary hover:scale-110 inline-block transition-all duration-200" data-testid="link-contact">Contact</a>
-              <a href="#" className="text-white/70 hover:text-primary hover:scale-110 inline-block transition-all duration-200" data-testid="link-terms">Terms</a>
+            <div className="flex items-center gap-6 text-white/70 text-sm">
+              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-primary transition-colors">Contact</a>
             </div>
           </div>
         </div>
