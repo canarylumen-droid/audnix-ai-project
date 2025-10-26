@@ -55,32 +55,59 @@ export function detectConversationStatus(messages: Message[]): {
   status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
   shouldUseVoice: boolean;
 } {
+  if (messages.length === 0) {
+    return { status: 'new', shouldUseVoice: false };
+  }
+
   const lastMessages = messages.slice(-5);
   const combinedText = lastMessages.map(m => m.body.toLowerCase()).join(' ');
+  const lastMessage = messages[messages.length - 1];
+  const inboundMessages = messages.filter(m => m.direction === 'inbound');
   
   // Conversion signals
-  const conversionKeywords = ['yes', 'deal', 'interested', 'buy', 'purchase', 'book', 'schedule', 'when can', 'let\'s do it'];
+  const conversionKeywords = ['yes', 'deal', 'interested', 'buy', 'purchase', 'book', 'schedule', 'when can', 'let\'s do it', 'sign me up', 'i\'m in'];
   const notInterestedKeywords = ['no thanks', 'not interested', 'stop', 'unsubscribe', 'don\'t contact', 'leave me alone'];
   const bookingKeywords = ['calendar', 'appointment', 'meeting', 'call', 'demo', 'when are you free'];
   
-  // Check for conversion
-  if (conversionKeywords.some(kw => combinedText.includes(kw))) {
+  // Check for conversion - ONLY check inbound message content
+  // Get text from ONLY inbound messages (exclude outbound prompts)
+  const inboundText = inboundMessages.map(m => m.body.toLowerCase()).join(' ');
+  const hasConversionSignal = conversionKeywords.some(kw => inboundText.includes(kw));
+  
+  if (hasConversionSignal && inboundMessages.length > 0) {
     return { status: 'converted', shouldUseVoice: false };
   }
   
-  // Check for not interested
-  if (notInterestedKeywords.some(kw => combinedText.includes(kw))) {
+  // Check for not interested - also only in inbound messages
+  const hasRejectionSignal = notInterestedKeywords.some(kw => inboundText.includes(kw));
+  if (hasRejectionSignal) {
     return { status: 'not_interested', shouldUseVoice: false };
   }
+
+  // Check time since last message for cold leads
+  const lastMessageTime = new Date(lastMessage.createdAt);
+  const hoursSinceLastMessage = (Date.now() - lastMessageTime.getTime()) / (1000 * 60 * 60);
   
-  // Check if they mentioned booking - warm lead
-  const wantsBooking = bookingKeywords.some(kw => combinedText.includes(kw));
+  // Lead has replied - determine if warm enough for voice
+  if (inboundMessages.length > 0) {
+    const wantsBooking = bookingKeywords.some(kw => combinedText.includes(kw));
+    const shouldUseVoice = inboundMessages.length >= 2 || wantsBooking;
+    return { status: 'replied', shouldUseVoice };
+  }
   
-  // Warm leads should get voice notes
-  const inboundCount = messages.filter(m => m.direction === 'inbound').length;
-  const shouldUseVoice = inboundCount >= 2 || wantsBooking;
+  // No inbound messages yet - check timing for lifecycle progression
+  if (lastMessage.direction === 'outbound') {
+    // Cold: No response after 72+ hours
+    if (hoursSinceLastMessage > 72) {
+      return { status: 'cold', shouldUseVoice: false };
+    }
+    // Open: Sent but within 72 hours, awaiting response
+    // This covers both < 24 hours AND 24-72 hour range
+    return { status: 'open', shouldUseVoice: false };
+  }
   
-  return { status: 'replied', shouldUseVoice };
+  // Default: new lead (first contact not yet made)
+  return { status: 'new', shouldUseVoice: false };
 }
 
 /**

@@ -28,7 +28,8 @@ export async function importInstagramLeads(userId: string): Promise<{
     }
 
     // Decrypt tokens
-    const decryptedMeta = JSON.parse(igIntegration.encryptedMeta);
+    const decryptedMetaJson = decrypt(igIntegration.encryptedMeta);
+    const decryptedMeta = JSON.parse(decryptedMetaJson);
     const accessToken = decryptedMeta.tokens?.access_token;
 
     if (!accessToken) {
@@ -64,19 +65,18 @@ export async function importInstagramLeads(userId: string): Promise<{
             metadata: { username: conversation.participants?.[0]?.username }
           };
 
-          // We need to add a createLead method to storage
-          // For now, we'll skip this and log
-          console.log('Would create lead:', leadData);
+          // Actually create the lead
+          lead = await storage.createLead(leadData);
           results.leadsImported++;
         } else {
           lead = existingLead;
         }
 
         // Import message history
-        if (conversation.messages) {
+        if (conversation.messages && lead) {
           for (const msg of conversation.messages) {
             const messageData = {
-              leadId: lead?.id || existingLead?.id,
+              leadId: lead.id,
               userId,
               provider: 'instagram' as const,
               direction: msg.from?.id === conversation.participants?.[0]?.id ? 'inbound' as const : 'outbound' as const,
@@ -192,7 +192,8 @@ export async function importManychatLeads(userId: string): Promise<{
       return results;
     }
 
-    const decryptedMeta = JSON.parse(mcIntegration.encryptedMeta);
+    const decryptedMetaJson = decrypt(mcIntegration.encryptedMeta);
+    const decryptedMeta = JSON.parse(decryptedMetaJson);
     const apiKey = decryptedMeta.tokens?.api_key;
 
     if (!apiKey) {
