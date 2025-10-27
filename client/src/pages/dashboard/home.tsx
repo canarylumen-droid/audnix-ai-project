@@ -332,12 +332,12 @@ export default function DashboardHome() {
           >
             <Card data-testid="card-activity" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
               <CardHeader>
-                <CardTitle className="text-foreground">Recent Activity</CardTitle>
+                <CardTitle className="text-white font-semibold">Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 {activityLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
                   </div>
                 ) : activities.length > 0 ? (
                   <div className="space-y-4">
@@ -361,8 +361,8 @@ export default function DashboardHome() {
                             }`} />
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm text-foreground/90 group-hover:text-foreground transition-colors">{activity.message}</p>
-                            <p className="text-xs text-foreground/50 group-hover:text-foreground/70 mt-1 transition-colors">
+                            <p className="text-sm text-white/90 group-hover:text-white transition-colors">{activity.message}</p>
+                            <p className="text-xs text-white/60 group-hover:text-white/80 mt-1 transition-colors">
                               {formatTimeAgo(activity.time)}
                             </p>
                           </div>
@@ -372,9 +372,9 @@ export default function DashboardHome() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 text-foreground/40 mx-auto mb-3" />
-                    <p className="text-foreground/70">No activity yet</p>
-                    <p className="text-sm text-foreground/50 mt-1">
+                    <AlertCircle className="h-12 w-12 text-cyan-400/60 mx-auto mb-3" />
+                    <p className="text-white/90 font-medium">No activity yet</p>
+                    <p className="text-sm text-white/70 mt-1">
                       Connect your accounts to start receiving leads
                     </p>
                   </div>
@@ -391,7 +391,7 @@ export default function DashboardHome() {
           >
             <Card data-testid="card-quick-actions" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
               <CardHeader>
-                <CardTitle className="text-foreground">Quick Actions</CardTitle>
+                <CardTitle className="text-white font-semibold">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {quickActions.map((action, index) => {
@@ -408,11 +408,11 @@ export default function DashboardHome() {
                           data-testid={`button-action-${index}`}
                         >
                           <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 mr-3">
-                            <Icon className="h-4 w-4 text-primary" />
+                            <Icon className="h-4 w-4 text-cyan-400" />
                           </div>
                           <div className="text-left">
-                            <div className="font-medium text-foreground group-hover:text-primary transition-colors">{action.label}</div>
-                            <div className="text-xs text-foreground/60 group-hover:text-foreground/80 transition-colors">
+                            <div className="font-semibold text-white group-hover:text-cyan-400 transition-colors">{action.label}</div>
+                            <div className="text-xs text-white/70 group-hover:text-white/90 transition-colors">
                               {action.description}
                             </div>
                           </div>
