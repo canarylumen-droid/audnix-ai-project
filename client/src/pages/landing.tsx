@@ -12,6 +12,7 @@ import Hero3D from "@/components/ui/3d-hero";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Navigation } from "@/components/landing/Navigation";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -123,8 +124,9 @@ export default function Landing() {
 
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
+      <Navigation />
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
+      <section className="relative min-h-screen flex items-center justify-center px-4 py-20 mt-16">
         <motion.div 
           className="absolute inset-0 overflow-hidden"
           style={{ opacity }}
