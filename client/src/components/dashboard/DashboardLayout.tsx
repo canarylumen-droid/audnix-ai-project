@@ -123,11 +123,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="font-bold text-xl text-primary"
+                className="flex items-center gap-2"
                 data-testid="logo-text"
               >
-                Audnix
+                <img
+                  src="/logo.jpg"
+                  alt="Audnix AI"
+                  className="h-8 w-auto object-contain"
+                />
+                <span className="font-bold text-xl text-primary">Audnix</span>
               </motion.div>
+            )}
+            {sidebarCollapsed && (
+              <motion.img
+                src="/logo.jpg"
+                alt="Audnix AI"
+                className="h-8 w-8 object-contain"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
             )}
           </AnimatePresence>
           <Button
@@ -354,7 +369,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               data-testid="mobile-menu-drawer"
             >
               <div className="p-4">
-                <div className="font-bold text-xl text-primary mb-6">Audnix</div>
+                <div className="flex items-center gap-2 mb-6">
+                  <img
+                    src="/logo.jpg"
+                    alt="Audnix AI"
+                    className="h-8 w-auto object-contain"
+                  />
+                  <span className="font-bold text-xl text-primary">Audnix</span>
+                </div>
                 <nav className="flex flex-col gap-1">
                   {filteredNavItems.map((item) => {
                     const Icon = item.icon;
