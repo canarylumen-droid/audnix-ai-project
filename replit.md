@@ -6,11 +6,12 @@ Audnix AI is a premium SaaS landing page featuring real-time capabilities, Supab
 
 ## User Preferences
 
-- **Design Philosophy**: Premium, futuristic, human-centered
-- **No Purple**: Avoid purple color schemes (per requirements)
-- **Glassmorphism**: Subtle transparency with backdrop blur
-- **Animations**: Smooth, professional, never overwhelming
-- **Accessibility**: High contrast, keyboard navigation support
+- **Design Philosophy**: Premium, creator-focused, energetic, human-centered
+- **Color Scheme**: Vibrant cyan/purple/pink gradients (updated from no-purple requirement)
+- **Glassmorphism**: Advanced transparency with backdrop blur and glow effects
+- **Animations**: Smooth, professional, energetic
+- **Accessibility**: High contrast white text, keyboard navigation support
+- **UI Style**: Bright, vibrant, modern with percentage indicators and trend arrows
 
 ## System Architecture
 
@@ -23,7 +24,26 @@ Key features include:
 - Real-time updates for user counts and signup notifications via Supabase Realtime.
 - An AI Voice System utilizing OpenAI and ElevenLabs for intelligent, personalized voice messages to warm leads, with usage limits and automatic credential decryption.
 
-The application adheres to a dark gradient theme (`#0a0f1f` to `#020409`) with an electric blue primary color (`#00aaff`). Typography uses Inter font, featuring bold headlines with glow effects. Design elements emphasize glassmorphism, soft glow effects, and Framer Motion animations.
+The application features a premium dark gradient theme with vibrant cyan (`#00c8ff`), purple (`#9333ea`), and pink (`#ec4899`) accents. Typography uses Inter font with bold gradient text and glow effects. Design elements emphasize advanced glassmorphism, energetic glow effects, and smooth Framer Motion animations. Dashboard includes bright white text, vibrant KPI cards with gradient backgrounds, percentage indicators, and trend arrows for a modern creator-focused aesthetic.
+
+## Pricing & Monetization (v1.0)
+
+**Subscription Tiers:**
+- **Starter**: $49/month (2,500 leads, 100 voice seconds)
+- **Pro**: $99/month (7,000 leads, 400 voice seconds) - Most Popular
+- **Enterprise**: $199/month (20,000 leads, 1,500 voice seconds)
+
+**Free Trial:**
+- Duration: 3 days
+- Features: Limited (0 voice seconds, basic features)
+- Post-trial: Users must upgrade to paid plan for premium features
+- Lockout: Trial expiration middleware blocks access and redirects to pricing
+
+**Feature Gating:**
+- Voice features require paid subscription (trial users get 0 seconds)
+- Lead limits enforced per plan tier
+- Middleware: `requireActiveSubscription` checks trial expiry
+- Automatic blocking when trial expires
 
 ## External Dependencies
 

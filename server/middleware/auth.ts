@@ -88,6 +88,52 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 }
 
 /**
+ * Middleware to check if user has an active subscription or valid trial
+ * Blocks access to premium features if trial expired and no paid plan
+ */
+export async function requireActiveSubscription(req: Request, res: Response, next: NextFunction) {
+  const userId = req.session?.userId;
+  
+  if (!userId) {
+    return res.status(401).json({ 
+      error: "Authentication required",
+      message: "Please log in to access this resource"
+    });
+  }
+
+  const user = await storage.getUserById(userId);
+  if (!user) {
+    return res.status(401).json({ 
+      error: "Invalid session",
+      message: "User not found"
+    });
+  }
+
+  // Check if user has a paid plan
+  if (user.plan && user.plan !== 'trial') {
+    (req as any).user = user;
+    return next();
+  }
+
+  // If on trial, check if it's expired
+  if (user.plan === 'trial' && user.trialExpiresAt) {
+    const now = new Date();
+    if (now < user.trialExpiresAt) {
+      // Trial is still valid
+      (req as any).user = user;
+      return next();
+    }
+  }
+
+  // Trial expired or no active subscription
+  return res.status(402).json({
+    error: "Subscription required",
+    message: "Your free trial has ended. Please upgrade to continue using premium features.",
+    redirectTo: "/dashboard/pricing"
+  });
+}
+
+/**
  * Helper function to get current user from request
  */
 export function getCurrentUser(req: Request) {
