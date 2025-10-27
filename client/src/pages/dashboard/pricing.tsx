@@ -115,8 +115,8 @@ export default function PricingPage() {
                   ))}
                 </ul>
                 <Button
-                  className="w-full"
-                  variant={plan.popular ? "default" : "outline"}
+                  className={`w-full ${plan.popular ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white' : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white border-0'}`}
+                  variant={plan.popular ? "default" : "secondary"}
                   data-testid={`button-cta-${index}`}
                 >
                   {plan.cta}
