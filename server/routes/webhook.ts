@@ -30,31 +30,33 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as any;
-        const { userId, planId, isTopup } = session.metadata || {};
+        const { userId, planKey, topupType } = session.metadata || {};
 
         if (!userId) {
           console.error('No userId in session metadata');
           return res.status(400).json({ error: 'Missing userId' });
         }
 
-        if (isTopup === 'true') {
+        if (topupType) {
           // Handle topup purchase
-          await processTopupSuccess(userId, session);
-        } else if (planId) {
-          // Handle subscription creation
-          const plan = PLANS[planId as keyof typeof PLANS];
+          await processTopupSuccess(userId, topupType, parseInt(session.metadata.topupAmount || '0'));
+        } else if (planKey) {
+          // Handle subscription creation - unlock features immediately
+          const plan = PLANS[planKey as keyof typeof PLANS];
           if (!plan) {
-            console.error('Invalid planId:', planId);
+            console.error('Invalid planKey:', planKey);
             return res.status(400).json({ error: 'Invalid plan' });
           }
 
-          // Update user with Stripe customer ID and subscription
+          // Update user with new plan - features unlock immediately in real-time
           await storage.updateUser(userId, {
-            plan: planId as any,
+            plan: planKey as any,
             stripeCustomerId: session.customer as string,
             stripeSubscriptionId: session.subscription as string,
-            trialExpiresAt: null, // Clear trial
+            trialExpiresAt: null, // Clear trial expiration
           });
+
+          console.log(`✓ User ${userId} upgraded to ${planKey} plan - features unlocked`);
 
           // Log payment
           if (supabaseAdmin) {
@@ -66,7 +68,7 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
                 amount: session.amount_total,
                 currency: session.currency,
                 status: 'completed',
-                plan: planId,
+                plan: planKey,
                 payment_link: session.url,
                 webhook_payload: event,
               });

@@ -171,7 +171,7 @@ export default function DashboardHome() {
               }}
             />
             <motion.h1 
-              className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent drop-shadow-lg" 
+              className="text-4xl md:text-5xl font-bold drop-shadow-lg" 
               data-testid="heading-welcome"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -181,7 +181,7 @@ export default function DashboardHome() {
               <span className="inline-flex items-center gap-3">
                 {user?.name ? (
                   <>
-                    <span className="text-black">Hey</span>
+                    <span className="text-white">Hey</span>
                     <motion.span
                       animate={prefersReducedMotion ? {} : {
                         rotate: [0, 14, -8, 14, -4, 10, 0, 0],
@@ -196,11 +196,11 @@ export default function DashboardHome() {
                     >
                       👋
                     </motion.span>
-                    <span className="text-black font-extrabold">{user.name.split(' ')[0]}!</span>
+                    <span className="text-white font-extrabold">{user.name.split(' ')[0]}!</span>
                   </>
                 ) : (
                   <>
-                    <span className="text-black">Hey</span>
+                    <span className="text-white">Hey</span>
                     <motion.span
                       animate={prefersReducedMotion ? {} : {
                         rotate: [0, 14, -8, 14, -4, 10, 0, 0],
@@ -219,7 +219,7 @@ export default function DashboardHome() {
               </span>
             </motion.h1>
             <motion.p 
-              className="text-black mt-3 text-xl font-medium" 
+              className="text-white mt-3 text-xl font-medium" 
               data-testid="text-subtitle"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}

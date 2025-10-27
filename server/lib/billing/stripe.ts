@@ -19,21 +19,21 @@ export const PLANS = {
   starter: {
     priceId: process.env.STRIPE_PRICE_ID_MONTHLY_49 || "price_starter",
     name: "Starter",
-    price: 49,
+    price: 49.99,
     leads_limit: parseInt(process.env.LEADS_LIMIT_PLAN_49 || "2500"),
     voice_seconds: parseInt(process.env.VOICE_SECONDS_PLAN_49 || "100"),
   },
   pro: {
     priceId: process.env.STRIPE_PRICE_ID_MONTHLY_99 || "price_pro",
     name: "Pro",
-    price: 99,
+    price: 99.99,
     leads_limit: parseInt(process.env.LEADS_LIMIT_PLAN_99 || "7000"),
     voice_seconds: parseInt(process.env.VOICE_SECONDS_PLAN_99 || "400"),
   },
   enterprise: {
     priceId: process.env.STRIPE_PRICE_ID_MONTHLY_199 || "price_enterprise",
     name: "Enterprise",
-    price: 199,
+    price: 199.99,
     leads_limit: parseInt(process.env.LEADS_LIMIT_PLAN_199 || "20000"),
     voice_seconds: parseInt(process.env.VOICE_SECONDS_PLAN_199 || "1500"),
   },
@@ -159,6 +159,46 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
   }
 
   await stripe.subscriptions.cancel(subscriptionId);
+}
+
+/**
+ * Create checkout session for subscription
+ */
+export async function createSubscriptionCheckout(
+  customerId: string,
+  planKey: keyof typeof PLANS,
+  userId: string
+): Promise<{ sessionId: string; url: string }> {
+  if (isDemoMode) {
+    return {
+      sessionId: `cs_mock_${Date.now()}`,
+      url: "/dashboard",
+    };
+  }
+
+  const plan = PLANS[planKey];
+  
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: "subscription",
+    line_items: [
+      {
+        price: plan.priceId,
+        quantity: 1,
+      },
+    ],
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard?payment=success`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard/pricing?payment=cancelled`,
+    metadata: {
+      userId,
+      planKey,
+    },
+  });
+
+  return {
+    sessionId: session.id,
+    url: session.url || "",
+  };
 }
 
 /**

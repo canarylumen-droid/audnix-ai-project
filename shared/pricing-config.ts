@@ -15,7 +15,7 @@ export const PRICING_TIERS: PricingTier[] = [
   {
     id: 'starter',
     name: 'Starter',
-    price: 49,
+    price: 49.99,
     period: 'month',
     description: 'Perfect for creators just getting started',
     leadsLimit: 2500,
@@ -27,12 +27,11 @@ export const PRICING_TIERS: PricingTier[] = [
       'Basic AI insights',
       'Email support',
     ],
-    paymentLink: import.meta.env.VITE_STRIPE_LINK_STARTER || undefined,
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: 99,
+    price: 99.99,
     period: 'month',
     description: 'For growing creators who need more power',
     leadsLimit: 7000,
@@ -47,12 +46,11 @@ export const PRICING_TIERS: PricingTier[] = [
       'Priority support',
       'Custom automations',
     ],
-    paymentLink: import.meta.env.VITE_STRIPE_LINK_PRO || undefined,
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 199,
+    price: 199.99,
     period: 'month',
     description: 'Unlimited power for scaling businesses',
     leadsLimit: 20000,
@@ -67,6 +65,5 @@ export const PRICING_TIERS: PricingTier[] = [
       'White-label option',
       'SLA guarantee',
     ],
-    paymentLink: import.meta.env.VITE_STRIPE_LINK_ENTERPRISE || undefined,
   },
 ];

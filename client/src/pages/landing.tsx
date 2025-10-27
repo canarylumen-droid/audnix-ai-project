@@ -718,7 +718,7 @@ export default function Landing() {
             {[
               {
                 name: 'Starter',
-                price: 49,
+                price: 49.99,
                 description: 'Perfect for creators just getting started',
                 features: [
                   '2,500 leads per month',
@@ -727,12 +727,12 @@ export default function Landing() {
                   'Basic AI insights',
                   'Email support',
                 ],
-                paymentLink: import.meta.env.VITE_STRIPE_LINK_STARTER,
+                planId: 'starter',
                 testId: 'starter',
               },
               {
                 name: 'Pro',
-                price: 99,
+                price: 99.99,
                 description: 'For growing creators who need more power',
                 features: [
                   '7,000 leads per month',
@@ -744,12 +744,12 @@ export default function Landing() {
                   'Custom automations',
                 ],
                 popular: true,
-                paymentLink: import.meta.env.VITE_STRIPE_LINK_PRO,
+                planId: 'pro',
                 testId: 'pro',
               },
               {
                 name: 'Enterprise',
-                price: 199,
+                price: 199.99,
                 description: 'Unlimited power for scaling businesses',
                 features: [
                   '20,000 leads per month',
@@ -761,7 +761,7 @@ export default function Landing() {
                   'White-label option',
                   'SLA guarantee',
                 ],
-                paymentLink: import.meta.env.VITE_STRIPE_LINK_ENTERPRISE,
+                planId: 'enterprise',
                 testId: 'enterprise',
               },
             ].map((plan, index) => (

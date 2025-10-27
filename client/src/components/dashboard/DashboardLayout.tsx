@@ -238,10 +238,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {/* Search */}
           <div className="flex-1 max-w-md mx-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white" />
               <Input
                 placeholder="Search leads, conversations..."
-                className="pl-9"
+                className="pl-9 text-white placeholder:text-white/60"
                 data-testid="input-global-search"
               />
             </div>
@@ -373,7 +373,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="icon"
                 className={`flex flex-col h-auto py-2 gap-1 ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-white"
                 }`}
                 data-testid={`mobile-nav-${item.label.toLowerCase()}`}
               >
@@ -426,7 +426,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       <Link key={item.path} href={item.path}>
                         <div
                           className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors hover-elevate ${
-                            isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                            isActive ? "bg-primary/10 text-primary" : "text-white"
                           }`}
                           onClick={() => setMobileMenuOpen(false)}
                           data-testid={`mobile-menu-item-${item.label.toLowerCase()}`}

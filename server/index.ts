@@ -32,17 +32,17 @@ const sessionStore = new PgSession({
 
 console.log('✓ Using PostgreSQL for session storage (persistent across restarts)');
 
-// Session middleware
+// Session middleware with secure HTTP-only cookies
 app.use(session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // Secure in production (HTTPS only)
+    httpOnly: true, // HTTP-only cookies prevent XSS attacks
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'lax' // 'lax' required for OAuth callbacks to work
+    sameSite: 'strict' // Strict SameSite for maximum security (authentication is server-side only)
   },
   name: 'audnix.sid', // Custom session name
 }));

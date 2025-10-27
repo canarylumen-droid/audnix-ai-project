@@ -50,14 +50,14 @@ export function TrialExpiredOverlay({ daysLeft, plan }: TrialExpiredOverlayProps
               Your Free Trial Has Ended
             </CardTitle>
             <CardDescription className="text-base">
-              Upgrade to a paid plan to continue converting your leads and automating your outreach
+              Upgrade to a paid plan to access more features and continue growing your business
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span>Unlimited lead management</span>
+                <span>More lead capacity</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -74,13 +74,13 @@ export function TrialExpiredOverlay({ daysLeft, plan }: TrialExpiredOverlayProps
             </div>
 
             <Link href="/dashboard/pricing">
-              <Button className="w-full" size="lg">
-                Upgrade to Continue
+              <Button className="w-full glow" size="lg">
+                Upgrade Plan
               </Button>
             </Link>
 
             <p className="text-xs text-center text-muted-foreground">
-              Choose from our flexible plans starting at just $49/month
+              Choose from our flexible plans starting at just $49.99/month
             </p>
           </CardContent>
         </Card>

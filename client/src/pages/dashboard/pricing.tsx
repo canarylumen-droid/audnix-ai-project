@@ -2,12 +2,15 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const plans = [
   {
     name: "Starter",
-    price: 49,
+    price: 49.99,
     description: "Perfect for solo entrepreneurs and small businesses",
     features: [
       "2,500 leads",
@@ -16,12 +19,13 @@ const plans = [
       "AI follow-ups",
       "Basic analytics",
     ],
-    cta: "Start Free Trial",
+    cta: "Upgrade to Starter",
+    planId: "starter",
     popular: false,
   },
   {
     name: "Pro",
-    price: 99,
+    price: 99.99,
     description: "For growing teams that need more power",
     features: [
       "7,000 leads",
@@ -31,12 +35,13 @@ const plans = [
       "Advanced insights",
       "Priority support",
     ],
-    cta: "Start Free Trial",
+    cta: "Upgrade to Pro",
+    planId: "pro",
     popular: true,
   },
   {
     name: "Enterprise",
-    price: 199,
+    price: 199.99,
     description: "Unlimited power for scaling teams",
     features: [
       "20,000+ leads",
@@ -46,20 +51,51 @@ const plans = [
       "Dedicated account manager",
       "SLA guarantee",
     ],
-    cta: "Contact Sales",
+    cta: "Upgrade to Enterprise",
+    planId: "enterprise",
     popular: false,
   },
 ];
 
 export default function PricingPage() {
+  const { toast } = useToast();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handleUpgrade = async (planId: string) => {
+    setLoadingPlan(planId);
+    try {
+      const response = await apiRequest<{ url: string }>('/api/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ planKey: planId }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create checkout session. Please try again.",
+        variant: "destructive",
+      });
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4" data-testid="heading-pricing">
+        <h1 className="text-4xl font-bold mb-4 text-white" data-testid="heading-pricing">
           Choose Your Plan
         </h1>
-        <p className="text-xl text-muted-foreground" data-testid="text-subtitle">
+        <p className="text-xl text-white/80" data-testid="text-subtitle">
           Start with a 3-day free trial. No credit card required.
         </p>
       </div>
@@ -88,17 +124,17 @@ export default function PricingPage() {
                 </Badge>
               )}
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl" data-testid={`text-plan-name-${index}`}>
+                <CardTitle className="text-2xl text-white" data-testid={`text-plan-name-${index}`}>
                   {plan.name}
                 </CardTitle>
-                <CardDescription data-testid={`text-plan-description-${index}`}>
+                <CardDescription className="text-white/70" data-testid={`text-plan-description-${index}`}>
                   {plan.description}
                 </CardDescription>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold" data-testid={`text-plan-price-${index}`}>
+                  <span className="text-4xl font-bold text-white" data-testid={`text-plan-price-${index}`}>
                     ${plan.price}
                   </span>
-                  <span className="text-muted-foreground">/month</span>
+                  <span className="text-white/60">/month</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -110,7 +146,7 @@ export default function PricingPage() {
                       data-testid={`feature-${index}-${featureIndex}`}
                     >
                       <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-sm text-white/90">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -118,8 +154,17 @@ export default function PricingPage() {
                   className={`w-full ${plan.popular ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white' : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white border-0'}`}
                   variant={plan.popular ? "default" : "secondary"}
                   data-testid={`button-cta-${index}`}
+                  onClick={() => handleUpgrade(plan.planId)}
+                  disabled={loadingPlan === plan.planId}
                 >
-                  {plan.cta}
+                  {loadingPlan === plan.planId ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    plan.cta
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -147,10 +192,10 @@ export default function PricingPage() {
           ].map((faq, index) => (
             <Card key={index} data-testid={`card-faq-${index}`}>
               <CardHeader>
-                <CardTitle className="text-lg" data-testid={`text-faq-q-${index}`}>{faq.q}</CardTitle>
+                <CardTitle className="text-lg text-white" data-testid={`text-faq-q-${index}`}>{faq.q}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground" data-testid={`text-faq-a-${index}`}>{faq.a}</p>
+                <p className="text-white/70" data-testid={`text-faq-a-${index}`}>{faq.a}</p>
               </CardContent>
             </Card>
           ))}

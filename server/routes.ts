@@ -7,6 +7,7 @@ import {
   isDemoMode as stripeDemoMode, 
   createStripeCustomer, 
   createSubscription, 
+  createSubscriptionCheckout,
   updateSubscriptionPlan,
   cancelSubscription,
   createTopupCheckout,
@@ -79,6 +80,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect("/auth?error=auth_failed");
       }
 
+      // Get the session with access and refresh tokens
+      const { data: { session: oauthSession }, error: sessionError } = await supabaseAdmin.auth.getSession();
+      
+      if (sessionError || !oauthSession) {
+        console.error("Failed to get OAuth session:", sessionError);
+        return res.redirect("/auth?error=session_failed");
+      }
+
       // Get the full user data with metadata
       const { data: { user: authUser } } = await supabaseAdmin.auth.getUser();
       
@@ -111,13 +120,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Store user ID in session (if using session management)
+      // Store user ID and auth tokens in secure HTTP-only session cookie
       req.session = req.session || {};
       (req.session as any).userId = dbUser.id;
       (req.session as any).userEmail = dbUser.email;
-
-      // Redirect to dashboard
-      res.redirect("/dashboard");
+      (req.session as any).supabaseId = dbUser.supabaseId;
+      (req.session as any).accessToken = oauthSession.access_token;
+      (req.session as any).refreshToken = oauthSession.refresh_token;
+      (req.session as any).expiresAt = oauthSession.expires_at;
+      
+      // Save session with secure HTTP-only cookies
+      req.session.save((err) => {
+        if (err) {
+          console.error("Error saving session:", err);
+          return res.redirect("/auth?error=session_error");
+        }
+        
+        // Redirect to dashboard
+        res.redirect("/dashboard");
+      });
     } catch (error) {
       console.error("Error in OAuth callback:", error);
       res.redirect("/auth?error=server_error");
@@ -544,6 +565,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating subscription:", error);
       res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  app.post("/api/billing/checkout", requireAuth, async (req, res) => {
+    try {
+      const { planKey } = req.body;
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Create Stripe customer if doesn't exist
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        stripeCustomerId = await createStripeCustomer(user.email, user.name || undefined, user.id);
+        await storage.updateUser(user.id, { stripeCustomerId });
+      }
+
+      // Create checkout session
+      const { sessionId, url } = await createSubscriptionCheckout(
+        stripeCustomerId,
+        planKey,
+        user.id
+      );
+
+      res.json({ sessionId, url });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
     }
   });
 

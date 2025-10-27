@@ -321,23 +321,29 @@ Or use the Deploy to Render button (see [DEPLOYMENT.md](./DEPLOYMENT.md))
 ## 💰 Monetization & Pricing
 
 **Subscription Plans:**
-- **Starter** - $49/month (2,500 leads, 100 voice seconds)
-- **Pro** - $99/month (7,000 leads, 400 voice seconds)
-- **Enterprise** - $199/month (20,000 leads, 1,500 voice seconds)
+- **Starter** - $49.99/month (2,500 leads, 100 voice minutes)
+- **Pro** - $99.99/month (7,000 leads, 400 voice minutes) - Most Popular
+- **Enterprise** - $199.99/month (20,000 leads, 1,500 voice minutes)
 
 **Free Trial:**
-- **Duration:** 3 days
+- **Duration:** 3 days (automatically set when user signs up)
 - **Features:** Limited access (0 voice seconds, basic features only)
-- **After Trial:** Users must upgrade to a paid plan to continue using premium features
-- **Lockout:** Expired trial users are blocked from premium features and redirected to pricing page
+- **After Trial:** Users are prompted to upgrade with a full-screen overlay
+- **Upgrade Flow:** Clicking "Upgrade Plan" takes users to `/dashboard/pricing` where they can choose a plan
+- **Real-Time Unlocking:** Features unlock immediately upon successful payment via Stripe webhook
 
 **Feature Gating:**
 - ✅ Voice features require paid plan (trial = 0 voice seconds)
-- ✅ Lead limits enforced per plan tier
+- ✅ Lead limits enforced per plan tier (starter: 2,500, pro: 7,000, enterprise: 20,000)
 - ✅ Middleware checks subscription status on protected routes
-- ✅ Automatic lockout when trial expires
+- ✅ Automatic lockout when trial expires with upgrade prompt
+- ✅ Stripe Checkout API integration (no payment links - full API control)
 
-Stripe integration is complete - just add your Stripe price IDs to `.env`
+**Payment Processing:**
+- Secure HTTP-only cookie-based sessions with SameSite=strict
+- Stripe Checkout Sessions for subscription management
+- Real-time plan upgrades via webhook integration
+- Automatic feature unlocking upon payment confirmation
 
 ## 🔒 Security
 

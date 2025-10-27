@@ -26,24 +26,31 @@ Key features include:
 
 The application features a premium dark gradient theme with vibrant cyan (`#00c8ff`), purple (`#9333ea`), and pink (`#ec4899`) accents. Typography uses Inter font with bold gradient text and glow effects. Design elements emphasize advanced glassmorphism, energetic glow effects, and smooth Framer Motion animations. Dashboard includes bright white text, vibrant KPI cards with gradient backgrounds, percentage indicators, and trend arrows for a modern creator-focused aesthetic.
 
-## Pricing & Monetization (v1.0)
+## Pricing & Monetization (v2.0 - Updated October 2025)
 
 **Subscription Tiers:**
-- **Starter**: $49/month (2,500 leads, 100 voice minutes)
-- **Pro**: $99/month (7,000 leads, 400 voice minutes) - Most Popular
-- **Enterprise**: $199/month (20,000 leads, 1,500 voice minutes)
+- **Starter**: $49.99/month (2,500 leads, 100 voice minutes)
+- **Pro**: $99.99/month (7,000 leads, 400 voice minutes) - Most Popular
+- **Enterprise**: $199.99/month (20,000 leads, 1,500 voice minutes)
 
 **Free Trial:**
-- Duration: 3 days
+- Duration: 3 days (set automatically when user signs up via OAuth)
 - Features: Limited (0 voice seconds, basic features)
-- Post-trial: Users must upgrade to paid plan for premium features
-- Lockout: Trial expiration middleware blocks access and redirects to pricing
+- Post-trial: Full-screen overlay appears with upgrade prompt (no "unlimited" messaging)
+- Upgrade Flow: "Upgrade Plan" button redirects to `/dashboard/pricing`
+- Real-Time Unlocking: Features unlock immediately after Stripe payment via webhook
+
+**Payment Integration:**
+- Stripe Checkout API (no payment links - full programmatic control)
+- Secure cookie-based sessions (HTTP-only, SameSite=strict, secure in production)
+- OAuth tokens (access & refresh) stored in secure HTTP-only session cookies
+- Webhook-based plan activation for instant feature unlocking
 
 **Feature Gating:**
 - Voice features require paid subscription (trial users get 0 seconds)
 - Lead limits enforced per plan tier
 - Middleware: `requireActiveSubscription` checks trial expiry
-- Automatic blocking when trial expires
+- Automatic blocking when trial expires with clean upgrade messaging
 
 ## External Dependencies
 
