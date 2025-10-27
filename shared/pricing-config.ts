@@ -22,7 +22,7 @@ export const PRICING_TIERS: PricingTier[] = [
     voiceMinutes: 100,
     features: [
       '2,500 leads per month',
-      '100 voice seconds',
+      '100 voice minutes',
       'Instagram & WhatsApp integration',
       'Basic AI insights',
       'Email support',
@@ -40,7 +40,7 @@ export const PRICING_TIERS: PricingTier[] = [
     popular: true,
     features: [
       '7,000 leads per month',
-      '400 voice seconds',
+      '400 voice minutes',
       'All integrations (IG, WA, Email)',
       'Advanced AI insights',
       'Voice cloning',
@@ -59,7 +59,7 @@ export const PRICING_TIERS: PricingTier[] = [
     voiceMinutes: 1500,
     features: [
       '20,000 leads per month',
-      '1,500 voice seconds',
+      '1,500 voice minutes',
       'All integrations + API access',
       'AI-powered insights & reports',
       'Custom voice cloning',

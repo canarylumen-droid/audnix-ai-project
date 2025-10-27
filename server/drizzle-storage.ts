@@ -1,7 +1,7 @@
 import type { IStorage } from "./storage";
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration } from "@shared/schema";
 import { db } from "./db";
-import { users, leads, messages, integrations } from "@shared/schema";
+import { users, leads, messages, integrations, notifications } from "@shared/schema";
 import { eq, and, or, like, desc, sql } from "drizzle-orm";
 
 export class DrizzleStorage implements IStorage {
@@ -216,6 +216,39 @@ export class DrizzleStorage implements IStorage {
     await db
       .delete(integrations)
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)));
+  }
+
+  async getNotifications(userId: string): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(20);
+    
+    return result.map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      timestamp: n.createdAt,
+      read: n.isRead,
+      actionUrl: n.actionUrl,
+    }));
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
   }
 }
 

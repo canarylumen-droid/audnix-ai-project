@@ -29,9 +29,9 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 ## Pricing & Monetization (v1.0)
 
 **Subscription Tiers:**
-- **Starter**: $49/month (2,500 leads, 100 voice seconds)
-- **Pro**: $99/month (7,000 leads, 400 voice seconds) - Most Popular
-- **Enterprise**: $199/month (20,000 leads, 1,500 voice seconds)
+- **Starter**: $49/month (2,500 leads, 100 voice minutes)
+- **Pro**: $99/month (7,000 leads, 400 voice minutes) - Most Popular
+- **Enterprise**: $199/month (20,000 leads, 1,500 voice minutes)
 
 **Free Trial:**
 - Duration: 3 days

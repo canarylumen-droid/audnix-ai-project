@@ -722,7 +722,7 @@ export default function Landing() {
                 description: 'Perfect for creators just getting started',
                 features: [
                   '2,500 leads per month',
-                  '100 voice seconds',
+                  '100 voice minutes',
                   'Instagram & WhatsApp integration',
                   'Basic AI insights',
                   'Email support',
@@ -736,7 +736,7 @@ export default function Landing() {
                 description: 'For growing creators who need more power',
                 features: [
                   '7,000 leads per month',
-                  '400 voice seconds',
+                  '400 voice minutes',
                   'All integrations (IG, WA, Email)',
                   'Advanced AI insights',
                   'Voice cloning',
@@ -753,7 +753,7 @@ export default function Landing() {
                 description: 'Unlimited power for scaling businesses',
                 features: [
                   '20,000 leads per month',
-                  '1,500 voice seconds',
+                  '1,500 voice minutes',
                   'All integrations + API access',
                   'AI-powered insights & reports',
                   'Custom voice cloning',
@@ -810,7 +810,7 @@ export default function Landing() {
 
                   <Link href="/auth">
                     <Button 
-                      className={`w-full group ${plan.popular ? 'glow' : 'glass text-white'}`}
+                      className={`w-full group text-white ${plan.popular ? 'glow bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400' : 'glass border-white/20'}`}
                       variant={plan.popular ? 'default' : 'outline'}
                     >
                       Start Free Trial

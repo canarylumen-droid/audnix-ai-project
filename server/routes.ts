@@ -787,7 +787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: 'conversion',
               title: 'New conversion!',
               message: 'Sarah from Instagram just booked a call',
-              timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 mins ago
+              timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
               read: false,
             },
             {
@@ -795,15 +795,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               type: 'webhook_error',
               title: 'Webhook error',
               message: 'Failed to sync Instagram messages',
-              timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
+              timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
               read: false,
             },
             {
               id: '3',
-              type: 'lead',
+              type: 'lead_reply',
               title: 'New lead from WhatsApp',
               message: 'Mike Johnson wants to learn more about your services',
-              timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
+              timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               read: true,
             }
           ],
@@ -811,25 +811,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Fetch real user notifications from activity/leads
-      const leads = await storage.getLeads({ userId, limit: 10 });
-      
-      const notifications = leads.map((lead, index) => ({
-        id: lead.id,
-        type: lead.status === 'converted' ? 'conversion' : 'lead',
-        title: lead.status === 'converted' ? 'New conversion!' : 'New lead',
-        message: `${lead.name} from ${lead.channel}${lead.status === 'converted' ? ' converted to a customer' : ''}`,
-        timestamp: lead.createdAt.toISOString(),
-        read: index >= 3, // Mark first 3 as unread
-      }));
-
+      const notifications = await storage.getNotifications(userId);
       const unreadCount = notifications.filter(n => !n.read).length;
 
       res.status(200).json({ notifications, unreadCount });
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      // Return empty notifications on error
       res.status(200).json({ notifications: [], unreadCount: 0 });
+    }
+  });
+
+  // Mark notification as read
+  app.post("/api/user/notifications/:id/read", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId || req.headers['x-user-id'];
+      const { id } = req.params;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.markNotificationAsRead(id, userId);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post("/api/user/notifications/read-all", async (req, res) => {
+    try {
+      const userId = (req.session as any)?.userId || req.headers['x-user-id'];
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      await storage.markAllNotificationsAsRead(userId);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
     }
   });
 

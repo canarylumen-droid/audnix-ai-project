@@ -82,6 +82,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const notifications = notificationsData?.notifications || [];
   const unreadNotifications = notificationsData?.unreadCount || 0;
 
+  // Mark notification as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      return await apiRequest(`/api/user/notifications/${notificationId}/read`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
+    },
+  });
+
+  const handleNotificationClick = (notificationId: string) => {
+    markAsReadMutation.mutate(notificationId);
+  };
+
   // Sign out mutation
   const signOutMutation = useMutation({
     mutationFn: async () => {
@@ -109,14 +125,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <motion.aside
-        className="hidden md:flex flex-col border-r bg-card"
+        className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
         initial={false}
         animate={{ width: sidebarCollapsed ? "4rem" : "16rem" }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         data-testid="sidebar-desktop"
+        style={{
+          boxShadow: "0 0 40px rgba(0, 200, 255, 0.1)",
+        }}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-cyan-500/20">
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.div
@@ -190,7 +209,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
-        <header className="h-16 border-b bg-card flex items-center justify-between px-4 md:px-6" data-testid="navbar-top">
+        <header className="h-16 border-b border-cyan-500/20 bg-gradient-to-r from-[#0d1428] via-[#0a0f1f] to-[#0d1428] flex items-center justify-between px-4 md:px-6" data-testid="navbar-top">
           {/* Mobile Menu Toggle */}
           <Button
             variant="ghost"
@@ -238,12 +257,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.length > 0 ? (
                     notifications.map((notification: any, index: number) => (
-                      <DropdownMenuItem key={notification.id} data-testid={`notification-item-${index}`}>
+                      <DropdownMenuItem 
+                        key={notification.id} 
+                        data-testid={`notification-item-${index}`}
+                        onClick={() => handleNotificationClick(notification.id)}
+                      >
                         <div className="flex flex-col gap-1 w-full">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium">{notification.title}</p>
                             {!notification.read && (
-                              <div className="w-2 h-2 rounded-full bg-primary" />
+                              <div className="w-2 h-2 rounded-full bg-cyan-400" />
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
@@ -325,7 +348,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t flex items-center justify-around h-16 z-50" data-testid="nav-mobile">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-t border-cyan-500/20 flex items-center justify-around h-16 z-50" data-testid="nav-mobile" style={{ boxShadow: "0 -4px 20px rgba(0, 200, 255, 0.1)" }}>
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;
@@ -361,12 +384,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               data-testid="mobile-menu-overlay"
             />
             <motion.div
-              className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-card border-r z-50 overflow-y-auto"
+              className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-r border-cyan-500/20 z-50 overflow-y-auto"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 20 }}
               data-testid="mobile-menu-drawer"
+              style={{
+                boxShadow: "0 0 40px rgba(0, 200, 255, 0.2)",
+              }}
             >
               <div className="p-4">
                 <div className="flex items-center gap-2 mb-6">
@@ -375,7 +401,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     alt="Audnix AI"
                     className="h-8 w-auto object-contain"
                   />
-                  <span className="font-bold text-xl text-primary">Audnix</span>
+                  <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
                 </div>
                 <nav className="flex flex-col gap-1">
                   {filteredNavItems.map((item) => {

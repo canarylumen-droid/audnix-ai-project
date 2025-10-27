@@ -27,6 +27,11 @@ export interface IStorage {
   getIntegrations(userId: string): Promise<Integration[]>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
   disconnectIntegration(userId: string, provider: string): Promise<void>;
+  
+  // Notification methods
+  getNotifications(userId: string): Promise<any[]>;
+  markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -251,6 +256,33 @@ export class MemStorage implements IStorage {
     if (integration) {
       this.integrations.delete(integration.id);
     }
+  }
+
+  // ========== Notification Methods ==========
+  
+  private notifications: Map<string, any> = new Map();
+  private readNotifications: Set<string> = new Set();
+
+  async getNotifications(userId: string): Promise<any[]> {
+    // Return notifications from leads for demo purposes
+    const leads = await this.getLeads({ userId, limit: 10 });
+    return leads.map((lead, index) => ({
+      id: lead.id,
+      type: lead.status === 'converted' ? 'conversion' : 'lead_reply',
+      title: lead.status === 'converted' ? 'New conversion!' : 'New lead',
+      message: `${lead.name} from ${lead.channel}${lead.status === 'converted' ? ' converted to a customer' : ''}`,
+      timestamp: lead.createdAt,
+      read: this.readNotifications.has(lead.id),
+    }));
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    this.readNotifications.add(notificationId);
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    const notifications = await this.getNotifications(userId);
+    notifications.forEach(n => this.readNotifications.add(n.id));
   }
 }
 
