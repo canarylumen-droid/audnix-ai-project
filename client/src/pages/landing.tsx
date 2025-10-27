@@ -721,31 +721,27 @@ export default function Landing() {
                 price: 49,
                 description: 'Perfect for creators just getting started',
                 features: [
-                  '100 warm leads per month',
-                  '30 AI voice minutes',
+                  '2,500 leads per month',
+                  '100 voice seconds',
                   'Instagram & WhatsApp integration',
-                  'Basic AI conversation engine',
-                  'Smart lead tagging',
+                  'Basic AI insights',
                   'Email support',
-                  'Real-time analytics dashboard',
                 ],
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_STARTER,
                 testId: 'starter',
               },
               {
                 name: 'Pro',
-                price: 149,
+                price: 99,
                 description: 'For growing creators who need more power',
                 features: [
-                  '500 warm leads per month',
-                  '150 AI voice minutes',
-                  'All channel integrations (Instagram, WhatsApp, Email)',
-                  'Advanced AI with intent recognition',
-                  'Custom voice cloning',
-                  'Automated segmentation',
+                  '7,000 leads per month',
+                  '400 voice seconds',
+                  'All integrations (IG, WA, Email)',
+                  'Advanced AI insights',
+                  'Voice cloning',
                   'Priority support',
-                  'Custom AI training',
-                  'Weekly performance reports',
+                  'Custom automations',
                 ],
                 popular: true,
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_PRO,
@@ -753,19 +749,17 @@ export default function Landing() {
               },
               {
                 name: 'Enterprise',
-                price: 499,
+                price: 199,
                 description: 'Unlimited power for scaling businesses',
                 features: [
-                  'Unlimited leads & contacts',
-                  'Unlimited voice minutes',
-                  'All integrations + Custom API access',
-                  'Advanced AI with custom models',
-                  'Multiple voice clones',
-                  'Team collaboration tools',
-                  'Dedicated success manager',
-                  'White-label options',
-                  '99.9% SLA guarantee',
-                  'Custom integrations',
+                  '20,000 leads per month',
+                  '1,500 voice seconds',
+                  'All integrations + API access',
+                  'AI-powered insights & reports',
+                  'Custom voice cloning',
+                  'Dedicated account manager',
+                  'White-label option',
+                  'SLA guarantee',
                 ],
                 paymentLink: import.meta.env.VITE_STRIPE_LINK_ENTERPRISE,
                 testId: 'enterprise',
@@ -816,7 +810,7 @@ export default function Landing() {
 
                   <Link href="/auth">
                     <Button 
-                      className={`w-full group ${plan.popular ? 'glow' : 'glass'}`}
+                      className={`w-full group ${plan.popular ? 'glow' : 'glass text-white'}`}
                       variant={plan.popular ? 'default' : 'outline'}
                     >
                       Start Free Trial
