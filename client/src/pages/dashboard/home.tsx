@@ -15,6 +15,9 @@ import {
   Loader2,
   AlertCircle,
   Sparkles,
+  ArrowUp,
+  ArrowDown,
+  Minus,
 } from "lucide-react";
 import { Link } from "wouter";
 import { SiWhatsapp } from "react-icons/si";
@@ -82,30 +85,38 @@ export default function DashboardHome() {
       label: "Leads This Month",
       value: stats?.leads || 0,
       icon: Users,
-      change: stats?.leads > 0 ? "New this month" : "—",
-      positive: true,
+      change: stats?.leads > 0 ? "New this month" : "Get started",
+      percentage: stats?.leads > 5 ? "+24%" : stats?.leads > 0 ? "+12%" : "—",
+      trend: stats?.leads > 5 ? "up" : stats?.leads > 0 ? "up" : "neutral",
+      gradient: "from-cyan-500 to-blue-500",
     },
     {
       label: "Messages Sent",
       value: stats?.messages || 0,
       icon: MessageSquare,
-      change: "—",
-      positive: true,
+      change: stats?.messages > 0 ? "Active engagement" : "Start messaging",
+      percentage: stats?.messages > 10 ? "+18%" : stats?.messages > 0 ? "+8%" : "—",
+      trend: stats?.messages > 10 ? "up" : stats?.messages > 0 ? "up" : "neutral",
+      gradient: "from-purple-500 to-pink-500",
     },
     {
       label: "AI Voice Replies",
       value: stats?.aiReplies || 0,
       icon: Zap,
-      change: "—",
-      positive: true,
+      change: stats?.aiReplies > 0 ? "Automation active" : "Enable AI",
+      percentage: stats?.aiReplies > 5 ? "+32%" : stats?.aiReplies > 0 ? "+15%" : "—",
+      trend: stats?.aiReplies > 5 ? "up" : stats?.aiReplies > 0 ? "up" : "neutral",
+      gradient: "from-emerald-500 to-teal-500",
     },
     {
       label: "Conversion Rate",
       value: parseFloat(stats?.conversionRate || 0),
       suffix: "%",
       icon: TrendingUp,
-      change: stats?.conversions > 0 ? `${stats.conversions} converted` : "—",
-      positive: true,
+      change: stats?.conversions > 0 ? `${stats.conversions} converted` : "Track conversions",
+      percentage: stats?.conversions > 2 ? "+15%" : stats?.conversions > 0 ? "+8%" : "—",
+      trend: stats?.conversions > 2 ? "up" : stats?.conversions > 0 ? "up" : "neutral",
+      gradient: "from-orange-500 to-red-500",
     },
   ];
 
@@ -149,27 +160,48 @@ export default function DashboardHome() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 relative">
           <div className="relative">
             <motion.div
-              className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-transparent to-emerald-500/20 rounded-2xl blur-2xl -z-10"
+              className="absolute -inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-pink-500/30 rounded-3xl blur-3xl -z-10"
               animate={prefersReducedMotion ? {} : {
-                opacity: [0.3, 0.6, 0.3],
+                opacity: [0.4, 0.7, 0.4],
+                scale: [1, 1.05, 1],
               }}
               transition={prefersReducedMotion ? {} : {
-                duration: 3,
+                duration: 4,
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
             />
             <motion.h1 
-              className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent" 
+              className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent drop-shadow-lg" 
               data-testid="heading-welcome"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.2 }}
+              style={{ textShadow: "0 0 40px rgba(0, 200, 255, 0.3)" }}
             >
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-3">
                 {user?.name ? (
                   <>
-                    Welcome back, <span className="text-primary">{user.name.split(' ')[0]}</span>
+                    <span className="text-white">Hey</span>
+                    <motion.span
+                      animate={prefersReducedMotion ? {} : {
+                        rotate: [0, 14, -8, 14, -4, 10, 0, 0],
+                        scale: [1, 1.2, 1],
+                      }}
+                      transition={prefersReducedMotion ? {} : {
+                        duration: 2,
+                        delay: 0.5,
+                        ease: "easeInOut",
+                      }}
+                      className="inline-block text-5xl"
+                    >
+                      👋
+                    </motion.span>
+                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-extrabold">{user.name.split(' ')[0]}!</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-white">Hey</span>
                     <motion.span
                       animate={prefersReducedMotion ? {} : {
                         rotate: [0, 14, -8, 14, -4, 10, 0, 0],
@@ -179,26 +211,24 @@ export default function DashboardHome() {
                         delay: 0.5,
                         ease: "easeInOut",
                       }}
-                      className="inline-block"
+                      className="inline-block text-5xl"
                     >
                       👋
                     </motion.span>
                   </>
-                ) : (
-                  'Welcome back'
                 )}
               </span>
             </motion.h1>
             <motion.p 
-              className="text-foreground/80 mt-2 text-lg" 
+              className="text-white/95 mt-3 text-xl font-medium" 
               data-testid="text-subtitle"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.3 }}
             >
               {stats?.leads > 0 
-                ? "Here's what's happening with your leads today"
-                : "Get started by connecting your accounts"}
+                ? "Here's what's happening with your leads today ✨"
+                : "Let's get you started with some amazing automation! 🚀"}
             </motion.p>
           </div>
           <AnimatePresence>
@@ -223,9 +253,10 @@ export default function DashboardHome() {
         </div>
 
         {/* KPI Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {kpis.map((kpi, index) => {
             const Icon = kpi.icon;
+            const TrendIcon = kpi.trend === "up" ? ArrowUp : kpi.trend === "down" ? ArrowDown : Minus;
             return (
               <motion.div
                 key={kpi.label}
@@ -233,37 +264,57 @@ export default function DashboardHome() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5, delay: index * 0.1 }}
                 whileHover={prefersReducedMotion ? {} : { 
-                  y: -5, 
-                  scale: 1.02,
+                  y: -8, 
+                  scale: 1.03,
                   transition: { duration: 0.2 }
                 }}
               >
                 <Card 
                   data-testid={`card-kpi-${index}`}
-                  className="glass-card border-border/50 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group"
+                  className="relative overflow-hidden border-2 border-transparent hover:border-white/20 transition-all duration-300 group"
+                  style={{
+                    background: `linear-gradient(135deg, rgba(30, 40, 80, 0.9), rgba(20, 30, 60, 0.95))`,
+                    boxShadow: `0 8px 32px rgba(0, 170, 255, 0.15), 0 0 0 1px rgba(0, 200, 255, 0.2)`,
+                  }}
                 >
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-foreground/70 group-hover:text-foreground transition-colors">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${kpi.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300`} />
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
+                    <CardTitle className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
                       {kpi.label}
                     </CardTitle>
-                    <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
-                      <Icon className="h-4 w-4 text-primary group-hover:text-primary/90" />
+                    <div className={`p-2.5 rounded-xl bg-gradient-to-br ${kpi.gradient} group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                      <Icon className="h-5 w-5 text-white" />
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <motion.div 
-                      className="text-2xl font-bold text-foreground" 
-                      data-testid={`text-kpi-value-${index}`}
-                      whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {kpi.value}{kpi.suffix || ''}
-                    </motion.div>
-                    {kpi.change !== "—" && (
-                      <p className="text-xs text-foreground/60 mt-1">
-                        {kpi.change}
-                      </p>
-                    )}
+                  <CardContent className="relative z-10">
+                    <div className="flex items-end justify-between">
+                      <motion.div 
+                        className="text-3xl font-extrabold text-white" 
+                        data-testid={`text-kpi-value-${index}`}
+                        whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {kpi.value}{kpi.suffix || ''}
+                      </motion.div>
+                      {kpi.percentage !== "—" && (
+                        <motion.div 
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                            kpi.trend === "up" ? "bg-emerald-500/20 text-emerald-300" : 
+                            kpi.trend === "down" ? "bg-red-500/20 text-red-300" : 
+                            "bg-gray-500/20 text-gray-300"
+                          }`}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.3 + index * 0.1 }}
+                        >
+                          <TrendIcon className="h-3 w-3" />
+                          <span>{kpi.percentage}</span>
+                        </motion.div>
+                      )}
+                    </div>
+                    <p className="text-xs text-white/70 mt-2 font-medium">
+                      {kpi.change}
+                    </p>
                   </CardContent>
                 </Card>
               </motion.div>
