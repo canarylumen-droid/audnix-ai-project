@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import {
   Home,
   Inbox,
@@ -66,6 +67,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Calculate trial days left
+  const getTrialDaysLeft = (user: any) => {
+    if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
+    const now = new Date();
+    const expiryDate = new Date(user.trialExpiresAt);
+    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(0, daysLeft);
+  };
 
   // Fetch real user profile
   const { data: user } = useQuery({
@@ -120,9 +130,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const filteredNavItems = navItems.filter(
     (item) => !item.adminOnly || user?.role === "admin"
   );
+  
+  const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Trial Expired Overlay */}
+      <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
       {/* Desktop Sidebar */}
       <motion.aside
         className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
@@ -188,7 +202,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Link key={item.path} href={item.path}>
                 <motion.div
                   className={`mx-2 mb-1 rounded-md transition-colors hover-elevate ${
-                    isActive ? "bg-primary/10 text-primary" : "text-muted-foreground"
+                    isActive ? "bg-primary/10 text-primary" : "text-white"
                   }`}
                   whileHover={{ x: 4 }}
                   data-testid={`nav-item-${item.label.toLowerCase()}`}
@@ -214,11 +228,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden text-white hover:text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             data-testid="button-mobile-menu"
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? <X className="h-5 w-5 text-white" /> : <Menu className="h-5 w-5 text-white" />}
           </Button>
 
           {/* Search */}
@@ -238,8 +252,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
-                  <Bell className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative text-white hover:text-white" data-testid="button-notifications">
+                  <Bell className="h-5 w-5 text-white" />
                   {unreadNotifications > 0 && (
                     <Badge
                       variant="destructive"
@@ -291,12 +305,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2" data-testid="button-profile">
+                  <Button variant="ghost" className="gap-2 text-white hover:text-white" data-testid="button-profile">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar || undefined} />
                       <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline text-sm">{user.name}</span>
+                    <span className="hidden md:inline text-sm text-white">{user.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" data-testid="dropdown-profile">

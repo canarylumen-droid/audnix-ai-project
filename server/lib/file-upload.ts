@@ -69,6 +69,25 @@ export const uploadPDF = multer({
   },
 });
 
+// File filter for avatar images
+const avatarFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+  }
+};
+
+export const uploadAvatar = multer({
+  storage: multerStorage,
+  fileFilter: avatarFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max for avatars
+  },
+});
+
 /**
  * Upload file to Supabase Storage
  */

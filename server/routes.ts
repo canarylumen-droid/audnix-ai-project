@@ -16,7 +16,7 @@ import {
   processTopupSuccess
 } from "./lib/billing/stripe";
 import { generateInsights } from "./lib/ai/openai";
-import { uploadVoice, uploadPDF, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
+import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
 import { encrypt } from "./lib/crypto/encryption";
 import oauthRoutes from "./routes/oauth";
 import webhookRoutes from "./routes/webhook";
@@ -892,6 +892,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Upload user avatar
+  app.post("/api/user/avatar", requireAuth, uploadAvatar.single("avatar"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const userId = getCurrentUserId(req)!;
+      
+      let avatarUrl;
+      
+      // Try to upload to Supabase if configured, otherwise use local path
+      if (isSupabaseAdminConfigured()) {
+        try {
+          avatarUrl = await uploadToSupabase(
+            "avatars",
+            `${userId}/${Date.now()}-${req.file.originalname}`,
+            req.file.path
+          );
+        } catch (error) {
+          console.log("Supabase upload failed, using local storage");
+          avatarUrl = `/uploads/${req.file.filename}`;
+        }
+      } else {
+        avatarUrl = `/uploads/${req.file.filename}`;
+      }
+
+      // Update user avatar in database
+      const user = await storage.updateUser(userId, {
+        avatar: avatarUrl,
+      });
+
+      res.json({
+        success: true,
+        avatar: avatarUrl,
+        user: {
+          id: user!.id,
+          email: user!.email,
+          name: user!.name,
+          avatar: user!.avatar,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      res.status(500).json({ error: error.message || "Failed to upload avatar" });
     }
   });
 

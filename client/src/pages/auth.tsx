@@ -244,7 +244,7 @@ export default function Auth() {
                   transition={{ delay: 0.5 }}
                 >
                   <Button
-                    className="w-full h-14 text-base group relative overflow-hidden"
+                    className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
                     variant="outline"
                     onClick={handleGoogleLogin}
                     disabled={loading !== null}
@@ -254,8 +254,8 @@ export default function Auth() {
                       className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
                       initial={false}
                     />
-                    <SiGoogle className="w-5 h-5 mr-3 relative z-10" />
-                    <span className="relative z-10">
+                    <SiGoogle className="w-5 h-5 mr-3 relative z-10 text-white" />
+                    <span className="relative z-10 text-white">
                       {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
                     </span>
                   </Button>
@@ -267,7 +267,7 @@ export default function Auth() {
                   transition={{ delay: 0.6 }}
                 >
                   <Button
-                    className="w-full h-14 text-base group relative overflow-hidden"
+                    className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
                     variant="outline"
                     onClick={handleAppleLogin}
                     disabled={loading !== null}
@@ -277,8 +277,8 @@ export default function Auth() {
                       className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
                       initial={false}
                     />
-                    <SiApple className="w-5 h-5 mr-3 relative z-10" />
-                    <span className="relative z-10">
+                    <SiApple className="w-5 h-5 mr-3 relative z-10 text-white" />
+                    <span className="relative z-10 text-white">
                       {loading === 'apple' ? 'Connecting...' : 'Continue with Apple'}
                     </span>
                   </Button>

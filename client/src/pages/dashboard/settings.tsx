@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2 } from "lucide-react";
+import { User, Loader2, Upload } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function SettingsPage() {
   const { toast } = useToast();
   const [hasChanges, setHasChanges] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
   
   // Local state for form fields
   const [formData, setFormData] = useState({
@@ -83,6 +85,70 @@ export default function SettingsPage() {
     setHasChanges(true);
   };
 
+  // Avatar upload mutation
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar. Please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setUploading(false);
+    },
+  });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploading(true);
+    uploadAvatarMutation.mutate(file);
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
@@ -129,12 +195,35 @@ export default function SettingsPage() {
         <CardContent className="space-y-6">
           {/* Avatar Section */}
           <div className="flex items-center gap-6">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={user.avatar || undefined} />
-              <AvatarFallback className="text-2xl">
-                {(user.name || user.email || "U").charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={user.avatar || undefined} />
+                <AvatarFallback className="text-2xl">
+                  {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                size="icon"
+                variant="secondary"
+                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </div>
             <div>
               <p className="font-medium text-lg">
                 {user.name || user.username || "User"}
@@ -145,6 +234,9 @@ export default function SettingsPage() {
                   {user.plan} Plan
                 </p>
               )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Click the upload icon to change avatar
+              </p>
             </div>
           </div>
 

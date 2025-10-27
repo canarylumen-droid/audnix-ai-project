@@ -52,13 +52,12 @@ export default function DashboardHome() {
     retry: false,
   });
 
-  // Calculate trial days left
+  // Calculate trial days left using actual database expiry
   const getTrialDaysLeft = () => {
-    if (!user?.plan || user.plan !== "trial") return 0;
-    const trialExpiry = new Date();
-    trialExpiry.setDate(trialExpiry.getDate() + 3);
+    if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
     const now = new Date();
-    const daysLeft = Math.ceil((trialExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const expiryDate = new Date(user.trialExpiresAt);
+    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return Math.max(0, daysLeft);
   };
 
@@ -182,7 +181,7 @@ export default function DashboardHome() {
               <span className="inline-flex items-center gap-3">
                 {user?.name ? (
                   <>
-                    <span className="text-white">Hey</span>
+                    <span className="text-black">Hey</span>
                     <motion.span
                       animate={prefersReducedMotion ? {} : {
                         rotate: [0, 14, -8, 14, -4, 10, 0, 0],
@@ -197,11 +196,11 @@ export default function DashboardHome() {
                     >
                       👋
                     </motion.span>
-                    <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-extrabold">{user.name.split(' ')[0]}!</span>
+                    <span className="text-black font-extrabold">{user.name.split(' ')[0]}!</span>
                   </>
                 ) : (
                   <>
-                    <span className="text-white">Hey</span>
+                    <span className="text-black">Hey</span>
                     <motion.span
                       animate={prefersReducedMotion ? {} : {
                         rotate: [0, 14, -8, 14, -4, 10, 0, 0],
@@ -220,7 +219,7 @@ export default function DashboardHome() {
               </span>
             </motion.h1>
             <motion.p 
-              className="text-white/95 mt-3 text-xl font-medium" 
+              className="text-black mt-3 text-xl font-medium" 
               data-testid="text-subtitle"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
