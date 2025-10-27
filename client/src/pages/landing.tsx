@@ -122,16 +122,17 @@ export default function Landing() {
   };
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
         <motion.div 
           className="absolute inset-0 overflow-hidden"
           style={{ opacity }}
         >
-          <div className={`absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
-          <div className={`absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/20 rounded-full blur-3xl" />
+          <div className={`absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
+          <div className={`absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
+          <div className={`absolute top-1/3 right-1/3 w-[400px] h-[400px] bg-pink-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-400/20 rounded-full blur-3xl" />
         </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
@@ -143,40 +144,41 @@ export default function Landing() {
               style={prefersReducedMotion ? {} : { scale }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-6"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-6 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
+                style={{ boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}
               >
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-sm text-white/90">AI-Powered Voice & Message Automation</span>
+                <Sparkles className="w-5 h-5 text-cyan-400" />
+                <span className="text-sm font-semibold bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">AI-Powered Voice & Message Automation</span>
               </motion.div>
 
               <motion.h1
-                className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6"
+                className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-6"
                 animate={prefersReducedMotion ? {} : { 
                   textShadow: [
-                    "0 0 20px rgba(0, 170, 255, 0.3)",
-                    "0 0 40px rgba(0, 170, 255, 0.5)",
-                    "0 0 20px rgba(0, 170, 255, 0.3)"
+                    "0 0 30px rgba(0, 200, 255, 0.4)",
+                    "0 0 50px rgba(147, 51, 234, 0.5)",
+                    "0 0 30px rgba(236, 72, 153, 0.4)"
                   ]
                 }}
-                transition={prefersReducedMotion ? {} : { duration: 3, repeat: Infinity }}
+                transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-white via-primary to-white bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent leading-tight">
                   Follow up like a human,
                 </span>
                 <br />
-                <span className="text-primary glow-text">close deals like a pro</span>
+                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
               </motion.h1>
 
               <motion.p
-                className="text-xl md:text-2xl mb-8 text-white/95 max-w-2xl leading-relaxed"
+                className="text-xl md:text-2xl mb-8 text-white max-w-2xl leading-relaxed font-medium"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                The <span className="text-primary font-semibold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
+                The <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
               </motion.p>
 
               <motion.div
@@ -188,16 +190,17 @@ export default function Landing() {
                 <Link href="/auth">
                   <Button 
                     size="lg" 
-                    className="glow text-lg px-8 py-6 group"
+                    className="text-lg px-10 py-7 group bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
+                    style={{ boxShadow: "0 0 40px rgba(0, 200, 255, 0.4)" }}
                   >
-                    Start Free Trial (3 Days)
+                    Start Free Trial (3 Days) ✨
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="text-lg px-8 py-6 glass"
+                  className="text-lg px-10 py-7 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
                   onClick={scrollToFeatures}
                 >
                   See How It Works
