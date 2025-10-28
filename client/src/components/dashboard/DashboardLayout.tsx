@@ -4,6 +4,7 @@ import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
+import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import {
   Home,
   Inbox,
@@ -135,6 +136,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
+      {/* Internet Connection Banner */}
+      <InternetConnectionBanner />
+      
       {/* Trial Expired Overlay */}
       <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
       {/* Desktop Sidebar */}

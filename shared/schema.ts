@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   stripeSubscriptionId: text("stripe_subscription_id"),
   voiceCloneId: text("voice_clone_id"),
   voiceSecondsUsed: integer("voice_seconds_used").notNull().default(0),
+  lastInsightGeneratedAt: timestamp("last_insight_generated_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastLogin: timestamp("last_login"),
 });
@@ -133,7 +134,7 @@ export const calendarEvents = pgTable("calendar_events", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system"] }).notNull(),
+  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
@@ -412,7 +413,7 @@ export type InsertCalendarEvent = Omit<CalendarEvent, "id" | "createdAt">;
 export const notificationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  type: z.enum(["webhook_error", "billing_issue", "conversion", "lead_reply", "system"]),
+  type: z.enum(["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight"]),
   title: z.string(),
   message: z.string(),
   isRead: z.boolean().default(false),
