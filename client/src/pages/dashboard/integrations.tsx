@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import {
   Instagram,
   Mail,
@@ -21,8 +22,10 @@ import {
   Shield,
   Loader2,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const channelIcons = {
   instagram: Instagram,
@@ -35,6 +38,9 @@ export default function IntegrationsPage() {
   const [voiceConsent, setVoiceConsent] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
+  const [showAllSetDialog, setShowAllSetDialog] = useState(false);
+  const [allSetChannel, setAllSetChannel] = useState<string>("");
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -151,6 +157,42 @@ export default function IntegrationsPage() {
         description: "Integration has been disconnected",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+    },
+  });
+
+  // Import leads mutation
+  const importLeadsMutation = useMutation({
+    mutationFn: async (provider: string) => {
+      return await apiRequest(`/api/ai/import/${provider}`, {
+        method: "POST",
+      });
+    },
+    onSuccess: (data, provider) => {
+      const channelMap: Record<string, string> = {
+        instagram: "Instagram",
+        whatsapp: "WhatsApp",
+        gmail: "Email"
+      };
+      
+      setImportingChannel(null);
+      setAllSetChannel(channelMap[provider] || provider);
+      setShowAllSetDialog(true);
+      
+      toast({
+        title: "Import Complete",
+        description: `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    },
+    onError: (error: Error, provider) => {
+      setImportingChannel(null);
+      toast({
+        title: "Import Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -307,6 +349,18 @@ export default function IntegrationsPage() {
     }
   };
 
+  const handleSyncNow = (provider: string) => {
+    const channelMap: Record<string, "instagram" | "whatsapp" | "email"> = {
+      instagram: "instagram",
+      whatsapp: "whatsapp",
+      gmail: "email",
+      outlook: "email"
+    };
+    
+    setImportingChannel(channelMap[provider]);
+    importLeadsMutation.mutate(provider);
+  };
+
   // Check if voice sample has been uploaded
   const hasVoiceSample = integrations.some((i: any) => 
     i.provider === "voice" || uploadVoiceMutation.isSuccess
@@ -422,9 +476,15 @@ export default function IntegrationsPage() {
                               variant="outline"
                               size="sm"
                               className="flex-1"
+                              onClick={() => handleSyncNow(providerId)}
+                              disabled={importLeadsMutation.isPending}
                               data-testid={`button-sync-${providerId}`}
                             >
-                              Sync Now
+                              {importLeadsMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Sync Now"
+                              )}
                             </Button>
                           </div>
                         </>
@@ -618,6 +678,49 @@ export default function IntegrationsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Importing Leads Animation */}
+      <AnimatePresence>
+        {importingChannel && (
+          <ImportingLeadsAnimation
+            channel={importingChannel}
+            isImporting={!!importingChannel}
+            onComplete={() => setImportingChannel(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* All Set Dialog */}
+      <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 10 }}
+                className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center"
+              >
+                <Sparkles className="h-10 w-10 text-emerald-500" />
+              </motion.div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">All Set!</DialogTitle>
+                <DialogDescription className="text-lg mt-2">
+                  AI will start working on your {allSetChannel} leads
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="text-center space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Intelligent follow-ups and engagement analysis are now active
+            </p>
+            <Button onClick={() => setShowAllSetDialog(false)} className="w-full">
+              Got it!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

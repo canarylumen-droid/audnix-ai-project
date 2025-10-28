@@ -9,6 +9,7 @@ import {
   BarChart,
   Loader2,
   ChartBar,
+  Download,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
@@ -49,6 +50,10 @@ export default function InsightsPage() {
 
   const handleRegenerate = async () => {
     await refetch();
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
   };
 
   const getChannelIcon = (channel: string) => {
@@ -122,19 +127,29 @@ export default function InsightsPage() {
           </p>
         </div>
         {hasData && (
-          <Button 
-            variant="outline" 
-            onClick={handleRegenerate}
-            disabled={isFetching}
-            data-testid="button-regenerate"
-          >
-            {isFetching ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleDownloadPDF}
+              data-testid="button-download-pdf"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleRegenerate}
+              disabled={isFetching}
+              data-testid="button-regenerate"
+            >
+              {isFetching ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+          </div>
         )}
       </div>
 
