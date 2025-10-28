@@ -22,10 +22,20 @@ app.set('trust proxy', 1);
 
 // Configure session storage with PostgreSQL
 const PgSession = connectPgSimple(session);
+
+// Create database pool with error handling
+const sessionPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+// Add error handler to prevent crashes
+sessionPool.on('error', (err) => {
+  console.error('Unexpected error on session database client:', err);
+  console.error('Session storage may be unavailable. Check DATABASE_URL configuration.');
+});
+
 const sessionStore = new PgSession({
-  pool: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
+  pool: sessionPool,
   createTableIfMissing: true,
   tableName: 'user_sessions',
 });

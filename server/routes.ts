@@ -44,8 +44,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Demo webhook - for testing demo mode
-  app.post("/api/webhook/demo", async (req, res) => {
+  // Demo webhook - for testing demo mode - PROTECTED: Only available in development or for admins
+  app.post("/api/webhook/demo", requireAdmin, async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: "Demo endpoint is disabled in production" });
+    }
+
     try {
       const demoUser = {
         email: `demo${Date.now()}@example.com`,
@@ -62,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase OAuth callback handler - Now captures real OAuth data
+  // Supabase OAuth callback handler - Now captures real OAuth data with CSRF protection
   app.get("/api/auth/callback", async (req, res) => {
     const { code } = req.query;
 
@@ -72,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Exchange code for session
+      // Exchange code for session - Supabase validates PKCE automatically
       const { data: { user }, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
 
       if (error || !user) {
@@ -120,24 +124,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Store user ID and auth tokens in secure HTTP-only session cookie
-      req.session = req.session || {};
-      (req.session as any).userId = dbUser.id;
-      (req.session as any).userEmail = dbUser.email;
-      (req.session as any).supabaseId = dbUser.supabaseId;
-      (req.session as any).accessToken = oauthSession.access_token;
-      (req.session as any).refreshToken = oauthSession.refresh_token;
-      (req.session as any).expiresAt = oauthSession.expires_at;
-      
-      // Save session with secure HTTP-only cookies
-      req.session.save((err) => {
-        if (err) {
-          console.error("Error saving session:", err);
+      // Regenerate session ID to prevent session fixation attacks
+      req.session.regenerate((regErr) => {
+        if (regErr) {
+          console.error("Error regenerating session:", regErr);
           return res.redirect("/auth?error=session_error");
         }
+
+        // Store user ID and auth tokens in secure HTTP-only session cookie
+        (req.session as any).userId = dbUser.id;
+        (req.session as any).userEmail = dbUser.email;
+        (req.session as any).supabaseId = dbUser.supabaseId;
+        (req.session as any).accessToken = oauthSession.access_token;
+        (req.session as any).refreshToken = oauthSession.refresh_token;
+        (req.session as any).expiresAt = oauthSession.expires_at;
         
-        // Redirect to dashboard
-        res.redirect("/dashboard");
+        // Save session with secure HTTP-only cookies
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.redirect("/auth?error=session_error");
+          }
+          
+          // Redirect to dashboard
+          res.redirect("/dashboard");
+        });
       });
     } catch (error) {
       console.error("Error in OAuth callback:", error);
