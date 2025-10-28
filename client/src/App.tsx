@@ -7,6 +7,7 @@ import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import DashboardRoutes from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
+import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <InternetConnectionBanner />
         <Toaster />
         <Router />
       </TooltipProvider>
