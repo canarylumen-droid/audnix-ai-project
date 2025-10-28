@@ -2,7 +2,7 @@
 
 ## Overview
 
-Audnix AI is a premium SaaS landing page featuring real-time capabilities, Supabase authentication, and a sleek glassmorphism UI. It aims to provide a conversion-focused landing experience, complete with live social proof, OAuth authentication, and a comprehensive dashboard placeholder. The project includes a sophisticated AI Voice System for personalized customer interactions, targeting warm leads via Instagram and WhatsApp.
+Audnix AI is a premium CRM/lead management dashboard with AI-powered features including automated lead imports from Instagram, WhatsApp, and Email, weekly AI insights with notifications, PDF export capability, voice cloning for AI replies, and premium animations throughout the application. It features real-time capabilities, Supabase authentication, and a sleek glassmorphism UI. The project includes a sophisticated AI Voice System for personalized customer interactions, targeting warm leads via Instagram and WhatsApp.
 
 ## User Preferences
 
@@ -67,3 +67,27 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 - **Instagram / WhatsApp / Gmail / Outlook**: (Requires configuration) For channel integrations and message delivery.
 - **Resend / SendGrid**: (Optional enhancement) For email notifications.
 - **Redis**: (Optional enhancement) For background jobs.
+
+## Recent Changes (October 28, 2025)
+
+### Lead Import System
+- **Automated Lead Import**: Added full lead import functionality for Instagram, WhatsApp, Gmail, and Outlook
+- **ImportingLeadsAnimation**: Premium animated overlay shows channel-specific loading messages during import (e.g., "importing your leads from Instagram")
+- **All Set Dialog**: Success modal appears after successful import with "AI will start working on your [channel] leads" message
+- **Sync Now Buttons**: All connected integrations now have functional "Sync Now" buttons to trigger lead imports
+- **Backend Integration**: Properly mapped frontend providers (gmail/outlook) to backend endpoints with error handling
+
+### Weekly AI Insights
+- **PDF Download**: Added "Download PDF" button to insights page using browser's print-to-PDF functionality
+- **Notification Bell**: Existing notification system integrated with weekly insights (displays unread count and notifications)
+- **Automated Schedule**: Weekly insights worker runs automatically every 7 days (checks every 6 hours)
+
+### UX Improvements
+- **InternetConnectionBanner**: Added connection status banner across all pages (App.tsx and DashboardLayout.tsx)
+- **Premium Animations**: Framer Motion animations throughout import flow and success dialogs
+- **Error Handling**: Comprehensive error handling with toast notifications for import failures
+
+### Technical Improvements
+- **State Management**: Clean state management for import flow with proper loading states
+- **Type Safety**: All new components properly typed with TypeScript
+- **Cache Invalidation**: Automatic cache refresh after successful imports to update dashboard stats and lead lists
