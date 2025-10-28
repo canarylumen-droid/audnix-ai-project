@@ -11,7 +11,7 @@ A complete SaaS platform foundation with:
 - ⚙️ **Authentication** - Supabase OAuth ready (requires Supabase setup - see [Quick Start](#-quick-start))
 - ⚙️ **AI Features** - OpenAI integration coded (add API key and it works - graceful fallback if not configured)
 - ✅ **Analytics Dashboard** - Real-time charts with Recharts (works with any data, AI insights optional)
-- ⚙️ **Billing System** - Stripe integration coded (add API keys to enable)
+- ⚙️ **Billing System** - Stripe API integration (API-based checkout, no payment links)
 - ⚙️ **Multi-Channel OAuth** - Instagram, WhatsApp, Gmail, Outlook, Google Calendar (OAuth flows coded, need provider app setup)
 - ⚙️ **Voice Cloning** - ElevenLabs ready (add API key to enable)
 - ⚙️ **Calendar Integration** - Google Calendar OAuth coded (needs Google Cloud project setup)
@@ -55,8 +55,8 @@ These work **immediately** when you add keys (no code changes needed):
 
 - **OpenAI** (`OPENAI_API_KEY`) → AI-generated insights, automated messages
   - Without key: Shows generic insights, everything else works fine
-- **Stripe** (`STRIPE_SECRET_KEY`) → Subscription billing, payments
-  - Without key: Pricing page works, checkout won't process
+- **Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_*`) → API-based subscription management
+  - Without key: Pricing page displays, checkout redirects to demo mode
 - **ElevenLabs** (`ELEVENLABS_API_KEY`) → Voice cloning for messages
   - Without key: Voice features disabled
 
@@ -337,11 +337,11 @@ Or use the Deploy to Render button (see [DEPLOYMENT.md](./DEPLOYMENT.md))
 - ✅ Lead limits enforced per plan tier (starter: 2,500, pro: 7,000, enterprise: 20,000)
 - ✅ Middleware checks subscription status on protected routes
 - ✅ Automatic lockout when trial expires with upgrade prompt
-- ✅ Stripe Checkout API integration (no payment links - full API control)
+- ✅ Stripe API integration via Checkout Sessions (no payment links)
 
 **Payment Processing:**
 - Secure HTTP-only cookie-based sessions with SameSite=strict
-- Stripe Checkout Sessions for subscription management
+- Stripe API-based Checkout Sessions (no payment links required)
 - Real-time plan upgrades via webhook integration
 - Automatic feature unlocking upon payment confirmation
 

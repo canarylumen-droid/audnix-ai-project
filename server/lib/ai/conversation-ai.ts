@@ -9,21 +9,56 @@ const openai = new OpenAI({
 const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "mock-key";
 
 /**
- * Calculate human-like delay based on message type and context
- * Reply to messages: 2-8 minutes
+ * Detect if lead is actively engaged (replying immediately)
+ */
+export function isLeadActivelyReplying(messages: Message[]): boolean {
+  if (messages.length < 2) return false;
+  
+  const lastTwoMessages = messages.slice(-2);
+  const lastMessage = lastTwoMessages[1];
+  const previousMessage = lastTwoMessages[0];
+  
+  // Check if last message is from lead (inbound)
+  if (lastMessage.direction !== 'inbound') return false;
+  
+  // Calculate time between previous message and last message
+  const timeDiff = new Date(lastMessage.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
+  const minutesDiff = timeDiff / (1000 * 60);
+  
+  // If lead replied within 5 minutes, they're actively engaged
+  return minutesDiff < 5;
+}
+
+/**
+ * Calculate intelligent delay based on lead activity and behavior
+ * Active leads (replying immediately): 50s-1min
+ * Normal replies: 2-8 minutes
  * Follow-ups: 6-12 hours
  */
-export function calculateReplyDelay(messageType: 'reply' | 'followup'): number {
-  if (messageType === 'reply') {
-    // 2-8 minutes in milliseconds with random seconds
-    const baseMinutes = 2 + Math.random() * 6; // 2-8 minutes
-    const randomSeconds = Math.random() * 60; // 0-60 seconds
-    return (baseMinutes * 60 + randomSeconds) * 1000;
-  } else {
+export function calculateReplyDelay(
+  messageType: 'reply' | 'followup',
+  messages: Message[] = []
+): number {
+  if (messageType === 'followup') {
     // 6-12 hours in milliseconds with random minutes
     const baseHours = 6 + Math.random() * 6; // 6-12 hours
     const randomMinutes = Math.random() * 60; // 0-60 minutes
     return (baseHours * 60 * 60 + randomMinutes * 60) * 1000;
+  }
+  
+  // Check if lead is actively replying
+  const isActive = isLeadActivelyReplying(messages);
+  
+  if (isActive) {
+    // Lead is hot - reply within 50s-1min to keep momentum
+    const baseSeconds = 50 + Math.random() * 10; // 50-60 seconds
+    console.log(`🔥 Lead is actively engaged - replying in ${Math.round(baseSeconds)}s`);
+    return baseSeconds * 1000;
+  } else {
+    // Normal reply timing: 2-8 minutes to appear human
+    const baseMinutes = 2 + Math.random() * 6; // 2-8 minutes
+    const randomSeconds = Math.random() * 60; // 0-60 seconds
+    return (baseMinutes * 60 + randomSeconds) * 1000;
   }
 }
 
@@ -150,23 +185,35 @@ export async function generateAIReply(
     email: 'professional yet approachable, well-structured'
   };
   
-  const systemPrompt = `You are a professional sales AI assistant representing ${userContext?.businessName || 'our company'}. 
-Your goal is to nurture leads, answer questions, and guide them towards booking a meeting or making a purchase.
+  const systemPrompt = `You are a top-performing sales professional representing ${userContext?.businessName || 'our company'}. 
+You have the instincts of a great salesman - you read people well, build genuine connections, and guide conversations toward valuable outcomes.
 
 Platform: ${platform}
 Tone: ${platformTone[platform]}
 Brand Voice: ${userContext?.brandVoice || 'professional and helpful'}
 Lead Name: ${lead.name}
+Lead Status: ${isWarm ? 'WARM & ENGAGED 🔥' : 'NEW/COLD ❄️'}
+
+Your Personality:
+- Confident but not arrogant - you know your value
+- Genuinely helpful - you solve real problems
+- Enthusiastic and energetic - your passion is contagious
+- Articulate - you explain things clearly and compellingly
+- Consultative - you ask good questions and listen
+- Action-oriented - you guide leads toward next steps naturally
 
 Guidelines:
 - Keep responses concise (2-3 sentences max for Instagram/WhatsApp, 1 short paragraph for email)
-- Sound human and personable, not robotic
-- If they express interest, suggest booking a call or meeting
-- If they ask pricing/details, provide value first then offer to discuss further
-- Always end with a clear call-to-action or question
-- For ${platform}: ${platformTone[platform]}
-- ${isWarm ? 'This lead is WARM - be more direct and suggest next steps' : 'This is a new lead - focus on building rapport'}
-${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a voice note if appropriate' : ''}`;
+- Sound like a real person having a conversation, not a bot
+- Use their name naturally when it strengthens the connection
+- If they show interest, suggest booking a call or meeting with confidence
+- If they ask about pricing/details, highlight value and benefits first, then offer to discuss specifics
+- Always end with a clear call-to-action or engaging question
+- Match the platform style: ${platformTone[platform]}
+- ${isWarm ? 'This lead is WARM - be direct, confident, and push for the next step (call/meeting/purchase)' : 'This is a new/cold lead - focus on building rapport and sparking curiosity'}
+${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personalized voice note' : ''}
+- Never sound scripted or robotic - be natural and authentic
+- Show genuine interest in helping them succeed`;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -195,7 +242,9 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a voice no
 }
 
 /**
- * Generate voice note script (10-20 seconds when spoken)
+ * Generate voice note script with intelligent name usage
+ * - Cold leads: Use name once at the beginning
+ * - Warm leads: Use name naturally when appropriate
  */
 export async function generateVoiceScript(
   lead: Lead,
@@ -206,8 +255,24 @@ export async function generateVoiceScript(
   }
 
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');
+  const isWarm = assessLeadWarmth(conversationHistory, lead);
+  
+  // Determine if this is first voice note to the lead
+  const voiceMessages = conversationHistory.filter(m => 
+    m.direction === 'outbound' && m.body.toLowerCase().includes('voice note')
+  );
+  const isFirstVoiceNote = voiceMessages.length === 0;
+  
+  const nameUsageGuideline = isWarm 
+    ? "Use their name naturally when it feels right (e.g., when emphasizing a point or asking a direct question)"
+    : isFirstVoiceNote 
+      ? "Start with their name once at the beginning (e.g., 'Hey [Name]!') then don't repeat it"
+      : "You can use their name once if it feels natural, but keep it minimal";
   
   const prompt = `Generate a brief, natural-sounding voice note script (10-20 seconds when spoken) for ${lead.name}.
+
+Lead Status: ${isWarm ? 'WARM - engaged and interested' : 'COLD - new or minimal engagement'}
+First Voice Note: ${isFirstVoiceNote ? 'Yes' : 'No'}
 
 Recent conversation:
 ${lastMessages}
@@ -215,11 +280,13 @@ ${lastMessages}
 Requirements:
 - Brief and conversational (2-4 sentences maximum)
 - 10-20 seconds when spoken out loud (aim for 40-80 words)
-- Sound natural and human, not robotic
-- Personally address them by name
+- Sound like a confident, knowledgeable salesman who builds genuine connections
+- ${nameUsageGuideline}
 - Suggest booking a call/meeting or ask about their interest
 - End with a clear question or call-to-action
-- Be warm and personal to build trust
+- Be warm, personable, and solution-focused
+- Show you understand their needs and can help
+- Speak with energy and enthusiasm without being pushy
 
 Script:`;
 
@@ -227,10 +294,10 @@ Script:`;
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a sales professional creating brief, natural voice note scripts that sound human and build trust." },
+        { role: "system", content: "You are a top-performing salesman creating personalized voice notes. You're confident, articulate, and genuinely helpful. You build trust quickly and guide leads toward action naturally." },
         { role: "user", content: prompt }
       ],
-      temperature: 0.7,
+      temperature: 0.8,
       max_tokens: 120,
     });
 
@@ -242,18 +309,20 @@ Script:`;
 }
 
 /**
- * Schedule AI follow-up with human-like timing
+ * Schedule AI follow-up with intelligent timing based on lead activity
  */
 export async function scheduleFollowUp(
   userId: string,
   leadId: string,
   channel: string,
-  messageType: 'reply' | 'followup' = 'followup'
+  messageType: 'reply' | 'followup' = 'followup',
+  conversationHistory: Message[] = []
 ): Promise<Date> {
-  const delay = calculateReplyDelay(messageType);
+  const delay = calculateReplyDelay(messageType, conversationHistory);
   const scheduledTime = new Date(Date.now() + delay);
   
-  console.log(`📅 Scheduled ${messageType} for lead ${leadId} at ${scheduledTime.toISOString()}`);
+  const delaySeconds = Math.round(delay / 1000);
+  console.log(`📅 Scheduled ${messageType} for lead ${leadId} in ${delaySeconds}s at ${scheduledTime.toISOString()}`);
   
   // TODO: Store in follow_up_queue table when Supabase is connected
   
