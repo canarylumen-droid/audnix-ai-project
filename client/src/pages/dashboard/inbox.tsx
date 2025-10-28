@@ -32,9 +32,11 @@ import {
   AlertCircle,
   Loader2,
   Users,
+  MessageCircle,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { Link } from "wouter";
+import { RecentConversations } from "@/components/dashboard/RecentConversations";
 
 const channelIcons = {
   instagram: Instagram,
@@ -59,6 +61,7 @@ export default function InboxPage() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [showRecentConversations, setShowRecentConversations] = useState(false);
 
   // Fetch real leads from backend
   const { data: leadsData, isLoading, error } = useQuery({
@@ -157,29 +160,49 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="heading-inbox">
-            Lead Inbox
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {leads.length > 0 
-              ? `${leads.length} lead${leads.length !== 1 ? 's' : ''} · ${filteredLeads.length} shown`
-              : "Your leads will appear here"}
-          </p>
+    <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-6 lg:p-8">
+      {/* Main content area */}
+      <div className="flex-1 space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold" data-testid="heading-inbox">
+              Lead Inbox
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {leads.length > 0 
+                ? `${leads.length} lead${leads.length !== 1 ? 's' : ''} · ${filteredLeads.length} shown`
+                : "Your leads will appear here"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isAtLimit && (
+              <Badge variant="destructive" data-testid="badge-limit">
+                Lead limit reached ({currentLeadCount}/{leadsLimit})
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowRecentConversations(!showRecentConversations)}
+              className="lg:hidden"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Recent Chats
+            </Button>
+          </div>
         </div>
 
-        {isAtLimit && (
-          <Badge variant="destructive" data-testid="badge-limit">
-            Lead limit reached ({currentLeadCount}/{leadsLimit})
-          </Badge>
+        {/* Mobile Recent Conversations */}
+        {showRecentConversations && (
+          <div className="lg:hidden">
+            <RecentConversations />
+          </div>
         )}
-      </div>
 
-      {/* Filters and Search */}
-      <Card data-testid="card-filters">
+        {/* Filters and Search */}
+        <Card data-testid="card-filters">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -259,8 +282,8 @@ export default function InboxPage() {
         </CardContent>
       </Card>
 
-      {/* Leads Display */}
-      {filteredLeads.length === 0 ? (
+        {/* Leads Display */}
+        {filteredLeads.length === 0 ? (
         <Card className="border-dashed" data-testid="card-empty-state">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -463,7 +486,15 @@ export default function InboxPage() {
             );
           })}
         </div>
-      )}
+        )}
+      </div>
+
+      {/* Desktop Recent Conversations Sidebar */}
+      <div className="hidden lg:block w-[400px] flex-shrink-0">
+        <div className="sticky top-6">
+          <RecentConversations />
+        </div>
+      </div>
     </div>
   );
 }
