@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface NavItem {
   label: string;
@@ -232,20 +233,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden text-white hover:text-white"
+            className="md:hidden text-foreground hover:text-foreground"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             data-testid="button-mobile-menu"
           >
-            {mobileMenuOpen ? <X className="h-5 w-5 text-white" /> : <Menu className="h-5 w-5 text-white" />}
+            {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
           </Button>
 
           {/* Search */}
-          <div className="flex-1 max-w-md mx-4">
+          <div className="flex-1 max-w-md mx-4 hidden sm:block">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/50" />
               <Input
                 placeholder="Search leads, conversations..."
-                className="pl-9 text-white placeholder:text-white/60"
+                className="pl-9 bg-background/50 text-foreground placeholder:text-foreground/50 border-border/50"
                 data-testid="input-global-search"
               />
             </div>
@@ -253,11 +254,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <ThemeToggle />
+            
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-white hover:text-white" data-testid="button-notifications">
-                  <Bell className="h-5 w-5 text-white" />
+                <Button variant="ghost" size="icon" className="relative text-foreground hover:text-foreground" data-testid="button-notifications">
+                  <Bell className="h-5 w-5 text-foreground" />
                   {unreadNotifications > 0 && (
                     <Badge
                       variant="destructive"
@@ -309,18 +313,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2 text-white hover:text-white" data-testid="button-profile">
+                  <Button variant="ghost" className="gap-2 text-foreground hover:text-foreground" data-testid="button-profile">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar || undefined} />
-                      <AvatarFallback>{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary">{user.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline text-sm text-white">{user.name}</span>
+                    <span className="hidden md:inline text-sm text-foreground">Hey 👋 {user.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" data-testid="dropdown-profile">
                   <DropdownMenuLabel>
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-sm font-medium text-foreground">{user.name}</p>
                       <p className="text-xs text-muted-foreground">{user.email}</p>
                       <Badge variant="secondary" className="w-fit mt-1">
                         {user.plan}

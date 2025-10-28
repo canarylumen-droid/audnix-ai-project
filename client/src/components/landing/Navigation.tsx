@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 bg-[#0d1428]/80 backdrop-blur-lg border-b border-white/10"
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -22,7 +23,7 @@ export function Navigation() {
               alt="Audnix AI Logo"
               className="h-8 w-auto object-contain"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-200 to-purple-200 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
               Audnix AI
             </span>
           </div>
@@ -30,38 +31,42 @@ export function Navigation() {
           <div className="hidden md:flex items-center gap-6">
             <a
               href="#features"
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-foreground/80 hover:text-foreground transition-colors"
             >
               Features
             </a>
             <a
               href="#pricing"
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-foreground/80 hover:text-foreground transition-colors"
             >
               Pricing
             </a>
             <a
               href="#contact"
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-foreground/80 hover:text-foreground transition-colors"
             >
               Contact
             </a>
+            <ThemeToggle />
             <Link href="/auth">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold"
+                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-lg px-6"
               >
                 Start Free Trial
               </Button>
             </Link>
           </div>
 
-          <button
-            className="md:hidden text-white p-2"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              className="text-foreground p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
 
         {mobileMenuOpen && (
@@ -74,28 +79,28 @@ export function Navigation() {
             <div className="flex flex-col gap-4">
               <a
                 href="#features"
-                className="text-white/80 hover:text-white transition-colors px-4 py-2"
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-white/80 hover:text-white transition-colors px-4 py-2"
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Pricing
               </a>
               <a
                 href="#contact"
-                className="text-white/80 hover:text-white transition-colors px-4 py-2"
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Contact
               </a>
               <Link href="/auth">
                 <Button
-                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-lg py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Start Free Trial

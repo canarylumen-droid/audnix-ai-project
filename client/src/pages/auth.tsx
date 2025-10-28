@@ -20,14 +20,11 @@ export default function Auth() {
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
-        title: "Demo Mode",
-        description: "Supabase is not configured. Redirecting to dashboard...",
-        variant: "default",
+        title: "Authentication Required",
+        description: "Please sign in to continue. Authentication service is not available in demo mode.",
+        variant: "destructive",
       });
-      
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 1500);
+      setLoading(null);
       return;
     }
 
@@ -63,14 +60,11 @@ export default function Auth() {
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
-        title: "Demo Mode",
-        description: "Supabase is not configured. Redirecting to dashboard...",
-        variant: "default",
+        title: "Authentication Required",
+        description: "Please sign in to continue. Authentication service is not available in demo mode.",
+        variant: "destructive",
       });
-      
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 1500);
+      setLoading(null);
       return;
     }
 

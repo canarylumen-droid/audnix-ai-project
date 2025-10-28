@@ -1,5 +1,5 @@
 // Using OpenAI blueprint integration
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Default model is gpt-4o-mini for cost-effective AI features
 import OpenAI from "openai";
 
 if (!process.env.OPENAI_API_KEY) {

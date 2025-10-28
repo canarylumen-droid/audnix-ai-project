@@ -56,18 +56,31 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
 
     // Verify state parameter
     const stateData = instagramOAuth.verifyState(state as string);
-    if (!stateData) {
+    if (!stateData || !stateData.userId) {
+      console.error('Invalid or missing state data:', { state, stateData });
       return res.redirect('/dashboard/integrations?error=invalid_state');
     }
 
-    // Exchange code for token
+    // Exchange code for token with null safety
     const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);
+    if (!tokenData || !tokenData.access_token) {
+      console.error('Failed to exchange code for token');
+      return res.redirect('/dashboard/integrations?error=token_exchange_failed');
+    }
     
     // Exchange for long-lived token
     const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
+    if (!longLivedToken || !longLivedToken.access_token) {
+      console.error('Failed to get long-lived token');
+      return res.redirect('/dashboard/integrations?error=token_exchange_failed');
+    }
     
     // Get user profile
     const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
+    if (!profile || !profile.id) {
+      console.error('Failed to get user profile');
+      return res.redirect('/dashboard/integrations?error=profile_fetch_failed');
+    }
     
     // Save token and update user
     await instagramOAuth.saveToken(stateData.userId, {
@@ -101,8 +114,14 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
     }
 
     res.redirect('/dashboard/integrations?success=instagram_connected');
-  } catch (error) {
+  } catch (error: any) {
     console.error('OAuth callback error:', error);
+    console.error('OAuth error details:', {
+      message: error?.message,
+      stack: error?.stack,
+      code: error?.code,
+      statusCode: error?.statusCode
+    });
     res.redirect('/dashboard/integrations?error=oauth_failed');
   }
 });

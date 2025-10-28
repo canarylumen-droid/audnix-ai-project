@@ -114,6 +114,11 @@ export async function listUpcomingEvents(
     return response.data.items || [];
   } catch (error: any) {
     console.error('Error listing calendar events:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userId: accessToken ? 'token provided' : 'no token'
+    });
     return [];
   }
 }
