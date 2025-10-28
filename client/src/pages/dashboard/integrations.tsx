@@ -357,8 +357,16 @@ export default function IntegrationsPage() {
       outlook: "email"
     };
     
+    // Map provider to backend endpoint (gmail/outlook -> gmail for backend)
+    const providerToEndpoint: Record<string, string> = {
+      instagram: "instagram",
+      whatsapp: "whatsapp",
+      gmail: "gmail",
+      outlook: "gmail"  // Both gmail and outlook use the gmail endpoint
+    };
+    
     setImportingChannel(channelMap[provider]);
-    importLeadsMutation.mutate(provider);
+    importLeadsMutation.mutate(providerToEndpoint[provider]);
   };
 
   // Check if voice sample has been uploaded
