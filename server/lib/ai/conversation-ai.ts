@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { storage } from "../../storage";
 import type { Message, Lead } from "@shared/schema";
+import { storeConversationMemory, retrieveConversationMemory } from "./super-memory";
 
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
@@ -172,8 +173,12 @@ export async function generateAIReply(
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
   
-  // Build conversation context
-  const messageContext = conversationHistory.slice(-10).map(m => ({
+  // Retrieve additional context from Super Memory for better continuity
+  const memoryMessages = await getConversationContext(lead.userId, lead.id);
+  const allMessages = [...memoryMessages, ...conversationHistory];
+  
+  // Build conversation context from combined history
+  const messageContext = allMessages.slice(-10).map(m => ({
     role: m.direction === 'inbound' ? 'user' : 'assistant',
     content: m.body
   }));
@@ -327,4 +332,96 @@ export async function scheduleFollowUp(
   // TODO: Store in follow_up_queue table when Supabase is connected
   
   return scheduledTime;
+}
+
+/**
+ * Store conversation in Super Memory for permanent long-term storage
+ * Automatically called after each message exchange
+ */
+export async function saveConversationToMemory(
+  userId: string,
+  lead: Lead,
+  messages: Message[]
+): Promise<void> {
+  if (messages.length === 0) return;
+  
+  try {
+    const conversationData = {
+      messages: messages.map(m => ({
+        role: m.direction === 'inbound' ? 'user' : 'assistant',
+        content: m.body,
+        timestamp: new Date(m.createdAt).toISOString(),
+      })),
+      leadName: lead.name,
+      leadChannel: lead.channel,
+      metadata: {
+        leadId: lead.id,
+        leadStatus: lead.status,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+    
+    const result = await storeConversationMemory(userId, lead.id, conversationData);
+    
+    if (result.success) {
+      console.log(`✓ Conversation with ${lead.name} stored in permanent memory`);
+    }
+  } catch (error: any) {
+    console.error('Failed to save conversation to memory:', error.message);
+  }
+}
+
+/**
+ * Retrieve conversation context from Super Memory for better AI responses
+ */
+export async function getConversationContext(
+  userId: string,
+  leadId: string
+): Promise<Message[]> {
+  try {
+    const result = await retrieveConversationMemory(userId, leadId);
+    
+    if (!result.success || !result.conversations) {
+      console.log(`⚠️ Super Memory: No context retrieved for lead ${leadId}`);
+      return [];
+    }
+    
+    if (result.conversations.length === 0) {
+      return [];
+    }
+    
+    // Safely extract messages with defensive guards
+    const memories: Message[] = [];
+    
+    for (const conv of result.conversations) {
+      if (!conv || !conv.content || !Array.isArray(conv.content.messages)) {
+        console.warn('Super Memory: Invalid conversation format, skipping');
+        continue;
+      }
+      
+      for (const msg of conv.content.messages) {
+        if (!msg || !msg.role || !msg.content) continue;
+        
+        memories.push({
+          id: `memory-${Date.now()}-${Math.random()}`,
+          leadId,
+          userId,
+          provider: conv.content.channel || 'unknown',
+          direction: msg.role === 'user' ? 'inbound' : 'outbound',
+          body: msg.content,
+          status: 'delivered',
+          createdAt: new Date(msg.timestamp || Date.now()),
+        } as Message);
+      }
+    }
+    
+    if (memories.length > 0) {
+      console.log(`✓ Super Memory: Retrieved ${memories.length} messages from permanent memory`);
+    }
+    
+    return memories;
+  } catch (error: any) {
+    console.error('Failed to retrieve conversation context:', error.message);
+    return [];
+  }
 }

@@ -5,6 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
+import { PlanBadgeBanner } from "@/components/PlanBadgeBanner";
 import {
   Home,
   Inbox,
@@ -351,6 +352,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             )}
           </div>
         </header>
+
+        {/* Plan Badge Banner */}
+        <PlanBadgeBanner plan={user?.plan || ""} />
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">

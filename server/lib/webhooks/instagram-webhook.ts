@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { supabaseAdmin } from '../supabase-admin';
 import { analyzeLeadIntent } from '../ai/intent-analyzer';
 import { followUpWorker } from '../ai/follow-up-worker';
+import { saveConversationToMemory } from '../ai/conversation-ai';
+import { storage } from '../../storage';
 import crypto from 'crypto';
 
 interface InstagramWebhookEntry {
@@ -251,6 +253,19 @@ async function processInstagramMessage(message: any) {
         metadata: { intent, auto_tagged: true },
         created_at: new Date().toISOString()
       });
+
+    // Save conversation to Super Memory for permanent storage
+    try {
+      const messages = await storage.getMessagesByLeadId(lead.id);
+      const leadData = await storage.getLeadById(lead.id);
+      
+      if (messages.length > 0 && leadData) {
+        await saveConversationToMemory(integration.user_id, leadData, messages);
+      }
+    } catch (memoryError) {
+      console.error('Failed to save conversation to memory:', memoryError);
+      // Continue execution - memory save is not critical
+    }
 
   } catch (error) {
     console.error('Error processing Instagram message:', error);

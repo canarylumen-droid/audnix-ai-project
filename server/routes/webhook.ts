@@ -58,8 +58,15 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
 
           console.log(`✓ User ${userId} upgraded to ${planKey} plan - features unlocked`);
 
-          // Log payment
+          // Create upgrade notification
+          const planNames: Record<string, string> = {
+            starter: 'Starter ($49)',
+            pro: 'Pro ($99)',
+            enterprise: 'Enterprise ($199)',
+          };
+
           if (supabaseAdmin) {
+            // Log payment
             await supabaseAdmin
               .from('payments')
               .insert({
@@ -71,6 +78,18 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
                 plan: planKey,
                 payment_link: session.url,
                 webhook_payload: event,
+              });
+
+            // Create upgrade success notification
+            await supabaseAdmin
+              .from('notifications')
+              .insert({
+                user_id: userId,
+                type: 'system',
+                title: `Upgraded to ${planNames[planKey] || planKey} Plan`,
+                message: `Congratulations! Your payment was successful and you've been upgraded to the ${planNames[planKey] || planKey} plan. All premium features are now unlocked.`,
+                action_url: '/dashboard',
+                metadata: { plan: planKey, upgrade: true },
               });
           }
         }

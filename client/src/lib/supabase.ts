@@ -14,7 +14,7 @@ let supabaseClient: SupabaseClient | null = null;
 if (isSupabaseConfigured()) {
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 } else {
-  console.warn('Supabase environment variables are not set. Real-time features will work in demo mode only.');
+  console.warn('Supabase environment variables are not set. Please configure Supabase for real-time features.');
 }
 
 export const supabase = supabaseClient;

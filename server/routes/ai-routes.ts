@@ -1,7 +1,7 @@
 import { Router, type Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
-import { generateAIReply, generateVoiceScript, scheduleFollowUp, detectConversationStatus } from "../lib/ai/conversation-ai";
+import { generateAIReply, generateVoiceScript, scheduleFollowUp, detectConversationStatus, saveConversationToMemory } from "../lib/ai/conversation-ai";
 import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
 
@@ -63,6 +63,10 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       status: statusDetection.status,
       lastMessageAt: new Date()
     });
+    
+    // Save conversation to Super Memory for permanent storage
+    const updatedMessages = [...messages, message];
+    await saveConversationToMemory(userId, lead, updatedMessages);
     
     // Schedule next follow-up if needed
     if (statusDetection.status !== 'converted' && statusDetection.status !== 'not_interested') {
