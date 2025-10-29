@@ -29,37 +29,46 @@ export class VoiceAIService {
       return { allowed: false, remaining: 0 };
     }
 
-    // Get plan limits
+    // Get plan limits in minutes
     const planLimits = {
       trial: 0, // No voice for trial
-      starter: 100, // 100 seconds (as per pricing: 100 voice minutes = 6000 seconds, but we're using 100 as in stripe.ts)
-      pro: 400, // 400 seconds
-      enterprise: 1500 // 1500 seconds
+      starter: 300, // 300 minutes
+      pro: 800, // 800 minutes
+      enterprise: 1000 // 1000 minutes
     };
 
-    const limit = planLimits[user.plan as keyof typeof planLimits] || 0;
-    const used = user.voiceSecondsUsed || 0;
-    const remaining = Math.max(0, limit - used);
+    // Calculate total balance: plan minutes + topup minutes - used minutes
+    const planMinutes = planLimits[user.plan as keyof typeof planLimits] || 0;
+    const topupMinutes = user.voiceMinutesTopup || 0;
+    const usedMinutes = user.voiceMinutesUsed || 0;
+    const totalBalance = planMinutes + topupMinutes - usedMinutes;
+    
+    // Convert estimated seconds to minutes
+    const estimatedMinutes = estimatedSeconds / 60;
 
     return {
-      allowed: remaining >= estimatedSeconds,
-      remaining
+      allowed: totalBalance >= estimatedMinutes && totalBalance > 0,
+      remaining: Math.max(0, totalBalance)
     };
   }
 
   /**
-   * Update voice usage for user
+   * Update voice usage for user (convert seconds to minutes)
    */
   private async trackVoiceUsage(userId: string, secondsUsed: number): Promise<void> {
     const user = await storage.getUserById(userId);
     if (!user) return;
 
-    const currentUsage = user.voiceSecondsUsed || 0;
+    // Convert seconds to minutes
+    const minutesUsed = secondsUsed / 60;
+    const currentUsage = user.voiceMinutesUsed || 0;
+    const newTotal = currentUsage + minutesUsed;
+
     await storage.updateUser(userId, {
-      voiceSecondsUsed: currentUsage + secondsUsed
+      voiceMinutesUsed: newTotal
     });
 
-    console.log(`📊 Voice usage tracked: ${secondsUsed}s for user ${userId} (total: ${currentUsage + secondsUsed}s)`);
+    console.log(`📊 Voice usage tracked: ${minutesUsed.toFixed(2)} minutes (${secondsUsed}s) for user ${userId} (total: ${newTotal.toFixed(2)} minutes)`);
   }
 
   /**
@@ -129,7 +138,7 @@ export class VoiceAIService {
       if (!limitCheck.allowed) {
         return { 
           success: false, 
-          error: `Voice limit exceeded. Remaining: ${limitCheck.remaining} seconds. Upgrade plan for more.` 
+          error: `Voice limit exceeded. Remaining: ${limitCheck.remaining.toFixed(1)} minutes. Top up or upgrade plan for more.` 
         };
       }
 
@@ -145,7 +154,7 @@ export class VoiceAIService {
       if (!finalLimitCheck.allowed) {
         return { 
           success: false, 
-          error: `Voice generation exceeded limit. Generated ${voiceData.duration}s but only ${finalLimitCheck.remaining}s remaining.` 
+          error: `Voice generation exceeded limit. Generated ${(voiceData.duration / 60).toFixed(2)} minutes but only ${finalLimitCheck.remaining.toFixed(1)} minutes remaining.` 
         };
       }
 

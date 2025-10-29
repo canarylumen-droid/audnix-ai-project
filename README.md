@@ -320,30 +320,56 @@ Or use the Deploy to Render button (see [DEPLOYMENT.md](./DEPLOYMENT.md))
 
 ## 💰 Monetization & Pricing
 
-**Subscription Plans:**
-- **Starter** - $49.99/month (2,500 leads, 100 voice minutes)
-- **Pro** - $99.99/month (7,000 leads, 400 voice minutes) - Most Popular
-- **Enterprise** - $199.99/month (20,000 leads, 1,500 voice minutes)
+**Subscription Plans (Voice Minutes Included):**
+- **Starter** - $49.99/month
+  - 2,500 leads per month
+  - **300 voice minutes** (5 hours of AI voice notes)
+  - Instagram & WhatsApp integration
+  
+- **Pro** - $99.99/month - **Most Popular**
+  - 7,000 leads per month  
+  - **800 voice minutes** (13+ hours of AI voice notes)
+  - All integrations + advanced features
+  
+- **Enterprise** - $199.99/month
+  - 20,000 leads per month
+  - **1,000 voice minutes** (16+ hours of AI voice notes)
+  - Unlimited power + dedicated support
+
+**Voice Minute Top-Ups (85%+ Profit Margin):**
+Once your included voice minutes are exhausted, voice features lock automatically. Users can instantly unlock them with one-time top-up purchases:
+
+- **100 minutes** - $7 (1.5+ hours) - Quick boost
+- **300 minutes** - $20 (5 hours) - Best Value
+- **600 minutes** - $40 (10 hours) - Popular
+- **1,200 minutes** - $80 (20 hours) - Power user
+
+*Pricing guarantees ≥85% margin at $0.01/min ElevenLabs cost. Verify cost basis before production.*
+
+All top-ups sync in real-time via Stripe webhooks. Balance updates instantly and users get a notification confirming the purchase.
 
 **Free Trial:**
 - **Duration:** 3 days (automatically set when user signs up)
-- **Features:** Limited access (0 voice seconds, basic features only)
+- **Features:** Limited access (0 voice minutes, basic features only)
 - **After Trial:** Users are prompted to upgrade with a full-screen overlay
 - **Upgrade Flow:** Clicking "Upgrade Plan" takes users to `/dashboard/pricing` where they can choose a plan
 - **Real-Time Unlocking:** Features unlock immediately upon successful payment via Stripe webhook
 
-**Feature Gating:**
-- ✅ Voice features require paid plan (trial = 0 voice seconds)
-- ✅ Lead limits enforced per plan tier (starter: 2,500, pro: 7,000, enterprise: 20,000)
+**Feature Gating & Voice Locking:**
+- ✅ Voice features lock when balance reaches 0 minutes
+- ✅ Lock modal displays with "Top Up Now" call-to-action
+- ✅ Live usage tracking via progress bar (real-time updates)
+- ✅ Lead limits enforced per plan tier
 - ✅ Middleware checks subscription status on protected routes
 - ✅ Automatic lockout when trial expires with upgrade prompt
 - ✅ Stripe API integration via Checkout Sessions (no payment links)
 
 **Payment Processing:**
 - Secure HTTP-only cookie-based sessions with SameSite=strict
-- Stripe API-based Checkout Sessions (no payment links required)
-- Real-time plan upgrades via webhook integration
+- Stripe API-based Checkout Sessions for both subscriptions and top-ups
+- Real-time plan upgrades and balance updates via webhook integration
 - Automatic feature unlocking upon payment confirmation
+- In-app notifications for successful top-up purchases
 
 ## 🔒 Security
 

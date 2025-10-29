@@ -86,7 +86,7 @@ router.post('/send-to-warm-leads', requireAuth, async (req: Request, res: Respon
 });
 
 /**
- * Check voice usage and limits
+ * Check voice usage and limits (in minutes)
  * GET /api/voice/usage
  */
 router.get('/usage', requireAuth, async (req: Request, res: Response) => {
@@ -95,23 +95,29 @@ router.get('/usage', requireAuth, async (req: Request, res: Response) => {
 
     const planLimits = {
       trial: 0,
-      starter: 100,
-      pro: 400,
-      enterprise: 1500
+      starter: 300,
+      pro: 800,
+      enterprise: 1000
     };
 
-    const limit = planLimits[user.plan as keyof typeof planLimits] || 0;
-    const used = user.voiceSecondsUsed || 0;
-    const remaining = Math.max(0, limit - used);
-    const percentage = limit > 0 ? Math.round((used / limit) * 100) : 0;
+    const planMinutes = planLimits[user.plan as keyof typeof planLimits] || 0;
+    const topupMinutes = user.voiceMinutesTopup || 0;
+    const usedMinutes = user.voiceMinutesUsed || 0;
+    const totalBalance = planMinutes + topupMinutes - usedMinutes;
+    const remaining = Math.max(0, totalBalance);
+    const totalLimit = planMinutes + topupMinutes;
+    const percentage = totalLimit > 0 ? Math.round((usedMinutes / totalLimit) * 100) : 0;
 
     res.json({
       plan: user.plan,
-      limit,
-      used,
+      planMinutes,
+      topupMinutes,
+      totalLimit,
+      used: usedMinutes,
       remaining,
       percentage,
-      message: remaining === 0 ? 'Voice limit reached. Upgrade your plan for more voice minutes.' : undefined
+      locked: remaining <= 0,
+      message: remaining === 0 ? 'All voice minutes used. Top up to continue sending voice notes.' : undefined
     });
   } catch (error: any) {
     console.error('Voice usage check error:', error);
