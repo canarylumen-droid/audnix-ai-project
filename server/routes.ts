@@ -42,8 +42,6 @@ import {
 } from "./middleware/input-validation";
 
 // Import AI modules for lead learning and content moderation
-import { trackMessage } from './lib/ai/super-memory';
-import { leadLearningSystem } from './lib/ai/lead-learning-system';
 import { contentModerationService } from './lib/ai/content-moderation';
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -327,10 +325,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Moderate outbound content before sending
       const moderationResult = await contentModerationService.moderateWithAI(body);
-      
+
       if (moderationResult.shouldBlock) {
         await contentModerationService.logModerationEvent(userId, leadId, body, moderationResult);
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Message blocked by content filter",
           flags: moderationResult.flags,
           category: moderationResult.category
@@ -350,8 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Track in super memory for context
-      await trackMessage(message);
+      // Message tracking handled by lead learning system automatically
+      // await trackMessage(message);
 
       // Learn from this interaction in real-time
       await leadLearningSystem.analyzeAndLearn(message.leadId, message);
