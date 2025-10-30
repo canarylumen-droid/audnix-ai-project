@@ -50,6 +50,10 @@ export interface IStorage {
   createDeal(data: any): Promise<any>;
   updateDeal(id: string, userId: string, updates: any): Promise<any>;
   calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
+
+  // Usage tracking
+  createUsageTopup(data: any): Promise<any>;
+  getUsageHistory(userId: string, type?: string): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -341,7 +345,7 @@ export class MemStorage implements IStorage {
   async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
     const monitor = this.videoMonitors.get(id);
     if (!monitor || monitor.userId !== userId) return null;
-    
+
     const updated = { ...monitor, ...updates };
     this.videoMonitors.set(id, updated);
     return updated;
@@ -383,7 +387,7 @@ export class MemStorage implements IStorage {
   async updateDeal(id: string, userId: string, updates: any): Promise<any> {
     const deal = this.deals.get(id);
     if (!deal || deal.userId !== userId) return null;
-    
+
     const updated = { ...deal, ...updates, updatedAt: new Date() };
     this.deals.set(id, updated);
     return updated;
@@ -392,16 +396,39 @@ export class MemStorage implements IStorage {
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
     const deals = await this.getDeals(userId);
     const closedDeals = deals.filter(d => d.status === 'closed_won');
-    
+
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     const total = closedDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
     const thisMonth = closedDeals
       .filter(d => new Date(d.closedAt) >= thisMonthStart)
       .reduce((sum, d) => sum + (d.amount || 0), 0);
-    
+
     return { total, thisMonth, deals: closedDeals };
+  }
+
+  // Usage tracking
+  private usageHistory: Map<string, any[]> = new Map();
+
+  async createUsageTopup(data: any): Promise<any> {
+    const id = randomUUID();
+    const now = new Date();
+    const topup = { id, ...data, createdAt: now };
+
+    if (!this.usageHistory.has(data.userId)) {
+      this.usageHistory.set(data.userId, []);
+    }
+    this.usageHistory.get(data.userId)!.push(topup);
+    return topup;
+  }
+
+  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
+    let history = this.usageHistory.get(userId) || [];
+    if (type) {
+      history = history.filter(item => item.type === type);
+    }
+    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 

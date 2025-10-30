@@ -210,6 +210,15 @@ export const insights = pgTable("insights", {
   generatedAt: timestamp("generated_at").notNull().defaultNow(),
 });
 
+export const usageTopups = pgTable("usage_topups", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["leads", "voice"] }).notNull(),
+  amount: real("amount").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables

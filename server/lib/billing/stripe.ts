@@ -125,7 +125,7 @@ export async function createSubscription(
   }
 
   const plan = PLANS[planKey];
-  
+
   const subscription = await stripe.subscriptions.create({
     customer: customerId,
     items: [{ price: plan.priceId }],
@@ -195,7 +195,7 @@ export async function createSubscriptionCheckout(
   }
 
   const plan = PLANS[planKey];
-  
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -235,7 +235,7 @@ export async function createTopupCheckout(
   }
 
   const topup = TOPUPS[topupKey];
-  
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "payment",
@@ -265,7 +265,7 @@ export async function createTopupCheckout(
  */
 export function getPlanLimits(planKey: string): { leads_limit: number; voice_minutes: number } {
   const plan = PLANS[planKey as keyof typeof PLANS];
-  
+
   if (!plan) {
     return {
       leads_limit: 100,
@@ -286,61 +286,47 @@ export function getPlanLimits(planKey: string): { leads_limit: number; voice_min
  */
 export async function processTopupSuccess(
   userId: string,
-  topupType: "leads" | "voice",
-  amount: number
+  topupType: string,
+  topupAmount: number
 ): Promise<void> {
-  console.log(`💳 Processing top-up for user ${userId}: ${amount} ${topupType}`);
+  console.log(`Processing top-up for user ${userId}: ${topupAmount} minutes`);
 
-  try {
-    // Get user's current balance using storage layer
-    const { storage } = await import('../../storage');
-    const user = await storage.getUserById(userId);
-    
-    if (!user) {
-      console.error(`User ${userId} not found for top-up processing`);
-      return;
-    }
+  const { storage } = await import('../storage');
 
-    // Record top-up in audit table for analytics (Supabase)
-    if (supabaseAdmin) {
-      await supabaseAdmin.from("usage_topups").insert({
-        user_id: userId,
-        type: topupType,
-        amount,
-      });
-    }
-
-    // Update user's topup balance directly
-    if (topupType === "voice") {
-      const currentTopup = user.voiceMinutesTopup || 0;
-      const newTopup = currentTopup + amount;
-      
-      await storage.updateUser(userId, {
-        voiceMinutesTopup: newTopup
-      });
-
-      console.log(`✅ Voice minutes top-up successful: ${amount} minutes added (total topup: ${newTopup} minutes)`);
-      
-      // Create notification for successful top-up
-      await storage.createNotification({
-        userId,
-        type: 'system',
-        title: 'Top-up Successful',
-        message: `${amount} voice minutes have been added to your account!`,
-        isRead: false,
-        metadata: {
-          topupType: 'voice',
-          amount,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } else if (topupType === "leads") {
-      // Leads topup (if needed)
-      console.log(`Leads top-up: ${amount} leads added`);
-    }
-  } catch (error) {
-    console.error(`Error processing top-up for user ${userId}:`, error);
+  // Get current user
+  const user = await storage.getUserById(userId);
+  if (!user) {
+    throw new Error('User not found');
   }
+
+  // Add minutes to topup balance
+  const currentTopup = user.voiceMinutesTopup || 0;
+  await storage.updateUser(userId, {
+    voiceMinutesTopup: currentTopup + topupAmount
+  });
+
+  // Create audit log
+  await storage.createUsageTopup({
+    userId,
+    type: 'voice',
+    amount: topupAmount,
+    metadata: {
+      source: 'stripe_topup',
+      topupType,
+      priceId: TOPUPS[topupType as keyof typeof TOPUPS]?.priceId
+    }
+  });
+
+  // Send notification
+  await storage.createNotification({
+    userId,
+    type: 'system',
+    title: '✅ Top-up successful!',
+    message: `+${topupAmount} voice minutes added to your account`,
+    metadata: { topupAmount, topupType }
+  });
+
+  console.log(`✅ Added ${topupAmount} minutes to user ${userId}`);
 }
 
 /**

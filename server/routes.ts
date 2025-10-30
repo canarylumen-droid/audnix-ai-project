@@ -543,10 +543,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversions = leads.filter(l => l.status === 'converted').length;
       const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
 
+      // Get actual message counts
+      const allMessages = await Promise.all(
+        leads.map(lead => storage.getMessagesByLeadId(lead.id))
+      );
+      const messageCount = allMessages.flat().length;
+      const aiReplyCount = allMessages.flat().filter(m => 
+        m.direction === 'outbound' && m.metadata?.isAiGenerated
+      ).length;
+
       const metrics = {
         leads: leads.length,
-        messages: 0, // Will be updated when message tracking is implemented
-        aiReplies: 0, // Will be updated when AI tracking is implemented
+        messages: messageCount,
+        aiReplies: aiReplyCount,
         conversionRate: parseFloat(conversionRate.toFixed(1)),
       };
 
@@ -644,10 +653,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'trial': 0
       };
 
-      const totalMinutes = planMinutes[user.plan] || 0;
-      // TODO: Calculate actual usage when voice usage tracking is implemented
-      const usedMinutes = 0;
-      const balance = totalMinutes - usedMinutes;
+      // Calculate total available: plan + topups
+      const planAllowance = planMinutes[user.plan] || 0;
+      const topupMinutes = user.voiceMinutesTopup || 0;
+      const totalMinutes = planAllowance + topupMinutes;
+      
+      // Get actual usage from database
+      const usedMinutes = user.voiceMinutesUsed || 0;
+      const balance = Math.max(0, totalMinutes - usedMinutes);
 
       res.json({
         total: totalMinutes,
@@ -1146,6 +1159,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return sum;
       }, 0);
 
+      // Calculate API costs from usage
+      const allUsageHistory = await Promise.all(
+        allUsers.map(u => storage.getUsageHistory(u.id, 'voice'))
+      );
+      const totalVoiceMinutes = allUsageHistory.flat()
+        .filter(h => h.amount < 0) // Negative = usage
+        .reduce((sum, h) => sum + Math.abs(h.amount), 0);
+      const apiBurn = totalVoiceMinutes * 0.01; // $0.01 per minute ElevenLabs cost
+
+      // Calculate storage used
+      const allLeadsCount = await Promise.all(
+        allUsers.map(u => storage.getLeads({ userId: u.id, limit: 10000 }))
+      );
+      const storageUsed = allLeadsCount.flat().length * 0.001; // Rough estimate in GB
+
       res.json({
         metrics: {
           totalUsers,
@@ -1154,9 +1182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidUsers,
           totalLeads,
           mrr,
-          apiBurn: 0, // TODO: Track API costs
-          failedJobs: 0, // TODO: Track failed background jobs
-          storageUsed: 0, // TODO: Track storage
+          apiBurn: parseFloat(apiBurn.toFixed(2)),
+          failedJobs: 0, // Will track with worker health monitoring
+          storageUsed: parseFloat(storageUsed.toFixed(2)),
         },
         recentUsers: allUsers.slice(-3).reverse().map(u => ({
           email: u.email,

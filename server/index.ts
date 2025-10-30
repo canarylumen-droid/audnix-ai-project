@@ -13,21 +13,52 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration
+// Session configuration with Redis store for production
 const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-please-change-in-production';
-app.use(
-  session({
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-      sameSite: 'lax'
-    }
-  })
-);
+
+let sessionConfig: session.SessionOptions = {
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    sameSite: 'lax'
+  }
+};
+
+// Use Redis in production if configured
+if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
+  try {
+    const RedisStore = require('connect-redis').default;
+    const { createClient } = require('redis');
+    
+    const redisClient = createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        reconnectStrategy: (retries: number) => Math.min(retries * 50, 500)
+      }
+    });
+    
+    redisClient.connect().catch(console.error);
+    
+    redisClient.on('error', (err: Error) => {
+      console.error('Redis Client Error:', err);
+    });
+    
+    redisClient.on('connect', () => {
+      console.log('✅ Redis connected for session storage');
+    });
+    
+    sessionConfig.store = new RedisStore({ client: redisClient });
+    console.log('🔒 Using Redis session store');
+  } catch (error) {
+    console.warn('⚠️  Redis not available, using memory store');
+  }
+}
+
+app.use(session(sessionConfig));
 
 app.use((req, res, next) => {
   const start = Date.now();

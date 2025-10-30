@@ -233,8 +233,22 @@ export class VoiceAIService {
         }
       });
 
-      // Track usage
+      // Track usage - CRITICAL: Actually deduct minutes from balance
       await this.trackVoiceUsage(userId, voiceData.duration);
+
+      // Create usage audit log
+      await storage.createUsageTopup({
+        userId,
+        type: 'voice',
+        amount: -(voiceData.duration / 60), // Negative for usage
+        metadata: {
+          leadId: lead.id,
+          leadName: lead.name,
+          channel: lead.channel,
+          audioUrl,
+          duration: voiceData.duration
+        }
+      });
 
       // Update lead's last message time
       await storage.updateLead(leadId, {

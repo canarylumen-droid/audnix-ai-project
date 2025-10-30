@@ -1,8 +1,7 @@
-
 import type { IStorage } from "./storage";
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration } from "@shared/schema";
 import { db } from "./db";
-import { users, leads, messages, integrations, notifications } from "@shared/schema";
+import { users, leads, messages, integrations, notifications, deals, usageTopups } from "@shared/schema";
 import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
 
 export class DrizzleStorage implements IStorage {
@@ -226,7 +225,7 @@ export class DrizzleStorage implements IStorage {
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(20);
-    
+
     return result.map(n => ({
       id: n.id,
       type: n.type,
@@ -266,7 +265,7 @@ export class DrizzleStorage implements IStorage {
         metadata: data.metadata || {}
       })
       .returning();
-    
+
     return result[0];
   }
 
@@ -286,7 +285,7 @@ export class DrizzleStorage implements IStorage {
         eq(leads.channel, channel as any)
       ))
       .limit(1);
-    
+
     return result[0];
   }
 
@@ -339,7 +338,7 @@ export class DrizzleStorage implements IStorage {
       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
       RETURNING *
     `));
-    
+
     return result.rows[0];
   }
 
@@ -421,58 +420,81 @@ export class DrizzleStorage implements IStorage {
       WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
       RETURNING *
     `));
-    
+
     return result.rows[0];
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    const deals = await this.getDeals(userId);
-    const closedDeals = deals.filter(d => d.status === 'closed_won');
-    
+    const allDeals = await db.select().from(deals).where(eq(deals.userId, userId));
+    const closedDeals = allDeals.filter(d => d.status === 'closed_won');
+
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const total = closedDeals.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+
+    const total = closedDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
     const thisMonth = closedDeals
-      .filter(d => new Date(d.closed_at) >= thisMonthStart)
-      .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-    
+      .filter(d => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
+      .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
     return { total, thisMonth, deals: closedDeals };
+  }
+
+  async createUsageTopup(data: any): Promise<any> {
+    const topup = {
+      userId: data.userId,
+      type: data.type,
+      amount: data.amount,
+      metadata: data.metadata || {}
+    };
+
+    const result = await db.insert(usageTopups).values(topup).returning();
+    return result[0];
+  }
+
+  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
+    let query = db.select().from(usageTopups).where(eq(usageTopups.userId, userId));
+
+    if (type) {
+      query = query.where(eq(usageTopups.type, type));
+    }
+
+    const history = await query.orderBy(desc(usageTopups.createdAt));
+    return history;
   }
 
   async getVoiceMinutesBalance(userId: string): Promise<number> {
     const user = await this.getUserById(userId);
     if (!user) return 0;
-    
+
     const planMinutes = this.getVoiceMinutesForPlan(user.plan);
     const topupMinutes = user.voiceMinutesTopup || 0;
     const usedMinutes = user.voiceMinutesUsed || 0;
-    
+
     return Math.max(0, planMinutes + topupMinutes - usedMinutes);
   }
 
   async deductVoiceMinutes(userId: string, minutes: number): Promise<boolean> {
     const balance = await this.getVoiceMinutesBalance(userId);
     if (balance < minutes) return false;
-    
+
     const user = await this.getUserById(userId);
     if (!user) return false;
-    
+
     await this.updateUser(userId, {
       voiceMinutesUsed: (user.voiceMinutesUsed || 0) + minutes
     });
-    
+
     return true;
   }
 
   async addVoiceMinutes(userId: string, minutes: number, source: string): Promise<void> {
     const user = await this.getUserById(userId);
     if (!user) return;
-    
+
     await this.updateUser(userId, {
       voiceMinutesTopup: (user.voiceMinutesTopup || 0) + minutes
     });
-    
+
     await this.createNotification({
       userId,
       type: 'topup_success',

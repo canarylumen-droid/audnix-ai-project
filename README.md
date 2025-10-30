@@ -337,13 +337,15 @@ Immediate DM: "Hey Sarah! Thanks for your interest. Here's the AI tool I mention
 6 hours later (if unopened): "Hey Sarah, did you manage to check out the AI tool I sent a few hours ago? This might be your last chance for early access!"
 ```
 
-### Voice Minutes System (PRODUCTION READY)
+### Voice Minutes System ✅ FULLY IMPLEMENTED
 
 **Real-Time Usage Tracking:**
-- Live dashboard widget shows usage progress
-- Automatic locking when balance reaches 0
-- Real-time updates via API polling (30s interval)
-- Visual progress bar with percentage indicator
+- ✅ Live dashboard widget shows usage progress
+- ✅ Automatic locking when balance reaches 0
+- ✅ Real-time updates via API polling (30s interval)
+- ✅ Visual progress bar with percentage indicator
+- ✅ Actual minute deduction on voice generation
+- ✅ PostgreSQL audit trail for all usage
 
 **Plans now include voice minutes:**
 - Starter ($49/mo): 300 minutes (5 hours)
