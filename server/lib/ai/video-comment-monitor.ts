@@ -265,19 +265,11 @@ export async function monitorVideoComments(userId: string): Promise<void> {
             brandKnowledge
           );
 
-          // Send DM with link button (Instagram format)
-          const messagePayload = {
-            text: dm.message,
-            quick_replies: [
-              {
-                content_type: 'text',
-                title: dm.linkButton.text,
-                payload: dm.linkButton.url
-              }
-            ]
-          };
-
-          await provider.sendMessage(comment.userId, messagePayload.text);
+          // Send DM with link in message (Instagram doesn't support rich buttons in API)
+          // We'll format it as a natural message with the link
+          const fullMessage = `${dm.message}\n\n👉 ${dm.linkButton.text}: ${dm.linkButton.url}`;
+          
+          await provider.sendMessage(comment.userId, fullMessage);
 
           // Save message
           await storage.createMessage({
@@ -320,9 +312,21 @@ export async function monitorVideoComments(userId: string): Promise<void> {
  * Fetch comments from Instagram video
  */
 async function fetchVideoComments(provider: InstagramProvider, videoId: string): Promise<any[]> {
-  // This would integrate with Instagram Graph API
-  // For now returning mock structure
-  return [];
+  try {
+    // Use Instagram Graph API to fetch comments
+    const comments = await provider.getMediaComments(videoId);
+    
+    return comments.map((comment: any) => ({
+      id: comment.id,
+      text: comment.text,
+      username: comment.username,
+      userId: comment.from?.id || comment.id,
+      timestamp: comment.timestamp
+    }));
+  } catch (error) {
+    console.error('Error fetching video comments:', error);
+    return [];
+  }
 }
 
 /**

@@ -45,11 +45,37 @@ export class InstagramProvider {
   }
 
   /**
-   * Send Instagram Direct Message
+   * Get comments on a media post
    */
-  async sendMessage(recipientId: string, text: string): Promise<{ messageId: string }> {
+  async getMediaComments(mediaId: string): Promise<any[]> {
+    if (!this.credentials.access_token || !this.credentials.page_id) {
+      throw new Error('Instagram credentials not configured');
+    }
+
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v18.0/${mediaId}/comments?fields=id,text,username,timestamp,from&access_token=${this.credentials.access_token}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch comments');
+      }
+
+      const data = await response.json();
+      return data.data || [];
+    } catch (error) {
+      console.error('Error fetching Instagram comments:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Send a text message
+   */
+  async sendMessage(recipientId: string, message: string): Promise<void> {
     if (this.isDemoMode) {
-      return { messageId: `mock_msg_${Date.now()}` };
+      console.log(`Demo mode: Would send message "${message}" to ${recipientId}`);
+      return;
     }
 
     const url = `https://graph.facebook.com/v18.0/me/messages`;
@@ -62,7 +88,7 @@ export class InstagramProvider {
       },
       body: JSON.stringify({
         recipient: { id: recipientId },
-        message: { text }
+        message: { text: message }
       })
     });
 
@@ -71,8 +97,8 @@ export class InstagramProvider {
       throw new Error(`Instagram API error: ${error.error?.message || response.statusText}`);
     }
 
-    const data = await response.json();
-    return { messageId: data.message_id };
+    // The original code returned messageId, but the prompt asks for void return type.
+    // So, we will not return anything here.
   }
 
   /**

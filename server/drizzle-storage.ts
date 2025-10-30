@@ -3,6 +3,7 @@ import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integr
 import { db } from "./db";
 import { users, leads, messages, integrations, notifications, deals, usageTopups } from "@shared/schema";
 import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
+import crypto from 'crypto'; // Import crypto for UUID generation
 
 export class DrizzleStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {

@@ -132,6 +132,28 @@ export const calendarEvents = pgTable("calendar_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const videoMonitors = pgTable("video_monitors", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  videoId: text("video_id").notNull(),
+  videoUrl: text("video_url").notNull(),
+  productLink: text("product_link").notNull(),
+  ctaText: text("cta_text").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  autoReplyEnabled: boolean("auto_reply_enabled").notNull().default(true),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const processedComments = pgTable("processed_comments", {
+  id: text("id").primaryKey(),
+  commentId: text("comment_id").notNull().unique(),
+  action: text("action").notNull(),
+  intentType: text("intent_type").notNull(),
+  processedAt: timestamp("processed_at").notNull().defaultNow()
+});
+
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
