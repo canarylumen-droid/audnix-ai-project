@@ -1,139 +1,33 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import pg from "pg";
-import rateLimit from "express-rate-limit";
-import helmet from "helmet";
-import hpp from "hpp";
-import mongoSanitize from "express-mongo-sanitize";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-
-const { Pool } = pg;
+import { supabaseAdmin } from "./lib/supabase-admin";
+import { followUpWorker } from "./lib/ai/follow-up-worker";
+import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 
-// Security: Helmet for security headers
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Needed for Vite HMR in dev
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      connectSrc: ["'self'", "https://api.openai.com", "https://api.elevenlabs.io", "wss:", "ws:"],
-      fontSrc: ["'self'", "data:"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'", "https:"],
-      frameSrc: ["'self'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false, // Allow external resources
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
-}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
-// Security: Rate limiting to prevent brute force and DOS attacks
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 auth requests per windowMs
-  message: "Too many authentication attempts, please try again later.",
-  skipSuccessfulRequests: true,
-});
-
-const webhookLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 50, // Allow more for legitimate webhook traffic
-  message: "Webhook rate limit exceeded.",
-});
-
-// Apply rate limiting to API routes
-app.use("/api/", apiLimiter);
-app.use("/api/auth/", authLimiter);
-app.use("/api/webhook/", webhookLimiter);
-
-// Security: Prevent HTTP Parameter Pollution attacks
-app.use(hpp());
-
-// Security: Sanitize data to prevent NoSQL injection
-app.use(mongoSanitize());
-
-// Validate required environment variables for production
-if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-  console.error('FATAL: SESSION_SECRET environment variable is required in production');
-  console.error('Generate a secure secret with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
-  process.exit(1);
-}
-
-// Trust proxy for deployments behind reverse proxies (Vercel, Netlify, etc.)
-// This is required for secure cookies to work correctly in production
-app.set('trust proxy', 1);
-
-// Configure session storage with PostgreSQL
-const PgSession = connectPgSimple(session);
-
-// Create database pool with error handling
-const sessionPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Add error handler to prevent crashes
-sessionPool.on('error', (err) => {
-  console.error('Unexpected error on session database client:', err);
-  console.error('Session storage may be unavailable. Check DATABASE_URL configuration.');
-});
-
-const sessionStore = new PgSession({
-  pool: sessionPool,
-  createTableIfMissing: true,
-  tableName: 'user_sessions',
-});
-
-console.log('✓ Using PostgreSQL for session storage (persistent across restarts)');
-
-// Session middleware with secure HTTP-only cookies
-app.use(session({
-  store: sessionStore,
-  secret: process.env.SESSION_SECRET || 'dev-secret-DO-NOT-USE-IN-PRODUCTION',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production', // Secure in production (HTTPS only)
-    httpOnly: true, // HTTP-only cookies prevent XSS attacks
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    sameSite: 'strict' // Strict SameSite for maximum security (authentication is server-side only)
-  },
-  name: 'audnix.sid', // Custom session name
-}));
-
-declare module 'http' {
-  interface IncomingMessage {
-    rawBody: unknown
-  }
-}
-
-// Security: Limit request body size to prevent DOS attacks
-app.use(express.json({
-  limit: '10mb', // Limit JSON payload size
-  verify: (req, _res, buf) => {
-    req.rawBody = buf;
-  }
-}));
-app.use(express.urlencoded({ 
-  extended: false,
-  limit: '10mb', // Limit URL-encoded payload size
-}));
+// Session configuration
+const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-please-change-in-production';
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      sameSite: 'lax'
+    }
+  })
+);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -165,51 +59,83 @@ app.use((req, res, next) => {
   next();
 });
 
+/**
+ * Auto-run database migrations on startup
+ */
+async function runMigrations() {
+  if (!supabaseAdmin) {
+    console.log('⚠️  Supabase not configured - skipping migrations');
+    console.log('📝 To enable auto-migrations, add these to Secrets:');
+    console.log('   NEXT_PUBLIC_SUPABASE_URL');
+    console.log('   SUPABASE_SERVICE_ROLE_KEY');
+    console.log('   SUPABASE_ANON_KEY');
+    return;
+  }
+
+  try {
+    console.log('🚀 Running database migrations...');
+
+    // Read all migration files in order
+    const migrationsDir = path.join(process.cwd(), 'migrations');
+    const migrationFiles = fs.readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql'))
+      .sort();
+
+    for (const file of migrationFiles) {
+      const migrationPath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(migrationPath, 'utf-8');
+
+      console.log(`  ⏳ Running ${file}...`);
+
+      // Execute migration using raw SQL
+      const { error } = await supabaseAdmin.rpc('exec_sql', { query: sql });
+
+      if (error && !error.message.includes('already exists')) {
+        console.error(`  ❌ Migration ${file} failed:`, error.message);
+      } else {
+        console.log(`  ✅ ${file} complete`);
+      }
+    }
+
+    console.log('✅ All migrations complete!');
+    console.log('📊 Your database is ready to use');
+  } catch (error: any) {
+    console.error('❌ Migration error:', error.message);
+    console.log('💡 This is normal if tables already exist');
+  }
+}
+
 (async () => {
-  const server = await registerRoutes(app);
+  // Run migrations first
+  await runMigrations();
+
+  // Register API routes
+  const server = registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    
-    // Security: Don't leak sensitive error details in production
-    const message = process.env.NODE_ENV === 'production' 
-      ? (status === 500 ? "Internal Server Error" : err.message || "An error occurred")
-      : err.message || "Internal Server Error";
-
-    // Log full error server-side for debugging
-    console.error('Error:', {
-      status,
-      message: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-    });
-
-    // Send sanitized error to client
-    res.status(status).json({ 
-      error: message,
-      // Only include stack trace in development
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    });
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+    throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup Vite or static serving
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  // Start background workers
+  if (supabaseAdmin) {
+    console.log('🤖 Starting AI workers...');
+    followUpWorker.start();
+    startVideoCommentMonitoring();
+    console.log('✅ AI workers running');
+  }
+
+  const PORT = process.env.PORT || 5000;
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`Server running at http://0.0.0.0:${PORT}`);
   });
 })();

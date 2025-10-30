@@ -1,8 +1,9 @@
+
 import type { IStorage } from "./storage";
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration } from "@shared/schema";
 import { db } from "./db";
 import { users, leads, messages, integrations, notifications } from "@shared/schema";
-import { eq, and, or, like, desc, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
 
 export class DrizzleStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
@@ -234,6 +235,7 @@ export class DrizzleStorage implements IStorage {
       timestamp: n.createdAt,
       read: n.isRead,
       actionUrl: n.actionUrl,
+      metadata: n.metadata
     }));
   }
 
@@ -261,6 +263,7 @@ export class DrizzleStorage implements IStorage {
         message: data.message,
         actionUrl: data.actionUrl || null,
         isRead: false,
+        metadata: data.metadata || {}
       })
       .returning();
     
@@ -288,51 +291,138 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVideoMonitors(userId: string): Promise<any[]> {
-    // Implement video monitors table query when schema is ready
-    return [];
+    const result = await db.execute(sql`
+      SELECT * FROM video_monitors 
+      WHERE user_id = ${userId} 
+      ORDER BY created_at DESC
+    `);
+    return result.rows as any[];
   }
 
   async createVideoMonitor(data: any): Promise<any> {
-    // Implement when schema is ready
-    return data;
+    const result = await db.execute(sql`
+      INSERT INTO video_monitors (user_id, video_id, video_url, product_link, cta_text, is_active, auto_reply_enabled, metadata)
+      VALUES (${data.userId}, ${data.videoId}, ${data.videoUrl}, ${data.productLink}, ${data.ctaText || 'Check it out'}, ${data.isActive ?? true}, ${data.autoReplyEnabled ?? true}, ${JSON.stringify(data.metadata || {})})
+      RETURNING *
+    `);
+    return result.rows[0];
   }
 
   async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
-    // Implement when schema is ready
-    return null;
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.isActive !== undefined) {
+      setClauses.push(`is_active = $${paramIndex++}`);
+      values.push(updates.isActive);
+    }
+    if (updates.autoReplyEnabled !== undefined) {
+      setClauses.push(`auto_reply_enabled = $${paramIndex++}`);
+      values.push(updates.autoReplyEnabled);
+    }
+    if (updates.productLink) {
+      setClauses.push(`product_link = $${paramIndex++}`);
+      values.push(updates.productLink);
+    }
+    if (updates.ctaText) {
+      setClauses.push(`cta_text = $${paramIndex++}`);
+      values.push(updates.ctaText);
+    }
+
+    if (setClauses.length === 0) return null;
+
+    values.push(id, userId);
+    const result = await db.execute(sql.raw(`
+      UPDATE video_monitors 
+      SET ${setClauses.join(', ')}, updated_at = NOW()
+      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+      RETURNING *
+    `));
+    
+    return result.rows[0];
   }
 
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
-    // Implement when schema is ready
+    await db.execute(sql`
+      DELETE FROM video_monitors 
+      WHERE id = ${id} AND user_id = ${userId}
+    `);
   }
 
   async isCommentProcessed(commentId: string): Promise<boolean> {
-    // Implement when schema is ready
-    return false;
+    const result = await db.execute(sql`
+      SELECT 1 FROM processed_comments WHERE comment_id = ${commentId} LIMIT 1
+    `);
+    return result.rows.length > 0;
   }
 
   async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
-    // Implement when schema is ready
+    await db.execute(sql`
+      INSERT INTO processed_comments (comment_id, status, intent_type, commenter_username, comment_text)
+      VALUES (${commentId}, ${status}, ${intentType}, 'unknown', '')
+      ON CONFLICT (comment_id) DO NOTHING
+    `);
   }
 
   async getBrandKnowledge(userId: string): Promise<string> {
-    // Implement when schema is ready
-    return '';
+    const result = await db.execute(sql`
+      SELECT content FROM brand_embeddings 
+      WHERE user_id = ${userId} 
+      ORDER BY created_at DESC 
+      LIMIT 10
+    `);
+    return result.rows.map((r: any) => r.content).join('\n');
   }
 
   async getDeals(userId: string): Promise<any[]> {
-    // Implement deals table query when schema is ready
-    return [];
+    const result = await db.execute(sql`
+      SELECT d.*, l.name as lead_name 
+      FROM deals d
+      LEFT JOIN leads l ON d.lead_id = l.id
+      WHERE d.user_id = ${userId}
+      ORDER BY d.created_at DESC
+    `);
+    return result.rows as any[];
   }
 
   async createDeal(data: any): Promise<any> {
-    // Implement when schema is ready
-    return data;
+    const result = await db.execute(sql`
+      INSERT INTO deals (user_id, lead_id, title, amount, currency, status, source, metadata)
+      VALUES (${data.userId}, ${data.leadId || null}, ${data.title}, ${data.amount}, ${data.currency || 'USD'}, ${data.status || 'open'}, ${data.source || 'manual'}, ${JSON.stringify(data.metadata || {})})
+      RETURNING *
+    `);
+    return result.rows[0];
   }
 
   async updateDeal(id: string, userId: string, updates: any): Promise<any> {
-    // Implement when schema is ready
-    return null;
+    const setClauses: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (updates.status) {
+      setClauses.push(`status = $${paramIndex++}`);
+      values.push(updates.status);
+      if (updates.status === 'closed_won' || updates.status === 'closed_lost') {
+        setClauses.push(`closed_at = NOW()`);
+      }
+    }
+    if (updates.amount !== undefined) {
+      setClauses.push(`amount = $${paramIndex++}`);
+      values.push(updates.amount);
+    }
+
+    if (setClauses.length === 0) return null;
+
+    values.push(id, userId);
+    const result = await db.execute(sql.raw(`
+      UPDATE deals 
+      SET ${setClauses.join(', ')}, updated_at = NOW()
+      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+      RETURNING *
+    `));
+    
+    return result.rows[0];
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
@@ -342,10 +432,10 @@ export class DrizzleStorage implements IStorage {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     
-    const total = closedDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const total = closedDeals.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
     const thisMonth = closedDeals
-      .filter(d => new Date(d.closedAt) >= thisMonthStart)
-      .reduce((sum, d) => sum + (d.amount || 0), 0);
+      .filter(d => new Date(d.closed_at) >= thisMonthStart)
+      .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
     
     return { total, thisMonth, deals: closedDeals };
   }
@@ -354,22 +444,35 @@ export class DrizzleStorage implements IStorage {
     const user = await this.getUserById(userId);
     if (!user) return 0;
     
-    // Calculate from plan + top-ups - usage
     const planMinutes = this.getVoiceMinutesForPlan(user.plan);
-    // TODO: Track actual usage when voice usage table is ready
-    return planMinutes;
+    const topupMinutes = user.voiceMinutesTopup || 0;
+    const usedMinutes = user.voiceMinutesUsed || 0;
+    
+    return Math.max(0, planMinutes + topupMinutes - usedMinutes);
   }
 
   async deductVoiceMinutes(userId: string, minutes: number): Promise<boolean> {
     const balance = await this.getVoiceMinutesBalance(userId);
     if (balance < minutes) return false;
     
-    // TODO: Implement actual deduction when voice usage table is ready
+    const user = await this.getUserById(userId);
+    if (!user) return false;
+    
+    await this.updateUser(userId, {
+      voiceMinutesUsed: (user.voiceMinutesUsed || 0) + minutes
+    });
+    
     return true;
   }
 
   async addVoiceMinutes(userId: string, minutes: number, source: string): Promise<void> {
-    // TODO: Implement when voice topups table is ready
+    const user = await this.getUserById(userId);
+    if (!user) return;
+    
+    await this.updateUser(userId, {
+      voiceMinutesTopup: (user.voiceMinutesTopup || 0) + minutes
+    });
+    
     await this.createNotification({
       userId,
       type: 'topup_success',

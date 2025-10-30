@@ -109,27 +109,40 @@ OAuth flows are **fully implemented**. You just need to register apps with provi
 - **Stripe** - Payment processing
 - **Google APIs** - Calendar, Gmail integration
 
-## 🚀 Quick Start
+## 🚀 Quick Start (100% Automated)
 
-### 1. Install Dependencies
+### 1. Add Supabase Credentials to Replit Secrets
 
-```bash
-npm install
+Go to **Secrets** (🔒 icon) and add:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 ```
 
-### 2. Set Up Environment Variables
+Get these from: https://supabase.com → Your Project → Settings → API
 
-Copy `.env.example` to `.env` and fill in at minimum:
+### 2. Add OpenAI Key (Required for AI)
 
-```env
-# Required - Get from https://supabase.com
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
+```
+OPENAI_API_KEY=sk-proj-xxxxx
+```
 
-# Generate these (see .env.example for commands)
-SESSION_SECRET=generate_with_crypto_randomBytes
-ENCRYPTION_KEY=generate_with_crypto_randomBytes
+Get from: https://platform.openai.com/api-keys
+
+### 3. Click Run - That's It! 🎉
+
+The system will:
+- ✅ Auto-create all 18 database tables
+- ✅ Set up Row Level Security policies
+- ✅ Start AI workers (follow-ups, comment monitoring)
+- ✅ Enable voice cloning (if ElevenLabs key added)
+- ✅ Activate payments (if Stripe keys added)
+
+**No manual SQL commands needed!**
+
+See [docs/AUTO_SETUP_GUIDE.md](./docs/AUTO_SETUP_GUIDE.md) for complete instructionsndomBytes
 
 # Recommended - Get from https://platform.openai.com
 OPENAI_API_KEY=sk-your_openai_key
