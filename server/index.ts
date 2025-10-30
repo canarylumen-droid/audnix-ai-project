@@ -28,7 +28,7 @@ let sessionConfig: session.SessionOptions = {
   }
 };
 
-// Use Redis in production if configured
+// Use Redis in production if configured (only in production to avoid dev conflicts)
 if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
   try {
     const RedisStore = require('connect-redis').default;
@@ -56,6 +56,12 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
   } catch (error) {
     console.warn('⚠️  Redis not available, using memory store');
   }
+} else if (process.env.NODE_ENV !== 'production') {
+  // Use memory store in development
+  const MemoryStore = require('memorystore')(session);
+  sessionConfig.store = new MemoryStore({
+    checkPeriod: 86400000 // prune expired entries every 24h
+  });
 }
 
 app.use(session(sessionConfig));
@@ -140,7 +146,7 @@ async function runMigrations() {
   // Run migrations first
   await runMigrations();
 
-  // Register API routes
+  // Register API routes (this creates the HTTP server)
   const server = registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -150,7 +156,7 @@ async function runMigrations() {
     throw err;
   });
 
-  // Setup Vite or static serving
+  // Setup Vite or static serving AFTER server is created
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
