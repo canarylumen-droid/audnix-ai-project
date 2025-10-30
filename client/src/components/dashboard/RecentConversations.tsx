@@ -240,8 +240,11 @@ export function RecentConversations() {
           ) : leads.length === 0 ? (
             <div className="text-center py-12">
               <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-20" />
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-2">
                 No recent {channelConfig[selectedChannel].label} conversations
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Connect your account to start receiving leads
               </p>
             </div>
           ) : (

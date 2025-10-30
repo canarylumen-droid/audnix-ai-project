@@ -59,10 +59,11 @@ export default function ConversationsPage() {
     retry: false,
   });
 
-  // Fetch messages for this lead
+  // Fetch messages for this lead with aggressive real-time updates
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["/api/messages", leadId],
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 3000, // Refresh every 3 seconds for instant feel
+    refetchOnWindowFocus: true,
     enabled: !!leadId,
     retry: false,
   });
@@ -140,10 +141,13 @@ export default function ConversationsPage() {
       <div className="p-4 md:p-6 lg:p-8">
         <div className="text-center py-12">
           <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Select a conversation</h2>
-          <p className="text-muted-foreground">
-            Choose a lead from your inbox to start messaging
+          <h2 className="text-xl font-semibold mb-2">You don't have any activity yet</h2>
+          <p className="text-muted-foreground mb-4">
+            Connect your accounts to start receiving leads and conversations will appear here in real-time
           </p>
+          <Button asChild>
+            <a href="/dashboard/integrations">Connect Accounts</a>
+          </Button>
         </div>
       </div>
     );

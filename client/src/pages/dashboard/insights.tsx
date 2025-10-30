@@ -38,7 +38,8 @@ import {
 export default function InsightsPage() {
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["/api/insights"],
-    refetchInterval: 60000,
+    refetchInterval: 10000, // Update every 10 seconds
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
@@ -157,13 +158,14 @@ export default function InsightsPage() {
         <Card className="border-dashed" data-testid="card-empty-state">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No data yet</h3>
+            <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your accounts to start receiving leads. Once you have lead activity, 
-              AI-powered insights will appear here to help you optimize your conversions.
+              Connect your Instagram, WhatsApp, or Email accounts to start receiving leads. 
+              Once you have activity, AI-powered insights and analytics will appear here in real-time 
+              to help you optimize your conversions.
             </p>
-            <Button data-testid="button-connect-accounts">
-              Connect Accounts
+            <Button data-testid="button-connect-accounts" asChild>
+              <a href="/dashboard/integrations">Connect Accounts</a>
             </Button>
           </CardContent>
         </Card>
@@ -190,46 +192,48 @@ export default function InsightsPage() {
             </motion.div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card data-testid="card-metric-response">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Avg Response Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.avgResponseTime || "—"}
-                </div>
-              </CardContent>
-            </Card>
+          {hasData && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card data-testid="card-metric-response">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Avg Response Time
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {insightsData?.metrics?.avgResponseTime || "—"}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card data-testid="card-metric-conversion">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Conversion Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.conversionRate || "0"}%
-                </div>
-              </CardContent>
-            </Card>
+              <Card data-testid="card-metric-conversion">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Conversion Rate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {insightsData?.metrics?.conversionRate || "0"}%
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card data-testid="card-metric-engagement">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Engagement Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.engagementScore || "0"}%
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Card data-testid="card-metric-engagement">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Engagement Score
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {insightsData?.metrics?.engagementScore || "0"}%
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {channelData.length > 0 && (

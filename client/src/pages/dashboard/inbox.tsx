@@ -63,12 +63,14 @@ export default function InboxPage() {
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showRecentConversations, setShowRecentConversations] = useState(false);
 
-  // Fetch real leads from backend
+  // Fetch real leads from backend with real-time updates
   const { data: leadsData, isLoading, error } = useQuery({
     queryKey: ["/api/leads", { 
       channel: channelFilter !== "all" ? channelFilter : undefined, 
       status: statusFilter !== "all" ? statusFilter : undefined 
     }],
+    refetchInterval: 5000, // Update every 5 seconds
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
@@ -288,11 +290,11 @@ export default function InboxPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {leads.length === 0 ? "No leads yet" : "No matching leads"}
+              {leads.length === 0 ? "You don't have any activity yet" : "No matching leads"}
             </h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
               {leads.length === 0 
-                ? "Connect your Instagram, WhatsApp, or Email accounts to start receiving leads."
+                ? "Connect your Instagram, WhatsApp, or Email accounts to start receiving leads. Once connected, your leads will appear here in real-time."
                 : "Try adjusting your filters or search query."}
             </p>
             {leads.length === 0 && (

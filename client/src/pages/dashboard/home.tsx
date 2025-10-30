@@ -38,17 +38,19 @@ export default function DashboardHome() {
     retry: false,
   });
 
-  // Fetch real dashboard stats
+  // Fetch real dashboard stats with aggressive real-time updates
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Refresh every 5 seconds for real-time feel
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
-  // Fetch real activity feed
+  // Fetch real activity feed with real-time updates
   const { data: activityData, isLoading: activityLoading } = useQuery({
     queryKey: ["/api/dashboard/activity"],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchOnWindowFocus: true,
     retry: false,
   });
 
@@ -148,6 +150,9 @@ export default function DashboardHome() {
     );
   }
 
+  // Show friendly message for new users instead of error
+  const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Hero Section */}
@@ -225,9 +230,9 @@ export default function DashboardHome() {
               animate={{ opacity: 1 }}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.3 }}
             >
-              {stats?.leads > 0 
+              {hasAnyActivity
                 ? "Here's what's happening with your leads today ✨"
-                : "Let's get you started with some amazing automation! 🚀"}
+                : "You don't have any activity yet. Connect your accounts to get started! 🚀"}
             </motion.p>
           </div>
           <AnimatePresence>

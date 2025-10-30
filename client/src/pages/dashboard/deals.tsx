@@ -142,13 +142,14 @@ export default function DealsPage() {
         <Card className="border-dashed" data-testid="card-empty-state">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No deals yet</h3>
+            <h3 className="text-lg font-semibold mb-2">You don't have any activity yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
-              When you convert leads into paying customers, they'll appear here as deals.
+              Connect your accounts to start receiving leads. When you convert leads into paying customers, 
+              they'll appear here as deals with real-time tracking.
             </p>
-            <Link href="/dashboard/inbox">
+            <Link href="/dashboard/integrations">
               <Button data-testid="button-go-to-inbox">
-                Go to Inbox
+                Connect Accounts
               </Button>
             </Link>
           </CardContent>

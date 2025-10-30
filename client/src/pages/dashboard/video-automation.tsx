@@ -289,15 +289,16 @@ export default function VideoAutomationPage() {
             </CardContent>
           </Card>
         ) : monitors.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">No Active Monitors</h3>
-              <p className="text-muted-foreground mb-4">
-                Set up your first video monitor to start automating DMs
-              </p>
-            </CardContent>
-          </Card>
+          <Card className="border-dashed" data-testid="card-empty-state">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <Video className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
+            <p className="text-muted-foreground text-center mb-6 max-w-md">
+              Connect your Instagram account and add your first Reel to start monitoring comments. 
+              AI will automatically detect interest and engage with viewers in real-time.
+            </p>
+          </CardContent>
+        </Card>
         ) : (
           monitors.map((monitor: any) => (
             <motion.div
