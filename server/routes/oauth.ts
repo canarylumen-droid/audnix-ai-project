@@ -192,88 +192,46 @@ router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
   }
 });
 
-// ==================== WHATSAPP OAUTH ====================
+// ==================== WHATSAPP OAUTH (TWILIO) ====================
 
 /**
- * Initialize OAuth flow for WhatsApp
+ * Connect WhatsApp via Twilio
+ * Users provide their Twilio credentials directly
  */
-router.get('/connect/whatsapp', async (req: Request, res: Response) => {
+router.post('/oauth/whatsapp/connect', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = (req as any).session?.userId || req.body.user_id;
     
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const authUrl = whatsappOAuth.getAuthorizationUrl(userId);
-    res.json({ authUrl });
-  } catch (error) {
-    console.error('Error initiating WhatsApp OAuth:', error);
-    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
-  }
-});
+    const { accountSid, authToken, fromNumber } = req.body;
 
-/**
- * Handle OAuth callback from WhatsApp
- */
-router.get('/oauth/whatsapp/callback', async (req: Request, res: Response) => {
-  try {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      return res.redirect('/dashboard/integrations?error=whatsapp_denied');
+    if (!accountSid || !authToken || !fromNumber) {
+      return res.status(400).json({ error: 'Missing required Twilio credentials' });
     }
 
-    if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
+    // Validate credentials first
+    const isValid = await whatsappOAuth.validateCredentials({ accountSid, authToken });
+    if (!isValid) {
+      return res.status(400).json({ error: 'Invalid Twilio credentials' });
     }
 
-    // Verify state
-    const stateData = whatsappOAuth.verifyState(state as string);
-    if (!stateData) {
-      return res.redirect('/dashboard/integrations?error=invalid_state');
-    }
-
-    // Exchange code for token
-    const tokenData = await whatsappOAuth.exchangeCodeForToken(code as string);
-    
-    // Get long-lived token
-    const longLivedToken = await whatsappOAuth.exchangeForLongLivedToken(tokenData.access_token);
-    
-    // Get business account ID and profile
-    const businessAccountId = await whatsappOAuth.getBusinessAccountId(longLivedToken.access_token);
-    const profile = await whatsappOAuth.getBusinessProfile(longLivedToken.access_token, businessAccountId);
-    const phoneNumbers = await whatsappOAuth.getPhoneNumbers(longLivedToken.access_token, businessAccountId);
-    
-    // Save token and business data
-    await whatsappOAuth.saveToken(stateData.userId, longLivedToken, {
-      businessAccountId,
-      phoneNumbers
+    // Save credentials
+    await whatsappOAuth.saveCredentials(userId, {
+      accountSid,
+      authToken,
+      fromNumber
     });
 
-    // Create integration record
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .upsert({
-          user_id: stateData.userId,
-          provider: 'whatsapp',
-          account_type: profile.name || 'WhatsApp Business',
-          credentials: { 
-            business_name: profile.name,
-            phone_numbers: phoneNumbers.map((p: any) => p.display_phone_number)
-          },
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
-    }
-
-    res.redirect('/dashboard/integrations?success=whatsapp_connected');
+    res.json({ 
+      success: true,
+      message: 'WhatsApp connected successfully via Twilio'
+    });
   } catch (error) {
-    console.error('WhatsApp OAuth callback error:', error);
-    res.redirect('/dashboard/integrations?error=whatsapp_oauth_failed');
+    console.error('Error connecting WhatsApp:', error);
+    res.status(500).json({ error: 'Failed to connect WhatsApp' });
   }
 });
 
@@ -288,18 +246,7 @@ router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) =>
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    await whatsappOAuth.revokeToken(userId);
-    
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'whatsapp');
-    }
+    await whatsappOAuth.revokeCredentials(userId);
 
     res.json({ success: true });
   } catch (error) {
@@ -309,7 +256,7 @@ router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) =>
 });
 
 /**
- * Check WhatsApp token status
+ * Check WhatsApp connection status
  */
 router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
   try {
@@ -319,10 +266,13 @@ router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const token = await whatsappOAuth.getValidToken(userId);
+    const credentials = await whatsappOAuth.getCredentials(userId);
     
-    if (token) {
-      res.json({ connected: true });
+    if (credentials) {
+      res.json({ 
+        connected: true,
+        fromNumber: credentials.fromNumber
+      });
     } else {
       res.json({ connected: false });
     }

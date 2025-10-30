@@ -143,7 +143,7 @@ OAuth flows are **fully implemented**. You just need to register apps with provi
 
 1. **Google (Calendar + Gmail)** - Register at Google Cloud Console
 2. **Instagram** - Create Meta app for Instagram API
-3. **WhatsApp** - Create Meta app for WhatsApp Business API
+3. **WhatsApp** - Users connect via Twilio (SaaS-ready)
 4. **Outlook** - Register at Azure Portal
 
 **Time:** ~30 minutes per provider | **Guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
@@ -200,140 +200,13 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 
 Get these from: https://supabase.com → Your Project → Settings → API
 
-### 2. Add OpenAI Key (Required for AI)
-
-```
-OPENAI_API_KEY=sk-proj-xxxxx
-```
-
-Get from: https://platform.openai.com/api-keys
-
-### 3. Click Run - That's It! 🎉
-
-The system will:
-- ✅ Auto-create all 18 database tables
-- ✅ Set up Row Level Security policies
-- ✅ Start AI workers (follow-ups, comment monitoring)
-- ✅ Enable voice cloning (if ElevenLabs key added)
-- ✅ Activate payments (if Stripe keys added)
-
-**No manual SQL commands needed!**
-
-## 🔐 Complete Environment Variables Reference
-
-### Required for Core Functionality
+### 2. Add API Keys
 
 ```bash
-# Database & Auth (REQUIRED)
+# Recommended - Get from https://supabase.com
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
-
-# Session Security (auto-generated in production)
-SESSION_SECRET=your-random-secret-32-chars-min
-ENCRYPTION_KEY=your-encryption-key-32-chars-min
-
-# AI Processing (REQUIRED for AI features)
-OPENAI_API_KEY=sk-proj-xxxxx
-
-# Payment Processing (REQUIRED for billing)
-STRIPE_SECRET_KEY=sk_live_xxxxx
-VITE_STRIPE_PUBLIC_KEY=pk_live_xxxxx
-
-# Stripe Price IDs (create in Stripe Dashboard)
-STRIPE_PRICE_ID_MONTHLY_49=price_xxxxx
-STRIPE_PRICE_ID_MONTHLY_99=price_xxxxx
-STRIPE_PRICE_ID_MONTHLY_199=price_xxxxx
-STRIPE_PRICE_TOPUP_LEADS_1000=price_xxxxx
-STRIPE_PRICE_TOPUP_LEADS_2500=price_xxxxx
-STRIPE_PRICE_TOPUP_VOICE_100=price_xxxxx
-STRIPE_PRICE_TOPUP_VOICE_300=price_xxxxx
-STRIPE_PRICE_TOPUP_VOICE_600=price_xxxxx
-STRIPE_PRICE_TOPUP_VOICE_1200=price_xxxxx
-```
-
-### Social Media Integrations
-
-```bash
-# Instagram (for Instagram DMs & voice messages)
-INSTAGRAM_APP_ID=your_app_id
-INSTAGRAM_APP_SECRET=your_app_secret
-INSTAGRAM_ACCESS_TOKEN=your_access_token
-INSTAGRAM_BUSINESS_ACCOUNT_ID=your_business_account_id
-
-# WhatsApp Business API
-WHATSAPP_APP_ID=your_app_id
-WHATSAPP_APP_SECRET=your_app_secret
-WHATSAPP_ACCESS_TOKEN=your_access_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
-```
-
-### Voice & Messaging
-
-```bash
-# ElevenLabs (AI voice cloning)
-ELEVENLABS_API_KEY=your_api_key
-ELEVENLABS_VOICE_ID=your_voice_id  # Optional, uses default if not set
-
-# Twilio (voice notes & SMS)
-TWILIO_ACCOUNT_SID=ACxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_PHONE_NUMBER=+1234567890
-TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890  # Optional
-```
-
-### Email & Calendar
-
-```bash
-# Google OAuth (Gmail + Calendar)
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your_client_secret
-GOOGLE_CALENDAR_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CALENDAR_CLIENT_SECRET=your_calendar_secret
-
-# Gmail OAuth
-GMAIL_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GMAIL_CLIENT_SECRET=your_gmail_secret
-
-# Outlook/Microsoft
-OUTLOOK_CLIENT_ID=your_client_id
-OUTLOOK_CLIENT_SECRET=your_client_secret
-```
-
-### Optional Performance Enhancements
-
-```bash
-# Redis (for caching & rate limiting)
-REDIS_URL=redis://your-redis-url:6379
-
-# Node Environment
-NODE_ENV=production
-PORT=5000
-```
-
-### Where to Get API Keys
-
-| Service | Where to Get Keys | Cost |
-|---------|------------------|------|
-| **Supabase** | [supabase.com](https://supabase.com) → Project → Settings → API | Free tier available |
-| **OpenAI** | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | Pay-as-you-go |
-| **Stripe** | [dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys) | Free (2.9% + $0.30 per transaction) |
-| **ElevenLabs** | [elevenlabs.io](https://elevenlabs.io) → Profile → API Keys | Free tier: 10,000 chars/mo |
-| **Twilio** | [twilio.com/console](https://twilio.com/console) | $15 free trial |
-| **Instagram** | [developers.facebook.com](https://developers.facebook.com) → Create App | Free |
-| **WhatsApp** | [business.facebook.com/wa/manage](https://business.facebook.com/wa/manage) | Free (Meta-hosted) |
-| **Google Cloud** | [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services | Free tier |
-
-### Environment Variable Priority
-
-1. **Start Immediately**: DATABASE_URL, SUPABASE keys, SESSION_SECRET
-2. **Enable AI**: OPENAI_API_KEY
-3. **Enable Payments**: STRIPE keys
-4. **Enable Voice**: ELEVENLABS_API_KEY, TWILIO keys  
-5. **Enable Channels**: Instagram, WhatsApp, Gmail tokens
-6. **Performance**: REDIS_URL (optional, but recommended for 100+ users)
-
-See [docs/AUTO_SETUP_GUIDE.md](./docs/AUTO_SETUP_GUIDE.md) for complete instructionsndomBytes
 
 # Recommended - Get from https://platform.openai.com
 OPENAI_API_KEY=sk-your_openai_key
@@ -658,7 +531,7 @@ so we can keep each other updated?"
 | OpenAI | N/A | ✅ | Add API key → Works |
 | Stripe | N/A | ✅ | Add API key → Works |
 | Instagram | ✅ | ✅ | Needs Meta app setup |
-| WhatsApp | ✅ | ✅ | Needs Meta app setup |
+| WhatsApp | ✅ | ✅ | Users connect via Twilio (SaaS-ready) |
 | Outlook | ✅ | ✅ | Needs Azure app setup |
 | ElevenLabs | N/A | ✅ | Add API key → Works |
 

@@ -18,9 +18,9 @@ export class WhatsAppProvider {
   private credentials: WhatsAppCredentials;
   private isDemoMode: boolean;
 
-  constructor(encryptedMeta: string) {
+  constructor(credentials: WhatsAppCredentials) {
     this.isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
-    
+
     if (this.isDemoMode) {
       this.credentials = {
         accountSid: "mock_account_sid",
@@ -28,68 +28,7 @@ export class WhatsAppProvider {
         fromNumber: "whatsapp:+1234567890"
       };
     } else {
-      // In a real application, you would fetch Twilio credentials securely.
-      // For this example, we'll assume they are directly provided or decrypted.
-      // The original code used 'decrypt(encryptedMeta)', we'll adapt to use it if needed or assume direct passing.
-      // Given the edited code's constructor takes 'credentials', we'll stick to that signature.
-      // If the original constructor signature MUST be preserved, this would need adjustment.
-      // Assuming the edited constructor signature is the desired one:
-      // this.credentials = JSON.parse(decrypt(encryptedMeta)); // This would be the line if decrypt was used on the whole object
-      
-      // However, the edited code's constructor takes `credentials: WhatsAppCredentials`.
-      // This implies the credentials are not encrypted and passed directly.
-      // If the original constructor signature is kept, then the decryption logic needs to be inside.
-      // Let's follow the edited code's constructor signature for now.
-      
-      // If the original constructor MUST be kept:
-      // const decryptedCredentials = JSON.parse(decrypt(encryptedMeta));
-      // this.credentials = {
-      //   accountSid: decryptedCredentials.accountSid,
-      //   authToken: decryptedCredentials.authToken,
-      //   fromNumber: decryptedCredentials.fromNumber
-      // };
-
-      // Sticking to the edited code's constructor signature for clarity as it's more explicit about Twilio creds.
-      // The below line is a placeholder if the original constructor was to be strictly maintained and assume `encryptedMeta` contains Twilio creds.
-      // For the purpose of this edit, we assume the constructor signature change is intended.
-      // If the original constructor signature MUST be kept, the provided edit is incomplete.
-      // Given the prompt to generate the COMPLETE code, and the edited code providing a constructor that takes `credentials`, we will use that.
-      // If `encryptedMeta` must be used, then the `decrypt` call needs to be incorporated.
-      // For now, let's assume the constructor in the EDIT is the intended change.
-      // If `encryptedMeta` is still relevant, the constructor should look like:
-      // constructor(encryptedMeta: string) {
-      //   this.isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
-      //   if (this.isDemoMode) { ... } else {
-      //     const decrypted = JSON.parse(decrypt(encryptedMeta));
-      //     this.credentials = {
-      //       accountSid: decrypted.accountSid,
-      //       authToken: decrypted.authToken,
-      //       fromNumber: decrypted.fromNumber
-      //     };
-      //   }
-      // }
-      // However, the provided edit uses `constructor(credentials: WhatsAppCredentials)`. We will use this.
-      // The `decrypt` import is kept as it was in the original file, though not used in the provided edit's constructor.
-      // This might indicate an inconsistency or an incomplete edit.
-      // For now, we will assume the constructor in the EDIT is correct and the `decrypt` import is vestigial or for other potential uses.
-      
-      // If the intention was to decrypt the credentials passed to the constructor, the constructor should be:
-      // constructor(encryptedCredentials: string) {
-      //   this.isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
-      //   if (this.isDemoMode) { ... } else {
-      //     this.credentials = JSON.parse(decrypt(encryptedCredentials));
-      //   }
-      // }
-      // But the edited code provides `constructor(credentials: WhatsAppCredentials)`. We will use this.
-      // This implies the credentials are provided in plain text or handled externally before being passed.
-      // We will keep the `decrypt` import as it was in the original, but it's not used in the edited constructor.
-      
-      // Based on the edited code's constructor signature, we'll assume the credentials are passed directly.
-      // The `encryptedMeta` parameter from the original constructor is removed in the edit.
-      // This means the `decrypt` function import, while present in the original and the edit, is not used in the constructor logic provided by the edit.
-      // To make the code runnable, we'll need to assume the constructor takes the `credentials` object directly.
-      // Therefore, the `encryptedMeta` parameter is removed from the constructor signature.
-      // The `decrypt` import is kept as it was in the original file.
+      this.credentials = credentials;
     }
   }
 
