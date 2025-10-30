@@ -117,7 +117,7 @@ async function runMigrations() {
   await runMigrations();
 
   // Register API routes first (creates the HTTP server)
-  const server = registerRoutes(app);
+  const server = await registerRoutes(app);
 
   // Error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

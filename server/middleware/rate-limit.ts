@@ -81,10 +81,13 @@ export const aiLimiter = rateLimit({
   max: 20,
   message: 'AI generation rate limit exceeded',
   keyGenerator: (req) => {
-    return (req.session as any)?.userId || req.ip || 'anonymous';
+    const userId = (req.session as any)?.userId;
+    if (userId) return `user:${userId}`;
+    return `ip:${req.ip}`;
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Disable IPv6 validation warnings
   ...(redisClient && {
     store: new RedisStore({
       client: redisClient,
