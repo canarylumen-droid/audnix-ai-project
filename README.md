@@ -2,6 +2,88 @@
 
 > **Production-Ready SaaS Platform** - AI follow-up automation across Instagram, WhatsApp, Gmail, and more. Full-stack application with real database integration, authentication, and analytics.
 
+## 💰 Business & Profit Analysis
+
+### Revenue Model
+
+**Subscription Plans:**
+- **Starter**: $49.99/mo - 2,500 leads, 300 voice minutes
+- **Pro**: $99.99/mo - 7,000 leads, 800 voice minutes
+- **Enterprise**: $199.99/mo - 20,000 leads, 1,000 voice minutes
+
+**Top-ups (90%+ Profit Margin):**
+- 1,000 leads: $30
+- 2,500 leads: $65
+- 100 voice minutes: $10
+- 300 voice minutes: $30
+- 600 voice minutes: $60
+- 1,200 voice minutes: $120
+
+### Cost Breakdown Per User (Monthly)
+
+**Voice Costs (ElevenLabs):**
+- Cost per voice minute: $0.01 (including storage + processing)
+- 300 minutes: $3.00
+- 800 minutes: $8.00
+- 1,000 minutes: $10.00
+
+**AI Processing (OpenAI GPT-4):**
+- Cost per message: $0.002
+- Starter (2,500 messages): $5.00
+- Pro (7,000 messages): $14.00
+- Enterprise (20,000 messages): $40.00
+
+**Infrastructure (Per User):**
+- Database (Supabase/Postgres): $0.50
+- Storage (files, voice samples): $0.30
+- API calls & webhooks: $0.20
+- Total infrastructure: $1.00/user
+
+**Messaging (Twilio WhatsApp):**
+- Cost per WhatsApp message: $0.005
+- Average 500 messages/mo: $2.50
+
+**Total Cost Per User:**
+- Starter: $11.50 (Voice: $3 + AI: $5 + Infra: $1 + Messaging: $2.50)
+- Pro: $25.50 (Voice: $8 + AI: $14 + Infra: $1 + Messaging: $2.50)
+- Enterprise: $53.50 (Voice: $10 + AI: $40 + Infra: $1 + Messaging: $2.50)
+
+### Profit Margins
+
+**Monthly Subscriptions:**
+- Starter: $49.99 revenue - $11.50 cost = **$38.49 profit (77% margin)**
+- Pro: $99.99 revenue - $25.50 cost = **$74.49 profit (74% margin)**
+- Enterprise: $199.99 revenue - $53.50 cost = **$146.49 profit (73% margin)**
+
+**Top-ups (90%+ Margin):**
+- 100 voice minutes: $10 revenue - $1 cost = **$9 profit (90% margin)**
+- 300 voice minutes: $30 revenue - $3 cost = **$27 profit (90% margin)**
+- 600 voice minutes: $60 revenue - $6 cost = **$54 profit (90% margin)**
+- 1,200 voice minutes: $120 revenue - $12 cost = **$108 profit (90% margin)**
+- 1,000 leads: $30 revenue - $2 cost = **$28 profit (93% margin)**
+- 2,500 leads: $65 revenue - $5 cost = **$60 profit (92% margin)**
+
+### Break-Even & Growth
+
+**Fixed Costs (Monthly):**
+- Hosting (Render/Railway): $7-20
+- Database (Supabase Pro): $25 (scales to 10,000 users)
+- Domain + SSL: $2
+- Total fixed: **~$35-50/mo**
+
+**Break-Even Point:**
+- 1 Starter subscriber = $38.49 profit > $50 fixed costs
+- **2 users = profitable** ✅
+
+**Growth Projections:**
+- 10 users (mix): ~$600/mo revenue, $200 costs = **$400/mo profit**
+- 100 users (mix): ~$8,000/mo revenue, $2,000 costs = **$6,000/mo profit**
+- 1,000 users (mix): ~$80,000/mo revenue, $20,000 costs = **$60,000/mo profit**
+
+**Average Revenue Per User (ARPU):** $80/mo (with top-ups)
+**Lifetime Value (LTV):** $960 (12-month retention)
+**Customer Acquisition Cost (CAC) Target:** <$100 (10:1 LTV:CAC ratio)
+
 ## ✨ What You Get
 
 A complete SaaS platform foundation with:
@@ -141,6 +223,120 @@ The system will:
 - ✅ Activate payments (if Stripe keys added)
 
 **No manual SQL commands needed!**
+
+## 🔐 Complete Environment Variables Reference
+
+### Required for Core Functionality
+
+```bash
+# Database & Auth (REQUIRED)
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+
+# Session Security (auto-generated in production)
+SESSION_SECRET=your-random-secret-32-chars-min
+ENCRYPTION_KEY=your-encryption-key-32-chars-min
+
+# AI Processing (REQUIRED for AI features)
+OPENAI_API_KEY=sk-proj-xxxxx
+
+# Payment Processing (REQUIRED for billing)
+STRIPE_SECRET_KEY=sk_live_xxxxx
+VITE_STRIPE_PUBLIC_KEY=pk_live_xxxxx
+
+# Stripe Price IDs (create in Stripe Dashboard)
+STRIPE_PRICE_ID_MONTHLY_49=price_xxxxx
+STRIPE_PRICE_ID_MONTHLY_99=price_xxxxx
+STRIPE_PRICE_ID_MONTHLY_199=price_xxxxx
+STRIPE_PRICE_TOPUP_LEADS_1000=price_xxxxx
+STRIPE_PRICE_TOPUP_LEADS_2500=price_xxxxx
+STRIPE_PRICE_TOPUP_VOICE_100=price_xxxxx
+STRIPE_PRICE_TOPUP_VOICE_300=price_xxxxx
+STRIPE_PRICE_TOPUP_VOICE_600=price_xxxxx
+STRIPE_PRICE_TOPUP_VOICE_1200=price_xxxxx
+```
+
+### Social Media Integrations
+
+```bash
+# Instagram (for Instagram DMs & voice messages)
+INSTAGRAM_APP_ID=your_app_id
+INSTAGRAM_APP_SECRET=your_app_secret
+INSTAGRAM_ACCESS_TOKEN=your_access_token
+INSTAGRAM_BUSINESS_ACCOUNT_ID=your_business_account_id
+
+# WhatsApp Business API
+WHATSAPP_APP_ID=your_app_id
+WHATSAPP_APP_SECRET=your_app_secret
+WHATSAPP_ACCESS_TOKEN=your_access_token
+WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+```
+
+### Voice & Messaging
+
+```bash
+# ElevenLabs (AI voice cloning)
+ELEVENLABS_API_KEY=your_api_key
+ELEVENLABS_VOICE_ID=your_voice_id  # Optional, uses default if not set
+
+# Twilio (voice notes & SMS)
+TWILIO_ACCOUNT_SID=ACxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_PHONE_NUMBER=+1234567890
+TWILIO_WHATSAPP_NUMBER=whatsapp:+1234567890  # Optional
+```
+
+### Email & Calendar
+
+```bash
+# Google OAuth (Gmail + Calendar)
+GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_CALENDAR_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GOOGLE_CALENDAR_CLIENT_SECRET=your_calendar_secret
+
+# Gmail OAuth
+GMAIL_CLIENT_ID=xxxxx.apps.googleusercontent.com
+GMAIL_CLIENT_SECRET=your_gmail_secret
+
+# Outlook/Microsoft
+OUTLOOK_CLIENT_ID=your_client_id
+OUTLOOK_CLIENT_SECRET=your_client_secret
+```
+
+### Optional Performance Enhancements
+
+```bash
+# Redis (for caching & rate limiting)
+REDIS_URL=redis://your-redis-url:6379
+
+# Node Environment
+NODE_ENV=production
+PORT=5000
+```
+
+### Where to Get API Keys
+
+| Service | Where to Get Keys | Cost |
+|---------|------------------|------|
+| **Supabase** | [supabase.com](https://supabase.com) → Project → Settings → API | Free tier available |
+| **OpenAI** | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) | Pay-as-you-go |
+| **Stripe** | [dashboard.stripe.com/apikeys](https://dashboard.stripe.com/apikeys) | Free (2.9% + $0.30 per transaction) |
+| **ElevenLabs** | [elevenlabs.io](https://elevenlabs.io) → Profile → API Keys | Free tier: 10,000 chars/mo |
+| **Twilio** | [twilio.com/console](https://twilio.com/console) | $15 free trial |
+| **Instagram** | [developers.facebook.com](https://developers.facebook.com) → Create App | Free |
+| **WhatsApp** | [business.facebook.com/wa/manage](https://business.facebook.com/wa/manage) | Free (Meta-hosted) |
+| **Google Cloud** | [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services | Free tier |
+
+### Environment Variable Priority
+
+1. **Start Immediately**: DATABASE_URL, SUPABASE keys, SESSION_SECRET
+2. **Enable AI**: OPENAI_API_KEY
+3. **Enable Payments**: STRIPE keys
+4. **Enable Voice**: ELEVENLABS_API_KEY, TWILIO keys  
+5. **Enable Channels**: Instagram, WhatsApp, Gmail tokens
+6. **Performance**: REDIS_URL (optional, but recommended for 100+ users)
 
 See [docs/AUTO_SETUP_GUIDE.md](./docs/AUTO_SETUP_GUIDE.md) for complete instructionsndomBytes
 

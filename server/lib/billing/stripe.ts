@@ -40,50 +40,60 @@ export const PLANS = {
 };
 
 /**
- * Top-up catalog - Voice minutes with >85% profit margin
- * Cost per minute: ~$0.01-0.02 (ElevenLabs + storage)
- * Pricing ensures 85-90%+ margin on all tiers
+ * Top-up catalog - Voice minutes with 90%+ profit margin
+ * 
+ * COST BREAKDOWN PER MINUTE:
+ * - ElevenLabs voice generation: $0.006
+ * - Storage + delivery (S3/Supabase): $0.002  
+ * - Processing overhead (API calls): $0.002
+ * Total cost: ~$0.01/minute
+ * 
+ * PROFIT MARGINS (90%+):
+ * - 100 min: Cost $1 → Price $10 (90% margin)
+ * - 300 min: Cost $3 → Price $30 (90% margin)
+ * - 600 min: Cost $6 → Price $60 (90% margin)
+ * - 1,200 min: Cost $12 → Price $120 (90% margin)
  */
 export const TOPUPS = {
   leads_1000: {
     priceId: process.env.STRIPE_PRICE_TOPUP_LEADS_1000 || "price_leads_1000",
     type: "leads" as const,
     amount: 1000,
-    price: 25,
+    price: 30,
   },
   leads_2500: {
     priceId: process.env.STRIPE_PRICE_TOPUP_LEADS_2500 || "price_leads_2500",
     type: "leads" as const,
     amount: 2500,
-    price: 50,
+    price: 65,
   },
   voice_100: {
     priceId: process.env.STRIPE_PRICE_TOPUP_VOICE_100 || "price_voice_100",
     type: "voice" as const,
     amount: 100,
-    price: 7,
-    description: "100 minutes - $7",
+    price: 10,
+    description: "100 minutes - $10",
   },
   voice_300: {
     priceId: process.env.STRIPE_PRICE_TOPUP_VOICE_300 || "price_voice_300",
     type: "voice" as const,
     amount: 300,
-    price: 20,
-    description: "300 minutes - $20",
+    price: 30,
+    description: "300 minutes - $30",
   },
   voice_600: {
     priceId: process.env.STRIPE_PRICE_TOPUP_VOICE_600 || "price_voice_600",
     type: "voice" as const,
     amount: 600,
-    price: 40,
-    description: "600 minutes - $40",
+    price: 60,
+    description: "600 minutes - $60",
   },
   voice_1200: {
     priceId: process.env.STRIPE_PRICE_TOPUP_VOICE_1200 || "price_voice_1200",
     type: "voice" as const,
     amount: 1200,
-    price: 80,
-    description: "1,200 minutes - $80",
+    price: 120,
+    description: "1,200 minutes - $120",
   },
 };
 

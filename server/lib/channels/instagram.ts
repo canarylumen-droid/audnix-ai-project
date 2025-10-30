@@ -13,7 +13,7 @@ interface InstagramMessage {
 }
 
 /**
- * Send a message via Instagram Direct Message API
+ * Send a text message via Instagram Direct Message API
  */
 export async function sendInstagramMessage(
   accessToken: string,
@@ -42,6 +42,92 @@ export async function sendInstagramMessage(
   
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to send Instagram message');
+  }
+}
+
+/**
+ * Send a voice message via Instagram Direct Message API
+ * @param accessToken Instagram access token
+ * @param recipientId Instagram user ID to send to
+ * @param audioUrl Public URL of the audio file (must be accessible by Instagram)
+ */
+export async function sendInstagramVoiceMessage(
+  accessToken: string,
+  recipientId: string,
+  audioUrl: string
+): Promise<void> {
+  const endpoint = `https://graph.instagram.com/v18.0/me/messages`;
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        attachment: {
+          type: 'audio',
+          payload: {
+            url: audioUrl,
+            is_reusable: false
+          }
+        }
+      },
+      access_token: accessToken
+    })
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Failed to send Instagram voice message');
+  }
+}
+
+/**
+ * Send media (image/video) via Instagram Direct Message API
+ * @param accessToken Instagram access token
+ * @param recipientId Instagram user ID to send to
+ * @param mediaUrl Public URL of the media file
+ * @param mediaType Type of media: 'image' or 'video'
+ */
+export async function sendInstagramMedia(
+  accessToken: string,
+  recipientId: string,
+  mediaUrl: string,
+  mediaType: 'image' | 'video' = 'image'
+): Promise<void> {
+  const endpoint = `https://graph.instagram.com/v18.0/me/messages`;
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        attachment: {
+          type: mediaType,
+          payload: {
+            url: mediaUrl,
+            is_reusable: false
+          }
+        }
+      },
+      access_token: accessToken
+    })
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Failed to send Instagram media');
   }
 }
 

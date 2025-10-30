@@ -51,22 +51,52 @@ services:
       - key: GOOGLE_CALENDAR_CLIENT_SECRET
         sync: false
       
-      # Social media integrations (optional)
+      # Social media integrations (Instagram & WhatsApp)
       - key: INSTAGRAM_APP_ID
         sync: false
       - key: INSTAGRAM_APP_SECRET
         sync: false
+      - key: INSTAGRAM_ACCESS_TOKEN
+        sync: false
+      - key: INSTAGRAM_BUSINESS_ACCOUNT_ID
+        sync: false
       - key: WHATSAPP_APP_ID
         sync: false
       - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: GMAIL_CLIENT_ID
         sync: false
       - key: GMAIL_CLIENT_SECRET
         sync: false
       
-      # AI voice (optional)
+      # Twilio for voice notes and messaging
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TWILIO_WHATSAPP_NUMBER
+        sync: false
+      
+      # AI voice generation (ElevenLabs)
       - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      
+      # Outlook/Microsoft integration (optional)
+      - key: OUTLOOK_CLIENT_ID
+        sync: false
+      - key: OUTLOOK_CLIENT_SECRET
+        sync: false
+      
+      # Redis for caching (optional, improves performance)
+      - key: REDIS_URL
         sync: false
 
 databases:
