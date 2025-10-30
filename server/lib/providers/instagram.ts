@@ -16,10 +16,11 @@ interface InstagramCredentials {
 export class InstagramProvider {
   private credentials: InstagramCredentials;
   private isDemoMode: boolean;
+  private userId: string = 'me'; // Assuming 'me' for the current user context
 
   constructor(encryptedMeta: string) {
     this.isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
-    
+
     if (this.isDemoMode) {
       this.credentials = {
         access_token: "mock_token",
@@ -32,6 +33,18 @@ export class InstagramProvider {
   }
 
   /**
+   * Mock function to get a valid token, replace with actual logic if needed
+   */
+  private async getValidToken(userId: string): Promise<string | null> {
+    if (this.isDemoMode) {
+      return "mock_token";
+    }
+    // In a real scenario, you might need to refresh the token or ensure it's valid
+    // For now, we'll just use the stored access token
+    return this.credentials.access_token;
+  }
+
+  /**
    * Send Instagram Direct Message
    */
   async sendMessage(recipientId: string, text: string): Promise<{ messageId: string }> {
@@ -40,7 +53,7 @@ export class InstagramProvider {
     }
 
     const url = `https://graph.facebook.com/v18.0/me/messages`;
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -71,7 +84,7 @@ export class InstagramProvider {
     }
 
     const url = `https://graph.facebook.com/v18.0/me/messages`;
-    
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -102,6 +115,69 @@ export class InstagramProvider {
   }
 
   /**
+   * Send voice message to Instagram DM
+   */
+  async sendVoiceMessage(recipientId: string, audioBuffer: Buffer): Promise<boolean> {
+    try {
+      const accessToken = await this.getValidToken(this.userId);
+      if (!accessToken) {
+        throw new Error('No valid Instagram access token');
+      }
+
+      // First, upload the audio file to Instagram
+      const uploadUrl = `https://graph.instagram.com/v18.0/me/media`;
+
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('audio', new Blob([audioBuffer], { type: 'audio/mpeg' }));
+      formData.append('access_token', accessToken);
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload audio to Instagram');
+      }
+
+      const { id: mediaId } = await uploadResponse.json();
+
+      // Send the uploaded audio as a DM
+      const sendUrl = `https://graph.instagram.com/v18.0/me/messages`;
+      const sendResponse = await fetch(sendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          recipient: { id: recipientId },
+          message: {
+            attachment: {
+              type: 'audio',
+              payload: {
+                attachment_id: mediaId
+              }
+            }
+          },
+          access_token: accessToken
+        })
+      });
+
+      if (!sendResponse.ok) {
+        const error = await sendResponse.text();
+        console.error('Instagram voice send error:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error sending Instagram voice message:', error);
+      return false;
+    }
+  }
+
+  /**
    * Fetch recent messages from Instagram inbox
    */
   async fetchMessages(limit = 50): Promise<InstagramMessage[]> {
@@ -117,7 +193,7 @@ export class InstagramProvider {
     }
 
     const url = `https://graph.facebook.com/v18.0/${this.credentials.page_id}/conversations?fields=messages{id,from,message,created_time}&limit=${limit}`;
-    
+
     const response = await fetch(url, {
       headers: {
         "Authorization": `Bearer ${this.credentials.access_token}`
@@ -129,8 +205,8 @@ export class InstagramProvider {
     }
 
     const data = await response.json();
-    
-    return data.data?.flatMap((conv: any) => 
+
+    return data.data?.flatMap((conv: any) =>
       conv.messages?.data?.map((msg: any) => ({
         id: msg.id,
         from: msg.from,
@@ -149,7 +225,7 @@ export class InstagramProvider {
     }
 
     const url = `https://graph.facebook.com/v18.0/${userId}?fields=id,name,username`;
-    
+
     const response = await fetch(url, {
       headers: {
         "Authorization": `Bearer ${this.credentials.access_token}`

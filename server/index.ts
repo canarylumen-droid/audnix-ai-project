@@ -13,10 +13,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration with Redis store for production
+// Session configuration - use built-in MemoryStore in development
 const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-please-change-in-production';
 
-let sessionConfig: session.SessionOptions = {
+const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
@@ -27,38 +27,6 @@ let sessionConfig: session.SessionOptions = {
     sameSite: 'lax'
   }
 };
-
-// Use Redis in production if configured (only in production to avoid dev conflicts)
-if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
-  try {
-    const RedisStore = require('connect-redis').default;
-    const { createClient } = require('redis');
-    
-    const redisClient = createClient({
-      url: process.env.REDIS_URL,
-      socket: {
-        reconnectStrategy: (retries: number) => Math.min(retries * 50, 500)
-      }
-    });
-    
-    redisClient.connect().catch(console.error);
-    
-    redisClient.on('error', (err: Error) => {
-      console.error('Redis Client Error:', err);
-    });
-    
-    redisClient.on('connect', () => {
-      console.log('✅ Redis connected for session storage');
-    });
-    
-    sessionConfig.store = new RedisStore({ client: redisClient });
-    console.log('🔒 Using Redis session store');
-  } catch (error) {
-    console.warn('⚠️  Redis not available, using memory store');
-  }
-}
-// In development, use default MemoryStore (built into express-session)
-// This prevents conflicts with Vite's dev server
 
 app.use(session(sessionConfig));
 
@@ -142,9 +110,10 @@ async function runMigrations() {
   // Run migrations first
   await runMigrations();
 
-  // Register API routes (this creates the HTTP server)
+  // Register API routes first (creates the HTTP server)
   const server = registerRoutes(app);
 
+  // Error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -152,7 +121,7 @@ async function runMigrations() {
     throw err;
   });
 
-  // Setup Vite or static serving AFTER server is created
+  // Setup Vite or static serving (server must be created first)
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
@@ -165,6 +134,10 @@ async function runMigrations() {
     followUpWorker.start();
     startVideoCommentMonitoring();
     
+    // Start lead learning system
+    const { startLeadLearning } = await import('./lib/ai/lead-learning');
+    startLeadLearning();
+    
     // Start OAuth token refresh worker (every 30 minutes)
     const { GmailOAuth } = await import('./lib/oauth/gmail');
     setInterval(() => {
@@ -172,6 +145,7 @@ async function runMigrations() {
     }, 30 * 60 * 1000);
     
     console.log('✅ AI workers running');
+    console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
   }
 
