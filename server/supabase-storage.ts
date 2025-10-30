@@ -243,8 +243,10 @@ export class SupabaseStorage implements IStorage {
     }
 
     if (options.search) {
+      // Sanitize search input to prevent SQL injection
+      const sanitizedSearch = options.search.replace(/[%_]/g, '\\$&');
       query = query.or(
-        `name.ilike.%${options.search}%,email.ilike.%${options.search}%,phone.ilike.%${options.search}%`
+        `name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%,phone.ilike.%${sanitizedSearch}%`
       );
     }
 

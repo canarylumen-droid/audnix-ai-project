@@ -266,10 +266,7 @@ export class InstagramOAuth {
    */
   private generateState(userId: string): string {
     const data = `${userId}:${Date.now()}`;
-    const cipher = crypto.createCipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'default-key');
-    let encrypted = cipher.update(data, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return encrypted;
+    return encrypt(data);
   }
 
   /**
@@ -277,10 +274,7 @@ export class InstagramOAuth {
    */
   verifyState(state: string): { userId: string; timestamp: number } | null {
     try {
-      const decipher = crypto.createDecipher('aes-256-cbc', process.env.ENCRYPTION_KEY || 'default-key');
-      let decrypted = decipher.update(state, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      
+      const decrypted = decrypt(state);
       const [userId, timestamp] = decrypted.split(':');
       
       // Check if state is less than 10 minutes old

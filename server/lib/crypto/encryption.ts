@@ -1,3 +1,4 @@
+
 import crypto from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
@@ -92,4 +93,36 @@ export function decryptToJSON<T = any>(ciphertext: string): T {
  */
 export function generateEncryptionKey(): string {
   return crypto.randomBytes(KEY_LENGTH).toString("hex");
+}
+
+/**
+ * Securely encrypt state data for OAuth flows
+ * @param data - Data to encrypt in state parameter
+ * @returns Encrypted state string
+ */
+export function encryptState(data: string): string {
+  return encrypt(data);
+}
+
+/**
+ * Securely decrypt state data from OAuth flows
+ * @param state - Encrypted state parameter
+ * @returns Decrypted data or null if invalid/expired
+ */
+export function decryptState(state: string, maxAgeMs: number = 10 * 60 * 1000): { userId: string; timestamp: number } | null {
+  try {
+    const decrypted = decrypt(state);
+    const [userId, timestamp] = decrypted.split(":");
+    
+    // Check if state is within max age
+    const age = Date.now() - parseInt(timestamp);
+    if (age > maxAgeMs) {
+      return null;
+    }
+    
+    return { userId, timestamp: parseInt(timestamp) };
+  } catch (error) {
+    console.error('Failed to decrypt state:', error);
+    return null;
+  }
 }
