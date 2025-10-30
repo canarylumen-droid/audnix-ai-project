@@ -1,7 +1,9 @@
+
 import { supabaseAdmin } from '../supabase-admin';
+import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter';
 
 /**
- * Email messaging functions
+ * Email messaging functions with branded templates
  */
 
 interface EmailConfig {
@@ -13,14 +15,24 @@ interface EmailConfig {
   provider?: 'gmail' | 'outlook' | 'smtp';
 }
 
+interface EmailOptions {
+  isHtml?: boolean;
+  brandColors?: BrandColors;
+  businessName?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  isMeetingInvite?: boolean;
+}
+
 /**
- * Send email using appropriate provider
+ * Send email using appropriate provider with optional branding
  */
 export async function sendEmail(
   userId: string,
   recipientEmail: string,
   content: string,
-  subject: string
+  subject: string,
+  options: EmailOptions = {}
 ): Promise<void> {
   // Get email configuration for user
   if (!supabaseAdmin) {
@@ -39,10 +51,43 @@ export async function sendEmail(
     throw new Error('Email not connected');
   }
 
+  // Generate HTML email if button is provided
+  let emailBody = content;
+  if (options.buttonUrl && options.buttonText) {
+    if (options.isMeetingInvite) {
+      emailBody = generateMeetingEmail(
+        content,
+        options.buttonUrl,
+        options.brandColors,
+        options.businessName
+      );
+    } else {
+      emailBody = generateBrandedEmail(
+        content,
+        { text: options.buttonText, url: options.buttonUrl },
+        options.brandColors,
+        options.businessName
+      );
+    }
+    options.isHtml = true;
+  }
+
   if (integration.provider === 'gmail') {
-    await sendGmailMessage(integration.credentials as any, recipientEmail, subject, content);
+    await sendGmailMessage(
+      integration.credentials as any, 
+      recipientEmail, 
+      subject, 
+      emailBody,
+      options.isHtml
+    );
   } else if (integration.provider === 'outlook') {
-    await sendOutlookMessage(integration.credentials as any, recipientEmail, subject, content);
+    await sendOutlookMessage(
+      integration.credentials as any, 
+      recipientEmail, 
+      subject, 
+      emailBody,
+      options.isHtml
+    );
   } else {
     throw new Error('Unsupported email provider');
   }
@@ -55,9 +100,10 @@ async function sendGmailMessage(
   credentials: { accessToken: string; email: string },
   to: string,
   subject: string,
-  body: string
+  body: string,
+  isHtml: boolean = false
 ): Promise<void> {
-  const message = createMimeMessage(credentials.email, to, subject, body);
+  const message = createMimeMessage(credentials.email, to, subject, body, isHtml);
   const encodedMessage = Buffer.from(message).toString('base64url');
 
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -85,7 +131,8 @@ async function sendOutlookMessage(
   credentials: { accessToken: string; email: string },
   to: string,
   subject: string,
-  body: string
+  body: string,
+  isHtml: boolean = false
 ): Promise<void> {
   const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
     method: 'POST',
@@ -97,7 +144,7 @@ async function sendOutlookMessage(
       message: {
         subject: subject,
         body: {
-          contentType: 'HTML',
+          contentType: isHtml ? 'HTML' : 'Text',
           content: body
         },
         toRecipients: [
@@ -119,12 +166,18 @@ async function sendOutlookMessage(
 }
 
 /**
- * Create MIME message for Gmail
+ * Create MIME message for Gmail with HTML support
  */
-function createMimeMessage(from: string, to: string, subject: string, body: string): string {
+function createMimeMessage(
+  from: string, 
+  to: string, 
+  subject: string, 
+  body: string,
+  isHtml: boolean = false
+): string {
   const boundary = '----=_Part_' + Date.now();
   
-  const message = [
+  const parts = [
     `From: ${from}`,
     `To: ${to}`,
     `Subject: ${subject}`,
@@ -134,17 +187,23 @@ function createMimeMessage(from: string, to: string, subject: string, body: stri
     `--${boundary}`,
     'Content-Type: text/plain; charset=UTF-8',
     '',
-    body.replace(/<[^>]*>/g, ''), // Strip HTML for plain text version
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    '',
-    body,
-    '',
-    `--${boundary}--`
-  ].join('\r\n');
+    isHtml ? body.replace(/<[^>]*>/g, '') : body,
+    ''
+  ];
 
-  return message;
+  if (isHtml) {
+    parts.push(
+      `--${boundary}`,
+      'Content-Type: text/html; charset=UTF-8',
+      '',
+      body,
+      ''
+    );
+  }
+
+  parts.push(`--${boundary}--`);
+
+  return parts.join('\r\n');
 }
 
 /**

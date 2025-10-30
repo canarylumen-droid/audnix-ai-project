@@ -281,22 +281,39 @@ export class VoiceAIService {
   }
 
   /**
-   * Generate voice script (optimized for maxWords)
+   * Generate voice script with natural human expressions
    */
   private async generateVoiceScript(lead: any, history: any[], maxWords: number = 37): Promise<string> {
+    // Analyze conversation mood
+    const recentMessages = history.slice(-3).map(m => m.body.toLowerCase()).join(' ');
+    const isFriendly = /haha|lol|😂|😊|awesome|great|love|excited/.test(recentMessages);
+    const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
+    
     const prompt = `
-      You are an expert sales assistant. Your goal is to convert leads into customers or followers by sending them short, personalized voice messages.
-      You are communicating with a lead named ${lead.name || 'there'} on ${lead.channel}.
-      Here is the conversation history:
-      ${history.map(msg => `${msg.sender === 'ai' ? 'AI' : 'Lead'}: ${msg.body}`).join('\n')}
+      You are an influencer/creator speaking naturally to ${lead.name || 'there'} on ${lead.channel}.
+      
+      Conversation history:
+      ${history.map(msg => `${msg.sender === 'ai' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
 
-      RULES:
-      1. Sound exactly like a real person - use "um", "you know", natural pauses
-      2. Keep it to EXACTLY ${maxWords} words or less (about 15 seconds when spoken)
-      3. Be warm and personal
-      4. Don't sound like a robot or salesperson
-      5. Get straight to the point - you only have 15 seconds
+      VOICE EXPRESSION RULES:
+      1. Sound like a REAL human having a conversation - use natural speech patterns
+      2. Keep it to ${maxWords} words max (15 seconds when spoken)
+      3. ${isFriendly ? 'The conversation is friendly/upbeat - you can include ONE gentle laugh like *chuckles* or *laughs warmly* if it fits naturally' : 'Keep tone professional and calm'}
+      4. ${isSerious ? 'This is serious - NO laughter, be empathetic and professional' : 'Match their energy level'}
+      5. Use natural pauses: "you know", "I mean", "honestly"
+      6. Professional but warm - you're an expert who's approachable
+      7. NO robotic phrases, NO sales scripts
+      8. If laughter fits: Use *soft chuckle* or *laughs* (ONCE max, only if truly natural)
+      
+      BANNED PHRASES:
+      - "I'm reaching out"
+      - "Just wanted to touch base"
+      - "Circle back"
+      - Anything that sounds scripted
+      
+      Generate a natural voice script that sounds like a real person talking:
     `;
+    
     return await generateVoiceScript(lead, history, prompt);
   }
 

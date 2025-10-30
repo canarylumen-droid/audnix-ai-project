@@ -1,7 +1,8 @@
 import { supabaseAdmin } from '../supabase-admin';
+import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/dm-formatter';
 
 /**
- * WhatsApp messaging functions using WhatsApp Business API
+ * WhatsApp messaging functions using WhatsApp Business API with rich formatting
  */
 
 interface WhatsAppConfig {
@@ -10,14 +11,29 @@ interface WhatsAppConfig {
   apiVersion: string;
 }
 
+interface WhatsAppMessageOptions {
+  button?: DMButton;
+  isMeetingLink?: boolean;
+}
+
 /**
- * Send a message via WhatsApp Business API
+ * Send a message via WhatsApp Business API with optional rich formatting
  */
 export async function sendWhatsAppMessage(
   userId: string,
   recipientPhone: string,
-  message: string
+  message: string,
+  options: WhatsAppMessageOptions = {}
 ): Promise<void> {
+  // Apply formatting if button is provided
+  let formattedMessage = message;
+  if (options.button) {
+    if (options.isMeetingLink) {
+      formattedMessage = formatWhatsAppMeeting(message, options.button.url);
+    } else {
+      formattedMessage = formatWhatsAppLink(message, options.button);
+    }
+  }
   // Get WhatsApp credentials for user
   if (!supabaseAdmin) {
     throw new Error('Supabase admin not configured');
@@ -50,8 +66,8 @@ export async function sendWhatsAppMessage(
       to: recipientPhone,
       type: 'text',
       text: {
-        preview_url: false,
-        body: message
+        preview_url: options.button ? true : false, // Enable link preview for buttons
+        body: formattedMessage
       }
     })
   });
