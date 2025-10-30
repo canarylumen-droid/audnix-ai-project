@@ -84,20 +84,15 @@
 **Lifetime Value (LTV):** $960 (12-month retention)
 **Customer Acquisition Cost (CAC) Target:** <$100 (10:1 LTV:CAC ratio)
 
-## ✨ What You Get
+## ✨ Features
 
-A complete SaaS platform foundation with:
+### For Paid Users Only
+- **Video Comment Automation**: Monitor Instagram Reels for buying intent and auto-respond with AI DMs
+- **AI Voice Notes**: Send personalized voice messages to warm leads (Instagram & WhatsApp text-based)
+- **Advanced Multi-Channel Support**: Full access to Instagram DMs, WhatsApp messages, and emails
 
-- ✅ **10 Dashboard Pages** - Home, Inbox, Conversations, Deals, Calendar, Integrations, Insights, Pricing, Settings, Admin (UI complete)
-- ✅ **Real Database** - PostgreSQL with Drizzle ORM (persistent storage via Replit/Render/Railway)
-- ⚙️ **Authentication** - Supabase OAuth ready (requires Supabase setup - see [Quick Start](#-quick-start))
-- ⚙️ **AI Features** - OpenAI integration coded (add API key and it works - graceful fallback if not configured)
-- ✅ **Analytics Dashboard** - Real-time charts with Recharts (works with any data, AI insights optional)
-- ⚙️ **Billing System** - Stripe API integration (API-based checkout, no payment links)
-- ⚙️ **Multi-Channel OAuth** - Instagram, WhatsApp, Gmail, Outlook, Google Calendar (OAuth flows coded, need provider app setup)
-- ⚙️ **Voice Cloning** - ElevenLabs ready (add API key to enable)
-- ⚙️ **Calendar Integration** - Google Calendar OAuth coded (needs Google Cloud project setup)
-- ✅ **Beautiful UI** - Dark gradient theme with glassmorphism and animations
+### All Plans
+- **AI-Powered Responses**: Automatically respond to leads with context-aware, personalized messages
 
 **Legend:** ✅ = Works out-of-box | ⚙️ = Requires API keys/setup (code complete)
 
@@ -675,12 +670,12 @@ so we can keep each other updated?"
   - 2,500 leads per month
   - **300 voice minutes** (5 hours of AI voice notes)
   - Instagram & WhatsApp integration
-  
+
 - **Pro** - $99.99/month - **Most Popular**
   - 7,000 leads per month  
   - **800 voice minutes** (13+ hours of AI voice notes)
   - All integrations + advanced features
-  
+
 - **Enterprise** - $199.99/month
   - 20,000 leads per month
   - **1,000 voice minutes** (16+ hours of AI voice notes)

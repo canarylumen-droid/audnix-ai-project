@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -24,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Video, Plus, Edit2, Trash2, Power, Loader2, ExternalLink, MessageSquare } from "lucide-react";
+import { Video, Plus, Edit2, Trash2, Power, Loader2, ExternalLink, MessageSquare, Lock, Crown } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 
 export default function VideoAutomationPage() {
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
@@ -35,6 +35,13 @@ export default function VideoAutomationPage() {
   const [videoCaption, setVideoCaption] = useState("");
   const [editingMonitor, setEditingMonitor] = useState<any>(null);
   const { toast } = useToast();
+
+  // Check user plan
+  const { data: userData } = useQuery({
+    queryKey: ["/api/user"],
+  });
+
+  const isPaidUser = userData?.user?.plan && userData.user.plan !== 'trial';
 
   const { data: videosData, isLoading: videosLoading } = useQuery({
     queryKey: ["/api/video-automation/videos"],
@@ -117,12 +124,58 @@ export default function VideoAutomationPage() {
   const monitors = monitorsData?.monitors || [];
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 relative">
+      {/* Trial User Lock Overlay */}
+      {!isPaidUser && (
+        <motion.div
+          className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/60 rounded-lg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <Card className="w-full max-w-md mx-4 border-2 border-primary">
+            <CardHeader className="text-center space-y-4">
+              <motion.div
+                className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center"
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Lock className="w-8 h-8 text-primary" />
+              </motion.div>
+              <CardTitle className="text-2xl">Premium Feature</CardTitle>
+              <CardDescription className="text-base">
+                Video Comment Automation is available for paid plans only
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  <span>Auto-detect buying intent in comments</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  <span>AI-powered personalized DMs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  <span>24/7 automated engagement</span>
+                </div>
+              </div>
+              <Link href="/dashboard/pricing">
+                <Button className="w-full" size="lg">
+                  Upgrade to Access
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold mb-2">Video Comment Automation</h1>
           <p className="text-muted-foreground">
-            AI monitors your Instagram videos 24/7 and sends DMs to leads with buying intent
+            Monitor Instagram Reels for buying intent and auto-respond with AI
           </p>
         </div>
         <Dialog>
@@ -212,7 +265,7 @@ export default function VideoAutomationPage() {
 
               <Button
                 onClick={handleCreateMonitor}
-                disabled={createMonitorMutation.isPending}
+                disabled={createMonitorMutation.isPending || !isPaidUser}
                 className="w-full"
               >
                 {createMonitorMutation.isPending ? (
@@ -277,11 +330,13 @@ export default function VideoAutomationPage() {
                       <Switch
                         checked={monitor.isActive}
                         onCheckedChange={(checked) => {
+                          if (!isPaidUser) return; // Prevent action for trial users
                           updateMonitorMutation.mutate({
                             id: monitor.id,
                             data: { isActive: checked },
                           });
                         }}
+                        disabled={!isPaidUser}
                       />
                     </div>
                   </div>
@@ -310,7 +365,11 @@ export default function VideoAutomationPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditingMonitor(monitor)}
+                      onClick={() => {
+                        if (!isPaidUser) return;
+                        setEditingMonitor(monitor)
+                      }}
+                      disabled={!isPaidUser}
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
                       Edit
@@ -318,7 +377,11 @@ export default function VideoAutomationPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => deleteMonitorMutation.mutate(monitor.id)}
+                      onClick={() => {
+                        if (!isPaidUser) return;
+                        deleteMonitorMutation.mutate(monitor.id)
+                      }}
+                      disabled={!isPaidUser}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Remove

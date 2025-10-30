@@ -281,12 +281,13 @@ export class VoiceAIService {
   }
 
   /**
-   * Generate voice script with natural human expressions
+   * Generate voice script with natural human speech patterns
+   * Note: ElevenLabs does not support laughter/emotional sounds in synthesis
+   * We focus on natural conversational language instead
    */
   private async generateVoiceScript(lead: any, history: any[], maxWords: number = 37): Promise<string> {
     // Analyze conversation mood
     const recentMessages = history.slice(-3).map(m => m.body.toLowerCase()).join(' ');
-    const isFriendly = /haha|lol|😂|😊|awesome|great|love|excited/.test(recentMessages);
     const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
     
     const prompt = `
@@ -295,23 +296,22 @@ export class VoiceAIService {
       Conversation history:
       ${history.map(msg => `${msg.sender === 'ai' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
 
-      VOICE EXPRESSION RULES:
-      1. Sound like a REAL human having a conversation - use natural speech patterns
+      VOICE SCRIPT RULES:
+      1. Sound like a REAL human having a conversation - natural speech patterns
       2. Keep it to ${maxWords} words max (15 seconds when spoken)
-      3. ${isFriendly ? 'The conversation is friendly/upbeat - you can include ONE gentle laugh like *chuckles* or *laughs warmly* if it fits naturally' : 'Keep tone professional and calm'}
-      4. ${isSerious ? 'This is serious - NO laughter, be empathetic and professional' : 'Match their energy level'}
-      5. Use natural pauses: "you know", "I mean", "honestly"
-      6. Professional but warm - you're an expert who's approachable
-      7. NO robotic phrases, NO sales scripts
-      8. If laughter fits: Use *soft chuckle* or *laughs* (ONCE max, only if truly natural)
+      3. ${isSerious ? 'Keep tone professional and empathetic' : 'Keep tone warm and conversational'}
+      4. Use natural pauses: "you know", "I mean", "honestly"
+      5. Professional but warm - you're an expert who's approachable
+      6. NO robotic phrases, NO sales scripts
+      7. Write ONLY what should be spoken - no stage directions or actions
       
       BANNED PHRASES:
       - "I'm reaching out"
       - "Just wanted to touch base"
       - "Circle back"
-      - Anything that sounds scripted
+      - Any *action* markers like *laughs* or *chuckles*
       
-      Generate a natural voice script that sounds like a real person talking:
+      Generate a natural voice script (plain text only, no formatting):
     `;
     
     return await generateVoiceScript(lead, history, prompt);

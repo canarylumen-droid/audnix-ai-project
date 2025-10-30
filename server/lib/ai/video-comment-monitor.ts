@@ -188,14 +188,19 @@ IMPORTANT: The message field should NOT include the link. We'll add it separatel
 /**
  * Monitor video comments in real-time
  */
-export async function monitorVideoComments(userId: string): Promise<void> {
+export async function monitorVideoComments(userId: string, videoMonitorId: string): Promise<void> {
   try {
-    // Get user's active video monitors
-    const monitors = await storage.getVideoMonitors(userId);
+    const { storage } = await import('../../storage');
 
-    if (!monitors || monitors.length === 0) {
+    // Check if user has paid plan
+    const user = await storage.getUserById(userId);
+    if (!user || user.plan === 'trial') {
+      console.log(`🔒 Video comment monitoring blocked: User ${userId} is on trial plan`);
       return;
     }
+
+    // Get video monitor config
+    const monitor = await storage.getVideoMonitor(videoMonitorId);
 
     // Get Instagram integration
     const integrations = await storage.getIntegrations(userId);
@@ -208,102 +213,100 @@ export async function monitorVideoComments(userId: string): Promise<void> {
 
     const provider = new InstagramProvider(igIntegration.encryptedMeta);
 
-    for (const monitor of monitors) {
-      if (!monitor.isActive) continue;
+    if (!monitor.isActive) return;
 
-      try {
-        // Fetch recent comments on this video
-        const comments = await fetchVideoComments(provider, monitor.videoId);
+    try {
+      // Fetch recent comments on this video
+      const comments = await fetchVideoComments(provider, monitor.videoId);
 
-        for (const comment of comments) {
-          // Check if we already processed this comment
-          const alreadyProcessed = await storage.isCommentProcessed(comment.id);
-          if (alreadyProcessed) continue;
+      for (const comment of comments) {
+        // Check if we already processed this comment
+        const alreadyProcessed = await storage.isCommentProcessed(comment.id);
+        if (alreadyProcessed) continue;
 
-          // Detect buying intent
-          const intent = await detectBuyingIntent(
-            comment.text,
-            monitor.metadata.videoCaption || 'Product video'
-          );
+        // Detect buying intent
+        const intent = await detectBuyingIntent(
+          comment.text,
+          monitor.metadata.videoCaption || 'Product video'
+        );
 
-          if (!intent.shouldDM) {
-            // Mark as processed but no action needed
-            await storage.markCommentProcessed(comment.id, 'ignored', intent.intentType);
-            continue;
-          }
+        if (!intent.shouldDM) {
+          // Mark as processed but no action needed
+          await storage.markCommentProcessed(comment.id, 'ignored', intent.intentType);
+          continue;
+        }
 
-          // Get or create lead
-          let lead = await storage.getLeadByUsername(comment.username, 'instagram');
+        // Get or create lead
+        let lead = await storage.getLeadByUsername(comment.username, 'instagram');
 
-          if (!lead) {
-            lead = await storage.createLead({
-              userId,
-              name: comment.username,
-              channel: 'instagram',
-              externalId: comment.userId,
-              status: 'new',
-              source: 'video_comment_automation',
-              tags: ['video-comment', intent.intentType, 'auto-captured'],
-              metadata: {
-                originalComment: comment.text,
-                videoId: monitor.videoId,
-                videoUrl: monitor.videoUrl,
-                commentIntent: intent.intentType
-              }
-            });
-          }
-
-          // Get brand knowledge for personalization
-          const brandKnowledge = await storage.getBrandKnowledge(userId);
-
-          // Generate salesman-style DM
-          const dm = await generateSalesmanDM(
-            comment.username,
-            comment.text,
-            intent.intentType,
-            monitor.productLink,
-            monitor.ctaText,
-            monitor.metadata.videoCaption || '',
-            brandKnowledge
-          );
-
-          // Send DM with link in message (Instagram doesn't support rich buttons in API)
-          // We'll format it as a natural message with the link
-          const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
-
-          await provider.sendMessage(comment.userId, fullMessage);
-
-          // Save message
-          await storage.createMessage({
-            leadId: lead.id,
+        if (!lead) {
+          lead = await storage.createLead({
             userId,
-            provider: 'instagram',
-            direction: 'outbound',
-            body: dm.message,
-            audioUrl: null,
+            name: comment.username,
+            channel: 'instagram',
+            externalId: comment.userId,
+            status: 'new',
+            source: 'video_comment_automation',
+            tags: ['video-comment', intent.intentType, 'auto-captured'],
             metadata: {
-              ai_generated: true,
-              automation_type: 'video_comment',
-              intent_type: intent.intentType,
-              link_button: dm.linkButton,
-              comment_id: comment.id
+              originalComment: comment.text,
+              videoId: monitor.videoId,
+              videoUrl: monitor.videoUrl,
+              commentIntent: intent.intentType
             }
           });
-
-          // Mark comment as processed
-          await storage.markCommentProcessed(comment.id, 'dm_sent', intent.intentType);
-
-          // Update lead status
-          await storage.updateLead(lead.id, {
-            status: 'replied',
-            lastMessageAt: new Date()
-          });
-
-          console.log(`✓ Video comment DM sent to ${comment.username} (${intent.intentType})`);
         }
-      } catch (error) {
-        console.error(`Error monitoring video ${monitor.videoId}:`, error);
+
+        // Get brand knowledge for personalization
+        const brandKnowledge = await storage.getBrandKnowledge(userId);
+
+        // Generate salesman-style DM
+        const dm = await generateSalesmanDM(
+          comment.username,
+          comment.text,
+          intent.intentType,
+          monitor.productLink,
+          monitor.ctaText,
+          monitor.metadata.videoCaption || '',
+          brandKnowledge
+        );
+
+        // Send DM with link in message (Instagram doesn't support rich buttons in API)
+        // We'll format it as a natural message with the link
+        const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
+
+        await provider.sendMessage(comment.userId, fullMessage);
+
+        // Save message
+        await storage.createMessage({
+          leadId: lead.id,
+          userId,
+          provider: 'instagram',
+          direction: 'outbound',
+          body: dm.message,
+          audioUrl: null,
+          metadata: {
+            ai_generated: true,
+            automation_type: 'video_comment',
+            intent_type: intent.intentType,
+            link_button: dm.linkButton,
+            comment_id: comment.id
+          }
+        });
+
+        // Mark comment as processed
+        await storage.markCommentProcessed(comment.id, 'dm_sent', intent.intentType);
+
+        // Update lead status
+        await storage.updateLead(lead.id, {
+          status: 'replied',
+          lastMessageAt: new Date()
+        });
+
+        console.log(`✓ Video comment DM sent to ${comment.username} (${intent.intentType})`);
       }
+    } catch (error) {
+      console.error(`Error monitoring video ${monitor.videoId}:`, error);
     }
   } catch (error) {
     console.error('Video comment monitoring error:', error);
@@ -342,7 +345,11 @@ export function startVideoCommentMonitoring() {
       const users = await storage.getAllUsers();
 
       for (const user of users) {
-        await monitorVideoComments(user.id);
+        // Fetch all active video monitors for the user
+        const activeMonitors = await storage.getActiveVideoMonitors(user.id);
+        for (const monitor of activeMonitors) {
+          await monitorVideoComments(user.id, monitor.id);
+        }
       }
     } catch (error) {
       console.error('Comment monitoring error:', error);

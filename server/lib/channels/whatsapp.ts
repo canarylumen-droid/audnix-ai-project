@@ -14,6 +14,8 @@ interface WhatsAppConfig {
 interface WhatsAppMessageOptions {
   button?: DMButton;
   isMeetingLink?: boolean;
+  // Note: WhatsApp Business API does not support audio messages without pre-approved templates
+  // Voice notes are not supported in this implementation
 }
 
 /**

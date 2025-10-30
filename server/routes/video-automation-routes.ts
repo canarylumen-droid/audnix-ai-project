@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
@@ -14,11 +13,11 @@ const router = Router();
 router.get('/videos', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     // Get user's Instagram media
     const integrations = await storage.getIntegrations(userId);
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
-    
+
     if (!igIntegration) {
       return res.status(400).json({ error: 'Instagram not connected' });
     }
@@ -26,7 +25,7 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
     // Fetch user's recent videos from Instagram Graph API
     const { decrypt } = await import('../lib/crypto/encryption');
     const meta = JSON.parse(decrypt(igIntegration.encryptedMeta));
-    
+
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,caption,timestamp,permalink&limit=20`,
       {
@@ -68,6 +67,14 @@ router.post('/monitors', requireAuth, async (req: Request, res: Response) => {
     if (!videoId || !productLink || !ctaText) {
       return res.status(400).json({ 
         error: 'Missing required fields: videoId, productLink, ctaText' 
+      });
+    }
+
+    // Check if user has paid plan
+    const user = await storage.getUserById(userId);
+    if (!user || user.plan === 'trial') {
+      return res.status(403).json({ 
+        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
       });
     }
 
@@ -118,6 +125,14 @@ router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response) =
     const userId = getCurrentUserId(req)!;
     const updates = req.body;
 
+    // Check if user has paid plan
+    const user = await storage.getUserById(userId);
+    if (!user || user.plan === 'trial') {
+      return res.status(403).json({ 
+        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
+      });
+    }
+
     const monitor = await storage.updateVideoMonitor(id, userId, updates);
 
     if (!monitor) {
@@ -139,6 +154,14 @@ router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response) 
   try {
     const { id } = req.params;
     const userId = getCurrentUserId(req)!;
+
+    // Check if user has paid plan
+    const user = await storage.getUserById(userId);
+    if (!user || user.plan === 'trial') {
+      return res.status(403).json({ 
+        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
+      });
+    }
 
     await storage.deleteVideoMonitor(id, userId);
     res.json({ success: true, message: 'Monitor deleted' });
