@@ -24,6 +24,7 @@ import {
   User,
   ChevronLeft,
   LogOut,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
   { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
   { label: "Admin", icon: Shield, path: "/dashboard/admin", adminOnly: true },
+  { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
 ];
 
 const mobileNavItems = [
@@ -70,7 +72,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Calculate trial days left
   const getTrialDaysLeft = (user: any) => {
     if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
@@ -133,14 +135,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const filteredNavItems = navItems.filter(
     (item) => !item.adminOnly || user?.role === "admin"
   );
-  
+
   const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Internet Connection Banner */}
       <InternetConnectionBanner />
-      
+
       {/* Trial Expired Overlay */}
       <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
       {/* Desktop Sidebar */}
@@ -257,7 +259,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             {/* Theme Toggle */}
             <ThemeToggle />
-            
+
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

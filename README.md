@@ -592,8 +592,24 @@ AI detects: High buying intent (95% confidence)
 ↓
 Sends DM: "Hey Sarah I noticed you showed interest in my post while scrolling. 
 I think this could be exactly what you need right now..."
-[See the tool →] (clickable button with your link)
+[Get it here →] (clickable button with your custom link)
+↓
+If converted: "Sarah, I'd love to stay connected! Do you mind following me on Instagram 
+so we can keep each other updated?"
+[Follow Now →] (clickable follow button)
 ```
+
+**Professional Follow Requests:**
+- **Converted leads**: "I'd love to stay connected! Do you mind following me on Instagram so we can keep each other updated?"
+- **Not interested**: "No worries! Would you mind following me anyway? I share valuable content regularly."
+- **Brands**: "I'd love to stay connected with your brand. Would you mind following me so we can collaborate in the future?"
+- **Warm leads** (after 3+ exchanges): Polite, professional ask to stay connected
+
+**Voice Minutes Optimization:**
+- Warm leads get 2x 15-second voice notes (30 seconds total per lead)
+- First note sent immediately, second after 2 hours
+- Maintains profitability while maximizing engagement
+- Works across Instagram and WhatsApp
 
 **Handles difficult situations maturely:**
 - Price objections → Emotional value selling

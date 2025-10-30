@@ -116,11 +116,12 @@ export async function generateSalesmanDM(
   ctaText: string,
   videoContext: string,
   brandKnowledge?: string
-): Promise<{ message: string; linkButton: { text: string; url: string } }> {
+): Promise<{ message: string; linkButton: { text: string; url: string }; askFollow?: boolean }> {
   if (isDemoMode) {
     return {
       message: `Hey ${leadName} I noticed you showed interest in my post while scrolling. I think you'll love this`,
-      linkButton: { text: ctaText || 'Check it out', url: productLink }
+      linkButton: { text: ctaText || 'Check it out', url: productLink },
+      askFollow: false
     };
   }
 
@@ -156,7 +157,8 @@ If intent is price_objection, use emotional sales tactics:
 Generate JSON:
 {
   "message": "the DM text (natural, conversational, NO hyphens)",
-  "linkButton": { "text": "2-4 word CTA", "url": "${productLink}" }
+  "linkButton": { "text": "2-4 word CTA", "url": "${productLink}" },
+  "askFollow": false
 }`;
 
     const response = await openai.chat.completions.create({

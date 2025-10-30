@@ -24,7 +24,7 @@ export class VoiceAIService {
    */
   private async checkVoiceLimit(userId: string, estimatedSeconds: number): Promise<{ allowed: boolean; remaining: number }> {
     const user = await storage.getUserById(userId);
-    
+
     if (!user) {
       return { allowed: false, remaining: 0 };
     }
@@ -42,7 +42,7 @@ export class VoiceAIService {
     const topupMinutes = user.voiceMinutesTopup || 0;
     const usedMinutes = user.voiceMinutesUsed || 0;
     const totalBalance = planMinutes + topupMinutes - usedMinutes;
-    
+
     // Convert estimated seconds to minutes
     const estimatedMinutes = estimatedSeconds / 60;
 
@@ -109,8 +109,14 @@ export class VoiceAIService {
    */
   async generateAndSendVoiceNote(
     userId: string,
-    leadId: string
-  ): Promise<{ success: boolean; error?: string; audioUrl?: string; secondsUsed?: number }> {
+    leadId: string,
+    maxDuration: number = 15
+  ): Promise<{
+    success: boolean;
+    audioUrl?: string;
+    secondsUsed?: number;
+    error?: string;
+  }> {
     try {
       // Get lead and messages
       const lead = await storage.getLeadById(leadId);
@@ -126,11 +132,13 @@ export class VoiceAIService {
         return { success: false, error: decision.reason };
       }
 
-      // Generate voice script (10-20 seconds)
-      const script = await this.generateVoiceScript(lead, messages);
-      
+      // Generate AI text response with character limit for ~15 seconds
+      // Average speaking rate: 150 words/min = 2.5 words/sec = ~37 words for 15 seconds
+      const maxWords = Math.floor((maxDuration / 60) * 150);
+      const aiResponse = await this.generateVoiceScript(lead, messages, maxWords);
+
       // Estimate duration from word count (average 2.5 words per second for natural speech)
-      const wordCount = script.split(/\s+/).length;
+      const wordCount = aiResponse.split(/\s+/).length;
       const estimatedDuration = Math.ceil(wordCount / 2.5);
 
       // Check voice limit with estimated duration
@@ -147,7 +155,7 @@ export class VoiceAIService {
       const voiceId = user?.voiceCloneId || undefined;
 
       // Generate voice with ElevenLabs
-      const voiceData = await this.elevenlabs.textToSpeech(script, { voiceId });
+      const voiceData = await this.elevenlabs.textToSpeech(aiResponse, { voiceId });
 
       // Verify actual duration doesn't exceed remaining limit
       const finalLimitCheck = await this.checkVoiceLimit(userId, voiceData.duration);
@@ -167,7 +175,7 @@ export class VoiceAIService {
       if (lead.channel === 'instagram') {
         const integrations = await storage.getIntegrations(userId);
         const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
-        
+
         if (!igIntegration) {
           return { success: false, error: 'Instagram not connected' };
         }
@@ -186,14 +194,14 @@ export class VoiceAIService {
           access_token: accessToken,
           page_id: pageId
         });
-        
+
         const result = await instagram.sendAudioMessage(lead.externalId || '', audioUrl);
         messageId = result.messageId;
       } else {
         // WhatsApp
         const integrations = await storage.getIntegrations(userId);
         const waIntegration = integrations.find(i => i.provider === 'whatsapp' && i.connected);
-        
+
         if (!waIntegration) {
           return { success: false, error: 'WhatsApp not connected' };
         }
@@ -212,7 +220,7 @@ export class VoiceAIService {
           access_token: accessToken,
           phone_number_id: phoneNumberId
         });
-        
+
         const result = await whatsapp.sendAudioMessage(lead.phone || '', audioUrl);
         messageId = result.messageId;
       }
@@ -223,7 +231,7 @@ export class VoiceAIService {
         userId,
         provider: lead.channel as any,
         direction: 'outbound',
-        body: `[Voice Note] ${script}`,
+        body: `[Voice Note] ${aiResponse}`,
         audioUrl,
         metadata: { 
           isAiGenerated: true, 
@@ -273,11 +281,23 @@ export class VoiceAIService {
   }
 
   /**
-   * Generate voice script (10-20 seconds as requested)
+   * Generate voice script (optimized for maxWords)
    */
-  private async generateVoiceScript(lead: Lead, messages: Message[]): Promise<string> {
-    // Use existing function but ensure it's optimized for 10-20 seconds
-    return await generateVoiceScript(lead, messages);
+  private async generateVoiceScript(lead: any, history: any[], maxWords: number = 37): Promise<string> {
+    const prompt = `
+      You are an expert sales assistant. Your goal is to convert leads into customers or followers by sending them short, personalized voice messages.
+      You are communicating with a lead named ${lead.name || 'there'} on ${lead.channel}.
+      Here is the conversation history:
+      ${history.map(msg => `${msg.sender === 'ai' ? 'AI' : 'Lead'}: ${msg.body}`).join('\n')}
+
+      RULES:
+      1. Sound exactly like a real person - use "um", "you know", natural pauses
+      2. Keep it to EXACTLY ${maxWords} words or less (about 15 seconds when spoken)
+      3. Be warm and personal
+      4. Don't sound like a robot or salesperson
+      5. Get straight to the point - you only have 15 seconds
+    `;
+    return await generateVoiceScript(lead, history, prompt);
   }
 
   /**
@@ -341,23 +361,44 @@ export class VoiceAIService {
 
         // Check if should send
         const decision = await this.shouldSendVoiceNote(lead, messages);
-        
+
         if (!decision.shouldSend) {
           results.skipped++;
           continue;
         }
 
-        // Try to send voice note
-        const result = await this.generateAndSendVoiceNote(userId, lead.id);
-        
-        if (result.success) {
+        // Try to send voice note (first 15-second clip)
+        const result1 = await this.generateAndSendVoiceNote(userId, lead.id, 15);
+
+        if (result1.success) {
           results.sent++;
           // Add delay between sends to avoid rate limits
           await new Promise(resolve => setTimeout(resolve, 2000));
+
+          // If the first clip was successful, try sending the second one
+          // Check lead status again to ensure they haven't opted out
+          const updatedLead = await storage.getLeadById(lead.id);
+          const updatedMessages = await storage.getMessages(lead.id);
+          const secondDecision = await this.shouldSendVoiceNote(updatedLead!, updatedMessages);
+
+          if (secondDecision.shouldSend) {
+            const result2 = await this.generateAndSendVoiceNote(userId, lead.id, 15);
+            if (result2.success) {
+              results.sent++;
+            } else {
+              results.skipped++;
+              if (result2.error) {
+                results.errors.push(`${updatedLead!.name}: Second voice note failed - ${result2.error}`);
+              }
+            }
+          } else {
+            results.skipped++;
+            results.errors.push(`${updatedLead!.name}: Skipped second voice note due to status change - ${secondDecision.reason}`);
+          }
         } else {
           results.skipped++;
-          if (result.error) {
-            results.errors.push(`${lead.name}: ${result.error}`);
+          if (result1.error) {
+            results.errors.push(`${lead.name}: ${result1.error}`);
           }
         }
       }

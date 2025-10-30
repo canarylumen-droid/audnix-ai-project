@@ -8,6 +8,10 @@ import Auth from "@/pages/auth";
 import DashboardRoutes from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
+import ConversationsPage from "./pages/dashboard/conversations";
+import CalendarPage from "./pages/dashboard/calendar";
+import InsightsPage from "./pages/dashboard/insights";
+import VideoAutomationPage from "./pages/dashboard/video-automation";
 
 function Router() {
   return (
@@ -16,6 +20,10 @@ function Router() {
       <Route path="/auth" component={Auth} />
       <Route path="/dashboard" component={DashboardRoutes} />
       <Route path="/dashboard/:rest*" component={DashboardRoutes} />
+      <Route path="/dashboard/conversations/:id?" component={ConversationsPage} />
+      <Route path="/dashboard/video-automation" component={VideoAutomationPage} />
+      <Route path="/dashboard/calendar" component={CalendarPage} />
+      <Route path="/dashboard/insights" component={InsightsPage} />
       <Route component={NotFound} />
     </Switch>
   );
