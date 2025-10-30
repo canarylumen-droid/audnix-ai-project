@@ -713,18 +713,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch (event.type) {
         case "checkout.session.completed":
           const session = event.data.object as any;
-          if (session.metadata?.userId && session.metadata?.topupType) {
-            await processTopupSuccess(
-              session.metadata.userId,
-              session.metadata.topupType,
-              parseInt(session.metadata.topupAmount)
-            );
+          
+          // Handle top-up purchases
+          if (session.metadata?.userId && session.metadata?.topupType && session.metadata?.topupAmount) {
+            const userId = session.metadata.userId;
+            const topupAmount = parseInt(session.metadata.topupAmount);
+            
+            // Add minutes to user balance
+            const user = await storage.getUserById(userId);
+            if (user) {
+              await storage.updateUser(userId, {
+                voiceMinutesTopup: (user.voiceMinutesTopup || 0) + topupAmount
+              });
+
+              // Create audit log
+              await storage.createUsageTopup({
+                userId,
+                type: 'voice',
+                amount: topupAmount,
+                metadata: {
+                  source: 'stripe_topup',
+                  sessionId: session.id,
+                  amountPaid: session.amount_total / 100,
+                  topupType: session.metadata.topupType
+                }
+              });
+
+              // Send notification
+              await storage.createNotification({
+                userId,
+                type: 'topup_success',
+                title: '✅ Top-up successful!',
+                message: `+${topupAmount} voice minutes added to your account`,
+                actionUrl: '/dashboard/integrations'
+              });
+
+              console.log(`✅ Added ${topupAmount} minutes to user ${userId}`);
+            }
+          }
+          
+          // Handle subscription changes
+          if (session.metadata?.userId && session.metadata?.planKey && !session.metadata?.topupType) {
+            const userId = session.metadata.userId;
+            const planKey = session.metadata.planKey;
+            
+            await storage.updateUser(userId, {
+              plan: planKey,
+              stripeSubscriptionId: session.subscription as string
+            });
           }
           break;
 
         case "customer.subscription.updated":
+          const updatedSub = event.data.object as any;
+          const { data: customer } = await storage.getUserByEmail(updatedSub.customer);
+          if (customer) {
+            // Update user plan based on subscription
+            await storage.updateUser(customer.id, {
+              plan: updatedSub.status === 'active' ? 'pro' : 'trial'
+            });
+          }
+          break;
+
         case "customer.subscription.deleted":
-          // Handle subscription changes
+          const deletedSub = event.data.object as any;
+          const { data: deletedCustomer } = await storage.getUserByEmail(deletedSub.customer);
+          if (deletedCustomer) {
+            await storage.updateUser(deletedCustomer.id, {
+              plan: 'trial',
+              stripeSubscriptionId: null
+            });
+          }
           break;
       }
 
@@ -795,11 +854,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const conversions = leads.filter(l => l.status === 'converted').length;
       const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
 
-      // TODO: Get actual message and AI reply counts when those tables are ready
+      // Get actual message counts
+      const allMessages = await Promise.all(
+        leads.map(lead => storage.getMessagesByLeadId(lead.id))
+      );
+      const messageCount = allMessages.flat().length;
+      const aiReplyCount = allMessages.flat().filter(m => 
+        m.direction === 'outbound' && (m.metadata as any)?.isAiGenerated
+      ).length;
+
       res.json({
         leads: leads.length,
-        messages: 0, // Will be updated when message tracking is implemented
-        aiReplies: 0, // Will be updated when AI tracking is implemented
+        messages: messageCount,
+        aiReplies: aiReplyCount,
         conversionRate: conversionRate.toFixed(1),
         activeLeads,
         conversions,

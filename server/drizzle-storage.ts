@@ -157,6 +157,10 @@ export class DrizzleStorage implements IStorage {
       .orderBy(messages.createdAt);
   }
 
+  async getMessages(leadId: string): Promise<Message[]> {
+    return this.getMessagesByLeadId(leadId);
+  }
+
   async createMessage(
     message: Partial<InsertMessage> & {
       leadId: string;

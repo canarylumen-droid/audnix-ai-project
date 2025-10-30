@@ -251,6 +251,32 @@ export class GmailOAuth {
   }
 
   /**
+   * Refresh all expired tokens (run periodically)
+   */
+  static async refreshExpiredTokens(): Promise<void> {
+    if (!supabaseAdmin) return;
+
+    try {
+      const { data: expiredTokens } = await supabaseAdmin
+        .from('oauth_tokens')
+        .select('user_id, refresh_token, provider')
+        .eq('provider', 'gmail')
+        .lt('expires_at', new Date(Date.now() + 10 * 60 * 1000).toISOString());
+
+      if (!expiredTokens || expiredTokens.length === 0) return;
+
+      for (const token of expiredTokens) {
+        const oauth = new GmailOAuth();
+        await oauth.getValidToken(token.user_id);
+      }
+
+      console.log(`✅ Refreshed ${expiredTokens.length} Gmail tokens`);
+    } catch (error) {
+      console.error('Error refreshing expired tokens:', error);
+    }
+  }
+
+  /**
    * Revoke OAuth tokens
    */
   async revokeToken(userId: string): Promise<void> {

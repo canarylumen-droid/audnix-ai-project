@@ -162,7 +162,15 @@ async function runMigrations() {
     console.log('🤖 Starting AI workers...');
     followUpWorker.start();
     startVideoCommentMonitoring();
+    
+    // Start OAuth token refresh worker (every 30 minutes)
+    const { GmailOAuth } = await import('./lib/oauth/gmail');
+    setInterval(() => {
+      GmailOAuth.refreshExpiredTokens().catch(console.error);
+    }, 30 * 60 * 1000);
+    
     console.log('✅ AI workers running');
+    console.log('✅ OAuth token refresh worker started');
   }
 
   const PORT = process.env.PORT || 5000;

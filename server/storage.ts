@@ -22,6 +22,7 @@ export interface IStorage {
 
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
+  getMessages(leadId: string): Promise<Message[]>; // Alias for getMessagesByLeadId
   createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
 
   // Integration methods
@@ -229,6 +230,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.messages.values())
       .filter((msg) => msg.leadId === leadId)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async getMessages(leadId: string): Promise<Message[]> {
+    return this.getMessagesByLeadId(leadId);
   }
 
   async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message> {

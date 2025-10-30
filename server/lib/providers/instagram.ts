@@ -63,6 +63,45 @@ export class InstagramProvider {
   }
 
   /**
+   * Send Instagram Audio Message
+   */
+  async sendAudioMessage(recipientId: string, audioUrl: string): Promise<{ messageId: string }> {
+    if (this.isDemoMode) {
+      return { messageId: `mock_audio_${Date.now()}` };
+    }
+
+    const url = `https://graph.facebook.com/v18.0/me/messages`;
+    
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.credentials.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: {
+          attachment: {
+            type: "audio",
+            payload: {
+              url: audioUrl,
+              is_reusable: true
+            }
+          }
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`Instagram API error: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { messageId: data.message_id };
+  }
+
+  /**
    * Fetch recent messages from Instagram inbox
    */
   async fetchMessages(limit = 50): Promise<InstagramMessage[]> {
