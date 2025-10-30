@@ -340,6 +340,12 @@ OPENAI_API_KEY=sk-your_openai_key
 
 # Recommended - Get from https://stripe.com
 STRIPE_SECRET_KEY=sk_test_your_stripe_key
+
+# Optional - For WhatsApp voice messages via Twilio (Free tier available)
+# Get from https://console.twilio.com
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 ```
 
 ### 3. Set Up Database

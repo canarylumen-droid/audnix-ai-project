@@ -198,7 +198,7 @@ export class VoiceAIService {
         const result = await instagram.sendAudioMessage(lead.externalId || '', audioUrl);
         messageId = result.messageId;
       } else {
-        // WhatsApp
+        // WhatsApp via Twilio
         const integrations = await storage.getIntegrations(userId);
         const waIntegration = integrations.find(i => i.provider === 'whatsapp' && i.connected);
 
@@ -209,16 +209,18 @@ export class VoiceAIService {
         // Decrypt credentials from integration
         const decryptedMetaJson = decrypt(waIntegration.encryptedMeta);
         const decryptedMeta = JSON.parse(decryptedMetaJson);
-        const accessToken = decryptedMeta.tokens?.access_token || decryptedMeta.accessToken;
-        const phoneNumberId = decryptedMeta.tokens?.phone_number_id || decryptedMeta.phoneNumberId;
+        const accountSid = decryptedMeta.accountSid;
+        const authToken = decryptedMeta.authToken;
+        const fromNumber = decryptedMeta.fromNumber;
 
-        if (!accessToken || !phoneNumberId) {
-          return { success: false, error: 'WhatsApp credentials incomplete' };
+        if (!accountSid || !authToken || !fromNumber) {
+          return { success: false, error: 'WhatsApp/Twilio credentials incomplete' };
         }
 
         const whatsapp = new WhatsAppProvider({
-          access_token: accessToken,
-          phone_number_id: phoneNumberId
+          accountSid,
+          authToken,
+          fromNumber
         });
 
         const result = await whatsapp.sendAudioMessage(lead.phone || '', audioUrl);
