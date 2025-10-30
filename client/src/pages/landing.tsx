@@ -316,10 +316,10 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             {[
               {
-                title: "AI Voice Cloning",
-                description: "Upload 3 minutes of your voice. Audnix learns your tone, cadence, and speaking style to create authentic voice messages that sound exactly like you.",
+                title: "AI Voice Cloning with Smart Limits",
+                description: "Upload 3 minutes of your voice. Audnix learns your tone, cadence, and speaking style to create authentic voice messages. Track usage in real-time and top up instantly when needed.",
                 icon: Mic,
-                features: ["Lifelike voice replication", "Emotional tone matching", "Multiple language support", "Natural pauses & inflections"]
+                features: ["Lifelike voice replication", "Real-time usage tracking", "Instant top-ups (85%+ margin)", "Auto-lock when exhausted"]
               },
               {
                 title: "Smart Context Analysis",
@@ -722,10 +722,11 @@ export default function Landing() {
                 description: 'Perfect for creators just getting started',
                 features: [
                   '2,500 leads per month',
-                  '100 voice minutes',
+                  '300 voice minutes (5 hours)',
                   'Instagram & WhatsApp integration',
                   'Basic AI insights',
                   'Email support',
+                  'Top-ups available',
                 ],
                 planId: 'starter',
                 testId: 'starter',
@@ -736,7 +737,7 @@ export default function Landing() {
                 description: 'For growing creators who need more power',
                 features: [
                   '7,000 leads per month',
-                  '400 voice minutes',
+                  '800 voice minutes (13+ hours)',
                   'All integrations (IG, WA, Email)',
                   'Advanced AI insights',
                   'Voice cloning',
@@ -753,7 +754,7 @@ export default function Landing() {
                 description: 'Unlimited power for scaling businesses',
                 features: [
                   '20,000 leads per month',
-                  '1,500 voice minutes',
+                  '1,000 voice minutes (16+ hours)',
                   'All integrations + API access',
                   'AI-powered insights & reports',
                   'Custom voice cloning',

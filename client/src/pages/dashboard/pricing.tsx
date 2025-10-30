@@ -14,7 +14,7 @@ const plans = [
     description: "Perfect for solo entrepreneurs and small businesses",
     features: [
       "2,500 leads",
-      "100 voice minutes",
+      "300 voice minutes (5 hours)",
       "Instagram + WhatsApp + Email",
       "AI follow-ups",
       "Basic analytics",
@@ -29,7 +29,7 @@ const plans = [
     description: "For growing teams that need more power",
     features: [
       "7,000 leads",
-      "400 voice minutes",
+      "800 voice minutes (13+ hours)",
       "All Starter features",
       "Calendar integration",
       "Advanced insights",
@@ -45,7 +45,7 @@ const plans = [
     description: "Unlimited power for scaling teams",
     features: [
       "20,000+ leads",
-      "1,500 voice minutes",
+      "1,000 voice minutes (16+ hours)",
       "All Pro features",
       "Custom integrations",
       "Dedicated account manager",
@@ -54,6 +54,41 @@ const plans = [
     cta: "Upgrade to Enterprise",
     planId: "enterprise",
     popular: false,
+  },
+];
+
+const topups = [
+  {
+    name: "Quick Boost",
+    minutes: 100,
+    price: 7,
+    description: "1.5+ hours of AI voice notes",
+    popular: false,
+    topupKey: "voice_100",
+  },
+  {
+    name: "Best Value",
+    minutes: 300,
+    price: 20,
+    description: "5 hours of AI voice notes",
+    popular: true,
+    topupKey: "voice_300",
+  },
+  {
+    name: "Popular",
+    minutes: 600,
+    price: 40,
+    description: "10 hours of AI voice notes",
+    popular: false,
+    topupKey: "voice_600",
+  },
+  {
+    name: "Power User",
+    minutes: 1200,
+    price: 80,
+    description: "20 hours of AI voice notes",
+    popular: false,
+    topupKey: "voice_1200",
   },
 ];
 
@@ -79,6 +114,33 @@ export default function PricingPage() {
       }
     } catch (error) {
       console.error('Error creating checkout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create checkout session. Please try again.",
+        variant: "destructive",
+      });
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleTopup = async (topupKey: string) => {
+    setLoadingPlan(topupKey);
+    try {
+      const response = await apiRequest<{ url: string }>('/api/billing/topup', {
+        method: 'POST',
+        body: JSON.stringify({ topupKey }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error) {
+      console.error('Error creating topup checkout:', error);
       toast({
         title: "Error",
         description: "Failed to create checkout session. Please try again.",
@@ -172,8 +234,87 @@ export default function PricingPage() {
         ))}
       </div>
 
+      {/* Voice Minutes Top-ups */}
+      <div id="topups" className="max-w-6xl mx-auto mt-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4 text-white">Voice Minutes Top-Ups</h2>
+          <p className="text-xl text-white/80">
+            Ran out of voice minutes? Top up instantly and keep the AI working
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {topups.map((topup, index) => (
+            <motion.div
+              key={topup.name}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Card
+                className={`relative ${
+                  topup.popular ? "border-emerald-500 shadow-lg scale-105" : ""
+                } hover-elevate`}
+              >
+                {topup.popular && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500">
+                    Best Value
+                  </Badge>
+                )}
+                <CardHeader className="text-center pb-3">
+                  <CardTitle className="text-lg text-white">{topup.name}</CardTitle>
+                  <div className="mt-2">
+                    <span className="text-3xl font-bold text-white">${topup.price}</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="text-center space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-2xl font-bold text-primary">
+                      {topup.minutes} minutes
+                    </p>
+                    <p className="text-sm text-white/70">{topup.description}</p>
+                  </div>
+                  <div className="space-y-2 text-sm text-white/60">
+                    <p>✓ Instant delivery</p>
+                    <p>✓ Never expires</p>
+                    <p>✓ 85%+ profit margin</p>
+                  </div>
+                  <Button
+                    className={`w-full ${
+                      topup.popular
+                        ? 'bg-emerald-500 hover:bg-emerald-600'
+                        : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 border-0'
+                    }`}
+                    onClick={() => handleTopup(topup.topupKey)}
+                    disabled={loadingPlan === topup.topupKey}
+                  >
+                    {loadingPlan === topup.topupKey ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="mr-2 h-4 w-4" />
+                        Buy Now
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-sm text-white/60">
+            All top-ups sync in real-time via Stripe webhooks • Balance updates instantly
+          </p>
+        </div>
+      </div>
+
       {/* FAQ */}
-      <div className="max-w-3xl mx-auto mt-12">
+      <div className="max-w-3xl mx-auto mt-20">
         <h2 className="text-2xl font-bold mb-6 text-center">Frequently Asked Questions</h2>
         <div className="space-y-4">
           {[

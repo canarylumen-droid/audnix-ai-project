@@ -250,6 +250,144 @@ export class DrizzleStorage implements IStorage {
       .set({ isRead: true })
       .where(eq(notifications.userId, userId));
   }
+
+  async createNotification(data: any): Promise<any> {
+    const result = await db
+      .insert(notifications)
+      .values({
+        userId: data.userId,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        actionUrl: data.actionUrl || null,
+        isRead: false,
+      })
+      .returning();
+    
+    return result[0];
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id));
+  }
+
+  async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
+    const result = await db
+      .select()
+      .from(leads)
+      .where(and(
+        sql`LOWER(${leads.name}) = LOWER(${username})`,
+        eq(leads.channel, channel as any)
+      ))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getVideoMonitors(userId: string): Promise<any[]> {
+    // Implement video monitors table query when schema is ready
+    return [];
+  }
+
+  async createVideoMonitor(data: any): Promise<any> {
+    // Implement when schema is ready
+    return data;
+  }
+
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    // Implement when schema is ready
+    return null;
+  }
+
+  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
+    // Implement when schema is ready
+  }
+
+  async isCommentProcessed(commentId: string): Promise<boolean> {
+    // Implement when schema is ready
+    return false;
+  }
+
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    // Implement when schema is ready
+  }
+
+  async getBrandKnowledge(userId: string): Promise<string> {
+    // Implement when schema is ready
+    return '';
+  }
+
+  async getDeals(userId: string): Promise<any[]> {
+    // Implement deals table query when schema is ready
+    return [];
+  }
+
+  async createDeal(data: any): Promise<any> {
+    // Implement when schema is ready
+    return data;
+  }
+
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    // Implement when schema is ready
+    return null;
+  }
+
+  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+    const deals = await this.getDeals(userId);
+    const closedDeals = deals.filter(d => d.status === 'closed_won');
+    
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const total = closedDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const thisMonth = closedDeals
+      .filter(d => new Date(d.closedAt) >= thisMonthStart)
+      .reduce((sum, d) => sum + (d.amount || 0), 0);
+    
+    return { total, thisMonth, deals: closedDeals };
+  }
+
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    const user = await this.getUserById(userId);
+    if (!user) return 0;
+    
+    // Calculate from plan + top-ups - usage
+    const planMinutes = this.getVoiceMinutesForPlan(user.plan);
+    // TODO: Track actual usage when voice usage table is ready
+    return planMinutes;
+  }
+
+  async deductVoiceMinutes(userId: string, minutes: number): Promise<boolean> {
+    const balance = await this.getVoiceMinutesBalance(userId);
+    if (balance < minutes) return false;
+    
+    // TODO: Implement actual deduction when voice usage table is ready
+    return true;
+  }
+
+  async addVoiceMinutes(userId: string, minutes: number, source: string): Promise<void> {
+    // TODO: Implement when voice topups table is ready
+    await this.createNotification({
+      userId,
+      type: 'topup_success',
+      title: '✅ Top-up successful!',
+      message: `+${minutes} voice minutes added to your account.`,
+      actionUrl: '/dashboard/integrations'
+    });
+  }
+
+  private getVoiceMinutesForPlan(plan: string): number {
+    const planMinutes: Record<string, number> = {
+      'starter': parseInt(process.env.VOICE_MINUTES_PLAN_49 || '300'),
+      'pro': parseInt(process.env.VOICE_MINUTES_PLAN_99 || '800'),
+      'enterprise': parseInt(process.env.VOICE_MINUTES_PLAN_199 || '1000'),
+      'trial': 0
+    };
+    return planMinutes[plan] || 0;
+  }
 }
 
 export const drizzleStorage = new DrizzleStorage();

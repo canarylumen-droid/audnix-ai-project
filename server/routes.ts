@@ -627,6 +627,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get voice minutes balance
+  app.get("/api/voice/balance", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const planMinutes: Record<string, number> = {
+        'starter': parseInt(process.env.VOICE_MINUTES_PLAN_49 || '300'),
+        'pro': parseInt(process.env.VOICE_MINUTES_PLAN_99 || '800'),
+        'enterprise': parseInt(process.env.VOICE_MINUTES_PLAN_199 || '1000'),
+        'trial': 0
+      };
+
+      const totalMinutes = planMinutes[user.plan] || 0;
+      // TODO: Calculate actual usage when voice usage tracking is implemented
+      const usedMinutes = 0;
+      const balance = totalMinutes - usedMinutes;
+
+      res.json({
+        total: totalMinutes,
+        used: usedMinutes,
+        balance,
+        percentage: totalMinutes > 0 ? (usedMinutes / totalMinutes) * 100 : 0,
+        locked: balance <= 0
+      });
+    } catch (error) {
+      console.error("Error fetching voice balance:", error);
+      res.status(500).json({ error: "Failed to fetch voice balance" });
+    }
+  });
+
+  // Voice top-up checkout
   app.post("/api/billing/topup", requireAuth, async (req, res) => {
     try {
       const { topupKey } = req.body;

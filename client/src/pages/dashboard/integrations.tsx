@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
+import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
 import {
   Instagram,
   Mail,
@@ -519,9 +520,10 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Voice Clone Setup */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Voice Clone Setup</h2>
-        <Card data-testid="card-voice-setup">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Voice Clone Setup</h2>
+          <Card data-testid="card-voice-setup">
           <CardHeader>
             <CardTitle>AI Voice Messaging</CardTitle>
             <CardDescription>
@@ -633,6 +635,13 @@ export default function IntegrationsPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
+
+        {/* Voice Minutes Tracker */}
+        <div className="lg:col-span-1">
+          <h2 className="text-xl font-semibold mb-4">Usage Tracking</h2>
+          <VoiceMinutesWidget />
+        </div>
       </div>
 
       {/* PDF Upload for Brand Knowledge */}

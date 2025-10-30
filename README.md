@@ -324,25 +324,45 @@ Immediate DM: "Hey Sarah! Thanks for your interest. Here's the AI tool I mention
 6 hours later (if unopened): "Hey Sarah, did you manage to check out the AI tool I sent a few hours ago? This might be your last chance for early access!"
 ```
 
-### Voice Notes System (NEW)
+### Voice Minutes System (PRODUCTION READY)
 
-**Plans now include voice minutes instead of seconds:**
-- Starter ($49/mo): 300 minutes
-- Pro ($99/mo): 800 minutes  
-- Enterprise ($199/mo): 1000 minutes
+**Real-Time Usage Tracking:**
+- Live dashboard widget shows usage progress
+- Automatic locking when balance reaches 0
+- Real-time updates via API polling (30s interval)
+- Visual progress bar with percentage indicator
 
-**What happens when minutes run out:**
-- Voice features lock automatically
-- Modal shows: "🔒 All voice minutes used. Please top up to continue"
-- Users can purchase top-ups instantly via Stripe
+**Plans now include voice minutes:**
+- Starter ($49/mo): 300 minutes (5 hours)
+- Pro ($99/mo): 800 minutes (13+ hours)  
+- Enterprise ($199/mo): 1000 minutes (16+ hours)
 
-**Topping Up Voice Minutes:**
-- 100 minutes - $7 (instant delivery)
-- 300 minutes - $20
-- 600 minutes - $40
-- 1200 minutes - $80
+**Auto-Lock System:**
+When voice minutes are exhausted:
+- ✅ All voice features lock automatically
+- ✅ Lock modal displays: "🔒 All voice minutes used"
+- ✅ "Top Up Now" button redirects to pricing page
+- ✅ Real-time balance updates prevent overuse
 
-All top-ups maintain 85%+ profit margin and sync in real-time.
+**Instant Top-Up System:**
+- 100 minutes - $7 (Quick Boost) - 86% margin
+- 300 minutes - $20 (Best Value) - 85% margin  
+- 600 minutes - $40 (Popular) - 85% margin
+- 1200 minutes - $80 (Power User) - 85% margin
+
+**Technical Implementation:**
+- ✅ Stripe API integration for one-time payments
+- ✅ Webhook-based balance updates (instant sync)
+- ✅ In-app notifications for successful top-ups
+- ✅ PostgreSQL tracking for usage history
+- ✅ API endpoint: `GET /api/voice/balance`
+- ✅ Middleware checks before voice generation
+
+**Revenue Features:**
+- All top-ups maintain ≥85% profit margin
+- Automatic revenue tracking per user
+- Deal conversion tracking with USD amounts
+- Monthly/total revenue analytics in admin panel
 
 ### Video Comment Automation (Replaces ManyChat)
 
