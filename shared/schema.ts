@@ -134,7 +134,7 @@ export const calendarEvents = pgTable("calendar_events", {
 
 export const videoMonitors = pgTable("video_monitors", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   videoId: text("video_id").notNull(),
   videoUrl: text("video_url").notNull(),
   productLink: text("product_link").notNull(),
