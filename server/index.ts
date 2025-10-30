@@ -56,13 +56,9 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
   } catch (error) {
     console.warn('⚠️  Redis not available, using memory store');
   }
-} else if (process.env.NODE_ENV !== 'production') {
-  // Use memory store in development
-  const MemoryStore = require('memorystore')(session);
-  sessionConfig.store = new MemoryStore({
-    checkPeriod: 86400000 // prune expired entries every 24h
-  });
 }
+// In development, use default MemoryStore (built into express-session)
+// This prevents conflicts with Vite's dev server
 
 app.use(session(sessionConfig));
 
