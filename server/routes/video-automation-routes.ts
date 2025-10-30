@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { detectBuyingIntent, generateSalesmanDM } from '../lib/ai/video-comment-monitor';
+import { InstagramProvider } from '../lib/providers/instagram';
 
 const router = Router();
 
@@ -22,9 +23,31 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Instagram not connected' });
     }
 
-    // Fetch user's recent videos from Instagram
-    // This would call Instagram Graph API
-    const videos = []; // TODO: Implement Instagram API call
+    // Fetch user's recent videos from Instagram Graph API
+    const { decrypt } = await import('../lib/crypto/encryption');
+    const meta = JSON.parse(decrypt(igIntegration.encryptedMeta));
+    
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,caption,timestamp,permalink&limit=20`,
+      {
+        headers: { Authorization: `Bearer ${meta.accessToken}` }
+      }
+    );
+
+    if (!response.ok) {
+      return res.status(500).json({ error: 'Failed to fetch Instagram videos' });
+    }
+
+    const data = await response.json();
+    const videos = data.data
+      .filter((item: any) => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM')
+      .map((item: any) => ({
+        id: item.id,
+        url: item.permalink,
+        mediaUrl: item.media_url,
+        caption: item.caption || '',
+        timestamp: item.timestamp
+      }));
 
     res.json({ videos });
   } catch (error: any) {

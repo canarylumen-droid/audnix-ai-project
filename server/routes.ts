@@ -1023,20 +1023,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get deals for the user
-  app.get("/api/deals", async (req, res) => {
+  // Get deals for the user with revenue calculation
+  app.get("/api/deals", requireAuth, async (req, res) => {
     try {
-      const userId = (req.session as any)?.userId || req.headers['x-user-id'];
+      const userId = getCurrentUserId(req)!;
 
-      if (!userId) {
-        return res.json({ deals: [] });
-      }
+      const { total, thisMonth, deals } = await storage.calculateRevenue(userId);
 
-      // TODO: Implement deals table and fetch real deals
-      res.json({ deals: [] });
+      res.json({ 
+        deals,
+        revenue: {
+          total,
+          thisMonth,
+          currency: 'USD'
+        }
+      });
     } catch (error) {
       console.error("Error fetching deals:", error);
       res.status(500).json({ error: "Failed to fetch deals" });
+    }
+  });
+
+  // Create deal from converted lead
+  app.post("/api/deals", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const { leadId, amount, name, source } = req.body;
+
+      const deal = await storage.createDeal({
+        userId,
+        leadId,
+        name,
+        amount,
+        source,
+        status: 'closed_won',
+        closedAt: new Date()
+      });
+
+      res.json({ deal });
+    } catch (error: any) {
+      console.error("Error creating deal:", error);
+      res.status(500).json({ error: "Failed to create deal" });
     }
   });
 

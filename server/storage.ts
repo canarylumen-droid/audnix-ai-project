@@ -44,6 +44,12 @@ export interface IStorage {
   isCommentProcessed(commentId: string): Promise<boolean>;
   markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void>;
   getBrandKnowledge(userId: string): Promise<string>;
+
+  // Deal tracking methods
+  getDeals(userId: string): Promise<any[]>;
+  createDeal(data: any): Promise<any>;
+  updateDeal(id: string, userId: string, updates: any): Promise<any>;
+  calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
 }
 
 export class MemStorage implements IStorage {
@@ -358,6 +364,44 @@ export class MemStorage implements IStorage {
 
   async getBrandKnowledge(userId: string): Promise<string> {
     return this.brandKnowledge.get(userId) || '';
+  }
+
+  // Deal tracking
+  private deals: Map<string, any> = new Map();
+
+  async getDeals(userId: string): Promise<any[]> {
+    return Array.from(this.deals.values()).filter(d => d.userId === userId);
+  }
+
+  async createDeal(data: any): Promise<any> {
+    const id = randomUUID();
+    const deal = { id, ...data, createdAt: new Date() };
+    this.deals.set(id, deal);
+    return deal;
+  }
+
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    const deal = this.deals.get(id);
+    if (!deal || deal.userId !== userId) return null;
+    
+    const updated = { ...deal, ...updates, updatedAt: new Date() };
+    this.deals.set(id, updated);
+    return updated;
+  }
+
+  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+    const deals = await this.getDeals(userId);
+    const closedDeals = deals.filter(d => d.status === 'closed_won');
+    
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const total = closedDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const thisMonth = closedDeals
+      .filter(d => new Date(d.closedAt) >= thisMonthStart)
+      .reduce((sum, d) => sum + (d.amount || 0), 0);
+    
+    return { total, thisMonth, deals: closedDeals };
   }
 }
 
