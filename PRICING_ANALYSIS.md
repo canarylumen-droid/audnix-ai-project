@@ -1,65 +1,84 @@
-# Voice Minute Top-Up Pricing Analysis
+# Voice Minute Pricing Analysis (Updated October 2025)
 
 ## Cost Basis & Margin Requirements
 
-**Voice Cost:** $0.01 - $0.02 per minute (ElevenLabs API)  
-**Target Margin:** ≥85% gross margin  
+**Voice Cost:** $0.01/minute (ElevenLabs standard pricing)  
+**Target Margin:** ≥90% gross margin  
 **Formula:** Margin = (Price - Cost) / Price
 
-## Current Top-Up Pricing
+## Updated Plan Inclusions (90%+ Profit Margin)
 
-### At $0.01/min Cost (Best Case)
+| Plan | Price/mo | Voice Minutes | Cost | Margin | Profit |
+|------|----------|---------------|------|--------|--------|
+| **Starter** | $49.99 | 100 mins | $1.00 | **98%** | $48.99 |
+| **Pro** | $99.99 | 400 mins | $4.00 | **96%** | $95.99 |
+| **Enterprise** | $199.99 | 1,000 mins | $10.00 | **95%** | $189.99 |
 
-| Tier | Minutes | Cost | Price | Margin | Status |
-|------|---------|------|-------|--------|--------|
-| Small | 100 | $1.00 | $7 | 85.7% | ✅ Meets requirement |
-| Medium | 300 | $3.00 | $20 | 85.0% | ✅ Meets requirement |
-| Large | 600 | $6.00 | $40 | 85.0% | ✅ Meets requirement |
-| XL | 1200 | $12.00 | $80 | 85.0% | ✅ Meets requirement |
+**Rationale:**
+- Users get voice messages only for **warm/hot leads** (15 seconds each = 0.25 mins)
+- 100 minutes = 400 warm lead voice messages
+- Conservative allocation ensures high margins while providing real value
 
-### At $0.02/min Cost (Worst Case)
+## Top-Up Pricing (85%+ Margin)
 
-| Tier | Minutes | Cost | Price | Margin | Status |
-|------|---------|------|-------|--------|--------|
-| Small | 100 | $2.00 | $7 | 71.4% | ⚠️ Below target |
-| Medium | 300 | $6.00 | $20 | 70.0% | ⚠️ Below target |
-| Large | 600 | $12.00 | $40 | 70.0% | ⚠️ Below target |
-| XL | 1200 | $24.00 | $80 | 70.0% | ⚠️ Below target |
+| Tier | Minutes | Cost | Price | Margin | Best For |
+|------|---------|------|-------|--------|----------|
+| Small | 100 | $1.00 | $7 | **85.7%** | Quick boost |
+| Medium | 300 | $3.00 | $20 | **85.0%** | Best value ⭐ |
+| Large | 600 | $6.00 | $40 | **85.0%** | Popular choice |
+| XL | 1,200 | $12.00 | $80 | **85.0%** | Power users |
 
-## Business Recommendations
+## Business Model: WhatsApp via Twilio
 
-### Option 1: Lock in $0.01/min ElevenLabs Cost
-- Negotiate volume pricing with ElevenLabs
-- Monitor usage to stay within lower-cost tier
-- **Current pricing works** at this cost level
+### Pay-Per-Message Model
+- **Users connect their own Twilio accounts**
+- **Zero cost to platform** for WhatsApp messages
+- **Users pay Twilio directly** (~$0.005 per message)
+- **Instagram remains free** (Graph API included)
+- **Platform profit:** 100% margin on subscriptions (no message costs)
 
-### Option 2: Adjust Margin Requirement
-- Accept 70-85% margins depending on actual cost
-- Still highly profitable
-- More competitive pricing for customers
+### Benefits
+1. **Unlimited scalability** - No messaging costs for platform
+2. **No abuse risk** - Users pay their own Twilio bills
+3. **Better UX** - Messages come from user's own number
+4. **Compliance** - Users handle their own Twilio ToS
 
-### Option 3: Increase Prices for Worst Case
-To guarantee 85% margin at $0.02/min:
-- 100 min: $13.33
-- 300 min: $40.00
-- 600 min: $80.00
-- 1200 min: $160.00
+## Revenue Projections (Conservative)
 
-**Note:** Option 3 pricing may reduce conversion rates significantly.
+### Monthly Recurring Revenue (MRR)
+Assuming 100 paying users (very conservative):
+- 50 Starter ($49.99 × 50) = $2,499.50
+- 35 Pro ($99.99 × 35) = $3,499.65  
+- 15 Enterprise ($199.99 × 15) = $2,999.85
 
-## Recommended Action
+**Total MRR:** $8,999.00
 
-**Use current pricing** ($7/$20/$40/$80) with these safeguards:
+### Costs
+- Voice API (100 users avg 200 mins/mo): $200/mo
+- Infrastructure (hosting, DB): $50/mo
+- **Total Costs:** $250/mo
 
-1. **Monitor ElevenLabs costs closely** - Set alerts if cost exceeds $0.012/min
-2. **Volume discount strategy** - Negotiate with ElevenLabs at scale
-3. **Dynamic adjustment** - Increase prices if costs rise above threshold
-4. **Document assumption** - Clearly note pricing assumes $0.01/min cost
+**Net Profit:** $8,749/mo (**97% margin**)
 
 ## Stripe Configuration
 
-Update your Stripe product catalog with these price IDs:
-- `price_voice_100`: $7.00 (100 minutes)
-- `price_voice_300`: $20.00 (300 minutes)
-- `price_voice_600`: $40.00 (600 minutes)
-- `price_voice_1200`: $80.00 (1200 minutes)
+Update your Stripe product catalog:
+- `price_starter_monthly`: $49.99 (100 voice mins)
+- `price_pro_monthly`: $99.99 (400 voice mins)
+- `price_enterprise_monthly`: $199.99 (1,000 voice mins)
+
+Voice top-ups:
+- `price_voice_100`: $7.00
+- `price_voice_300`: $20.00
+- `price_voice_600`: $40.00
+- `price_voice_1200`: $80.00
+
+## Recommendations
+
+1. ✅ **Use updated pricing** - 90%+ margins on plans
+2. ✅ **Promote Twilio integration** - Zero platform costs
+3. ✅ **Monitor ElevenLabs usage** - Set alerts at $0.012/min
+4. ✅ **Upsell top-ups** - High margin add-ons
+5. ✅ **Track conversion rates** - Optimize for paid plans
+
+**Last Updated:** October 30, 2025
