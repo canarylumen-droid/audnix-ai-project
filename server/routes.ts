@@ -325,13 +325,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { body, useVoice } = req.body;
       const userId = getCurrentUserId(req)!;
 
+      // Moderate outbound content before sending
+      const moderationResult = await contentModerationService.moderateWithAI(body);
+      
+      if (moderationResult.shouldBlock) {
+        await contentModerationService.logModerationEvent(userId, leadId, body, moderationResult);
+        return res.status(400).json({ 
+          error: "Message blocked by content filter",
+          flags: moderationResult.flags,
+          category: moderationResult.category
+        });
+      }
+
       // Create message
       const message = await storage.createMessage({
         leadId,
         userId,
-        provider: "instagram", // Default provider, will be overridden by integration if applicable
+        provider: "instagram",
         direction: "outbound",
         body,
+        metadata: {
+          moderationScore: moderationResult.confidence,
+          moderationFlags: moderationResult.flags
+        }
       });
 
       // Track in super memory for context
@@ -339,10 +355,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Learn from this interaction in real-time
       await leadLearningSystem.analyzeAndLearn(message.leadId, message);
-
-      // Moderate inbound content (only if it's an inbound message, which this route doesn't handle)
-      // This logic is more appropriate for webhook handlers or dedicated inbound message processing.
-      // For outbound messages, we might want to validate the *sent* content, but the prompt implies moderation of received content.
 
       res.json({ message });
     } catch (error) {

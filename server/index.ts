@@ -5,10 +5,16 @@ import { setupVite, serveStatic, log } from "./vite";
 import { supabaseAdmin } from "./lib/supabase-admin";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
+import { workerHealthMonitor } from "./lib/monitoring/worker-health";
+import { apiLimiter, authLimiter } from "./middleware/rate-limit";
 import fs from "fs";
 import path from "path";
 
 const app = express();
+
+// Apply rate limiting
+app.use('/api/', apiLimiter);
+app.use('/api/auth/', authLimiter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -131,6 +137,14 @@ async function runMigrations() {
   // Start background workers
   if (supabaseAdmin) {
     console.log('🤖 Starting AI workers...');
+    
+    // Register workers for health monitoring
+    workerHealthMonitor.registerWorker('follow-up-worker');
+    workerHealthMonitor.registerWorker('video-comment-monitor');
+    workerHealthMonitor.registerWorker('lead-learning');
+    workerHealthMonitor.registerWorker('oauth-token-refresh');
+    workerHealthMonitor.start();
+    
     followUpWorker.start();
     startVideoCommentMonitoring();
     
@@ -141,12 +155,18 @@ async function runMigrations() {
     // Start OAuth token refresh worker (every 30 minutes)
     const { GmailOAuth } = await import('./lib/oauth/gmail');
     setInterval(() => {
-      GmailOAuth.refreshExpiredTokens().catch(console.error);
+      GmailOAuth.refreshExpiredTokens()
+        .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
+        .catch((err) => {
+          console.error(err);
+          workerHealthMonitor.recordError('oauth-token-refresh', err.message);
+        });
     }, 30 * 60 * 1000);
     
     console.log('✅ AI workers running');
     console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
+    console.log('✅ Worker health monitoring active');
   }
 
   const PORT = process.env.PORT || 5000;
