@@ -1,8 +1,8 @@
-
 import OpenAI from 'openai';
 import { storage } from '../../storage';
 import { InstagramProvider } from '../providers/instagram';
 import { decrypt } from '../crypto/encryption';
+import { formatDMWithButton } from './dm-formatter';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
@@ -156,10 +156,12 @@ If intent is price_objection, use emotional sales tactics:
 
 Generate JSON:
 {
-  "message": "the DM text (natural, conversational, NO hyphens)",
-  "linkButton": { "text": "2-4 word CTA", "url": "${productLink}" },
+  "message": "the DM text (natural, conversational, NO hyphens, do NOT include the link or button in this message)",
+  "linkButton": { "text": "2-4 word action CTA like GET ACCESS NOW or CLAIM YOUR SPOT", "url": "${productLink}" },
   "askFollow": false
-}`;
+}
+
+IMPORTANT: The message field should NOT include the link. We'll add it separately in a button-like format.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -190,7 +192,7 @@ export async function monitorVideoComments(userId: string): Promise<void> {
   try {
     // Get user's active video monitors
     const monitors = await storage.getVideoMonitors(userId);
-    
+
     if (!monitors || monitors.length === 0) {
       return;
     }
@@ -198,7 +200,7 @@ export async function monitorVideoComments(userId: string): Promise<void> {
     // Get Instagram integration
     const integrations = await storage.getIntegrations(userId);
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
-    
+
     if (!igIntegration) {
       console.log('Instagram not connected for user', userId);
       return;
@@ -212,7 +214,7 @@ export async function monitorVideoComments(userId: string): Promise<void> {
       try {
         // Fetch recent comments on this video
         const comments = await fetchVideoComments(provider, monitor.videoId);
-        
+
         for (const comment of comments) {
           // Check if we already processed this comment
           const alreadyProcessed = await storage.isCommentProcessed(comment.id);
@@ -232,7 +234,7 @@ export async function monitorVideoComments(userId: string): Promise<void> {
 
           // Get or create lead
           let lead = await storage.getLeadByUsername(comment.username, 'instagram');
-          
+
           if (!lead) {
             lead = await storage.createLead({
               userId,
@@ -267,8 +269,8 @@ export async function monitorVideoComments(userId: string): Promise<void> {
 
           // Send DM with link in message (Instagram doesn't support rich buttons in API)
           // We'll format it as a natural message with the link
-          const fullMessage = `${dm.message}\n\n👉 ${dm.linkButton.text}: ${dm.linkButton.url}`;
-          
+          const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
+
           await provider.sendMessage(comment.userId, fullMessage);
 
           // Save message
@@ -315,7 +317,7 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
   try {
     // Use Instagram Graph API to fetch comments
     const comments = await provider.getMediaComments(videoId);
-    
+
     return comments.map((comment: any) => ({
       id: comment.id,
       text: comment.text,
@@ -334,11 +336,11 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
  */
 export function startVideoCommentMonitoring() {
   console.log('Starting video comment monitoring worker...');
-  
+
   setInterval(async () => {
     try {
       const users = await storage.getAllUsers();
-      
+
       for (const user of users) {
         await monitorVideoComments(user.id);
       }
