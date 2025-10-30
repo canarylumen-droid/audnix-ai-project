@@ -23,6 +23,7 @@ import oauthRoutes from "./routes/oauth";
 import webhookRouter from "./routes/webhook";
 import workerRouter from "./routes/worker";
 import commentAutomationRouter from "./routes/comment-automation-routes";
+import videoAutomationRouter from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
@@ -1301,6 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/webhook", webhookRouter);
   app.use("/api", workerRouter);
   app.use("/api/automation", commentAutomationRouter);
+  app.use("/api/video-automation", videoAutomationRouter);
 
   const httpServer = createServer(app);
 
@@ -1311,6 +1313,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize weekly insights worker
   console.log("Initializing weekly insights worker...");
   weeklyInsightsWorker.start();
+
+  // Initialize video comment monitoring
+  const { startVideoCommentMonitoring } = await import("./lib/ai/video-comment-monitor");
+  console.log("Initializing video comment monitoring...");
+  startVideoCommentMonitoring();
 
   return httpServer;
 }

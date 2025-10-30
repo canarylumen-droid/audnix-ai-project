@@ -33,6 +33,17 @@ export interface IStorage {
   getNotifications(userId: string): Promise<any[]>;
   markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
+  createNotification(data: any): Promise<any>;
+  markNotificationRead(id: string): Promise<void>;
+
+  // Video monitor methods
+  getVideoMonitors(userId: string): Promise<any[]>;
+  createVideoMonitor(data: any): Promise<any>;
+  updateVideoMonitor(id: string, userId: string, updates: any): Promise<any>;
+  deleteVideoMonitor(id: string, userId: string): Promise<void>;
+  isCommentProcessed(commentId: string): Promise<boolean>;
+  markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void>;
+  getBrandKnowledge(userId: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -292,6 +303,61 @@ export class MemStorage implements IStorage {
   async markAllNotificationsAsRead(userId: string): Promise<void> {
     const notifications = await this.getNotifications(userId);
     notifications.forEach(n => this.readNotifications.add(n.id));
+  }
+
+  async createNotification(data: any): Promise<any> {
+    const id = randomUUID();
+    const notification = { id, ...data, createdAt: new Date() };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    this.readNotifications.add(id);
+  }
+
+  // Video monitor methods
+  private videoMonitors: Map<string, any> = new Map();
+  private processedComments: Set<string> = new Set();
+  private brandKnowledge: Map<string, string> = new Map();
+
+  async getVideoMonitors(userId: string): Promise<any[]> {
+    return Array.from(this.videoMonitors.values()).filter(m => m.userId === userId);
+  }
+
+  async createVideoMonitor(data: any): Promise<any> {
+    const id = randomUUID();
+    const monitor = { id, ...data, createdAt: new Date() };
+    this.videoMonitors.set(id, monitor);
+    return monitor;
+  }
+
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    const monitor = this.videoMonitors.get(id);
+    if (!monitor || monitor.userId !== userId) return null;
+    
+    const updated = { ...monitor, ...updates };
+    this.videoMonitors.set(id, updated);
+    return updated;
+  }
+
+  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
+    const monitor = this.videoMonitors.get(id);
+    if (monitor && monitor.userId === userId) {
+      this.videoMonitors.delete(id);
+    }
+  }
+
+  async isCommentProcessed(commentId: string): Promise<boolean> {
+    return this.processedComments.has(commentId);
+  }
+
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    this.processedComments.add(commentId);
+  }
+
+  async getBrandKnowledge(userId: string): Promise<string> {
+    return this.brandKnowledge.get(userId) || '';
   }
 }
 

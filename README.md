@@ -324,19 +324,70 @@ Immediate DM: "Hey Sarah! Thanks for your interest. Here's the AI tool I mention
 6 hours later (if unopened): "Hey Sarah, did you manage to check out the AI tool I sent a few hours ago? This might be your last chance for early access!"
 ```
 
+### Voice Notes System (NEW)
+
+**Plans now include voice minutes instead of seconds:**
+- Starter ($49/mo): 300 minutes
+- Pro ($99/mo): 800 minutes  
+- Enterprise ($199/mo): 1000 minutes
+
+**What happens when minutes run out:**
+- Voice features lock automatically
+- Modal shows: "🔒 All voice minutes used. Please top up to continue"
+- Users can purchase top-ups instantly via Stripe
+
+**Topping Up Voice Minutes:**
+- 100 minutes - $7 (instant delivery)
+- 300 minutes - $20
+- 600 minutes - $40
+- 1200 minutes - $80
+
+All top-ups maintain 85%+ profit margin and sync in real-time.
+
+### Video Comment Automation (Replaces ManyChat)
+
+**Monitor Instagram videos 24/7 for buying signals:**
+1. Select which videos AI should monitor
+2. Set product link and CTA button text
+3. AI reads every comment in real-time
+4. Detects buying intent automatically
+5. Sends personalized DM like a real salesperson
+
+**Example Flow:**
+```
+Comment: "link please"
+↓
+AI detects: High buying intent (95% confidence)
+↓
+Sends DM: "Hey Sarah I noticed you showed interest in my post while scrolling. 
+I think this could be exactly what you need right now..."
+[See the tool →] (clickable button with your link)
+```
+
+**Handles difficult situations maturely:**
+- Price objections → Emotional value selling
+- Inappropriate comments → Professional de-escalation  
+- Spam → Ignores automatically
+- Genuine questions → Answers with brand knowledge
+
 ### API Endpoints
 
 - `POST /api/automation/comment` - Process comment and trigger automation
 - `POST /api/automation/analyze-comment` - Test if comment needs DM
-- `POST /api/automation/manual-trigger` - Manually trigger follow-up
+- `GET /api/video-automation/videos` - Get user's Instagram videos
+- `POST /api/video-automation/monitors` - Set up video monitoring
+- `GET /api/video-automation/monitors` - Get all active monitors
+- `POST /api/video-automation/test-intent` - Test comment intent detection
 
 ### Benefits vs ManyChat
 
-- ✅ **$0 cost** - No monthly subscription or API fees
-- ✅ **More intelligent** - AI understands context and intent
-- ✅ **Personalized** - Every message is unique
-- ✅ **Flexible timing** - Automatically adjusts follow-up based on engagement
+- ✅ **$0 cost** - No monthly subscription or API fees ($297/year saved)
+- ✅ **More intelligent** - AI understands context, sarcasm, objections
+- ✅ **Personalized** - Every message sounds like a real human
+- ✅ **Handles objections** - Closes deals through value-based selling
 - ✅ **Multi-channel** - Works on Instagram, WhatsApp, and email
+- ✅ **Real-time** - Monitors 24/7, responds within seconds
+- ✅ **Learning AI** - Gets smarter from every conversation
 
 ## 🧪 Testing
 
