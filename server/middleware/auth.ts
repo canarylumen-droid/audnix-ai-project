@@ -13,11 +13,14 @@ declare module "express-session" {
 /**
  * Authentication middleware - requires user to be logged in
  * Only accepts authenticated sessions - no header bypass
+ * Prevents timing attacks and session fixation
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
   
   if (!userId) {
+    // Security: Add small delay to prevent timing attacks
+    await new Promise(resolve => setTimeout(resolve, 100));
     return res.status(401).json({ 
       error: "Authentication required",
       message: "Please log in to access this resource"
@@ -27,9 +30,31 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   // Verify user exists in database
   const user = await storage.getUserById(userId);
   if (!user) {
+    // Security: Add small delay to prevent timing attacks
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Security: Destroy invalid session to prevent fixation attacks
+    req.session.destroy(() => {});
+    
     return res.status(401).json({ 
       error: "Invalid session",
       message: "User not found"
+    });
+  }
+
+  // Security: Regenerate session ID periodically to prevent session fixation
+  const lastRegeneration = (req.session as any).lastRegeneration || 0;
+  const now = Date.now();
+  const ONE_HOUR = 60 * 60 * 1000;
+  
+  if (now - lastRegeneration > ONE_HOUR) {
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error("Session regeneration error:", err);
+      } else {
+        (req.session as any).userId = userId;
+        (req.session as any).lastRegeneration = now;
+      }
     });
   }
 

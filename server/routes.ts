@@ -27,12 +27,26 @@ import voiceRoutes from "./routes/voice-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
+import { 
+  validateEmail, 
+  validateLeadId, 
+  validateMessageBody, 
+  validateLeadName,
+  validateSearchQuery,
+  validatePlanKey,
+  validateProvider,
+  handleValidationErrors,
+  sanitizeBody
+} from "./middleware/input-validation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     res.json({ ok: true, timestamp: new Date().toISOString() });
   });
+
+  // Security: Apply body sanitization to all routes
+  app.use(sanitizeBody);
 
   // Get user count (for real-time counter)
   app.get("/api/users/count", async (req, res) => {
@@ -298,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/leads/:leadId/messages", requireAuth, async (req, res) => {
+  app.post("/api/leads/:leadId/messages", requireAuth, validateMessageBody, handleValidationErrors, async (req, res) => {
     try {
       const { leadId } = req.params;
       const { body, useVoice } = req.body;
@@ -334,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/integrations/:provider/connect", requireAuth, async (req, res) => {
+  app.post("/api/integrations/:provider/connect", requireAuth, validateProvider, handleValidationErrors, async (req, res) => {
     try {
       const { provider } = req.params;
       const { tokens, metadata } = req.body;
@@ -547,7 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ plans: PLANS });
   });
 
-  app.post("/api/billing/subscribe", requireAuth, async (req, res) => {
+  app.post("/api/billing/subscribe", requireAuth, validatePlanKey, handleValidationErrors, async (req, res) => {
     try {
       const { planKey } = req.body;
       const userId = getCurrentUserId(req)!;

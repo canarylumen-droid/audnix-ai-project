@@ -2,12 +2,72 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
+import rateLimit from "express-rate-limit";
+import helmet from "helmet";
+import hpp from "hpp";
+import mongoSanitize from "express-mongo-sanitize";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const { Pool } = pg;
 
 const app = express();
+
+// Security: Helmet for security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Needed for Vite HMR in dev
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://api.openai.com", "https://api.elevenlabs.io", "wss:", "ws:"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'", "https:"],
+      frameSrc: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Allow external resources
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+}));
+
+// Security: Rate limiting to prevent brute force and DOS attacks
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 auth requests per windowMs
+  message: "Too many authentication attempts, please try again later.",
+  skipSuccessfulRequests: true,
+});
+
+const webhookLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 50, // Allow more for legitimate webhook traffic
+  message: "Webhook rate limit exceeded.",
+});
+
+// Apply rate limiting to API routes
+app.use("/api/", apiLimiter);
+app.use("/api/auth/", authLimiter);
+app.use("/api/webhook/", webhookLimiter);
+
+// Security: Prevent HTTP Parameter Pollution attacks
+app.use(hpp());
+
+// Security: Sanitize data to prevent NoSQL injection
+app.use(mongoSanitize());
 
 // Validate required environment variables for production
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -62,12 +122,18 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+// Security: Limit request body size to prevent DOS attacks
 app.use(express.json({
+  limit: '10mb', // Limit JSON payload size
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ 
+  extended: false,
+  limit: '10mb', // Limit URL-encoded payload size
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -104,10 +170,25 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    
+    // Security: Don't leak sensitive error details in production
+    const message = process.env.NODE_ENV === 'production' 
+      ? (status === 500 ? "Internal Server Error" : err.message || "An error occurred")
+      : err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // Log full error server-side for debugging
+    console.error('Error:', {
+      status,
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    });
+
+    // Send sanitized error to client
+    res.status(status).json({ 
+      error: message,
+      // Only include stack trace in development
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
   });
 
   // importantly only setup vite in development and after
