@@ -8,13 +8,18 @@ export const isSupabaseConfigured = () => {
   return Boolean(supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '');
 };
 
+// Helper to check if running in developer mode (no production API keys configured)
+export const isDevMode = () => {
+  return !isSupabaseConfigured();
+};
+
 // Only create client if properly configured
 let supabaseClient: SupabaseClient | null = null;
 
 if (isSupabaseConfigured()) {
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
 } else {
-  console.warn('Supabase environment variables are not set. Please configure Supabase for real-time features.');
+  console.warn('⚡ Developer Mode: Supabase not configured. Some features will use demo mode.');
 }
 
 export const supabase = supabaseClient;

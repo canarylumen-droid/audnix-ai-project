@@ -6,62 +6,55 @@
 
 ### Revenue Model
 
-**Subscription Plans:**
-- **Starter**: $49.99/mo - 2,500 leads, 300 voice minutes
-- **Pro**: $99.99/mo - 7,000 leads, 800 voice minutes
-- **Enterprise**: $199.99/mo - 20,000 leads, 1,000 voice minutes
+**Subscription Plans (Optimized for 90%+ Margins):**
+- **Starter**: $49.99/mo - 2,500 leads, **100 voice minutes** (~1.5 hours)
+- **Pro**: $99.99/mo - 7,000 leads, **400 voice minutes** (~6.5 hours)
+- **Enterprise**: $199.99/mo - 20,000 leads, **1,000 voice minutes** (~16+ hours)
 
-**Top-ups (90%+ Profit Margin):**
-- 1,000 leads: $30
-- 2,500 leads: $65
-- 100 voice minutes: $10
-- 300 voice minutes: $30
-- 600 voice minutes: $60
-- 1,200 voice minutes: $120
+**Top-ups (85%+ Profit Margin):**
+- 100 voice minutes: $7.00
+- 300 voice minutes: $20.00
+- 600 voice minutes: $40.00
+- 1,200 voice minutes: $80.00
 
 ### Cost Breakdown Per User (Monthly)
 
-**Voice Costs (ElevenLabs):**
-- Cost per voice minute: $0.01 (including storage + processing)
-- 300 minutes: $3.00
-- 800 minutes: $8.00
-- 1,000 minutes: $10.00
+**Voice Costs (ElevenLabs at $0.01/minute):**
+- Starter: 100 minutes = **$1.00**
+- Pro: 400 minutes = **$4.00**
+- Enterprise: 1,000 minutes = **$10.00**
 
 **AI Processing (OpenAI GPT-4):**
-- Cost per message: $0.002
-- Starter (2,500 messages): $5.00
-- Pro (7,000 messages): $14.00
-- Enterprise (20,000 messages): $40.00
+- Cost per message: ~$0.001 (using GPT-4o-mini)
+- Starter (2,500 messages): $2.50
+- Pro (7,000 messages): $7.00
+- Enterprise (20,000 messages): $20.00
 
 **Infrastructure (Per User):**
-- Database (Supabase/Postgres): $0.50
-- Storage (files, voice samples): $0.30
-- API calls & webhooks: $0.20
-- Total infrastructure: $1.00/user
+- Database + Storage + API: **$0.50/user**
 
-**Messaging (Twilio WhatsApp):**
-- Cost per WhatsApp message: $0.005
-- Average 500 messages/mo: $2.50
+**Messaging Costs:**
+- **WhatsApp via Twilio**: $0 (users connect their own accounts and pay Twilio directly)
+- **Instagram**: $0 (free via Graph API)
+- **Platform messaging cost**: **$0** 🎉
 
 **Total Cost Per User:**
-- Starter: $11.50 (Voice: $3 + AI: $5 + Infra: $1 + Messaging: $2.50)
-- Pro: $25.50 (Voice: $8 + AI: $14 + Infra: $1 + Messaging: $2.50)
-- Enterprise: $53.50 (Voice: $10 + AI: $40 + Infra: $1 + Messaging: $2.50)
+- Starter: **$4.00** (Voice: $1 + AI: $2.50 + Infra: $0.50 + Messaging: $0)
+- Pro: **$11.50** (Voice: $4 + AI: $7 + Infra: $0.50 + Messaging: $0)
+- Enterprise: **$30.50** (Voice: $10 + AI: $20 + Infra: $0.50 + Messaging: $0)
 
-### Profit Margins
+### Profit Margins (Industry-Leading)
 
 **Monthly Subscriptions:**
-- Starter: $49.99 revenue - $11.50 cost = **$38.49 profit (77% margin)**
-- Pro: $99.99 revenue - $25.50 cost = **$74.49 profit (74% margin)**
-- Enterprise: $199.99 revenue - $53.50 cost = **$146.49 profit (73% margin)**
+- Starter: $49.99 revenue - $4.00 cost = **$45.99 profit (92% margin)** 🚀
+- Pro: $99.99 revenue - $11.50 cost = **$88.49 profit (88% margin)** 🚀
+- Enterprise: $199.99 revenue - $30.50 cost = **$169.49 profit (85% margin)** 🚀
 
-**Top-ups (90%+ Margin):**
-- 100 voice minutes: $10 revenue - $1 cost = **$9 profit (90% margin)**
-- 300 voice minutes: $30 revenue - $3 cost = **$27 profit (90% margin)**
-- 600 voice minutes: $60 revenue - $6 cost = **$54 profit (90% margin)**
-- 1,200 voice minutes: $120 revenue - $12 cost = **$108 profit (90% margin)**
-- 1,000 leads: $30 revenue - $2 cost = **$28 profit (93% margin)**
-- 2,500 leads: $65 revenue - $5 cost = **$60 profit (92% margin)**
+**Top-ups (at $0.01/min voice cost):**
+- 100 voice minutes: $7 revenue - $1 cost = **$6 profit (86% margin)**
+- 300 voice minutes: $20 revenue - $3 cost = **$17 profit (85% margin)**
+- 600 voice minutes: $40 revenue - $6 cost = **$34 profit (85% margin)**
+- 1,200 voice minutes: $80 revenue - $12 cost = **$68 profit (85% margin)**
 
 ### Break-Even & Growth
 
@@ -75,14 +68,20 @@
 - 1 Starter subscriber = $38.49 profit > $50 fixed costs
 - **2 users = profitable** ✅
 
-**Growth Projections:**
-- 10 users (mix): ~$600/mo revenue, $200 costs = **$400/mo profit**
-- 100 users (mix): ~$8,000/mo revenue, $2,000 costs = **$6,000/mo profit**
-- 1,000 users (mix): ~$80,000/mo revenue, $20,000 costs = **$60,000/mo profit**
+**Growth Projections (Conservative Mix):**
+- 10 users: ~$750/mo revenue, $80 costs = **$670/mo profit (89% margin)**
+- 100 users: ~$7,500/mo revenue, $800 costs = **$6,700/mo profit (89% margin)**
+- 1,000 users: ~$75,000/mo revenue, $8,000 costs = **$67,000/mo profit (89% margin)**
 
-**Average Revenue Per User (ARPU):** $80/mo (with top-ups)
-**Lifetime Value (LTV):** $960 (12-month retention)
-**Customer Acquisition Cost (CAC) Target:** <$100 (10:1 LTV:CAC ratio)
+**Key Differentiators:**
+- **Zero messaging costs** - Users connect their own Twilio accounts
+- **WhatsApp**: Users pay Twilio directly (~$0.005/msg)
+- **Instagram**: Free via Graph API
+- **Platform profit**: 100% margin on message delivery 🎉
+
+**Average Revenue Per User (ARPU):** $75/mo (base plans only)
+**Lifetime Value (LTV):** $900 (12-month retention)
+**Customer Acquisition Cost (CAC) Target:** <$90 (10:1 LTV:CAC ratio)
 
 ## ✨ Features
 
@@ -98,9 +97,17 @@
 
 ## 🎯 Current Status: Production-Ready MVP v1.0
 
-**Last Updated:** October 2025
+**Last Updated:** October 30, 2025
 
 This is a fully functional SaaS platform with complete authentication, database, pricing, and feature gating. Ready for production deployment and real users.
+
+**✨ New Features (October 2025):**
+- **Developer Mode**: Access dashboard without API keys for development
+- **Optimized Pricing**: 90%+ profit margins on subscriptions
+- **Twilio WhatsApp**: Users connect their own accounts (zero platform costs)
+- **AI Comment Detection**: Smart intent analysis (not just keywords)
+- **Security**: Removed all exposed secrets, added encryption
+- **Real-time Updates**: Supabase integration for live data
 
 ### ✅ Core System (Works Immediately)
 

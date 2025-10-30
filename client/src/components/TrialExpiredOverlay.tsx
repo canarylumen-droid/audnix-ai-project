@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lock, Sparkles } from "lucide-react";
 import { Link } from "wouter";
+import { isDevMode } from "@/lib/supabase";
 
 interface TrialExpiredOverlayProps {
   daysLeft: number;
@@ -10,6 +11,11 @@ interface TrialExpiredOverlayProps {
 }
 
 export function TrialExpiredOverlay({ daysLeft, plan }: TrialExpiredOverlayProps) {
+  // Skip in developer mode (when API keys not configured)
+  if (isDevMode()) {
+    return null;
+  }
+
   if (plan !== "trial" || daysLeft > 0) {
     return null;
   }
