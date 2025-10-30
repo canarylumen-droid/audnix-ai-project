@@ -1,0 +1,100 @@
+It was working on this before it stopped so check if some have been implemented check it review the one that's there already add the ones left fix all bugs too
+Update Audnix AI backend to use voice minutes instead of seconds.
+Show live usage per user, lock voice features when exhausted, and allow Stripe top-ups that sync in real time.
+Maintain ≥ 85% profit margin on every tier and top-up.
+
+⚙️ Environment & README Updates
+
+In .env replace all existing VOICE_SECONDS_* keys with:
+VOICE_MINUTES_PLAN_49=300
+VOICE_MINUTES_PLAN_99=800
+VOICE_MINUTES_PLAN_199=1000
+
+Auto-update README.md:
+Clarify that plans now include voice minutes.
+
+Explain that once minutes are used, voice note features lock.
+
+Add a short section titled “Topping Up Voice Minutes” showing example pricing.
+
+🧩 Usage Logic
+
+Track voice_minutes_used and voice_minutes_balance per user.
+
+On every voice generation request:
+
+deduct = audio_length_seconds / 60
+voice_minutes_balance -= deduct
+
+If balance ≤ 0:
+
+Reject request and trigger LOCK_MODAL_TRIGGER.
+
+Display modal:
+
+🔒 All voice minutes used.
+Please top up to continue sending voice notes.
+[Top Up Now →]
+
+📊 Dashboard & UI
+
+Add a live progress bar in the Voice Clone / Follow-Up section:
+
+Shows used vs. total minutes (real-time via socket or 5 s polling).
+
+When balance hits 0:
+
+Disable voice-send button.
+
+Show lock icon / modal prompt.
+
+💳 Stripe Top-Up Flow
+
+Dropdown options
+
+100 mins – $5
+300 mins – $12
+600 mins – $20
+1200 mins – $35
+
+Display total price beside dropdown.
+
+On “Top Up Now” → Initialize Stripe Checkout.
+
+On successful payment (webhook):
+
+Add purchased minutes to user balance.
+
+Create notification:
+
+✅ Top-up successful!
++{purchased_minutes} voice minutes added to your account.
+
+Update progress bar instantly.
+
+💰 Cost & Profit Control
+
+Plan User Price Voice Minutes Max Internal Spend Target Margin
+
+Starter $49 300 min ≤ $5 90 %
+Pro $99 800 min ≤ $10 90 %
+Enterprise $199 1000 min ≤ $20 90 %
+
+Voice and database costs must stay within these caps.
+
+Top-ups are pure profit (> 90 % margin).
+
+✅ Expected Output
+
+.env and README.md auto-updated.
+
+Voice minute tracking active with progress UI.
+
+Stripe top-up checkout live and functional.
+
+Lock modal + notification system fully working.
+
+All config values read from .env, no hard-coding.
+
+And make sure it can send voice note across Instagram too not just on Whatsapp and also if lead is saying inappropriate words anytime or insult if you can handle it maturedly like someone as a professional salesman take over comprehensively to calm him down if his intent is bad or saying weird names and stuff ignore him for the moment mark as inappropriate or let user handle but this won't happen but in case it does and also if lead is trying to complain about price let it not rush or say anything bad instead try acknowledge it and say things like I understand handle maturedly talk about the value you're offering I mean the user on our app is offering to the lead or prospect and give emotional example that'll make them pay immediately without saying let me ask someone or wife to confirm something like would you pay x amount and be financially free or wait until the right time comes which you've waited and didn't come? Leave a good emotional question they won't answer negatively talk like human no hyphen Everytime or use punctuations bot usually use learn from leads in real time and when they import leads all Knowledge will be stored permanently and AI can answer based on the whole conversation analysis based on the leads intent and PDF and that PDF feature they can update it more reupload PDF or edit it right inside there the y can reupload it or add more PDF while still retaining pat one and AI keeps learning like human sales man expert from it and the AI retrains itself learn from the PDF as well when replying according to their details and branding, brand tone etc update everything in real time I can see the redis too it's only a URL update it to the whole thing redis cloud add it both their client id etc
+Fix all bugs review code too 
