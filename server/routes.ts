@@ -41,6 +41,11 @@ import {
   sanitizeBody
 } from "./middleware/input-validation";
 
+// Import AI modules for lead learning and content moderation
+import { trackMessage } from './lib/ai/super-memory';
+import { leadLearningSystem } from './lib/ai/lead-learning-system';
+import { contentModerationService } from './lib/ai/content-moderation';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
@@ -324,10 +329,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.createMessage({
         leadId,
         userId,
-        provider: "instagram",
+        provider: "instagram", // Default provider, will be overridden by integration if applicable
         direction: "outbound",
         body,
       });
+
+      // Track in super memory for context
+      await trackMessage(message);
+
+      // Learn from this interaction in real-time
+      await leadLearningSystem.analyzeAndLearn(message.leadId, message);
+
+      // Moderate inbound content (only if it's an inbound message, which this route doesn't handle)
+      // This logic is more appropriate for webhook handlers or dedicated inbound message processing.
+      // For outbound messages, we might want to validate the *sent* content, but the prompt implies moderation of received content.
 
       res.json({ message });
     } catch (error) {
@@ -548,7 +563,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         leads.map(lead => storage.getMessagesByLeadId(lead.id))
       );
       const messageCount = allMessages.flat().length;
-      const aiReplyCount = allMessages.flat().filter(m => 
+      const aiReplyCount = allMessages.flat().filter(m =>
         m.direction === 'outbound' && m.metadata?.isAiGenerated
       ).length;
 
@@ -641,7 +656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getCurrentUserId(req)!;
       const user = await storage.getUserById(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -657,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const planAllowance = planMinutes[user.plan] || 0;
       const topupMinutes = user.voiceMinutesTopup || 0;
       const totalMinutes = planAllowance + topupMinutes;
-      
+
       // Get actual usage from database
       const usedMinutes = user.voiceMinutesUsed || 0;
       const balance = Math.max(0, totalMinutes - usedMinutes);
@@ -713,12 +728,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch (event.type) {
         case "checkout.session.completed":
           const session = event.data.object as any;
-          
+
           // Handle top-up purchases
           if (session.metadata?.userId && session.metadata?.topupType && session.metadata?.topupAmount) {
             const userId = session.metadata.userId;
             const topupAmount = parseInt(session.metadata.topupAmount);
-            
+
             // Add minutes to user balance
             const user = await storage.getUserById(userId);
             if (user) {
@@ -751,12 +766,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log(`✅ Added ${topupAmount} minutes to user ${userId}`);
             }
           }
-          
+
           // Handle subscription changes
           if (session.metadata?.userId && session.metadata?.planKey && !session.metadata?.topupType) {
             const userId = session.metadata.userId;
             const planKey = session.metadata.planKey;
-            
+
             await storage.updateUser(userId, {
               plan: planKey,
               stripeSubscriptionId: session.subscription as string
@@ -859,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         leads.map(lead => storage.getMessagesByLeadId(lead.id))
       );
       const messageCount = allMessages.flat().length;
-      const aiReplyCount = allMessages.flat().filter(m => 
+      const aiReplyCount = allMessages.flat().filter(m =>
         m.direction === 'outbound' && (m.metadata as any)?.isAiGenerated
       ).length;
 
@@ -1146,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { total, thisMonth, deals } = await storage.calculateRevenue(userId);
 
-      res.json({ 
+      res.json({
         deals,
         revenue: {
           total,

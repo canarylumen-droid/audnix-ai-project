@@ -116,38 +116,38 @@ export class InstagramProvider {
 
   /**
    * Send voice message to Instagram DM
+   * Instagram requires audio to be hosted publicly first
    */
   async sendVoiceMessage(recipientId: string, audioBuffer: Buffer): Promise<boolean> {
     try {
-      const accessToken = await this.getValidToken(this.userId);
+      if (this.isDemoMode) {
+        console.log('Demo mode: Would send voice message to', recipientId);
+        return true;
+      }
+
+      const accessToken = this.credentials.access_token;
       if (!accessToken) {
         throw new Error('No valid Instagram access token');
       }
 
-      // First, upload the audio file to Instagram
-      const uploadUrl = `https://graph.instagram.com/v18.0/me/media`;
+      // Upload audio to a public URL first (using Supabase storage or similar)
+      const { uploadToSupabase } = await import('../file-upload');
+      const audioUrl = await uploadToSupabase(
+        audioBuffer,
+        `voice-messages/${recipientId}-${Date.now()}.mp3`,
+        'audio/mpeg'
+      );
 
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('audio', new Blob([audioBuffer], { type: 'audio/mpeg' }));
-      formData.append('access_token', accessToken);
-
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload audio to Instagram');
+      if (!audioUrl) {
+        throw new Error('Failed to upload audio file');
       }
 
-      const { id: mediaId } = await uploadResponse.json();
-
-      // Send the uploaded audio as a DM
-      const sendUrl = `https://graph.instagram.com/v18.0/me/messages`;
+      // Send audio message via Instagram Graph API
+      const sendUrl = `https://graph.facebook.com/v18.0/me/messages`;
       const sendResponse = await fetch(sendUrl, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -156,20 +156,21 @@ export class InstagramProvider {
             attachment: {
               type: 'audio',
               payload: {
-                attachment_id: mediaId
+                url: audioUrl,
+                is_reusable: true
               }
             }
-          },
-          access_token: accessToken
+          }
         })
       });
 
       if (!sendResponse.ok) {
-        const error = await sendResponse.text();
+        const error = await sendResponse.json();
         console.error('Instagram voice send error:', error);
-        return false;
+        throw new Error(`Failed to send voice message: ${error.error?.message || 'Unknown error'}`);
       }
 
+      console.log('✅ Instagram voice message sent successfully');
       return true;
     } catch (error) {
       console.error('Error sending Instagram voice message:', error);
