@@ -4,6 +4,7 @@ import { InstagramOAuth } from '../oauth/instagram';
 import { sendInstagramMessage } from '../channels/instagram';
 import { sendWhatsAppMessage } from '../channels/whatsapp';
 import { sendEmail } from '../channels/email';
+import { executeCommentFollowUps } from './comment-detection';
 
 interface FollowUpJob {
   id: string;
@@ -81,6 +82,9 @@ export class FollowUpWorker {
    */
   private async processQueue() {
     try {
+      // Execute comment automation follow-ups first
+      await executeCommentFollowUps();
+      
       if (!supabaseAdmin) {
         console.warn('Supabase admin not configured - skipping queue processing');
         return;

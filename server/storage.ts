@@ -11,23 +11,24 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>;
-  
+
   // Lead methods
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
   getLeadById(id: string): Promise<Lead | undefined>;
+  getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   getTotalLeadsCount(): Promise<number>;
-  
+
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
   createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
-  
+
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
   disconnectIntegration(userId: string, provider: string): Promise<void>;
-  
+
   // Notification methods
   getNotifications(userId: string): Promise<any[]>;
   markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
@@ -48,7 +49,7 @@ export class MemStorage implements IStorage {
   }
 
   // ========== User Methods ==========
-  
+
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -72,11 +73,11 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: Partial<InsertUser> & { email: string }): Promise<User> {
     const id = randomUUID();
     const now = new Date();
-    
+
     // Calculate trial expiry (3 days from now)
     const trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 3);
-    
+
     const user: User = {
       id,
       supabaseId: insertUser.supabaseId || null,
@@ -95,7 +96,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       lastLogin: now,
     };
-    
+
     this.users.set(id, user);
     return user;
   }
@@ -152,6 +153,14 @@ export class MemStorage implements IStorage {
 
   async getLeadById(id: string): Promise<Lead | undefined> {
     return this.leads.get(id);
+  }
+
+  async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
+    const leads = await this.getLeads({ userId: '', limit: 1000 });
+    return leads.find(lead =>
+      lead.name.toLowerCase() === username.toLowerCase() &&
+      lead.channel === channel
+    );
   }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
@@ -259,7 +268,7 @@ export class MemStorage implements IStorage {
   }
 
   // ========== Notification Methods ==========
-  
+
   private notifications: Map<string, any> = new Map();
   private readNotifications: Set<string> = new Set();
 

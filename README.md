@@ -188,6 +188,7 @@ Server starts on `http://localhost:5000`
 - ✅ **File Uploads** - Voice samples and PDF processing
 - ✅ **Webhooks** - Stripe payment webhooks
 - ✅ **Background Jobs** - Follow-up worker for automation
+- ✅ **Comment DM Automation** - AI-powered detection and follow-up (replaces ManyChat)
 
 ### Libraries & Integrations
 
@@ -285,6 +286,57 @@ Or use the Deploy to Render button (see [DEPLOYMENT.md](./DEPLOYMENT.md))
 - **Where:** Render.com standard tier
 - **Database:** 10GB PostgreSQL
 - **RAM:** 2GB
+
+## 🤖 AI-Powered Comment Automation
+
+**NEW: Intelligent DM Follow-Up System (No ManyChat Required)**
+
+Instead of using expensive third-party tools like ManyChat, Audnix AI includes built-in comment automation:
+
+### How It Works
+
+1. **Smart Comment Detection** - AI analyzes comments to detect DM intent:
+   - "Link" or "link please"
+   - "DM me" 
+   - "Interested"
+   - Single word responses to "comment X for [something]"
+
+2. **Personalized Initial DM** - AI generates custom first message:
+   - Uses their username naturally
+   - References what they asked for (link, info, offer, product)
+   - Creates urgency for offers ("limited spots", "early access")
+   - Sounds human, not robotic
+
+3. **6-Hour Smart Follow-Up** - Automatic reminder if they:
+   - Never opened the message
+   - Opened but didn't click the link
+   - Engaged but didn't take action
+
+### Example Flow
+
+```
+User comments: "Link"
+↓
+AI detects DM intent (95% confidence)
+↓
+Immediate DM: "Hey Sarah! Thanks for your interest. Here's the AI tool I mentioned: [link]"
+↓
+6 hours later (if unopened): "Hey Sarah, did you manage to check out the AI tool I sent a few hours ago? This might be your last chance for early access!"
+```
+
+### API Endpoints
+
+- `POST /api/automation/comment` - Process comment and trigger automation
+- `POST /api/automation/analyze-comment` - Test if comment needs DM
+- `POST /api/automation/manual-trigger` - Manually trigger follow-up
+
+### Benefits vs ManyChat
+
+- ✅ **$0 cost** - No monthly subscription or API fees
+- ✅ **More intelligent** - AI understands context and intent
+- ✅ **Personalized** - Every message is unique
+- ✅ **Flexible timing** - Automatically adjusts follow-up based on engagement
+- ✅ **Multi-channel** - Works on Instagram, WhatsApp, and email
 
 ## 🧪 Testing
 

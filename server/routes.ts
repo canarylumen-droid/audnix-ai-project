@@ -2,11 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { supabaseAdmin, isSupabaseAdminConfigured, syncUserFromSupabase } from "./lib/supabase-admin";
-import { 
-  stripe, 
-  isDemoMode as stripeDemoMode, 
-  createStripeCustomer, 
-  createSubscription, 
+import {
+  stripe,
+  isDemoMode as stripeDemoMode,
+  createStripeCustomer,
+  createSubscription,
   createSubscriptionCheckout,
   updateSubscriptionPlan,
   cancelSubscription,
@@ -20,17 +20,18 @@ import { generateInsights } from "./lib/ai/openai";
 import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
 import { encrypt } from "./lib/crypto/encryption";
 import oauthRoutes from "./routes/oauth";
-import webhookRoutes from "./routes/webhook";
-import workerRoutes from "./routes/worker";
+import webhookRouter from "./routes/webhook";
+import workerRouter from "./routes/worker";
+import commentAutomationRouter from "./routes/comment-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
-import { 
-  validateEmail, 
-  validateLeadId, 
-  validateMessageBody, 
+import {
+  validateEmail,
+  validateLeadId,
+  validateMessageBody,
   validateLeadName,
   validateSearchQuery,
   validatePlanKey,
@@ -101,7 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the session with access and refresh tokens
       const { data: { session: oauthSession }, error: sessionError } = await supabaseAdmin.auth.getSession();
-      
+
       if (sessionError || !oauthSession) {
         console.error("Failed to get OAuth session:", sessionError);
         return res.redirect("/auth?error=session_failed");
@@ -109,17 +110,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the full user data with metadata
       const { data: { user: authUser } } = await supabaseAdmin.auth.getUser();
-      
+
       // Extract real name, email, and avatar from OAuth provider metadata
       const userMetadata = authUser?.user_metadata || {};
       const email = authUser?.email || user.email || '';
       const fullName = userMetadata.full_name || userMetadata.name || userMetadata.given_name || '';
       const avatar = userMetadata.avatar_url || userMetadata.picture || null;
       const username = email.split('@')[0];
-      
+
       // Check if user exists
       let dbUser = await storage.getUserBySupabaseId(user.id);
-      
+
       if (!dbUser) {
         // Create new user with real OAuth data
         dbUser = await storage.createUser({
@@ -153,14 +154,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (req.session as any).accessToken = oauthSession.access_token;
         (req.session as any).refreshToken = oauthSession.refresh_token;
         (req.session as any).expiresAt = oauthSession.expires_at;
-        
+
         // Save session with secure HTTP-only cookies
         req.session.save((err) => {
           if (err) {
             console.error("Error saving session:", err);
             return res.redirect("/auth?error=session_error");
           }
-          
+
           // Redirect to dashboard
           res.redirect("/dashboard");
         });
@@ -186,15 +187,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Error destroying session:", err);
             return res.status(500).json({ error: "Failed to destroy session" });
           }
-          
+
           // Clear the session cookie
-          res.clearCookie('connect.sid', { 
+          res.clearCookie('connect.sid', {
             path: '/',
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax'
           });
-          
+
           res.status(200).json({ success: true, message: "Signed out successfully" });
         });
       } else {
@@ -248,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status, channel, search, limit = 50 } = req.query;
       const userId = getCurrentUserId(req)!;
-      
+
       const leads = await storage.getLeads({
         userId,
         status: status as string,
@@ -389,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getCurrentUserId(req)!;
       const leads = await storage.getLeads({ userId, limit: 1000 });
-      
+
       if (leads.length === 0) {
         return res.json({
           hasData: false,
@@ -440,10 +441,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const date = new Date(now);
         date.setDate(date.getDate() - i);
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        
+
         const dayStart = new Date(date.setHours(0, 0, 0, 0));
         const dayEnd = new Date(date.setHours(23, 59, 59, 999));
-        
+
         const leadsCount = leads.filter(lead => {
           const leadDate = new Date(lead.createdAt);
           return leadDate >= dayStart && leadDate <= dayEnd;
@@ -458,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Metrics
       const convertedCount = statusStats['converted'] || 0;
       const conversionRate = totalLeads > 0 ? ((convertedCount / totalLeads) * 100).toFixed(1) : "0";
-      
+
       const metrics = {
         avgResponseTime: "2.3h",
         conversionRate,
@@ -506,7 +507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get data for insights
       const leads = await storage.getLeads({ userId, limit: 1000 });
-      
+
       const analyticsData = {
         total_leads: leads.length,
         by_channel: leads.reduce((acc: any, lead: any) => {
@@ -535,7 +536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights/metrics", requireAuth, async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
-      
+
       // Fetch real metrics from database
       const leads = await storage.getLeads({ userId, limit: 1000 });
       const conversions = leads.filter(l => l.status === 'converted').length;
@@ -651,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/billing/webhook", async (req, res) => {
     try {
       const signature = req.headers["stripe-signature"] as string;
-      
+
       if (!signature) {
         return res.status(400).json({ error: "Missing signature" });
       }
@@ -726,7 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         // Return zeros for unauthenticated users
         return res.json({
@@ -763,14 +764,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dashboard/activity", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         return res.json({ activities: [] });
       }
 
       // Get recent leads and messages to create activity feed
       const leads = await storage.getLeads({ userId, limit: 10 });
-      
+
       const activities = leads.map(lead => ({
         id: lead.id,
         type: lead.status === 'converted' ? 'conversion' : 'lead',
@@ -790,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/profile", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       // Return demo user data for unauthenticated users (no 401)
       if (!userId) {
         return res.status(200).json({
@@ -807,7 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUserById(userId);
-      
+
       // Fallback to demo user if not found (no 404)
       if (!user) {
         return res.status(200).json({
@@ -855,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/user/notifications", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         // Return demo notifications for unauthenticated users
         return res.status(200).json({
@@ -904,7 +905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
       const { id } = req.params;
-      
+
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -921,7 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/user/notifications/read-all", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -938,7 +939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/user/profile", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -951,7 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company,
         timezone,
       });
-      
+
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -981,9 +982,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = getCurrentUserId(req)!;
-      
+
       let avatarUrl;
-      
+
       // Try to upload to Supabase if configured, otherwise use local path
       if (isSupabaseAdminConfigured()) {
         try {
@@ -1025,7 +1026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/deals", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         return res.json({ deals: [] });
       }
@@ -1042,7 +1043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/calendar/events", async (req, res) => {
     try {
       const userId = (req.session as any)?.userId || req.headers['x-user-id'];
-      
+
       if (!userId) {
         return res.json({ events: [] });
       }
@@ -1059,11 +1060,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/metrics", requireAdmin, async (req, res) => {
     try {
-      
+
       const totalUsers = await storage.getUserCount();
       const totalLeads = await storage.getTotalLeadsCount();
       const allUsers = await storage.getAllUsers();
-      
+
       const activeUsers = allUsers.filter(u => {
         const lastLogin = u.lastLogin ? new Date(u.lastLogin) : null;
         const daysSinceLogin = lastLogin ? (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24) : 999;
@@ -1072,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const trialUsers = allUsers.filter(u => u.plan === 'trial').length;
       const paidUsers = allUsers.filter(u => u.plan !== 'trial').length;
-      
+
       // Calculate MRR based on plans
       const mrr = allUsers.reduce((sum, u) => {
         if (u.plan === 'starter') return sum + 49;
@@ -1295,18 +1296,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register OAuth routes
   app.use("/api", oauthRoutes);
-  
+
   // Register webhook routes
-  app.use("/api", webhookRoutes);
-  
-  // Register worker control routes
-  app.use("/api", workerRoutes);
-  
-  // Register AI-powered routes
-  app.use("/api/ai", aiRoutes);
-  
-  // Register voice AI routes
-  app.use("/api/voice", voiceRoutes);
+  app.use("/api/webhook", webhookRouter);
+  app.use("/api", workerRouter);
+  app.use("/api/automation", commentAutomationRouter);
 
   const httpServer = createServer(app);
 
