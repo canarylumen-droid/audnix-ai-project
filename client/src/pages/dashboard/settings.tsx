@@ -212,7 +212,14 @@ export default function SettingsPage() {
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lead Export */}
       <Card data-testid="card-lead-export">
@@ -335,33 +342,22 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-            </div>
-            <div>
-              <p className="font-medium text-lg">
-                {user.name || user.username || "User"}
-              </p>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              {user.plan && (
-                <p className="text-sm text-muted-foreground capitalize">
-                  {user.plan} Plan
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                📸 Click the upload icon to change avatar (max 5MB, JPG/PNG)
-              </p>
-            </div>
-          </div>
+      {/* Profile Input Fields */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>
+            Update your profile details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
