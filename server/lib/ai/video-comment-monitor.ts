@@ -27,7 +27,8 @@ interface VideoMonitorConfig {
 }
 
 /**
- * Detect buying intent from Instagram comment with human-like analysis
+ * Detect ANY interest from Instagram comment - no keywords required
+ * AI analyzes context, tone, and user behavior to determine if they should get a DM
  */
 export async function detectBuyingIntent(comment: string, videoContext: string): Promise<{
   hasBuyingIntent: boolean;
@@ -35,6 +36,7 @@ export async function detectBuyingIntent(comment: string, videoContext: string):
   confidence: number;
   shouldDM: boolean;
   suggestedResponse?: string;
+  detectedInterest?: string;
 }> {
   if (isDemoMode) {
     const lowerComment = comment.toLowerCase();
@@ -44,54 +46,60 @@ export async function detectBuyingIntent(comment: string, videoContext: string):
       intentType: 'high_interest',
       confidence: 0.85,
       shouldDM: hasBuyingIntent,
-      suggestedResponse: undefined
+      suggestedResponse: undefined,
+      detectedInterest: 'Product interest detected'
     };
   }
 
   try {
-    const prompt = `You are an expert sales psychologist analyzing Instagram comments for buying signals.
+    const prompt = `You are an AI trained to detect ANY form of interest in Instagram comments - not just keywords.
 
 Comment: "${comment}"
 Video Context: "${videoContext}"
 
-Analyze this comment and determine:
+CRITICAL: We DM ANYONE who shows even SLIGHT interest. Don't wait for "link" or "interested" keywords.
 
-1. BUYING INTENT LEVEL:
-   - High Interest: "link", "interested", "dm me", "how do I get this", "need this"
-   - Curious: "what is this", "how does it work", "tell me more"
-   - Price Objection: "too expensive", "cheaper option", "discount", "can't afford"
-   - Competitor Comparison: "found someone cheaper", "other options cheaper", "better deal elsewhere"
-   - Inappropriate: Insults, spam, offensive language, trolling
-   - Neutral: General comments, emojis only, unrelated
+Analyze this comment for:
 
-2. Should we DM? (true/false)
-   - YES if: High interest, Curious, Price objection (we can handle)
-   - NO if: Inappropriate, Neutral, Just emojis
+1. INTEREST SIGNALS (DM these):
+   - Direct questions about the product/service
+   - Expressing curiosity ("what is this?", "tell me more", "how?")
+   - Asking for details, pricing, or availability
+   - Showing excitement or positive emotion ("wow", "amazing", "love this")
+   - ANY comment that indicates they might want to learn more
+   - Emojis that show interest (😍, 🔥, 👀, 💯, ✨)
+   - Tagging friends (shows they're sharing/interested)
+   - Asking "how do I get this" or similar
 
-3. If inappropriate/rude, suggest a MATURE professional response that:
-   - Acknowledges their concern calmly
-   - Doesn't engage with negativity
-   - Redirects professionally
-   - Shows empathy
+2. NEUTRAL/SKIP (don't DM):
+   - Pure spam or bots
+   - Completely unrelated comments
+   - Offensive/inappropriate language
+   - Just generic praise with no curiosity ("nice video")
 
-Return JSON only: 
+3. What they're interested in (extract from comment and video context):
+   - What specific aspect caught their attention?
+   - What problem are they trying to solve?
+
+Return JSON:
 {
   "hasBuyingIntent": boolean,
   "intentType": "high_interest" | "curious" | "price_objection" | "competitor_comparison" | "inappropriate" | "neutral",
   "confidence": 0.0-1.0,
-  "shouldDM": boolean,
+  "shouldDM": boolean (true for ANY interest, false only for spam/offensive),
+  "detectedInterest": "what they're interested in (e.g., 'pricing info', 'how it works', 'getting started')",
   "suggestedResponse": "optional response for handling difficult comments"
 }`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a master sales psychologist and conflict resolution expert.' },
+        { role: 'system', content: 'You are a hyper-intelligent sales AI that detects interest from ANY comment - no keywords needed. You understand context, tone, and human behavior.' },
         { role: 'user', content: prompt }
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: 250,
-      temperature: 0.4
+      max_completion_tokens: 300,
+      temperature: 0.5
     });
 
     return JSON.parse(response.choices[0].message.content || '{}');
@@ -107,7 +115,8 @@ Return JSON only:
 }
 
 /**
- * Generate human-like DM that sounds like a real salesperson
+ * Generate context-aware DM using REAL username and detected interest
+ * No fake names - uses their actual Instagram username
  */
 export async function generateSalesmanDM(
   leadName: string,
@@ -116,11 +125,12 @@ export async function generateSalesmanDM(
   productLink: string,
   ctaText: string,
   videoContext: string,
-  brandKnowledge?: string
+  brandKnowledge?: string,
+  detectedInterest?: string
 ): Promise<{ message: string; linkButton: { text: string; url: string }; askFollow?: boolean }> {
   if (isDemoMode) {
     return {
-      message: `Hey ${leadName} I noticed you showed interest in my post while scrolling. I think you'll love this`,
+      message: `Hey ${leadName}, I noticed you showed interest in my video. Based on your comment, I think this is exactly what you're looking for`,
       linkButton: { text: ctaText || 'Check it out', url: productLink },
       askFollow: false
     };
@@ -129,50 +139,49 @@ export async function generateSalesmanDM(
   try {
     const prompt = `You are a TOP-PERFORMING salesperson sending a DM to someone who commented on your Instagram video.
 
-Lead Name: ${leadName}
+Lead Username: ${leadName} (use this EXACT name - it's their real Instagram username)
 Their Comment: "${comment}"
+What They're Interested In: ${detectedInterest || 'the product/offer'}
 Intent Type: ${intentType}
 Video Context: ${videoContext}
-Product/Offer: ${productLink}
-${brandKnowledge ? `Brand Knowledge: ${brandKnowledge}` : ''}
+Product/Offer Link: ${productLink}
+${brandKnowledge ? `What We Offer: ${brandKnowledge}` : ''}
 
-CRITICAL RULES:
-1. Sound like a REAL HUMAN having a conversation - no hyphens, no robotic punctuation
-2. Address them by first name casually like "Hey Sarah" or just "Sarah"
-3. Open with "I noticed you showed interest in my post while scrolling" or similar natural line
-4. NO copy-paste vibe - each message should feel unique
-5. Keep it under 80 words - sales pros are brief and punchy
-6. NO hyphen bullets NO excessive punctuation like "..." or "!!!"
-7. Build urgency naturally if it's an offer - "might be your last shot" "filling up fast"
-8. If price objection: Acknowledge it maturely, focus on VALUE and ROI, ask emotional closing question
-9. End naturally - don't force a hard close, just make them WANT to click
-10. For the link button text: Keep it 2-4 words max, action-oriented
+CRITICAL RULES - READ CAREFULLY:
+1. Start with "Hey ${leadName}" (use their EXACT username, no fake names)
+2. Reference what they showed interest in from the comment: "${comment}"
+3. Talk about what THEY want (based on "${detectedInterest || 'their interest'}")
+4. Connect their interest to what YOU offer (use brand knowledge if available)
+5. Make it feel personalized and contextual - NOT generic
+6. Keep it under 60 words - short, punchy, direct
+7. NO hyphens, NO excessive punctuation (!!!, ???)
+8. Sound like a confident human, not a bot
+9. Create urgency naturally - "this might be your last shot" or "spots filling up"
+10. End with a strong CTA that makes them want to click
 
-PRICE OBJECTION HANDLING:
-If intent is price_objection, use emotional sales tactics:
-- "I get it, but would you rather invest $X now and be financially free in 6 months, or keep waiting for the 'right time' that never comes?"
-- "Most people who hesitate regret it when they see others getting results. You in or out?"
-- Focus on transformation, not price
-- Make them feel they're losing opportunity by waiting
+PERSONALIZATION EXAMPLES:
+- If they asked "how?": "Hey ${leadName}, you asked how this works - let me show you exactly what this does and how it can help you..."
+- If they said "wow": "Hey ${leadName}, glad you're excited! This is exactly what you need if you want to..."
+- If they asked about price: "Hey ${leadName}, I get it - pricing matters. But here's why this is worth every penny..."
 
 Generate JSON:
 {
-  "message": "the DM text (natural, conversational, NO hyphens, do NOT include the link or button in this message)",
-  "linkButton": { "text": "2-4 word action CTA like GET ACCESS NOW or CLAIM YOUR SPOT", "url": "${productLink}" },
+  "message": "the personalized DM text (NO link in message, we add it as a button)",
+  "linkButton": { "text": "2-4 word CTA like GET IT NOW or SEE HOW", "url": "${productLink}" },
   "askFollow": false
 }
 
-IMPORTANT: The message field should NOT include the link. We'll add it separately in a button-like format.`;
+REMEMBER: Use their REAL username (${leadName}), reference their actual comment, and talk about what THEY want.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a legendary salesperson who closes deals through authentic human connection.' },
+        { role: 'system', content: 'You are a legendary salesperson who creates hyper-personalized DMs that convert. Every message feels like it was written just for that person.' },
         { role: 'user', content: prompt }
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: 300,
-      temperature: 0.85
+      max_completion_tokens: 350,
+      temperature: 0.9
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{}');
@@ -180,7 +189,7 @@ IMPORTANT: The message field should NOT include the link. We'll add it separatel
   } catch (error) {
     console.error('Salesman DM generation error:', error);
     return {
-      message: `Hey ${leadName} I noticed you showed interest in my post while scrolling. This might be exactly what you need`,
+      message: `Hey ${leadName}, I noticed you showed interest in my video. Based on what you said, I think you'll love this`,
       linkButton: { text: ctaText || 'See it here', url: productLink }
     };
   }
@@ -261,7 +270,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         // Get brand knowledge for personalization
         const brandKnowledge = await storage.getBrandKnowledge(userId);
 
-        // Generate salesman-style DM
+        // Generate salesman-style DM with detected interest
         const dm = await generateSalesmanDM(
           comment.username,
           comment.text,
@@ -269,7 +278,8 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           monitor.productLink,
           monitor.ctaText,
           monitor.metadata.videoCaption || '',
-          brandKnowledge
+          brandKnowledge,
+          intent.detectedInterest
         );
 
         // Send DM with link in message (Instagram doesn't support rich buttons in API)

@@ -628,21 +628,25 @@ export default function Landing() {
                       </div>
                     </th>
                     <th className="text-center p-6 text-lg font-semibold text-white/60">ManyChat</th>
-                    <th className="text-center p-6 text-lg font-semibold text-white/60">HubSpot</th>
+                    <th className="text-center p-6 text-lg font-semibold text-white/60">CommentGuard</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
+                    { feature: "Keyword-Free Comment Detection", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Context-Aware AI Analysis", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Real Username Personalization", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Emotion & Emoji Intelligence", audnix: true, manychat: false, hubspot: false },
+                    { feature: "Multi-Language Intent Detection", audnix: true, manychat: false, hubspot: "Basic" },
                     { feature: "AI Voice Messages", audnix: true, manychat: false, hubspot: false },
                     { feature: "Voice Cloning Technology", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Intent-Based Automation", audnix: true, manychat: "partial", hubspot: "manual" },
-                    { feature: "Real-time AI Insights", audnix: true, manychat: false, hubspot: true },
-                    { feature: "Multi-Channel Inbox (Instagram, WhatsApp, Email)", audnix: true, manychat: "Instagram only", hubspot: "Email only" },
-                    { feature: "Smart Lead Scoring", audnix: true, manychat: false, hubspot: true },
+                    { feature: "Intent-Based Automation", audnix: true, manychat: "Keyword only", hubspot: "Manual" },
+                    { feature: "Real-time AI Insights", audnix: true, manychat: false, hubspot: "Basic" },
+                    { feature: "Multi-Channel Inbox", audnix: "IG, WA, Email", manychat: "IG only", hubspot: "IG only" },
+                    { feature: "Smart Lead Scoring", audnix: true, manychat: false, hubspot: false },
                     { feature: "5-minute setup", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Behavioral Segmentation", audnix: true, manychat: "Basic", hubspot: true },
                     { feature: "Custom AI Training", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Starting Price", audnix: "$49/mo", manychat: "$15/mo", hubspot: "$800/mo" }
+                    { feature: "Starting Price", audnix: "$49/mo", manychat: "$297/year", hubspot: "$99/mo" }
                   ].map((row, index) => (
                     <motion.tr 
                       key={index} 

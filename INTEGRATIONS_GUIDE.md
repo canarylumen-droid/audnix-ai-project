@@ -7,21 +7,35 @@ This document explains how all integrations work in Audnix AI and confirms lead 
 ### 1. Instagram (Meta)
 - **Lead Importing**: ✅ Automatic
 - **AI Follow-ups**: ✅ Real-time
+- **Comment Automation**: ✅ Intelligent (NO keywords required)
 - **Setup**: OAuth via Meta Business Suite
 - **Features**:
   - Imports all DM conversations as leads
   - Real-time webhook for new messages
-  - AI analyzes intent and engagement
+  - **AI analyzes EVERY comment for interest** (context-aware, no keywords)
+  - **Detects emotion from emojis** (🔥, 😍, 👀, 💯)
+  - **Multi-language support** - understands intent in any language
+  - **Real username usage** - personalized DMs with actual Instagram handles
   - Automatic follow-ups based on conversation context
   - Engagement scoring
+
+**Revolutionary Comment Detection:**
+Unlike ManyChat (keyword-based), Audnix AI uses real intelligence:
+- ✅ Understands "This is cool!" as interest
+- ✅ Detects questions like "How does this work?"
+- ✅ Reads emoji signals (😍 = excitement, 👀 = curiosity)
+- ✅ Analyzes context: "wow" in different contexts means different things
+- ✅ No trigger words needed - AI reads natural human language
 
 **How It Works**:
 1. User connects Instagram account via OAuth
 2. System shows "Importing your leads from Instagram" animation
 3. All DM conversations are imported as leads
-4. Webhook is registered for real-time message updates
-5. AI starts analyzing and following up immediately
-6. "All set! AI will start working" message is displayed
+4. Webhook monitors video comments 24/7
+5. AI analyzes EVERY comment for buying signals (no keywords)
+6. Sends personalized DM using their real username
+7. References what THEY said and what THEY want
+8. "All set! AI will start working" message is displayed
 
 ### 2. WhatsApp (Twilio)
 - **Lead Importing**: ✅ Automatic
