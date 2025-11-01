@@ -37,6 +37,7 @@ export default defineConfig({
     allowedHosts: [
       '.replit.dev',
       '.repl.co',
+      'all', // Allow all hosts in development
     ],
     fs: {
       strict: true,
