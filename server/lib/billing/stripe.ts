@@ -21,14 +21,14 @@ export const PLANS = {
     name: "Starter",
     price: 49.99,
     leads_limit: parseInt(process.env.LEADS_LIMIT_PLAN_49 || "2500"),
-    voice_minutes: parseInt(process.env.VOICE_MINUTES_PLAN_49 || "300"),
+    voice_minutes: parseInt(process.env.VOICE_MINUTES_PLAN_49 || "100"),
   },
   pro: {
     priceId: process.env.STRIPE_PRICE_ID_MONTHLY_99 || "price_pro",
     name: "Pro",
     price: 99.99,
     leads_limit: parseInt(process.env.LEADS_LIMIT_PLAN_99 || "7000"),
-    voice_minutes: parseInt(process.env.VOICE_MINUTES_PLAN_99 || "800"),
+    voice_minutes: parseInt(process.env.VOICE_MINUTES_PLAN_99 || "400"),
   },
   enterprise: {
     priceId: process.env.STRIPE_PRICE_ID_MONTHLY_199 || "price_enterprise",
