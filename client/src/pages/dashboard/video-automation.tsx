@@ -33,6 +33,9 @@ export default function VideoAutomationPage() {
   const [productLink, setProductLink] = useState("");
   const [ctaText, setCtaText] = useState("Get it here");
   const [videoCaption, setVideoCaption] = useState("");
+  const [replyToComments, setReplyToComments] = useState(false);
+  const [askForFollow, setAskForFollow] = useState(false);
+  const [instagramHandle, setInstagramHandle] = useState("");
   const [editingMonitor, setEditingMonitor] = useState<any>(null);
   const { toast } = useToast();
 
@@ -107,6 +110,15 @@ export default function VideoAutomationPage() {
       return;
     }
 
+    if (monitors.length >= 3) {
+      toast({
+        title: "Video limit reached",
+        description: "Maximum 3 active video monitors allowed (Instagram API guidelines)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createMonitorMutation.mutate({
       videoId: selectedVideo.id,
       videoUrl: selectedVideo.url,
@@ -116,6 +128,9 @@ export default function VideoAutomationPage() {
         videoCaption: videoCaption || selectedVideo.caption,
         productName: "",
         pricePoint: "",
+        replyToComments,
+        askForFollow: askForFollow && replyToComments,
+        instagramHandle: askForFollow ? instagramHandle : undefined,
       },
     });
   };
@@ -226,6 +241,9 @@ export default function VideoAutomationPage() {
                     </SelectContent>
                   </Select>
                 )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  ⚠️ Limit: 2-3 videos max per account (Instagram API guidelines)
+                </p>
               </div>
 
               <div>
@@ -236,7 +254,7 @@ export default function VideoAutomationPage() {
                   onChange={(e) => setProductLink(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  This link will appear as a clickable button in the DM
+                  🔗 The link your leads will receive in their DMs (sales page, product, booking, etc.)
                 </p>
               </div>
 
@@ -249,7 +267,7 @@ export default function VideoAutomationPage() {
                   maxLength={25}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Keep it short (2-4 words recommended)
+                  💬 CTA text that appears with the link (e.g., "Get Access", "Book Now", "See Pricing")
                 </p>
               </div>
 
@@ -261,6 +279,55 @@ export default function VideoAutomationPage() {
                   onChange={(e) => setVideoCaption(e.target.value)}
                   rows={3}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  🧠 Helps AI personalize responses based on what your video is about
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Reply to Comments</Label>
+                    <p className="text-xs text-muted-foreground">
+                      🚀 Beats ManyChat! AI replies naturally in 5-25 seconds (human-like timing)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={replyToComments}
+                    onCheckedChange={setReplyToComments}
+                  />
+                </div>
+
+                {replyToComments && (
+                  <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Ask to Follow (Optional)</Label>
+                        <p className="text-xs text-muted-foreground">
+                          📲 Naturally ask leads to follow before sending link (provides value, not forced)
+                        </p>
+                      </div>
+                      <Switch
+                        checked={askForFollow}
+                        onCheckedChange={setAskForFollow}
+                      />
+                    </div>
+
+                    {askForFollow && (
+                      <div>
+                        <Label>Your Instagram Handle</Label>
+                        <Input
+                          placeholder="@yourhandle"
+                          value={instagramHandle}
+                          onChange={(e) => setInstagramHandle(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          ✨ AI will say: "Follow @yourhandle so I can send this over!" (natural, not pushy)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <Button
@@ -360,6 +427,23 @@ export default function VideoAutomationPage() {
                     >
                       {monitor.productLink}
                     </a>
+                  </div>
+
+                  {monitor.metadata?.replyToComments && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="default" className="text-xs">
+                        🚀 Comment Replies Active
+                      </Badge>
+                      {monitor.metadata?.askForFollow && (
+                        <Badge variant="secondary" className="text-xs">
+                          📲 Follow Request Enabled
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-xs text-muted-foreground pt-1 border-t">
+                    💬 AI monitors comments 24/7 • Responds in 5-25 seconds • Natural, human-like replies
                   </div>
 
                   <div className="flex gap-2 pt-2">

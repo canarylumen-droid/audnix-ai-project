@@ -196,6 +196,64 @@ REMEMBER: Use their REAL username (${leadName}), reference their actual comment,
 }
 
 /**
+ * Generate natural comment reply (beats ManyChat with human-like responses)
+ */
+export async function generateCommentReply(
+  comment: string,
+  detectedInterest: string,
+  videoContext: string,
+  askForFollow: boolean,
+  userInstagramHandle?: string
+): Promise<string> {
+  if (isDemoMode) {
+    return "Great question! Check your DM 💬";
+  }
+
+  try {
+    const prompt = `You are replying to an Instagram comment. Be BRIEF (max 15 words), natural, and human.
+
+Comment: "${comment}"
+What they want: ${detectedInterest}
+Video about: ${videoContext}
+${askForFollow ? `Instagram Handle: @${userInstagramHandle}` : ''}
+
+RULES:
+1. Sound like a real person, not a bot
+2. Be enthusiastic but not salesy
+3. Reference what THEY said
+4. Keep it SUPER short (10-15 words max)
+5. ${askForFollow ? 'Naturally ask them to follow you for the link/info' : 'Tell them to check DM'}
+6. Use 1-2 emojis max
+7. Make it feel exclusive/valuable
+
+${askForFollow ? `EXAMPLES:
+- "Love that! Follow me quick so I can send this over 🔥"
+- "Yes! Follow @${userInstagramHandle} real quick & I'll hook you up ✨"
+- "Perfect! Hit follow so I can share the details with you 💯"` : `EXAMPLES:
+- "Great question! Just sent you the details 💬"
+- "Love the energy! Check your DM 🔥"
+- "Yes! Sliding into your DMs now ✨"`}
+
+Generate ONLY the comment reply text (no quotes, no explanations):`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You write natural Instagram comment replies that sound human and capture leads fast.' },
+        { role: 'user', content: prompt }
+      ],
+      max_completion_tokens: 50,
+      temperature: 0.9
+    });
+
+    return response.choices[0].message.content?.trim() || "Check your DM! 💬";
+  } catch (error) {
+    console.error('Comment reply generation error:', error);
+    return askForFollow ? `Follow me for the link! 🔥` : "Check your DM! 💬";
+  }
+}
+
+/**
  * Monitor video comments in real-time
  */
 export async function monitorVideoComments(userId: string, videoMonitorId: string): Promise<void> {
@@ -246,6 +304,10 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           continue;
         }
 
+        // Random delay (5-25 seconds) for human-like timing
+        const randomDelay = Math.floor(Math.random() * 20000) + 5000;
+        await new Promise(resolve => setTimeout(resolve, randomDelay));
+
         // Get or create lead
         let lead = await storage.getLeadByUsername(comment.username, 'instagram');
 
@@ -270,7 +332,21 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         // Get brand knowledge for personalization
         const brandKnowledge = await storage.getBrandKnowledge(userId);
 
-        // Generate salesman-style DM with detected interest
+        // STEP 1: Reply to comment if enabled
+        if (monitor.metadata?.replyToComments) {
+          const commentReply = await generateCommentReply(
+            comment.text,
+            intent.detectedInterest || 'the offer',
+            monitor.metadata.videoCaption || '',
+            monitor.metadata?.askForFollow || false,
+            monitor.metadata?.instagramHandle
+          );
+
+          await provider.replyToComment(comment.id, commentReply);
+          console.log(`✓ Replied to comment: "${commentReply}"`);
+        }
+
+        // STEP 2: Generate and send DM
         const dm = await generateSalesmanDM(
           comment.username,
           comment.text,
@@ -282,8 +358,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           intent.detectedInterest
         );
 
-        // Send DM with link in message (Instagram doesn't support rich buttons in API)
-        // We'll format it as a natural message with the link
+        // Send DM with link in message
         const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
 
         await provider.sendMessage(comment.userId, fullMessage);
@@ -301,7 +376,8 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
             automation_type: 'video_comment',
             intent_type: intent.intentType,
             link_button: dm.linkButton,
-            comment_id: comment.id
+            comment_id: comment.id,
+            comment_replied: monitor.metadata?.replyToComments || false
           }
         });
 
@@ -314,7 +390,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           lastMessageAt: new Date()
         });
 
-        console.log(`✓ Video comment DM sent to ${comment.username} (${intent.intentType})`);
+        console.log(`✓ Video comment automation complete for ${comment.username} (${intent.intentType})`);
       }
     } catch (error) {
       console.error(`Error monitoring video ${monitor.videoId}:`, error);

@@ -251,6 +251,9 @@ export default function SettingsPage() {
                 placeholder="Enter your full name"
                 data-testid="input-name" 
               />
+              <p className="text-xs text-muted-foreground">
+                👤 Your full name as it appears on your account
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -262,6 +265,9 @@ export default function SettingsPage() {
                 placeholder="Choose a username"
                 data-testid="input-username" 
               />
+              <p className="text-xs text-muted-foreground">
+                🔑 Unique identifier for your account (used in URLs and mentions)
+              </p>
             </div>
             
             <div className="space-y-2">
@@ -275,7 +281,7 @@ export default function SettingsPage() {
                 data-testid="input-email"
               />
               <p className="text-xs text-muted-foreground">
-                Email cannot be changed
+                📧 Used for login and notifications (cannot be changed)
               </p>
             </div>
             
@@ -288,6 +294,9 @@ export default function SettingsPage() {
                 placeholder="Your company name"
                 data-testid="input-company" 
               />
+              <p className="text-xs text-muted-foreground">
+                🏢 Business or organization name (shown in invoices and reports)
+              </p>
             </div>
             
             <div className="space-y-2 md:col-span-2">
@@ -311,6 +320,9 @@ export default function SettingsPage() {
                   <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                🌍 Sets your local time for scheduling follow-ups and analytics
+              </p>
             </div>
           </div>
 

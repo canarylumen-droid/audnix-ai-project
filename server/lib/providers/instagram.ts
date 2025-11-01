@@ -102,6 +102,30 @@ export class InstagramProvider {
   }
 
   /**
+   * Reply to a comment on Instagram
+   */
+  async replyToComment(commentId: string, replyText: string): Promise<void> {
+    const endpoint = `https://graph.facebook.com/v18.0/${commentId}/replies`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.credentials.access_token}`
+      },
+      body: JSON.stringify({
+        message: replyText
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Instagram comment reply error:', error);
+      throw new Error(error.error?.message || 'Failed to reply to comment');
+    }
+  }
+
+  /**
    * Send Instagram Audio Message
    */
   async sendAudioMessage(recipientId: string, audioUrl: string): Promise<{ messageId: string }> {
