@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   LogOut,
   Video,
+  Upload, // Import Upload icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,8 @@ const navItems: NavItem[] = [
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
   { label: "Admin", icon: Shield, path: "/dashboard/admin", adminOnly: true },
   { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
+  // Add Lead Import page to navigation
+  { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import", adminOnly: false },
 ];
 
 const mobileNavItems = [

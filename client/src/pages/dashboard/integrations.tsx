@@ -54,9 +54,22 @@ export default function IntegrationsPage() {
 
   const integrations = integrationsData?.integrations ?? [];
 
+  // Fetch voice balance to check if locked
+  const { data: voiceBalance } = useQuery({
+    queryKey: ["/api/voice/balance"],
+    refetchInterval: 30000,
+  });
+
+  const isVoiceLocked = voiceBalance?.locked || false;
+
   // Voice upload mutation
   const uploadVoiceMutation = useMutation({
     mutationFn: async (file: File) => {
+      // Check if voice is locked before upload
+      if (isVoiceLocked) {
+        throw new Error("Voice minutes depleted. Please top up to continue.");
+      }
+
       const formData = new FormData();
       formData.append("voice", file);
       
@@ -588,11 +601,17 @@ export default function IntegrationsPage() {
                     </div>
                     <Button
                       onClick={() => voiceInputRef.current?.click()}
+                      disabled={isVoiceLocked}
                       data-testid="button-upload-voice"
                     >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Audio
+                      {isVoiceLocked ? <Lock className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                      {isVoiceLocked ? "Top Up Required" : "Upload Audio"}
                     </Button>
+                    {isVoiceLocked && (
+                      <p className="text-xs text-red-500 text-center mt-2">
+                        🔒 Voice minutes depleted. Top up to upload voice samples.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -618,10 +637,10 @@ export default function IntegrationsPage() {
               {/* Activate */}
               <Button
                 className="w-full"
-                disabled={!voiceConsent || !hasVoiceSample}
+                disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked}
                 data-testid="button-activate-voice"
               >
-                {hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
+                {isVoiceLocked ? "🔒 Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
               </Button>
             </div>
 

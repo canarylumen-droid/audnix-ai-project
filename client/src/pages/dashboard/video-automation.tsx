@@ -119,6 +119,15 @@ export default function VideoAutomationPage() {
       return;
     }
 
+    if (askForFollow && !instagramHandle) {
+      toast({
+        title: "Missing Instagram handle",
+        description: "Please enter your Instagram handle to enable follow requests",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createMonitorMutation.mutate({
       videoId: selectedVideo.id,
       videoUrl: selectedVideo.url,
@@ -195,9 +204,9 @@ export default function VideoAutomationPage() {
         </div>
         <Dialog>
           <DialogTrigger asChild>
-            <Button size="lg">
+            <Button size="lg" disabled={monitors.length >= 3}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Video Monitor
+              {monitors.length >= 3 ? "Limit Reached (3/3)" : "Add Video Monitor"}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
@@ -331,10 +340,17 @@ export default function VideoAutomationPage() {
                         <Input
                           placeholder="@yourhandle"
                           value={instagramHandle}
-                          onChange={(e) => setInstagramHandle(e.target.value)}
+                          onChange={(e) => {
+                            let value = e.target.value.trim();
+                            // Auto-add @ if missing
+                            if (value && !value.startsWith('@')) {
+                              value = '@' + value;
+                            }
+                            setInstagramHandle(value);
+                          }}
                         />
                         <p className="text-xs text-muted-foreground mt-1">
-                          ✨ AI will say: "Follow @yourhandle so I can send this over!" (natural, not pushy)
+                          ✨ AI will say: "Follow {instagramHandle || '@yourhandle'} so I can send this over!" (natural, not pushy)
                         </p>
                         <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
                           ℹ️ Lead will NOT be forced to follow - it's a friendly ask

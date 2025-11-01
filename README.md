@@ -72,8 +72,10 @@
 
 ### In Progress / Coming Soon
 - ⏳ **PDF Knowledge Base** - Upload product docs (UI ready, processing pending)
-- ⏳ **CSV Export** - Export leads with email/phone (UI pending)
-- ⏳ **WhatsApp Automation** - Auto-reply to messages (Instagram-first)
+- ⏳ **CSV Export** - Export leads with email/phone (Available in Settings)
+- ⏳ **CSV Lead Import** - Upload leads manually from spreadsheets with auto-outreach
+- ⏳ **WhatsApp Auto-Campaign** - Import phone numbers → AI sends personalized WhatsApp via Twilio
+- ⏳ **Email Sequences** - Import emails → AI sends multi-step campaigns with smart follow-ups
 - ⏳ **Calendar Integration** - Auto-book meetings (OAuth ready)
 
 ### Known Limitations
@@ -119,6 +121,24 @@
 **Customer Acquisition Cost (CAC) Target:** <$90 (10:1 LTV:CAC ratio)
 
 ## ✨ Features
+
+### Coming Soon: CSV Lead Import & Multi-Channel Outreach 🚀
+
+**Manually import leads and let AI handle outreach:**
+- **Upload CSV/Excel** - Import thousands of leads with Name, Email, Phone, Company
+- **Smart Field Detection** - AI auto-detects columns (Name, Email, Phone, etc.)
+- **WhatsApp Campaigns** - Connect Twilio → AI sends personalized WhatsApp messages
+- **Email Sequences** - AI crafts multi-step email campaigns with smart follow-ups
+- **Deduplication** - Prevents duplicate imports across all channels
+- **Export Anytime** - Download all leads + conversation history as CSV
+
+**Perfect Use Cases:**
+- Event attendee follow-ups (upload attendee list → auto-outreach)
+- Cold outreach campaigns (purchased lead lists → AI personalization)
+- Webinar registrants (import → automated nurture sequence)
+- CRM migrations (import existing leads → AI takes over)
+
+**ETA: Q2 2025** | Early access for Pro/Enterprise users
 
 ### Revolutionary AI Comment Detection (NO Keywords Required!)
 
