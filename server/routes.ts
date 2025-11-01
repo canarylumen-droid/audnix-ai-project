@@ -44,6 +44,10 @@ import {
 // Import AI modules for lead learning and content moderation
 import { contentModerationService } from './lib/ai/content-moderation';
 
+// Import necessary modules for PDF processing and lead export
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() }); // Use memory storage for PDF uploads
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
@@ -1350,6 +1354,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error uploading PDF:", error);
       res.status(500).json({ error: error.message || "Failed to upload PDF" });
+    }
+  });
+
+  // PDF upload and processing with auto-outreach
+  app.post("/api/leads/upload-pdf", requireAuth, upload.single('file'), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+      const autoReachOut = req.body.autoReachOut === 'true';
+      const extractOffer = req.body.extractOffer === 'true';
+
+      const result = await processPDF(req.file.buffer, req.user!.id, {
+        autoReachOut,
+        extractOffer
+      });
+      res.json(result);
+    } catch (error: any) {
+      console.error("PDF processing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export leads to CSV
+  app.get("/api/leads/export-csv", requireAuth, async (req, res) => {
+    try {
+      const { exportLeadsToCSV } = await import("./lib/pdf-processor");
+      const csv = await exportLeadsToCSV(req.user!.id);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=leads-export.csv');
+      res.send(csv);
+    } catch (error: any) {
+      console.error("CSV export error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Export leads to Excel/Spreadsheet
+  app.get("/api/leads/export-excel", requireAuth, async (req, res) => {
+    try {
+      const leads = await storage.getLeads({ userId: req.user!.id, limit: 10000 });
+
+      // Convert to spreadsheet-compatible JSON
+      const spreadsheetData = leads.map(lead => ({
+        Name: lead.name,
+        Email: lead.email || '',
+        Phone: lead.phone || '',
+        Company: lead.company || '',
+        Channel: lead.channel,
+        Status: lead.status,
+        Score: lead.score || 0,
+        'Created At': new Date(lead.createdAt).toLocaleDateString(),
+        'Last Message': lead.lastMessageAt ? new Date(lead.lastMessageAt).toLocaleDateString() : 'Never'
+      }));
+
+      res.json({ leads: spreadsheetData });
+    } catch (error: any) {
+      console.error("Excel export error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

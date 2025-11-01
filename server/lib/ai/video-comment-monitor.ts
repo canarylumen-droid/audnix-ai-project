@@ -60,6 +60,7 @@ Analyze this comment and determine:
    - High Interest: "link", "interested", "dm me", "how do I get this", "need this"
    - Curious: "what is this", "how does it work", "tell me more"
    - Price Objection: "too expensive", "cheaper option", "discount", "can't afford"
+   - Competitor Comparison: "found someone cheaper", "other options cheaper", "better deal elsewhere"
    - Inappropriate: Insults, spam, offensive language, trolling
    - Neutral: General comments, emojis only, unrelated
 
@@ -76,7 +77,7 @@ Analyze this comment and determine:
 Return JSON only: 
 {
   "hasBuyingIntent": boolean,
-  "intentType": "high_interest" | "curious" | "price_objection" | "inappropriate" | "neutral",
+  "intentType": "high_interest" | "curious" | "price_objection" | "competitor_comparison" | "inappropriate" | "neutral",
   "confidence": 0.0-1.0,
   "shouldDM": boolean,
   "suggestedResponse": "optional response for handling difficult comments"

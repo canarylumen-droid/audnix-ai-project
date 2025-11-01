@@ -1,10 +1,23 @@
 
 import { supabaseAdmin } from './supabase-admin';
 import { storage } from '../storage';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+});
 
 interface PDFProcessingResult {
   success: boolean;
   leadsCreated: number;
+  offerExtracted?: {
+    productName: string;
+    description: string;
+    price?: string;
+    link?: string;
+    features: string[];
+    benefits: string[];
+  };
   leads?: Array<{
     id: string;
     name: string;
@@ -16,11 +29,15 @@ interface PDFProcessingResult {
 }
 
 /**
- * Process PDF file and extract lead information with AI
+ * Process PDF file and extract lead information + offer details with AI
  */
 export async function processPDF(
   fileBuffer: Buffer,
-  userId: string
+  userId: string,
+  options?: {
+    autoReachOut?: boolean;
+    extractOffer?: boolean;
+  }
 ): Promise<PDFProcessingResult> {
   try {
     const pdfParse = require('pdf-parse');
@@ -36,27 +53,29 @@ export async function processPDF(
       };
     }
     
-    // Enhanced parsing with AI if available
-    let parsedLeads = parseLeadsFromText(text);
-    
-    // Use OpenAI for better extraction if configured
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'mock-key') {
-      try {
-        parsedLeads = await extractLeadsWithAI(text);
-      } catch (error) {
-        console.warn('AI extraction failed, using regex fallback:', error);
-      }
+    // Extract offer/product information if requested
+    let offerData;
+    if (options?.extractOffer) {
+      offerData = await extractOfferWithAI(text, userId);
     }
     
+    // Extract leads with AI
+    let parsedLeads = await extractLeadsWithAI(text);
+    
     if (parsedLeads.length === 0) {
+      // Fallback to regex if AI fails
+      parsedLeads = parseLeadsFromText(text);
+    }
+    
+    if (parsedLeads.length === 0 && !offerData) {
       return {
         success: false,
         leadsCreated: 0,
-        error: 'No valid lead data found in PDF'
+        error: 'No valid lead data or offer information found in PDF'
       };
     }
     
-    // Create leads in database
+    // Create leads in database with extracted contact info
     const createdLeads = [];
     for (const leadData of parsedLeads) {
       try {
@@ -68,7 +87,12 @@ export async function processPDF(
           company: leadData.company,
           channel: 'manual',
           status: 'new',
-          source: 'pdf_import'
+          source: 'pdf_import',
+          metadata: {
+            pdf_extracted: true,
+            has_email: !!leadData.email,
+            has_phone: !!leadData.phone,
+          }
         });
         
         createdLeads.push({
@@ -78,6 +102,11 @@ export async function processPDF(
           phone: lead.phone || undefined,
           company: lead.company || undefined
         });
+
+        // Auto-reach out if enabled and offer data exists
+        if (options?.autoReachOut && offerData && (leadData.email || leadData.phone)) {
+          await autoReachOutToLead(userId, lead, offerData);
+        }
       } catch (error) {
         console.error('Error creating lead:', error);
       }
@@ -86,7 +115,8 @@ export async function processPDF(
     return {
       success: true,
       leadsCreated: createdLeads.length,
-      leads: createdLeads
+      leads: createdLeads,
+      offerExtracted: offerData
     };
   } catch (error) {
     console.error('PDF processing error:', error);
@@ -99,6 +129,134 @@ export async function processPDF(
 }
 
 /**
+ * Extract offer/product information from PDF using AI
+ */
+async function extractOfferWithAI(text: string, userId: string): Promise<any> {
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+    return null;
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{
+        role: 'system',
+        content: 'Extract product/service/offer information from this document. Identify the main offering, pricing, features, benefits, and any links or CTAs. Return detailed JSON.'
+      }, {
+        role: 'user',
+        content: text.substring(0, 12000)
+      }],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: 800
+    });
+    
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    
+    // Store offer in user's profile for future auto-responses
+    if (result.productName) {
+      await storage.updateUser(userId, {
+        metadata: {
+          extracted_offer: result,
+          offer_updated_at: new Date().toISOString()
+        }
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Offer extraction error:', error);
+    return null;
+  }
+}
+
+/**
+ * Auto-reach out to leads via email or WhatsApp with offer info
+ */
+async function autoReachOutToLead(
+  userId: string,
+  lead: any,
+  offerData: any
+): Promise<void> {
+  try {
+    const { sendEmail } = await import('./channels/email');
+    const { sendWhatsAppMessage } = await import('./channels/whatsapp');
+
+    const message = `Hey ${lead.name}! I noticed you might be interested in ${offerData.productName}. ${offerData.description}
+
+${offerData.features?.slice(0, 3).map((f: string) => `✓ ${f}`).join('\n')}
+
+${offerData.price ? `Investment: ${offerData.price}` : ''}
+${offerData.link ? `Learn more: ${offerData.link}` : ''}
+
+Would you like to discuss how this can help you?`;
+
+    // Try email first if available
+    if (lead.email) {
+      try {
+        await sendEmail(
+          userId,
+          lead.email,
+          message,
+          `${offerData.productName} - Exclusive Offer`,
+          {
+            buttonText: 'Get Started',
+            buttonUrl: offerData.link || '#',
+            businessName: 'Your Business'
+          }
+        );
+        
+        await storage.createMessage({
+          leadId: lead.id,
+          userId,
+          provider: 'email',
+          direction: 'outbound',
+          body: message,
+          metadata: {
+            auto_outreach: true,
+            source: 'pdf_extraction'
+          }
+        });
+      } catch (error) {
+        console.error('Email outreach failed:', error);
+      }
+    }
+
+    // Try WhatsApp if phone available
+    if (lead.phone) {
+      try {
+        await sendWhatsAppMessage(
+          userId,
+          lead.phone,
+          message,
+          {
+            button: offerData.link ? {
+              text: 'Learn More',
+              url: offerData.link
+            } : undefined
+          }
+        );
+        
+        await storage.createMessage({
+          leadId: lead.id,
+          userId,
+          provider: 'whatsapp',
+          direction: 'outbound',
+          body: message,
+          metadata: {
+            auto_outreach: true,
+            source: 'pdf_extraction'
+          }
+        });
+      } catch (error) {
+        console.error('WhatsApp outreach failed:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Auto-reach out error:', error);
+  }
+}
+
+/**
  * Extract leads using OpenAI for better accuracy
  */
 async function extractLeadsWithAI(text: string): Promise<Array<{
@@ -107,37 +265,34 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
   phone?: string;
   company?: string;
 }>> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
+  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+    return [];
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{
         role: 'system',
-        content: 'Extract all lead information from the text. Return a JSON array of objects with fields: name, email, phone, company. Be thorough and accurate.'
+        content: 'Extract all lead contact information from the text. Look for names, email addresses, phone numbers, and company names. Return a JSON array of objects with fields: name, email, phone, company. Be thorough and accurate.'
       }, {
         role: 'user',
-        content: text.substring(0, 8000) // Limit to avoid token limits
+        content: text.substring(0, 8000)
       }],
-      response_format: { type: 'json_object' }
-    })
-  });
-  
-  if (!response.ok) {
-    throw new Error('OpenAI extraction failed');
+      response_format: { type: 'json_object' },
+      max_completion_tokens: 1000
+    });
+    
+    const result = JSON.parse(response.choices[0].message.content || '{}');
+    return result.leads || [];
+  } catch (error) {
+    console.error('AI lead extraction failed:', error);
+    return [];
   }
-  
-  const data = await response.json();
-  const result = JSON.parse(data.choices[0].message.content);
-  
-  return result.leads || [];
 }
 
 /**
- * Parse leads from text using advanced regex patterns
+ * Parse leads from text using advanced regex patterns (fallback)
  */
 function parseLeadsFromText(text: string): Array<{
   name: string;
@@ -201,4 +356,30 @@ function parseLeadsFromText(text: string): Array<{
   }
   
   return leads;
+}
+
+/**
+ * Export leads to CSV format
+ */
+export async function exportLeadsToCSV(userId: string): Promise<string> {
+  const leads = await storage.getLeads({ userId, limit: 10000 });
+  
+  const headers = ['Name', 'Email', 'Phone', 'Company', 'Channel', 'Status', 'Score', 'Created At'];
+  const rows = leads.map(lead => [
+    lead.name,
+    lead.email || '',
+    lead.phone || '',
+    lead.company || '',
+    lead.channel,
+    lead.status,
+    lead.score || 0,
+    new Date(lead.createdAt).toISOString()
+  ]);
+  
+  const csv = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n');
+  
+  return csv;
 }

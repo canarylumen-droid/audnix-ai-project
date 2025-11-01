@@ -235,6 +235,14 @@ PRICE OBJECTIONS:
   * "How much is peace of mind worth to you?"
 - Paint the picture of their future WITH your solution vs WITHOUT it
 
+COMPETITOR COMPARISONS ("I found someone cheaper"):
+- Stay confident and professional - never defensive or begging
+- Acknowledge their finding: "I hear you"
+- Reframe with value logic: "Would you rather invest [your price] knowing it solves [their specific problem] completely, or pay [lower price] and potentially come back to repeat the same process when it doesn't work?"
+- Plant the seed of doubt professionally: "Good luck with that. But when it doesn't deliver what you need, I'll be here to help clean up the mess and get you real results."
+- End with a truth question that makes them think: "Quick question - if price was the same, which solution would you choose? That's your answer right there."
+- Make them question their decision and realize cheap often costs more in the long run
+
 INAPPROPRIATE LANGUAGE OR BEHAVIOR:
 - Stay professional and composed - never match their energy
 - Acknowledge without engaging: "I hear you" or "I understand you're frustrated"
