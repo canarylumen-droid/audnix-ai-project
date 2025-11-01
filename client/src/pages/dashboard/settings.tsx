@@ -287,17 +287,68 @@ export default function SettingsPage() {
               📄 AI extracts EVERYTHING: Brand colors, product details, pricing, CTAs, contact info
             </p>
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-left">
-              <p className="text-xs font-semibold mb-2">📋 What to Include in Your PDF:</p>
-              <ul className="text-xs space-y-1 text-muted-foreground">
-                <li>✅ <strong>Brand Colors:</strong> Primary/secondary hex codes (#FF5733) or color names</li>
-                <li>✅ <strong>Product/Service:</strong> Name, description, key features list</li>
-                <li>✅ <strong>Pricing:</strong> Plans, packages, or one-time costs</li>
-                <li>✅ <strong>CTA:</strong> Call-to-action text ("Get Started", "Book Demo")</li>
-                <li>✅ <strong>Links:</strong> Website URL, booking page, landing page</li>
-                <li>✅ <strong>Contact:</strong> Support email for customer questions</li>
-                <li>✅ <strong>Features:</strong> Bullet points of what you offer</li>
-                <li>✅ <strong>Benefits:</strong> How it solves customer problems</li>
-              </ul>
+              <p className="text-xs font-semibold mb-2 text-primary">📋 What to Include in Your Brand PDF:</p>
+              <div className="space-y-3 text-xs">
+                <div>
+                  <p className="font-semibold mb-1 text-foreground">🎨 Brand Colors (CRITICAL for Email Templates)</p>
+                  <ul className="space-y-1 text-muted-foreground ml-3">
+                    <li>• Primary color: <code className="bg-muted px-1 rounded">#FF5733</code> or "Coral Red"</li>
+                    <li>• Secondary color: <code className="bg-muted px-1 rounded">#2563EB</code> or "Navy Blue"</li>
+                    <li>• Accent color: <code className="bg-muted px-1 rounded">#10B981</code> or "Emerald Green"</li>
+                    <li>• Label them as "Primary Brand Color:", "Secondary:", "Accent:"</li>
+                    <li>• Include RGB values if available: <code className="bg-muted px-1 rounded">rgb(255, 87, 51)</code></li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <p className="font-semibold mb-1 text-foreground">📦 Product/Service Details</p>
+                  <ul className="space-y-1 text-muted-foreground ml-3">
+                    <li>• Product name and one-sentence description</li>
+                    <li>• Key features as bullet points (AI will use in emails)</li>
+                    <li>• Benefits - how it solves customer pain points</li>
+                    <li>• Use cases or customer success stories</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <p className="font-semibold mb-1 text-foreground">💰 Pricing & CTAs</p>
+                  <ul className="space-y-1 text-muted-foreground ml-3">
+                    <li>• Pricing plans: Starter $49, Pro $99, Enterprise $199</li>
+                    <li>• Call-to-action text: "Get Started", "Book a Demo", "Try Free"</li>
+                    <li>• Links: Website, booking page, product page URLs</li>
+                    <li>• Discount codes or special offers (if any)</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <p className="font-semibold mb-1 text-foreground">📧 Contact & Support</p>
+                  <ul className="space-y-1 text-muted-foreground ml-3">
+                    <li>• Support email: support@yourbrand.com</li>
+                    <li>• Sales contact: sales@yourbrand.com</li>
+                    <li>• Company address (for email footers)</li>
+                    <li>• Social media handles (optional)</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <p className="font-semibold mb-1 text-foreground">🚀 Automatic Lead Outreach Settings</p>
+                  <ul className="space-y-1 text-muted-foreground ml-3">
+                    <li>• AI will use these details to personalize every email</li>
+                    <li>• Email templates will match YOUR brand colors automatically</li>
+                    <li>• Imported leads get branded emails with your CTA & links</li>
+                    <li>• Voice notes will mention your product features naturally</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded p-2 mt-2">
+                  <p className="font-semibold text-amber-800 dark:text-amber-400">💡 Pro Tip:</p>
+                  <p className="text-amber-700 dark:text-amber-300">
+                    Upload your brand guide, pitch deck, or product sheet PDF. 
+                    AI extracts colors, features, pricing - everything needed for professional outreach.
+                    Update anytime to refresh your brand voice!
+                  </p>
+                </div>
+              </div>
             </div>
             <Input
               type="file"

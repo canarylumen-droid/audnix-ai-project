@@ -1,9 +1,10 @@
 
 import { supabaseAdmin } from '../supabase-admin';
 import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter';
+import { storage } from '../../storage';
 
 /**
- * Email messaging functions with branded templates
+ * Email messaging functions with branded templates using extracted PDF brand colors
  */
 
 interface EmailConfig {
@@ -13,6 +14,26 @@ interface EmailConfig {
   smtp_pass?: string;
   oauth_token?: string;
   provider?: 'gmail' | 'outlook' | 'smtp';
+}
+
+/**
+ * Get brand colors from user's extracted PDF data
+ */
+async function getUserBrandColors(userId: string): Promise<BrandColors | undefined> {
+  try {
+    const user = await storage.getUserById(userId);
+    const brandColors = user?.metadata?.brand_colors;
+    
+    if (brandColors?.primary) {
+      return {
+        primary: brandColors.primary,
+        accent: brandColors.accent || brandColors.secondary
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching brand colors:', error);
+  }
+  return undefined;
 }
 
 interface EmailOptions {

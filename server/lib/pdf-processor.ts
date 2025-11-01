@@ -145,14 +145,99 @@ export async function processPDF(
 }
 
 /**
- * Extract offer/product information AND brand colors/identity from PDF using AI
+ * Extract colors from PDF text using advanced regex patterns
+ */
+function extractColorsFromText(text: string): {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  all: string[];
+} {
+  const colors: string[] = [];
+  
+  // Extract hex colors (#RRGGBB or #RGB)
+  const hexPattern = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
+  const hexMatches = text.match(hexPattern) || [];
+  colors.push(...hexMatches);
+  
+  // Extract RGB/RGBA colors
+  const rgbPattern = /rgba?\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*[\d.]+)?\s*\)/gi;
+  let rgbMatch;
+  while ((rgbMatch = rgbPattern.exec(text)) !== null) {
+    const r = parseInt(rgbMatch[1]);
+    const g = parseInt(rgbMatch[2]);
+    const b = parseInt(rgbMatch[3]);
+    // Convert RGB to hex
+    const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    colors.push(hex.toUpperCase());
+  }
+  
+  // Extract named colors in brand context
+  const colorNames = [
+    'navy', 'blue', 'coral', 'teal', 'purple', 'violet', 'indigo',
+    'green', 'emerald', 'red', 'crimson', 'orange', 'amber', 'yellow',
+    'gold', 'pink', 'rose', 'magenta', 'cyan', 'turquoise', 'lime',
+    'mint', 'sage', 'olive', 'maroon', 'burgundy', 'plum', 'lavender'
+  ];
+  
+  const brandColorPattern = new RegExp(
+    `(?:brand|primary|secondary|accent|main)\\s*(?:color|colour)?\\s*:?\\s*(${colorNames.join('|')})`,
+    'gi'
+  );
+  const namedMatches = text.match(brandColorPattern) || [];
+  colors.push(...namedMatches.map(m => m.split(/[:\s]+/).pop()!));
+  
+  // Remove duplicates and normalize
+  const uniqueColors = [...new Set(colors.map(c => c.toUpperCase()))];
+  
+  // Try to identify primary, secondary, accent from context
+  let primary, secondary, accent;
+  
+  const primaryMatch = text.match(/primary\s*(?:color|colour)?[:\s]*([#\w]+)/i);
+  if (primaryMatch) primary = primaryMatch[1];
+  
+  const secondaryMatch = text.match(/secondary\s*(?:color|colour)?[:\s]*([#\w]+)/i);
+  if (secondaryMatch) secondary = secondaryMatch[1];
+  
+  const accentMatch = text.match(/accent\s*(?:color|colour)?[:\s]*([#\w]+)/i);
+  if (accentMatch) accent = accentMatch[1];
+  
+  // Fallback: assign first 3 unique colors
+  if (!primary && uniqueColors.length > 0) primary = uniqueColors[0];
+  if (!secondary && uniqueColors.length > 1) secondary = uniqueColors[1];
+  if (!accent && uniqueColors.length > 2) accent = uniqueColors[2];
+  
+  return {
+    primary,
+    secondary,
+    accent,
+    all: uniqueColors
+  };
+}
+
+/**
+ * Extract offer/product information AND brand colors/identity from PDF using AI + regex
  */
 async function extractOfferAndBrandWithAI(text: string, userId: string): Promise<{
   offer: any;
   brand: any;
 }> {
+  // First, extract colors using regex (works without OpenAI)
+  const extractedColors = extractColorsFromText(text);
+  
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
-    return { offer: null, brand: null };
+    // Return regex-based colors if OpenAI not available
+    return {
+      offer: null,
+      brand: {
+        colors: {
+          primary: extractedColors.primary,
+          secondary: extractedColors.secondary,
+          accent: extractedColors.accent
+        },
+        allColors: extractedColors.all
+      }
+    };
   }
 
   try {
@@ -163,15 +248,15 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
         content: `Extract BOTH product/service AND brand identity from this document. Return JSON with two objects:
 
 1. "offer": Extract product name, description, pricing, features (array), benefits (array), CTA text, support/contact email, and any links
-2. "brand": Extract brand colors (look for hex codes like #FF5733 or color names like "navy blue", "coral"), company name, tagline, website URL
+2. "brand": Extract brand colors (hex codes like #FF5733, RGB values, or color names), company name, tagline, website URL, logo description
 
-For colors, look for:
-- Hex codes (#RRGGBB)
-- RGB values (rgb(255, 87, 51))
-- Color names mentioned in context of branding
-- Primary, secondary, and accent colors
+For colors, aggressively extract:
+- ALL hex codes (#RRGGBB or #RGB)
+- ALL RGB/RGBA values
+- Color names mentioned in branding context (navy, coral, teal, etc.)
+- Primary, secondary, and accent colors explicitly
 
-Be thorough - extract ALL color references and brand elements.`
+Return ALL colors found, even if more than 3. Be thorough - this is critical for email branding.`
       }, {
         role: 'user',
         content: text.substring(0, 12000)
@@ -182,13 +267,30 @@ Be thorough - extract ALL color references and brand elements.`
     
     const result = JSON.parse(response.choices[0].message.content || '{}');
     
+    // Merge AI-extracted colors with regex-extracted colors for maximum coverage
+    const aiColors = result.brand?.colors || {};
+    const mergedColors = {
+      primary: aiColors.primary || extractedColors.primary,
+      secondary: aiColors.secondary || extractedColors.secondary,
+      accent: aiColors.accent || extractedColors.accent,
+      allColors: [
+        ...(aiColors.allColors || []),
+        ...extractedColors.all
+      ].filter((v, i, a) => a.indexOf(v) === i) // Remove duplicates
+    };
+    
+    result.brand = {
+      ...result.brand,
+      colors: mergedColors
+    };
+    
     // Store both offer and brand in user's profile for future auto-responses
     if (result.offer?.productName || result.brand?.companyName) {
       await storage.updateUser(userId, {
         metadata: {
           extracted_offer: result.offer || {},
           extracted_brand: result.brand || {},
-          brand_colors: result.brand?.colors || {},
+          brand_colors: mergedColors,
           extraction_updated_at: new Date().toISOString()
         }
       });
@@ -200,7 +302,18 @@ Be thorough - extract ALL color references and brand elements.`
     };
   } catch (error) {
     console.error('Brand/Offer extraction error:', error);
-    return { offer: null, brand: null };
+    // Return regex-based extraction as fallback
+    return {
+      offer: null,
+      brand: {
+        colors: {
+          primary: extractedColors.primary,
+          secondary: extractedColors.secondary,
+          accent: extractedColors.accent
+        },
+        allColors: extractedColors.all
+      }
+    };
   }
 }
 
