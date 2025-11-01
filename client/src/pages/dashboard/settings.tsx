@@ -350,11 +350,42 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-            <Input
-              type="file"
-              accept=".pdf"
-              className="max-w-xs mx-auto"
-              onChange={async (e) => {
+            <div className="space-y-3">
+              {user?.metadata?.extracted_brand?.companyName && (
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
+                    ✅ Current Brand: {user.metadata.extracted_brand.companyName}
+                  </p>
+                  <div className="flex gap-2 text-xs text-green-700 dark:text-green-300">
+                    {user.metadata.brand_colors?.primary && (
+                      <div className="flex items-center gap-1">
+                        <div 
+                          className="w-4 h-4 rounded border border-green-300"
+                          style={{ backgroundColor: user.metadata.brand_colors.primary }}
+                        />
+                        <span>Primary</span>
+                      </div>
+                    )}
+                    {user.metadata.brand_colors?.accent && (
+                      <div className="flex items-center gap-1">
+                        <div 
+                          className="w-4 h-4 rounded border border-green-300"
+                          style={{ backgroundColor: user.metadata.brand_colors.accent }}
+                        />
+                        <span>Accent</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2">
+                    📅 Last updated: {new Date(user.metadata.extraction_updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              <Input
+                type="file"
+                accept=".pdf"
+                className="max-w-xs mx-auto"
+                onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 
@@ -386,10 +417,15 @@ export default function SettingsPage() {
                     `Brand colors: ${result.brandExtracted.colors.primary}` : '';
                   const offerExtracted = result.offerExtracted?.productName || 'Product details';
                   
+                  const isUpdate = user?.metadata?.extracted_brand?.companyName;
+                  
                   toast({
-                    title: "✅ PDF Processed Successfully",
-                    description: `Extracted: ${offerExtracted}${brandExtracted ? ` | ${brandExtracted}` : ''}`
+                    title: isUpdate ? "✅ Brand Updated Successfully" : "✅ PDF Processed Successfully",
+                    description: `${isUpdate ? 'Updated: ' : 'Extracted: '}${offerExtracted}${brandExtracted ? ` | ${brandExtracted}` : ''}`
                   });
+                  
+                  // Refresh user data
+                  queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
                 } catch (error) {
                   toast({
                     title: "Upload failed",

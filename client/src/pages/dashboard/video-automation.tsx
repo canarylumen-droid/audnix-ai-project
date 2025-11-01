@@ -1,571 +1,381 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Video, Plus, Edit2, Trash2, Power, Loader2, ExternalLink, MessageSquare, Lock, Crown } from "lucide-react";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Video, Play, Pause, Link as LinkIcon, UserPlus, Loader2, Trash2 } from "lucide-react";
 
 export default function VideoAutomationPage() {
-  const [selectedVideo, setSelectedVideo] = useState<any>(null);
-  const [productLink, setProductLink] = useState("");
-  const [ctaText, setCtaText] = useState("Get it here");
-  const [videoCaption, setVideoCaption] = useState("");
-  const [replyToComments, setReplyToComments] = useState(false);
-  const [askForFollow, setAskForFollow] = useState(false);
-  const [instagramHandle, setInstagramHandle] = useState("");
-  const [editingMonitor, setEditingMonitor] = useState<any>(null);
   const { toast } = useToast();
+  const [videoUrl, setVideoUrl] = useState("");
+  const [ctaLink, setCtaLink] = useState("");
+  const [customMessage, setCustomMessage] = useState("");
+  const [askFollowOnConvert, setAskFollowOnConvert] = useState(true);
+  const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
 
-  // Check user plan
-  const { data: userData } = useQuery({
-    queryKey: ["/api/user"],
+  // Fetch active video monitors
+  const { data: monitors, isLoading } = useQuery({
+    queryKey: ["/api/video-monitors"],
   });
 
-  const isPaidUser = userData?.user?.plan && userData.user.plan !== 'trial';
-
-  const { data: videosData, isLoading: videosLoading } = useQuery({
-    queryKey: ["/api/video-automation/videos"],
-  });
-
-  const { data: monitorsData, isLoading: monitorsLoading } = useQuery({
-    queryKey: ["/api/video-automation/monitors"],
-    refetchInterval: 10000,
-  });
-
-  const createMonitorMutation = useMutation({
+  // Create new monitor
+  const createMonitor = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/video-automation/monitors", {
+      return apiRequest("/api/video-monitors", {
         method: "POST",
         body: JSON.stringify(data),
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
       toast({
-        title: "✅ AI Monitor Active",
-        description: "AI is now monitoring this video 24/7 for buying signals",
+        title: "✅ Video Monitor Created",
+        description: "AI will now detect buying intent in comments 24/7",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
-      setSelectedVideo(null);
-      setProductLink("");
-      setCtaText("Get it here");
+      setVideoUrl("");
+      setCtaLink("");
+      setCustomMessage("");
+    },
+    onError: () => {
+      toast({
+        title: "Failed to create monitor",
+        description: "Please check your video URL and try again",
+        variant: "destructive",
+      });
     },
   });
 
-  const updateMonitorMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return apiRequest(`/api/video-automation/monitors/${id}`, {
+  // Toggle monitor active status
+  const toggleMonitor = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      return apiRequest(`/api/video-monitors/${id}`, {
         method: "PATCH",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ isActive }),
       });
     },
     onSuccess: () => {
-      toast({ title: "✅ Monitor updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
-      setEditingMonitor(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
     },
   });
 
-  const deleteMonitorMutation = useMutation({
+  // Delete monitor
+  const deleteMonitor = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/video-automation/monitors/${id}`, {
+      return apiRequest(`/api/video-monitors/${id}`, {
         method: "DELETE",
       });
     },
     onSuccess: () => {
-      toast({ title: "Monitor removed" });
-      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
+      toast({ title: "Monitor deleted" });
+    },
+  });
+
+  // Update CTA link
+  const updateLink = useMutation({
+    mutationFn: async ({ id, ctaLink }: { id: string; ctaLink: string }) => {
+      return apiRequest(`/api/video-monitors/${id}`, {
+        method: "PATCH",
+        body: JSON.JSON.stringify({ ctaLink }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
+      toast({ title: "✅ Link updated" });
     },
   });
 
   const handleCreateMonitor = () => {
-    if (!selectedVideo || !productLink) {
-      toast({
-        title: "Missing information",
-        description: "Please select a video and add a product link",
-        variant: "destructive",
-      });
+    if (!videoUrl) {
+      toast({ title: "Please enter a video URL", variant: "destructive" });
       return;
     }
 
-    if (monitors.length >= 3) {
-      toast({
-        title: "Video limit reached",
-        description: "Maximum 3 active video monitors allowed (Instagram API guidelines)",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (askForFollow && !instagramHandle) {
-      toast({
-        title: "Missing Instagram handle",
-        description: "Please enter your Instagram handle to enable follow requests",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    createMonitorMutation.mutate({
-      videoId: selectedVideo.id,
-      videoUrl: selectedVideo.url,
-      productLink,
-      ctaText,
-      metadata: {
-        videoCaption: videoCaption || selectedVideo.caption,
-        productName: "",
-        pricePoint: "",
-        replyToComments,
-        askForFollow: askForFollow && replyToComments,
-        instagramHandle: askForFollow ? instagramHandle : undefined,
+    createMonitor.mutate({
+      videoUrl,
+      ctaLink,
+      customMessage: customMessage || undefined,
+      followUpConfig: {
+        askFollowOnConvert,
+        askFollowOnDecline,
       },
     });
   };
 
-  const videos = videosData?.videos || [];
-  const monitors = monitorsData?.monitors || [];
-
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 relative">
-      {/* Trial User Lock Overlay */}
-      {!isPaidUser && (
-        <motion.div
-          className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/60 rounded-lg"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <Card className="w-full max-w-md mx-4 border-2 border-primary">
-            <CardHeader className="text-center space-y-4">
-              <motion.div
-                className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center"
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              >
-                <Lock className="w-8 h-8 text-primary" />
-              </motion.div>
-              <CardTitle className="text-2xl">Premium Feature</CardTitle>
-              <CardDescription className="text-base">
-                Video Comment Automation is available for paid plans only
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-primary" />
-                  <span>Auto-detect buying intent in comments</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-primary" />
-                  <span>AI-powered personalized DMs</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-primary" />
-                  <span>24/7 automated engagement</span>
-                </div>
-              </div>
-              <Link href="/dashboard/pricing">
-                <Button className="w-full" size="lg">
-                  Upgrade to Access
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Video Comment Automation</h1>
-          <p className="text-muted-foreground">
-            Monitor Instagram Reels for buying intent and auto-respond with AI
-          </p>
-        </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button size="lg" disabled={monitors.length >= 3}>
-              <Plus className="h-4 w-4 mr-2" />
-              {monitors.length >= 3 ? "Limit Reached (3/3)" : "Add Video Monitor"}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Set Up AI Video Monitor</DialogTitle>
-              <DialogDescription>
-                Select a video and configure what AI should send when someone shows buying intent
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label>Select Instagram Video</Label>
-                {videosLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                ) : (
-                  <Select
-                    value={selectedVideo?.id}
-                    onValueChange={(id) => {
-                      const video = videos.find((v: any) => v.id === id);
-                      setSelectedVideo(video);
-                      setVideoCaption(video?.caption || "");
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a video..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {videos.map((video: any) => (
-                        <SelectItem key={video.id} value={video.id}>
-                          <div className="flex items-center gap-2">
-                            <Video className="h-4 w-4" />
-                            <span className="truncate max-w-xs">
-                              {video.caption || `Video from ${new Date(video.timestamp).toLocaleDateString()}`}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  ⚠️ Limit: 2-3 videos max per account (Instagram API guidelines)
-                </p>
-              </div>
-
-              <div>
-                <Label>Product/Offer Link</Label>
-                <Input
-                  placeholder="https://yourproduct.com"
-                  value={productLink}
-                  onChange={(e) => setProductLink(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  🔗 The link your leads will receive in their DMs (sales page, product, booking, etc.)
-                </p>
-              </div>
-
-              <div>
-                <Label>Button Text</Label>
-                <Input
-                  placeholder="Get it here"
-                  value={ctaText}
-                  onChange={(e) => setCtaText(e.target.value)}
-                  maxLength={25}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  💬 CTA text that appears with the link (e.g., "Get Access", "Book Now", "See Pricing")
-                </p>
-              </div>
-
-              <div>
-                <Label>Video Context (Optional)</Label>
-                <Textarea
-                  placeholder="What's this video about? Helps AI understand the context..."
-                  value={videoCaption}
-                  onChange={(e) => setVideoCaption(e.target.value)}
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  🧠 Helps AI personalize responses based on what your video is about
-                </p>
-              </div>
-
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Reply to Comments</Label>
-                    <p className="text-xs text-muted-foreground">
-                      🚀 Beats ManyChat! AI replies naturally in 5-25 seconds (human-like timing)
-                    </p>
-                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                      💡 Toggle ON to enable public comment replies before sending DMs
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ℹ️ When ON: AI posts a public reply, then sends DM • When OFF: Only DM is sent
-                    </p>
-                  </div>
-                  <Switch
-                    checked={replyToComments}
-                    onCheckedChange={setReplyToComments}
-                  />
-                </div>
-
-                {replyToComments && (
-                  <div className="space-y-3 pl-4 border-l-2 border-primary/20">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Ask to Follow (Optional)</Label>
-                        <p className="text-xs text-muted-foreground">
-                          📲 AI asks them to follow you in the comment reply (not forced, just friendly)
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                          💡 When ON: Comment says "Follow @yourhandle so I can send this!" • They follow manually
-                        </p>
-                        <p className="text-xs text-rose-600 dark:text-rose-500 mt-1">
-                          ⚠️ No button appears - they must go to your profile and click Follow themselves
-                        </p>
-                      </div>
-                      <Switch
-                        checked={askForFollow}
-                        onCheckedChange={setAskForFollow}
-                      />
-                    </div>
-
-                    {askForFollow && (
-                      <div>
-                        <Label>Your Instagram Handle</Label>
-                        <Input
-                          placeholder="@yourhandle"
-                          value={instagramHandle}
-                          onChange={(e) => {
-                            let value = e.target.value.trim();
-                            // Auto-add @ if missing
-                            if (value && !value.startsWith('@')) {
-                              value = '@' + value;
-                            }
-                            setInstagramHandle(value);
-                          }}
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          ✨ AI will say: "Follow {instagramHandle || '@yourhandle'} so I can send this over!" (natural, not pushy)
-                        </p>
-                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                          ℹ️ Lead will NOT be forced to follow - it's a friendly ask
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <Button
-                onClick={handleCreateMonitor}
-                disabled={createMonitorMutation.isPending || !isPaidUser}
-                className="w-full"
-              >
-                {createMonitorMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Video className="h-4 w-4 mr-2" />
-                )}
-                Start AI Monitoring
-              </Button>
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                ✅ Activates 24/7 comment monitoring • AI auto-replies & DMs interested leads
-              </p>
-              <p className="text-xs text-center text-amber-600 dark:text-amber-500">
-                💡 Once active, AI runs in background - no manual work needed
-              </p>
-            </div>
-          </DialogContent>
-        </Dialog>
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-3xl font-bold">Instagram Video Automation</h1>
+        <p className="text-muted-foreground mt-1">
+          AI monitors your videos 24/7, detects buying intent, and sends personalized DMs automatically
+        </p>
       </div>
 
+      {/* Create New Monitor */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Video Monitor</CardTitle>
+          <CardDescription>
+            Select an Instagram video to monitor for buying intent comments
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="video-url">Instagram Video URL</Label>
+            <Input
+              id="video-url"
+              placeholder="https://www.instagram.com/p/ABC123..."
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              📹 Paste the URL of any Instagram post/reel you want to monitor
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cta-link">CTA Button Link (Optional)</Label>
+            <div className="flex gap-2">
+              <LinkIcon className="h-4 w-4 mt-3 text-muted-foreground" />
+              <Input
+                id="cta-link"
+                placeholder="https://yourbrand.com/product"
+                value={ctaLink}
+                onChange={(e) => setCtaLink(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              🔗 When leads show interest, AI will send this as a button (not plain text)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="custom-message">Custom Greeting (Optional)</Label>
+            <Textarea
+              id="custom-message"
+              placeholder="Hey {name}! I saw your comment on my latest video..."
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              💬 Leave empty for AI-generated personalized messages. Use {"{name}"} for lead's name
+            </p>
+          </div>
+
+          <div className="space-y-4 border-t pt-4">
+            <h4 className="font-semibold text-sm">Follow Request Settings</h4>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="follow-convert">Ask for Follow After Conversion</Label>
+                <p className="text-xs text-muted-foreground">
+                  "Would you mind following us to stay connected?" (Professional tone)
+                </p>
+              </div>
+              <Switch
+                id="follow-convert"
+                checked={askFollowOnConvert}
+                onCheckedChange={setAskFollowOnConvert}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="follow-decline">Ask for Follow If Not Interested</Label>
+                <p className="text-xs text-muted-foreground">
+                  Politely request connection even if lead declines offer
+                </p>
+              </div>
+              <Switch
+                id="follow-decline"
+                checked={askFollowOnDecline}
+                onCheckedChange={setAskFollowOnDecline}
+              />
+            </div>
+          </div>
+
+          <Button 
+            onClick={handleCreateMonitor} 
+            disabled={createMonitor.isPending}
+            className="w-full"
+          >
+            {createMonitor.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating Monitor...
+              </>
+            ) : (
+              <>
+                <Video className="h-4 w-4 mr-2" />
+                Start Monitoring Video
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Active Monitors */}
-      <div className="grid gap-4">
-        {monitorsLoading ? (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Active Video Monitors</h2>
+
+        {isLoading ? (
           <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin" />
+            <CardContent className="py-12 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
             </CardContent>
           </Card>
-        ) : monitors.length === 0 ? (
-          <Card className="border-dashed" data-testid="card-empty-state">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Video className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your Instagram account and add your first Reel to start monitoring comments. 
-              AI will automatically detect interest and engage with viewers in real-time.
-            </p>
-          </CardContent>
-        </Card>
+        ) : monitors?.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <p className="text-muted-foreground">No video monitors yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add your first video above to start automating DMs
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          monitors.map((monitor: any) => (
-            <motion.div
-              key={monitor.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Video className="h-5 w-5" />
-                        {monitor.metadata?.videoCaption || "Instagram Video"}
-                      </CardTitle>
-                      <a
-                        href={monitor.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline flex items-center gap-1 mt-1"
-                      >
-                        View on Instagram
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
+          monitors?.map((monitor: any) => (
+            <Card key={monitor.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">Video Monitor</CardTitle>
                       <Badge variant={monitor.isActive ? "default" : "secondary"}>
                         {monitor.isActive ? "Active" : "Paused"}
                       </Badge>
-                      <Switch
-                        checked={monitor.isActive}
-                        onCheckedChange={(checked) => {
-                          if (!isPaidUser) return; // Prevent action for trial users
-                          updateMonitorMutation.mutate({
-                            id: monitor.id,
-                            data: { isActive: checked },
-                          });
-                        }}
-                        disabled={!isPaidUser}
-                      />
                     </div>
+                    <CardDescription className="break-all">
+                      {monitor.videoUrl}
+                    </CardDescription>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Button text:</span>
-                    <Badge variant="outline">{monitor.ctaText}</Badge>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Link:</span>
-                    <a
-                      href={monitor.productLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline truncate max-w-xs"
-                    >
-                      {monitor.productLink}
-                    </a>
-                  </div>
-
-                  {monitor.metadata?.replyToComments && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="default" className="text-xs">
-                        🚀 Comment Replies Active
-                      </Badge>
-                      {monitor.metadata?.askForFollow && (
-                        <Badge variant="secondary" className="text-xs">
-                          📲 Follow Request Enabled
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="text-xs text-muted-foreground pt-1 border-t">
-                    💬 AI monitors comments 24/7 • Responds in 5-25 seconds • Natural, human-like replies
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (!isPaidUser) return;
-                        setEditingMonitor(monitor)
-                      }}
-                      disabled={!isPaidUser}
-                      title="Edit video monitor settings (link, button text, etc.)"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => toggleMonitor.mutate({ 
+                        id: monitor.id, 
+                        isActive: !monitor.isActive 
+                      })}
                     >
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit
+                      {monitor.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (!isPaidUser) return;
-                        deleteMonitorMutation.mutate(monitor.id)
-                      }}
-                      disabled={!isPaidUser}
-                      title="Stop monitoring this video and remove from active list"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteMonitor.mutate(monitor.id)}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remove
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    ✏️ Edit: Change link/button text • 🗑️ Remove: Stop monitoring this video
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Comments Checked</p>
+                    <p className="font-semibold">{monitor.stats?.commentsChecked || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">DMs Sent</p>
+                    <p className="font-semibold">{monitor.stats?.dmsSent || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Conversions</p>
+                    <p className="font-semibold text-green-600">{monitor.stats?.conversions || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Follow Requests</p>
+                    <p className="font-semibold">{monitor.stats?.followRequests || 0}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>CTA Button Link</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={monitor.ctaLink || ""}
+                      onChange={(e) => {
+                        const newLink = e.target.value;
+                        updateLink.mutate({ id: monitor.id, ctaLink: newLink });
+                      }}
+                      placeholder="https://yourbrand.com/product"
+                    />
+                    <Button variant="outline" size="icon">
+                      <LinkIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    ✏️ Edit anytime - changes apply immediately
                   </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Follow Request Settings
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${monitor.followUpConfig?.askFollowOnConvert ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      <span>On Conversion</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${monitor.followUpConfig?.askFollowOnDecline ? 'bg-green-500' : 'bg-gray-400'}`} />
+                      <span>On Decline</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))
         )}
       </div>
 
-      {/* Edit Dialog */}
-      {editingMonitor && (
-        <Dialog open={!!editingMonitor} onOpenChange={() => setEditingMonitor(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Monitor</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label>Product Link</Label>
-                <Input
-                  defaultValue={editingMonitor.productLink}
-                  onChange={(e) => {
-                    setEditingMonitor({ ...editingMonitor, productLink: e.target.value });
-                  }}
-                />
-              </div>
-              <div>
-                <Label>Button Text</Label>
-                <Input
-                  defaultValue={editingMonitor.ctaText}
-                  onChange={(e) => {
-                    setEditingMonitor({ ...editingMonitor, ctaText: e.target.value });
-                  }}
-                  maxLength={25}
-                />
-              </div>
-              <Button
-                onClick={() => {
-                  updateMonitorMutation.mutate({
-                    id: editingMonitor.id,
-                    data: {
-                      productLink: editingMonitor.productLink,
-                      ctaText: editingMonitor.ctaText,
-                    },
-                  });
-                }}
-                className="w-full"
-              >
-                Save Changes
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Info Card */}
+      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="text-blue-900 dark:text-blue-100">How It Works</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+          <div className="flex gap-2">
+            <span>1️⃣</span>
+            <p>AI monitors your video comments 24/7 for buying intent signals</p>
+          </div>
+          <div className="flex gap-2">
+            <span>2️⃣</span>
+            <p>When detected, sends personalized DM: "Hey {"{name}"}, I saw your comment..."</p>
+          </div>
+          <div className="flex gap-2">
+            <span>3️⃣</span>
+            <p>Sends CTA link as a clickable button (not plain text) for better conversion</p>
+          </div>
+          <div className="flex gap-2">
+            <span>4️⃣</span>
+            <p>If warm lead or converted, sends 2 voice notes (15 sec each = 30 sec total)</p>
+          </div>
+          <div className="flex gap-2">
+            <span>5️⃣</span>
+            <p>Politely asks: "Would you mind following us to stay connected?" (Professional tone)</p>
+          </div>
+          <div className="flex gap-2">
+            <span>6️⃣</span>
+            <p>Triggers follow button only after lead replies "yes" (not automatic)</p>
+          </div>
+          <div className="flex gap-2">
+            <span>💰</span>
+            <p><strong>Replaces ManyChat entirely</strong> - Professional, scalable, expert-level automation</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

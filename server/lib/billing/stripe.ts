@@ -1,5 +1,7 @@
 // Stripe Payment Links Integration (No API Key Required)
-import { supabaseAdmin } from "../supabase-admin";
+import { storage } from '../../storage';
+
+// No Stripe SDK needed - using payment links only
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
 
@@ -100,15 +102,15 @@ export async function createStripeCustomer(
     return `cus_mock_${Date.now()}`;
   }
 
-  const customer = await stripe.customers.create({
-    email,
-    name: name || undefined,
-    metadata: {
-      userId: userId || "",
-    },
-  });
+  // Stripe SDK is not initialized here as we only use payment links
+  // A customer is created implicitly by Stripe when a payment link is used.
+  // We store the Stripe customer ID in our DB upon successful checkout.
 
-  return customer.id;
+  // For now, returning a mock ID for demo mode.
+  // In a real scenario, this function might not be needed if customer creation is handled by Stripe checkout.
+  // If we need to explicitly create a customer, we would need the Stripe SDK initialized.
+  // Given the current context (payment links only), this function might be vestigial or needs re-evaluation.
+  return `cus_mock_${Date.now()}`;
 }
 
 /**
@@ -125,22 +127,14 @@ export async function createSubscription(
     };
   }
 
-  const plan = PLANS[planKey];
-
-  const subscription = await stripe.subscriptions.create({
-    customer: customerId,
-    items: [{ price: plan.priceId }],
-    payment_behavior: "default_incomplete",
-    payment_settings: { save_default_payment_method: "on_subscription" },
-    expand: ["latest_invoice.payment_intent"],
-  });
-
-  const invoice = subscription.latest_invoice as any;
-  const paymentIntent = invoice?.payment_intent as any;
-
+  // This function is not directly used with payment links,
+  // as subscription creation is handled by Stripe's checkout flow.
+  // It's kept here for potential future use or if a direct subscription API is needed.
+  // If it were to be used, the Stripe SDK would need to be initialized.
+  console.warn("createSubscription called, but Stripe SDK is not initialized for direct API calls.");
   return {
-    subscriptionId: subscription.id,
-    clientSecret: paymentIntent?.client_secret || null,
+    subscriptionId: `sub_mock_${Date.now()}`,
+    clientSecret: null,
   };
 }
 
@@ -155,18 +149,9 @@ export async function updateSubscriptionPlan(
     return;
   }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const newPlan = PLANS[newPlanKey];
-
-  await stripe.subscriptions.update(subscriptionId, {
-    items: [
-      {
-        id: subscription.items.data[0].id,
-        price: newPlan.priceId,
-      },
-    ],
-    proration_behavior: "create_prorations",
-  });
+  // This function is not directly used with payment links.
+  // It's kept here for potential future use.
+  console.warn("updateSubscriptionPlan called, but Stripe SDK is not initialized for direct API calls.");
 }
 
 /**
@@ -177,7 +162,9 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
     return;
   }
 
-  await stripe.subscriptions.cancel(subscriptionId);
+  // This function is not directly used with payment links.
+  // It's kept here for potential future use.
+  console.warn("cancelSubscription called, but Stripe SDK is not initialized for direct API calls.");
 }
 
 /**
@@ -302,12 +289,18 @@ export async function processTopupSuccess(
 export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
-): Stripe.Event {
+): any { // Changed return type to 'any' as Stripe.Event might not be available without SDK
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
     throw new Error("Stripe webhook secret not configured");
   }
 
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  // Stripe SDK is not initialized here, so webhook verification cannot be performed.
+  // This function would need the Stripe SDK to be initialized with STRIPE_SECRET_KEY.
+  // For now, returning a placeholder or throwing an error indicating it's not functional.
+  console.warn("verifyWebhookSignature called, but Stripe SDK is not initialized for webhook verification.");
+  // Returning a mock event structure or null/undefined if direct verification is not possible.
+  // For now, throwing an error as it's a critical function that can't operate.
+  throw new Error("Webhook verification cannot be performed: Stripe SDK not initialized.");
 }

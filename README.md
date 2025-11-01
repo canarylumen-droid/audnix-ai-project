@@ -277,6 +277,43 @@ When voice minutes are exhausted:
 - 600 minutes - $40 (Popular) - 85% margin
 - 1200 minutes - $80 (Power User) - 85% margin
 
+## 🎥 Instagram Video Comment Automation ✅ FULLY IMPLEMENTED
+
+**Replace ManyChat Entirely:**
+- ✅ Select any Instagram video/reel to monitor 24/7
+- ✅ AI detects buying intent in comments automatically
+- ✅ Sends personalized DM: "Hey {name}, I saw your comment..."
+- ✅ CTA link appears as clickable button (not plain text)
+- ✅ Edit CTA link anytime - changes apply immediately
+- ✅ 2 voice notes per warm/converted lead (15 sec each = 30 sec total)
+- ✅ Professional follow request: "Would you mind following us to stay connected?"
+- ✅ Follow button triggers ONLY after lead says "yes" (based on text reply)
+- ✅ Works across Instagram & WhatsApp simultaneously
+- ✅ Real-time stats: comments checked, DMs sent, conversions, follow requests
+
+**Follow Request Logic:**
+- ✅ If lead converts → AI asks politely for follow (professional tone)
+- ✅ If lead declines → AI still asks politely to stay connected (optional)
+- ✅ Follow button appears only when lead responds positively
+- ✅ Expert-level automation - no pleading, always respectful
+
+## 🎨 PDF Brand Extraction & Branded Emails ✅ FULLY IMPLEMENTED
+
+**Automatic Brand Identity Extraction:**
+- ✅ Upload PDF with brand guide, pitch deck, or product sheet
+- ✅ AI extracts brand colors (primary, secondary, accent) from hex/RGB/color names
+- ✅ Extracts company name, tagline, website, logo description
+- ✅ Extracts product features, pricing, CTAs, support email
+- ✅ Can re-upload PDF anytime to update brand identity
+- ✅ Shows current brand colors & last update date in Settings
+
+**Branded Email Templates:**
+- ✅ All emails automatically use YOUR extracted brand colors
+- ✅ Professional presentation with custom CTA buttons
+- ✅ Includes product features, pricing, support contact
+- ✅ Button styling matches your brand identity
+- ✅ Works for both automated outreach and manual sends
+
 ## 📊 Analytics & Insights
 
 **NEW: Beautiful Analytics Dashboard with Recharts**
