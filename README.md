@@ -7,8 +7,8 @@
 ### Revenue Model
 
 **Subscription Plans (Optimized for 90%+ Margins):**
-- **Starter**: $49.99/mo - 2,500 leads, **100 voice minutes** (~1.5 hours)
-- **Pro**: $99.99/mo - 7,000 leads, **400 voice minutes** (~6.5 hours)
+- **Starter**: $49.99/mo - 2,500 leads, **400 voice minutes** (~6.5 hours)
+- **Pro**: $99.99/mo - 7,000 leads, **800 voice minutes** (~13 hours)
 - **Enterprise**: $199.99/mo - 20,000 leads, **1,000 voice minutes** (~16+ hours)
 
 **Top-ups (85%+ Profit Margin):**
@@ -20,11 +20,11 @@
 ### Cost Breakdown Per User (Monthly)
 
 **Voice Costs (ElevenLabs at $0.01/minute):**
-- Starter: 100 minutes = **$1.00**
-- Pro: 400 minutes = **$4.00**
+- Starter: 400 minutes = **$4.00**
+- Pro: 800 minutes = **$8.00**
 - Enterprise: 1,000 minutes = **$10.00**
 
-**AI Processing (OpenAI GPT-4):**
+**AI Processing (OpenAI GPT-4o-mini):**
 - Cost per message: ~$0.001 (using GPT-4o-mini)
 - Starter (2,500 messages): $2.50
 - Pro (7,000 messages): $7.00
@@ -34,19 +34,19 @@
 - Database + Storage + API: **$0.50/user**
 
 **Messaging Costs:**
-- **WhatsApp via Twilio**: $0 (users connect their own accounts and pay Twilio directly)
+- **WhatsApp Business API**: Users connect their own accounts and pay Meta directly.
 - **Instagram**: $0 (free via Graph API)
 - **Platform messaging cost**: **$0** 🎉
 
 **Total Cost Per User:**
-- Starter: **$4.00** (Voice: $1 + AI: $2.50 + Infra: $0.50 + Messaging: $0)
-- Pro: **$11.50** (Voice: $4 + AI: $7 + Infra: $0.50 + Messaging: $0)
+- Starter: **$7.00** (Voice: $4 + AI: $2.50 + Infra: $0.50 + Messaging: $0)
+- Pro: **$15.50** (Voice: $8 + AI: $7 + Infra: $0.50 + Messaging: $0)
 - Enterprise: **$30.50** (Voice: $10 + AI: $20 + Infra: $0.50 + Messaging: $0)
 
 ### Profit Margins (Industry-Leading)
 
 **Monthly Subscriptions:**
-- Starter: $49.99 revenue - $4.00 cost = **$45.99 profit (92% margin)** 🚀
+- Starter: $49.99 revenue - $7.00 cost = **$42.99 profit (86% margin)** 🚀
 
 
 ## ✅ Complete Feature Status (Jan 2025)
@@ -55,10 +55,10 @@
 - ✅ **AI Comment Detection** - Context-aware, no keywords needed
 - ✅ **Personalized DMs** - Uses real usernames, references their comments
 - ✅ **Comment Replies** - Public replies before DM (Business accounts only)
-- ✅ **Voice Cloning** - Send voice notes in YOUR voice
+- ✅ **Voice Cloning** - Send voice notes in YOUR voice (15 seconds max)
 - ✅ **Multi-Channel Support** - Instagram, WhatsApp, Email
 - ✅ **Revenue Tracking** - Built-in CRM and deal pipeline
-- ✅ **AI Follow-ups** - Smart scheduling based on engagement
+- ✅ **AI Follow-ups** - Smart scheduling based on engagement across channels
 - ✅ **Weekly Insights** - AI-generated performance reports
 
 ### Settings & UX
@@ -74,7 +74,7 @@
 - ⏳ **PDF Knowledge Base** - Upload product docs (UI ready, processing pending)
 - ⏳ **CSV Export** - Export leads with email/phone (Available in Settings)
 - ⏳ **CSV Lead Import** - Upload leads manually from spreadsheets with auto-outreach
-- ⏳ **WhatsApp Auto-Campaign** - Import phone numbers → AI sends personalized WhatsApp via Twilio
+- ⏳ **WhatsApp Auto-Campaign** - Import phone numbers → AI sends personalized WhatsApp via WhatsApp Business API
 - ⏳ **Email Sequences** - Import emails → AI sends multi-step campaigns with smart follow-ups
 - ⏳ **Calendar Integration** - Auto-book meetings (OAuth ready)
 
@@ -84,7 +84,7 @@
 - ⚠️ **Follow Request** - Mentioned in text, not a button (Instagram doesn't allow)
 
 
-- Pro: $99.99 revenue - $11.50 cost = **$88.49 profit (88% margin)** 🚀
+- Pro: $99.99 revenue - $15.50 cost = **$84.49 profit (84% margin)** 🚀
 - Enterprise: $199.99 revenue - $30.50 cost = **$169.49 profit (85% margin)** 🚀
 
 **Top-ups (at $0.01/min voice cost):**
@@ -102,17 +102,17 @@
 - Total fixed: **~$35-50/mo**
 
 **Break-Even Point:**
-- 1 Starter subscriber = $38.49 profit > $50 fixed costs
+- 1 Starter subscriber = $35.99 profit > $50 fixed costs
 - **2 users = profitable** ✅
 
 **Growth Projections (Conservative Mix):**
-- 10 users: ~$750/mo revenue, $80 costs = **$670/mo profit (89% margin)**
-- 100 users: ~$7,500/mo revenue, $800 costs = **$6,700/mo profit (89% margin)**
-- 1,000 users: ~$75,000/mo revenue, $8,000 costs = **$67,000/mo profit (89% margin)**
+- 10 users: ~$750/mo revenue, $100 costs = **$650/mo profit (87% margin)**
+- 100 users: ~$7,500/mo revenue, $1,000 costs = **$6,500/mo profit (87% margin)**
+- 1,000 users: ~$75,000/mo revenue, $10,000 costs = **$65,000/mo profit (87% margin)**
 
 **Key Differentiators:**
-- **Zero messaging costs** - Users connect their own Twilio accounts
-- **WhatsApp**: Users pay Twilio directly (~$0.005/msg)
+- **Zero messaging costs** - Users connect their own WhatsApp Business accounts
+- **WhatsApp**: Users pay Meta directly
 - **Instagram**: Free via Graph API
 - **Platform profit**: 100% margin on message delivery 🎉
 
@@ -127,7 +127,7 @@
 **Manually import leads and let AI handle outreach:**
 - **Upload CSV/Excel** - Import thousands of leads with Name, Email, Phone, Company
 - **Smart Field Detection** - AI auto-detects columns (Name, Email, Phone, etc.)
-- **WhatsApp Campaigns** - Connect Twilio → AI sends personalized WhatsApp messages
+- **WhatsApp Campaigns** - Connect WhatsApp Business API → AI sends personalized WhatsApp messages
 - **Email Sequences** - AI crafts multi-step email campaigns with smart follow-ups
 - **Deduplication** - Prevents duplicate imports across all channels
 - **Export Anytime** - Download all leads + conversation history as CSV
@@ -153,7 +153,7 @@
 
 ### For Paid Users Only
 - **Intelligent Video Comment Automation**: Monitor Instagram Reels and detect ANY form of interest - no keywords required
-- **AI Voice Notes**: Send personalized voice messages to warm leads (Instagram & WhatsApp)
+- **AI Voice Notes**: Send personalized voice messages to warm leads (Instagram & WhatsApp) - **15 seconds max**
 - **Advanced Multi-Channel Support**: Full access to Instagram DMs, WhatsApp messages, and emails
 - **Context-Aware Responses**: AI understands what each lead wants based on their actual comments
 
@@ -173,8 +173,8 @@ This is a fully functional SaaS platform with complete authentication, database,
 - **Real Username Usage**: Uses actual Instagram handles in personalized DMs
 - **Context-Aware Messaging**: Every DM references what the lead said and wants
 - **Developer Mode**: Access dashboard without API keys for development
-- **Optimized Pricing**: 90%+ profit margins on subscriptions
-- **Twilio WhatsApp**: Users connect their own accounts (zero platform costs)
+- **Optimized Pricing**: 85%+ profit margins on subscriptions
+- **WhatsApp Business API**: Users connect their own accounts (zero platform costs)
 - **Security**: Removed all exposed secrets, added encryption
 - **Real-time Updates**: Supabase integration for live data
 
@@ -187,13 +187,13 @@ This is a fully functional SaaS platform with complete authentication, database,
 | Feature | Audnix AI | ManyChat | CommentGuard | Inflact |
 |---------|-----------|----------|--------------|---------|
 | **Keyword Detection** | ❌ Not needed | ✅ Required | ✅ Required | ✅ Required |
-| **Context Intelligence** | ✅ Full AI (GPT-4) | ❌ None | ❌ Basic rules | ❌ None |
+| **Context Intelligence** | ✅ Full AI (GPT-4o-mini) | ❌ None | ❌ Basic rules | ❌ None |
 | **Real Usernames** | ✅ Always | ❌ {first_name} | ❌ Generic | ❌ Generic |
 | **Personalization** | ✅ Every DM unique | ❌ Templates | ❌ Templates | ❌ Templates |
 | **Emotion Detection** | ✅ Emoji + tone | ❌ No | ❌ No | ❌ No |
 | **Multi-language** | ✅ Any language | ❌ English only | ❌ Limited | ❌ English only |
 | **Comment Replies** | ✅ Natural AI text | ✅ Template only | ❌ No | ❌ No |
-| **Voice Cloning** | ✅ Your actual voice | ❌ No | ❌ No | ❌ No |
+| **Voice Cloning** | ✅ Your actual voice (15s max) | ❌ No | ❌ No | ❌ No |
 | **Revenue Tracking** | ✅ Built-in CRM | ❌ Requires Zapier | ❌ No | ❌ No |
 | **Price** | **$49/mo** | $297/year | $99/mo | $79/mo |
 | **Setup Time** | 2 minutes | 30+ minutes | 15 minutes | 20 minutes |
@@ -220,7 +220,7 @@ This is a fully functional SaaS platform with complete authentication, database,
    ```
 
 3. **Smart Follow-Up** - If they engage:
-   - Voice message for warm leads
+   - Voice message for warm leads (15s max)
    - Professional follow request after conversion
    - Handles objections intelligently
 
@@ -257,8 +257,8 @@ everything you need to get started..."
 - ✅ PostgreSQL audit trail for all usage
 
 **Plans now include voice minutes:**
-- Starter ($49/mo): 300 minutes (5 hours)
-- Pro ($99/mo): 800 minutes (13+ hours)  
+- Starter ($49/mo): 400 minutes (6.5 hours)
+- Pro ($99/mo): 800 minutes (13 hours)  
 - Enterprise ($199/mo): 1000 minutes (16+ hours)
 
 **Auto-Lock System:**
@@ -309,8 +309,9 @@ When voice minutes are exhausted:
 - **PostgreSQL** - Production database
 - **Supabase** - Authentication provider
 - **OpenAI** - AI message generation and insights
-- **Stripe** - Payment processing
+- **Stripe** - Payment processing (for payment links)
 - **Google APIs** - Calendar, Gmail integration
+- **Meta APIs** - WhatsApp Business API integration
 
 ## 🎯 Why This is Transformative for Creators
 
@@ -323,7 +324,7 @@ When voice minutes are exhausted:
 1. **Zero Missed Leads**: AI reads EVERY comment, detects interest from context (not keywords)
 2. **Human-Like Engagement**: Uses real usernames, references what THEY said
 3. **Scales Infinitely**: Handle 1,000+ comments/day with same quality as 10
-4. **Voice Cloning**: Send personalized voice notes in YOUR voice (warm leads convert 3x better)
+4. **Voice Cloning**: Send personalized voice notes in YOUR voice (warm leads convert 3x better) - **15s max**
 5. **Built-in CRM**: Track revenue, book calls, manage pipeline - no integrations needed
 
 ### Real-World Impact
@@ -338,11 +339,11 @@ When voice minutes are exhausted:
 - **Manychat Competitor**: $150-200/mo (for similar feature set)
 - **Audnix AI**: **$49-$99/mo** (ALL features, unlimited leads, voice cloning)
 
-**Our Platform Cost**: ~$4-$11/user (90%+ profit margin) 🎉  
+**Our Platform Cost**: ~$7-$15.50/user (85%+ profit margin) 🎉  
 **Your Competitors**: $50-$100/user (hosting, AI, messaging fees)
 
 We win because:
-- ✅ Users connect their own Twilio (we pay $0 for messaging)
+- ✅ Users connect their own WhatsApp Business accounts (we pay $0 for messaging)
 - ✅ Instagram Graph API is free
 - ✅ AI costs optimized (GPT-4o-mini at $0.001/message)
 - ✅ Voice cloning at cost ($0.01/minute) with 85% margin on top-ups
@@ -372,14 +373,16 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 # Recommended - Get from https://platform.openai.com
 OPENAI_API_KEY=sk-your_openai_key
 
-# Recommended - Get from https://stripe.com
-STRIPE_SECRET_KEY=sk_test_your_stripe_key
+# Recommended - Get from https://stripe.com (for payment links)
+# STRIPE_SECRET_KEY=sk_test_your_stripe_key (No longer needed for direct Stripe integration)
 
-# Optional - For WhatsApp voice messages via Twilio (Free tier available)
-# Get from https://console.twilio.com
-TWILIO_ACCOUNT_SID=your_account_sid
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+# For WhatsApp Business API integration
+# Get from Meta for Developers: https://developers.facebook.com/apps/
+# Requires a WhatsApp Business Account and a Phone Number
+# Example:
+# WHATSAPP_BUSINESS_ACCOUNT_ID=your_business_account_id
+# WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id
+# WHATSAPP_ACCESS_TOKEN=your_long_lived_access_token
 ```
 
 ### 3. Set Up Database
@@ -425,4 +428,4 @@ Server starts on `http://localhost:5000`
 - [INTEGRATIONS_GUIDE.md](./INTEGRATIONS_GUIDE.md) - How all integrations work
 - [VOICE_MINUTES_GUIDE.md](./VOICE_MINUTES_GUIDE.md) - Voice minutes tracking system
 
-**Built with React, Express, PostgreSQL, Supabase, OpenAI, and Stripe** | **Ready to deploy in minutes** 🚀
+**Built with React, Express, PostgreSQL, Supabase, OpenAI, and Meta APIs** | **Ready to deploy in minutes** 🚀

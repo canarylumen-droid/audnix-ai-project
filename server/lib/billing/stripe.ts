@@ -1,14 +1,5 @@
-// Using Stripe blueprint integration
-import Stripe from "stripe";
+// Stripe Payment Links Integration (No API Key Required)
 import { supabaseAdmin } from "../supabase-admin";
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn("STRIPE_SECRET_KEY not set. Billing features will be limited.");
-}
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "mock-key", {
-  apiVersion: "2025-09-30.clover" as any,
-});
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
 
@@ -190,84 +181,50 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
 }
 
 /**
- * Create checkout session for subscription
+ * Get payment link for subscription plan
  */
-export async function createSubscriptionCheckout(
-  customerId: string,
+export async function getSubscriptionPaymentLink(
   planKey: keyof typeof PLANS,
   userId: string
-): Promise<{ sessionId: string; url: string }> {
-  if (isDemoMode) {
-    return {
-      sessionId: `cs_mock_${Date.now()}`,
-      url: "/dashboard",
-    };
-  }
+): Promise<string> {
+  const paymentLinks = {
+    starter: process.env.STRIPE_PAYMENT_LINK_STARTER || "https://buy.stripe.com/starter",
+    pro: process.env.STRIPE_PAYMENT_LINK_PRO || "https://buy.stripe.com/pro",
+    enterprise: process.env.STRIPE_PAYMENT_LINK_ENTERPRISE || "https://buy.stripe.com/enterprise",
+  };
 
-  const plan = PLANS[planKey];
-
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: "subscription",
-    line_items: [
-      {
-        price: plan.priceId,
-        quantity: 1,
-      },
-    ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard?payment=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard/pricing?payment=cancelled`,
-    metadata: {
-      userId,
-      planKey,
-    },
+  // Append user metadata to payment link
+  const link = paymentLinks[planKey];
+  const params = new URLSearchParams({
+    client_reference_id: userId,
+    prefilled_email: '', // Will be filled by Stripe
   });
 
-  return {
-    sessionId: session.id,
-    url: session.url || "",
-  };
+  return `${link}?${params.toString()}`;
 }
 
 /**
- * Create checkout session for top-up
+ * Get payment link for voice minutes top-up
  */
-export async function createTopupCheckout(
-  customerId: string,
+export async function getTopupPaymentLink(
   topupKey: keyof typeof TOPUPS,
   userId: string
-): Promise<{ sessionId: string; url: string }> {
-  if (isDemoMode) {
-    return {
-      sessionId: `cs_mock_${Date.now()}`,
-      url: "https://example.com/checkout",
-    };
-  }
+): Promise<string> {
+  const paymentLinks = {
+    voice_100: process.env.STRIPE_PAYMENT_LINK_VOICE_100 || "https://buy.stripe.com/voice100",
+    voice_300: process.env.STRIPE_PAYMENT_LINK_VOICE_300 || "https://buy.stripe.com/voice300",
+    voice_600: process.env.STRIPE_PAYMENT_LINK_VOICE_600 || "https://buy.stripe.com/voice600",
+    voice_1200: process.env.STRIPE_PAYMENT_LINK_VOICE_1200 || "https://buy.stripe.com/voice1200",
+    leads_1000: process.env.STRIPE_PAYMENT_LINK_LEADS_1000 || "https://buy.stripe.com/leads1000",
+    leads_2500: process.env.STRIPE_PAYMENT_LINK_LEADS_2500 || "https://buy.stripe.com/leads2500",
+  };
 
-  const topup = TOPUPS[topupKey];
-
-  const session = await stripe.checkout.sessions.create({
-    customer: customerId,
-    mode: "payment",
-    line_items: [
-      {
-        price: topup.priceId,
-        quantity: 1,
-      },
-    ],
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard/settings?payment=success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:5000"}/dashboard/settings?payment=cancelled`,
-    metadata: {
-      userId,
-      topupType: topup.type,
-      topupAmount: topup.amount.toString(),
-    },
+  const link = paymentLinks[topupKey];
+  const params = new URLSearchParams({
+    client_reference_id: userId,
   });
 
-  return {
-    sessionId: session.id,
-    url: session.url || "",
-  };
+  return `${link}?${params.toString()}`;
 }
 
 /**

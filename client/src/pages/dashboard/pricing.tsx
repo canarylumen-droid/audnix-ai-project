@@ -99,7 +99,7 @@ export default function PricingPage() {
   const handleUpgrade = async (planId: string) => {
     setLoadingPlan(planId);
     try {
-      const response = await apiRequest<{ url: string }>('/api/billing/checkout', {
+      const response = await apiRequest<{ url: string }>('/api/billing/payment-link', {
         method: 'POST',
         body: JSON.stringify({ planKey: planId }),
         headers: {
@@ -110,13 +110,13 @@ export default function PricingPage() {
       if (response.url) {
         window.location.href = response.url;
       } else {
-        throw new Error('No checkout URL returned');
+        throw new Error('No payment link returned');
       }
     } catch (error) {
-      console.error('Error creating checkout:', error);
+      console.error('Error getting payment link:', error);
       toast({
         title: "Error",
-        description: "Failed to create checkout session. Please try again.",
+        description: "Failed to get payment link. Please try again.",
         variant: "destructive",
       });
       setLoadingPlan(null);
@@ -126,7 +126,7 @@ export default function PricingPage() {
   const handleTopup = async (topupKey: string) => {
     setLoadingPlan(topupKey);
     try {
-      const response = await apiRequest<{ url: string }>('/api/billing/topup', {
+      const response = await apiRequest<{ url: string }>('/api/billing/topup-link', {
         method: 'POST',
         body: JSON.stringify({ topupKey }),
         headers: {
@@ -137,13 +137,13 @@ export default function PricingPage() {
       if (response.url) {
         window.location.href = response.url;
       } else {
-        throw new Error('No checkout URL returned');
+        throw new Error('No payment link returned');
       }
     } catch (error) {
-      console.error('Error creating topup checkout:', error);
+      console.error('Error getting topup link:', error);
       toast({
         title: "Error",
-        description: "Failed to create checkout session. Please try again.",
+        description: "Failed to get payment link. Please try again.",
         variant: "destructive",
       });
       setLoadingPlan(null);

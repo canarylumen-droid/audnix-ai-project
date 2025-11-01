@@ -1,10 +1,10 @@
 import { decrypt } from "../crypto/encryption";
 
 interface WhatsAppCredentials {
-  // Twilio credentials for WhatsApp
-  accountSid: string;
-  authToken: string;
-  fromNumber: string; // Twilio WhatsApp number (e.g., whatsapp:+14155238886)
+  // WhatsApp Business API credentials
+  phoneNumberId: string;
+  accessToken: string;
+  businessAccountId: string;
 }
 
 interface WhatsAppMessage {
@@ -33,75 +33,69 @@ export class WhatsAppProvider {
   }
 
   /**
-   * Send WhatsApp text message via Twilio
+   * Send WhatsApp text message via WhatsApp Business API
    */
   async sendMessage(to: string, text: string): Promise<{ messageId: string }> {
     if (this.isDemoMode) {
       return { messageId: `mock_whatsapp_${Date.now()}` };
     }
 
-    // Ensure phone number has whatsapp: prefix
-    const toWhatsApp = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${this.credentials.accountSid}/Messages.json`;
-
-    const formData = new URLSearchParams();
-    formData.append('From', this.credentials.fromNumber);
-    formData.append('To', toWhatsApp);
-    formData.append('Body', text);
+    const url = `https://graph.facebook.com/v18.0/${this.credentials.phoneNumberId}/messages`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${Buffer.from(`${this.credentials.accountSid}:${this.credentials.authToken}`).toString('base64')}`,
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Authorization": `Bearer ${this.credentials.accessToken}`,
+        "Content-Type": "application/json"
       },
-      body: formData
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: to.replace(/\D/g, ''), // Remove non-digits
+        type: "text",
+        text: { body: text }
+      })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Twilio WhatsApp API error: ${error.message || response.statusText}`);
+      throw new Error(`WhatsApp Business API error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    return { messageId: data.sid };
+    return { messageId: data.messages[0].id };
   }
 
   /**
-   * Send WhatsApp voice message via Twilio (SUPPORTED)
+   * Send WhatsApp voice/audio message via WhatsApp Business API
    */
   async sendAudioMessage(to: string, audioUrl: string): Promise<{ messageId: string }> {
     if (this.isDemoMode) {
       return { messageId: `mock_audio_${Date.now()}` };
     }
 
-    // Ensure phone number has whatsapp: prefix
-    const toWhatsApp = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${this.credentials.accountSid}/Messages.json`;
-
-    const formData = new URLSearchParams();
-    formData.append('From', this.credentials.fromNumber);
-    formData.append('To', toWhatsApp);
-    formData.append('MediaUrl', audioUrl); // Twilio supports media URLs for audio
+    const url = `https://graph.facebook.com/v18.0/${this.credentials.phoneNumberId}/messages`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${Buffer.from(`${this.credentials.accountSid}:${this.credentials.authToken}`).toString('base64')}`,
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Authorization": `Bearer ${this.credentials.accessToken}`,
+        "Content-Type": "application/json"
       },
-      body: formData
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: to.replace(/\D/g, ''),
+        type: "audio",
+        audio: { link: audioUrl }
+      })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`Twilio WhatsApp audio error: ${error.message || response.statusText}`);
+      throw new Error(`WhatsApp audio error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    return { messageId: data.sid };
+    return { messageId: data.messages[0].id };
   }
 
   /**

@@ -23,7 +23,7 @@ export default function Landing() {
   const containerRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const comparisonRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
@@ -55,7 +55,7 @@ export default function Landing() {
         },
         (payload) => {
           setUserCount(prev => prev + 1);
-          
+
           const newUser = payload.new as any;
           if (newUser.name) {
             toast({
@@ -127,7 +127,7 @@ export default function Landing() {
       <Navigation />
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center px-4 py-20 mt-16">
-        <motion.div 
+        <motion.div
           className="absolute inset-0 overflow-hidden"
           style={{ opacity }}
         >
@@ -158,7 +158,7 @@ export default function Landing() {
 
               <motion.h1
                 className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-6"
-                animate={prefersReducedMotion ? {} : { 
+                animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
                     "0 0 50px rgba(147, 51, 234, 0.5)",
@@ -190,8 +190,8 @@ export default function Landing() {
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
                 <Link href="/auth">
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="text-lg px-10 py-7 group bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
                     style={{ boxShadow: "0 0 40px rgba(0, 200, 255, 0.4)" }}
                   >
@@ -199,9 +199,9 @@ export default function Landing() {
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
+                <Button
+                  size="lg"
+                  variant="outline"
                   className="text-lg px-10 py-7 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
                   onClick={scrollToFeatures}
                 >
@@ -237,7 +237,7 @@ export default function Landing() {
               >
                 <Flame className="w-5 h-5 text-primary" />
                 <span className="text-white/90">
-                  <motion.span 
+                  <motion.span
                     className="font-bold text-primary"
                     key={userCount}
                     initial={{ scale: 1.2, color: "#00aaff" }}
@@ -293,7 +293,7 @@ export default function Landing() {
       {/* AI Voice System Showcase */}
       <section className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        
+
         <div className="max-w-6xl mx-auto relative z-10">
           <motion.div
             className="text-center mb-16"
@@ -436,7 +436,7 @@ export default function Landing() {
       {/* Features Grid Section */}
       <section id="features" ref={featuresRef} className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        
+
         <div className="max-w-6xl mx-auto relative z-10">
           <motion.div
             className="text-center mb-20"
@@ -648,8 +648,8 @@ export default function Landing() {
                     { feature: "Custom AI Training", audnix: true, manychat: false, hubspot: false },
                     { feature: "Starting Price", audnix: "$49/mo", manychat: "$297/year", hubspot: "$99/mo" }
                   ].map((row, index) => (
-                    <motion.tr 
-                      key={index} 
+                    <motion.tr
+                      key={index}
                       className="border-b border-white/5 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 group"
                       initial={{ opacity: 0 }}
                       whileInView={{ opacity: 1 }}
@@ -702,7 +702,7 @@ export default function Landing() {
       {/* Pricing Section */}
       <section className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             className="text-center mb-20"
@@ -736,21 +736,21 @@ export default function Landing() {
                 testId: 'starter',
               },
               {
-                name: 'Pro',
+                name: "Pro",
                 price: 99.99,
                 description: 'For growing creators who need more power',
                 features: [
-                  '7,000 leads per month',
-                  '400 voice minutes (~6.5 hours)',
-                  'All integrations (IG, WA, Email)',
-                  'Advanced AI insights',
-                  'Voice cloning',
-                  'Priority support',
-                  'Custom automations',
+                  "7,000 leads per month",
+                  "400 voice minutes (~6.5 hours)",
+                  "All integrations (IG, WA, Email)",
+                  "Advanced AI insights",
+                  "Voice cloning",
+                  "Priority support",
+                  "Custom automations",
                 ],
                 popular: true,
-                planId: 'pro',
-                testId: 'pro',
+                planId: "pro",
+                testId: "pro",
               },
               {
                 name: 'Enterprise',
@@ -814,7 +814,7 @@ export default function Landing() {
                   </ul>
 
                   <Link href="/auth">
-                    <Button 
+                    <Button
                       className={`w-full group text-white ${plan.popular ? 'glow bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400' : 'glass border-white/20'}`}
                       variant={plan.popular ? 'default' : 'outline'}
                     >

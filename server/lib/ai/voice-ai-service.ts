@@ -105,7 +105,7 @@ export class VoiceAIService {
   }
 
   /**
-   * Generate and send AI voice note
+   * Generate and send AI voice note (15 seconds max for professional brevity)
    */
   async generateAndSendVoiceNote(
     userId: string,
@@ -284,8 +284,7 @@ export class VoiceAIService {
 
   /**
    * Generate voice script with natural human speech patterns
-   * Note: ElevenLabs does not support laughter/emotional sounds in synthesis
-   * We focus on natural conversational language instead
+   * 15 seconds max for professional brevity
    */
   private async generateVoiceScript(lead: any, history: any[], maxWords: number = 37): Promise<string> {
     // Analyze conversation mood
@@ -293,19 +292,19 @@ export class VoiceAIService {
     const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
     
     const prompt = `
-      You are an influencer/creator speaking naturally to ${lead.name || 'there'} on ${lead.channel}.
+      You are a business professional speaking to ${lead.name || 'there'} on ${lead.channel}.
       
       Conversation history:
       ${history.map(msg => `${msg.sender === 'ai' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
 
       VOICE SCRIPT RULES:
-      1. Sound like a REAL human having a conversation - natural speech patterns
-      2. Keep it to ${maxWords} words max (15 seconds when spoken)
-      3. ${isSerious ? 'Keep tone professional and empathetic' : 'Keep tone warm and conversational'}
-      4. Use natural pauses: "you know", "I mean", "honestly"
-      5. Professional but warm - you're an expert who's approachable
-      6. NO robotic phrases, NO sales scripts
-      7. Write ONLY what should be spoken - no stage directions or actions
+      1. Professional and concise - 15 seconds MAX when spoken
+      2. Keep it to ${maxWords} words MAXIMUM (strict limit)
+      3. ${isSerious ? 'Professional and empathetic tone' : 'Professional but friendly tone'}
+      4. Direct and clear - get to the point quickly
+      5. Business-appropriate language only
+      6. NO filler words, NO casual slang
+      7. Write ONLY what should be spoken - no stage directions
       
       BANNED PHRASES:
       - "I'm reaching out"
@@ -313,7 +312,7 @@ export class VoiceAIService {
       - "Circle back"
       - Any *action* markers like *laughs* or *chuckles*
       
-      Generate a natural voice script (plain text only, no formatting):
+      Generate a brief, professional voice script (plain text only, 15 seconds MAX):
     `;
     
     return await generateVoiceScript(lead, history, prompt);
