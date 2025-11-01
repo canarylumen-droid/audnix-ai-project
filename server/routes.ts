@@ -1418,6 +1418,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CSV export route
+  app.get('/api/leads/export', requireAuth, async (req, res) => {
+    try {
+      const { exportLeadsToCSV } = await import('./lib/pdf-processor');
+      const csv = await exportLeadsToCSV(req.session.userId!);
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="leads-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('CSV export error:', error);
+      res.status(500).json({ error: 'Failed to export leads' });
+    }
+  });
+
+  // PDF upload route
+  app.post('/api/pdf/upload', requireAuth, async (req, res) => {
+    try {
+      const multer = require('multer');
+      const upload = multer({
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+      });
+
+      upload.single('pdf')(req, res, async (err) => {
+        if (err) {
+          return res.status(400).json({ error: 'File upload failed' });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const { processPDF } = await import('./lib/pdf-processor');
+        const result = await processPDF(
+          req.file.buffer,
+          req.session.userId!,
+          { extractOffer: true }
+        );
+
+        res.json(result);
+      });
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      res.status(500).json({ error: 'Failed to process PDF' });
+    }
+  });
+
+
   // ==================== Provider OAuth API ====================
 
   // Instagram OAuth initiation

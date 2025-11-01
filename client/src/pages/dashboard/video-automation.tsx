@@ -294,6 +294,9 @@ export default function VideoAutomationPage() {
                     <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
                       💡 Toggle ON to enable public comment replies before sending DMs
                     </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ℹ️ When ON: AI posts a public reply, then sends DM • When OFF: Only DM is sent
+                    </p>
                   </div>
                   <Switch
                     checked={replyToComments}
@@ -307,10 +310,13 @@ export default function VideoAutomationPage() {
                       <div className="space-y-0.5">
                         <Label>Ask to Follow (Optional)</Label>
                         <p className="text-xs text-muted-foreground">
-                          📲 Naturally ask leads to follow before sending link (provides value, not forced)
+                          📲 AI asks them to follow you in the comment reply (not forced, just friendly)
                         </p>
                         <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
-                          💡 Toggle ON if you want AI to mention "Follow me" in comment replies
+                          💡 When ON: Comment says "Follow @yourhandle so I can send this!" • They follow manually
+                        </p>
+                        <p className="text-xs text-rose-600 dark:text-rose-500 mt-1">
+                          ⚠️ No button appears - they must go to your profile and click Follow themselves
                         </p>
                       </div>
                       <Switch
@@ -352,7 +358,10 @@ export default function VideoAutomationPage() {
                 Start AI Monitoring
               </Button>
               <p className="text-xs text-center text-muted-foreground mt-2">
-                ✅ Click to activate 24/7 monitoring • AI handles everything automatically
+                ✅ Activates 24/7 comment monitoring • AI auto-replies & DMs interested leads
+              </p>
+              <p className="text-xs text-center text-amber-600 dark:text-amber-500">
+                💡 Once active, AI runs in background - no manual work needed
               </p>
             </div>
           </DialogContent>
@@ -467,6 +476,7 @@ export default function VideoAutomationPage() {
                         setEditingMonitor(monitor)
                       }}
                       disabled={!isPaidUser}
+                      title="Edit video monitor settings (link, button text, etc.)"
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
                       Edit
@@ -479,11 +489,15 @@ export default function VideoAutomationPage() {
                         deleteMonitorMutation.mutate(monitor.id)
                       }}
                       disabled={!isPaidUser}
+                      title="Stop monitoring this video and remove from active list"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Remove
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    ✏️ Edit: Change link/button text • 🗑️ Remove: Stop monitoring this video
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>

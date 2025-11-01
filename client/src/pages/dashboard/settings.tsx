@@ -214,6 +214,56 @@ export default function SettingsPage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
 
 
+      {/* Lead Export */}
+      <Card data-testid="card-lead-export">
+        <CardHeader>
+          <CardTitle>Export Leads</CardTitle>
+          <CardDescription>
+            Download all your leads with contact info (email, phone) as CSV spreadsheet
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button
+            onClick={async () => {
+              try {
+                toast({ title: "Generating CSV...", description: "Preparing your leads export" });
+                
+                const response = await fetch('/api/leads/export');
+                if (!response.ok) throw new Error('Export failed');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `leads-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                toast({ title: "✅ CSV Downloaded", description: "Check your downloads folder" });
+              } catch (error) {
+                toast({
+                  title: "Export failed",
+                  description: "Could not generate CSV. Try again.",
+                  variant: "destructive"
+                });
+              }
+            }}
+            className="w-full"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Download All Leads as CSV
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            📊 Exports: Name, Email, Phone, Company, Channel, Status, Score, Created Date
+          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-500">
+            💡 Use for CRM imports, email campaigns, or offline analysis
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Brand Knowledge Base */}
       <Card data-testid="card-brand-knowledge">
         <CardHeader>
@@ -227,24 +277,59 @@ export default function SettingsPage() {
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
             <p className="text-sm font-medium mb-1">Upload Product/Service PDFs</p>
             <p className="text-xs text-muted-foreground mb-4">
-              📄 AI will extract details and use them in conversations
+              📄 AI extracts product details, pricing, features - uses them in DM conversations
             </p>
             <Input
               type="file"
               accept=".pdf"
               className="max-w-xs mx-auto"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
-                if (file) {
+                if (!file) return;
+                
+                if (file.size > 10 * 1024 * 1024) {
                   toast({
-                    title: "Coming Soon",
-                    description: "PDF processing will be available in the next update",
+                    title: "File too large",
+                    description: "Please upload a PDF smaller than 10MB",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
+                const formData = new FormData();
+                formData.append('pdf', file);
+                
+                try {
+                  toast({ title: "Uploading PDF...", description: "AI is processing your document" });
+                  
+                  const response = await fetch('/api/pdf/upload', {
+                    method: 'POST',
+                    body: formData
+                  });
+                  
+                  if (!response.ok) throw new Error('Upload failed');
+                  
+                  const result = await response.json();
+                  
+                  toast({
+                    title: "✅ PDF Processed",
+                    description: `AI learned about your offer: ${result.offerExtracted?.productName || 'Product details extracted'}`
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Upload failed",
+                    description: "Could not process PDF. Try again.",
+                    variant: "destructive"
                   });
                 }
               }}
+              title="Upload PDF with product/service information for AI to learn"
             />
             <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
-              💡 Upload pricing sheets, product catalogs, FAQs - AI reads everything
+              💡 Upload pricing sheets, product catalogs, FAQs - AI extracts everything automatically
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              ℹ️ Max 10MB • AI will reference this when responding to leads
             </p>
           </div>
         </CardContent>
@@ -387,11 +472,12 @@ export default function SettingsPage() {
                   onClick={() => saveMutation.mutate(formData)}
                   disabled={saveMutation.isPending}
                   data-testid="button-save-profile"
+                  title="Save profile changes immediately"
                 >
                   {saveMutation.isPending ? "Saving..." : "Save Now"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  💾 Click to save immediately (or wait 1 second for auto-save)
+                  💾 Saves all changes immediately • Or wait 1 second for auto-save
                 </p>
               </div>
             )}
