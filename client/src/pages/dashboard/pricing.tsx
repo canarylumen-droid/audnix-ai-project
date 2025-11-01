@@ -14,9 +14,9 @@ const plans = [
     description: "Perfect for solo entrepreneurs and small businesses",
     features: [
       "2,500 leads",
-      "300 voice minutes (5 hours)",
+      "100 voice minutes (~1.5 hours)",
       "Instagram + WhatsApp + Email",
-      "AI follow-ups",
+      "AI follow-ups & insights",
       "Basic analytics",
     ],
     cta: "Upgrade to Starter",
@@ -29,7 +29,7 @@ const plans = [
     description: "For growing teams that need more power",
     features: [
       "7,000 leads",
-      "800 voice minutes (13+ hours)",
+      "400 voice minutes (~6.5 hours)",
       "All Starter features",
       "Calendar integration",
       "Advanced insights",

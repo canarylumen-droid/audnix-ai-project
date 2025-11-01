@@ -726,9 +726,9 @@ export default function Landing() {
                 description: 'Perfect for creators just getting started',
                 features: [
                   '2,500 leads per month',
-                  '300 voice minutes (5 hours)',
+                  '100 voice minutes (~1.5 hours)',
                   'Instagram & WhatsApp integration',
-                  'Basic AI insights',
+                  'AI follow-ups & insights',
                   'Email support',
                   'Top-ups available',
                 ],
@@ -741,7 +741,7 @@ export default function Landing() {
                 description: 'For growing creators who need more power',
                 features: [
                   '7,000 leads per month',
-                  '800 voice minutes (13+ hours)',
+                  '400 voice minutes (~6.5 hours)',
                   'All integrations (IG, WA, Email)',
                   'Advanced AI insights',
                   'Voice cloning',
