@@ -95,8 +95,8 @@ router.get('/usage', requireAuth, async (req: Request, res: Response) => {
 
     const planLimits = {
       trial: 0,
-      starter: 300,
-      pro: 800,
+      starter: 100,
+      pro: 400,
       enterprise: 1000
     };
 

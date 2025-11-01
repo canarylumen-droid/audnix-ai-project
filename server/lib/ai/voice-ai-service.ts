@@ -32,9 +32,9 @@ export class VoiceAIService {
     // Get plan limits in minutes
     const planLimits = {
       trial: 0, // No voice for trial
-      starter: 300, // 300 minutes
-      pro: 800, // 800 minutes
-      enterprise: 1000 // 1000 minutes
+      starter: 100, // 100 minutes (~1.5 hours)
+      pro: 400, // 400 minutes (~6.5 hours)
+      enterprise: 1000 // 1000 minutes (~16+ hours)
     };
 
     // Calculate total balance: plan minutes + topup minutes - used minutes

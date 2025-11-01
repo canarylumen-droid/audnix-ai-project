@@ -14,8 +14,6 @@ interface WhatsAppConfig {
 interface WhatsAppMessageOptions {
   button?: DMButton;
   isMeetingLink?: boolean;
-  // Note: WhatsApp Business API does not support audio messages without pre-approved templates
-  // Voice notes are not supported in this implementation
 }
 
 /**
@@ -139,6 +137,69 @@ export async function sendWhatsAppTemplate(
 
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to send WhatsApp template');
+  }
+}
+
+/**
+ * Send audio/voice message via WhatsApp Business API
+ * Note: Audio file must be publicly accessible HTTPS URL in supported format (mp3, ogg, amr)
+ */
+export async function sendWhatsAppAudio(
+  userId: string,
+  recipientPhone: string,
+  audioUrl: string
+): Promise<void> {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin not configured');
+  }
+  
+  if (!audioUrl.startsWith('https://')) {
+    throw new Error('Audio URL must be HTTPS for WhatsApp Business API');
+  }
+  
+  const supportedFormats = ['.mp3', '.ogg', '.amr'];
+  const hasValidFormat = supportedFormats.some(format => audioUrl.toLowerCase().includes(format));
+  
+  if (!hasValidFormat) {
+    console.warn(`WhatsApp audio URL may not be in supported format (mp3, ogg, amr): ${audioUrl}`);
+  }
+  
+  const { data: integration } = await supabaseAdmin
+    .from('integrations')
+    .select('credentials')
+    .eq('user_id', userId)
+    .eq('provider', 'whatsapp')
+    .eq('is_active', true)
+    .single();
+
+  if (!integration?.credentials) {
+    throw new Error('WhatsApp not connected');
+  }
+
+  const config = integration.credentials as WhatsAppConfig;
+  const endpoint = `https://graph.facebook.com/${config.apiVersion || 'v18.0'}/${config.phoneNumberId}/messages`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${config.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: recipientPhone,
+      type: 'audio',
+      audio: {
+        link: audioUrl
+      }
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Failed to send WhatsApp audio');
   }
 }
 

@@ -58,6 +58,30 @@ export function formatWhatsAppMeeting(message: string, calendarLink: string): st
 }
 
 /**
+ * Escape HTML entities to prevent XSS attacks
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+/**
+ * Validate URL scheme to prevent XSS via javascript: URLs
+ */
+function isValidUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate branded HTML email template
  */
 export function generateBrandedEmail(
@@ -68,6 +92,15 @@ export function generateBrandedEmail(
 ): string {
   const primaryColor = brandColors.primary || '#6366f1';
   const accentColor = brandColors.accent || '#8b5cf6';
+  
+  if (!isValidUrl(button.url)) {
+    throw new Error('Invalid button URL: only HTTP and HTTPS protocols are allowed');
+  }
+  
+  const sanitizedMessage = message.split('\n').map(p => `<p>${escapeHtml(p)}</p>`).join('');
+  const sanitizedBusinessName = escapeHtml(businessName);
+  const sanitizedButtonText = escapeHtml(button.text);
+  const sanitizedButtonUrl = escapeHtml(button.url);
   
   return `
 <!DOCTYPE html>
@@ -89,16 +122,16 @@ export function generateBrandedEmail(
 <body>
   <div class="container">
     <div class="header">
-      <h1>${businessName}</h1>
+      <h1>${sanitizedBusinessName}</h1>
     </div>
     <div class="content">
-      ${message.split('\n').map(p => `<p>${p}</p>`).join('')}
+      ${sanitizedMessage}
       <center>
-        <a href="${button.url}" class="button">${button.text.toUpperCase()}</a>
+        <a href="${sanitizedButtonUrl}" class="button">${sanitizedButtonText.toUpperCase()}</a>
       </center>
     </div>
     <div class="footer">
-      <p>Sent with care by ${businessName}</p>
+      <p>Sent with care by ${sanitizedBusinessName}</p>
     </div>
   </div>
 </body>
