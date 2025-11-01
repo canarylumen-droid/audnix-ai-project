@@ -291,6 +291,9 @@ export default function VideoAutomationPage() {
                     <p className="text-xs text-muted-foreground">
                       🚀 Beats ManyChat! AI replies naturally in 5-25 seconds (human-like timing)
                     </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                      💡 Toggle ON to enable public comment replies before sending DMs
+                    </p>
                   </div>
                   <Switch
                     checked={replyToComments}
@@ -305,6 +308,9 @@ export default function VideoAutomationPage() {
                         <Label>Ask to Follow (Optional)</Label>
                         <p className="text-xs text-muted-foreground">
                           📲 Naturally ask leads to follow before sending link (provides value, not forced)
+                        </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                          💡 Toggle ON if you want AI to mention "Follow me" in comment replies
                         </p>
                       </div>
                       <Switch
@@ -324,6 +330,9 @@ export default function VideoAutomationPage() {
                         <p className="text-xs text-muted-foreground mt-1">
                           ✨ AI will say: "Follow @yourhandle so I can send this over!" (natural, not pushy)
                         </p>
+                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1">
+                          ℹ️ Lead will NOT be forced to follow - it's a friendly ask
+                        </p>
                       </div>
                     )}
                   </div>
@@ -342,6 +351,9 @@ export default function VideoAutomationPage() {
                 )}
                 Start AI Monitoring
               </Button>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                ✅ Click to activate 24/7 monitoring • AI handles everything automatically
+              </p>
             </div>
           </DialogContent>
         </Dialog>

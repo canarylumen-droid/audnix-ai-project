@@ -33,9 +33,18 @@ Unlike ManyChat (keyword-based), Audnix AI uses real intelligence:
 3. All DM conversations are imported as leads
 4. Webhook monitors video comments 24/7
 5. AI analyzes EVERY comment for buying signals (no keywords)
-6. Sends personalized DM using their real username
-7. References what THEY said and what THEY want
-8. "All set! AI will start working" message is displayed
+6. **[OPTIONAL]** Replies to comment publicly (e.g., "Check your DM! 🔥")
+7. **[OPTIONAL]** Asks them to follow (e.g., "Follow @yourhandle so I can send this over")
+8. Sends personalized DM using their real username
+9. References what THEY said and what THEY want
+10. "All set! AI will start working" message is displayed
+
+**Comment Reply Settings**:
+- Toggle ON/OFF in video monitor settings
+- AI generates natural responses (not robotic)
+- Responses sent 5-25 seconds after comment (human-like timing)
+- Optional "Ask to Follow" feature (not forced, just friendly request)
+- Works ONLY on Business Instagram accounts (Graph API limitation)
 
 ### 2. WhatsApp (Twilio)
 - **Lead Importing**: ✅ Automatic

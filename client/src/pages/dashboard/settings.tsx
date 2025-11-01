@@ -212,6 +212,44 @@ export default function SettingsPage() {
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+
+
+      {/* Brand Knowledge Base */}
+      <Card data-testid="card-brand-knowledge">
+        <CardHeader>
+          <CardTitle>Brand Knowledge Base</CardTitle>
+          <CardDescription>
+            Upload PDFs about your offers, products, or services - AI will use this to answer lead questions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium mb-1">Upload Product/Service PDFs</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              📄 AI will extract details and use them in conversations
+            </p>
+            <Input
+              type="file"
+              accept=".pdf"
+              className="max-w-xs mx-auto"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  toast({
+                    title: "Coming Soon",
+                    description: "PDF processing will be available in the next update",
+                  });
+                }
+              }}
+            />
+            <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+              💡 Upload pricing sheets, product catalogs, FAQs - AI reads everything
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
@@ -235,7 +273,7 @@ export default function SettingsPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Click the upload icon to change avatar
+                📸 Click the upload icon to change avatar (max 5MB, JPG/PNG)
               </p>
             </div>
           </div>
@@ -344,13 +382,18 @@ export default function SettingsPage() {
             </div>
             
             {hasChanges && (
-              <Button 
-                onClick={() => saveMutation.mutate(formData)}
-                disabled={saveMutation.isPending}
-                data-testid="button-save-profile"
-              >
-                {saveMutation.isPending ? "Saving..." : "Save Now"}
-              </Button>
+              <div className="flex flex-col items-end gap-1">
+                <Button 
+                  onClick={() => saveMutation.mutate(formData)}
+                  disabled={saveMutation.isPending}
+                  data-testid="button-save-profile"
+                >
+                  {saveMutation.isPending ? "Saving..." : "Save Now"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  💾 Click to save immediately (or wait 1 second for auto-save)
+                </p>
+              </div>
             )}
           </div>
         </CardContent>
