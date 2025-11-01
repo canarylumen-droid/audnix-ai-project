@@ -17,6 +17,18 @@ interface PDFProcessingResult {
     link?: string;
     features: string[];
     benefits: string[];
+    cta?: string;
+    supportEmail?: string;
+  };
+  brandExtracted?: {
+    colors: {
+      primary?: string;
+      secondary?: string;
+      accent?: string;
+    };
+    companyName?: string;
+    tagline?: string;
+    website?: string;
   };
   leads?: Array<{
     id: string;
@@ -55,8 +67,11 @@ export async function processPDF(
     
     // Extract offer/product information if requested
     let offerData;
+    let brandData;
     if (options?.extractOffer) {
-      offerData = await extractOfferWithAI(text, userId);
+      const extractedData = await extractOfferAndBrandWithAI(text, userId);
+      offerData = extractedData.offer;
+      brandData = extractedData.brand;
     }
     
     // Extract leads with AI
@@ -116,7 +131,8 @@ export async function processPDF(
       success: true,
       leadsCreated: createdLeads.length,
       leads: createdLeads,
-      offerExtracted: offerData
+      offerExtracted: offerData,
+      brandExtracted: brandData
     };
   } catch (error) {
     console.error('PDF processing error:', error);
@@ -129,11 +145,14 @@ export async function processPDF(
 }
 
 /**
- * Extract offer/product information from PDF using AI
+ * Extract offer/product information AND brand colors/identity from PDF using AI
  */
-async function extractOfferWithAI(text: string, userId: string): Promise<any> {
+async function extractOfferAndBrandWithAI(text: string, userId: string): Promise<{
+  offer: any;
+  brand: any;
+}> {
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
-    return null;
+    return { offer: null, brand: null };
   }
 
   try {
@@ -141,36 +160,52 @@ async function extractOfferWithAI(text: string, userId: string): Promise<any> {
       model: 'gpt-4o-mini',
       messages: [{
         role: 'system',
-        content: 'Extract product/service/offer information from this document. Identify the main offering, pricing, features, benefits, and any links or CTAs. Return detailed JSON.'
+        content: `Extract BOTH product/service AND brand identity from this document. Return JSON with two objects:
+
+1. "offer": Extract product name, description, pricing, features (array), benefits (array), CTA text, support/contact email, and any links
+2. "brand": Extract brand colors (look for hex codes like #FF5733 or color names like "navy blue", "coral"), company name, tagline, website URL
+
+For colors, look for:
+- Hex codes (#RRGGBB)
+- RGB values (rgb(255, 87, 51))
+- Color names mentioned in context of branding
+- Primary, secondary, and accent colors
+
+Be thorough - extract ALL color references and brand elements.`
       }, {
         role: 'user',
         content: text.substring(0, 12000)
       }],
       response_format: { type: 'json_object' },
-      max_completion_tokens: 800
+      max_completion_tokens: 1200
     });
     
     const result = JSON.parse(response.choices[0].message.content || '{}');
     
-    // Store offer in user's profile for future auto-responses
-    if (result.productName) {
+    // Store both offer and brand in user's profile for future auto-responses
+    if (result.offer?.productName || result.brand?.companyName) {
       await storage.updateUser(userId, {
         metadata: {
-          extracted_offer: result,
-          offer_updated_at: new Date().toISOString()
+          extracted_offer: result.offer || {},
+          extracted_brand: result.brand || {},
+          brand_colors: result.brand?.colors || {},
+          extraction_updated_at: new Date().toISOString()
         }
       });
     }
     
-    return result;
+    return {
+      offer: result.offer || null,
+      brand: result.brand || null
+    };
   } catch (error) {
-    console.error('Offer extraction error:', error);
-    return null;
+    console.error('Brand/Offer extraction error:', error);
+    return { offer: null, brand: null };
   }
 }
 
 /**
- * Auto-reach out to leads via email or WhatsApp with offer info
+ * Auto-reach out to leads via email or WhatsApp with offer info and brand colors
  */
 async function autoReachOutToLead(
   userId: string,
@@ -181,12 +216,18 @@ async function autoReachOutToLead(
     const { sendEmail } = await import('./channels/email');
     const { sendWhatsAppMessage } = await import('./channels/whatsapp');
 
+    // Get user's extracted brand data
+    const user = await storage.getUserById(userId);
+    const brandData = user?.metadata?.extracted_brand || {};
+    const brandColors = brandData.colors || {};
+
     const message = `Hey ${lead.name}! I noticed you might be interested in ${offerData.productName}. ${offerData.description}
 
 ${offerData.features?.slice(0, 3).map((f: string) => `✓ ${f}`).join('\n')}
 
 ${offerData.price ? `Investment: ${offerData.price}` : ''}
 ${offerData.link ? `Learn more: ${offerData.link}` : ''}
+${offerData.supportEmail ? `\nQuestions? Reach us at ${offerData.supportEmail}` : ''}
 
 Would you like to discuss how this can help you?`;
 
@@ -199,9 +240,13 @@ Would you like to discuss how this can help you?`;
           message,
           `${offerData.productName} - Exclusive Offer`,
           {
-            buttonText: 'Get Started',
-            buttonUrl: offerData.link || '#',
-            businessName: 'Your Business'
+            buttonText: offerData.cta || 'Get Started',
+            buttonUrl: offerData.link || brandData.website || '#',
+            businessName: brandData.companyName || 'Your Business',
+            brandColors: {
+              primary: brandColors.primary,
+              accent: brandColors.accent || brandColors.secondary
+            }
           }
         );
         

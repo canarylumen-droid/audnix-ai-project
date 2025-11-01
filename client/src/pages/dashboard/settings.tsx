@@ -282,10 +282,23 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1">Upload Product/Service PDFs</p>
+            <p className="text-sm font-medium mb-1">Upload Brand & Product PDFs</p>
             <p className="text-xs text-muted-foreground mb-4">
-              📄 AI extracts product details, pricing, features - uses them in DM conversations
+              📄 AI extracts EVERYTHING: Brand colors, product details, pricing, CTAs, contact info
             </p>
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-left">
+              <p className="text-xs font-semibold mb-2">📋 What to Include in Your PDF:</p>
+              <ul className="text-xs space-y-1 text-muted-foreground">
+                <li>✅ <strong>Brand Colors:</strong> Primary/secondary hex codes (#FF5733) or color names</li>
+                <li>✅ <strong>Product/Service:</strong> Name, description, key features list</li>
+                <li>✅ <strong>Pricing:</strong> Plans, packages, or one-time costs</li>
+                <li>✅ <strong>CTA:</strong> Call-to-action text ("Get Started", "Book Demo")</li>
+                <li>✅ <strong>Links:</strong> Website URL, booking page, landing page</li>
+                <li>✅ <strong>Contact:</strong> Support email for customer questions</li>
+                <li>✅ <strong>Features:</strong> Bullet points of what you offer</li>
+                <li>✅ <strong>Benefits:</strong> How it solves customer problems</li>
+              </ul>
+            </div>
             <Input
               type="file"
               accept=".pdf"
@@ -318,9 +331,13 @@ export default function SettingsPage() {
                   
                   const result = await response.json();
                   
+                  const brandExtracted = result.brandExtracted?.colors?.primary ? 
+                    `Brand colors: ${result.brandExtracted.colors.primary}` : '';
+                  const offerExtracted = result.offerExtracted?.productName || 'Product details';
+                  
                   toast({
-                    title: "✅ PDF Processed",
-                    description: `AI learned about your offer: ${result.offerExtracted?.productName || 'Product details extracted'}`
+                    title: "✅ PDF Processed Successfully",
+                    description: `Extracted: ${offerExtracted}${brandExtracted ? ` | ${brandExtracted}` : ''}`
                   });
                 } catch (error) {
                   toast({
@@ -333,10 +350,13 @@ export default function SettingsPage() {
               title="Upload PDF with product/service information for AI to learn"
             />
             <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
-              💡 Upload pricing sheets, product catalogs, FAQs - AI extracts everything automatically
+              💡 Emails will use YOUR brand colors automatically when sending to leads
+            </p>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+              ✨ AI personalizes every message with your product details & CTA
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              ℹ️ Max 10MB • AI will reference this when responding to leads
+              ℹ️ Max 10MB • Supports: Brand guides, pitch decks, product sheets, sales PDFs
             </p>
           </div>
         </CardContent>

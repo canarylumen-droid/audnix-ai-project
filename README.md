@@ -69,9 +69,12 @@
 - ✅ **Helper Text** - Every button and setting explained
 - ✅ **Trial Lock** - Premium features locked for trial users
 - ✅ **Voice Minutes Widget** - Real-time usage tracking
+- ✅ **Brand Color Extraction** - AI extracts colors from PDFs for branded emails
+- ✅ **Branded Email Templates** - Uses YOUR colors in automated emails
 
 ### In Progress / Coming Soon
-- ⏳ **PDF Knowledge Base** - Upload product docs (UI ready, processing pending)
+- ✅ **PDF Brand Extraction** - Upload PDFs → AI extracts colors, pricing, CTAs, features
+- ✅ **Branded Emails** - Emails use YOUR extracted brand colors automatically
 - ⏳ **CSV Export** - Export leads with email/phone (Available in Settings)
 - ⏳ **CSV Lead Import** - Upload leads manually from spreadsheets with auto-outreach
 - ⏳ **WhatsApp Auto-Campaign** - Import phone numbers → AI sends personalized WhatsApp via WhatsApp Business API
