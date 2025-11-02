@@ -1,3 +1,4 @@
+
 export interface PricingTier {
   id: string;
   name: string;
@@ -23,8 +24,8 @@ export const PRICING_TIERS: PricingTier[] = [
     features: [
       '2,500 leads per month',
       '100 voice minutes (~1.5 hours)',
-      'Instagram & WhatsApp (via Twilio)',
-      'Email integration',
+      'Instagram & WhatsApp (via Business API)',
+      'Email integration (Gmail/Outlook)',
       'AI-powered comment detection',
       'Basic AI insights',
       'Email support',
