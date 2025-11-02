@@ -295,12 +295,44 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVideoMonitors(userId: string): Promise<any[]> {
-    const result = await db.execute(sql`
-      SELECT * FROM video_monitors 
-      WHERE user_id = ${userId} 
-      ORDER BY created_at DESC
-    `);
-    return result.rows as any[];
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM video_monitors 
+        WHERE user_id = ${userId} 
+        ORDER BY created_at DESC
+      `);
+      return result.rows as any[];
+    } catch (error) {
+      // Return empty array if table doesn't exist yet
+      return [];
+    }
+  }
+
+  async getActiveVideoMonitors(userId: string): Promise<any[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM video_monitors 
+        WHERE user_id = ${userId} AND is_active = true
+        ORDER BY created_at DESC
+      `);
+      return result.rows as any[];
+    } catch (error) {
+      // Return empty array if table doesn't exist yet
+      return [];
+    }
+  }
+
+  async getVideoMonitor(id: string): Promise<any> {
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM video_monitors 
+        WHERE id = ${id}
+        LIMIT 1
+      `);
+      return result.rows[0];
+    } catch (error) {
+      return null;
+    }
   }
 
   async createVideoMonitor(data: any): Promise<any> {

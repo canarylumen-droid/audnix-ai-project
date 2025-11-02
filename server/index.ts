@@ -70,21 +70,15 @@ app.use((req, res, next) => {
 });
 
 /**
- * Auto-run database migrations on startup
+ * Auto-run database migrations on startup using Drizzle
  */
 async function runMigrations() {
-  if (!supabaseAdmin) {
-    console.log('⚠️  Supabase not configured - skipping migrations');
-    console.log('📝 To enable auto-migrations, add these to Secrets:');
-    console.log('   NEXT_PUBLIC_SUPABASE_URL');
-    console.log('   SUPABASE_SERVICE_ROLE_KEY');
-    console.log('   SUPABASE_ANON_KEY');
-    return;
-  }
-
   try {
     console.log('🚀 Running database migrations...');
 
+    // Use Drizzle's db connection directly
+    const { db } = await import('./db');
+    
     // Read all migration files in order
     const migrationsDir = path.join(process.cwd(), 'migrations');
     const migrationFiles = fs.readdirSync(migrationsDir)
@@ -97,13 +91,17 @@ async function runMigrations() {
 
       console.log(`  ⏳ Running ${file}...`);
 
-      // Execute migration using raw SQL
-      const { error } = await supabaseAdmin.rpc('exec_sql', { query: sql });
-
-      if (error && !error.message.includes('already exists')) {
-        console.error(`  ❌ Migration ${file} failed:`, error.message);
-      } else {
+      try {
+        // Execute SQL directly using Drizzle's execute method
+        await db.execute(sql as any);
         console.log(`  ✅ ${file} complete`);
+      } catch (error: any) {
+        // Ignore "already exists" errors
+        if (error.message?.includes('already exists') || error.code === '42P07') {
+          console.log(`  ⏭️  ${file} (already exists)`);
+        } else {
+          console.error(`  ❌ Migration ${file} failed:`, error.message);
+        }
       }
     }
 
@@ -111,7 +109,7 @@ async function runMigrations() {
     console.log('📊 Your database is ready to use');
   } catch (error: any) {
     console.error('❌ Migration error:', error.message);
-    console.log('💡 This is normal if tables already exist');
+    console.log('💡 Make sure DATABASE_URL is set in Secrets');
   }
 }
 

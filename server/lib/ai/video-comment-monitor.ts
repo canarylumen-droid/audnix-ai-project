@@ -432,14 +432,24 @@ export function startVideoCommentMonitoring() {
       const users = await storage.getAllUsers();
 
       for (const user of users) {
-        // Fetch all active video monitors for the user
-        const activeMonitors = await storage.getActiveVideoMonitors(user.id);
-        for (const monitor of activeMonitors) {
-          await monitorVideoComments(user.id, monitor.id);
+        try {
+          // Fetch all active video monitors for the user
+          const activeMonitors = await (storage as any).getActiveVideoMonitors?.(user.id) || [];
+          for (const monitor of activeMonitors) {
+            await monitorVideoComments(user.id, monitor.id);
+          }
+        } catch (monitorError: any) {
+          // Skip if table doesn't exist yet
+          if (!monitorError.message?.includes('does not exist')) {
+            console.error(`Error monitoring for user ${user.id}:`, monitorError.message);
+          }
         }
       }
-    } catch (error) {
-      console.error('Comment monitoring error:', error);
+    } catch (error: any) {
+      // Only log real errors, not missing table errors
+      if (!error.message?.includes('does not exist')) {
+        console.error('Comment monitoring error:', error.message);
+      }
     }
   }, 30000); // Check every 30 seconds
 }

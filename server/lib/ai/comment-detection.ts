@@ -315,7 +315,7 @@ export async function executeCommentFollowUps(): Promise<void> {
     const now = new Date();
     
     // Get all notifications for comment follow-ups that are due
-    const allUsers = await storage.getAllUsers();
+    const allUsers = await storage.getAllUsers().catch(() => []);
     
     for (const user of allUsers) {
       const notifications = await storage.getNotifications(user.id);
