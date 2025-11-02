@@ -11,10 +11,10 @@ const KEY_LENGTH = 32;
  * Falls back to SESSION_SECRET for development
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY || process.env.SESSION_SECRET;
+  const key = process.env.ENCRYPTION_KEY;
   
   if (!key) {
-    throw new Error("ENCRYPTION_KEY or SESSION_SECRET must be set");
+    throw new Error("ENCRYPTION_KEY must be set in production - generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"");
   }
 
   // Convert key to proper length buffer

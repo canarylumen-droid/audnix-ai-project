@@ -20,7 +20,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Session configuration - use built-in MemoryStore in development
-const sessionSecret = process.env.SESSION_SECRET || 'dev-secret-please-change-in-production';
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET environment variable must be set in production');
+}
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
