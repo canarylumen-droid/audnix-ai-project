@@ -353,21 +353,35 @@ We win because:
 - ✅ AI costs optimized (GPT-4o-mini at $0.001/message)
 - ✅ Voice cloning at cost ($0.01/minute) with 85% margin on top-ups
 
-## 🚀 Quick Start (100% Automated)
+## 🚀 Quick Start (5 Minutes to Production)
 
-### 1. Add Supabase Credentials to Replit Secrets
+### 1. Set Up Database (Required)
 
-Go to **Secrets** (🔒 icon) and add:
+**Option A: Automated Setup (Recommended)**
+```bash
+npm run setup
+```
+This will automatically create all database tables and configure your system.
+
+**Option B: Manual Setup**
+1. Go to your Supabase project → SQL Editor
+2. Copy and run the contents of `migrations/000_SETUP_SUPABASE.sql`
+3. Run remaining migrations in order (001, 002, etc.)
+
+### 2. Add Supabase Credentials to Replit Secrets
+
+Go to **Secrets** (🔒 icon in left sidebar) and add:
 
 ```
+DATABASE_URL=postgresql://[your-supabase-connection-string]
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
 ```
 
-Get these from: https://supabase.com → Your Project → Settings → API
+Get these from: https://supabase.com → Your Project → Settings → API & Database
 
-### 2. Add API Keys
+### 3. Add API Keys (Required for full functionality)
 
 ```bash
 # Recommended - Get from https://supabase.com
@@ -384,29 +398,33 @@ OPENAI_API_KEY=sk-your_openai_key
 # Users pay Meta directly - platform has ZERO messaging costs!
 ```
 
-### 3. Set Up Database
+### 4. Generate Security Keys (Required)
 
-Run migrations in your Supabase SQL editor:
-
-```bash
-# Copy and run the contents of:
-migrations/002_audnix_schema.sql
-```
-
-### 4. Run Development Server
+Add these to Replit Secrets:
 
 ```bash
-npm run dev
+# Generate SESSION_SECRET (run in Shell):
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Generate ENCRYPTION_KEY (run in Shell):
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Server starts on `http://localhost:5000`
+### 5. Start Your Application
 
-### 5. Test It Out
+Click the **Run** button at the top of Replit. The server will start automatically.
 
-- Visit `http://localhost:5000` - See landing page
-- Click "Start Free Trial" - OAuth login works
-- Navigate to Dashboard - All pages functional
-- Add test leads - See analytics update in real-time
+### 6. Access Your Application
+
+- Your Repl URL will open automatically (e.g., `https://your-repl-name.username.repl.co`)
+- Landing page loads instantly ✅
+- Click "Start Free Trial" → OAuth login works
+- Dashboard is fully functional
+- All features work in real-time
+
+### 7. Deploy to Production
+
+Your Repl is already deployed! Every time you click Run, it's live on the internet. Share your Repl URL with users.
 
 ## 🔒 Security
 

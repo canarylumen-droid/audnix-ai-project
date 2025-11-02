@@ -1,60 +1,85 @@
 
-import { db } from '../server/db';
-import { sql } from 'drizzle-orm';
-import fs from 'fs';
-import path from 'path';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '../shared/schema';
+import * as fs from 'fs';
+import * as path from 'path';
 
-async function setup() {
-  console.log('🚀 Setting up Audnix AI CRM...\n');
-
-  // Check environment variables
-  const requiredVars = ['DATABASE_URL'];
-  const missingVars = requiredVars.filter(v => !process.env[v]);
+async function setupDatabase() {
+  const databaseUrl = process.env.DATABASE_URL;
   
-  if (missingVars.length > 0) {
-    console.error('❌ Missing required environment variables:');
-    missingVars.forEach(v => console.error(`   - ${v}`));
-    console.log('\n📝 Add these to Replit Secrets');
+  if (!databaseUrl) {
+    console.error('❌ DATABASE_URL not set in environment variables');
+    console.log('\n📋 Setup Instructions:');
+    console.log('1. Go to https://supabase.com and create a project');
+    console.log('2. Get your DATABASE_URL from Settings → Database');
+    console.log('3. Add it to Replit Secrets as DATABASE_URL');
+    console.log('4. Run this script again\n');
     process.exit(1);
   }
 
-  console.log('✅ Environment variables configured\n');
+  console.log('🚀 Starting Audnix AI Database Setup...\n');
 
-  // Run migrations
-  console.log('🗄️  Running database migrations...\n');
-  
-  const migrationsDir = path.join(process.cwd(), 'migrations');
-  const migrationFiles = fs.readdirSync(migrationsDir)
-    .filter(f => f.endsWith('.sql'))
-    .sort();
+  try {
+    const client = postgres(databaseUrl, { max: 1 });
+    const db = drizzle(client, { schema });
 
-  for (const file of migrationFiles) {
-    const migrationPath = path.join(migrationsDir, file);
-    const sqlContent = fs.readFileSync(migrationPath, 'utf-8');
+    console.log('✅ Connected to database');
 
-    console.log(`  ⏳ Running ${file}...`);
+    // Read and execute migration files in order
+    const migrationsDir = path.join(process.cwd(), 'migrations');
+    const migrationFiles = [
+      '000_SETUP_SUPABASE.sql',
+      '001_create_users.sql',
+      '002_audnix_schema.sql',
+      '003_production_upgrade.sql',
+      '004_add_user_fields.sql',
+      '005_voice_minutes_migration.sql',
+      '006_comment_automation.sql',
+      '007_video_monitors.sql'
+    ];
 
-    try {
-      await db.execute(sqlContent as any);
-      console.log(`  ✅ ${file} complete`);
-    } catch (error: any) {
-      if (error.message?.includes('already exists') || error.code === '42P07') {
-        console.log(`  ⏭️  ${file} (already exists)`);
-      } else {
-        console.error(`  ❌ ${file} failed:`, error.message);
+    console.log('📦 Running migrations...\n');
+
+    for (const file of migrationFiles) {
+      const filePath = path.join(migrationsDir, file);
+      
+      if (fs.existsSync(filePath)) {
+        console.log(`   Executing ${file}...`);
+        const sql = fs.readFileSync(filePath, 'utf-8');
+        
+        try {
+          await client.unsafe(sql);
+          console.log(`   ✅ ${file} completed`);
+        } catch (error: any) {
+          if (error.message?.includes('already exists')) {
+            console.log(`   ⚠️  ${file} - tables already exist, skipping`);
+          } else {
+            throw error;
+          }
+        }
       }
     }
-  }
 
-  console.log('\n✅ Database migrations complete!');
-  console.log('🎉 Audnix AI CRM is ready to use!\n');
-  console.log('📋 Next steps:');
-  console.log('   1. Add API keys to Secrets (OpenAI, Stripe, etc.)');
-  console.log('   2. Click Run to start the server');
-  console.log('   3. Visit your Repl URL to see the app');
+    console.log('\n✅ All migrations completed successfully!');
+    console.log('\n🎉 Audnix AI is ready to use!');
+    console.log('\nNext steps:');
+    console.log('1. Set up your API keys in Replit Secrets');
+    console.log('2. Start the server with the Run button');
+    console.log('3. Visit your Repl URL to see the landing page\n');
+
+    await client.end();
+    process.exit(0);
+
+  } catch (error) {
+    console.error('\n❌ Setup failed:', error);
+    console.log('\n📋 Manual Setup:');
+    console.log('1. Copy the contents of migrations/000_SETUP_SUPABASE.sql');
+    console.log('2. Go to your Supabase project → SQL Editor');
+    console.log('3. Paste and run the SQL');
+    console.log('4. Repeat for all migration files in order\n');
+    process.exit(1);
+  }
 }
 
-setup().catch(error => {
-  console.error('❌ Setup failed:', error);
-  process.exit(1);
-});
+setupDatabase();

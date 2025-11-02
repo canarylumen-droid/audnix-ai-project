@@ -126,19 +126,19 @@ export default function Landing() {
     <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
       <Navigation />
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 py-20 mt-16">
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-24 lg:py-32 mt-16">
         <motion.div
           className="absolute inset-0 overflow-hidden"
           style={{ opacity }}
         >
-          <div className={`absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
-          <div className={`absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
-          <div className={`absolute top-1/3 right-1/3 w-[400px] h-[400px] bg-pink-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-400/20 rounded-full blur-3xl" />
+          <div className={`absolute top-1/4 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-cyan-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
+          <div className={`absolute bottom-1/4 right-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-purple-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
+          <div className={`absolute top-1/3 right-1/3 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-pink-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-cyan-400/20 rounded-full blur-3xl" />
         </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <motion.div
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
@@ -157,7 +157,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1
-                className="text-5xl md:text-7xl lg:text-8xl font-extrabold mb-6"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold mb-6 sm:mb-8"
                 animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
@@ -167,15 +167,14 @@ export default function Landing() {
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent leading-tight">
+                <span className="bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent leading-tight block">
                   Follow up like a human,
                 </span>
-                <br />
-                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
+                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
               </motion.h1>
 
               <motion.p
-                className="text-xl md:text-2xl mb-8 text-white max-w-2xl leading-relaxed font-medium"
+                className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-white max-w-2xl leading-relaxed font-medium"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
@@ -184,25 +183,25 @@ export default function Landing() {
               </motion.p>
 
               <motion.div
-                className="flex flex-col sm:flex-row gap-4 mb-8"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
-                <Link href="/auth">
+                <Link href="/auth" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="text-lg px-10 py-7 group bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
+                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
                     style={{ boxShadow: "0 0 40px rgba(0, 200, 255, 0.4)" }}
                   >
                     Start Free Trial (3 Days) ✨
-                    <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-lg px-10 py-7 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
+                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
                   onClick={scrollToFeatures}
                 >
                   See How It Works
@@ -210,7 +209,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.div
-                className="flex flex-wrap gap-4 text-sm text-white/90"
+                className="flex flex-wrap gap-3 sm:gap-4 text-sm text-white/90"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
@@ -840,29 +839,29 @@ export default function Landing() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-32 px-4 relative">
+      <section className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="glass-card p-12 md:p-16 rounded-3xl border-primary/30 relative overflow-hidden"
+            className="glass-card p-8 sm:p-12 lg:p-16 rounded-2xl sm:rounded-3xl border-primary/30 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                 Ready to <span className="text-primary">10x your conversions</span>?
               </h2>
-              <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg sm:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
                 Join thousands of creators who are closing more deals with less effort. Your AI sales team is ready to start working for you today.
               </p>
-              <Link href="/auth">
-                <Button size="lg" className="glow text-xl px-12 py-8 group">
+              <Link href="/auth" className="inline-block w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto glow text-lg sm:text-xl px-8 sm:px-12 py-6 sm:py-8 group">
                   Start Your Free 3-Day Trial
-                  <ArrowRight className="ml-2 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="ml-2 w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <p className="mt-6 text-white/70 text-sm">
+              <p className="mt-4 sm:mt-6 text-white/70 text-xs sm:text-sm">
                 ✨ Setup takes 5 minutes • 🔒 No credit card required • 🚀 Start converting today
               </p>
             </div>
