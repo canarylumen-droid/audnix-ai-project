@@ -18,7 +18,13 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function Landing() {
   const [userCount, setUserCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
+  
+  // Ensure client-side rendering for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const prefersReducedMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
@@ -122,11 +128,15 @@ export default function Landing() {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] dark:from-[#0d1428] dark:via-[#0a0f1f] dark:to-[#020409] text-white overflow-x-hidden">
       <Navigation />
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-24 lg:py-32 mt-16">
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 mt-16 md:mt-20">
         <motion.div
           className="absolute inset-0 overflow-hidden"
           style={{ opacity }}
@@ -138,7 +148,7 @@ export default function Landing() {
         </motion.div>
 
         <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
             <motion.div
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}

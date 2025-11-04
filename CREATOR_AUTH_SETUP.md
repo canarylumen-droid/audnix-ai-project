@@ -1,20 +1,17 @@
 
 # Simplified Authentication Setup
 
-## Authentication Methods
+## Authentication Method
 
-We use **2 simple methods** that creators are familiar with:
+We use **Google Sign-In** - the simplest, most trusted authentication:
 
-1. **Google Sign-In** - One-click authentication (recommended)
-2. **Email OTP** - Get a 6-digit code via email
-
-## Why These Methods?
-
+✅ **One-click signup** - No forms to fill
 ✅ **No passwords to remember**
-✅ **No phone number required**
 ✅ **Works on all devices**
-✅ **Free - uses Supabase built-in OTP**
-✅ **Familiar to creators** (like Instagram/TikTok codes)
+✅ **Trusted by billions** - Everyone has a Google account
+✅ **Instant verification** - No waiting for codes
+
+**Note:** Email OTP is configured in the backend but hidden from UI. Can be enabled later if needed.
 
 ## Setup Instructions
 
@@ -33,27 +30,15 @@ We use **2 simple methods** that creators are familiar with:
    GOOGLE_CLIENT_SECRET=your_client_secret
    ```
 
-### 2. Enable Email OTP (Built-in, No Extra Setup!)
+### 2. Customize Supabase Email Templates (Optional)
 
-Email OTP is **built into Supabase** - no external provider needed!
+If you want to customize email templates for password resets or notifications:
 
-1. Go to your Supabase project
-2. Navigate to **Authentication** → **Providers**
-3. Enable **Email** provider
-4. Configure:
-   - ✅ Enable Email provider
-   - ✅ Confirm email: **OFF** (for faster onboarding)
-   - ✅ Enable Email OTP: **ON**
-5. Done! Supabase will send OTP codes automatically
-
-### 3. Brand Your OTP Emails
-
-**Option A: Use Free SMTP (Recommended)**
+**Option A: Use Free SMTP (If you have a domain)**
 
 1. Sign up for free SMTP service:
    - **Brevo (Sendinblue)**: 300 emails/day free → https://www.brevo.com
    - **SendGrid**: 100 emails/day free → https://sendgrid.com
-   - **Mailgun**: 5,000 emails/month free → https://mailgun.com
 
 2. Get SMTP credentials from your provider
 
@@ -63,10 +48,10 @@ Email OTP is **built into Supabase** - no external provider needed!
    - Port: `587`
    - Username: Your SMTP username
    - Password: Your SMTP password
-   - Sender email: `noreply@audnixai.com` (use a domain you own)
+   - Sender email: `noreply@yourdomain.com` (requires domain ownership)
    - Sender name: `Audnix AI`
 
-**Option B: Customize Default Email (No SMTP Needed)**
+**Option B: Customize Default Email (No Domain Needed)**
 
 1. Go to **Authentication** → **Email Templates**
 2. Select **Magic Link** template

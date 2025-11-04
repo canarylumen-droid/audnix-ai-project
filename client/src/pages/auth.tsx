@@ -389,7 +389,7 @@ export default function AuthPage() {
                     </CardTitle>
                   </motion.div>
                   <CardDescription className="text-white/70 text-base">
-                    Sign up in seconds. <span className="text-primary font-semibold">No credit card required.</span>
+                    Sign in with Google. <span className="text-primary font-semibold">No credit card required.</span>
                   </CardDescription>
                 </CardHeader>
 
@@ -416,89 +416,7 @@ export default function AuthPage() {
                     </Button>
                   </motion.div>
 
-                  <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-white/10"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-[#0a0f1f] px-2 text-white/50">Or use email</span>
-                    </div>
-                  </div>
-
-                  {!showOtpInput ? (
-                    <motion.div
-                      className="space-y-3"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.6 }}
-                    >
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
-                        onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
-                      />
-                      
-                      <Button
-                        className="w-full h-14 text-base font-semibold bg-primary hover:bg-primary/90 text-white"
-                        onClick={handleSendOtp}
-                        disabled={loading !== null || !email}
-                      >
-                        {loading === 'email' ? 'Sending Code...' : '✨ Get 6-Digit Code'}
-                      </Button>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      className="space-y-4"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <div className="text-center space-y-2">
-                        <p className="text-white/70 text-sm">
-                          Enter the 6-digit code we sent to
-                        </p>
-                        <p className="text-white font-semibold">{email}</p>
-                      </div>
-
-                      <div className="flex justify-center">
-                        <InputOTP
-                          maxLength={6}
-                          value={otp}
-                          onChange={setOtp}
-                        >
-                          <InputOTPGroup>
-                            <InputOTPSlot index={0} className="text-white border-white/20" />
-                            <InputOTPSlot index={1} className="text-white border-white/20" />
-                            <InputOTPSlot index={2} className="text-white border-white/20" />
-                            <InputOTPSlot index={3} className="text-white border-white/20" />
-                            <InputOTPSlot index={4} className="text-white border-white/20" />
-                            <InputOTPSlot index={5} className="text-white border-white/20" />
-                          </InputOTPGroup>
-                        </InputOTP>
-                      </div>
-
-                      <Button
-                        className="w-full h-14 text-base font-semibold bg-primary hover:bg-primary/90 text-white"
-                        onClick={handleVerifyOtp}
-                        disabled={loading !== null || otp.length !== 6}
-                      >
-                        {loading === 'verify' ? 'Verifying...' : '✅ Verify & Sign In'}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        className="w-full text-white/70 hover:text-white"
-                        onClick={() => {
-                          setShowOtpInput(false);
-                          setOtp("");
-                        }}
-                      >
-                        ← Use different email
-                      </Button>
-                    </motion.div>
-                  )}
+                  {/* Email OTP temporarily hidden - will be added back later */}
 
                   {/* Mobile benefits */}
                   <div className="lg:hidden pt-6 space-y-3">

@@ -21,24 +21,28 @@ Your app won't persist data without a database. Follow these steps:
    - `SUPABASE_URL` = your project URL
    - `SUPABASE_SERVICE_ROLE_KEY` = your service role key
 
-### Enable Authentication (2 Simple Methods)
+### Enable Authentication (Google OAuth)
 
-**Method 1: Google OAuth (Recommended - One-Click)**
+**Google OAuth Setup:**
 1. Go to https://console.cloud.google.com
-2. Create OAuth 2.0 credentials
-3. Add authorized redirect: `https://your-repl-url.repl.co/api/auth/callback`
-4. In Replit Secrets, add:
+2. Create a new project or select existing one
+3. Navigate to "APIs & Services" → "Credentials"
+4. Click "Create Credentials" → "OAuth 2.0 Client ID"
+5. Configure OAuth consent screen first (if needed)
+6. Application type: **Web application**
+7. Add authorized redirect URI: `https://your-repl-url.repl.co/api/auth/callback`
+8. Copy the Client ID and Client Secret
+9. In Replit Secrets, add:
    - `GOOGLE_CLIENT_ID` = your client ID
    - `GOOGLE_CLIENT_SECRET` = your client secret
 
-**Method 2: Email OTP (Built-in, Free)**
-1. Go to Supabase → Authentication → Providers
-2. Enable **Email** provider
-3. Turn ON "Enable Email OTP"
-4. Turn OFF "Confirm email" for faster onboarding
-5. Done! Users will get 6-digit codes via email
+**In Supabase Dashboard:**
+1. Go to Authentication → Providers
+2. Enable **Google** provider
+3. Paste your Google Client ID and Client Secret
+4. Save changes
 
-**No phone numbers or external providers needed!**
+**That's it!** Users can now sign in with Google.
 
 ### Enable Stripe Payments
 1. Go to https://stripe.com/dashboard
