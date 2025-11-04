@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -33,6 +32,11 @@ export function VoiceMinutesWidget() {
   const percentage = voiceBalance?.percentage || 0;
   const isLocked = voiceBalance?.locked || false;
 
+  // Extracting minutesRemaining and assigning values for the new logic
+  const minutesRemaining = total - used;
+  const minutesUsed = used;
+  const totalMinutes = total;
+
   return (
     <Card className="w-full border-primary/20 hover:border-primary/50 transition-all duration-300">
       <CardHeader className="pb-3">
@@ -49,21 +53,24 @@ export function VoiceMinutesWidget() {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-2 text-xs sm:text-sm">
-            <span className="font-medium">
-              {Math.floor(balance)} / {total} min
-            </span>
-            <span className="text-muted-foreground">
-              {percentage.toFixed(0)}% used
-            </span>
+      <CardContent>
+        {minutesRemaining < 50 && !isLocked && (
+          <div className="mb-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              ⚠️ Low balance: {minutesRemaining} minutes left
+            </p>
           </div>
-          <Progress 
-            value={percentage} 
-            className={`h-2 ${isLocked ? 'bg-red-500/20' : ''}`}
-            data-testid="progress-voice-minutes"
-          />
+        )}
+
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Minutes Used</p>
+            <p className="text-2xl font-bold">{minutesUsed.toLocaleString()}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Total Available</p>
+            <p className="text-2xl font-bold">{totalMinutes.toLocaleString()}</p>
+          </div>
         </div>
 
         {isLocked ? (

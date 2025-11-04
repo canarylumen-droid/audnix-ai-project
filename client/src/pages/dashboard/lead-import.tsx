@@ -7,14 +7,111 @@ import { Upload, FileSpreadsheet, Users, Mail, Phone, Sparkles, Construction } f
 import { motion } from "framer-motion";
 
 export default function LeadImportPage() {
+  const { toast } = useToast();
+  const [file, setFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (!selectedFile.name.endsWith('.csv')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a CSV file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
+  const handleImport = async () => {
+    if (!file) return;
+
+    setImporting(true);
+    const formData = new FormData();
+    formData.append('csv', file);
+
+    try {
+      const response = await fetch('/api/leads/import-csv', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Import failed');
+
+      const result = await response.json();
+      toast({
+        title: "✅ Import Complete",
+        description: `Imported ${result.imported} leads, skipped ${result.skipped} duplicates`
+      });
+
+      setFile(null);
+    } catch (error) {
+      toast({
+        title: "Import failed",
+        description: "Could not process CSV file",
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Import Leads</h1>
         <p className="text-muted-foreground">
-          Manually import leads from CSV files and auto-reach out via WhatsApp or Email
+          Upload CSV with Name, Email, Phone columns - AI auto-detects format
         </p>
       </div>
+
+      {/* Active Import Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload CSV File</CardTitle>
+          <CardDescription>
+            Supported columns: Name (required), Email, Phone, Company, Tags
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            disabled={importing}
+          />
+          
+          {file && (
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                ✓ File ready: {file.name}
+              </p>
+            </div>
+          )}
+
+          <Button 
+            onClick={handleImport} 
+            disabled={!file || importing}
+            className="w-full"
+          >
+            {importing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Import Leads
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Coming Soon Banner */}
       <motion.div
