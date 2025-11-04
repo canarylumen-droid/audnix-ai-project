@@ -46,17 +46,62 @@ Email OTP is **built into Supabase** - no external provider needed!
    - ✅ Enable Email OTP: **ON**
 5. Done! Supabase will send OTP codes automatically
 
-### 3. Customize Email Template (Optional)
+### 3. Brand Your OTP Emails
+
+**Option A: Use Free SMTP (Recommended)**
+
+1. Sign up for free SMTP service:
+   - **Brevo (Sendinblue)**: 300 emails/day free → https://www.brevo.com
+   - **SendGrid**: 100 emails/day free → https://sendgrid.com
+   - **Mailgun**: 5,000 emails/month free → https://mailgun.com
+
+2. Get SMTP credentials from your provider
+
+3. In Supabase → **Authentication** → **Settings**:
+   - Enable "Enable custom SMTP"
+   - Host: `smtp-relay.brevo.com` (or your provider)
+   - Port: `587`
+   - Username: Your SMTP username
+   - Password: Your SMTP password
+   - Sender email: `noreply@audnixai.com` (use a domain you own)
+   - Sender name: `Audnix AI`
+
+**Option B: Customize Default Email (No SMTP Needed)**
 
 1. Go to **Authentication** → **Email Templates**
 2. Select **Magic Link** template
-3. Customize the message (Supabase sends this for OTP too):
+3. Customize with your branding:
    ```html
-   <h2>Your Audnix Sign-In Code 🔐</h2>
-   <p>Your verification code is:</p>
-   <h1 style="font-size: 32px; letter-spacing: 8px;">{{ .Token }}</h1>
-   <p>This code expires in 10 minutes.</p>
+   <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0f1f;padding:40px 20px;">
+     <tr>
+       <td align="center">
+         <table width="600" cellpadding="0" cellspacing="0" style="background-color:#1a1f2e;border-radius:12px;padding:40px;">
+           <tr>
+             <td align="center">
+               <h1 style="color:#fff;font-size:28px;margin:0 0 10px 0;">Audnix AI</h1>
+               <p style="color:#9ca3af;font-size:16px;margin:0 0 30px 0;">Your AI Follow-Up Assistant</p>
+               <p style="color:#fff;font-size:18px;margin:0 0 20px 0;">Your sign-in code is:</p>
+               <h2 style="color:#10b981;font-size:48px;letter-spacing:12px;margin:0 0 20px 0;font-family:monospace;">{{ .Token }}</h2>
+               <p style="color:#9ca3af;font-size:14px;margin:0;">This code expires in 10 minutes.</p>
+               <p style="color:#6b7280;font-size:12px;margin:30px 0 0 0;">If you didn't request this code, please ignore this email.</p>
+             </td>
+           </tr>
+         </table>
+       </td>
+     </tr>
+   </table>
    ```
+
+**Email Preview:**
+- From: `noreply@mail.supabase.io` (default) or `noreply@audnixai.com` (custom SMTP)
+- Subject: "Your Audnix AI Sign-In Code 🔐"
+- Body: Branded with your colors and logo
+
+**Which Should You Use?**
+
+- **Just starting?** → Use Option B (free, works immediately)
+- **Growing audience?** → Use Option A with Brevo (300 free emails/day)
+- **At scale?** → Upgrade SMTP provider as needed
 
 ## How It Works for Users
 
