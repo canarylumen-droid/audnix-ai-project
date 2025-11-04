@@ -304,25 +304,25 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           continue;
         }
 
+        // Get or create lead
+        let lead = await storage.getLeadByUsername(comment.username, 'instagram');
+        
         // Human-like timing based on lead status (2-8 minutes)
-        const lead = await storage.getLeadById(comment.userId) || { status: 'new' };
+        const existingLead = lead || { status: 'new' };
         const baseDelay = {
           'hot': 2 * 60 * 1000,      // 2 minutes for hot leads
           'warm': 3.5 * 60 * 1000,   // 3.5 minutes for warm leads
           'new': 5 * 60 * 1000,      // 5 minutes for new leads
           'cold': 7 * 60 * 1000,     // 7 minutes for cold leads
           'replied': 4 * 60 * 1000   // 4 minutes if already replied
-        }[lead.status] || 5 * 60 * 1000;
+        }[existingLead.status] || 5 * 60 * 1000;
         
         // Add ±20% randomization to feel more human
         const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
         const replyDelay = baseDelay + jitter;
         
-        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before replying to ${comment.username} (status: ${lead.status})`);
+        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before replying to ${comment.username} (status: ${existingLead.status})`);
         await new Promise(resolve => setTimeout(resolve, replyDelay));
-
-        // Get or create lead
-        let lead = await storage.getLeadByUsername(comment.username, 'instagram');
 
         if (!lead) {
           lead = await storage.createLead({
