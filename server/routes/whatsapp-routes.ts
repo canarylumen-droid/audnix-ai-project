@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { whatsAppService } from '../lib/integrations/whatsapp-web';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
+import { whatsappLimiter } from '../middleware/rate-limit';
 import { storage } from '../storage';
 
 const router = Router();
@@ -94,7 +95,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/send', requireAuth, async (req, res) => {
+router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
     const { phoneNumber, message, leadId } = req.body;

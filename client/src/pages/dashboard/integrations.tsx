@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
+import { WhatsAppConnect } from "@/components/integrations/whatsapp-connect";
 import {
   Instagram,
   Mail,
@@ -725,6 +726,12 @@ export default function IntegrationsPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* WhatsApp Web Integration */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">WhatsApp Business (QR Code)</h2>
+        <WhatsAppConnect />
+      </div>
 
       {/* All Set Dialog */}
       <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>

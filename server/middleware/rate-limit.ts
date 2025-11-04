@@ -95,3 +95,27 @@ export const aiLimiter = rateLimit({
     })
   })
 });
+
+/**
+ * WhatsApp message limiter - 20 messages per minute per user
+ * Prevents abuse and ensures compliance with WhatsApp limits
+ */
+export const whatsappLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: 'WhatsApp message rate limit exceeded. Please wait before sending more messages.',
+  keyGenerator: (req) => {
+    const userId = (req.session as any)?.userId;
+    if (userId) return `user:${userId}`;
+    return `ip:${req.ip}`;
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  ...(redisClient && {
+    store: new RedisStore({
+      client: redisClient,
+      prefix: 'rl:whatsapp:'
+    })
+  })
+});
