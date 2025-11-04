@@ -4,6 +4,38 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 
+// Register service worker for PWA
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('✓ Service Worker registered:', registration);
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      
+      return registration;
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  }
+};
+
+// Show push notification (works even when tab is closed)
+const showPushNotification = async (title: string, options: any) => {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const registration = await navigator.serviceWorker.ready;
+    registration.showNotification(title, {
+      icon: '/logo.jpg',
+      badge: '/logo.jpg',
+      vibrate: [200, 100, 200],
+      ...options
+    });
+  }
+};
+
 // Notification sound
 const playNotificationSound = () => {
   try {
@@ -36,6 +68,11 @@ export function useRealtime(userId?: string) {
   const lastNotificationTime = useRef<number>(0);
 
   useEffect(() => {
+    // Register service worker on mount
+    registerServiceWorker();
+  }, []);
+
+  useEffect(() => {
     if (!supabase || !userId) return;
 
     // Subscribe to leads table changes
@@ -63,6 +100,13 @@ export function useRealtime(userId?: string) {
               title: '🎯 New Lead Captured',
               description: `${payload.new.name} from ${payload.new.channel}`,
             });
+            
+            // Push notification
+            showPushNotification('🎯 New Lead Captured', {
+              body: `${payload.new.name} from ${payload.new.channel}`,
+              tag: 'new-lead',
+              data: { url: '/dashboard/inbox' }
+            });
           }
           
           // Show notification for status changes
@@ -72,6 +116,14 @@ export function useRealtime(userId?: string) {
               toast({
                 title: '🎉 Conversion!',
                 description: `${payload.new.name} converted to customer`,
+              });
+              
+              // Push notification
+              showPushNotification('🎉 Conversion!', {
+                body: `${payload.new.name} converted to customer`,
+                tag: 'conversion',
+                requireInteraction: true,
+                data: { url: '/dashboard/deals' }
               });
             }
           }
@@ -103,6 +155,13 @@ export function useRealtime(userId?: string) {
             toast({
               title: '💬 New Message',
               description: 'You have a new message from a lead',
+            });
+            
+            // Push notification
+            showPushNotification('💬 New Message', {
+              body: 'You have a new message from a lead',
+              tag: 'new-message',
+              data: { url: '/dashboard/conversations' }
             });
           }
         }
@@ -165,6 +224,14 @@ export function useRealtime(userId?: string) {
             toast({
               title: '📅 Meeting Booked',
               description: `AI scheduled: ${payload.new.title}`,
+            });
+            
+            // Push notification
+            showPushNotification('📅 Meeting Booked', {
+              body: `AI scheduled: ${payload.new.title}`,
+              tag: 'meeting-booked',
+              requireInteraction: true,
+              data: { url: '/dashboard/calendar' }
             });
           }
         }

@@ -115,6 +115,96 @@ export class GoogleCalendarOAuth {
   }
 
   /**
+   * Find next available slot with intelligent rescheduling
+   * Returns a professional alternative time suggestion
+   */
+  async findNextAvailableSlot(
+    accessToken: string,
+    requestedStart: Date,
+    duration: number = 30,
+    leadTimezone: string = 'America/New_York'
+  ): Promise<{
+    suggestedStart: Date;
+    suggestedEnd: Date;
+    message: string;
+    isOriginalTimeAvailable: boolean;
+  }> {
+    const requestedEnd = new Date(requestedStart.getTime() + duration * 60000);
+    
+    // Check if original time is available
+    const isAvailable = await this.checkAvailability(accessToken, requestedStart, requestedEnd);
+    
+    if (isAvailable) {
+      return {
+        suggestedStart: requestedStart,
+        suggestedEnd: requestedEnd,
+        message: "Perfect! That time works great for me.",
+        isOriginalTimeAvailable: true
+      };
+    }
+
+    // Find next available slot (30 min or 1 hour buffer depending on time of day)
+    let bufferMinutes = 30;
+    const hour = requestedStart.getHours();
+    
+    // Use 1 hour buffer during peak hours (9 AM - 5 PM)
+    if (hour >= 9 && hour < 17) {
+      bufferMinutes = 60;
+    }
+
+    // Try up to 5 alternative slots
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const alternativeStart = new Date(requestedStart.getTime() + (bufferMinutes * attempt * 60000));
+      const alternativeEnd = new Date(alternativeStart.getTime() + duration * 60000);
+      
+      const altAvailable = await this.checkAvailability(accessToken, alternativeStart, alternativeEnd);
+      
+      if (altAvailable) {
+        // Format time professionally based on timezone
+        const timeFormatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: leadTimezone,
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric'
+        });
+        
+        const formattedTime = timeFormatter.format(alternativeStart);
+        
+        return {
+          suggestedStart: alternativeStart,
+          suggestedEnd: alternativeEnd,
+          message: `I have another commitment at that time, but how about ${formattedTime}? That would work perfectly for me and give us quality time to connect.`,
+          isOriginalTimeAvailable: false
+        };
+      }
+    }
+
+    // Fallback if no slots found in next few hours
+    const fallbackStart = new Date(requestedStart.getTime() + (24 * 60 * 60000)); // Next day same time
+    const fallbackEnd = new Date(fallbackStart.getTime() + duration * 60000);
+    
+    const fallbackTimeFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: leadTimezone,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+    
+    return {
+      suggestedStart: fallbackStart,
+      suggestedEnd: fallbackEnd,
+      message: `My schedule is quite full today. How about ${fallbackTimeFormatter.format(fallbackStart)}? I'll make sure to give you my full attention then.`,
+      isOriginalTimeAvailable: false
+    };
+  }
+
+  /**
    * List upcoming calendar events
    */
   async listUpcomingEvents(accessToken: string, maxResults: number = 10): Promise<any[]> {

@@ -1,0 +1,43 @@
+
+{
+  "name": "Audnix AI - Lead Management",
+  "short_name": "Audnix",
+  "description": "AI-powered lead management and conversation automation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1f",
+  "theme_color": "#00d4ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "View your dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/logo.jpg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Conversations",
+      "short_name": "Chat",
+      "description": "View conversations",
+      "url": "/dashboard/conversations",
+      "icons": [{ "src": "/logo.jpg", "sizes": "96x96" }]
+    }
+  ]
+}

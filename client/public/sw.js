@@ -1,0 +1,102 @@
+
+const CACHE_NAME = 'audnix-v1';
+const urlsToCache = [
+  '/',
+  '/logo.jpg',
+  '/notification.mp3'
+];
+
+// Install service worker
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+  );
+});
+
+// Fetch from cache, fallback to network
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => response || fetch(event.request))
+  );
+});
+
+// Handle push notifications
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  
+  const options = {
+    body: data.message || 'You have a new notification',
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    vibrate: [200, 100, 200],
+    tag: data.type || 'notification',
+    data: {
+      url: data.url || '/dashboard',
+      timestamp: Date.now()
+    },
+    actions: [
+      {
+        action: 'open',
+        title: 'Open'
+      },
+      {
+        action: 'close',
+        title: 'Dismiss'
+      }
+    ],
+    requireInteraction: data.requireInteraction || false
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Audnix AI', options)
+  );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  if (event.action === 'open' || !event.action) {
+    const urlToOpen = event.notification.data?.url || '/dashboard';
+    
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then((clientList) => {
+          // Check if app is already open
+          for (let client of clientList) {
+            if (client.url.includes(urlToOpen) && 'focus' in client) {
+              return client.focus();
+            }
+          }
+          // Open new window
+          if (clients.openWindow) {
+            return clients.openWindow(urlToOpen);
+          }
+        })
+    );
+  }
+});
+
+// Background sync for offline actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-messages') {
+    event.waitUntil(syncMessages());
+  }
+});
+
+async function syncMessages() {
+  // Sync offline messages when back online
+  const cache = await caches.open('audnix-offline-messages');
+  const requests = await cache.keys();
+  
+  for (let request of requests) {
+    try {
+      await fetch(request);
+      await cache.delete(request);
+    } catch (error) {
+      console.error('Sync failed:', error);
+    }
+  }
+}

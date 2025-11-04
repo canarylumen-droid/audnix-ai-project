@@ -243,45 +243,57 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
             const tokens = JSON.parse(integration.encrypted_meta);
             const googleCalendar = new GoogleCalendarOAuth();
             
-            const start = new Date(startTime);
-            const end = new Date(start.getTime() + duration * 60000);
+            const requestedStart = new Date(startTime);
+            const leadTimezone = lead.metadata?.timezone || 'America/New_York';
             
-            // Check if time slot is available
-            const isAvailable = await googleCalendar.checkAvailability(
+            // Use intelligent rescheduling
+            const availabilityCheck = await googleCalendar.findNextAvailableSlot(
               tokens.accessToken,
-              start,
-              end
+              requestedStart,
+              duration,
+              leadTimezone
             );
             
-            if (!isAvailable) {
-              return res.status(409).json({ 
-                error: "Time slot not available",
-                message: "This time slot is already booked. Please choose another time."
-              });
-            }
-            
+            // Create event with the suggested time
             eventData = await googleCalendar.createEvent(tokens.accessToken, {
               summary: `Meeting with ${lead.name}`,
               description: `AI Scheduled meeting with lead ${lead.name}`,
-              startTime: start,
-              endTime: end,
+              startTime: availabilityCheck.suggestedStart,
+              endTime: availabilityCheck.suggestedEnd,
               attendeeEmail: lead.email || undefined,
             });
             
             bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
+            
+            // Send professional rescheduling message if time changed
+            if (!availabilityCheck.isOriginalTimeAvailable) {
+              await storage.createMessage({
+                leadId,
+                userId,
+                provider: lead.channel as any,
+                direction: "outbound",
+                body: availabilityCheck.message,
+                metadata: { 
+                  rescheduled: true,
+                  originalTime: requestedStart.toISOString(),
+                  newTime: availabilityCheck.suggestedStart.toISOString()
+                }
+              });
+            }
             
             // Create notification for meeting booked
             await storage.createNotification({
               userId,
               type: 'system',
               title: '📅 Meeting Booked',
-              message: `Meeting scheduled with ${lead.name} for ${start.toLocaleString()}`,
+              message: `Meeting scheduled with ${lead.name} for ${availabilityCheck.suggestedStart.toLocaleString()}${!availabilityCheck.isOriginalTimeAvailable ? ' (rescheduled)' : ''}`,
               metadata: {
                 leadId,
                 leadName: lead.name,
-                meetingTime: start.toISOString(),
+                meetingTime: availabilityCheck.suggestedStart.toISOString(),
                 meetingUrl: bookingLink,
-                activityType: 'meeting_booked'
+                activityType: 'meeting_booked',
+                wasRescheduled: !availabilityCheck.isOriginalTimeAvailable
               }
             });
           }

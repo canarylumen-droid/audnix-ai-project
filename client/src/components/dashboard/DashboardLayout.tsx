@@ -6,6 +6,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import { PlanBadgeBanner } from "@/components/PlanBadgeBanner";
+import { InstallPWAPrompt } from "@/components/InstallPWAPrompt";
 import {
   Home,
   Inbox,
@@ -144,6 +145,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Internet Connection Banner */}
       <InternetConnectionBanner />
+
+      {/* PWA Install Prompt */}
+      <InstallPWAPrompt />
 
       {/* Trial Expired Overlay */}
       <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
