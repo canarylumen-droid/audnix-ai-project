@@ -353,33 +353,34 @@ We win because:
 - ✅ AI costs optimized (GPT-4o-mini at $0.001/message)
 - ✅ Voice cloning at cost ($0.01/minute) with 85% margin on top-ups
 
-## 🚀 Quick Start (5 Minutes to Production)
+## 🚀 Deploy on Replit (2 Minutes to Production)
 
-### 1. Set Up Database (Required)
+### 1. Set Up Supabase Database (Free Forever)
 
-**Option A: Automated Setup (Recommended)**
-```bash
-npm run setup
-```
-This will automatically create all database tables and configure your system.
+1. Go to https://supabase.com and create a free account
+2. Create a new project (takes ~2 minutes)
+3. Go to **Settings → Database** and copy the connection string
+4. Go to **Settings → API** and copy the keys
 
-**Option B: Manual Setup**
-1. Go to your Supabase project → SQL Editor
-2. Copy and run the contents of `migrations/000_SETUP_SUPABASE.sql`
-3. Run remaining migrations in order (001, 002, etc.)
+### 2. Add to Replit Secrets (Required)
 
-### 2. Add Supabase Credentials to Replit Secrets
-
-Go to **Secrets** (🔒 icon in left sidebar) and add:
+Click the **Secrets** (🔒) icon in the left sidebar and add these 4 keys:
 
 ```
-DATABASE_URL=postgresql://[your-supabase-connection-string]
+DATABASE_URL=postgresql://[paste-connection-string-from-supabase]
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGc...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+SUPABASE_ANON_KEY=eyJhbGc... (public key)
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc... (secret key)
 ```
 
-Get these from: https://supabase.com → Your Project → Settings → API & Database
+**That's it!** Tables will be created automatically on first run.
+
+### 3. Add API Keys (Optional - for AI features)
+
+```
+OPENAI_API_KEY=sk-your_openai_key (for AI responses)
+ELEVENLABS_API_KEY=your_elevenlabs_key (for voice notes)
+```
 
 ### 3. Add API Keys (Required for full functionality)
 
@@ -422,9 +423,25 @@ Click the **Run** button at the top of Replit. The server will start automatical
 - Dashboard is fully functional
 - All features work in real-time
 
-### 7. Deploy to Production
+### 7. Deploy to Production (Already Done!)
 
-Your Repl is already deployed! Every time you click Run, it's live on the internet. Share your Repl URL with users.
+✅ **Your app is LIVE!** Every Repl gets a free domain: `https://your-repl-name.your-username.repl.co`
+
+**Features:**
+- ✅ Auto-SSL (HTTPS enabled)
+- ✅ Always-on (upgrade to Hacker plan for 100% uptime)
+- ✅ Database migrations run automatically
+- ✅ Tables created on first run
+- ✅ No configuration needed
+
+**Custom Domain (Optional):**
+1. Click **Deployments** tab in Replit
+2. Click **Settings** → **Domains**
+3. Add your custom domain
+4. Update DNS records as instructed
+5. Done! SSL certificate auto-generated
+
+**Need 100% uptime?** Upgrade to Replit Hacker ($7/mo) to prevent sleeping.
 
 ## 🔒 Security
 

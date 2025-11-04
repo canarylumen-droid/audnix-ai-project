@@ -148,6 +148,8 @@ class InstagramPrivateService {
 
   /**
    * Process queued messages (called by a worker)
+   * Smart continuation: Processes hot → warm → cold, pauses when rate limited,
+   * resumes after 1 hour + random delay to avoid detection
    */
   async processMessageQueue(userId: string): Promise<void> {
     const queue = this.messageQueues.get(userId);
@@ -156,26 +158,54 @@ class InstagramPrivateService {
     const session = this.sessions.get(userId);
     if (!session || !session.isAuthenticated) return;
 
-    // Reset hourly counter if needed
-    if (new Date() > session.hourResetTime) {
-      session.messagesThisHour = 0;
-      session.hourResetTime = new Date(Date.now() + 60 * 60 * 1000);
+    // Check if we should resume (1 hour + 5-15 min random delay)
+    const now = new Date();
+    if (now < session.hourResetTime) {
+      // Still in cooldown period
+      console.log(`⏳ Rate limit cooldown - resuming at ${session.hourResetTime.toLocaleTimeString()}`);
+      return;
     }
 
-    // Process as many messages as possible within rate limit
+    // Reset counter with random delay (5-15 minutes past the hour)
+    if (now >= session.hourResetTime) {
+      const randomDelayMs = (5 + Math.random() * 10) * 60 * 1000; // 5-15 min
+      session.messagesThisHour = 0;
+      session.hourResetTime = new Date(now.getTime() + 60 * 60 * 1000 + randomDelayMs);
+      console.log(`✅ Rate limit reset - next reset at ${session.hourResetTime.toLocaleTimeString()}`);
+    }
+
+    // Process messages in priority order until rate limit hit
+    const processedUsernames = new Set<string>();
+    
     while (queue.length > 0 && session.messagesThisHour < this.MAX_DMS_PER_HOUR) {
       const item = queue.shift()!;
+      
+      // Skip if already processed this lead
+      if (processedUsernames.has(item.recipientUsername)) {
+        console.log(`⏭️ Skipping ${item.recipientUsername} - already processed`);
+        continue;
+      }
+
       try {
         await this.sendMessage(userId, item.recipientUsername, item.message, item.priority);
+        processedUsernames.add(item.recipientUsername);
       } catch (error) {
         console.error(`Failed to send queued message to ${item.recipientUsername}:`, error);
-        // Re-queue if not rate limited
-        if (!(error as Error).message.includes('rate limit')) {
-          queue.push(item);
+        
+        // If rate limited, stop processing and wait for next cycle
+        if ((error as Error).message.includes('rate limit')) {
+          // Re-queue this message for next cycle
+          queue.unshift(item);
+          console.log(`🛑 Rate limit reached - pausing until ${session.hourResetTime.toLocaleTimeString()}`);
+          break;
         }
-        break;
+        
+        // For other errors, skip this lead and continue
+        processedUsernames.add(item.recipientUsername);
       }
     }
+
+    console.log(`📊 Queue status: ${queue.length} messages remaining, ${session.messagesThisHour}/${this.MAX_DMS_PER_HOUR} sent this hour`);
   }
 
   async getInbox(userId: string, limit: number = 20): Promise<any[]> {
