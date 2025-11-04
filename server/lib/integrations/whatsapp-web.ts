@@ -6,7 +6,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
-interface Message {
+interface WhatsAppMessage {
   id: { _serialized: string };
   body: string;
   timestamp: number;
@@ -16,7 +16,7 @@ interface Message {
 
 interface WhatsAppSession {
   userId: string;
-  client: typeof Client.prototype;
+  client: any; // WhatsApp Client instance
   status: 'disconnected' | 'qr_ready' | 'authenticated' | 'ready';
   qrCode: string | null;
   lastActivity: Date;
@@ -110,7 +110,7 @@ class WhatsAppService {
       });
     });
 
-    client.on('message', async (message: Message) => {
+    client.on('message', async (message: WhatsAppMessage) => {
       await this.handleIncomingMessage(userId, message);
     });
 
@@ -184,7 +184,7 @@ class WhatsAppService {
     return phoneNumber.replace(/[^0-9]/g, '');
   }
 
-  private async handleIncomingMessage(userId: string, message: Message): Promise<void> {
+  private async handleIncomingMessage(userId: string, message: WhatsAppMessage): Promise<void> {
     try {
       const session = this.sessions.get(userId);
       if (!session) return;
