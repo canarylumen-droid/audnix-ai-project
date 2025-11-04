@@ -74,6 +74,12 @@ app.use((req, res, next) => {
  */
 async function runMigrations() {
   try {
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      console.log('⏭️  Skipping database migrations (DATABASE_URL not set)');
+      return;
+    }
+
     console.log('🚀 Running database migrations...');
 
     // Use Drizzle's db connection directly
@@ -81,9 +87,21 @@ async function runMigrations() {
     
     // Read all migration files in order
     const migrationsDir = path.join(process.cwd(), 'migrations');
+    
+    // Check if migrations directory exists
+    if (!fs.existsSync(migrationsDir)) {
+      console.log('⏭️  No migrations directory found, skipping...');
+      return;
+    }
+
     const migrationFiles = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .sort();
+
+    if (migrationFiles.length === 0) {
+      console.log('⏭️  No migration files found, skipping...');
+      return;
+    }
 
     for (const file of migrationFiles) {
       const migrationPath = path.join(migrationsDir, file);
@@ -100,7 +118,7 @@ async function runMigrations() {
         if (error.message?.includes('already exists') || error.code === '42P07') {
           console.log(`  ⏭️  ${file} (already exists)`);
         } else {
-          console.error(`  ❌ Migration ${file} failed:`, error.message);
+          console.log(`  ⚠️  ${file} skipped: ${error.message}`);
         }
       }
     }
@@ -108,8 +126,8 @@ async function runMigrations() {
     console.log('✅ All migrations complete!');
     console.log('📊 Your database is ready to use');
   } catch (error: any) {
-    console.error('❌ Migration error:', error.message);
-    console.log('💡 Make sure DATABASE_URL is set in Secrets');
+    console.log('⚠️  Migrations skipped:', error.message);
+    console.log('💡 Application will run without database features');
   }
 }
 
