@@ -169,7 +169,7 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response) => {
   try {
     const { leadId } = req.params;
-    const { sendMessage = true } = req.body;
+    const { sendMessage = true, createEvent = false, startTime, duration = 30 } = req.body;
     const userId = getCurrentUserId(req)!;
     
     const lead = await storage.getLeadById(leadId);
@@ -177,8 +177,47 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
       return res.status(404).json({ error: "Lead not found" });
     }
     
-    // Create booking link
-    const bookingLink = await createCalendarBookingLink(userId, lead.name);
+    let bookingLink = await createCalendarBookingLink(userId, lead.name, duration);
+    let eventData = null;
+
+    // If createEvent is true and startTime provided, create actual calendar event
+    if (createEvent && startTime) {
+      try {
+        const { supabaseAdmin } = await import('../lib/supabase-admin');
+        const { GoogleCalendarOAuth } = await import('../lib/oauth/google-calendar');
+        
+        if (supabaseAdmin) {
+          const { data: integration } = await supabaseAdmin
+            .from('integrations')
+            .select('encrypted_meta')
+            .eq('user_id', userId)
+            .eq('provider', 'google_calendar')
+            .eq('connected', true)
+            .single();
+
+          if (integration) {
+            const tokens = JSON.parse(integration.encrypted_meta);
+            const googleCalendar = new GoogleCalendarOAuth();
+            
+            const start = new Date(startTime);
+            const end = new Date(start.getTime() + duration * 60000);
+            
+            eventData = await googleCalendar.createEvent(tokens.accessToken, {
+              summary: `Meeting with ${lead.name}`,
+              description: `AI Scheduled meeting with lead ${lead.name}`,
+              startTime: start,
+              endTime: end,
+              attendeeEmail: lead.email || undefined,
+            });
+            
+            bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
+          }
+        }
+      } catch (eventError) {
+        console.error("Error creating calendar event:", eventError);
+        // Continue with booking link even if event creation fails
+      }
+    }
     
     // Generate message to send to lead
     const messageText = generateMeetingLinkMessage(
@@ -195,19 +234,25 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         provider: lead.channel as any,
         direction: "outbound",
         body: messageText,
-        metadata: { booking_link: bookingLink }
+        metadata: { 
+          booking_link: bookingLink,
+          event_id: eventData?.id,
+          event_link: eventData?.htmlLink
+        }
       });
       
       res.json({
         bookingLink,
         messageSent: true,
-        message
+        message,
+        event: eventData
       });
     } else {
       res.json({
         bookingLink,
         suggestedMessage: messageText,
-        messageSent: false
+        messageSent: false,
+        event: eventData
       });
     }
     

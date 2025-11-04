@@ -672,6 +672,80 @@ router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Respo
 });
 
 /**
+ * Create a calendar event
+ */
+router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId || req.body.user_id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const { summary, description, startTime, endTime, attendeeEmail, leadId } = req.body;
+
+    if (!summary || !startTime || !endTime) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Database not configured' });
+    }
+
+    const { data: integration } = await supabaseAdmin
+      .from('integrations')
+      .select('encrypted_meta')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .eq('connected', true)
+      .single();
+
+    if (!integration) {
+      return res.status(404).json({ error: 'Google Calendar not connected' });
+    }
+
+    const tokens = JSON.parse(integration.encrypted_meta);
+    const expiresAt = new Date(tokens.expiresAt);
+    let accessToken = tokens.accessToken;
+
+    if (expiresAt < new Date() && tokens.refreshToken) {
+      const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
+      accessToken = refreshedTokens.accessToken;
+    }
+
+    const event = await googleCalendarOAuth.createEvent(accessToken, {
+      summary,
+      description,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      attendeeEmail,
+    });
+
+    // If leadId provided, store event association
+    if (leadId) {
+      const { storage } = await import('../storage');
+      await storage.createMessage({
+        leadId,
+        userId,
+        provider: 'system',
+        direction: 'outbound',
+        body: `Calendar event created: ${summary}`,
+        metadata: { 
+          eventId: event.id,
+          eventLink: event.htmlLink,
+          meetingLink: event.hangoutLink
+        }
+      });
+    }
+
+    res.json({ event });
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
+/**
  * List upcoming events from Google Calendar
  */
 router.get('/oauth/google-calendar/events', async (req: Request, res: Response) => {
@@ -728,7 +802,20 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
     }
 
     // Get upcoming events
-    const events = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+    const rawEvents = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+    
+    // Transform events to match frontend expectations
+    const events = rawEvents.map((event: any) => ({
+      id: event.id,
+      title: event.summary || 'Untitled Event',
+      startTime: event.start?.dateTime || event.start?.date,
+      endTime: event.end?.dateTime || event.end?.date,
+      leadName: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || null,
+      meetingUrl: event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null,
+      isAiBooked: event.description?.includes('AI Scheduled') || false,
+      location: event.location || null,
+      description: event.description || null,
+    }));
     
     res.json({ events });
   } catch (error) {

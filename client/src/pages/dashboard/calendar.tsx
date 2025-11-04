@@ -9,15 +9,76 @@ import {
   ExternalLink,
   Loader2,
   CalendarDays,
+  Plus,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CalendarPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    summary: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+    attendeeEmail: "",
+  });
+
   // Fetch real calendar events from backend
   const { data: eventsData, isLoading, error } = useQuery({
-    queryKey: ["/api/calendar/events"],
+    queryKey: ["/api/oauth/google-calendar/events"],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false,
+  });
+
+  // Create event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: typeof newEvent) => {
+      const response = await fetch("/api/oauth/google-calendar/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(eventData),
+      });
+      if (!response.ok) throw new Error("Failed to create event");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/oauth/google-calendar/events"] });
+      setShowCreateDialog(false);
+      setNewEvent({
+        summary: "",
+        description: "",
+        startTime: "",
+        endTime: "",
+        attendeeEmail: "",
+      });
+      toast({
+        title: "Event created",
+        description: "Calendar event created successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create calendar event",
+        variant: "destructive",
+      });
+    },
   });
 
   const events = eventsData?.events || [];
@@ -102,7 +163,7 @@ export default function CalendarPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold" data-testid="heading-calendar">
             Calendar
@@ -113,11 +174,102 @@ export default function CalendarPage() {
               : "Manage your meetings and appointments"}
           </p>
         </div>
-        <Button data-testid="button-connect-calendar">
-          <CalendarIcon className="h-4 w-4 mr-2" />
-          Connect Calendar
-        </Button>
+        <div className="flex gap-2">
+          {events.length > 0 && (
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              data-testid="button-create-event"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Event
+            </Button>
+          )}
+          <Button variant="outline" data-testid="button-connect-calendar">
+            <CalendarIcon className="h-4 w-4 mr-2" />
+            Connect Calendar
+          </Button>
+        </div>
       </div>
+
+      {/* Create Event Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Calendar Event</DialogTitle>
+            <DialogDescription>
+              Schedule a new meeting or appointment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="summary">Event Title</Label>
+              <Input
+                id="summary"
+                value={newEvent.summary}
+                onChange={(e) => setNewEvent({ ...newEvent, summary: e.target.value })}
+                placeholder="Meeting with client"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={newEvent.description}
+                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                placeholder="Discuss project requirements..."
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="startTime">Start Time</Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  value={newEvent.startTime}
+                  onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="endTime">End Time</Label>
+                <Input
+                  id="endTime"
+                  type="datetime-local"
+                  value={newEvent.endTime}
+                  onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="attendeeEmail">Attendee Email (Optional)</Label>
+              <Input
+                id="attendeeEmail"
+                type="email"
+                value={newEvent.attendeeEmail}
+                onChange={(e) => setNewEvent({ ...newEvent, attendeeEmail: e.target.value })}
+                placeholder="client@example.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => createEventMutation.mutate(newEvent)}
+              disabled={!newEvent.summary || !newEvent.startTime || !newEvent.endTime || createEventMutation.isPending}
+            >
+              {createEventMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Event"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
