@@ -116,29 +116,29 @@ export default function InsightsPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="heading-insights">
+          <h1 className="text-2xl md:text-3xl font-bold" data-testid="heading-insights">
             Insights & Analytics
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {hasData 
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
+            {hasData
               ? "AI-generated insights from your lead data"
               : "Analytics will appear here once you have data"}
           </p>
         </div>
         {hasData && (
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleDownloadPDF}
               data-testid="button-download-pdf"
             >
               <Download className="h-4 w-4 mr-2" />
               Download PDF
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleRegenerate}
               disabled={isFetching}
               data-testid="button-regenerate"
@@ -160,8 +160,8 @@ export default function InsightsPage() {
             <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your Instagram, WhatsApp, or Email accounts to start receiving leads. 
-              Once you have activity, AI-powered insights and analytics will appear here in real-time 
+              Connect your Instagram, WhatsApp, or Email accounts to start receiving leads.
+              Once you have activity, AI-powered insights and analytics will appear here in real-time
               to help you optimize your conversions.
             </p>
             <Button data-testid="button-connect-accounts" asChild>
@@ -192,48 +192,47 @@ export default function InsightsPage() {
             </motion.div>
           )}
 
-          {hasData && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card data-testid="card-metric-response">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg Response Time
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {insightsData?.metrics?.avgResponseTime || "—"}
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Metrics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <Card data-testid="card-metric-response">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg Response Time
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {insightsData?.metrics?.avgResponseTime || "—"}
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card data-testid="card-metric-conversion">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Conversion Rate
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {insightsData?.metrics?.conversionRate || "0"}%
-                  </div>
-                </CardContent>
-              </Card>
+            <Card data-testid="card-metric-conversion">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Conversion Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {insightsData?.metrics?.conversionRate || "0"}%
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card data-testid="card-metric-engagement">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Engagement Score
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {insightsData?.metrics?.engagementScore || "0"}%
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+            <Card data-testid="card-metric-engagement">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Engagement Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {insightsData?.metrics?.engagementScore || "0"}%
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {channelData.length > 0 && (
@@ -263,8 +262,8 @@ export default function InsightsPage() {
                             label={(entry) => `${entry.channel}: ${entry.percentage}%`}
                           >
                             {channelData.map((entry: any, index: number) => (
-                              <Cell 
-                                key={`cell-${index}`} 
+                              <Cell
+                                key={`cell-${index}`}
                                 fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
                               />
                             ))}
@@ -299,13 +298,13 @@ export default function InsightsPage() {
                           <XAxis dataKey="channel" className="text-xs" />
                           <YAxis className="text-xs" />
                           <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar 
-                            dataKey="count" 
+                          <Bar
+                            dataKey="count"
                             radius={[8, 8, 0, 0]}
                           >
                             {channelData.map((entry: any, index: number) => (
-                              <Cell 
-                                key={`cell-${index}`} 
+                              <Cell
+                                key={`cell-${index}`}
                                 fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
                               />
                             ))}
@@ -340,9 +339,9 @@ export default function InsightsPage() {
                         <XAxis dataKey="date" className="text-xs" />
                         <YAxis className="text-xs" />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Line 
-                          type="monotone" 
-                          dataKey="leads" 
+                        <Line
+                          type="monotone"
+                          dataKey="leads"
                           stroke={COLORS.primary}
                           strokeWidth={2}
                           dot={{ fill: COLORS.primary }}

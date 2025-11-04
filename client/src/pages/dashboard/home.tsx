@@ -31,7 +31,7 @@ const channelIcons = {
 
 export default function DashboardHome() {
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Fetch real user profile
   const { data: user } = useQuery({
     queryKey: ["/api/user/profile"],
@@ -154,7 +154,7 @@ export default function DashboardHome() {
   const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Hero Section */}
       <motion.div
         initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
@@ -200,8 +200,18 @@ export default function DashboardHome() {
                       className="inline-block text-5xl"
                     >
                       👋
-                    </motion.span>
-                    <span className="text-white font-extrabold">{user.name.split(' ')[0]}!</span>
+                    </motion.h1>
+                    <motion.p 
+                      className="text-white mt-3 text-xl font-medium" 
+                      data-testid="text-subtitle"
+                      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.3 }}
+                    >
+                      {hasAnyActivity
+                        ? "Here's what's happening with your leads today ✨"
+                        : "You don't have any activity yet. Connect your accounts to get started! 🚀"}
+                    </motion.p>
                   </>
                 ) : (
                   <>
@@ -257,7 +267,7 @@ export default function DashboardHome() {
         </div>
 
         {/* KPI Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {kpis.map((kpi, index) => {
             const Icon = kpi.icon;
             const TrendIcon = kpi.trend === "up" ? ArrowUp : kpi.trend === "down" ? ArrowDown : Minus;
@@ -327,18 +337,18 @@ export default function DashboardHome() {
         </div>
 
         {/* Activity Feed & Quick Actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-6">
           <motion.div
-            className="lg:col-span-2"
+            className="lg:col-span-1"
             initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.3 }}
           >
             <Card data-testid="card-activity" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white font-semibold">Recent Activity</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 md:px-6">
                 {activityLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
@@ -389,15 +399,16 @@ export default function DashboardHome() {
 
           {/* Quick Actions */}
           <motion.div
+            className="lg:col-span-1"
             initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.4 }}
           >
             <Card data-testid="card-quick-actions" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
-              <CardHeader>
-                <CardTitle className="text-white font-semibold">Quick Actions</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 px-4 md:px-6">
                 {quickActions.map((action, index) => {
                   const Icon = action.icon;
                   return (
@@ -438,7 +449,7 @@ export default function DashboardHome() {
             transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5 }}
           >
             <Card className="border-dashed border-primary/30 glass-card hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 group" data-testid="card-empty-state">
-              <CardContent className="flex flex-col items-center justify-center py-12">
+              <CardContent className="flex flex-col items-center justify-center py-12 px-4 md:px-6">
                 <motion.div
                   animate={prefersReducedMotion ? {} : {
                     scale: [1, 1.1, 1],

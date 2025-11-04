@@ -31,6 +31,7 @@ import {
   Loader2,
   MessageSquare,
   Calendar,
+  X,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -52,6 +53,7 @@ export default function ConversationsPage() {
   const [typedText, setTypedText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const [selectedLead, setSelectedLead] = useState<any>(null); // State to manage selected lead for mobile view
 
   // Fetch lead details
   const { data: lead, isLoading: leadLoading } = useQuery({
@@ -202,217 +204,244 @@ export default function ConversationsPage() {
   const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons] || Mail;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 h-full flex flex-col">
-      {/* Lead Header */}
-      <Card className="mb-4" data-testid="card-lead-header">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
+      {/* Leads Sidebar */}
+      <div className={`${selectedLead ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r bg-card flex-col`}>
+        {/* This is a placeholder for the leads list. In a real app, this would fetch and display leads. */}
+        <div className="p-4 border-b">
+          <Input placeholder="Search leads..." className="w-full" />
+        </div>
+        <div className="overflow-y-auto flex-1 p-4 space-y-2">
+          {/* Example Lead Item - replace with actual lead data */}
+          <Card
+            className={`p-3 cursor-pointer hover:bg-accent ${
+              selectedLead?.id === lead.id ? "bg-accent" : ""
+            }`}
+            onClick={() => setSelectedLead(lead)}
+          >
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-8 w-8">
                 <AvatarFallback>{lead.name?.charAt(0) || "L"}</AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="text-lg font-semibold" data-testid="text-lead-name">
-                  {lead.name}
-                </h2>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ChannelIcon className="h-3 w-3" />
-                  <span>{lead.channel}</span>
-                  {lead.email && <span>· {lead.email}</span>}
+                <h3 className="text-sm font-semibold">{lead.name}</h3>
+                <p className="text-xs text-muted-foreground truncate w-36">
+                  Last message content...
+                </p>
+              </div>
+            </div>
+          </Card>
+          {/* More lead items would go here */}
+        </div>
+      </div>
+
+      {/* Conversation Area */}
+      <div className={`${selectedLead ? 'flex' : 'hidden md:flex'} flex-1 flex-col`}>
+        {selectedLead ? (
+          <>
+            <div className="border-b p-4 flex items-center justify-between bg-card">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden mr-2"
+                onClick={() => setSelectedLead(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback>{lead.name?.charAt(0) || "L"}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-lg font-semibold" data-testid="text-lead-name">
+                    {lead.name}
+                  </h2>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ChannelIcon className="h-3 w-3" />
+                    <span>{lead.channel}</span>
+                    {lead.email && <span>· {lead.email}</span>}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" data-testid="badge-status">
+                  {lead.status?.replace('_', ' ')}
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => bookCallMutation.mutate()}
+                  disabled={bookCallMutation.isPending}
+                  data-testid="button-book-call"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Book Call
+                </Button>
+                <Button variant="ghost" size="icon" data-testid="button-more">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-4">
+                {messages.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No messages yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Start the conversation by sending a message below
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg: any, index: number) => (
+                    <motion.div
+                      key={msg.id || index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                      data-testid={`message-${index}`}
+                    >
+                      <div
+                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                          msg.sender === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <p
+                          className={`text-xs mt-1 ${
+                            msg.sender === "user"
+                              ? "text-primary-foreground/70"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {formatTime(msg.timestamp)}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+
+                {isGenerating && typedText && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-end"
+                  >
+                    <div className="max-w-[70%] rounded-lg px-4 py-2 bg-primary/10 border border-primary/20">
+                      <p className="text-sm">{typedText}</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Message Input */}
+            <div className="border-t p-4">
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Type your message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="min-h-[80px] flex-1"
+                  disabled={sendMutation.isPending || isGenerating}
+                  data-testid="textarea-message"
+                />
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateReply}
+                    disabled={sendMutation.isPending || isGenerating}
+                    data-testid="button-ai-generate"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Reply
+                  </Button>
+                  <Button
+                    onClick={handleSendMessage}
+                    disabled={!message.trim() || sendMutation.isPending}
+                    data-testid="button-send"
+                  >
+                    {sendMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
+          </>
+        ) : (
+          <div className="p-4 flex items-center justify-center h-full">
+            <div className="text-center text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mx-auto mb-2" />
+              Select a lead to start the conversation
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sidebar for Lead Details (visible on larger screens) */}
+      <Card className="w-80 hidden md:flex flex-col" data-testid="card-sidebar">
+        <CardHeader>
+          <CardTitle className="text-lg">Lead Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">Score</p>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" data-testid="badge-status">
-                {lead.status?.replace('_', ' ')}
-              </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => bookCallMutation.mutate()}
-                disabled={bookCallMutation.isPending}
-                data-testid="button-book-call"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Book Call
-              </Button>
-              <Button variant="ghost" size="icon" data-testid="button-more">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
+              <div className="flex-1 bg-muted rounded-full h-2">
+                <div
+                  className="bg-primary h-2 rounded-full"
+                  style={{ width: `${lead.score || 0}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium">{lead.score || 0}%</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">Tags</p>
+            {lead.tags && lead.tags.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {lead.tags.map((tag: string) => (
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No tags</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-1">History</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-3 w-3" />
+                <span>First contact: {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "Unknown"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <MessageSquare className="h-3 w-3" />
+                <span>{messages.length} messages exchanged</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex gap-4">
-        <Card className="flex-1 flex flex-col" data-testid="card-chat">
-          <CardHeader className="border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Conversation</CardTitle>
-              <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-                <SelectTrigger className="w-40" data-testid="select-channel">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="instagram">Instagram</SelectItem>
-                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No messages yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Start the conversation by sending a message below
-                  </p>
-                </div>
-              ) : (
-                messages.map((msg: any, index: number) => (
-                  <motion.div
-                    key={msg.id || index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                    data-testid={`message-${index}`}
-                  >
-                    <div
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                        msg.sender === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                      <p
-                        className={`text-xs mt-1 ${
-                          msg.sender === "user"
-                            ? "text-primary-foreground/70"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {formatTime(msg.timestamp)}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-              
-              {isGenerating && typedText && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex justify-end"
-                >
-                  <div className="max-w-[70%] rounded-lg px-4 py-2 bg-primary/10 border border-primary/20">
-                    <p className="text-sm">{typedText}</p>
-                  </div>
-                </motion.div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
-          </CardContent>
-          
-          {/* Message Input */}
-          <div className="border-t p-4">
-            <div className="flex gap-2">
-              <Textarea
-                placeholder="Type your message..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                className="min-h-[80px] flex-1"
-                disabled={sendMutation.isPending || isGenerating}
-                data-testid="textarea-message"
-              />
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateReply}
-                  disabled={sendMutation.isPending || isGenerating}
-                  data-testid="button-ai-generate"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  AI Reply
-                </Button>
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!message.trim() || sendMutation.isPending}
-                  data-testid="button-send"
-                >
-                  {sendMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Sidebar */}
-        <Card className="w-80" data-testid="card-sidebar">
-          <CardHeader>
-            <CardTitle className="text-lg">Lead Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Score</p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-muted rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full"
-                    style={{ width: `${lead.score || 0}%` }}
-                  />
-                </div>
-                <span className="text-sm font-medium">{lead.score || 0}%</span>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">Tags</p>
-              {lead.tags && lead.tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {lead.tags.map((tag: string) => (
-                    <Badge key={tag} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No tags</p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">History</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-3 w-3" />
-                  <span>First contact: {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : "Unknown"}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <MessageSquare className="h-3 w-3" />
-                  <span>{messages.length} messages exchanged</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

@@ -40,6 +40,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavItem {
   label: string;
@@ -146,6 +147,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Trial Expired Overlay */}
       <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
+      
       {/* Desktop Sidebar */}
       <motion.aside
         className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
@@ -234,15 +236,91 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Top Navbar */}
         <header className="h-16 border-b border-cyan-500/20 bg-gradient-to-r from-[#0d1428] via-[#0a0f1f] to-[#0d1428] flex items-center justify-between px-4 md:px-6" data-testid="navbar-top">
           {/* Mobile Menu Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden text-foreground hover:text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            data-testid="button-mobile-menu"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5 text-foreground" /> : <Menu className="h-5 w-5 text-foreground" />}
-          </Button>
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden text-foreground hover:text-foreground"
+                data-testid="button-mobile-menu"
+              >
+                <Menu className="h-5 w-5 text-foreground" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0">
+              <div className="p-4 flex flex-col h-full">
+                <div className="flex items-center gap-2 mb-6">
+                  <img
+                    src="/logo.jpg"
+                    alt="Audnix AI"
+                    className="h-8 w-auto object-contain"
+                  />
+                  <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
+                </div>
+                <nav className="flex flex-col gap-1 flex-1">
+                  {filteredNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location === item.path;
+
+                    return (
+                      <Link key={item.path} href={item.path}>
+                        <Button
+                          variant={isActive ? "secondary" : "ghost"}
+                          className={`w-full justify-start transition-colors ${isActive ? "text-primary" : "text-white"}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                          data-testid={`mobile-menu-item-${item.label.toLowerCase()}`}
+                        >
+                          <Icon className="h-5 w-5 mr-2" />
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </nav>
+                <div className="mt-auto pt-4">
+                  {user && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="gap-2 p-0 h-auto w-full justify-start text-foreground hover:text-foreground" data-testid="button-profile-mobile">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={user.avatar || undefined} />
+                            <AvatarFallback className="bg-primary/10 text-primary">{user.name?.charAt(0) || 'U'}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col items-start">
+                            <span className="text-sm font-medium text-foreground">{user.name}</span>
+                            <span className="text-xs text-muted-foreground">{user.email}</span>
+                          </div>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-56">
+                        <DropdownMenuLabel>
+                          <div className="flex flex-col">
+                            <p className="text-sm font-medium text-foreground">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                          </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <Link href="/dashboard/settings">
+                          <DropdownMenuItem data-testid="menu-item-settings-mobile">
+                            <Settings className="h-4 w-4 mr-2" />
+                            Settings
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuItem 
+                          onClick={handleSignOut}
+                          disabled={signOutMutation.isPending}
+                          data-testid="menu-item-logout-mobile"
+                        >
+                          <LogOut className="h-4 w-4 mr-2" />
+                          {signOutMutation.isPending ? 'Signing out...' : 'Sign out'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
 
           {/* Search */}
           <div className="flex-1 max-w-md mx-4 hidden sm:block">
@@ -317,7 +395,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2 text-foreground hover:text-foreground" data-testid="button-profile">
+                  <Button variant="ghost" className="gap-2 text-foreground hover:text-foreground hidden md:flex" data-testid="button-profile">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary">{user.name?.charAt(0) || 'U'}</AvatarFallback>
@@ -399,65 +477,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
-
-      {/* Mobile Slide-out Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileMenuOpen(false)}
-              data-testid="mobile-menu-overlay"
-            />
-            <motion.div
-              className="md:hidden fixed left-0 top-0 bottom-0 w-64 bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-r border-cyan-500/20 z-50 overflow-y-auto"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 20 }}
-              data-testid="mobile-menu-drawer"
-              style={{
-                boxShadow: "0 0 40px rgba(0, 200, 255, 0.2)",
-              }}
-            >
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-6">
-                  <img
-                    src="/logo.jpg"
-                    alt="Audnix AI"
-                    className="h-8 w-auto object-contain"
-                  />
-                  <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
-                </div>
-                <nav className="flex flex-col gap-1">
-                  {filteredNavItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location === item.path;
-
-                    return (
-                      <Link key={item.path} href={item.path}>
-                        <div
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors hover-elevate ${
-                            isActive ? "bg-primary/10 text-primary" : "text-white"
-                          }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                          data-testid={`mobile-menu-item-${item.label.toLowerCase()}`}
-                        >
-                          <Icon className="h-5 w-5" />
-                          <span className="text-sm font-medium">{item.label}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
