@@ -1,13 +1,22 @@
-import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
+
 import qrcode from 'qrcode';
 import { storage } from '../../storage';
+import { createRequire } from 'module';
 
-import type { Message } from 'whatsapp-web.js';
+const require = createRequire(import.meta.url);
+const { Client, LocalAuth } = require('whatsapp-web.js');
+
+interface Message {
+  id: { _serialized: string };
+  body: string;
+  timestamp: number;
+  getContact: () => Promise<any>;
+  getChat: () => Promise<any>;
+}
 
 interface WhatsAppSession {
   userId: string;
-  client: Client;
+  client: typeof Client.prototype;
   status: 'disconnected' | 'qr_ready' | 'authenticated' | 'ready';
   qrCode: string | null;
   lastActivity: Date;
@@ -57,7 +66,7 @@ class WhatsAppService {
       lastActivity: new Date(),
     };
 
-    client.on('qr', async (qr) => {
+    client.on('qr', async (qr: string) => {
       try {
         const qrDataUrl = await qrcode.toDataURL(qr);
         session.qrCode = qrDataUrl;
@@ -89,7 +98,7 @@ class WhatsAppService {
       });
     });
 
-    client.on('disconnected', async (reason) => {
+    client.on('disconnected', async (reason: string) => {
       console.log(`❌ WhatsApp disconnected for user ${userId}:`, reason);
       await this.destroySession(userId);
 
@@ -105,7 +114,7 @@ class WhatsAppService {
       await this.handleIncomingMessage(userId, message);
     });
 
-    client.on('auth_failure', async (msg) => {
+    client.on('auth_failure', async (msg: string) => {
       console.error(`❌ Authentication failed for user ${userId}:`, msg);
       await this.destroySession(userId);
     });
