@@ -32,13 +32,16 @@ export function isLeadActivelyReplying(messages: Message[]): boolean {
 
 /**
  * Calculate intelligent delay based on lead activity and behavior
+ * Also considers DM-per-hour limits for Instagram (20/hour = 3min minimum between DMs)
+ * 
  * Active leads (replying immediately): 50s-1min
- * Normal replies: 2-8 minutes
+ * Normal replies: 3-8 minutes (respects Instagram 20/hour limit)
  * Follow-ups: 6-12 hours
  */
 export function calculateReplyDelay(
   messageType: 'reply' | 'followup',
-  messages: Message[] = []
+  messages: Message[] = [],
+  channel?: string
 ): number {
   if (messageType === 'followup') {
     // 6-12 hours in milliseconds with random minutes
@@ -50,14 +53,25 @@ export function calculateReplyDelay(
   // Check if lead is actively replying
   const isActive = isLeadActivelyReplying(messages);
   
+  // Instagram has 20 DMs/hour limit = minimum 3 minutes between DMs
+  const minDelayForInstagram = channel === 'instagram' ? 3 * 60 * 1000 : 0;
+  
   if (isActive) {
     // Lead is hot - reply within 50s-1min to keep momentum
+    // BUT respect Instagram rate limits
     const baseSeconds = 50 + Math.random() * 10; // 50-60 seconds
+    const delay = baseSeconds * 1000;
+    
+    if (channel === 'instagram' && delay < minDelayForInstagram) {
+      console.log(`🔥 Lead is actively engaged but respecting Instagram limit - replying in 3min`);
+      return minDelayForInstagram;
+    }
+    
     console.log(`🔥 Lead is actively engaged - replying in ${Math.round(baseSeconds)}s`);
-    return baseSeconds * 1000;
+    return delay;
   } else {
-    // Normal reply timing: 2-8 minutes to appear human
-    const baseMinutes = 2 + Math.random() * 6; // 2-8 minutes
+    // Normal reply timing: 3-8 minutes to appear human AND respect Instagram limits
+    const baseMinutes = Math.max(3, 2 + Math.random() * 6); // 3-8 minutes
     const randomSeconds = Math.random() * 60; // 0-60 seconds
     return (baseMinutes * 60 + randomSeconds) * 1000;
   }

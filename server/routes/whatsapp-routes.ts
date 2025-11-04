@@ -112,7 +112,7 @@ router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
       });
     }
 
-    await whatsAppService.sendMessage(userId, phoneNumber, message);
+    const result = await whatsAppService.sendMessage(userId, phoneNumber, message);
 
     if (leadId) {
       await storage.createMessage({
@@ -123,6 +123,7 @@ router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
         body: message,
         metadata: {
           sent_at: new Date().toISOString(),
+          message_id: result.messageId,
         },
       });
     }
@@ -130,6 +131,7 @@ router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
     res.json({
       success: true,
       message: 'Message sent successfully',
+      messageId: result.messageId,
     });
   } catch (error: any) {
     console.error('Error sending WhatsApp message:', error);

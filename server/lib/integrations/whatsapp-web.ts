@@ -161,7 +161,7 @@ class WhatsAppService {
     return session?.status === 'ready';
   }
 
-  async sendMessage(userId: string, phoneNumber: string, message: string): Promise<void> {
+  async sendMessage(userId: string, phoneNumber: string, message: string): Promise<{ messageId: string }> {
     const session = this.sessions.get(userId);
 
     if (!session || session.status !== 'ready') {
@@ -172,8 +172,10 @@ class WhatsAppService {
     
     try {
       session.lastActivity = new Date();
-      await session.client.sendMessage(`${formattedNumber}@c.us`, message);
-      console.log(`✅ Message sent to ${formattedNumber} by user ${userId}`);
+      const sentMessage = await session.client.sendMessage(`${formattedNumber}@c.us`, message);
+      console.log(`✅ WhatsApp message sent to ${formattedNumber} by user ${userId}`);
+      
+      return { messageId: sentMessage.id._serialized };
     } catch (error) {
       console.error('Error sending WhatsApp message:', error);
       throw new Error('Failed to send WhatsApp message');
@@ -242,12 +244,13 @@ class WhatsAppService {
       for (const [userId, session] of this.sessions.entries()) {
         const timeSinceLastActivity = now - session.lastActivity.getTime();
         
+        // Clean up sessions that are inactive and not connected
         if (timeSinceLastActivity > this.SESSION_TIMEOUT && session.status !== 'ready') {
-          console.log(`🧹 Cleaning up inactive session for user ${userId}`);
+          console.log(`🧹 Cleaning up inactive WhatsApp session for user ${userId}`);
           this.destroySession(userId);
         }
       }
-    }, 5 * 60 * 1000);
+    }, 5 * 60 * 1000); // Check every 5 minutes
   }
 }
 

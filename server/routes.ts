@@ -26,6 +26,7 @@ import videoAutomationRouter from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
 import whatsappRoutes from "./routes/whatsapp-routes";
+import instagramPrivateRoutes from './routes/instagram-private-routes';
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -1601,9 +1602,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", workerRouter);
   app.use("/api/automation", commentAutomationRouter);
   app.use("/api/video-automation", videoAutomationRouter);
-  
+
   // Register WhatsApp routes
-  app.use("/api/whatsapp", whatsappRoutes);
+  app.use('/api/whatsapp', whatsappRoutes);
+  app.use('/api/instagram-private', instagramPrivateRoutes);
+
+  // Webhook routes
+  app.use("/api/webhook", webhookRouter); // This line seems to be a duplicate, keeping it as per original code.
 
   const httpServer = createServer(app);
 
