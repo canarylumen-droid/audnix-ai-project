@@ -3,60 +3,99 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileSpreadsheet, Users, Mail, Phone, Sparkles, Construction } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { Upload, FileSpreadsheet, Users, Mail, Phone, Sparkles, FileText, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LeadImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [importResults, setImportResults] = useState<{imported: number; skipped: number} | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    if (!selectedFile.name.endsWith('.csv')) {
+    const isPDF = selectedFile.name.toLowerCase().endsWith('.pdf');
+    const isCSV = selectedFile.name.toLowerCase().endsWith('.csv');
+    const isExcel = selectedFile.name.toLowerCase().match(/\.(xlsx|xls)$/i);
+
+    if (!isPDF && !isCSV && !isExcel) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a CSV file",
+        description: "Please upload a CSV, Excel, or PDF file",
         variant: "destructive"
       });
       return;
     }
 
     setFile(selectedFile);
+    setImportResults(null);
   };
 
   const handleImport = async () => {
     if (!file) return;
 
     setImporting(true);
+    setProgress(10);
     const formData = new FormData();
-    formData.append('csv', file);
+    
+    const isPDF = file.name.toLowerCase().endsWith('.pdf');
+    
+    if (isPDF) {
+      formData.append('pdf', file);
+    } else {
+      formData.append('csv', file);
+    }
 
     try {
-      const response = await fetch('/api/leads/import-csv', {
+      setProgress(30);
+      const endpoint = isPDF ? '/api/leads/import-pdf' : '/api/leads/import-csv';
+      const response = await fetch(endpoint, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'include'
       });
 
-      if (!response.ok) throw new Error('Import failed');
+      setProgress(70);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Import failed');
+      }
 
       const result = await response.json();
-      toast({
-        title: "✅ Import Complete",
-        description: `Imported ${result.imported} leads, skipped ${result.skipped} duplicates`
+      setProgress(100);
+      
+      setImportResults({
+        imported: result.leadsImported || result.imported || 0,
+        skipped: result.duplicates || result.skipped || 0
       });
 
-      setFile(null);
-    } catch (error) {
+      toast({
+        title: "✅ Import Complete",
+        description: isPDF 
+          ? `Extracted and imported ${result.leadsImported || 0} leads from PDF`
+          : `Imported ${result.imported || 0} leads, skipped ${result.skipped || 0} duplicates`
+      });
+
+      setTimeout(() => setFile(null), 3000);
+    } catch (error: any) {
+      setProgress(0);
       toast({
         title: "Import failed",
-        description: "Could not process CSV file",
+        description: error.message || `Could not process ${isPDF ? 'PDF' : 'CSV'} file`,
         variant: "destructive"
       });
     } finally {
-      setImporting(false);
+      setTimeout(() => {
+        setImporting(false);
+        setProgress(0);
+      }, 2000);
     }
   };
 
@@ -65,30 +104,50 @@ export default function LeadImportPage() {
       <div>
         <h1 className="text-3xl font-bold mb-2">Import Leads</h1>
         <p className="text-muted-foreground">
-          Upload CSV with Name, Email, Phone columns - AI auto-detects format
+          Upload CSV, Excel, or PDF - Our AI extracts Name, Email, WhatsApp Number automatically
         </p>
       </div>
 
       {/* Active Import Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Upload CSV File</CardTitle>
+          <CardTitle>Upload File</CardTitle>
           <CardDescription>
-            Supported columns: Name (required), Email, Phone, Company, Tags
+            CSV/Excel: Name (required), Email, Phone, Company • PDF: AI extracts contact info automatically
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            disabled={importing}
-          />
+          <div className="space-y-2">
+            <Input
+              type="file"
+              accept=".csv,.xlsx,.xls,.pdf"
+              onChange={handleFileUpload}
+              disabled={importing}
+            />
+            <p className="text-xs text-muted-foreground">
+              📄 Supported formats: CSV, Excel (.xlsx, .xls), PDF (with contact lists)
+            </p>
+          </div>
           
           {file && (
-            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-              <p className="text-sm font-medium text-green-800 dark:text-green-200">
+            <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-2">
+              <p className="text-sm font-medium text-green-800 dark:text-green-200 flex items-center gap-2">
+                {file.name.toLowerCase().endsWith('.pdf') ? <FileText className="h-4 w-4" /> : <FileSpreadsheet className="h-4 w-4" />}
                 ✓ File ready: {file.name}
+              </p>
+              {importResults && (
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  ✅ {importResults.imported} leads imported • {importResults.skipped} duplicates skipped
+                </p>
+              )}
+            </div>
+          )}
+
+          {importing && progress > 0 && (
+            <div className="space-y-2">
+              <Progress value={progress} className="h-2" />
+              <p className="text-xs text-center text-muted-foreground">
+                {progress < 30 ? 'Uploading file...' : progress < 70 ? 'Processing with AI...' : 'Creating leads...'}
               </p>
             </div>
           )}
@@ -101,7 +160,7 @@ export default function LeadImportPage() {
             {importing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Importing...
+                {file?.name.toLowerCase().endsWith('.pdf') ? 'Extracting from PDF...' : 'Importing...'}
               </>
             ) : (
               <>

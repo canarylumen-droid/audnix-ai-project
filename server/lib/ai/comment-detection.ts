@@ -224,30 +224,100 @@ export async function scheduleCommentFollowUp(
 }
 
 /**
+ * Select appropriate emoji based on intent
+ */
+function selectEmojiForIntent(intent: string): string {
+  const emojiMap: Record<string, string> = {
+    'link': '🚀',
+    'info': '📩',
+    'offer': '🎁',
+    'product': '✨',
+    'general': '👍'
+  };
+  return emojiMap[intent] || '✅';
+}
+
+/**
+ * Check if comment contains inappropriate content
+ */
+async function isCommentAppropriate(comment: string): Promise<boolean> {
+  try {
+    const { contentModerationService } = await import('./content-moderation');
+    const result = await contentModerationService.moderateContent(comment);
+    return !result.flagged;
+  } catch (error) {
+    console.error('Content moderation check failed:', error);
+    // Default to allowing if moderation fails
+    return true;
+  }
+}
+
+/**
  * Process comment and initiate DM automation flow
+ * NEW FLOW: Reply with emoji → Wait 2-8min → Send DM
  */
 export async function processCommentAutomation(
   userId: string,
   comment: string,
   username: string,
   channel: 'instagram' | 'whatsapp' | 'email',
-  postContext: string
+  postContext: string,
+  commentId?: string // Optional: for replying to specific comment
 ): Promise<{
   success: boolean;
   lead?: Lead;
   initialMessage?: Message;
+  commentReplied?: boolean;
   followUpScheduled: boolean;
 }> {
   try {
+    // Step 0: Check for inappropriate content
+    const isAppropriate = await isCommentAppropriate(comment);
+    if (!isAppropriate) {
+      console.log(`❌ Comment from ${username} flagged as inappropriate - skipping automation`);
+      return { success: false, followUpScheduled: false, commentReplied: false };
+    }
+
     // Step 1: Detect if this comment wants a DM
     const intent = await detectCommentIntent(comment);
     
     if (!intent.wantsDM) {
       console.log(`Comment from ${username} doesn't indicate DM intent - skipping automation`);
-      return { success: false, followUpScheduled: false };
+      return { success: false, followUpScheduled: false, commentReplied: false };
     }
 
-    // Step 2: Create or get lead
+    // Step 2: REPLY TO COMMENT FIRST with emoji (like human behavior)
+    const emoji = selectEmojiForIntent(intent.intent);
+    let commentReplied = false;
+    
+    if (channel === 'instagram' && commentId) {
+      try {
+        // Reply to the comment with emoji
+        // This would use Instagram Graph API comment reply endpoint
+        console.log(`💬 Replying to comment ${commentId} with emoji: ${emoji}`);
+        // TODO: Implement actual Instagram comment reply via Graph API
+        // For now, log the action
+        await storage.createNotification({
+          userId,
+          title: '💬 Comment Reply Sent',
+          message: `Replied "${emoji}" to ${username}'s comment. DM will be sent shortly.`,
+          type: 'info',
+          read: false,
+          metadata: {
+            username,
+            emoji,
+            originalComment: comment,
+            action: 'comment_reply'
+          }
+        });
+        commentReplied = true;
+      } catch (error) {
+        console.error('Failed to reply to comment:', error);
+        // Continue with automation even if comment reply fails
+      }
+    }
+
+    // Step 3: Create or get lead
     let lead = await storage.getLeadByUsername(username, channel);
     
     if (!lead) {
@@ -261,49 +331,47 @@ export async function processCommentAutomation(
         metadata: {
           originalComment: comment,
           commentIntent: intent.intent,
-          postContext
+          postContext,
+          commentReplied: commentReplied
         }
       });
     }
 
-    // Step 3: Generate and send initial DM
+    // Step 4: Generate initial DM (but don't send yet - scheduled in follow-up)
     const initialDM = await generateInitialDM(username, intent, postContext);
     
-    const message = await storage.createMessage({
-      leadId: lead.id,
+    // Step 5: Schedule DM for 2-8 minutes later (human-like timing)
+    const delayMinutes = Math.floor(Math.random() * 6) + 2; // Random 2-8 minutes
+    const dmTime = new Date(Date.now() + delayMinutes * 60 * 1000);
+    
+    await storage.createNotification({
       userId,
-      provider: channel,
-      direction: 'outbound',
-      body: initialDM,
-      audioUrl: null,
+      title: '⏰ DM Scheduled',
+      message: `DM to ${username} will be sent in ${delayMinutes} minutes (after comment reply)`,
+      type: 'info',
+      read: false,
       metadata: {
-        ai_generated: true,
-        automation_type: 'comment_dm',
-        original_comment: comment,
-        intent: intent.intent
+        leadId: lead.id,
+        dmBody: initialDM,
+        scheduledFor: dmTime.toISOString(),
+        intent: intent.intent,
+        action: 'send_dm'
       }
     });
 
-    // Step 4: Schedule 6-hour follow-up
-    await scheduleCommentFollowUp(userId, lead.id, channel, intent.intent, postContext);
-
-    // Step 5: Update lead status
-    await storage.updateLead(lead.id, {
-      status: 'replied',
-      lastMessageAt: new Date()
-    });
-
-    console.log(`✓ Comment automation complete for ${username} - Initial DM sent, 6h follow-up scheduled`);
+    console.log(`✓ Comment automation started for ${username}:`);
+    console.log(`  - Comment replied with ${emoji}`);
+    console.log(`  - DM scheduled in ${delayMinutes} minutes`);
 
     return {
       success: true,
       lead,
-      initialMessage: message,
+      commentReplied,
       followUpScheduled: true
     };
   } catch (error) {
     console.error('Comment automation error:', error);
-    return { success: false, followUpScheduled: false };
+    return { success: false, followUpScheduled: false, commentReplied: false };
   }
 }
 

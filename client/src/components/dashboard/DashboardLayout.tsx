@@ -58,10 +58,8 @@ const navItems: NavItem[] = [
   { label: "Insights", icon: BarChart3, path: "/dashboard/insights" },
   { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
-  { label: "Admin", icon: Shield, path: "/dashboard/admin", adminOnly: true },
   { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
-  // Add Lead Import page to navigation
-  { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import", adminOnly: false },
+  { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
 ];
 
 const mobileNavItems = [

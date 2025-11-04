@@ -550,6 +550,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * Import leads from PDF file with AI extraction
+   * POST /api/leads/import-pdf
+   */
+  app.post("/api/leads/import-pdf", requireAuth, uploadPDF.single('pdf'), async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No PDF file uploaded" });
+      }
+
+      // Read file buffer
+      const fileBuffer = fs.readFileSync(req.file.path);
+
+      // Process PDF with AI extraction
+      const { processPDF } = await import('./lib/pdf-processor');
+      const result = await processPDF(fileBuffer, userId, {
+        autoReachOut: false, // Don't auto-send messages yet
+        extractOffer: true // Extract brand/offer info
+      });
+
+      // Cleanup uploaded file
+      fs.unlinkSync(req.file.path);
+
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.error || "Failed to extract leads from PDF" 
+        });
+      }
+
+      res.json({
+        success: true,
+        leadsImported: result.leadsCreated || 0,
+        duplicates: 0,
+        offerExtracted: result.offerExtracted || null,
+        brandExtracted: result.brandExtracted || null,
+        leads: result.leads || []
+      });
+
+    } catch (error: any) {
+      console.error("PDF import error:", error);
+      
+      // Cleanup file if it exists
+      if (req.file?.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (e) {
+          console.error("Failed to cleanup PDF file:", e);
+        }
+      }
+      
+      res.status(500).json({ error: error.message || "PDF import failed" });
+    }
+  });
+
       const leads = await storage.getLeads({ userId, limit: 1000 });
 
       if (leads.length === 0) {
