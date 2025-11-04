@@ -35,6 +35,18 @@
 3. Copy **anon public** key
 4. Copy **service_role secret** key
 
+**Enable OAuth Providers:**
+1. Authentication → Providers
+2. Enable **Google**:
+   - Get Client ID/Secret from https://console.cloud.google.com/apis/credentials
+   - Add redirect URL: `https://your-project.supabase.co/auth/v1/callback`
+3. Enable **GitHub**:
+   - Get Client ID/Secret from https://github.com/settings/developers
+   - Add redirect URL: `https://your-project.supabase.co/auth/v1/callback`
+4. Enable **Apple** (optional):
+   - Requires Apple Developer account
+   - Get credentials from https://developer.apple.com
+
 ---
 
 ## Step 2: Add Secrets to Replit

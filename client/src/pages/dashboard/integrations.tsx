@@ -25,6 +25,7 @@ import {
   Loader2,
   FileText,
   Sparkles,
+  Lock, // Import Lock icon
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -73,7 +74,7 @@ export default function IntegrationsPage() {
 
       const formData = new FormData();
       formData.append("voice", file);
-      
+
       const response = await fetch("/api/uploads/voice", {
         method: "POST",
         body: formData,
@@ -107,7 +108,7 @@ export default function IntegrationsPage() {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append("pdf", file);
-      
+
       const response = await fetch("/api/uploads/pdf", {
         method: "POST",
         body: formData,
@@ -188,16 +189,16 @@ export default function IntegrationsPage() {
         whatsapp: "WhatsApp",
         gmail: "Email"
       };
-      
+
       setImportingChannel(null);
       setAllSetChannel(channelMap[provider] || provider);
       setShowAllSetDialog(true);
-      
+
       toast({
         title: "Import Complete",
         description: `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     },
@@ -283,30 +284,30 @@ export default function IntegrationsPage() {
         method: "GET",
         credentials: "include",
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || `Failed to connect ${provider}`);
       }
-      
+
       const { authUrl } = await response.json();
-      
+
       if (!authUrl) {
         throw new Error(`No authorization URL received for ${provider}`);
       }
-      
+
       // Open OAuth URL in popup
       const width = 600;
       const height = 700;
       const left = window.screen.width / 2 - width / 2;
       const top = window.screen.height / 2 - height / 2;
-      
+
       const popup = window.open(
         authUrl,
         `${provider}-oauth`,
         `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=yes,status=yes`
       );
-      
+
       // Check if popup was blocked
       if (!popup) {
         // Fallback to redirect in same window
@@ -315,7 +316,7 @@ export default function IntegrationsPage() {
         }
         return;
       }
-      
+
       // Poll to check if popup is closed and refresh data
       const checkInterval = setInterval(() => {
         if (popup.closed) {
@@ -343,7 +344,7 @@ export default function IntegrationsPage() {
         method: "GET",
         credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.connected) {
@@ -371,7 +372,7 @@ export default function IntegrationsPage() {
       gmail: "email",
       outlook: "email"
     };
-    
+
     // Map provider to backend endpoint (gmail/outlook -> gmail for backend)
     const providerToEndpoint: Record<string, string> = {
       instagram: "instagram",
@@ -379,13 +380,13 @@ export default function IntegrationsPage() {
       gmail: "gmail",
       outlook: "gmail"  // Both gmail and outlook use the gmail endpoint
     };
-    
+
     setImportingChannel(channelMap[provider]);
     importLeadsMutation.mutate(providerToEndpoint[provider]);
   };
 
   // Check if voice sample has been uploaded
-  const hasVoiceSample = integrations.some((i: any) => 
+  const hasVoiceSample = integrations.some((i: any) =>
     i.provider === "voice" || uploadVoiceMutation.isSuccess
   );
 
@@ -421,7 +422,7 @@ export default function IntegrationsPage() {
       {/* Channel Integrations */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Connected Channels</h2>
-        
+
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -566,7 +567,7 @@ export default function IntegrationsPage() {
                 className="hidden"
                 data-testid="input-voice-file"
               />
-              
+
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
                 {hasVoiceSample && !isUploadingVoice ? (
                   <div className="space-y-3">
@@ -683,7 +684,7 @@ export default function IntegrationsPage() {
               className="hidden"
               data-testid="input-pdf-file"
             />
-            
+
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               {isUploadingPDF ? (
                 <div className="space-y-3">
