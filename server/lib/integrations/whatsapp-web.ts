@@ -1,6 +1,9 @@
-import { Client, LocalAuth, Message } from 'whatsapp-web.js';
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode';
 import { storage } from '../../storage';
+
+import type { Message } from 'whatsapp-web.js';
 
 interface WhatsAppSession {
   userId: string;
