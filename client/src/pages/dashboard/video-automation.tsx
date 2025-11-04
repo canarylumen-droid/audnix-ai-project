@@ -8,7 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Video,
@@ -25,7 +28,12 @@ import {
   Timer,
   Trash2,
   Link as LinkIcon,
-  UserPlus
+  UserPlus,
+  Save,
+  Edit2,
+  Eye,
+  Users,
+  Target
 } from "lucide-react";
 
 // Countdown timer hook
@@ -71,15 +79,34 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
   isToggling: boolean;
   isDeleting: boolean;
 }) {
+  const { toast } = useToast();
+  const [isEditingLink, setIsEditingLink] = useState(false);
+  const [ctaLink, setCtaLink] = useState(monitor.productLink || "");
   const timeLeft = useCountdown(nextSync);
   const syncProgress = nextSync ? Math.max(0, 100 - (timeLeft.total / 30000) * 100) : 0;
 
-  const handleLinkChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // In a real app, you'd debounce this or have a save button
-    // For simplicity, we'll trigger mutation directly, but be mindful of performance
-    if (monitor.ctaLink !== e.target.value) {
-      // In a real app, you would trigger an update mutation here, potentially debounced.
-      // For this example, we'll assume the change is applied immediately or via a save button.
+  const updateLinkMutation = useMutation({
+    mutationFn: async (newLink: string) => {
+      return apiRequest(`/api/video-automation/monitors/${monitor.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ productLink: newLink })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
+      toast({ title: "✅ Link updated", description: "Changes apply immediately to new DMs" });
+      setIsEditingLink(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update link", variant: "destructive" });
+    }
+  });
+
+  const handleSaveLink = () => {
+    if (ctaLink !== monitor.productLink) {
+      updateLinkMutation.mutate(ctaLink);
+    } else {
+      setIsEditingLink(false);
     }
   };
 
@@ -139,44 +166,153 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
         </div>
 
         <div className="space-y-2">
-          <Label>CTA Button Link</Label>
-          <div className="flex gap-2">
-            <Input
-              value={monitor.ctaLink || ""}
-              onChange={handleLinkChange} // Use the handler
-              placeholder="https://yourbrand.com/product"
-            />
-            <Button variant="outline" size="icon">
-              <LinkIcon className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center justify-between">
+            <Label>CTA Button Link</Label>
+            {!isEditingLink && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditingLink(true)}
+              >
+                <Edit2 className="h-3 w-3 mr-1" />
+                Edit
+              </Button>
+            )}
           </div>
+          {isEditingLink ? (
+            <div className="flex gap-2">
+              <Input
+                value={ctaLink}
+                onChange={(e) => setCtaLink(e.target.value)}
+                placeholder="https://yourbrand.com/product"
+                className="flex-1"
+              />
+              <Button
+                size="icon"
+                onClick={handleSaveLink}
+                disabled={updateLinkMutation.isPending}
+              >
+                {updateLinkMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+              <LinkIcon className="h-4 w-4 text-muted-foreground" />
+              <code className="text-sm flex-1 truncate">{monitor.productLink || "No link set"}</code>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
-            ✏️ Edit anytime - changes apply immediately
+            💾 Save to apply changes immediately to new DMs
           </p>
         </div>
 
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Recent Activity
-          </h4>
-          <div className="flex flex-col sm:flex-row gap-4 text-sm">
-            <div className="flex-1">
-              <p className="text-muted-foreground">Next Sync In</p>
-              {timeLeft.total > 0 ? (
-                <div className="font-semibold flex items-center gap-1">
-                  <Timer className="h-4 w-4 text-blue-500" />
-                  <span>{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
-                </div>
-              ) : (
-                <p className="font-semibold text-muted-foreground">Syncing...</p>
-              )}
-            </div>
-            <div className="flex-1">
-              <p className="text-muted-foreground">Sync Progress</p>
-              <Progress value={syncProgress} className="w-full h-2 mt-1" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              Lead Status Breakdown
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Hot Leads</span>
+                <Badge variant="destructive" className="h-5">
+                  {monitor.stats?.hotLeads || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Warm Leads</span>
+                <Badge className="h-5 bg-orange-500">
+                  {monitor.stats?.warmLeads || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Replied</span>
+                <Badge className="h-5 bg-blue-500">
+                  {monitor.stats?.replied || 0}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Ignored</span>
+                <Badge variant="secondary" className="h-5">
+                  {monitor.stats?.ignored || 0}
+                </Badge>
+              </div>
             </div>
           </div>
+
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Sync Status
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between text-sm mb-1">
+                  <span className="text-muted-foreground">Next Sync</span>
+                  {timeLeft.total > 0 ? (
+                    <span className="font-semibold flex items-center gap-1">
+                      <Timer className="h-3 w-3 text-blue-500" />
+                      {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-blue-500 animate-pulse">Syncing...</span>
+                  )}
+                </div>
+                <Progress value={syncProgress} className="w-full h-2" />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {monitor.isActive ? (
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Monitoring every 30 seconds
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <Pause className="h-3 w-3 text-orange-500" />
+                    Monitor paused
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Recent Activity Timeline
+          </h4>
+          <ScrollArea className="h-32">
+            <div className="space-y-2 pr-4">
+              {monitor.recentActivity?.length > 0 ? (
+                monitor.recentActivity.map((activity: any, idx: number) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex items-start gap-2 text-xs border-l-2 border-muted pl-3 py-1"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium">{activity.action}</p>
+                      <p className="text-muted-foreground">{activity.username}</p>
+                    </div>
+                    <span className="text-muted-foreground whitespace-nowrap">
+                      {activity.timestamp}
+                    </span>
+                  </motion.div>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No recent activity
+                </p>
+              )}
+            </div>
+          </ScrollArea>
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 space-y-2">
@@ -186,11 +322,11 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
           </h4>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${monitor.followUpConfig?.askFollowOnConvert ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <div className={`w-2 h-2 rounded-full ${monitor.metadata?.askFollowOnConvert ? 'bg-green-500' : 'bg-gray-400'}`} />
               <span>On Conversion</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${monitor.followUpConfig?.askFollowOnDecline ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <div className={`w-2 h-2 rounded-full ${monitor.metadata?.askFollowOnDecline ? 'bg-green-500' : 'bg-gray-400'}`} />
               <span>On Decline</span>
             </div>
           </div>

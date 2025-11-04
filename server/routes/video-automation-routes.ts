@@ -133,6 +133,14 @@ router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response) =
       });
     }
 
+    // Validate productLink if provided
+    if (updates.productLink && typeof updates.productLink === 'string') {
+      const urlPattern = /^https?:\/\/.+/;
+      if (!urlPattern.test(updates.productLink)) {
+        return res.status(400).json({ error: 'Invalid URL format for productLink' });
+      }
+    }
+
     const monitor = await storage.updateVideoMonitor(id, userId, updates);
 
     if (!monitor) {
