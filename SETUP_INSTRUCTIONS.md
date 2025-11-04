@@ -21,7 +21,25 @@ Your app won't persist data without a database. Follow these steps:
    - `SUPABASE_URL` = your project URL
    - `SUPABASE_SERVICE_ROLE_KEY` = your service role key
 
-### Enable Google OAuth (Required for Login)
+### Enable Authentication (Choose Your Method)
+
+**Option 1: Email Magic Links (Recommended - Easiest for Creators)**
+1. Go to Supabase → Authentication → Providers
+2. Enable **Email** provider
+3. Turn OFF "Confirm email" for faster onboarding
+4. Done! No other setup needed.
+
+**Option 2: WhatsApp OTP (Most Creator-Friendly)**
+1. Sign up for Twilio: https://www.twilio.com/try-twilio
+2. Get WhatsApp-enabled phone number
+3. In Supabase → Authentication → Providers
+4. Enable **Phone** provider, select Twilio
+5. Add to Replit Secrets:
+   - `TWILIO_ACCOUNT_SID` = your account SID
+   - `TWILIO_AUTH_TOKEN` = your auth token
+   - `TWILIO_MESSAGING_SERVICE_SID` = your messaging service SID
+
+**Option 3: Google OAuth (Backup)**
 1. Go to https://console.cloud.google.com
 2. Create OAuth 2.0 credentials
 3. Add authorized redirect: `https://your-repl-url.repl.co/api/auth/callback`

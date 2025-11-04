@@ -20,6 +20,7 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
   const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
@@ -93,13 +94,22 @@ export default function AuthPage() {
 
   // Apple OAuth removed - using Google and GitHub only
 
-  const handleGithubLogin = async () => {
-    setLoading('github' as any);
+  const handleEmailLogin = async () => {
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('email' as any);
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to continue. Authentication service is not available in demo mode.",
+        description: "Please configure Supabase to enable authentication.",
         variant: "destructive",
       });
       setLoading(null);
@@ -107,10 +117,10 @@ export default function AuthPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
         },
       });
 
@@ -121,12 +131,73 @@ export default function AuthPage() {
           variant: "destructive",
         });
         setLoading(null);
+      } else {
+        toast({
+          title: "Check Your Email! 📧",
+          description: "We sent you a magic link. Click it to sign in instantly.",
+        });
+        setLoading(null);
       }
     } catch (error) {
-      console.error("GitHub OAuth error:", error);
+      console.error("Email OTP error:", error);
       toast({
         title: "Error",
-        description: "Failed to initiate GitHub sign-in",
+        description: "Failed to send magic link",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
+
+  const handleWhatsAppLogin = async () => {
+    if (!email) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number (e.g., +1234567890)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('whatsapp' as any);
+
+    if (!isSupabaseConfigured() || !supabase) {
+      toast({
+        title: "Authentication Required",
+        description: "Please configure Supabase to enable authentication.",
+        variant: "destructive",
+      });
+      setLoading(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: email, // Using email field for phone input
+        options: {
+          channel: 'whatsapp',
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Authentication Error",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(null);
+      } else {
+        toast({
+          title: "Check WhatsApp! 💬",
+          description: "We sent you a code via WhatsApp. Enter it to sign in.",
+        });
+        setLoading(null);
+      }
+    } catch (error) {
+      console.error("WhatsApp OTP error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send WhatsApp code",
         variant: "destructive",
       });
       setLoading(null);
@@ -347,27 +418,58 @@ export default function AuthPage() {
                   </motion.div>
 
                   <motion.div
+                    className="space-y-3"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
                   >
+                    <div className="relative">
+                      <input
+                        type={isSignUp ? "email" : "text"}
+                        placeholder={isSignUp ? "Enter your email" : "Email or +1234567890"}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    
                     <Button
-                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                      variant="outline"
-                      onClick={handleGithubLogin}
-                      disabled={loading !== null}
-                      data-testid="button-github-login"
+                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-primary hover:bg-primary/90 text-white"
+                      onClick={handleEmailLogin}
+                      disabled={loading !== null || !email}
                     >
                       <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
                         initial={false}
                       />
-                      <SiGithub className="w-5 h-5 mr-3 relative z-10 text-white" />
-                      <span className="relative z-10 text-white">
-                        {loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}
+                      <span className="relative z-10">
+                        {loading === 'email' ? 'Sending...' : '✨ Get Magic Link via Email'}
+                      </span>
+                    </Button>
+
+                    <Button
+                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={handleWhatsAppLogin}
+                      disabled={loading !== null || !email}
+                    >
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                        initial={false}
+                      />
+                      <span className="relative z-10">
+                        {loading === 'whatsapp' ? 'Sending...' : '💬 Get Code via WhatsApp'}
                       </span>
                     </Button>
                   </motion.div>
+
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/10"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-[#0a0f1f] px-2 text-white/50">Or continue with</span>
+                    </div>
+                  </div>
 
                   {/* Mobile benefits */}
                   <div className="lg:hidden pt-6 space-y-3">

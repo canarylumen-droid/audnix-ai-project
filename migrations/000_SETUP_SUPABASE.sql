@@ -1,13 +1,24 @@
 -- ============================================================================
--- AUDNIX AI - COMPLETE SUPABASE SETUP
+-- AUDNIX AI - COMPLETE DATABASE SETUP (No Auth Schema Required)
 -- ============================================================================
--- Run this entire file in your Supabase SQL Editor
--- This creates all tables, indexes, policies, and functions needed
+-- Run this in your Supabase SQL Editor or via DATABASE_URL
+-- This creates all tables needed for Audnix AI
 -- ============================================================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Try to enable vector extension (skip if not available)
+DO $$ 
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS vector;
+EXCEPTION 
+  WHEN OTHERS THEN
+    RAISE NOTICE 'pgvector extension not available, skipping...';
+END $$;
+
+-- Enable pg_trgm for fuzzy search
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ============================================================================
@@ -28,9 +39,29 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT DEFAULT 'member' CHECK (role IN ('admin', 'member')),
   stripe_customer_id TEXT,
   stripe_subscription_id TEXT,
+  voice_minutes_used REAL DEFAULT 0,
+  voice_minutes_topup REAL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  last_login TIMESTAMPTZ
+  last_login TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Set trial expiry automatically
+CREATE OR REPLACE FUNCTION set_trial_expiry()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.trial_expires_at IS NULL AND NEW.plan = 'trial' THEN
+    NEW.trial_expires_at := NOW() + INTERVAL '3 days';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_trial_expiry_trigger ON users;
+CREATE TRIGGER set_trial_expiry_trigger
+  BEFORE INSERT ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION set_trial_expiry();
 
 -- ============================================================================
 -- 2. LEADS TABLE
