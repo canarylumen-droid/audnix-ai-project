@@ -25,6 +25,7 @@ import commentAutomationRouter from "./routes/comment-automation-routes";
 import videoAutomationRouter from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
+import whatsappRoutes from "./routes/whatsapp-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -1600,6 +1601,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", workerRouter);
   app.use("/api/automation", commentAutomationRouter);
   app.use("/api/video-automation", videoAutomationRouter);
+  
+  // Register WhatsApp routes
+  app.use("/api/whatsapp", whatsappRoutes);
 
   const httpServer = createServer(app);
 

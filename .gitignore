@@ -10,3 +10,8 @@ vite.config.ts.*
 *.log
 .replit
 replit.nix
+
+# WhatsApp session files (sensitive)
+.wwebjs_auth/
+.wwebjs_cache/
+.wwebjs_auth.json
