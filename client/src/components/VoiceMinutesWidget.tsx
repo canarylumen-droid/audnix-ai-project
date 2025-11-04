@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mic, Lock, Zap, TrendingUp } from "lucide-react";
-import { Link } from "wouter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mic, Lock, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 
 export function VoiceMinutesWidget() {
@@ -36,6 +37,7 @@ export function VoiceMinutesWidget() {
   const minutesRemaining = total - used;
   const minutesUsed = used;
   const totalMinutes = total;
+  const [_, navigate] = useLocation();
 
   return (
     <Card className="w-full border-primary/20 hover:border-primary/50 transition-all duration-300">
@@ -54,12 +56,13 @@ export function VoiceMinutesWidget() {
         </div>
       </CardHeader>
       <CardContent>
-        {minutesRemaining < 50 && !isLocked && (
-          <div className="mb-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              ⚠️ Low balance: {minutesRemaining} minutes left
-            </p>
-          </div>
+        {minutesRemaining < 50 && minutesRemaining > 0 && !isLocked && (
+          <Alert className="mb-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
+              Low balance: {minutesRemaining} minutes left
+            </AlertDescription>
+          </Alert>
         )}
 
         <div className="flex items-center justify-between mb-4">
@@ -103,11 +106,15 @@ export function VoiceMinutesWidget() {
               <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
               <span className="truncate">{Math.floor(balance)} minutes left</span>
             </div>
-            <Link href="/dashboard/pricing#topups">
-              <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm">
-                + Add More
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full text-xs sm:text-sm"
+              onClick={() => navigate("/dashboard/pricing#topups")}
+            >
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              Top Up Now
+            </Button>
           </div>
         )}
       </CardContent>

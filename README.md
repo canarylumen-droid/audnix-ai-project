@@ -104,7 +104,32 @@
 - Webinar registrants (import → automated nurture sequence)
 - CRM migrations (import existing leads → AI takes over)
 
-**ETA: Q2 2025** | Early access for Pro/Enterprise users
+**Status: ✅ CSV Import LIVE | WhatsApp/Email campaigns coming Q2 2025**
+
+---
+
+## 🔮 Coming Soon (When We Hit $99-$199/mo Users)
+
+### Team Features (Enterprise)
+- **Team Inbox** - Shared conversations across your team
+- **Lead Assignment** - Round-robin auto-distribution
+- **Performance Leaderboard** - Track top performers
+- **Role-Based Access** - Admin, Manager, Agent permissions
+
+### Advanced Automation
+- **Custom Sequences** - Build multi-step follow-up flows
+- **A/B Testing** - Test different message variants
+- **Template Library** - Drag-drop email/DM builder
+- **Smart Triggers** - "If no reply in 24h → send voice note"
+
+### Pipeline Management
+- **Kanban Board** - Visual lead stages (New → Warm → Converted)
+- **Bulk Actions** - Tag/export/assign multiple leads at once
+- **Advanced Filters** - Search by sentiment, intent, engagement score
+
+**ETA: Q3-Q4 2025** (launching when we have steady $99-$199 MRR)
+
+| Early access for Pro/Enterprise users
 
 ### Revolutionary AI Comment Detection (NO Keywords Required!)
 

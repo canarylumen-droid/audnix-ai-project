@@ -48,6 +48,9 @@ import { leadLearningSystem } from './lib/ai/lead-learning-system';
 
 // Import necessary modules for PDF processing and lead export
 import multer from 'multer';
+import csv from 'csv-parser';
+import fs from 'fs';
+import path from 'path';
 const upload = multer({ storage: multer.memoryStorage() }); // Use memory storage for PDF uploads
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -444,6 +447,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights", requireAuth, async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
+
+
+  /**
+   * Import leads from CSV file
+   * POST /api/leads/import-csv
+   */
+  app.post("/api/leads/import-csv", requireAuth, upload.single('csv'), async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No CSV file uploaded" });
+      }
+
+      const results: any[] = [];
+      const errors: string[] = [];
+      let imported = 0;
+      let skipped = 0;
+
+      // Parse CSV
+      fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on('data', (row) => {
+          // Auto-detect columns (case-insensitive)
+          const name = row.Name || row.name || row.FullName || row['Full Name'] || '';
+          const email = row.Email || row.email || row.EmailAddress || row['Email Address'] || '';
+          const phone = row.Phone || row.phone || row.PhoneNumber || row['Phone Number'] || '';
+          const company = row.Company || row.company || row.Organization || '';
+          const tags = row.Tags || row.tags || '';
+
+          results.push({ name, email, phone, company, tags });
+        })
+        .on('end', async () => {
+          // Validate and import
+          for (const lead of results) {
+            try {
+              // Validation
+              if (!lead.name || lead.name.length < 2) {
+                errors.push(`Skipped: Invalid name "${lead.name}"`);
+                skipped++;
+                continue;
+              }
+
+              // Check for duplicates
+              const existingByEmail = lead.email ? 
+                await storage.getLeads({ userId, limit: 1000 }).then(leads => 
+                  leads.find(l => l.email?.toLowerCase() === lead.email.toLowerCase())
+                ) : null;
+
+              const existingByPhone = lead.phone ?
+                await storage.getLeads({ userId, limit: 1000 }).then(leads =>
+                  leads.find(l => l.phone === lead.phone)
+                ) : null;
+
+              if (existingByEmail || existingByPhone) {
+                skipped++;
+                continue;
+              }
+
+              // Create lead
+              await storage.createLead({
+                userId,
+                name: lead.name,
+                email: lead.email || null,
+                phone: lead.phone || null,
+                channel: lead.email ? 'email' : 'manual',
+                status: 'new',
+                tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : [],
+                metadata: {
+                  company: lead.company,
+                  source: 'csv_import',
+                  imported_at: new Date().toISOString()
+                }
+              });
+
+              imported++;
+            } catch (error: any) {
+              errors.push(`Error importing ${lead.name}: ${error.message}`);
+              skipped++;
+            }
+          }
+
+          // Cleanup uploaded file
+          fs.unlinkSync(req.file!.path);
+
+          res.json({
+            success: true,
+            imported,
+            skipped,
+            errors: errors.slice(0, 10) // Return first 10 errors
+          });
+        })
+        .on('error', (error) => {
+          fs.unlinkSync(req.file!.path);
+          res.status(500).json({ error: "Failed to parse CSV file" });
+        });
+
+    } catch (error: any) {
+      console.error("CSV import error:", error);
+      res.status(500).json({ error: error.message || "Import failed" });
+    }
+  });
+
       const leads = await storage.getLeads({ userId, limit: 1000 });
 
       if (leads.length === 0) {

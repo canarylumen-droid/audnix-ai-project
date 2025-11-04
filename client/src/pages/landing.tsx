@@ -2,7 +2,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Check, X, MessageSquare, Zap, BarChart3, Flame, ArrowRight, Sparkles, Clock, Shield, Brain, Mic, Target, TrendingUp, Users, Globe, Phone, Mail, Instagram as InstagramIcon, CheckCircle2, Star, Play } from "lucide-react";
-import { Link } from "wouter";
+import { Link, navigate } from "wouter";
 import { useEffect, useState, useRef } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ export default function Landing() {
   const [userCount, setUserCount] = useState(0);
   const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
-  
+
   // Ensure client-side rendering for theme
   useEffect(() => {
     setMounted(true);
@@ -167,7 +167,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold mb-6 sm:mb-8"
+                className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight"
                 animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
@@ -184,7 +184,7 @@ export default function Landing() {
               </motion.h1>
 
               <motion.p
-                className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 text-white max-w-2xl leading-relaxed font-medium"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed px-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
@@ -193,7 +193,7 @@ export default function Landing() {
               </motion.p>
 
               <motion.div
-                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 px-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.8 }}

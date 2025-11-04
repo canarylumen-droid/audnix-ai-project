@@ -113,26 +113,28 @@ export default function LeadImportPage() {
         </CardContent>
       </Card>
 
-      {/* Coming Soon Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-lg border-2 border-primary bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-3">
-            <Construction className="h-6 w-6 text-primary" />
-            <Badge variant="outline" className="border-primary text-primary">
-              Coming Soon
-            </Badge>
+      {/* Success Message */}
+      {file && !importing && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative overflow-hidden rounded-lg border-2 border-emerald-500 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-background p-6"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <Sparkles className="h-6 w-6 text-emerald-500" />
+              <Badge variant="outline" className="border-emerald-500 text-emerald-500">
+                Ready to Import
+              </Badge>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">CSV Upload Successful</h2>
+            <p className="text-muted-foreground max-w-2xl">
+              Your file is ready. Click "Import Leads" above to add these contacts to your dashboard.
+            </p>
           </div>
-          <h2 className="text-2xl font-bold mb-2">Advanced Lead Import System</h2>
-          <p className="text-muted-foreground max-w-2xl">
-            This feature is currently under development. Once released, you'll be able to:
-          </p>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Feature Preview Cards */}
       <div className="grid md:grid-cols-2 gap-6">
