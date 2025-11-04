@@ -292,37 +292,27 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         const alreadyProcessed = await storage.isCommentProcessed(comment.id);
         if (alreadyProcessed) continue;
 
-        // Detect buying intent
-        const intent = await detectBuyingIntent(
-          comment.text,
-          monitor.metadata.videoCaption || 'Product video'
-        );
+        // Detect buying intent with context from PDF if provided
+        const videoContext = monitor.metadata?.pdfContext || monitor.metadata.videoCaption || 'Product video';
+        const intent = await detectBuyingIntent(comment.text, videoContext);
 
         if (!intent.shouldDM) {
-          // Mark as processed but no action needed
           await storage.markCommentProcessed(comment.id, 'ignored', intent.intentType);
+          continue;
+        }
+
+        // FILTER: Check for inappropriate content before processing
+        const { contentModerationService } = await import('./content-moderation');
+        const moderationResult = await contentModerationService.moderateWithAI(comment.text);
+        
+        if (moderationResult.shouldBlock || moderationResult.category === 'inappropriate') {
+          console.log(`🚫 Blocked inappropriate comment from ${comment.username}: ${moderationResult.category}`);
+          await storage.markCommentProcessed(comment.id, 'blocked_inappropriate', 'inappropriate');
           continue;
         }
 
         // Get or create lead
         let lead = await storage.getLeadByUsername(comment.username, 'instagram');
-        
-        // Human-like timing based on lead status (2-8 minutes)
-        const existingLead = lead || { status: 'new' };
-        const baseDelay = {
-          'hot': 2 * 60 * 1000,      // 2 minutes for hot leads
-          'warm': 3.5 * 60 * 1000,   // 3.5 minutes for warm leads
-          'new': 5 * 60 * 1000,      // 5 minutes for new leads
-          'cold': 7 * 60 * 1000,     // 7 minutes for cold leads
-          'replied': 4 * 60 * 1000   // 4 minutes if already replied
-        }[existingLead.status] || 5 * 60 * 1000;
-        
-        // Add ±20% randomization to feel more human
-        const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
-        const replyDelay = baseDelay + jitter;
-        
-        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before replying to ${comment.username} (status: ${existingLead.status})`);
-        await new Promise(resolve => setTimeout(resolve, replyDelay));
 
         if (!lead) {
           lead = await storage.createLead({
@@ -342,15 +332,12 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           });
         }
 
-        // Get brand knowledge for personalization
-        const brandKnowledge = await storage.getBrandKnowledge(userId);
-
-        // STEP 1: Reply to comment if enabled
-        if (monitor.metadata?.replyToComments) {
+        // STEP 1: Reply to comment FIRST (if enabled) with emoji + "check DM"
+        if (monitor.metadata?.replyToComments !== false) {
           const commentReply = await generateCommentReply(
             comment.text,
             intent.detectedInterest || 'the offer',
-            monitor.metadata.videoCaption || '',
+            videoContext,
             monitor.metadata?.askForFollow || false,
             monitor.metadata?.instagramHandle
           );
@@ -359,7 +346,26 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           console.log(`✓ Replied to comment: "${commentReply}"`);
         }
 
-        // STEP 2: Generate and send DM
+        // STEP 2: Wait 2-8 minutes AFTER replying (human-like timing)
+        const existingLead = lead || { status: 'new' };
+        const baseDelay = {
+          'hot': 2 * 60 * 1000,
+          'warm': 3.5 * 60 * 1000,
+          'new': 5 * 60 * 1000,
+          'cold': 7 * 60 * 1000,
+          'replied': 4 * 60 * 1000
+        }[existingLead.status] || 5 * 60 * 1000;
+        
+        const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
+        const replyDelay = baseDelay + jitter;
+        
+        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
+        await new Promise(resolve => setTimeout(resolve, replyDelay));
+
+        // Get brand knowledge for personalization
+        const brandKnowledge = await storage.getBrandKnowledge(userId);
+
+        // STEP 3: Generate and send DM
         const dm = await generateSalesmanDM(
           comment.username,
           comment.text,

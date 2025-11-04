@@ -30,6 +30,7 @@ import {
   Clock,
   Loader2,
   MessageSquare,
+  Calendar,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -127,6 +128,29 @@ export default function ConversationsPage() {
     }
   };
 
+  const bookCallMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/ai/calendar/${leadId}`, {
+        method: "POST",
+        body: JSON.stringify({ sendMessage: true }),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Booking link sent!",
+        description: `Calendar invite sent to ${lead?.lead?.name}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send booking link",
+        variant: "destructive",
+      });
+    },
+  });
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
@@ -202,6 +226,16 @@ export default function ConversationsPage() {
               <Badge variant="outline" data-testid="badge-status">
                 {lead.status?.replace('_', ' ')}
               </Badge>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => bookCallMutation.mutate()}
+                disabled={bookCallMutation.isPending}
+                data-testid="button-book-call"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Book Call
+              </Button>
               <Button variant="ghost" size="icon" data-testid="button-more">
                 <MoreVertical className="h-4 w-4" />
               </Button>

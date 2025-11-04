@@ -461,60 +461,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No CSV file uploaded" });
       }
 
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (user.plan === 'trial') {
+        return res.status(403).json({ 
+          error: "Premium feature", 
+          message: "Lead import is available on paid plans. Upgrade to import unlimited leads via CSV, Excel, or PDF.",
+          redirectTo: "/dashboard/pricing"
+        });
+      }
+
+      const integrations = await storage.getIntegrations(userId);
+      const hasEmail = integrations.some(i => (i.provider === 'gmail' || i.provider === 'outlook') && i.connected);
+      const hasWhatsApp = integrations.some(i => i.provider === 'whatsapp' && i.connected);
+
       const results: any[] = [];
       const errors: string[] = [];
       let imported = 0;
       let skipped = 0;
+      let emailsSent = 0;
+      let whatsappSent = 0;
 
-      // Parse CSV
-      fs.createReadStream(req.file.path)
+      const { Readable } = require('stream');
+      const stream = Readable.from(req.file.buffer.toString('utf-8'));
+
+      stream
         .pipe(csv())
-        .on('data', (row) => {
-          // Auto-detect columns (case-insensitive)
+        .on('data', (row: any) => {
           const name = row.Name || row.name || row.FullName || row['Full Name'] || '';
           const email = row.Email || row.email || row.EmailAddress || row['Email Address'] || '';
-          const phone = row.Phone || row.phone || row.PhoneNumber || row['Phone Number'] || '';
+          const phone = row.Phone || row.phone || row.PhoneNumber || row['Phone Number'] || row.WhatsApp || row.whatsapp || '';
           const company = row.Company || row.company || row.Organization || '';
           const tags = row.Tags || row.tags || '';
 
           results.push({ name, email, phone, company, tags });
         })
         .on('end', async () => {
-          // Validate and import
           for (const lead of results) {
             try {
-              // Validation
               if (!lead.name || lead.name.length < 2) {
                 errors.push(`Skipped: Invalid name "${lead.name}"`);
                 skipped++;
                 continue;
               }
 
-              // Check for duplicates
+              const existingLeads = await storage.getLeads({ userId, limit: 10000 });
               const existingByEmail = lead.email ? 
-                await storage.getLeads({ userId, limit: 1000 }).then(leads => 
-                  leads.find(l => l.email?.toLowerCase() === lead.email.toLowerCase())
-                ) : null;
-
+                existingLeads.find(l => l.email?.toLowerCase() === lead.email.toLowerCase()) : null;
               const existingByPhone = lead.phone ?
-                await storage.getLeads({ userId, limit: 1000 }).then(leads =>
-                  leads.find(l => l.phone === lead.phone)
-                ) : null;
+                existingLeads.find(l => l.phone === lead.phone) : null;
 
               if (existingByEmail || existingByPhone) {
                 skipped++;
                 continue;
               }
 
-              // Create lead
-              await storage.createLead({
+              const leadData = await storage.createLead({
                 userId,
                 name: lead.name,
                 email: lead.email || null,
                 phone: lead.phone || null,
-                channel: lead.email ? 'email' : 'manual',
+                channel: lead.email ? 'email' : lead.phone ? 'whatsapp' : 'manual',
                 status: 'new',
-                tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : [],
+                tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : ['csv-import'],
                 metadata: {
                   company: lead.company,
                   source: 'csv_import',
@@ -523,24 +535,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
 
               imported++;
+
+              if (lead.email && hasEmail) {
+                try {
+                  const { sendEmailToLead } = await import('./lib/email/gmail-sender');
+                  await sendEmailToLead(userId, leadData.id, 
+                    `Hi ${lead.name}, thank you for your interest!`, 
+                    `We're excited to connect with you.`
+                  );
+                  emailsSent++;
+                } catch (emailError) {
+                  console.error(`Failed to send email to ${lead.name}:`, emailError);
+                }
+              }
+
+              if (lead.phone && hasWhatsApp) {
+                try {
+                  await storage.createMessage({
+                    leadId: leadData.id,
+                    userId,
+                    provider: 'whatsapp',
+                    direction: 'outbound',
+                    body: `Hi ${lead.name}! We're reaching out regarding your recent inquiry. How can we help you today?`,
+                    metadata: { auto_sent: true, source: 'csv_import' }
+                  });
+                  whatsappSent++;
+                } catch (whatsappError) {
+                  console.error(`Failed to send WhatsApp to ${lead.name}:`, whatsappError);
+                }
+              }
             } catch (error: any) {
               errors.push(`Error importing ${lead.name}: ${error.message}`);
               skipped++;
             }
           }
 
-          // Cleanup uploaded file
-          fs.unlinkSync(req.file!.path);
-
           res.json({
             success: true,
             imported,
             skipped,
-            errors: errors.slice(0, 10) // Return first 10 errors
+            emailsSent,
+            whatsappSent,
+            hasEmailConnected: hasEmail,
+            hasWhatsAppConnected: hasWhatsApp,
+            errors: errors.slice(0, 10)
           });
         })
-        .on('error', (error) => {
-          fs.unlinkSync(req.file!.path);
+        .on('error', (error: any) => {
+          console.error('CSV parse error:', error);
           res.status(500).json({ error: "Failed to parse CSV file" });
         });
 
@@ -562,18 +604,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No PDF file uploaded" });
       }
 
-      // Read file buffer
-      const fileBuffer = fs.readFileSync(req.file.path);
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
 
-      // Process PDF with AI extraction
+      if (user.plan === 'trial') {
+        return res.status(403).json({ 
+          error: "Premium feature", 
+          message: "PDF lead extraction with AI is available on paid plans. Upgrade to extract leads, brand colors, and product info from PDFs.",
+          redirectTo: "/dashboard/pricing"
+        });
+      }
+
+      const integrations = await storage.getIntegrations(userId);
+      const hasEmail = integrations.some(i => (i.provider === 'gmail' || i.provider === 'outlook') && i.connected);
+      const hasWhatsApp = integrations.some(i => i.provider === 'whatsapp' && i.connected);
+
+      const fileBuffer = req.file.buffer;
+
       const { processPDF } = await import('./lib/pdf-processor');
       const result = await processPDF(fileBuffer, userId, {
-        autoReachOut: false, // Don't auto-send messages yet
-        extractOffer: true // Extract brand/offer info
+        autoReachOut: hasEmail || hasWhatsApp,
+        extractOffer: true
       });
-
-      // Cleanup uploaded file
-      fs.unlinkSync(req.file.path);
 
       if (!result.success) {
         return res.status(400).json({ 
@@ -587,21 +641,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         duplicates: 0,
         offerExtracted: result.offerExtracted || null,
         brandExtracted: result.brandExtracted || null,
-        leads: result.leads || []
+        leads: result.leads || [],
+        hasEmailConnected: hasEmail,
+        hasWhatsAppConnected: hasWhatsApp
       });
 
     } catch (error: any) {
       console.error("PDF import error:", error);
-      
-      // Cleanup file if it exists
-      if (req.file?.path) {
-        try {
-          fs.unlinkSync(req.file.path);
-        } catch (e) {
-          console.error("Failed to cleanup PDF file:", e);
-        }
-      }
-      
       res.status(500).json({ error: error.message || "PDF import failed" });
     }
   });
