@@ -173,6 +173,14 @@ This is a fully functional SaaS platform with complete authentication, database,
 
 **NEW: Intelligent DM Follow-Up System (Destroys ManyChat)**
 
+### Key Features
+- ✅ **Unlimited Video Monitoring** - Monitor as many videos as you want simultaneously
+- ✅ **Smart Reply Timing** - 2-8 minutes based on lead temperature (not instant like bots)
+- ✅ **WhatsApp Web Integration** - No official API needed, uses persistent sessions
+- ✅ **30-Second Comment Sync** - Checks comments every 30s, replies after human delay
+- ✅ **Per-Video CTA Links** - Each video can have different product links
+- ✅ **No Ban Risk** - Human-like behavior prevents Instagram detection
+
 ### How We Crush the Competition
 
 | Feature | Audnix AI | ManyChat | CommentGuard | Inflact |
@@ -339,7 +347,8 @@ When voice minutes are exhausted:
 - **OpenAI** - AI message generation and insights
 - **Stripe** - Payment processing (payment links only)
 - **Google APIs** - Calendar, Gmail integration
-- **Meta APIs** - WhatsApp Business API integration (direct, no Twilio)
+- **WhatsApp Web** - QR code wrapper (no official API), persistent sessions
+- **Instagram Graph API** - For DMs and comment monitoring
 
 ## 🎯 Why This is Transformative for Creators
 

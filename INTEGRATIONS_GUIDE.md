@@ -46,10 +46,12 @@ Unlike ManyChat (keyword-based), Audnix AI uses real intelligence:
 - Optional "Ask to Follow" feature (not forced, just friendly request)
 - Works ONLY on Business Instagram accounts (Graph API limitation)
 
-### 2. WhatsApp (Twilio)
+### 2. WhatsApp
 - **Lead Importing**: ✅ Automatic
 - **AI Follow-ups**: ✅ Real-time
-- **Setup**: Twilio API credentials
+- **Voice Messages**: ✅ Supported
+- **Setup**: WhatsApp Web (QR Code) - No Official API Required
+- **Integration Method**: Persistent browser session wrapper
 - **Features**:
   - Imports all WhatsApp conversations
   - Real-time message handling
@@ -58,10 +60,10 @@ Unlike ManyChat (keyword-based), Audnix AI uses real intelligence:
   - Engagement tracking
 
 **How It Works**:
-1. User connects WhatsApp via Twilio credentials
+1. User connects WhatsApp via QR Code scan
 2. System shows "Importing your leads from WhatsApp" animation
 3. All conversations are imported as leads
-4. Webhook processes incoming messages in real-time
+4. Wrapper processes incoming messages in real-time
 5. AI responds based on conversation history
 6. "All set! AI will start working" notification appears
 
@@ -152,7 +154,7 @@ Intelligent follow-ups and engagement analysis are now active
 
 4. **Real-Time Execution**:
    - Instagram: Real-time via webhooks
-   - WhatsApp: Real-time via Twilio webhooks
+   - WhatsApp: Real-time via wrapper
    - Email: Scheduled batches every 15 minutes
 
 ## 🔐 Security & Privacy

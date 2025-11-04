@@ -223,7 +223,10 @@ export default function VideoAutomationPage() {
 
       {/* Active Monitors */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Active Video Monitors</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Active Video Monitors</h2>
+          <Badge variant="outline">{monitors?.length || 0} videos monitored</Badge>
+        </div>
 
         {isLoading ? (
           <Card>

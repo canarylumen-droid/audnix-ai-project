@@ -304,9 +304,22 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           continue;
         }
 
-        // Random delay (5-25 seconds) for human-like timing
-        const randomDelay = Math.floor(Math.random() * 20000) + 5000;
-        await new Promise(resolve => setTimeout(resolve, randomDelay));
+        // Human-like timing based on lead status (2-8 minutes)
+        const lead = await storage.getLeadById(comment.userId) || { status: 'new' };
+        const baseDelay = {
+          'hot': 2 * 60 * 1000,      // 2 minutes for hot leads
+          'warm': 3.5 * 60 * 1000,   // 3.5 minutes for warm leads
+          'new': 5 * 60 * 1000,      // 5 minutes for new leads
+          'cold': 7 * 60 * 1000,     // 7 minutes for cold leads
+          'replied': 4 * 60 * 1000   // 4 minutes if already replied
+        }[lead.status] || 5 * 60 * 1000;
+        
+        // Add ±20% randomization to feel more human
+        const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
+        const replyDelay = baseDelay + jitter;
+        
+        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before replying to ${comment.username} (status: ${lead.status})`);
+        await new Promise(resolve => setTimeout(resolve, replyDelay));
 
         // Get or create lead
         let lead = await storage.getLeadByUsername(comment.username, 'instagram');
@@ -425,7 +438,9 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
  * Start comment monitoring worker (runs every 30 seconds)
  */
 export function startVideoCommentMonitoring() {
-  console.log('Starting video comment monitoring worker...');
+  console.log('🎥 Starting video comment monitoring worker...');
+  console.log('📊 Comment sync: Every 30 seconds');
+  console.log('⏰ Reply timing: 2-8 minutes (human-like, based on lead status)');
 
   setInterval(async () => {
     try {
