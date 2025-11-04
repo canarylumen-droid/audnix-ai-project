@@ -21,31 +21,24 @@ Your app won't persist data without a database. Follow these steps:
    - `SUPABASE_URL` = your project URL
    - `SUPABASE_SERVICE_ROLE_KEY` = your service role key
 
-### Enable Authentication (Choose Your Method)
+### Enable Authentication (2 Simple Methods)
 
-**Option 1: Email Magic Links (Recommended - Easiest for Creators)**
-1. Go to Supabase → Authentication → Providers
-2. Enable **Email** provider
-3. Turn OFF "Confirm email" for faster onboarding
-4. Done! No other setup needed.
-
-**Option 2: WhatsApp OTP (Most Creator-Friendly)**
-1. Sign up for Twilio: https://www.twilio.com/try-twilio
-2. Get WhatsApp-enabled phone number
-3. In Supabase → Authentication → Providers
-4. Enable **Phone** provider, select Twilio
-5. Add to Replit Secrets:
-   - `TWILIO_ACCOUNT_SID` = your account SID
-   - `TWILIO_AUTH_TOKEN` = your auth token
-   - `TWILIO_MESSAGING_SERVICE_SID` = your messaging service SID
-
-**Option 3: Google OAuth (Backup)**
+**Method 1: Google OAuth (Recommended - One-Click)**
 1. Go to https://console.cloud.google.com
 2. Create OAuth 2.0 credentials
 3. Add authorized redirect: `https://your-repl-url.repl.co/api/auth/callback`
 4. In Replit Secrets, add:
    - `GOOGLE_CLIENT_ID` = your client ID
    - `GOOGLE_CLIENT_SECRET` = your client secret
+
+**Method 2: Email OTP (Built-in, Free)**
+1. Go to Supabase → Authentication → Providers
+2. Enable **Email** provider
+3. Turn ON "Enable Email OTP"
+4. Turn OFF "Confirm email" for faster onboarding
+5. Done! Users will get 6-digit codes via email
+
+**No phone numbers or external providers needed!**
 
 ### Enable Stripe Payments
 1. Go to https://stripe.com/dashboard

@@ -1,33 +1,36 @@
+
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SiGoogle, SiGithub } from "react-icons/si";
-import { Check, Shield, Clock, Zap, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { SiGoogle } from "react-icons/si";
+import { Check, Shield, Clock, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@/hooks/use-user";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Lock, CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2 } from "lucide-react";
 import { useReducedMotion } from "@/lib/animation-utils";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [authMode, setAuthMode] = useState<'email' | 'phone'>('email');
+  const [otp, setOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
-  const [loading, setLoading] = useState<'google' | 'apple' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'email' | 'verify' | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
-
-  // Check if user has acknowledged security notice
   useEffect(() => {
     if (user && !hasAcknowledgedSecurity) {
       const acknowledged = localStorage.getItem("security_acknowledged");
@@ -47,7 +50,6 @@ export default function AuthPage() {
     setLocation("/dashboard");
   };
 
-  // Redirect if already logged in and acknowledged
   if (user && hasAcknowledgedSecurity) {
     return null;
   }
@@ -57,8 +59,8 @@ export default function AuthPage() {
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
-        title: "Authentication Required",
-        description: "Please sign in to continue. Authentication service is not available in demo mode.",
+        title: "Setup Required",
+        description: "Please configure Supabase in Secrets to enable authentication.",
         variant: "destructive",
       });
       setLoading(null);
@@ -75,7 +77,7 @@ export default function AuthPage() {
 
       if (error) {
         toast({
-          title: "Authentication Error",
+          title: "Google Sign-In Failed",
           description: error.message,
           variant: "destructive",
         });
@@ -92,24 +94,22 @@ export default function AuthPage() {
     }
   };
 
-  // Apple OAuth removed - using Google and GitHub only
-
-  const handleEmailLogin = async () => {
-    if (!email) {
+  const handleSendOtp = async () => {
+    if (!email || !email.includes('@')) {
       toast({
-        title: "Email Required",
-        description: "Please enter your email address",
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading('email' as any);
+    setLoading('email');
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
-        title: "Authentication Required",
-        description: "Please configure Supabase to enable authentication.",
+        title: "Setup Required",
+        description: "Please configure Supabase to enable email authentication.",
         variant: "destructive",
       });
       setLoading(null);
@@ -120,51 +120,52 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          shouldCreateUser: true,
         },
       });
 
       if (error) {
         toast({
-          title: "Authentication Error",
+          title: "Failed to Send Code",
           description: error.message,
           variant: "destructive",
         });
         setLoading(null);
       } else {
+        setShowOtpInput(true);
+        setLoading(null);
         toast({
           title: "Check Your Email! 📧",
-          description: "We sent you a magic link. Click it to sign in instantly.",
+          description: "We sent you a 6-digit code. Enter it below to sign in.",
         });
-        setLoading(null);
       }
     } catch (error) {
       console.error("Email OTP error:", error);
       toast({
         title: "Error",
-        description: "Failed to send magic link",
+        description: "Failed to send verification code",
         variant: "destructive",
       });
       setLoading(null);
     }
   };
 
-  const handleWhatsAppLogin = async () => {
-    if (!email) {
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
       toast({
-        title: "Phone Required",
-        description: "Please enter your phone number (e.g., +1234567890)",
+        title: "Invalid Code",
+        description: "Please enter the 6-digit code from your email",
         variant: "destructive",
       });
       return;
     }
 
-    setLoading('whatsapp' as any);
+    setLoading('verify');
 
     if (!isSupabaseConfigured() || !supabase) {
       toast({
-        title: "Authentication Required",
-        description: "Please configure Supabase to enable authentication.",
+        title: "Setup Required",
+        description: "Please configure Supabase to verify codes.",
         variant: "destructive",
       });
       setLoading(null);
@@ -172,32 +173,31 @@ export default function AuthPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: email, // Using email field for phone input
-        options: {
-          channel: 'whatsapp',
-        },
+      const { error } = await supabase.auth.verifyOtp({
+        email: email,
+        token: otp,
+        type: 'email',
       });
 
       if (error) {
         toast({
-          title: "Authentication Error",
+          title: "Invalid Code",
           description: error.message,
           variant: "destructive",
         });
         setLoading(null);
       } else {
         toast({
-          title: "Check WhatsApp! 💬",
-          description: "We sent you a code via WhatsApp. Enter it to sign in.",
+          title: "Success! 🎉",
+          description: "You're signed in. Redirecting...",
         });
-        setLoading(null);
+        // User will be redirected automatically
       }
     } catch (error) {
-      console.error("WhatsApp OTP error:", error);
+      console.error("OTP verification error:", error);
       toast({
         title: "Error",
-        description: "Failed to send WhatsApp code",
+        description: "Failed to verify code",
         variant: "destructive",
       });
       setLoading(null);
@@ -318,7 +318,7 @@ export default function AuthPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Zap className="w-4 h-4 text-primary" />
+                  <Sparkles className="w-4 h-4 text-primary" />
                   <span className="text-sm text-white/90">Start your 3-day free trial</span>
                 </motion.div>
 
@@ -404,7 +404,6 @@ export default function AuthPage() {
                       variant="outline"
                       onClick={handleGoogleLogin}
                       disabled={loading !== null}
-                      data-testid="button-google-login"
                     >
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
@@ -417,59 +416,89 @@ export default function AuthPage() {
                     </Button>
                   </motion.div>
 
-                  <motion.div
-                    className="space-y-3"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <div className="relative">
-                      <input
-                        type={isSignUp ? "email" : "text"}
-                        placeholder={isSignUp ? "Enter your email" : "Email or +1234567890"}
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-primary"
-                      />
-                    </div>
-                    
-                    <Button
-                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-primary hover:bg-primary/90 text-white"
-                      onClick={handleEmailLogin}
-                      disabled={loading !== null || !email}
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                        initial={false}
-                      />
-                      <span className="relative z-10">
-                        {loading === 'email' ? 'Sending...' : '✨ Get Magic Link via Email'}
-                      </span>
-                    </Button>
-
-                    <Button
-                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-emerald-600 hover:bg-emerald-700 text-white"
-                      onClick={handleWhatsAppLogin}
-                      disabled={loading !== null || !email}
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                        initial={false}
-                      />
-                      <span className="relative z-10">
-                        {loading === 'whatsapp' ? 'Sending...' : '💬 Get Code via WhatsApp'}
-                      </span>
-                    </Button>
-                  </motion.div>
-
                   <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-white/10"></div>
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-[#0a0f1f] px-2 text-white/50">Or continue with</span>
+                      <span className="bg-[#0a0f1f] px-2 text-white/50">Or use email</span>
                     </div>
                   </div>
+
+                  {!showOtpInput ? (
+                    <motion.div
+                      className="space-y-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+                      />
+                      
+                      <Button
+                        className="w-full h-14 text-base font-semibold bg-primary hover:bg-primary/90 text-white"
+                        onClick={handleSendOtp}
+                        disabled={loading !== null || !email}
+                      >
+                        {loading === 'email' ? 'Sending Code...' : '✨ Get 6-Digit Code'}
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      className="space-y-4"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                    >
+                      <div className="text-center space-y-2">
+                        <p className="text-white/70 text-sm">
+                          Enter the 6-digit code we sent to
+                        </p>
+                        <p className="text-white font-semibold">{email}</p>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <InputOTP
+                          maxLength={6}
+                          value={otp}
+                          onChange={setOtp}
+                        >
+                          <InputOTPGroup>
+                            <InputOTPSlot index={0} className="text-white border-white/20" />
+                            <InputOTPSlot index={1} className="text-white border-white/20" />
+                            <InputOTPSlot index={2} className="text-white border-white/20" />
+                            <InputOTPSlot index={3} className="text-white border-white/20" />
+                            <InputOTPSlot index={4} className="text-white border-white/20" />
+                            <InputOTPSlot index={5} className="text-white border-white/20" />
+                          </InputOTPGroup>
+                        </InputOTP>
+                      </div>
+
+                      <Button
+                        className="w-full h-14 text-base font-semibold bg-primary hover:bg-primary/90 text-white"
+                        onClick={handleVerifyOtp}
+                        disabled={loading !== null || otp.length !== 6}
+                      >
+                        {loading === 'verify' ? 'Verifying...' : '✅ Verify & Sign In'}
+                      </Button>
+
+                      <Button
+                        variant="ghost"
+                        className="w-full text-white/70 hover:text-white"
+                        onClick={() => {
+                          setShowOtpInput(false);
+                          setOtp("");
+                        }}
+                      >
+                        ← Use different email
+                      </Button>
+                    </motion.div>
+                  )}
 
                   {/* Mobile benefits */}
                   <div className="lg:hidden pt-6 space-y-3">
