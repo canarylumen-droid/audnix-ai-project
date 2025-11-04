@@ -3,7 +3,7 @@ import { storage } from "../../storage";
 import type { Message, Lead } from "@shared/schema";
 import { storeConversationMemory, retrieveConversationMemory } from "./super-memory";
 
-const openai = new OpenAI({ 
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
 });
 
@@ -14,18 +14,18 @@ const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY ===
  */
 export function isLeadActivelyReplying(messages: Message[]): boolean {
   if (messages.length < 2) return false;
-  
+
   const lastTwoMessages = messages.slice(-2);
   const lastMessage = lastTwoMessages[1];
   const previousMessage = lastTwoMessages[0];
-  
+
   // Check if last message is from lead (inbound)
   if (lastMessage.direction !== 'inbound') return false;
-  
+
   // Calculate time between previous message and last message
   const timeDiff = new Date(lastMessage.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
   const minutesDiff = timeDiff / (1000 * 60);
-  
+
   // If lead replied within 5 minutes, they're actively engaged
   return minutesDiff < 5;
 }
@@ -33,7 +33,7 @@ export function isLeadActivelyReplying(messages: Message[]): boolean {
 /**
  * Calculate intelligent delay based on lead activity and behavior
  * Also considers DM-per-hour limits for Instagram (20/hour = 3min minimum between DMs)
- * 
+ *
  * Active leads (replying immediately): 50s-1min
  * Normal replies: 3-8 minutes (respects Instagram 20/hour limit)
  * Follow-ups: 6-12 hours
@@ -49,24 +49,24 @@ export function calculateReplyDelay(
     const randomMinutes = Math.random() * 60; // 0-60 minutes
     return (baseHours * 60 * 60 + randomMinutes * 60) * 1000;
   }
-  
+
   // Check if lead is actively replying
   const isActive = isLeadActivelyReplying(messages);
-  
+
   // Instagram has 20 DMs/hour limit = minimum 3 minutes between DMs
   const minDelayForInstagram = channel === 'instagram' ? 3 * 60 * 1000 : 0;
-  
+
   if (isActive) {
     // Lead is hot - reply within 50s-1min to keep momentum
     // BUT respect Instagram rate limits
     const baseSeconds = 50 + Math.random() * 10; // 50-60 seconds
     const delay = baseSeconds * 1000;
-    
+
     if (channel === 'instagram' && delay < minDelayForInstagram) {
       console.log(`🔥 Lead is actively engaged but respecting Instagram limit - replying in 3min`);
       return minDelayForInstagram;
     }
-    
+
     console.log(`🔥 Lead is actively engaged - replying in ${Math.round(baseSeconds)}s`);
     return delay;
   } else {
@@ -82,19 +82,19 @@ export function calculateReplyDelay(
  */
 export function assessLeadWarmth(messages: Message[], lead: Lead): boolean {
   if (messages.length < 3) return false;
-  
+
   // Count inbound messages (lead engagement)
   const inboundCount = messages.filter(m => m.direction === 'inbound').length;
-  
+
   // Check if they've replied multiple times
   if (inboundCount >= 2) return true;
-  
+
   // Check if last message was recent (within 24 hours)
   const lastMessage = messages[messages.length - 1];
   const hoursSinceLastMessage = (Date.now() - new Date(lastMessage.createdAt).getTime()) / (1000 * 60 * 60);
-  
+
   if (hoursSinceLastMessage < 24 && inboundCount >= 1) return true;
-  
+
   return false;
 }
 
@@ -103,61 +103,58 @@ export function assessLeadWarmth(messages: Message[], lead: Lead): boolean {
  */
 export function detectConversationStatus(messages: Message[]): {
   status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
-  shouldUseVoice: boolean;
+  confidence: number;
+  reason?: string;
 } {
   if (messages.length === 0) {
-    return { status: 'new', shouldUseVoice: false };
+    return { status: 'new', confidence: 1.0 };
   }
 
-  const lastMessages = messages.slice(-5);
-  const combinedText = lastMessages.map(m => m.body.toLowerCase()).join(' ');
   const lastMessage = messages[messages.length - 1];
-  const inboundMessages = messages.filter(m => m.direction === 'inbound');
-  
-  // Conversion signals
-  const conversionKeywords = ['yes', 'deal', 'interested', 'buy', 'purchase', 'book', 'schedule', 'when can', 'let\'s do it', 'sign me up', 'i\'m in'];
-  const notInterestedKeywords = ['no thanks', 'not interested', 'stop', 'unsubscribe', 'don\'t contact', 'leave me alone'];
-  const bookingKeywords = ['calendar', 'appointment', 'meeting', 'call', 'demo', 'when are you free'];
-  
-  // Check for conversion - ONLY check inbound message content
-  // Get text from ONLY inbound messages (exclude outbound prompts)
-  const inboundText = inboundMessages.map(m => m.body.toLowerCase()).join(' ');
-  const hasConversionSignal = conversionKeywords.some(kw => inboundText.includes(kw));
-  
-  if (hasConversionSignal && inboundMessages.length > 0) {
-    return { status: 'converted', shouldUseVoice: false };
-  }
-  
-  // Check for not interested - also only in inbound messages
-  const hasRejectionSignal = notInterestedKeywords.some(kw => inboundText.includes(kw));
-  if (hasRejectionSignal) {
-    return { status: 'not_interested', shouldUseVoice: false };
+  const recentMessages = messages.slice(-5);
+  const allText = recentMessages.map(m => m.body.toLowerCase()).join(' ');
+
+  // Check for conversion signals
+  const conversionKeywords = ['yes', 'book', 'schedule', 'ready', 'let\'s do it', 'sign me up', 'interested', 'when can we'];
+  const hasConversionSignal = conversionKeywords.some(keyword => allText.includes(keyword));
+
+  // Check for rejection signals
+  const rejectionKeywords = ['not interested', 'no thanks', 'remove me', 'stop', 'unsubscribe', 'leave me alone'];
+  const hasRejection = rejectionKeywords.some(keyword => allText.includes(keyword));
+
+  // Check for engagement
+  const hasEngagement = messages.filter(m => m.direction === 'inbound').length >= 2;
+  const recentEngagement = messages.filter(m => {
+    const hoursSince = (Date.now() - new Date(m.createdAt).getTime()) / (1000 * 60 * 60);
+    return hoursSince < 24 && m.direction === 'inbound';
+  }).length > 0;
+
+  if (hasRejection) {
+    return { status: 'not_interested', confidence: 0.9, reason: 'Lead explicitly declined' };
   }
 
-  // Check time since last message for cold leads
-  const lastMessageTime = new Date(lastMessage.createdAt);
-  const hoursSinceLastMessage = (Date.now() - lastMessageTime.getTime()) / (1000 * 60 * 60);
-  
-  // Lead has replied - determine if warm enough for voice
-  if (inboundMessages.length > 0) {
-    const wantsBooking = bookingKeywords.some(kw => combinedText.includes(kw));
-    const shouldUseVoice = inboundMessages.length >= 2 || wantsBooking;
-    return { status: 'replied', shouldUseVoice };
+  if (hasConversionSignal && hasEngagement) {
+    return { status: 'converted', confidence: 0.85, reason: 'Lead showed strong buying intent' };
   }
-  
-  // No inbound messages yet - check timing for lifecycle progression
-  if (lastMessage.direction === 'outbound') {
-    // Cold: No response after 72+ hours
-    if (hoursSinceLastMessage > 72) {
-      return { status: 'cold', shouldUseVoice: false };
+
+  if (recentEngagement) {
+    return { status: 'replied', confidence: 0.8, reason: 'Lead actively responding' };
+  }
+
+  if (hasEngagement) {
+    return { status: 'open', confidence: 0.7, reason: 'Lead engaged in conversation' };
+  }
+
+  // Check for cold leads (no response in 3+ days)
+  const lastInbound = messages.filter(m => m.direction === 'inbound').pop();
+  if (lastInbound) {
+    const daysSince = (Date.now() - new Date(lastInbound.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSince > 3) {
+      return { status: 'cold', confidence: 0.75, reason: 'No response in 3+ days' };
     }
-    // Open: Sent but within 72 hours, awaiting response
-    // This covers both < 24 hours AND 24-72 hour range
-    return { status: 'open', shouldUseVoice: false };
   }
-  
-  // Default: new lead (first contact not yet made)
-  return { status: 'new', shouldUseVoice: false };
+
+  return { status: 'open', confidence: 0.6 };
 }
 
 /**
@@ -169,7 +166,7 @@ export async function generateAIReply(
   platform: 'instagram' | 'whatsapp' | 'email',
   userContext?: { businessName?: string; brandVoice?: string }
 ): Promise<{ text: string; useVoice: boolean }> {
-  
+
   if (isDemoMode) {
     const demoResponses = [
       "Hey! Thanks for reaching out. I'd love to learn more about what you're looking for.",
@@ -182,29 +179,29 @@ export async function generateAIReply(
       useVoice: false
     };
   }
-  
+
   // Assess if lead is warm and should get voice note
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
-  
+
   // Retrieve additional context from Super Memory for better continuity
   const memoryMessages = await getConversationContext(lead.userId, lead.id);
   const allMessages = [...memoryMessages, ...conversationHistory];
-  
+
   // Build conversation context from combined history
   const messageContext = allMessages.slice(-10).map(m => ({
     role: m.direction === 'inbound' ? 'user' : 'assistant',
     content: m.body
   }));
-  
+
   // Platform-specific tone adjustments
   const platformTone = {
     instagram: 'casual, friendly, and conversational with emojis',
     whatsapp: 'warm, personal, and direct',
     email: 'professional yet approachable, well-structured'
   };
-  
-  const systemPrompt = `You are a top-performing sales professional representing ${userContext?.businessName || 'our company'}. 
+
+  const systemPrompt = `You are a top-performing sales professional representing ${userContext?.businessName || 'our company'}.
 You have the instincts of a great salesman who reads people well, builds genuine connections, and creates emotional urgency that drives action.
 
 Platform: ${platform}
@@ -289,7 +286,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
     });
 
     const responseText = completion.choices[0].message.content || "";
-    
+
     return {
       text: responseText,
       useVoice: detectionResult.shouldUseVoice && isWarm
@@ -318,19 +315,19 @@ export async function generateVoiceScript(
 
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');
   const isWarm = assessLeadWarmth(conversationHistory, lead);
-  
+
   // Determine if this is first voice note to the lead
-  const voiceMessages = conversationHistory.filter(m => 
+  const voiceMessages = conversationHistory.filter(m =>
     m.direction === 'outbound' && m.body.toLowerCase().includes('voice note')
   );
   const isFirstVoiceNote = voiceMessages.length === 0;
-  
-  const nameUsageGuideline = isWarm 
+
+  const nameUsageGuideline = isWarm
     ? "Use their name naturally when it feels right (e.g., when emphasizing a point or asking a direct question)"
-    : isFirstVoiceNote 
+    : isFirstVoiceNote
       ? "Start with their name once at the beginning (e.g., 'Hey [Name]!') then don't repeat it"
       : "You can use their name once if it feels natural, but keep it minimal";
-  
+
   const prompt = `Generate a brief, natural-sounding voice note script (10-20 seconds when spoken) for ${lead.name}.
 
 Lead Status: ${isWarm ? 'WARM - engaged and interested' : 'COLD - new or minimal engagement'}
@@ -382,12 +379,12 @@ export async function scheduleFollowUp(
 ): Promise<Date> {
   const delay = calculateReplyDelay(messageType, conversationHistory);
   const scheduledTime = new Date(Date.now() + delay);
-  
+
   const delaySeconds = Math.round(delay / 1000);
   console.log(`📅 Scheduled ${messageType} for lead ${leadId} in ${delaySeconds}s at ${scheduledTime.toISOString()}`);
-  
+
   // TODO: Store in follow_up_queue table when Supabase is connected
-  
+
   return scheduledTime;
 }
 
@@ -401,7 +398,7 @@ export async function saveConversationToMemory(
   messages: Message[]
 ): Promise<void> {
   if (messages.length === 0) return;
-  
+
   try {
     const conversationData = {
       messages: messages.map(m => ({
@@ -417,9 +414,9 @@ export async function saveConversationToMemory(
         lastUpdated: new Date().toISOString(),
       },
     };
-    
+
     const result = await storeConversationMemory(userId, lead.id, conversationData);
-    
+
     if (result.success) {
       console.log(`✓ Conversation with ${lead.name} stored in permanent memory`);
     }
@@ -437,28 +434,28 @@ export async function getConversationContext(
 ): Promise<Message[]> {
   try {
     const result = await retrieveConversationMemory(userId, leadId);
-    
+
     if (!result.success || !result.conversations) {
       console.log(`⚠️ Super Memory: No context retrieved for lead ${leadId}`);
       return [];
     }
-    
+
     if (result.conversations.length === 0) {
       return [];
     }
-    
+
     // Safely extract messages with defensive guards
     const memories: Message[] = [];
-    
+
     for (const conv of result.conversations) {
       if (!conv || !conv.content || !Array.isArray(conv.content.messages)) {
         console.warn('Super Memory: Invalid conversation format, skipping');
         continue;
       }
-      
+
       for (const msg of conv.content.messages) {
         if (!msg || !msg.role || !msg.content) continue;
-        
+
         memories.push({
           id: `memory-${Date.now()}-${Math.random()}`,
           leadId,
@@ -471,11 +468,11 @@ export async function getConversationContext(
         } as Message);
       }
     }
-    
+
     if (memories.length > 0) {
       console.log(`✓ Super Memory: Retrieved ${memories.length} messages from permanent memory`);
     }
-    
+
     return memories;
   } catch (error: any) {
     console.error('Failed to retrieve conversation context:', error.message);

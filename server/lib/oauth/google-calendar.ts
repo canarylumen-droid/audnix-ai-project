@@ -87,6 +87,34 @@ export class GoogleCalendarOAuth {
   }
 
   /**
+   * Check if a time slot is available
+   */
+  async checkAvailability(
+    accessToken: string,
+    startTime: Date,
+    endTime: Date
+  ): Promise<boolean> {
+    this.oauth2Client.setCredentials({ access_token: accessToken });
+    const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
+
+    try {
+      const response = await calendar.freebusy.query({
+        requestBody: {
+          timeMin: startTime.toISOString(),
+          timeMax: endTime.toISOString(),
+          items: [{ id: 'primary' }],
+        },
+      });
+
+      const busySlots = response.data.calendars?.primary?.busy || [];
+      return busySlots.length === 0;
+    } catch (error) {
+      console.error('Error checking calendar availability:', error);
+      throw error;
+    }
+  }
+
+  /**
    * List upcoming calendar events
    */
   async listUpcomingEvents(accessToken: string, maxResults: number = 10): Promise<any[]> {

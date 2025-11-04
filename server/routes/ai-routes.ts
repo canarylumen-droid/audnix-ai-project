@@ -59,10 +59,54 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
     
     // Update lead status based on conversation
     const statusDetection = detectConversationStatus([...messages, message]);
+    const oldStatus = lead.status;
+    const newStatus = statusDetection.status;
+    
     await storage.updateLead(leadId, {
-      status: statusDetection.status,
+      status: newStatus,
       lastMessageAt: new Date()
     });
+    
+    // Create notification for status changes
+    if (oldStatus !== newStatus) {
+      let notificationTitle = '';
+      let notificationMessage = '';
+      let notificationType: any = 'system';
+      
+      if (newStatus === 'converted') {
+        notificationTitle = '🎉 New Conversion!';
+        notificationMessage = `${lead.name} from ${lead.channel} has converted! ${statusDetection.reason || ''}`;
+        notificationType = 'conversion';
+      } else if (newStatus === 'replied') {
+        notificationTitle = '💬 Lead Reply';
+        notificationMessage = `${lead.name} just replied to your message`;
+        notificationType = 'lead_reply';
+      } else if (newStatus === 'not_interested') {
+        notificationTitle = '😔 Lead Not Interested';
+        notificationMessage = `${lead.name} declined: ${statusDetection.reason || 'No interest shown'}`;
+      } else if (newStatus === 'cold') {
+        notificationTitle = '❄️ Lead Went Cold';
+        notificationMessage = `${lead.name}: ${statusDetection.reason || 'No recent engagement'}`;
+      }
+      
+      if (notificationTitle) {
+        await storage.createNotification({
+          userId,
+          type: notificationType,
+          title: notificationTitle,
+          message: notificationMessage,
+          metadata: {
+            leadId,
+            leadName: lead.name,
+            oldStatus,
+            newStatus,
+            reason: statusDetection.reason,
+            channel: lead.channel,
+            activityType: 'status_change'
+          }
+        });
+      }
+    }
     
     // Save conversation to Super Memory for permanent storage
     const updatedMessages = [...messages, message];
@@ -202,6 +246,20 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
             const start = new Date(startTime);
             const end = new Date(start.getTime() + duration * 60000);
             
+            // Check if time slot is available
+            const isAvailable = await googleCalendar.checkAvailability(
+              tokens.accessToken,
+              start,
+              end
+            );
+            
+            if (!isAvailable) {
+              return res.status(409).json({ 
+                error: "Time slot not available",
+                message: "This time slot is already booked. Please choose another time."
+              });
+            }
+            
             eventData = await googleCalendar.createEvent(tokens.accessToken, {
               summary: `Meeting with ${lead.name}`,
               description: `AI Scheduled meeting with lead ${lead.name}`,
@@ -211,6 +269,21 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
             });
             
             bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
+            
+            // Create notification for meeting booked
+            await storage.createNotification({
+              userId,
+              type: 'system',
+              title: '📅 Meeting Booked',
+              message: `Meeting scheduled with ${lead.name} for ${start.toLocaleString()}`,
+              metadata: {
+                leadId,
+                leadName: lead.name,
+                meetingTime: start.toISOString(),
+                meetingUrl: bookingLink,
+                activityType: 'meeting_booked'
+              }
+            });
           }
         }
       } catch (eventError) {

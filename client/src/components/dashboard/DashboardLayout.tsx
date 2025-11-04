@@ -405,28 +405,75 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuSeparator />
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.length > 0 ? (
-                    notifications.map((notification: any, index: number) => (
-                      <DropdownMenuItem 
-                        key={notification.id} 
-                        data-testid={`notification-item-${index}`}
-                        onClick={() => handleNotificationClick(notification.id)}
-                      >
-                        <div className="flex flex-col gap-1 w-full">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium">{notification.title}</p>
-                            {!notification.read && (
-                              <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                    notifications.map((notification: any, index: number) => {
+                      const getRelativeTime = (timestamp: string | Date): string => {
+                        const now = Date.now();
+                        const then = new Date(timestamp).getTime();
+                        const diffSeconds = Math.floor((now - then) / 1000);
+                        
+                        if (diffSeconds < 60) return 'Just now';
+                        if (diffSeconds < 120) return '1 min ago';
+                        if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} mins ago`;
+                        if (diffSeconds < 7200) return '1 hour ago';
+                        if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)} hours ago`;
+                        return new Date(timestamp).toLocaleString();
+                      };
+
+                      const getExactTime = (timestamp: string | Date): string => {
+                        const date = new Date(timestamp);
+                        return date.toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: true
+                        });
+                      };
+
+                      return (
+                        <DropdownMenuItem 
+                          key={notification.id} 
+                          data-testid={`notification-item-${index}`}
+                          onClick={() => handleNotificationClick(notification.id)}
+                          className="cursor-pointer hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex flex-col gap-1 w-full py-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium flex-1">{notification.title}</p>
+                              {!notification.read && (
+                                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {notification.message}
+                            </p>
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <p className="text-xs text-muted-foreground/70 font-medium">
+                                {getRelativeTime(notification.timestamp)}
+                              </p>
+                              <p className="text-xs text-muted-foreground/50">
+                                {getExactTime(notification.timestamp)}
+                              </p>
+                            </div>
+                            {notification.metadata?.activityType && (
+                              <div className="mt-1 pt-1 border-t border-border/30">
+                                <p className="text-xs text-primary/70">
+                                  {notification.metadata.activityType === 'conversion' && '💰 Conversion'}
+                                  {notification.metadata.activityType === 'meeting_booked' && '📅 Meeting Scheduled'}
+                                  {notification.metadata.activityType === 'status_change' && `📊 ${notification.metadata.oldStatus} → ${notification.metadata.newStatus}`}
+                                </p>
+                                {notification.metadata.reason && (
+                                  <p className="text-xs text-muted-foreground/60 mt-0.5">
+                                    {notification.metadata.reason}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground/70">
-                            {new Date(notification.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </DropdownMenuItem>
-                    ))
+                        </DropdownMenuItem>
+                      );
+                    })
                   ) : (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       No notifications yet
