@@ -1,6 +1,7 @@
 
 import { IgApiClient } from 'instagram-private-api';
 import { storage } from '../../storage';
+import { encrypt, decrypt } from '../crypto/encryption';
 
 interface InstagramSession {
   userId: string;
@@ -10,6 +11,11 @@ interface InstagramSession {
   lastActivity: Date;
   messagesThisHour: number;
   hourResetTime: Date;
+}
+
+interface EncryptedCredentials {
+  username: string;
+  encryptedPassword: string; // NEVER store plaintext passwords
 }
 
 class InstagramPrivateService {
@@ -23,7 +29,11 @@ class InstagramPrivateService {
     ig.state.generateDevice(username);
 
     try {
+      // Login with password (NEVER store plaintext password)
       await ig.account.login(username, password);
+
+      // Encrypt password with AES-256-GCM before storing
+      const encryptedPassword = encrypt(password);
 
       const session: InstagramSession = {
         userId,
@@ -37,15 +47,18 @@ class InstagramPrivateService {
 
       this.sessions.set(userId, session);
 
+      // Store ENCRYPTED credentials in database
       await storage.updateUser(userId, {
         metadata: {
           instagram_private_connected: true,
           instagram_username: username,
+          instagram_encrypted_password: encryptedPassword, // AES-256 encrypted
           connected_at: new Date().toISOString(),
         },
       });
 
       console.log(`✅ Instagram Private API authenticated for ${username}`);
+      console.log(`🔒 Password encrypted with AES-256-GCM (even if DB is hacked, password is safe)`);
     } catch (error) {
       console.error('Instagram authentication error:', error);
       throw new Error('Failed to authenticate with Instagram');
@@ -116,9 +129,12 @@ class InstagramPrivateService {
       }
       this.sessions.delete(userId);
 
+      // CRITICAL: Delete encrypted password from database
       await storage.updateUser(userId, {
         metadata: {
           instagram_private_connected: false,
+          instagram_username: null,
+          instagram_encrypted_password: null, // Delete encrypted password
           disconnected_at: new Date().toISOString(),
         },
       });

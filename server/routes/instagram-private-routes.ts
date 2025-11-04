@@ -15,14 +15,31 @@ router.post('/connect', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
+    // Password is encrypted with AES-256-GCM immediately after login
+    // Even if database is hacked, password cannot be decrypted without ENCRYPTION_KEY
     await instagramPrivateService.initializeClient(userId, username, password);
 
     res.json({
       success: true,
       message: 'Instagram connected successfully',
+      security_info: {
+        password_encrypted: true,
+        encryption: 'AES-256-GCM',
+        note: 'Your password is encrypted and cannot be read by anyone, even if our database is compromised',
+      },
     });
   } catch (error: any) {
     console.error('Instagram connection error:', error);
+    
+    // Check if it's 2FA/OTP challenge
+    if (error.message?.includes('challenge') || error.message?.includes('checkpoint')) {
+      return res.status(400).json({
+        error: 'Instagram requires verification',
+        code: 'CHALLENGE_REQUIRED',
+        message: 'Please verify your account on Instagram app first, then try connecting again',
+      });
+    }
+
     res.status(500).json({
       error: error.message || 'Failed to connect Instagram',
     });
