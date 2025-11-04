@@ -18,9 +18,17 @@ interface EncryptedCredentials {
   encryptedPassword: string; // NEVER store plaintext passwords
 }
 
+interface MessageQueueItem {
+  recipientUsername: string;
+  message: string;
+  priority: 'hot' | 'warm' | 'cold';
+  timestamp: Date;
+}
+
 class InstagramPrivateService {
   private sessions: Map<string, InstagramSession> = new Map();
-  private readonly MAX_DMS_PER_HOUR = 20; // Conservative limit
+  private messageQueues: Map<string, MessageQueueItem[]> = new Map();
+  private readonly MAX_DMS_PER_HOUR = 80; // 80 DMs per hour per user (safe limit)
   private readonly MIN_DELAY_MS = 2000; // 2 seconds between actions
   private readonly MAX_DELAY_MS = 5000; // 5 seconds between actions
 
@@ -65,7 +73,12 @@ class InstagramPrivateService {
     }
   }
 
-  async sendMessage(userId: string, recipientUsername: string, message: string): Promise<void> {
+  async sendMessage(
+    userId: string, 
+    recipientUsername: string, 
+    message: string,
+    priority: 'hot' | 'warm' | 'cold' = 'cold'
+  ): Promise<void> {
     const session = this.sessions.get(userId);
 
     if (!session || !session.isAuthenticated) {
@@ -80,24 +93,88 @@ class InstagramPrivateService {
 
     // Check rate limit
     if (session.messagesThisHour >= this.MAX_DMS_PER_HOUR) {
-      throw new Error('Hourly DM limit reached (20/hour). Please wait before sending more messages.');
+      throw new Error(`Hourly DM limit reached (${this.MAX_DMS_PER_HOUR}/hour). Please wait before sending more messages.`);
     }
 
-    // Human-like delay
-    await this.randomDelay();
+    // Human-like delay (priority messages get shorter delays)
+    const delayMultiplier = priority === 'hot' ? 0.5 : priority === 'warm' ? 0.75 : 1;
+    await this.randomDelay(delayMultiplier);
 
     try {
-      const userId = await session.client.user.getIdByUsername(recipientUsername);
-      const thread = session.client.entity.directThread([userId.toString()]);
+      const igUserId = await session.client.user.getIdByUsername(recipientUsername);
+      const thread = session.client.entity.directThread([igUserId.toString()]);
       await thread.broadcastText(message);
 
       session.messagesThisHour++;
       session.lastActivity = new Date();
 
-      console.log(`✅ Instagram DM sent to ${recipientUsername} (${session.messagesThisHour}/20 this hour)`);
+      const priorityEmoji = priority === 'hot' ? '🔥' : priority === 'warm' ? '🌡️' : '❄️';
+      console.log(`✅ ${priorityEmoji} Instagram DM sent to ${recipientUsername} (${session.messagesThisHour}/${this.MAX_DMS_PER_HOUR} this hour)`);
     } catch (error) {
       console.error('Error sending Instagram DM:', error);
       throw new Error('Failed to send Instagram message');
+    }
+  }
+
+  /**
+   * Queue a message with priority (hot/warm leads get sent first)
+   */
+  async queueMessage(
+    userId: string,
+    recipientUsername: string,
+    message: string,
+    priority: 'hot' | 'warm' | 'cold' = 'cold'
+  ): Promise<void> {
+    if (!this.messageQueues.has(userId)) {
+      this.messageQueues.set(userId, []);
+    }
+
+    const queue = this.messageQueues.get(userId)!;
+    queue.push({
+      recipientUsername,
+      message,
+      priority,
+      timestamp: new Date()
+    });
+
+    // Sort queue: hot > warm > cold
+    queue.sort((a, b) => {
+      const priorityOrder = { hot: 0, warm: 1, cold: 2 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+
+    console.log(`📬 Queued ${priority} priority message for ${recipientUsername}`);
+  }
+
+  /**
+   * Process queued messages (called by a worker)
+   */
+  async processMessageQueue(userId: string): Promise<void> {
+    const queue = this.messageQueues.get(userId);
+    if (!queue || queue.length === 0) return;
+
+    const session = this.sessions.get(userId);
+    if (!session || !session.isAuthenticated) return;
+
+    // Reset hourly counter if needed
+    if (new Date() > session.hourResetTime) {
+      session.messagesThisHour = 0;
+      session.hourResetTime = new Date(Date.now() + 60 * 60 * 1000);
+    }
+
+    // Process as many messages as possible within rate limit
+    while (queue.length > 0 && session.messagesThisHour < this.MAX_DMS_PER_HOUR) {
+      const item = queue.shift()!;
+      try {
+        await this.sendMessage(userId, item.recipientUsername, item.message, item.priority);
+      } catch (error) {
+        console.error(`Failed to send queued message to ${item.recipientUsername}:`, error);
+        // Re-queue if not rate limited
+        if (!(error as Error).message.includes('rate limit')) {
+          queue.push(item);
+        }
+        break;
+      }
     }
   }
 
@@ -166,8 +243,9 @@ class InstagramPrivateService {
     };
   }
 
-  private async randomDelay(): Promise<void> {
-    const delay = Math.random() * (this.MAX_DELAY_MS - this.MIN_DELAY_MS) + this.MIN_DELAY_MS;
+  private async randomDelay(multiplier: number = 1): Promise<void> {
+    const baseDelay = Math.random() * (this.MAX_DELAY_MS - this.MIN_DELAY_MS) + this.MIN_DELAY_MS;
+    const delay = baseDelay * multiplier;
     await new Promise(resolve => setTimeout(resolve, delay));
   }
 }

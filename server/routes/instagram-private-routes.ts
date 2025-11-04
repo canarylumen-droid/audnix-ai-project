@@ -74,7 +74,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
 router.post('/send', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { recipientUsername, message, leadId } = req.body;
+    const { recipientUsername, message, leadId, priority } = req.body;
 
     if (!recipientUsername || !message) {
       return res.status(400).json({
@@ -82,7 +82,12 @@ router.post('/send', requireAuth, async (req, res) => {
       });
     }
 
-    await instagramPrivateService.sendMessage(userId, recipientUsername, message);
+    await instagramPrivateService.sendMessage(
+      userId, 
+      recipientUsername, 
+      message,
+      priority || 'cold'
+    );
 
     if (leadId) {
       await storage.createMessage({
