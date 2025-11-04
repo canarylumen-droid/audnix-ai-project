@@ -236,20 +236,34 @@
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    font-family: var(--font-sans);
   }
 
-  html {
-    scroll-behavior: smooth;
+  /* Safe area support for mobile devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Dark mode is default for Audnix */
-  html {
-    @apply dark;
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Smooth scrolling */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    body {
+      overscroll-behavior-y: contain;
+    }
   }
 }
 

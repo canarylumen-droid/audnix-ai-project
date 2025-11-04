@@ -147,7 +147,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Trial Expired Overlay */}
       <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
-      
+
       {/* Desktop Sidebar */}
       <motion.aside
         className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
@@ -258,22 +258,61 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
                 </div>
                 <nav className="flex flex-col gap-1 flex-1">
-                  {filteredNavItems.map((item) => {
-                    const Icon = item.icon;
+                  {/* Mobile Menu Overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              className="fixed top-0 left-0 bottom-0 w-80 bg-card/95 backdrop-blur-lg z-50 md:hidden overflow-y-auto shadow-2xl border-r border-border/50"
+              initial={{ x: -320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -320, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            >
+              <div className="p-4 flex flex-col h-full">
+                <div className="flex items-center gap-2 mb-6">
+                  <img
+                    src="/logo.jpg"
+                    alt="Audnix AI"
+                    className="h-8 w-auto object-contain"
+                  />
+                  <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
+                </div>
+                <nav className="flex flex-col gap-1 flex-1">
+                  {filteredNavItems.map((item, index) => {
                     const isActive = location === item.path;
-
                     return (
-                      <Link key={item.path} href={item.path}>
-                        <Button
-                          variant={isActive ? "secondary" : "ghost"}
-                          className={`w-full justify-start transition-colors ${isActive ? "text-primary" : "text-white"}`}
-                          onClick={() => setMobileMenuOpen(false)}
-                          data-testid={`mobile-menu-item-${item.label.toLowerCase()}`}
-                        >
-                          <Icon className="h-5 w-5 mr-2" />
-                          <span className="text-sm font-medium">{item.label}</span>
-                        </Button>
-                      </Link>
+                      <motion.div
+                        key={item.path}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: index * 0.05, duration: 0.2 }}
+                      >
+                        <Link href={item.path}>
+                          <motion.div whileTap={{ scale: 0.98 }}>
+                            <Button
+                              variant="ghost"
+                              className={`w-full justify-start gap-3 transition-all duration-200 ${
+                                isActive
+                                  ? "bg-primary/10 text-primary shadow-sm"
+                                  : "text-foreground/80 hover:text-foreground hover:bg-accent/50"
+                              }`}
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <item.icon className={`h-5 w-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                              <span className="font-medium">{item.label}</span>
+                            </Button>
+                          </motion.div>
+                        </Link>
+                      </motion.div>
                     );
                   })}
                 </nav>
@@ -318,6 +357,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     </DropdownMenu>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+                </nav>
               </div>
             </SheetContent>
           </Sheet>
@@ -454,29 +499,40 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-r from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-t border-cyan-500/20 flex items-center justify-around h-16 z-50" data-testid="nav-mobile" style={{ boxShadow: "0 -4px 20px rgba(0, 200, 255, 0.1)" }}>
-        {mobileNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location === item.path;
-
-          return (
-            <Link key={item.path} href={item.path}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`flex flex-col h-auto py-2 gap-1 ${
-                  isActive ? "text-primary" : "text-white"
-                }`}
-                data-testid={`mobile-nav-${item.label.toLowerCase()}`}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-xs">{item.label}</span>
-              </Button>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Mobile Bottom Navigation */}
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 md:hidden z-50 shadow-lg"
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <div className="flex items-center justify-around p-2 safe-bottom">
+          {mobileNavItems.map((item) => {
+            const isActive = location === item.path;
+            return (
+              <Link key={item.path} href={item.path}>
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.1 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`flex flex-col items-center gap-1 h-auto py-2 px-3 transition-all duration-200 ${
+                      isActive 
+                        ? "text-primary bg-primary/10" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    }`}
+                  >
+                    <item.icon className={`h-5 w-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                    <span className="text-xs font-medium">{item.label}</span>
+                  </Button>
+                </motion.div>
+              </Link>
+            );
+          })}
+        </div>
+      </motion.div>
     </div>
   );
 }
