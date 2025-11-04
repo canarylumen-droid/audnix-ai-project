@@ -18,6 +18,8 @@ const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
 const LeadImportPage = lazy(() => import("./pages/dashboard/lead-import"));
 
+import { ThemeProvider } from "next-themes";
+
 function Router() {
   return (
     <Switch>
@@ -39,13 +41,15 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <InternetConnectionBanner />
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <InternetConnectionBanner />
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
