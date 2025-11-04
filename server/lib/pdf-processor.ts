@@ -54,7 +54,20 @@ export async function processPDF(
   try {
     const pdfParse = require('pdf-parse');
     
-    const data = await pdfParse(fileBuffer);
+    // Handle large files (>10MB) with max buffer size
+    const maxBufferSize = 50 * 1024 * 1024; // 50MB max
+    if (fileBuffer.length > maxBufferSize) {
+      return {
+        success: false,
+        leadsCreated: 0,
+        error: `PDF too large (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB). Maximum size is 50MB.`
+      };
+    }
+    
+    const data = await pdfParse(fileBuffer, {
+      max: 0, // Parse all pages
+      version: 'v2.0.550' // Use latest version
+    });
     const text = data.text;
     
     if (!text || text.trim().length === 0) {

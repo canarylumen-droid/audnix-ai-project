@@ -450,8 +450,9 @@ Click the **Run** button at the top of Replit. The server will start automatical
 - ✅ Supabase Row Level Security policies
 - ✅ Input validation with Zod
 - ✅ CSRF protection
-- ✅ Secure password-less OAuth flows
+- ✅ Secure password-less OAuth flows (Google + GitHub)
 - ✅ Environment variable isolation
+- ✅ No Redis required (PostgreSQL handles sessions/queues)
 
 ## 📚 Documentation
 

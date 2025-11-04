@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SiGoogle, SiApple, SiGithub } from "react-icons/si";
+import { SiGoogle, SiGithub } from "react-icons/si";
 import { Check, Shield, Clock, Zap, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -91,45 +91,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleAppleLogin = async () => {
-    setLoading('apple');
-
-    if (!isSupabaseConfigured() || !supabase) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to continue. Authentication service is not available in demo mode.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Authentication Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        setLoading(null);
-      }
-    } catch (error) {
-      console.error("Apple OAuth error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initiate Apple sign-in",
-        variant: "destructive",
-      });
-      setLoading(null);
-    }
-  };
+  // Apple OAuth removed - using Google and GitHub only
 
   const handleGithubLogin = async () => {
     setLoading('github' as any);
@@ -388,29 +350,6 @@ export default function AuthPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                  >
-                    <Button
-                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                      variant="outline"
-                      onClick={handleAppleLogin}
-                      disabled={loading !== null}
-                      data-testid="button-apple-login"
-                    >
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
-                        initial={false}
-                      />
-                      <SiApple className="w-5 h-5 mr-3 relative z-10 text-white" />
-                      <span className="relative z-10 text-white">
-                        {loading === 'apple' ? 'Connecting...' : 'Continue with Apple'}
-                      </span>
-                    </Button>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.7 }}
                   >
                     <Button
                       className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"

@@ -1,4 +1,3 @@
-
 # 🚀 Replit Deployment Guide - Production Ready
 
 ## Why Replit?
@@ -287,7 +286,25 @@ Before going live with real users:
 ### Total Monthly Cost
 - **Development:** $0 (Free tier)
 - **Production (100-1000 users):** $7 (Replit Hacker) + $0 (Supabase Free) = **$7/month**
-- **Production (1000-10,000 users):** $7 (Replit) + $25 (Supabase Pro) = **$32/month**
+- **Production (1000-10,000 users):**
+- **Replit Hacker:** $7/month (always-on, 2GB RAM)
+- **Supabase Pro:** $25/month (8GB database, 250GB bandwidth)
+- **Total Infrastructure:** $32/month
+
+**Revenue with 100 Users (Conservative Mix):**
+- 50 Starter ($49.99 × 50) = $2,499.50
+- 35 Pro ($99.99 × 35) = $3,499.65  
+- 15 Enterprise ($199.99 × 15) = $2,999.85
+- **Total MRR:** $8,999.00
+
+**Costs for 100 Users:**
+- Infrastructure: $32/mo
+- Voice API (100 users avg 200 mins): $200/mo
+- AI Processing (GPT-4o-mini): $500/mo
+- **Messaging: $0** (users pay Meta/Google directly)
+- **Total Costs:** $732/mo
+
+**Net Profit:** $8,267/mo (**92% margin**) 🚀
 
 ### When to Upgrade
 

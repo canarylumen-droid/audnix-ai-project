@@ -7,7 +7,7 @@
 ### Option 1: One-Click Deploy (Easiest)
 
 1. Click the button below:
-   
+
    [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 2. Render will auto-detect `render.yaml` and set up everything
@@ -28,7 +28,7 @@
 
 3. **Add Environment Variables**
    Go to Dashboard → Your Service → Environment and add:
-   
+
    **CRITICAL (App won't work without these):**
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -37,7 +37,7 @@
    OPENAI_API_KEY=sk-your_openai_key
    STRIPE_SECRET_KEY=sk_test_your_stripe_key
    ```
-   
+
    SESSION_SECRET and ENCRYPTION_KEY are auto-generated ✓
 
 4. **Deploy**
@@ -47,7 +47,7 @@
 
 5. **Update OAuth Redirect URIs**
    After deployment, update ALL provider redirect URIs:
-   
+
    **Google (Calendar & Gmail):**
    - https://console.cloud.google.com
    - OAuth 2.0 credentials → Edit
@@ -56,21 +56,21 @@
      https://your-app.onrender.com/api/oauth/google-calendar/callback
      https://your-app.onrender.com/api/oauth/gmail/callback
      ```
-   
+
    **Instagram:**
    - https://developers.facebook.com/apps/
    - Instagram Basic Display → OAuth Redirect URIs:
      ```
      https://your-app.onrender.com/api/oauth/instagram/callback
      ```
-   
+
    **WhatsApp:**
    - Same Meta dashboard
    - WhatsApp → Configuration:
      ```
      https://your-app.onrender.com/api/oauth/whatsapp/callback
      ```
-   
+
    **Outlook:**
    - https://portal.azure.com
    - App registrations → Authentication:
@@ -198,8 +198,7 @@ Railway offers $5 free credit (good for ~1 month of testing).
 
 - [ ] `ELEVENLABS_API_KEY` - Voice cloning
 - [ ] `RESEND_API_KEY` - Email notifications
-- [ ] `REDIS_URL` - Background job queues (production)
-
+</new_str>
 ---
 
 ## Cost Breakdown

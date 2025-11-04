@@ -81,11 +81,12 @@ Assuming 100 paying users (very conservative):
 ### Costs
 - Voice API (100 users avg 200 mins/mo): $200/mo
 - AI Processing (100 users): ~$500/mo
-- Infrastructure (hosting, DB): $50/mo
+- Infrastructure (Replit Hacker + Supabase Pro): $32/mo
 - **Messaging: $0** (users pay Meta/Google directly)
-- **Total Costs:** $750/mo
+- **Redis: $0** (not needed - using PostgreSQL for sessions/queues)
+- **Total Costs:** $732/mo
 
-**Net Profit:** $8,249/mo (**92% margin**) 🚀
+**Net Profit:** $8,267/mo (**92% margin**) 🚀
 
 ### Growth Projections
 

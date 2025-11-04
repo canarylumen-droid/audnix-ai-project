@@ -328,6 +328,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { leadId } = req.params;
       const { body, useVoice } = req.body;
       const userId = getCurrentUserId(req)!;
+      
+      // Check plan limits
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      const leads = await storage.getLeads({ userId, limit: 100000 });
+      const leadLimits: Record<string, number> = {
+        'trial': 100,
+        'starter': 2500,
+        'pro': 7000,
+        'enterprise': 20000
+      };
+      
+      const userLimit = leadLimits[user.plan] || 100;
+      if (leads.length >= userLimit) {
+        return res.status(402).json({
+          error: "Lead limit reached",
+          message: `You've reached your plan's limit of ${userLimit} leads. Please upgrade to continue.`,
+          redirectTo: "/dashboard/pricing"
+        });
+      }
 
       // Moderate outbound content before sending
       const moderationResult = await contentModerationService.moderateWithAI(body);

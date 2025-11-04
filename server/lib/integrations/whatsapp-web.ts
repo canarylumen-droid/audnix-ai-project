@@ -17,14 +17,15 @@ interface WhatsAppMessage {
 interface WhatsAppSession {
   userId: string;
   client: any; // WhatsApp Client instance
-  status: 'disconnected' | 'qr_ready' | 'authenticated' | 'ready';
+  status: 'disconnected' | 'qr_ready' | 'authenticated' | 'ready' | 'auth_failure';
   qrCode: string | null;
   lastActivity: Date;
 }
 
 class WhatsAppService {
   private sessions: Map<string, WhatsAppSession> = new Map();
-  private readonly SESSION_TIMEOUT = 30 * 60 * 1000;
+  private readonly SESSION_TIMEOUT = 60 * 60 * 1000; // 1 hour for QR code timeout
+  private readonly ACTIVE_SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours for active sessions
 
   constructor() {
     this.startSessionCleanup();
@@ -116,7 +117,9 @@ class WhatsAppService {
 
     client.on('auth_failure', async (msg: string) => {
       console.error(`❌ Authentication failed for user ${userId}:`, msg);
-      await this.destroySession(userId);
+      session.status = 'auth_failure';
+      session.lastActivity = new Date();
+      // Don't destroy immediately - let cleanup handle it
     });
 
     this.sessions.set(userId, session);
@@ -244,13 +247,20 @@ class WhatsAppService {
       for (const [userId, session] of this.sessions.entries()) {
         const timeSinceLastActivity = now - session.lastActivity.getTime();
         
-        // Clean up sessions that are inactive and not connected
-        if (timeSinceLastActivity > this.SESSION_TIMEOUT && session.status !== 'ready') {
-          console.log(`🧹 Cleaning up inactive WhatsApp session for user ${userId}`);
+        // Only clean up QR sessions that are stale (never authenticated)
+        if (session.status === 'qr_ready' && timeSinceLastActivity > this.SESSION_TIMEOUT) {
+          console.log(`🧹 Cleaning up stale QR session for user ${userId}`);
           this.destroySession(userId);
         }
+        
+        // Keep 'ready' sessions alive indefinitely (persistent)
+        // Only destroy if explicitly disconnected or failed
+        if (session.status === 'disconnected' || session.status === 'auth_failure') {
+          console.log(`🧹 Removing failed session for user ${userId}`);
+          this.sessions.delete(userId);
+        }
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes
+    }, 10 * 60 * 1000); // Check every 10 minutes
   }
 }
 
