@@ -284,6 +284,50 @@ export async function processTopupSuccess(
 }
 
 /**
+ * Create subscription checkout session
+ */
+export async function createSubscriptionCheckout(
+  customerId: string,
+  planKey: keyof typeof PLANS,
+  userId: string
+): Promise<{ sessionId: string; url: string }> {
+  if (isDemoMode) {
+    return {
+      sessionId: `cs_mock_${Date.now()}`,
+      url: `/dashboard?demo=true`,
+    };
+  }
+
+  const paymentLink = await getSubscriptionPaymentLink(planKey, userId);
+  return {
+    sessionId: `cs_link_${Date.now()}`,
+    url: paymentLink,
+  };
+}
+
+/**
+ * Create top-up checkout session
+ */
+export async function createTopupCheckout(
+  customerId: string,
+  topupKey: keyof typeof TOPUPS,
+  userId: string
+): Promise<{ sessionId: string; url: string }> {
+  if (isDemoMode) {
+    return {
+      sessionId: `cs_mock_${Date.now()}`,
+      url: `/dashboard?demo=true`,
+    };
+  }
+
+  const paymentLink = await getTopupPaymentLink(topupKey, userId);
+  return {
+    sessionId: `cs_link_${Date.now()}`,
+    url: paymentLink,
+  };
+}
+
+/**
  * Verify webhook signature
  */
 export function verifyWebhookSignature(

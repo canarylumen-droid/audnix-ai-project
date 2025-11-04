@@ -445,6 +445,7 @@ export default function SettingsPage() {
             <p className="text-xs text-muted-foreground mt-1">
               ℹ️ Max 10MB • Supports: Brand guides, pitch decks, product sheets, sales PDFs
             </p>
+            </div>
           </div>
         </CardContent>
       </Card>

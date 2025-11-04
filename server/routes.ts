@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { supabaseAdmin, isSupabaseAdminConfigured, syncUserFromSupabase } from "./lib/supabase-admin";
 import {
-  stripe,
   isDemoMode as stripeDemoMode,
   createStripeCustomer,
   createSubscription,
@@ -43,6 +42,7 @@ import {
 
 // Import AI modules for lead learning and content moderation
 import { contentModerationService } from './lib/ai/content-moderation';
+import { leadLearningSystem } from './lib/ai/lead-learning-system';
 
 // Import necessary modules for PDF processing and lead export
 import multer from 'multer';
