@@ -7,8 +7,9 @@ import { storage } from '../storage';
 
 const router = Router();
 
-// WhatsApp Web.js uses QR code only - no OTP/Twilio needed
-// Keep existing QR code flow as primary method
+// WhatsApp Web.js - QR CODE AUTHENTICATION ONLY
+// NO OTP support - users must scan QR code with their phone
+// This is how WhatsApp Web works - it's the only method available
 router.post('/connect', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;

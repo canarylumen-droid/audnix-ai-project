@@ -169,11 +169,13 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
 
 /**
  * Get payment link for subscription plan
+ * Supports BOTH payment links (recommended) and price IDs
  */
 export async function getSubscriptionPaymentLink(
   planKey: keyof typeof PLANS,
   userId: string
 ): Promise<string> {
+  // Method 1: Payment Links (easiest - just copy from Stripe Dashboard)
   const paymentLinks = {
     starter: process.env.STRIPE_PAYMENT_LINK_STARTER,
     pro: process.env.STRIPE_PAYMENT_LINK_PRO,
@@ -182,45 +184,76 @@ export async function getSubscriptionPaymentLink(
 
   const link = paymentLinks[planKey];
   
-  if (!link) {
-    throw new Error(`Payment link not configured for plan: ${planKey}. Add STRIPE_PAYMENT_LINK_${planKey.toUpperCase()} to environment variables.`);
+  // If payment link exists, use it (preferred method)
+  if (link && link.includes('buy.stripe.com')) {
+    const params = new URLSearchParams({
+      client_reference_id: userId,
+    });
+    return `${link}?${params.toString()}`;
   }
 
-  // Append user metadata to payment link
-  const params = new URLSearchParams({
-    client_reference_id: userId,
-  });
+  // Method 2: Price IDs (if your friend gave you these instead)
+  // You'll need to create payment links from these price IDs in Stripe Dashboard
+  const plan = PLANS[planKey];
+  const priceId = plan.priceId;
+  
+  if (!priceId || priceId.startsWith('price_')) {
+    throw new Error(
+      `❌ No payment link configured for ${planKey} plan.\n\n` +
+      `Option 1 (Recommended): Create a payment link in Stripe Dashboard:\n` +
+      `1. Go to https://dashboard.stripe.com/payment-links\n` +
+      `2. Click "+ New" and set price to $${plan.price}/month\n` +
+      `3. Copy the link and add to Replit Secrets as: STRIPE_PAYMENT_LINK_${planKey.toUpperCase()}\n\n` +
+      `Option 2: If you have a price ID (${priceId}), create a payment link from it in Stripe Dashboard.`
+    );
+  }
 
-  return `${link}?${params.toString()}`;
+  throw new Error('No payment method configured');
 }
 
 /**
  * Get payment link for voice minutes top-up
+ * Supports BOTH payment links (recommended) and price IDs
  */
 export async function getTopupPaymentLink(
   topupKey: keyof typeof TOPUPS,
   userId: string
 ): Promise<string> {
+  // Method 1: Payment Links (easiest)
   const paymentLinks = {
     voice_100: process.env.STRIPE_PAYMENT_LINK_VOICE_100,
     voice_300: process.env.STRIPE_PAYMENT_LINK_VOICE_300,
     voice_600: process.env.STRIPE_PAYMENT_LINK_VOICE_600,
     voice_1200: process.env.STRIPE_PAYMENT_LINK_VOICE_1200,
     leads_1000: process.env.STRIPE_PAYMENT_LINK_LEADS_1000,
-    leads_2500: process.env.STRIPE_PAYMENT_LINK_LEADS_25000",
+    leads_2500: process.env.STRIPE_PAYMENT_LINK_LEADS_2500,
   };
 
   const link = paymentLinks[topupKey];
   
-  if (!link) {
-    throw new Error(`Payment link not configured for top-up: ${topupKey}. Add STRIPE_PAYMENT_LINK_${topupKey.toUpperCase()} to environment variables.`);
+  // If payment link exists, use it (preferred method)
+  if (link && link.includes('buy.stripe.com')) {
+    const params = new URLSearchParams({
+      client_reference_id: userId,
+    });
+    return `${link}?${params.toString()}`;
   }
 
-  const params = new URLSearchParams({
-    client_reference_id: userId,
-  });
+  // Method 2: Price IDs fallback
+  const topup = TOPUPS[topupKey];
+  const priceId = topup.priceId;
+  
+  if (!priceId || priceId.startsWith('price_')) {
+    throw new Error(
+      `❌ No payment link configured for ${topupKey} top-up.\n\n` +
+      `Create a payment link in Stripe Dashboard:\n` +
+      `1. Go to https://dashboard.stripe.com/payment-links\n` +
+      `2. Click "+ New" and set price to $${topup.price} (ONE-TIME payment)\n` +
+      `3. Copy the link and add to Replit Secrets as: STRIPE_PAYMENT_LINK_${topupKey.toUpperCase()}`
+    );
+  }
 
-  return `${link}?${params.toString()}`;
+  throw new Error('No payment method configured');
 }
 
 /**
