@@ -22,10 +22,14 @@ router.post('/connect', requireAuth, async (req, res) => {
     res.json({
       success: true,
       message: 'Instagram connected successfully',
-      security_info: {
+      security_warnings: {
+        api_status: 'UNOFFICIAL - This uses reverse-engineered Instagram API',
+        ban_risk: 'HIGH - Instagram may ban accounts using unofficial APIs',
+        recommendation: 'Use official Graph API with Business/Creator account instead',
         credentials_discarded: true,
         encryption: 'AES-256-GCM with end-to-end encryption',
-        note: 'Your credentials are discarded immediately. Only encrypted session tokens are stored. All conversations are end-to-end encrypted and never leave your secure connection.',
+        rate_limits: '50 DMs per hour (safer limit)',
+        note: 'Session tokens stored encrypted. Use at your own risk.',
       },
     });
   } catch (error: any) {

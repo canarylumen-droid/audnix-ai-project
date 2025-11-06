@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const channelIcons = {
   instagram: Instagram,
@@ -439,102 +442,221 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card
-                    className={`hover-elevate ${
-                      isConnected ? "border-emerald-500/50" : ""
-                    }`}
-                    data-testid={`card-integration-${providerId}`}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                {providerId}
-                              </CardTitle>
-                              {providerId === "instagram" && (
-                                <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
-                              )}
+                  {providerId === "instagram" && (
+                    <TabsContent value="instagram" className="space-y-4">
+                      {/* Security Warning for Instagram Private API */}
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>⚠️ Instagram Private API Security Notice</AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">The Instagram Private API is <strong>unofficial and reverse-engineered</strong>. Instagram may ban accounts using it.</p>
+                          <p className="font-semibold text-red-600">Recommendation: Use the official Graph API with a Business/Creator account instead.</p>
+                        </AlertDescription>
+                      </Alert>
+
+                      <Card
+                        className={`hover-elevate ${
+                          isConnected ? "border-emerald-500/50" : ""
+                        }`}
+                        data-testid={`card-integration-${providerId}`}
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                                    {providerId}
+                                  </CardTitle>
+                                  {providerId === "instagram" && (
+                                    <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
+                                  )}
+                                </div>
+                                <CardDescription className="text-sm">
+                                  {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
+                                  {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
+                                  {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
+                                </CardDescription>
+                              </div>
                             </div>
-                            <CardDescription className="text-sm">
-                              {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
-                              {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
-                              {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
-                            </CardDescription>
+                            {isConnected && (
+                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                                <Check className="h-3 w-3 mr-1" />
+                                Connected
+                              </Badge>
+                            )}
                           </div>
-                        </div>
-                        {isConnected && (
-                          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                            <Check className="h-3 w-3 mr-1" />
-                            Connected
-                          </Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {isConnected ? (
-                        <>
-                          <div className="text-sm space-y-2">
-                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                              <CheckCircle2 className="h-4 w-4" />
-                              <span className="font-medium">Connected • Importing leads...</span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {isConnected ? (
+                            <>
+                              <div className="text-sm space-y-2">
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span className="font-medium">Connected • Importing leads...</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
+                                  {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
+                                  {providerId === "gmail" && "Email conversations are being securely synced"}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDisconnect(providerId)}
+                                  disabled={disconnectProviderMutation.isPending}
+                                  data-testid={`button-disconnect-${providerId}`}
+                                >
+                                  {disconnectProviderMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Disconnect"
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleSyncNow(providerId)}
+                                  disabled={importLeadsMutation.isPending}
+                                  data-testid={`button-sync-${providerId}`}
+                                >
+                                  {importLeadsMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Sync Now"
+                                  )}
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <Button
+                              className="w-full"
+                              onClick={() => handleConnect(providerId)}
+                              disabled={connectProviderMutation.isPending}
+                              data-testid={`button-connect-${providerId}`}
+                            >
+                              {connectProviderMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Connect {providerId}
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+                  {providerId !== "instagram" && (
+                    <motion.div
+                      key={providerId}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Card
+                        className={`hover-elevate ${
+                          isConnected ? "border-emerald-500/50" : ""
+                        }`}
+                        data-testid={`card-integration-${providerId}`}
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                                    {providerId}
+                                  </CardTitle>
+                                  {providerId === "instagram" && (
+                                    <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
+                                  )}
+                                </div>
+                                <CardDescription className="text-sm">
+                                  {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
+                                  {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
+                                  {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
+                                </CardDescription>
+                              </div>
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
-                              {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
-                              {providerId === "gmail" && "Email conversations are being securely synced"}
-                            </p>
+                            {isConnected && (
+                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                                <Check className="h-3 w-3 mr-1" />
+                                Connected
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex gap-2">
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {isConnected ? (
+                            <>
+                              <div className="text-sm space-y-2">
+                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span className="font-medium">Connected • Importing leads...</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
+                                  {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
+                                  {providerId === "gmail" && "Email conversations are being securely synced"}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleDisconnect(providerId)}
+                                  disabled={disconnectProviderMutation.isPending}
+                                  data-testid={`button-disconnect-${providerId}`}
+                                >
+                                  {disconnectProviderMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Disconnect"
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1"
+                                  onClick={() => handleSyncNow(providerId)}
+                                  disabled={importLeadsMutation.isPending}
+                                  data-testid={`button-sync-${providerId}`}
+                                >
+                                  {importLeadsMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Sync Now"
+                                  )}
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
                             <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => handleDisconnect(providerId)}
-                              disabled={disconnectProviderMutation.isPending}
-                              data-testid={`button-disconnect-${providerId}`}
+                              className="w-full"
+                              onClick={() => handleConnect(providerId)}
+                              disabled={connectProviderMutation.isPending}
+                              data-testid={`button-connect-${providerId}`}
                             >
-                              {disconnectProviderMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Disconnect"
-                              )}
+                              {connectProviderMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : null}
+                              Connect {providerId}
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => handleSyncNow(providerId)}
-                              disabled={importLeadsMutation.isPending}
-                              data-testid={`button-sync-${providerId}`}
-                            >
-                              {importLeadsMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Sync Now"
-                              )}
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <Button
-                          className="w-full"
-                          onClick={() => handleConnect(providerId)}
-                          disabled={connectProviderMutation.isPending}
-                          data-testid={`button-connect-${providerId}`}
-                        >
-                          {connectProviderMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : null}
-                          Connect {providerId}
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )}
                 </motion.div>
               );
             })}

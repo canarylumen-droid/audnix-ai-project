@@ -28,9 +28,9 @@ interface MessageQueueItem {
 class InstagramPrivateService {
   private sessions: Map<string, InstagramSession> = new Map();
   private messageQueues: Map<string, MessageQueueItem[]> = new Map();
-  private readonly MAX_DMS_PER_HOUR = 80; // 80 DMs per hour per user (safe limit)
-  private readonly MIN_DELAY_MS = 2000; // 2 seconds between actions
-  private readonly MAX_DELAY_MS = 5000; // 5 seconds between actions
+  private readonly MAX_DMS_PER_HOUR = 50; // 50 DMs per hour (safer limit, Instagram averages 60-80)
+  private readonly MIN_DELAY_MS = 3000; // 3 seconds between actions (more human-like)
+  private readonly MAX_DELAY_MS = 8000; // 8 seconds between actions (avoid detection)
 
   async initializeClient(userId: string, username: string, password: string): Promise<void> {
     const ig = new IgApiClient();
