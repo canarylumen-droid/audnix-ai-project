@@ -13,7 +13,38 @@ interface EmailConfig {
   smtp_user?: string;
   smtp_pass?: string;
   oauth_token?: string;
-  provider?: 'gmail' | 'outlook' | 'smtp';
+  provider?: 'gmail' | 'outlook' | 'smtp' | 'custom';
+}
+
+/**
+ * Send email via custom SMTP (for custom domain emails)
+ */
+async function sendCustomSMTP(
+  config: EmailConfig,
+  to: string,
+  subject: string,
+  body: string,
+  isHtml: boolean = false
+): Promise<void> {
+  // Would use nodemailer here
+  const nodemailer = require('nodemailer');
+  
+  const transporter = nodemailer.createTransport({
+    host: config.smtp_host,
+    port: config.smtp_port || 587,
+    secure: config.smtp_port === 465,
+    auth: {
+      user: config.smtp_user,
+      pass: config.smtp_pass,
+    },
+  });
+
+  await transporter.sendMail({
+    from: config.smtp_user,
+    to,
+    subject,
+    [isHtml ? 'html' : 'text']: body,
+  });
 }
 
 /**
