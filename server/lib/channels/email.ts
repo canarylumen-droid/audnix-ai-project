@@ -26,7 +26,6 @@ async function sendCustomSMTP(
   body: string,
   isHtml: boolean = false
 ): Promise<void> {
-  // Would use nodemailer here
   const nodemailer = require('nodemailer');
   
   const transporter = nodemailer.createTransport({
@@ -44,6 +43,75 @@ async function sendCustomSMTP(
     to,
     subject,
     [isHtml ? 'html' : 'text']: body,
+  });
+}
+
+/**
+ * Import emails from custom IMAP server
+ */
+async function importCustomEmails(
+  config: EmailConfig,
+  limit: number = 50
+): Promise<any[]> {
+  const Imap = require('imap');
+  const { simpleParser } = require('mailparser');
+  
+  return new Promise((resolve, reject) => {
+    const imap = new Imap({
+      user: config.smtp_user,
+      password: config.smtp_pass,
+      host: config.smtp_host?.replace('smtp', 'imap') || '',
+      port: 993,
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
+    });
+
+    const emails: any[] = [];
+
+    imap.once('ready', () => {
+      imap.openBox('INBOX', true, (err: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        const fetch = imap.seq.fetch('1:' + limit, {
+          bodies: '',
+          struct: true
+        });
+
+        fetch.on('message', (msg: any) => {
+          msg.on('body', (stream: any) => {
+            simpleParser(stream, (err: any, parsed: any) => {
+              if (!err) {
+                emails.push({
+                  from: parsed.from?.text,
+                  to: parsed.to?.text,
+                  subject: parsed.subject,
+                  text: parsed.text,
+                  html: parsed.html,
+                  date: parsed.date
+                });
+              }
+            });
+          });
+        });
+
+        fetch.once('end', () => {
+          imap.end();
+        });
+      });
+    });
+
+    imap.once('error', (err: any) => {
+      reject(err);
+    });
+
+    imap.once('end', () => {
+      resolve(emails);
+    });
+
+    imap.connect();
   });
 }
 

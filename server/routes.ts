@@ -27,6 +27,7 @@ import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
 import whatsappRoutes from "./routes/whatsapp-routes";
 import instagramPrivateRoutes from './routes/instagram-private-routes';
+import customEmailRoutes from './routes/custom-email-routes';
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -331,21 +332,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { leadId } = req.params;
       const { body, useVoice } = req.body;
       const userId = getCurrentUserId(req)!;
-      
+
       // Check plan limits
       const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      
-      const leads = await storage.getLeads({ userId, limit: 100000 });
+
+      const leads = await storage.getLeads({ userId, limit: 10000 });
       const leadLimits: Record<string, number> = {
         'trial': 100,
         'starter': 2500,
         'pro': 7000,
         'enterprise': 20000
       };
-      
+
       const userLimit = leadLimits[user.plan] || 100;
       if (leads.length >= userLimit) {
         return res.status(402).json({
@@ -456,7 +457,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/leads/import-csv", requireAuth, upload.single('csv'), async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
-      
+
       if (!req.file) {
         return res.status(400).json({ error: "No CSV file uploaded" });
       }
@@ -599,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/leads/import-pdf", requireAuth, uploadPDF.single('pdf'), async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
-      
+
       if (!req.file) {
         return res.status(400).json({ error: "No PDF file uploaded" });
       }
@@ -1837,6 +1838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register WhatsApp routes
   app.use('/api/whatsapp', whatsappRoutes);
   app.use('/api/instagram-private', instagramPrivateRoutes);
+  app.use('/api/custom-email', customEmailRoutes);
 
   // Webhook routes
   app.use("/api/webhook", webhookRouter); // This line seems to be a duplicate, keeping it as per original code.

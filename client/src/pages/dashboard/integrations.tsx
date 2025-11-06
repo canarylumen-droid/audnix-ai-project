@@ -26,6 +26,7 @@ import {
   FileText,
   Sparkles,
   Lock, // Import Lock icon
+  CheckCircle2, // Import CheckCircle2 icon
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -543,6 +544,86 @@ export default function IntegrationsPage() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Custom Domain Email */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Custom Domain Email</h2>
+        <Card data-testid="card-custom-email">
+          <CardHeader>
+            <CardTitle>Connect Custom Email Domain</CardTitle>
+            <CardDescription>
+              Import leads from your custom domain email (e.g., you@yourbusiness.com)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="smtp-host">SMTP Server</Label>
+                <Input
+                  id="smtp-host"
+                  type="text"
+                  placeholder="smtp.yourdomain.com"
+                  data-testid="input-smtp-host"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtp-port">Port</Label>
+                <Input
+                  id="smtp-port"
+                  type="number"
+                  placeholder="587"
+                  defaultValue="587"
+                  data-testid="input-smtp-port"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtp-email">Email Address</Label>
+                <Input
+                  id="smtp-email"
+                  type="email"
+                  placeholder="you@yourbusiness.com"
+                  data-testid="input-smtp-email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="smtp-password">Password / App Password</Label>
+                <Input
+                  id="smtp-password"
+                  type="password"
+                  placeholder="••••••••"
+                  data-testid="input-smtp-password"
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold text-amber-800 dark:text-amber-300">Secure Storage</p>
+                  <p className="text-amber-700 dark:text-amber-400">Your credentials are encrypted with AES-256-GCM</p>
+                  <p className="text-amber-700 dark:text-amber-400">Only used to import and send emails on your behalf</p>
+                </div>
+              </div>
+            </div>
+
+            <Button className="w-full" data-testid="button-connect-custom-email">
+              <Mail className="h-4 w-4 mr-2" />
+              Connect Custom Email
+            </Button>
+
+            <div className="text-xs text-muted-foreground">
+              <p className="font-semibold mb-2">Supported providers:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Google Workspace (G Suite)</li>
+                <li>Microsoft 365 / Office 365</li>
+                <li>cPanel / WHM</li>
+                <li>Any SMTP/IMAP server</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Voice Clone Setup */}
