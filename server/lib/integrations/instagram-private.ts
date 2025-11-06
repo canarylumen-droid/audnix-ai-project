@@ -15,7 +15,7 @@ interface InstagramSession {
 
 interface EncryptedCredentials {
   username: string;
-  encryptedPassword: string; // NEVER store plaintext passwords
+  sessionToken: string; // Only store encrypted session token, NEVER passwords
 }
 
 interface MessageQueueItem {
@@ -37,11 +37,12 @@ class InstagramPrivateService {
     ig.state.generateDevice(username);
 
     try {
-      // Login with password (NEVER store plaintext password)
+      // Login with password (password NEVER leaves this function)
       await ig.account.login(username, password);
 
-      // Encrypt password with AES-256-GCM before storing
-      const encryptedPassword = encrypt(password);
+      // Get session state and encrypt it (NOT the password)
+      const sessionState = await ig.state.serialize();
+      const encryptedSession = encrypt(sessionState);
 
       const session: InstagramSession = {
         userId,
@@ -55,22 +56,49 @@ class InstagramPrivateService {
 
       this.sessions.set(userId, session);
 
-      // Store ENCRYPTED credentials in database
+      // Store ONLY encrypted session token (NOT password)
       await storage.updateUser(userId, {
         metadata: {
           instagram_private_connected: true,
           instagram_username: username,
-          instagram_encrypted_password: encryptedPassword, // AES-256 encrypted
+          instagram_session_token: encryptedSession, // Encrypted session state
           connected_at: new Date().toISOString(),
         },
       });
 
-      console.log(`✅ Instagram Private API authenticated for ${username}`);
-      console.log(`🔒 Password encrypted with AES-256-GCM (even if DB is hacked, password is safe)`);
+      console.log(`✅ Instagram authenticated for ${username}`);
+      console.log(`🔒 Session persists securely - password NEVER stored`);
     } catch (error) {
       console.error('Instagram authentication error:', error);
       throw new Error('Failed to authenticate with Instagram');
     }
+  }
+
+  /**
+   * Restore session from encrypted token (called on server restart)
+   */
+  async restoreSession(userId: string): Promise<void> {
+    const user = await storage.getUser(userId);
+    if (!user?.metadata?.instagram_session_token) {
+      throw new Error('No saved session found');
+    }
+
+    const ig = new IgApiClient();
+    const sessionState = decrypt(user.metadata.instagram_session_token);
+    await ig.state.deserialize(sessionState);
+
+    const session: InstagramSession = {
+      userId,
+      client: ig,
+      username: user.metadata.instagram_username,
+      isAuthenticated: true,
+      lastActivity: new Date(),
+      messagesThisHour: 0,
+      hourResetTime: new Date(Date.now() + 60 * 60 * 1000),
+    };
+
+    this.sessions.set(userId, session);
+    console.log(`✅ Instagram session restored for ${user.metadata.instagram_username}`);
   }
 
   async sendMessage(
@@ -236,12 +264,12 @@ class InstagramPrivateService {
       }
       this.sessions.delete(userId);
 
-      // CRITICAL: Delete encrypted password from database
+      // CRITICAL: Delete session token from database
       await storage.updateUser(userId, {
         metadata: {
           instagram_private_connected: false,
           instagram_username: null,
-          instagram_encrypted_password: null, // Delete encrypted password
+          instagram_session_token: null, // Delete encrypted session
           disconnected_at: new Date().toISOString(),
         },
       });

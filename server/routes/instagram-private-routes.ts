@@ -1,77 +1,57 @@
+
 import { Router } from 'express';
+import { instagramPrivateService } from '../lib/integrations/instagram-private';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 
 const router = Router();
 
-// OAuth flow - redirects to Instagram for permissions
-router.get('/oauth/authorize', requireAuth, async (req, res) => {
-  const userId = getCurrentUserId(req)!;
-
-  const redirectUri = `${process.env.APP_URL}/api/instagram-private/oauth/callback`;
-  const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
-
-  const authUrl = `https://api.instagram.com/oauth/authorize?` +
-    `client_id=${process.env.INSTAGRAM_APP_ID}&` +
-    `redirect_uri=${redirectUri}&` +
-    `scope=user_profile,user_media&` +
-    `response_type=code&` +
-    `state=${state}`;
-
-  res.json({ authUrl });
-});
-
-// OAuth callback - Instagram redirects here after user accepts
-router.get('/oauth/callback', async (req, res) => {
+router.post('/connect', requireAuth, async (req, res) => {
   try {
-    const { code, state } = req.query;
+    const userId = getCurrentUserId(req)!;
+    const { username, password } = req.body;
 
-    if (!code) {
-      return res.status(400).send('Authorization denied');
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const { userId } = JSON.parse(Buffer.from(state as string, 'base64').toString());
+    // Password is encrypted with AES-256-GCM immediately after login
+    // Even if database is hacked, password cannot be decrypted without ENCRYPTION_KEY
+    await instagramPrivateService.initializeClient(userId, username, password);
 
-    // Exchange code for access token
-    const tokenResponse = await fetch('https://api.instagram.com/oauth/access_token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.INSTAGRAM_APP_ID!,
-        client_secret: process.env.INSTAGRAM_APP_SECRET!,
-        grant_type: 'authorization_code',
-        redirect_uri: `${process.env.APP_URL}/api/instagram-private/oauth/callback`,
-        code: code as string,
-      }),
-    });
-
-    const tokenData = await tokenResponse.json();
-
-    await storage.updateUser(userId, {
-      metadata: {
-        instagram_connected: true,
-        instagram_access_token: tokenData.access_token,
-        instagram_user_id: tokenData.user_id,
+    res.json({
+      success: true,
+      message: 'Instagram connected successfully',
+      security_info: {
+        session_only: true,
+        encryption: 'AES-256-GCM',
+        note: 'Your password is NEVER stored. Only your session token is encrypted and saved for seamless reconnection.',
       },
     });
+  } catch (error: any) {
+    console.error('Instagram connection error:', error);
+    
+    // Check if it's 2FA/OTP challenge
+    if (error.message?.includes('challenge') || error.message?.includes('checkpoint')) {
+      return res.status(400).json({
+        error: 'Instagram requires verification',
+        code: 'CHALLENGE_REQUIRED',
+        message: 'Please verify your account on Instagram app first, then try connecting again',
+      });
+    }
 
-    res.redirect('/dashboard/integrations?instagram=success');
-  } catch (error) {
-    console.error('Instagram OAuth error:', error);
-    res.status(500).send('Authentication failed');
+    res.status(500).json({
+      error: error.message || 'Failed to connect Instagram',
+    });
   }
 });
 
 router.get('/status', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
-    const user = await storage.getUser(userId);
-    const metadata = user?.metadata as any;
+    const status = instagramPrivateService.getStatus(userId);
 
-    res.json({
-      connected: !!metadata?.instagram_connected,
-      username: metadata?.instagram_username,
-    });
+    res.json(status);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get status' });
   }
@@ -80,18 +60,80 @@ router.get('/status', requireAuth, async (req, res) => {
 router.post('/disconnect', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
+    await instagramPrivateService.disconnect(userId);
 
-    await storage.updateUser(userId, {
-      metadata: {
-        instagram_connected: false,
-        instagram_access_token: null,
-        instagram_user_id: null,
-      },
+    res.json({
+      success: true,
+      message: 'Instagram disconnected',
     });
-
-    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to disconnect' });
+  }
+});
+
+router.post('/send', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { recipientUsername, message, leadId, priority } = req.body;
+
+    if (!recipientUsername || !message) {
+      return res.status(400).json({
+        error: 'Recipient username and message are required',
+      });
+    }
+
+    await instagramPrivateService.sendMessage(
+      userId, 
+      recipientUsername, 
+      message,
+      priority || 'cold'
+    );
+
+    if (leadId) {
+      await storage.createMessage({
+        leadId,
+        userId,
+        provider: 'instagram',
+        direction: 'outbound',
+        body: message,
+        metadata: {
+          sent_via: 'instagram_private',
+          sent_at: new Date().toISOString(),
+        },
+      });
+    }
+
+    const status = instagramPrivateService.getStatus(userId);
+
+    res.json({
+      success: true,
+      message: 'Message sent successfully',
+      rateLimit: {
+        sent: status.messagesThisHour,
+        remaining: status.remainingThisHour,
+        resetTime: status.resetTime,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: error.message || 'Failed to send message',
+    });
+  }
+});
+
+router.get('/inbox', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const messages = await instagramPrivateService.getInbox(userId, limit);
+
+    res.json({
+      messages,
+      count: messages.length,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch inbox' });
   }
 });
 
