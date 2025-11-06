@@ -3,6 +3,12 @@ import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
 
+// Log if Redis isn't configured for production
+if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
+  console.warn('⚠️  REDIS_URL not set - rate limiting will use memory (not recommended for production)');
+  console.warn('💡 Add Redis from Replit to prevent rate limit bypass across restarts');
+}
+
 // Redis client for distributed rate limiting (optional)
 let redisClient: ReturnType<typeof createClient> | null = null;
 

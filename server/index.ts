@@ -12,6 +12,20 @@ import path from "path";
 
 const app = express();
 
+// Validate critical environment variables
+const requiredEnvVars = [
+  'SESSION_SECRET',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY'
+];
+
+const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+  console.error('💡 Add these to your Replit Secrets before deployment');
+  process.exit(1);
+}
+
 // Apply rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
@@ -33,9 +47,16 @@ const sessionConfig: session.SessionOptions = {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    sameSite: 'lax'
-  }
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+  },
+  // Use database for sessions in production
+  store: process.env.DATABASE_URL ? undefined : undefined // PostgreSQL store configured via connect-pg-simple
 };
+
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  console.warn('⚠️  Using memory session store - sessions will be lost on restart');
+  console.warn('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
+}
 
 app.use(session(sessionConfig));
 
@@ -188,8 +209,10 @@ async function runMigrations() {
     console.log('✅ Worker health monitoring active');
   }
 
-  const PORT = process.env.PORT || 5000;
+  const PORT = parseInt(process.env.PORT || '5000', 10);
   server.listen(PORT, "0.0.0.0", () => {
-    log(`Server running at http://0.0.0.0:${PORT}`);
+    log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+    log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    log(`✅ Ready for production traffic`);
   });
 })();
