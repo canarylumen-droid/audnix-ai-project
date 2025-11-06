@@ -133,6 +133,63 @@ export function WhatsAppConnect() {
 
   const statusDisplay = getStatusDisplay();
 
+  const [authMethod, setAuthMethod] = useState<'otp' | 'qr'>('otp');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+
+  const handleSendOTP = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp/connect-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      if (response.ok) {
+        setOtpSent(true);
+        toast({
+          title: 'OTP Sent',
+          description: 'Check your WhatsApp for the verification code',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Failed to send OTP',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp }),
+      });
+
+      if (response.ok) {
+        setStatus('ready');
+        toast({
+          title: 'Connected!',
+          description: 'WhatsApp connected successfully',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Invalid OTP',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -143,7 +200,7 @@ export function WhatsAppConnect() {
           WhatsApp Business
         </CardTitle>
         <CardDescription>
-          Connect your WhatsApp to automate messages and manage leads
+          Connect via OTP (recommended) or QR code
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

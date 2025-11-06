@@ -1,3 +1,4 @@
+
 import { Router } from 'express';
 import { whatsAppService } from '../lib/integrations/whatsapp-web';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
@@ -6,10 +7,89 @@ import { storage } from '../storage';
 
 const router = Router();
 
+// New OTP-based authentication flow
+router.post('/connect-otp', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Phone number required' });
+    }
+
+    // Send OTP via WhatsApp (using Twilio or similar)
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Store OTP temporarily (expires in 5 minutes)
+    await storage.updateUser(userId, {
+      metadata: {
+        whatsapp_otp: otpCode,
+        whatsapp_otp_expires: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        whatsapp_phone_pending: phoneNumber,
+      },
+    });
+
+    // TODO: Send OTP via Twilio WhatsApp
+    // For now, return it for testing (remove in production)
+    res.json({
+      success: true,
+      message: 'OTP sent to your WhatsApp',
+      // Remove this in production:
+      otp: otpCode,
+    });
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+router.post('/verify-otp', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { otp } = req.body;
+
+    const user = await storage.getUser(userId);
+    const metadata = user?.metadata as any;
+
+    if (!metadata?.whatsapp_otp || !metadata?.whatsapp_otp_expires) {
+      return res.status(400).json({ error: 'No OTP found. Please request a new one.' });
+    }
+
+    if (new Date() > new Date(metadata.whatsapp_otp_expires)) {
+      return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
+    }
+
+    if (otp !== metadata.whatsapp_otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    // OTP verified - connect WhatsApp
+    await whatsAppService.initializeClient(userId);
+
+    await storage.updateUser(userId, {
+      metadata: {
+        whatsapp_connected: true,
+        whatsapp_phone: metadata.whatsapp_phone_pending,
+        whatsapp_otp: null,
+        whatsapp_otp_expires: null,
+        whatsapp_phone_pending: null,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: 'WhatsApp connected successfully',
+    });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ error: 'Failed to verify OTP' });
+  }
+});
+
+// Keep existing QR code flow as fallback
 router.post('/connect', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
-
     await whatsAppService.initializeClient(userId);
 
     res.json({

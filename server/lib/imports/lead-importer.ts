@@ -72,21 +72,41 @@ export async function importInstagramLeads(userId: string): Promise<{
           lead = existingLead;
         }
 
-        // Import message history
-        if (conversation.messages && lead) {
-          for (const msg of conversation.messages) {
-            const messageData = {
-              leadId: lead.id,
-              userId,
-              provider: 'instagram' as const,
-              direction: msg.from?.id === conversation.participants?.[0]?.id ? 'inbound' as const : 'outbound' as const,
-              body: msg.message || '',
-              audioUrl: null,
-              metadata: { ig_message_id: msg.id }
-            };
+        // Import COMPLETE message history (all messages, not just recent)
+        if (lead) {
+          try {
+            // Fetch ALL messages from the conversation thread
+            const allMessages = await oauth.getAllMessages(accessToken, conversation.id);
+            
+            for (const msg of allMessages) {
+              // Check if message already exists
+              const existingMessages = await storage.getMessages(lead.id);
+              const exists = existingMessages.some(m => 
+                (m.metadata as any)?.ig_message_id === msg.id
+              );
+              
+              if (!exists) {
+                const messageData = {
+                  leadId: lead.id,
+                  userId,
+                  provider: 'instagram' as const,
+                  direction: msg.from?.id === conversation.participants?.[0]?.id ? 'inbound' as const : 'outbound' as const,
+                  body: msg.message || '',
+                  audioUrl: msg.audio_url || null,
+                  metadata: { 
+                    ig_message_id: msg.id,
+                    timestamp: msg.created_time,
+                    has_media: !!msg.attachments?.length,
+                  }
+                };
 
-            await storage.createMessage(messageData);
-            results.messagesImported++;
+                await storage.createMessage(messageData);
+                results.messagesImported++;
+              }
+            }
+          } catch (error) {
+            console.error(`Error importing messages for ${conversation.id}:`, error);
+            results.errors.push(`Failed to import messages for conversation ${conversation.id}`);
           }
         }
       } catch (error: any) {
