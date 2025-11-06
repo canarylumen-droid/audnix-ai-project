@@ -175,16 +175,20 @@ export async function getSubscriptionPaymentLink(
   userId: string
 ): Promise<string> {
   const paymentLinks = {
-    starter: process.env.STRIPE_PAYMENT_LINK_STARTER || "https://buy.stripe.com/starter",
-    pro: process.env.STRIPE_PAYMENT_LINK_PRO || "https://buy.stripe.com/pro",
-    enterprise: process.env.STRIPE_PAYMENT_LINK_ENTERPRISE || "https://buy.stripe.com/enterprise",
+    starter: process.env.STRIPE_PAYMENT_LINK_STARTER,
+    pro: process.env.STRIPE_PAYMENT_LINK_PRO,
+    enterprise: process.env.STRIPE_PAYMENT_LINK_ENTERPRISE,
   };
 
-  // Append user metadata to payment link
   const link = paymentLinks[planKey];
+  
+  if (!link) {
+    throw new Error(`Payment link not configured for plan: ${planKey}. Add STRIPE_PAYMENT_LINK_${planKey.toUpperCase()} to environment variables.`);
+  }
+
+  // Append user metadata to payment link
   const params = new URLSearchParams({
     client_reference_id: userId,
-    prefilled_email: '', // Will be filled by Stripe
   });
 
   return `${link}?${params.toString()}`;
@@ -198,15 +202,20 @@ export async function getTopupPaymentLink(
   userId: string
 ): Promise<string> {
   const paymentLinks = {
-    voice_100: process.env.STRIPE_PAYMENT_LINK_VOICE_100 || "https://buy.stripe.com/voice100",
-    voice_300: process.env.STRIPE_PAYMENT_LINK_VOICE_300 || "https://buy.stripe.com/voice300",
-    voice_600: process.env.STRIPE_PAYMENT_LINK_VOICE_600 || "https://buy.stripe.com/voice600",
-    voice_1200: process.env.STRIPE_PAYMENT_LINK_VOICE_1200 || "https://buy.stripe.com/voice1200",
-    leads_1000: process.env.STRIPE_PAYMENT_LINK_LEADS_1000 || "https://buy.stripe.com/leads1000",
-    leads_2500: process.env.STRIPE_PAYMENT_LINK_LEADS_2500 || "https://buy.stripe.com/leads2500",
+    voice_100: process.env.STRIPE_PAYMENT_LINK_VOICE_100,
+    voice_300: process.env.STRIPE_PAYMENT_LINK_VOICE_300,
+    voice_600: process.env.STRIPE_PAYMENT_LINK_VOICE_600,
+    voice_1200: process.env.STRIPE_PAYMENT_LINK_VOICE_1200,
+    leads_1000: process.env.STRIPE_PAYMENT_LINK_LEADS_1000,
+    leads_2500: process.env.STRIPE_PAYMENT_LINK_LEADS_25000",
   };
 
   const link = paymentLinks[topupKey];
+  
+  if (!link) {
+    throw new Error(`Payment link not configured for top-up: ${topupKey}. Add STRIPE_PAYMENT_LINK_${topupKey.toUpperCase()} to environment variables.`);
+  }
+
   const params = new URLSearchParams({
     client_reference_id: userId,
   });
