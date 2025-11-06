@@ -12,18 +12,29 @@ import path from "path";
 
 const app = express();
 
-// Validate critical environment variables
-const requiredEnvVars = [
-  'SESSION_SECRET',
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY'
-];
+// Validate critical environment variables for production
+const criticalEnvVars = ['SESSION_SECRET'];
+const missingCritical = criticalEnvVars.filter(v => !process.env[v]);
 
-const missingVars = requiredEnvVars.filter(v => !process.env[v]);
-if (missingVars.length > 0) {
-  console.error('❌ Missing required environment variables:', missingVars.join(', '));
+if (missingCritical.length > 0 && process.env.NODE_ENV === 'production') {
+  console.error('❌ Missing required environment variables:', missingCritical.join(', '));
   console.error('💡 Add these to your Replit Secrets before deployment');
   process.exit(1);
+}
+
+// Warn about optional variables (Supabase) but don't exit
+const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingOptional = optionalEnvVars.filter(v => !process.env[v]);
+
+if (missingOptional.length > 0) {
+  console.warn('⚠️  Optional environment variables not set:', missingOptional.join(', '));
+  console.warn('💡 The app will run in demo mode without these. Add them for full functionality.');
+}
+
+// Generate a session secret for development if not provided
+if (!process.env.SESSION_SECRET) {
+  process.env.SESSION_SECRET = 'dev-secret-' + Math.random().toString(36);
+  console.warn('⚠️  Using generated SESSION_SECRET for development. Set a secure one for production!');
 }
 
 // Apply rate limiting

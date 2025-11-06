@@ -1,0 +1,133 @@
+Please add the following environment variables for payment links in the :
+
+# Subscription Plans
+STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/3cI00j77e0KL2fi6BI2kw0f
+STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/aFa00jezGbpp2fiaRY2kw0g
+STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/8x27sLdvC799dY0f8e2kw0h
+# Voice Minute Top-ups
+STRIPE_PAYMENT_LINK_VOICE_100=https://buy.stripe.com/aaaaa
+STRIPE_PAYMENT_LINK_VOICE_300=https://buy.stripe.com/bbbbb
+STRIPE_PAYMENT_LINK_VOICE_600=https://buy.stripe.com/ccccc
+STRIPE_PAYMENT_LINK_VOICE_1200=https://buy.stripe.com/ddddd
+Make sure the application accounts for these payment links while processing user payments and unlocking features accordingly based on their selected plans.
+
+Feel free to adapt the wording as needed!
+
+
+Even redis AI analytics for ROI
+Every otp to work fine go get outlook API or even wrapper they can connect it manually if there's no erapper remove outlook entirely since Gmail API is there and custom or business email SMTP is there too so no need
+And fix all issues now for deployment on render or Vercel we added aoibkeys we had security issues even on GitHub dependencies and issues and errors even build errors
+Fix all this is the lssy stage debug take time fix everything every UI errors hardcoded keys if payment links will cause it whicj u dont think so fix all it'll be in env.examlle file or render secrets anyone let our app be able to read it and unpocl fetaures based on their pla. No errors check the payment stripe links to be sure it's for the coreect price fix all make sure irs correct perfect
+84 oakages needs funding give it funding Audit fixnall install all oackages to run even while starting add the task not found everything to work scalable like full Saas app from automation to closing sales to inevrarions to lead import sync every in real time no error or isshes too
+Server-side request forgery
+Critical
+#10 opened 18 hours ago • Detected by CodeQL in server/.../webhooks/instagram-webhook.ts :382
+main
+
+Server-side request forgery
+Critical
+#9 opened 18 hours ago • Detected by CodeQL in server/.../oauth/whatsapp.ts :123
+main
+
+Missing CSRF middleware
+High
+#8 opened 18 hours ago • Detected by CodeQL in server/index.ts :40
+main
+
+Incomplete multi-character sanitization
+High
+#7 opened 18 hours ago • Detected by CodeQL in server/.../channels/email.ts :211
+main
+
+Uncontrolled data used in path expression
+High
+#6 opened 18 hours ago • Detected by CodeQL in server/lib/file-upload.ts :122
+main
+
+Uncontrolled data used in path expression
+High
+#5 opened 18 hours ago • Detected by CodeQL in server/lib/file-upload.ts :103
+main
+
+Reflected cross-site scripting
+High
+#4 opened 18 hours ago • Detected by CodeQL in server/.../webhooks/instagram-webhook.ts :61
+main
+
+Insecure randomness
+High
+#3 opened 18 hours ago • Detected by CodeQL in scripts/seed_demo.ts :43
+main
+
+Missing rate limiting
+High
+#2 opened 18 hours ago • Detected by CodeQL in server/vite.ts :79
+main
+
+Missing rate limiting
+High
+#1 opened 18 hours ago • Detected by CodeQL in server/vite.ts :41
+Server-side request forgery
+Critical
+#10 opened 18 hours ago • Detected by CodeQL in server/.../webhooks/instagram-webhook.ts :382
+main
+
+Server-side request forgery
+Critical
+#9 opened 18 hours ago • Detected by CodeQL in server/.../oauth/whatsapp.ts :123
+main
+
+Missing CSRF middleware
+High
+#8 opened 18 hours ago • Detected by CodeQL in server/index.ts :40
+main
+
+Incomplete multi-character sanitization
+High
+#7 opened 18 hours ago • Detected by CodeQL in server/.../channels/email.ts :211
+main
+
+Uncontrolled data used in path expression
+High
+#6 opened 18 hours ago • Detected by CodeQL in server/lib/file-upload.ts :122
+main
+
+Uncontrolled data used in path expression
+High
+#5 opened 18 hours ago • Detected by CodeQL in server/lib/file-upload.ts :103
+main
+
+Reflected cross-site scripting
+High
+#4 opened 18 hours ago • Detected by CodeQL in server/.../webhooks/instagram-webhook.ts :61
+main
+
+Insecure randomness
+High
+#3 opened 18 hours ago • Detected by CodeQL in scripts/seed_demo.ts :43
+main
+
+Missing rate limiting
+High
+#2 opened 18 hours ago • Detected by CodeQL in server/vite.ts :79
+main
+
+Missing rate limiting
+High
+#1 opened 18 hours ago • Detected by CodeQL in server/vite.ts :41
+Manually import leads and let AI handle outreach:
+
+Upload CSV/Excel - Import thousands of leads with Name, Email, Phone, Company
+Smart Field Detection - AI auto-detects columns (Name, Email, Phone, etc.)
+WhatsApp Campaigns - Connect WhatsApp Business API → AI sends personalized WhatsApp messages (FREE for first 1,000/month!)
+Email Sequences - AI crafts multi-step email campaigns with smart follow-ups
+Deduplication - Prevents duplicate imports across all channels
+Export Anytime - Download all leads + conversation history as CSV
+Perfect Use Cases:
+
+Event attendee follow-ups (upload attendee list → auto-outreach)
+Cold outreach campaigns (purchased lead lists → AI personalization)
+Webinar registrants (import → automated nurture sequence)
+CRM migrations (import existing leads → AI takes over)
+Checm build errors and logs from Vercel render and GitHub critical medium and every issues to be fixed and handled immediately clean smooth no eroros last one to osucj debug properly please once we add it again and refresh we go live tooEven on reolit check the run screen it's saying csnt opem port issues so let everything run anywhere snd on render specifically and Vercel this two can't run janfle everything well please 
+Read all files foldeRs dependencies codes eVeru lines check well no hardcoding work immediately real time once no eorrs AgaIn igf you can't get outlook API or public one or use wrappers for them to login manually then remove it and the UI to if you can the. Leave it bro update read me env everything and landing page to the fullest with every features like a sales man drag attention

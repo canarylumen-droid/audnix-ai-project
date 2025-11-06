@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Encrypt and store integration
       const integration = await storage.createIntegration({
         userId,
-        provider: provider as "instagram" | "whatsapp" | "gmail" | "outlook" | "manychat",
+        provider: provider as "instagram" | "whatsapp" | "gmail" | "manychat",
         encryptedMeta: JSON.stringify({ tokens, metadata }),
         connected: true,
       });

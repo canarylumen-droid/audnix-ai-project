@@ -35,7 +35,6 @@ const channelIcons = {
   instagram: Instagram,
   whatsapp: SiWhatsapp,
   gmail: SiGoogle,
-  outlook: Mail,
 };
 
 export default function IntegrationsPage() {
@@ -370,16 +369,14 @@ export default function IntegrationsPage() {
     const channelMap: Record<string, "instagram" | "whatsapp" | "email"> = {
       instagram: "instagram",
       whatsapp: "whatsapp",
-      gmail: "email",
-      outlook: "email"
+      gmail: "email"
     };
 
-    // Map provider to backend endpoint (gmail/outlook -> gmail for backend)
+    // Map provider to backend endpoint
     const providerToEndpoint: Record<string, string> = {
       instagram: "instagram",
       whatsapp: "whatsapp",
-      gmail: "gmail",
-      outlook: "gmail"  // Both gmail and outlook use the gmail endpoint
+      gmail: "gmail"
     };
 
     setImportingChannel(channelMap[provider]);
@@ -430,7 +427,7 @@ export default function IntegrationsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["instagram", "whatsapp", "gmail", "outlook"].map((providerId, index) => {
+            {["instagram", "whatsapp", "gmail"].map((providerId, index) => {
               const integration = integrations.find((i: any) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
@@ -466,8 +463,7 @@ export default function IntegrationsPage() {
                             <CardDescription className="text-sm">
                               {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
                               {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
-                              {providerId === "gmail" && "Connect Gmail for email automation"}
-                              {providerId === "outlook" && "Connect Outlook for email automation"}
+                              {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
                             </CardDescription>
                           </div>
                         </div>
@@ -490,7 +486,7 @@ export default function IntegrationsPage() {
                             <p className="text-xs text-muted-foreground">
                               {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
                               {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
-                              {(providerId === "gmail" || providerId === "outlook") && "Email conversations are being securely synced"}
+                              {providerId === "gmail" && "Email conversations are being securely synced"}
                             </p>
                           </div>
                           <div className="flex gap-2">

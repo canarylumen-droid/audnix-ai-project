@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -35,6 +36,9 @@ async function seedUser() {
   const trialExpiresAt = new Date();
   trialExpiresAt.setDate(trialExpiresAt.getDate() + 3);
 
+  // Use crypto.randomUUID() for secure random ID generation
+  const secureRandomId = crypto.randomUUID();
+
   const { data, error } = await supabase
     .from('users')
     .insert({
@@ -43,7 +47,7 @@ async function seedUser() {
       username: name.toLowerCase().replace(' ', '_'),
       plan: 'trial',
       trial_expires_at: trialExpiresAt.toISOString(),
-      supabase_id: `demo_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+      supabase_id: `demo_${Date.now()}_${secureRandomId.substring(0, 7)}`,
     })
     .select()
     .single();
@@ -70,7 +74,8 @@ async function runSeeder() {
 
     await seedUser();
     count++;
-  }, Math.random() * 5000 + 2000); // Random interval between 2-7 seconds
+    // Use crypto for secure random intervals between 2-7 seconds
+  }, crypto.randomInt(2000, 7000));
 }
 
 runSeeder();

@@ -2,7 +2,7 @@ import { Request, Response, Router } from 'express';
 import { InstagramOAuth } from '../lib/oauth/instagram';
 import { WhatsAppOAuth } from '../lib/oauth/whatsapp';
 import { GmailOAuth } from '../lib/oauth/gmail';
-import { OutlookOAuth } from '../lib/oauth/outlook';
+// import { OutlookOAuth } from '../lib/oauth/outlook'; // Removed - use Gmail + custom SMTP
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { encrypt } from '../lib/crypto/encryption';
@@ -11,7 +11,7 @@ const router = Router();
 const instagramOAuth = new InstagramOAuth();
 const whatsappOAuth = new WhatsAppOAuth();
 const gmailOAuth = new GmailOAuth();
-const outlookOAuth = new OutlookOAuth();
+// const outlookOAuth = new OutlookOAuth(); // Removed - use Gmail + custom SMTP
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 
 // ==================== INSTAGRAM OAUTH ====================
@@ -426,147 +426,11 @@ router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
   }
 });
 
-// ==================== OUTLOOK OAUTH ====================
-
-/**
- * Initialize OAuth flow for Outlook
- */
-router.get('/connect/outlook', async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const authUrl = outlookOAuth.getAuthorizationUrl(userId);
-    res.json({ authUrl });
-  } catch (error) {
-    console.error('Error initiating Outlook OAuth:', error);
-    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
-  }
-});
-
-/**
- * Handle OAuth callback from Outlook
- */
-router.get('/oauth/outlook/callback', async (req: Request, res: Response) => {
-  try {
-    const { code, state, error, error_description } = req.query;
-
-    if (error) {
-      console.error('Outlook OAuth error:', error, error_description);
-      return res.redirect('/dashboard/integrations?error=outlook_denied');
-    }
-
-    if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
-    }
-
-    // Verify state
-    const stateData = outlookOAuth.verifyState(state as string);
-    if (!stateData) {
-      return res.redirect('/dashboard/integrations?error=invalid_state');
-    }
-
-    // Exchange code for tokens
-    const tokens = await outlookOAuth.exchangeCodeForToken(code as string);
-    
-    // Get user profile
-    const profile = await outlookOAuth.getUserProfile(tokens.access_token);
-    
-    // Save tokens
-    await outlookOAuth.saveToken(stateData.userId, tokens, profile);
-
-    // Create integration record
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .upsert({
-          user_id: stateData.userId,
-          provider: 'outlook',
-          account_type: profile.mail || profile.userPrincipalName,
-          credentials: { 
-            email: profile.mail || profile.userPrincipalName,
-            name: profile.displayName
-          },
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
-    }
-
-    res.redirect('/dashboard/integrations?success=outlook_connected');
-  } catch (error) {
-    console.error('Outlook OAuth callback error:', error);
-    res.redirect('/dashboard/integrations?error=outlook_oauth_failed');
-  }
-});
-
-/**
- * Disconnect Outlook
- */
-router.post('/oauth/outlook/disconnect', async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).session?.userId || req.body.user_id;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    await outlookOAuth.revokeToken(userId);
-    
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'outlook');
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error disconnecting Outlook:', error);
-    res.status(500).json({ error: 'Failed to disconnect' });
-  }
-});
-
-/**
- * Check Outlook token status
- */
-router.get('/oauth/outlook/status', async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const token = await outlookOAuth.getValidToken(userId);
-    
-    if (token) {
-      try {
-        const profile = await outlookOAuth.getUserProfile(token);
-        res.json({ 
-          connected: true,
-          email: profile.mail || profile.userPrincipalName,
-          name: profile.displayName
-        });
-      } catch (error) {
-        res.json({ connected: false, error: 'Token expired or invalid' });
-      }
-    } else {
-      res.json({ connected: false });
-    }
-  } catch (error) {
-    console.error('Error checking Outlook status:', error);
-    res.status(500).json({ error: 'Failed to check status' });
-  }
-});
+// ==================== OUTLOOK OAUTH (REMOVED) ====================
+// Outlook integration has been removed in favor of Gmail + custom SMTP
+// which provides better coverage with simpler setup.
+// Gmail handles most email use cases, and custom SMTP allows users
+// to configure any business email provider directly.
 
 // ==================== GOOGLE CALENDAR OAUTH ====================
 

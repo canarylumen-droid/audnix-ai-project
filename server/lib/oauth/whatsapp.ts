@@ -119,8 +119,21 @@ export class WhatsAppOAuth {
     authToken: string;
   }): Promise<boolean> {
     try {
-      const url = `https://api.twilio.com/2010-04-01/Accounts/${credentials.accountSid}.json`;
-      const response = await fetch(url, {
+      // Validate accountSid format to prevent SSRF
+      if (!/^AC[a-f0-9]{32}$/i.test(credentials.accountSid)) {
+        return false;
+      }
+      
+      // Only allow requests to Twilio API
+      const allowedHost = 'api.twilio.com';
+      const url = new URL(`https://${allowedHost}/2010-04-01/Accounts/${credentials.accountSid}.json`);
+      
+      // Double-check the host to prevent DNS rebinding attacks
+      if (url.hostname !== allowedHost) {
+        return false;
+      }
+      
+      const response = await fetch(url.toString(), {
         headers: {
           "Authorization": `Basic ${Buffer.from(`${credentials.accountSid}:${credentials.authToken}`).toString('base64')}`
         }

@@ -100,7 +100,21 @@ export async function uploadToSupabase(
     throw new Error("Supabase not configured");
   }
 
-  const fileBuffer = await fs.readFile(localPath);
+  // Validate localPath to prevent path traversal attacks
+  const resolvedPath = path.resolve(localPath);
+  const uploadDirResolved = path.resolve(uploadDir);
+  
+  // Use path.relative to ensure the file is truly within the upload directory
+  const relativePath = path.relative(uploadDirResolved, resolvedPath);
+  const isInsideUploadDir = relativePath && 
+    !relativePath.startsWith('..') && 
+    !path.isAbsolute(relativePath);
+  
+  if (!isInsideUploadDir) {
+    throw new Error("Invalid file path: path traversal detected");
+  }
+
+  const fileBuffer = await fs.readFile(resolvedPath);
   
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -118,8 +132,15 @@ export async function uploadToSupabase(
     .from(bucket)
     .getPublicUrl(filePath);
 
-  // Clean up local file
-  await fs.unlink(localPath).catch(console.error);
+  // Clean up local file - validate path again before deletion
+  const relativePathCheck = path.relative(uploadDirResolved, resolvedPath);
+  const canDelete = relativePathCheck && 
+    !relativePathCheck.startsWith('..') && 
+    !path.isAbsolute(relativePathCheck);
+    
+  if (canDelete) {
+    await fs.unlink(resolvedPath).catch(console.error);
+  }
 
   return publicUrl;
 }

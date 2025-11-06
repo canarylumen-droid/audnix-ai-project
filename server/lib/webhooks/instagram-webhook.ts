@@ -56,9 +56,15 @@ export function handleInstagramVerification(req: Request, res: Response) {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
+  // Sanitize challenge parameter to prevent XSS
+  const sanitizedChallenge = typeof challenge === 'string' 
+    ? challenge.replace(/[<>]/g, '') 
+    : '';
+
   if (mode === 'subscribe' && token === process.env.INSTAGRAM_WEBHOOK_TOKEN) {
     console.log('Instagram webhook verified');
-    res.status(200).send(challenge);
+    // Send plain text to prevent any script injection
+    res.status(200).type('text/plain').send(sanitizedChallenge);
   } else {
     res.sendStatus(403);
   }
@@ -379,9 +385,24 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
 
     if (!tokenData) return { username: 'Instagram User' };
 
-    const response = await fetch(
-      `https://graph.instagram.com/${userId}?fields=name,username&access_token=${tokenData.access_token}`
-    );
+    // Validate userId to prevent SSRF - only allow numeric Instagram IDs
+    if (!/^\d+$/.test(userId)) {
+      console.error('Invalid Instagram user ID format');
+      return { username: 'Instagram User' };
+    }
+
+    // Only allow requests to Instagram Graph API
+    const allowedHost = 'graph.instagram.com';
+    const url = new URL(`https://${allowedHost}/${userId}`);
+    url.searchParams.set('fields', 'name,username');
+    url.searchParams.set('access_token', tokenData.access_token);
+    
+    // Double-check the host to prevent DNS rebinding attacks
+    if (url.hostname !== allowedHost) {
+      return { username: 'Instagram User' };
+    }
+    
+    const response = await fetch(url.toString());
     
     const profile = await response.json();
     return profile;

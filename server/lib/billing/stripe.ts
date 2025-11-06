@@ -210,7 +210,6 @@ export async function getSubscriptionPaymentLink(
 
   // Fallback: If you only have Price IDs, create Checkout Session
   // This requires STRIPE_SECRET_KEY to be set
-  const plan = PLANS[planKey];
   console.warn(`No payment link found for ${planKey}. You should create one in Stripe Dashboard → Payment Links`);
 
   // Return a placeholder - user needs to create payment links
