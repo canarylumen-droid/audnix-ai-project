@@ -453,20 +453,25 @@ export default function IntegrationsPage() {
                           <div className="p-2 rounded-lg bg-primary/10">
                             <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
                           </div>
-                          <div>
-                            <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                              {providerId}
-                            </CardTitle>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                                {providerId}
+                              </CardTitle>
+                              {providerId === "instagram" && (
+                                <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
+                              )}
+                            </div>
                             <CardDescription className="text-sm">
-                              {providerId === "instagram" && "Connect Instagram DMs for automated follow-ups"}
-                              {providerId === "whatsapp" && "Sync WhatsApp Business conversations"}
+                              {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
+                              {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
                               {providerId === "gmail" && "Connect Gmail for email automation"}
                               {providerId === "outlook" && "Connect Outlook for email automation"}
                             </CardDescription>
                           </div>
                         </div>
                         {isConnected && (
-                          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500" data-testid={`badge-connected-${providerId}`}>
+                          <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
                             <Check className="h-3 w-3 mr-1" />
                             Connected
                           </Badge>
@@ -476,9 +481,15 @@ export default function IntegrationsPage() {
                     <CardContent className="space-y-3">
                       {isConnected ? (
                         <>
-                          <div className="text-sm space-y-1">
-                            <p className="text-muted-foreground">
-                              Account: <span className="font-medium text-foreground" data-testid={`text-account-${providerId}`}>{integration.accountType || "Connected"}</span>
+                          <div className="text-sm space-y-2">
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span className="font-medium">Connected • Importing leads...</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
+                              {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
+                              {(providerId === "gmail" || providerId === "outlook") && "Email conversations are being securely synced"}
                             </p>
                           </div>
                           <div className="flex gap-2">

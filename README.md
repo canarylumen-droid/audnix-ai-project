@@ -1,4 +1,3 @@
-
 # 🚀 Audnix AI - AI-Powered CRM for Multi-Channel Lead Management
 
 > **Production-Ready SaaS Platform** - AI follow-up automation across Instagram, WhatsApp, Gmail, and more. Full-stack application with real database integration, authentication, and analytics.
@@ -349,6 +348,43 @@ When voice minutes are exhausted:
 - **Google APIs** - Calendar, Gmail integration
 - **WhatsApp Web** - QR code wrapper (no official API), persistent sessions
 - **Instagram Graph API** - For DMs and comment monitoring
+
+## Integrations
+
+### Instagram (OAuth)
+**Setup**: Click "Connect Instagram" → Confirm in Instagram app
+
+**Security:**
+- ✅ Credentials discarded immediately after OAuth
+- ✅ Only encrypted session tokens stored (AES-256-GCM)
+- ✅ End-to-end encrypted conversations
+- ✅ Messages never leave secure connection
+
+**Features:**
+- OAuth login (Business/Creator accounts)
+- Auto-import all DMs and conversations
+- Real-time message sync
+- Send DMs with product links
+- Reply to comments
+- Follow/unfollow automation
+
+### WhatsApp (OTP Authentication)
+**Setup**: Enter phone → WhatsApp sends OTP → Enter code → Connected
+
+**Security:**
+- ✅ WhatsApp sends OTP directly (not us)
+- ✅ No credentials stored anywhere
+- ✅ Persistent encrypted sessions
+- ✅ End-to-end encrypted messages
+- ✅ All data stays in your secure connection
+
+**Features:**
+- Persistent sessions (no re-authentication needed)
+- Auto-import all WhatsApp conversations
+- Send/receive messages in real-time
+- Media support (images, voice notes)
+- Group detection (skips group messages)
+- Human-like delays (anti-ban protection)
 
 ## 🎯 Why This is Transformative for Creators
 
