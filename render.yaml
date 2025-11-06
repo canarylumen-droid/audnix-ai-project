@@ -95,8 +95,24 @@ services:
       - key: OUTLOOK_CLIENT_SECRET
         sync: false
       
-      # Redis for caching (optional, improves performance)
+      # Redis for AI Analytics & ROI (REQUIRED)
       - key: REDIS_URL
+        sync: false
+      
+      # Stripe Payment Links (REQUIRED for subscriptions)
+      - key: STRIPE_PAYMENT_LINK_STARTER
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_PRO
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_ENTERPRISE
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_VOICE_100
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_VOICE_300
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_VOICE_600
+        sync: false
+      - key: STRIPE_PAYMENT_LINK_VOICE_1200
         sync: false
 
 databases:
