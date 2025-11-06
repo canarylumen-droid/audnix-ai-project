@@ -200,7 +200,7 @@ export default function DashboardHome() {
                       className="inline-block text-5xl"
                     >
                       👋
-                    </motion.h1>
+                    </motion.span>
                     <motion.p 
                       className="text-white mt-3 text-xl font-medium" 
                       data-testid="text-subtitle"
