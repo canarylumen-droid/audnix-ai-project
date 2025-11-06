@@ -8,6 +8,10 @@ export function WhatsAppConnect() {
   const [status, setStatus] = useState<'disconnected' | 'qr_ready' | 'authenticated' | 'ready'>('disconnected');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'qr' | 'otp'>('otp'); // Default to OTP (professional)
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -35,6 +39,86 @@ export function WhatsAppConnect() {
       }
     } catch (error) {
       console.error('Error checking WhatsApp status:', error);
+    }
+  };
+
+  const handleRequestOTP = async () => {
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast({
+        title: 'Invalid phone number',
+        description: 'Enter your phone number with country code (e.g., +2348012345678)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp-otp/otp/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setOtpSent(true);
+        toast({
+          title: '✅ OTP Sent!',
+          description: 'Check your WhatsApp for the 6-digit code from Twilio',
+        });
+      } else {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Failed to send OTP',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length !== 6) {
+      toast({
+        title: 'Invalid OTP',
+        description: 'Enter the 6-digit code',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/whatsapp-otp/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, otp }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus('ready');
+        toast({
+          title: '🎉 WhatsApp Connected!',
+          description: 'Your WhatsApp is now connected via Twilio',
+        });
+      } else {
+        throw new Error(data.error || 'Invalid OTP');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Verification failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -217,8 +301,84 @@ export function WhatsAppConnect() {
 
         {status === 'disconnected' && !qrCode && (
           <div className="space-y-4">
+            {/* Method Selector */}
+            <div className="flex gap-2 p-1 bg-muted rounded-lg">
+              <Button
+                variant={authMethod === 'otp' ? 'default' : 'ghost'}
+                className="flex-1"
+                onClick={() => setAuthMethod('otp')}
+              >
+                📱 OTP (Recommended)
+              </Button>
+              <Button
+                variant={authMethod === 'qr' ? 'default' : 'ghost'}
+                className="flex-1"
+                onClick={() => setAuthMethod('qr')}
+              >
+                📷 QR Code
+              </Button>
+            </div>
+
+            {/* OTP Method */}
+            {authMethod === 'otp' && (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground text-center">
+                  🔒 Professional authentication - Twilio sends OTP to your WhatsApp
+                </p>
+                
+                {!otpSent ? (
+                  <>
+                    <input
+                      type="tel"
+                      placeholder="+2348012345678"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                    />
+                    <Button
+                      onClick={handleRequestOTP}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : '📲 '}
+                      Send OTP via WhatsApp
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Enter 6-digit code"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      maxLength={6}
+                      className="w-full px-4 py-2 border rounded-lg text-center text-2xl tracking-widest focus:ring-2 focus:ring-primary"
+                    />
+                    <Button
+                      onClick={handleVerifyOTP}
+                      disabled={loading}
+                      className="w-full"
+                    >
+                      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : '✅ '}
+                      Verify OTP
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp('');
+                      }}
+                      className="w-full"
+                    >
+                      ← Back
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* QR Code Method */}
-            {!qrCode && (
+            {authMethod === 'qr' && (
               <div className="text-center space-y-3">
                 <p className="text-sm text-muted-foreground">
                   Click below to generate a QR code for WhatsApp Web

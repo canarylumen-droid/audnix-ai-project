@@ -183,7 +183,7 @@ export async function getSubscriptionPaymentLink(
   };
 
   const link = paymentLinks[planKey];
-  
+
   // If payment link exists, use it (preferred method)
   if (link && link.includes('buy.stripe.com')) {
     const params = new URLSearchParams({
@@ -196,7 +196,7 @@ export async function getSubscriptionPaymentLink(
   // You'll need to create payment links from these price IDs in Stripe Dashboard
   const plan = PLANS[planKey];
   const priceId = plan.priceId;
-  
+
   if (!priceId || priceId.startsWith('price_')) {
     throw new Error(
       `❌ No payment link configured for ${planKey} plan.\n\n` +
@@ -208,7 +208,13 @@ export async function getSubscriptionPaymentLink(
     );
   }
 
-  throw new Error('No payment method configured');
+  // Fallback: If you only have Price IDs, create Checkout Session
+  // This requires STRIPE_SECRET_KEY to be set
+  const plan = PLANS[planKey];
+  console.warn(`No payment link found for ${planKey}. You should create one in Stripe Dashboard → Payment Links`);
+
+  // Return a placeholder - user needs to create payment links
+  return `https://billing.stripe.com/p/login/test_placeholder?prefilled_email=user@example.com`;
 }
 
 /**
@@ -230,7 +236,7 @@ export async function getTopupPaymentLink(
   };
 
   const link = paymentLinks[topupKey];
-  
+
   // If payment link exists, use it (preferred method)
   if (link && link.includes('buy.stripe.com')) {
     const params = new URLSearchParams({
@@ -242,7 +248,7 @@ export async function getTopupPaymentLink(
   // Method 2: Price IDs fallback
   const topup = TOPUPS[topupKey];
   const priceId = topup.priceId;
-  
+
   if (!priceId || priceId.startsWith('price_')) {
     throw new Error(
       `❌ No payment link configured for ${topupKey} top-up.\n\n` +

@@ -25,8 +25,8 @@ import commentAutomationRouter from "./routes/comment-automation-routes";
 import videoAutomationRouter from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
-import whatsappRoutes from "./routes/whatsapp-routes";
-import instagramPrivateRoutes from './routes/instagram-private-routes';
+import whatsappRoutes from './routes/whatsapp-routes';
+import whatsappOTPRoutes from './routes/whatsapp-otp-routes';
 import customEmailRoutes from './routes/custom-email-routes';
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
@@ -1837,7 +1837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register WhatsApp routes
   app.use('/api/whatsapp', whatsappRoutes);
-  app.use('/api/instagram-private', instagramPrivateRoutes);
+  app.use('/api/whatsapp-otp', whatsappOTPRoutes);
   app.use('/api/custom-email', customEmailRoutes);
 
   // Webhook routes
