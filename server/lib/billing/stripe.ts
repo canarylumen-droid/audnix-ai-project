@@ -292,7 +292,7 @@ export async function processTopupSuccess(
 ): Promise<void> {
   console.log(`Processing top-up for user ${userId}: ${topupAmount} minutes`);
 
-  const { storage } = await import('../storage');
+  const { storage } = await import('../../storage');
 
   // Get current user
   const user = await storage.getUserById(userId);
