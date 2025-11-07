@@ -272,10 +272,159 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Multi-Channel Showcase Section */}
       <section className="py-20 px-4 relative border-y border-white/10">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              AI Working Across <span className="text-primary">All Your Channels</span>
+            </h2>
+            <p className="text-lg text-white/80">Watch your AI assistant in action on Instagram, Email & WhatsApp</p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {[
+              {
+                name: "Instagram",
+                color: "from-pink-500 to-purple-600",
+                bgColor: "bg-gradient-to-br from-pink-500/10 to-purple-600/10",
+                borderColor: "border-pink-500/30",
+                icon: InstagramIcon,
+                iconColor: "text-pink-500",
+                screens: [
+                  { title: "AI Replying", desc: "Responding to DMs instantly" },
+                  { title: "Import Leads", desc: "Syncing followers automatically" },
+                  { title: "Full Analytics", desc: "Track engagement & conversions" }
+                ]
+              },
+              {
+                name: "Email",
+                color: "from-blue-500 to-cyan-600",
+                bgColor: "bg-gradient-to-br from-blue-500/10 to-cyan-600/10",
+                borderColor: "border-blue-500/30",
+                icon: Mail,
+                iconColor: "text-blue-500",
+                screens: [
+                  { title: "AI Replying", desc: "Smart email responses 24/7" },
+                  { title: "Import Leads", desc: "Connect Gmail & Outlook" },
+                  { title: "Full Analytics", desc: "Open rates & conversions" }
+                ]
+              },
+              {
+                name: "WhatsApp",
+                color: "from-green-500 to-emerald-600",
+                bgColor: "bg-gradient-to-br from-green-500/10 to-emerald-600/10",
+                borderColor: "border-green-500/30",
+                icon: Phone,
+                iconColor: "text-green-500",
+                screens: [
+                  { title: "AI Replying", desc: "Voice notes & text messages" },
+                  { title: "Import Leads", desc: "Scan QR to sync contacts" },
+                  { title: "Full Analytics", desc: "Message stats & revenue" }
+                ]
+              }
+            ].map((channel, index) => {
+              const [activeScreen, setActiveScreen] = useState(0);
+              
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.15 }}
+                >
+                  <Card className={`${channel.bgColor} border-2 ${channel.borderColor} p-6 h-full hover:scale-105 transition-all duration-300 group`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${channel.color} flex items-center justify-center`}>
+                        <channel.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold">{channel.name}</h3>
+                        <div className="flex gap-1 mt-1">
+                          {channel.screens.map((_, dotIndex) => (
+                            <button
+                              key={dotIndex}
+                              onClick={() => setActiveScreen(dotIndex)}
+                              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                activeScreen === dotIndex 
+                                  ? `bg-gradient-to-r ${channel.color} w-6` 
+                                  : 'bg-white/30 hover:bg-white/50'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 min-h-[180px]">
+                      <div className={`p-4 rounded-lg bg-gradient-to-br ${channel.color} bg-opacity-20 border ${channel.borderColor}`}>
+                        <div className="flex items-start gap-3">
+                          {activeScreen === 0 && <MessageSquare className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+                          {activeScreen === 1 && <Users className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+                          {activeScreen === 2 && <BarChart3 className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+                          <div>
+                            <h4 className="font-semibold text-lg mb-1">{channel.screens[activeScreen].title}</h4>
+                            <p className="text-white/80 text-sm">{channel.screens[activeScreen].desc}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {activeScreen === 0 && (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                              <Brain className="w-4 h-4 text-primary" />
+                            </div>
+                            <div className="flex-1 bg-white/5 rounded-lg p-2">
+                              <p className="text-white/90">Hi! Thanks for your interest...</p>
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-lg p-2 max-w-[80%]">
+                              <p className="text-white/90 text-xs">AI typing response...</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeScreen === 1 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-white/70">Leads imported</span>
+                            <span className="font-bold text-primary">127 new</span>
+                          </div>
+                          <Progress value={85} className="h-2" />
+                          <p className="text-xs text-white/60">Auto-syncing every 30 mins</p>
+                        </div>
+                      )}
+
+                      {activeScreen === 2 && (
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-white/60 text-xs mb-1">Response Rate</p>
+                            <p className="text-2xl font-bold text-primary">94%</p>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-3">
+                            <p className="text-white/60 text-xs mb-1">Conversions</p>
+                            <p className="text-2xl font-bold text-emerald-400">3.2x</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
             {[
               { value: "10x", label: "Faster Follow-ups", icon: Zap },
               { value: "85%", label: "Response Rate", icon: TrendingUp },
