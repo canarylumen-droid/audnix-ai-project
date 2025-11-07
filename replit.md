@@ -70,6 +70,29 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 
 ## Recent Changes
 
+### Landing Page Redesign (November 7, 2025)
+
+**Brand Colors Update:**
+- Implemented official Instagram gradient (#833AB4 → #C13584 → #F77737)
+- Added authentic WhatsApp colors (#075E54 → #25D366)
+- Integrated Gmail brand palette (#EA4335, #4285F4, #34A853)
+
+**Targeted Messaging:**
+- Hero section now explicitly targets creators, coaches, agencies & founders
+- Updated pain point messaging: "Stop Losing Leads to Slow Follow-Ups"
+- ROI-focused copy: "turns Instagram DMs, emails & WhatsApp into revenue"
+- Channel cards feature outcome-based descriptions with conversion focus
+
+**Technical Improvements:**
+- Fixed React hooks violation by extracting ChannelCard component
+- Fixed syntax error in supabase.ts (removed stray 't;')
+- Added Progress component import for channel card UI
+- Enhanced channel cards with interactive dots for 3 screens per channel
+
+**Instagram Integration:**
+- Instagram button displays "Coming Soon" dialog (already implemented)
+- Protected Instagram integration from premature connections
+
 ### Security Improvements (November 7, 2025)
 
 **Critical Security Fixes:**
