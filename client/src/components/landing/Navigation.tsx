@@ -2,21 +2,10 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import { Menu, X, Sun, Moon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Menu, X } from "lucide-react";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <motion.nav
@@ -32,8 +21,12 @@ export function Navigation() {
               src="/logo.jpg"
               alt="Audnix AI Logo"
               className="h-8 w-auto object-contain"
+              onError={(e) => {
+                // Fallback if logo doesn't load
+                e.currentTarget.style.display = 'none';
+              }}
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
               Audnix AI
             </span>
           </div>
@@ -73,22 +66,10 @@ export function Navigation() {
             >
               Use Cases
             </a>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
             <Link href="/auth">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-lg px-6"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg px-6"
               >
                 Start Free Trial
               </Button>
@@ -96,18 +77,6 @@ export function Navigation() {
           </div>
 
           <div className="md:hidden flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
             <button
               className="text-foreground p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -164,7 +133,7 @@ export function Navigation() {
               </a>
               <Link href="/auth">
                 <Button
-                  className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-semibold rounded-lg py-3"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Start Free Trial

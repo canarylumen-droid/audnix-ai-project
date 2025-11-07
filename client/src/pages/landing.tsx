@@ -142,8 +142,8 @@ export default function Landing() {
           style={{ opacity }}
         >
           <div className={`absolute top-1/4 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-cyan-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
-          <div className={`absolute bottom-1/4 right-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-purple-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
-          <div className={`absolute top-1/3 right-1/3 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-pink-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
+          <div className={`absolute bottom-1/4 right-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
+          <div className={`absolute top-1/3 right-1/3 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-teal-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-cyan-400/20 rounded-full blur-3xl" />
         </motion.div>
 
@@ -156,14 +156,14 @@ export default function Landing() {
               style={prefersReducedMotion ? {} : { scale }}
             >
               <motion.div
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-6 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
                 style={{ boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}
               >
                 <Sparkles className="w-5 h-5 text-cyan-400" />
-                <span className="text-sm font-semibold bg-gradient-to-r from-cyan-300 to-purple-300 bg-clip-text text-transparent">AI-Powered Voice & Message Automation</span>
+                <span className="text-sm font-semibold bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent">AI-Powered Voice & Message Automation</span>
               </motion.div>
 
               <motion.h1
@@ -171,16 +171,16 @@ export default function Landing() {
                 animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
-                    "0 0 50px rgba(147, 51, 234, 0.5)",
-                    "0 0 30px rgba(236, 72, 153, 0.4)"
+                    "0 0 50px rgba(37, 99, 235, 0.5)",
+                    "0 0 30px rgba(6, 182, 212, 0.4)"
                   ]
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-cyan-200 via-purple-200 to-pink-200 bg-clip-text text-transparent leading-tight block">
+                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block">
                   Follow up like a human,
                 </span>
-                <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
               </motion.h1>
 
               <motion.p
@@ -189,7 +189,7 @@ export default function Landing() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                The <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
+                The <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
               </motion.p>
 
               <motion.div
@@ -201,7 +201,7 @@ export default function Landing() {
                 <Link href="/auth" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
+                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
                     style={{ boxShadow: "0 0 40px rgba(0, 200, 255, 0.4)" }}
                   >
                     Start Free Trial (3 Days) ✨
