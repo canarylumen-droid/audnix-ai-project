@@ -709,7 +709,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-32 px-4 relative">
+      <section id="pricing" className="py-32 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
 
         <div className="max-w-7xl mx-auto relative z-10">

@@ -41,21 +41,37 @@ export function Navigation() {
           <div className="hidden md:flex items-center gap-6">
             <a
               href="#features"
-              className="text-foreground/80 hover:text-foreground transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
               Features
             </a>
             <a
               href="#pricing"
-              className="text-foreground/80 hover:text-foreground transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                const pricingSection = document.querySelector('[id*="pricing"]');
+                pricingSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
               Pricing
             </a>
             <a
-              href="#how-it-works"
-              className="text-foreground/80 hover:text-foreground transition-colors"
+              href="#use-cases"
+              onClick={(e) => {
+                e.preventDefault();
+                const useCasesSection = document.querySelector('section:has(h2:contains("Built for"))');
+                if (useCasesSection) {
+                  useCasesSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
-              How It Works
+              Use Cases
             </a>
             <Button 
               variant="ghost" 
@@ -111,24 +127,40 @@ export function Navigation() {
             <div className="flex flex-col gap-4">
               <a
                 href="#features"
-                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
                 Features
               </a>
               <a
                 href="#pricing"
-                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const pricingSection = document.querySelector('[id*="pricing"]');
+                  pricingSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
                 Pricing
               </a>
               <a
-                href="#features"
-                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
-                onClick={() => setMobileMenuOpen(false)}
+                href="#use-cases"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  const useCasesSection = document.querySelector('section:has(h2:contains("Built for"))');
+                  if (useCasesSection) {
+                    useCasesSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
-                How It Works
+                Use Cases
               </a>
               <Link href="/auth">
                 <Button
