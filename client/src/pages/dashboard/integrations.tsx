@@ -444,13 +444,13 @@ export default function IntegrationsPage() {
                 >
                   {providerId === "instagram" && (
                     <TabsContent value="instagram" className="space-y-4">
-                      {/* Security Warning for Instagram Private API */}
-                      <Alert variant="destructive">
+                      {/* OAuth Info */}
+                      <Alert>
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>⚠️ Instagram Private API Security Notice</AlertTitle>
+                        <AlertTitle>✅ Secure Instagram Integration</AlertTitle>
                         <AlertDescription>
-                          <p className="mb-2">The Instagram Private API is <strong>unofficial and reverse-engineered</strong>. Instagram may ban accounts using it.</p>
-                          <p className="font-semibold text-red-600">Recommendation: Use the official Graph API with a Business/Creator account instead.</p>
+                          <p className="mb-2">Uses official Meta Graph API with OAuth 2.0 authentication.</p>
+                          <p className="font-semibold text-green-600">No passwords stored • Auto-imports leads safely</p>
                         </AlertDescription>
                       </Alert>
 
@@ -478,10 +478,10 @@ export default function IntegrationsPage() {
                                 <CardDescription className="text-sm">
                                   {providerId === "instagram" && (
                                     <>
-                                      Confirm in Instagram app • End-to-end encrypted
+                                      Official Meta Graph API • Secure OAuth login
                                       <br />
-                                      <span className="text-amber-600 dark:text-amber-400 font-medium">
-                                        ⚠️ Unofficial API - Your account may be banned (limit: 40 DMs/hour)
+                                      <span className="text-green-600 dark:text-green-400 font-medium">
+                                        ✅ No ban risk • Auto-imports DMs, comments, leads
                                       </span>
                                     </>
                                   )}
