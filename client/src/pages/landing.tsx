@@ -1,6 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Check, X, MessageSquare, Zap, BarChart3, Flame, ArrowRight, Sparkles, Clock, Shield, Brain, Mic, Target, TrendingUp, Users, Globe, Phone, Mail, Instagram as InstagramIcon, CheckCircle2, Star, Play } from "lucide-react";
 import { Link, navigate } from "wouter";
 import { useEffect, useState, useRef } from "react";
@@ -15,6 +16,110 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Navigation } from "@/components/landing/Navigation";
 
 gsap.registerPlugin(ScrollTrigger);
+
+interface ChannelData {
+  name: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  icon: React.ElementType;
+  iconColor: string;
+  screens: Array<{ title: string; desc: string }>;
+}
+
+function ChannelCard({ channel, index }: { channel: ChannelData; index: number }) {
+  const [activeScreen, setActiveScreen] = useState(0);
+  
+  return (
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.15 }}
+    >
+      <Card className={`${channel.bgColor} border-2 ${channel.borderColor} p-6 h-full hover:scale-105 transition-all duration-300 group`}>
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${channel.color} flex items-center justify-center`}>
+            <channel.icon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold">{channel.name}</h3>
+            <div className="flex gap-1 mt-1">
+              {channel.screens.map((_, dotIndex) => (
+                <button
+                  key={dotIndex}
+                  onClick={() => setActiveScreen(dotIndex)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    activeScreen === dotIndex 
+                      ? `bg-gradient-to-r ${channel.color} w-6` 
+                      : 'bg-white/30 hover:bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 min-h-[180px]">
+          <div className={`p-4 rounded-lg bg-gradient-to-br ${channel.color} bg-opacity-20 border ${channel.borderColor}`}>
+            <div className="flex items-start gap-3">
+              {activeScreen === 0 && <MessageSquare className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+              {activeScreen === 1 && <Users className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+              {activeScreen === 2 && <BarChart3 className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
+              <div>
+                <h4 className="font-semibold text-lg mb-1">{channel.screens[activeScreen].title}</h4>
+                <p className="text-white/80 text-sm">{channel.screens[activeScreen].desc}</p>
+              </div>
+            </div>
+          </div>
+
+          {activeScreen === 0 && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 bg-white/5 rounded-lg p-2">
+                  <p className="text-white/90">Hi! Thanks for your interest...</p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-lg p-2 max-w-[80%]">
+                  <p className="text-white/90 text-xs">AI typing response...</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeScreen === 1 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/70">Leads imported</span>
+                <span className="font-bold text-primary">127 new</span>
+              </div>
+              <Progress value={85} className="h-2" />
+              <p className="text-xs text-white/60">Auto-syncing every 30 mins</p>
+            </div>
+          )}
+
+          {activeScreen === 2 && (
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-white/60 text-xs mb-1">Response Rate</p>
+                <p className="text-2xl font-bold text-primary">94%</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-white/60 text-xs mb-1">Conversions</p>
+                <p className="text-2xl font-bold text-emerald-400">3.2x</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
 
 export default function Landing() {
   const [userCount, setUserCount] = useState(0);
@@ -328,99 +433,9 @@ export default function Landing() {
                   { title: "Full Analytics", desc: "Message stats & revenue" }
                 ]
               }
-            ].map((channel, index) => {
-              const [activeScreen, setActiveScreen] = useState(0);
-              
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.15 }}
-                >
-                  <Card className={`${channel.bgColor} border-2 ${channel.borderColor} p-6 h-full hover:scale-105 transition-all duration-300 group`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${channel.color} flex items-center justify-center`}>
-                        <channel.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{channel.name}</h3>
-                        <div className="flex gap-1 mt-1">
-                          {channel.screens.map((_, dotIndex) => (
-                            <button
-                              key={dotIndex}
-                              onClick={() => setActiveScreen(dotIndex)}
-                              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                activeScreen === dotIndex 
-                                  ? `bg-gradient-to-r ${channel.color} w-6` 
-                                  : 'bg-white/30 hover:bg-white/50'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 min-h-[180px]">
-                      <div className={`p-4 rounded-lg bg-gradient-to-br ${channel.color} bg-opacity-20 border ${channel.borderColor}`}>
-                        <div className="flex items-start gap-3">
-                          {activeScreen === 0 && <MessageSquare className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-                          {activeScreen === 1 && <Users className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-                          {activeScreen === 2 && <BarChart3 className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-                          <div>
-                            <h4 className="font-semibold text-lg mb-1">{channel.screens[activeScreen].title}</h4>
-                            <p className="text-white/80 text-sm">{channel.screens[activeScreen].desc}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {activeScreen === 0 && (
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                              <Brain className="w-4 h-4 text-primary" />
-                            </div>
-                            <div className="flex-1 bg-white/5 rounded-lg p-2">
-                              <p className="text-white/90">Hi! Thanks for your interest...</p>
-                            </div>
-                          </div>
-                          <div className="flex justify-end">
-                            <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-lg p-2 max-w-[80%]">
-                              <p className="text-white/90 text-xs">AI typing response...</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {activeScreen === 1 && (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-white/70">Leads imported</span>
-                            <span className="font-bold text-primary">127 new</span>
-                          </div>
-                          <Progress value={85} className="h-2" />
-                          <p className="text-xs text-white/60">Auto-syncing every 30 mins</p>
-                        </div>
-                      )}
-
-                      {activeScreen === 2 && (
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-white/60 text-xs mb-1">Response Rate</p>
-                            <p className="text-2xl font-bold text-primary">94%</p>
-                          </div>
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-white/60 text-xs mb-1">Conversions</p>
-                            <p className="text-2xl font-bold text-emerald-400">3.2x</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              );
-            })}
+            ].map((channel, index) => (
+              <ChannelCard key={index} channel={channel} index={index} />
+            ))}
           </div>
 
           {/* Stats Row */}
