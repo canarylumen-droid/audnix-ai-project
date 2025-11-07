@@ -294,7 +294,7 @@ export default function Landing() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                The <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold">AI-powered autopilot CRM</span> that responds, nurtures, and converts warm leads with personalized voice messages and intelligent conversations across Instagram, WhatsApp & Email.
+                For <span className="text-cyan-400 font-semibold">creators, coaches, agencies & founders</span>: The <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold">AI autopilot CRM</span> that turns Instagram DMs, emails & WhatsApp into revenue—while you focus on building your empire.
               </motion.p>
 
               <motion.div
@@ -387,50 +387,50 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              AI Working Across <span className="text-primary">All Your Channels</span>
+              Stop Losing Leads to <span className="text-primary">Slow Follow-Ups</span>
             </h2>
-            <p className="text-lg text-white/80">Watch your AI assistant in action on Instagram, Email & WhatsApp</p>
+            <p className="text-lg text-white/80">Your AI works 24/7 across Instagram, Email & WhatsApp—so you never miss a revenue opportunity</p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-8">
             {[
               {
                 name: "Instagram",
-                color: "from-pink-500 to-purple-600",
-                bgColor: "bg-gradient-to-br from-pink-500/10 to-purple-600/10",
-                borderColor: "border-pink-500/30",
+                color: "from-[#833AB4] via-[#C13584] to-[#F77737]",
+                bgColor: "bg-gradient-to-br from-[#833AB4]/10 via-[#C13584]/10 to-[#F77737]/10",
+                borderColor: "border-[#C13584]/30",
                 icon: InstagramIcon,
-                iconColor: "text-pink-500",
+                iconColor: "text-[#E1306C]",
                 screens: [
-                  { title: "AI Replying", desc: "Responding to DMs instantly" },
-                  { title: "Import Leads", desc: "Syncing followers automatically" },
-                  { title: "Full Analytics", desc: "Track engagement & conversions" }
+                  { title: "AI Replying to DMs", desc: "Turn Instagram followers into paying clients while you sleep - automated responses that feel human" },
+                  { title: "Auto-Import Leads", desc: "Stop manually tracking DMs. Automatically sync every Instagram interaction into your CRM" },
+                  { title: "Revenue Analytics", desc: "See exactly which Instagram conversations are converting and driving revenue" }
                 ]
               },
               {
                 name: "Email",
-                color: "from-blue-500 to-cyan-600",
-                bgColor: "bg-gradient-to-br from-blue-500/10 to-cyan-600/10",
-                borderColor: "border-blue-500/30",
+                color: "from-[#EA4335] via-[#4285F4] to-[#34A853]",
+                bgColor: "bg-gradient-to-br from-[#EA4335]/10 via-[#4285F4]/10 to-[#34A853]/10",
+                borderColor: "border-[#4285F4]/30",
                 icon: Mail,
-                iconColor: "text-blue-500",
+                iconColor: "text-[#EA4335]",
                 screens: [
-                  { title: "AI Replying", desc: "Smart email responses 24/7" },
-                  { title: "Import Leads", desc: "Connect Gmail & Outlook" },
-                  { title: "Full Analytics", desc: "Open rates & conversions" }
+                  { title: "AI Email Responses", desc: "Never lose a lead to slow email replies. AI responds in minutes, not hours" },
+                  { title: "Gmail Auto-Sync", desc: "Connect Gmail & Outlook. Every email conversation tracked and organized automatically" },
+                  { title: "Email Performance", desc: "Track open rates, response times, and which emails are closing deals" }
                 ]
               },
               {
                 name: "WhatsApp",
-                color: "from-green-500 to-emerald-600",
-                bgColor: "bg-gradient-to-br from-green-500/10 to-emerald-600/10",
-                borderColor: "border-green-500/30",
+                color: "from-[#075E54] to-[#25D366]",
+                bgColor: "bg-gradient-to-br from-[#075E54]/10 to-[#25D366]/10",
+                borderColor: "border-[#25D366]/30",
                 icon: Phone,
-                iconColor: "text-green-500",
+                iconColor: "text-[#25D366]",
                 screens: [
-                  { title: "AI Replying", desc: "Voice notes & text messages" },
-                  { title: "Import Leads", desc: "Scan QR to sync contacts" },
-                  { title: "Full Analytics", desc: "Message stats & revenue" }
+                  { title: "AI Voice & Messages", desc: "Handle voice notes and text. Perfect for coaches scaling 1-on-1 conversations" },
+                  { title: "QR Code Lead Import", desc: "Scan QR, instant WhatsApp connection. Every contact auto-saved to your CRM" },
+                  { title: "Conversation ROI", desc: "Track which WhatsApp conversations are generating revenue for your business" }
                 ]
               }
             ].map((channel, index) => (
