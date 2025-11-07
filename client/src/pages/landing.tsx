@@ -272,7 +272,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight"
+                className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight"
                 animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
@@ -282,11 +282,11 @@ export default function Landing() {
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-2xl sm:text-3xl md:text-4xl font-semibold mb-2">
+                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold mb-2">
                   Stop Losing Leads to Slow Follow-Ups
                 </span>
                 <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>Your AI Sales Closer</span>
-                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block text-xl sm:text-2xl md:text-3xl font-medium mt-2">
+                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-medium mt-2">
                   That Converts DMs Into Deals
                 </span>
               </motion.h1>
@@ -327,14 +327,29 @@ export default function Landing() {
                 transition={{ delay: 0.6, duration: 0.8 }}
               >
                 <Link href="/auth" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 animate-pulse"
-                    style={{ boxShadow: "0 0 40px rgba(16, 185, 129, 0.6)" }}
+                  <motion.div
+                    animate={prefersReducedMotion ? {} : {
+                      boxShadow: [
+                        "0 0 30px rgba(16, 185, 129, 0.5)",
+                        "0 0 45px rgba(16, 185, 129, 0.7)",
+                        "0 0 30px rgba(16, 185, 129, 0.5)"
+                      ]
+                    }}
+                    transition={prefersReducedMotion ? {} : {
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="w-full sm:w-auto"
                   >
-                    Start Closing Deals in 3 Days (FREE) 🚀
-                    <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+                    <Button
+                      size="lg"
+                      className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300"
+                    >
+                      Start Closing Deals in 3 Days (FREE) 🚀
+                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </motion.div>
                 </Link>
                 <Button
                   size="lg"
