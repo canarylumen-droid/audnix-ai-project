@@ -5,27 +5,44 @@ import { users, leads, messages, integrations, notifications, deals, usageTopups
 import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 
+// Function to check if the database connection is available
+function checkDatabase() {
+  // In a real application, you might want to check a connection pool or a specific connection status.
+  // For this example, we'll assume `db` is either configured or not.
+  // If `db` is not initialized or has issues, subsequent operations will likely fail,
+  // and error handling in those operations should catch it.
+  // A more robust check might involve a simple query like `db.execute(sql`SELECT 1`)`.
+  if (!db) {
+    throw new Error("Database connection is not available.");
+  }
+}
+
 export class DrizzleStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
+    checkDatabase();
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
   async getUserById(id: string): Promise<User | undefined> {
+    checkDatabase();
     return this.getUser(id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    checkDatabase();
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
   }
 
   async getUserBySupabaseId(supabaseId: string): Promise<User | undefined> {
+    checkDatabase();
     const result = await db.select().from(users).where(eq(users.supabaseId, supabaseId)).limit(1);
     return result[0];
   }
 
   async createUser(insertUser: Partial<InsertUser> & { email: string }): Promise<User> {
+    checkDatabase();
     const trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 3);
 
@@ -53,6 +70,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    checkDatabase();
     const result = await db
       .update(users)
       .set(updates)
@@ -63,10 +81,12 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getAllUsers(): Promise<User[]> {
+    checkDatabase();
     return await db.select().from(users);
   }
 
   async getUserCount(): Promise<number> {
+    checkDatabase();
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
     return Number(result[0].count);
   }
@@ -78,6 +98,7 @@ export class DrizzleStorage implements IStorage {
     search?: string;
     limit?: number;
   }): Promise<Lead[]> {
+    checkDatabase();
     let query = db.select().from(leads).where(eq(leads.userId, options.userId));
 
     if (options.status) {
@@ -109,11 +130,13 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getLeadById(id: string): Promise<Lead | undefined> {
+    checkDatabase();
     const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
     return result[0];
   }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
+    checkDatabase();
     const result = await db
       .insert(leads)
       .values({
@@ -136,6 +159,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
+    checkDatabase();
     const result = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
@@ -146,11 +170,13 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getTotalLeadsCount(): Promise<number> {
+    checkDatabase();
     const result = await db.select({ count: sql<number>`count(*)` }).from(leads);
     return Number(result[0].count);
   }
 
   async getMessagesByLeadId(leadId: string): Promise<Message[]> {
+    checkDatabase();
     return await db
       .select()
       .from(messages)
@@ -159,6 +185,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getMessages(leadId: string): Promise<Message[]> {
+    checkDatabase();
     return this.getMessagesByLeadId(leadId);
   }
 
@@ -170,6 +197,7 @@ export class DrizzleStorage implements IStorage {
       body: string;
     }
   ): Promise<Message> {
+    checkDatabase();
     const result = await db
       .insert(messages)
       .values({
@@ -192,6 +220,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getIntegrations(userId: string): Promise<Integration[]> {
+    checkDatabase();
     return await db.select().from(integrations).where(eq(integrations.userId, userId));
   }
 
@@ -202,6 +231,7 @@ export class DrizzleStorage implements IStorage {
       encryptedMeta: string;
     }
   ): Promise<Integration> {
+    checkDatabase();
     const result = await db
       .insert(integrations)
       .values({
@@ -218,12 +248,14 @@ export class DrizzleStorage implements IStorage {
   }
 
   async disconnectIntegration(userId: string, provider: string): Promise<void> {
+    checkDatabase();
     await db
       .delete(integrations)
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)));
   }
 
   async getNotifications(userId: string): Promise<any[]> {
+    checkDatabase();
     const result = await db
       .select()
       .from(notifications)
@@ -244,6 +276,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    checkDatabase();
     await db
       .update(notifications)
       .set({ isRead: true })
@@ -251,6 +284,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async markAllNotificationsAsRead(userId: string): Promise<void> {
+    checkDatabase();
     await db
       .update(notifications)
       .set({ isRead: true })
@@ -258,6 +292,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async createNotification(data: any): Promise<any> {
+    checkDatabase();
     const result = await db
       .insert(notifications)
       .values({
@@ -275,6 +310,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async markNotificationRead(id: string): Promise<void> {
+    checkDatabase();
     await db
       .update(notifications)
       .set({ isRead: true })
@@ -282,6 +318,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
+    checkDatabase();
     const result = await db
       .select()
       .from(leads)
@@ -295,6 +332,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVideoMonitors(userId: string): Promise<any[]> {
+    checkDatabase();
     try {
       const result = await db.execute(sql`
         SELECT * FROM video_monitors 
@@ -309,6 +347,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getActiveVideoMonitors(userId: string): Promise<any[]> {
+    checkDatabase();
     try {
       const result = await db.execute(sql`
         SELECT * FROM video_monitors 
@@ -323,6 +362,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVideoMonitor(id: string): Promise<any> {
+    checkDatabase();
     try {
       const result = await db.execute(sql`
         SELECT * FROM video_monitors 
@@ -336,6 +376,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async createVideoMonitor(data: any): Promise<any> {
+    checkDatabase();
     const result = await db.execute(sql`
       INSERT INTO video_monitors (user_id, video_id, video_url, product_link, cta_text, is_active, auto_reply_enabled, metadata)
       VALUES (${data.userId}, ${data.videoId}, ${data.videoUrl}, ${data.productLink}, ${data.ctaText || 'Check it out'}, ${data.isActive ?? true}, ${data.autoReplyEnabled ?? true}, ${JSON.stringify(data.metadata || {})})
@@ -345,6 +386,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    checkDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -380,6 +422,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
+    checkDatabase();
     await db.execute(sql`
       DELETE FROM video_monitors 
       WHERE id = ${id} AND user_id = ${userId}
@@ -387,6 +430,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async isCommentProcessed(commentId: string): Promise<boolean> {
+    checkDatabase();
     const result = await db.execute(sql`
       SELECT 1 FROM processed_comments WHERE comment_id = ${commentId} LIMIT 1
     `);
@@ -394,6 +438,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    checkDatabase();
     await db.execute(sql`
       INSERT INTO processed_comments (comment_id, status, intent_type, commenter_username, comment_text)
       VALUES (${commentId}, ${status}, ${intentType}, 'unknown', '')
@@ -402,6 +447,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getBrandKnowledge(userId: string): Promise<string> {
+    checkDatabase();
     const result = await db.execute(sql`
       SELECT content FROM brand_embeddings 
       WHERE user_id = ${userId} 
@@ -412,6 +458,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getDeals(userId: string): Promise<any[]> {
+    checkDatabase();
     const result = await db.execute(sql`
       SELECT d.*, l.name as lead_name 
       FROM deals d
@@ -423,6 +470,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async createDeal(data: any): Promise<any> {
+    checkDatabase();
     const result = await db.execute(sql`
       INSERT INTO deals (user_id, lead_id, title, amount, currency, status, source, metadata)
       VALUES (${data.userId}, ${data.leadId || null}, ${data.title}, ${data.amount}, ${data.currency || 'USD'}, ${data.status || 'open'}, ${data.source || 'manual'}, ${JSON.stringify(data.metadata || {})})
@@ -432,6 +480,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    checkDatabase();
     const setClauses: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -462,6 +511,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+    checkDatabase();
     const allDeals = await db.select().from(deals).where(eq(deals.userId, userId));
     const closedDeals = allDeals.filter(d => d.status === 'closed_won');
 
@@ -477,6 +527,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async createUsageTopup(data: any): Promise<any> {
+    checkDatabase();
     const topup = {
       userId: data.userId,
       type: data.type,
@@ -489,6 +540,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getUsageHistory(userId: string, type?: string): Promise<any[]> {
+    checkDatabase();
     let query = db.select().from(usageTopups).where(eq(usageTopups.userId, userId));
 
     if (type) {
@@ -500,6 +552,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getVoiceMinutesBalance(userId: string): Promise<number> {
+    checkDatabase();
     const user = await this.getUserById(userId);
     if (!user) return 0;
 
@@ -511,6 +564,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async deductVoiceMinutes(userId: string, minutes: number): Promise<boolean> {
+    checkDatabase();
     const balance = await this.getVoiceMinutesBalance(userId);
     if (balance < minutes) return false;
 
@@ -525,6 +579,7 @@ export class DrizzleStorage implements IStorage {
   }
 
   async addVoiceMinutes(userId: string, minutes: number, source: string): Promise<void> {
+    checkDatabase();
     const user = await this.getUserById(userId);
     if (!user) return;
 

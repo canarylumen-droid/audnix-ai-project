@@ -159,6 +159,7 @@ async function runMigrations() {
     // Check if DATABASE_URL is set
     if (!process.env.DATABASE_URL) {
       console.log('⏭️  Skipping database migrations (DATABASE_URL not set)');
+      console.log('💡 App will run in demo mode - add DATABASE_URL to enable persistence');
       return;
     }
 
@@ -166,6 +167,12 @@ async function runMigrations() {
 
     // Use Drizzle's db connection directly
     const { db } = await import('./db');
+    
+    // Check if db is actually initialized
+    if (!db) {
+      console.log('⏭️  Database not initialized - skipping migrations');
+      return;
+    }
     
     // Read all migration files in order
     const migrationsDir = path.join(process.cwd(), 'migrations');
@@ -209,7 +216,7 @@ async function runMigrations() {
     console.log('📊 Your database is ready to use');
   } catch (error: any) {
     console.log('⚠️  Migrations skipped:', error.message);
-    console.log('💡 Application will run without database features');
+    console.log('💡 Application will run in demo mode without database features');
   }
 }
 
@@ -235,8 +242,11 @@ async function runMigrations() {
     serveStatic(app);
   }
 
-  // Start background workers
-  if (supabaseAdmin) {
+  // Start background workers only if database is configured
+  const { db } = await import('./db');
+  const hasDatabase = process.env.DATABASE_URL && db;
+  
+  if (hasDatabase && supabaseAdmin) {
     console.log('🤖 Starting AI workers...');
     
     // Register workers for health monitoring
@@ -268,6 +278,12 @@ async function runMigrations() {
     console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
     console.log('✅ Worker health monitoring active');
+  } else if (!hasDatabase) {
+    console.log('⏭️  Background workers disabled (no database configured)');
+    console.log('💡 Add DATABASE_URL to enable AI workers');
+  } else if (!supabaseAdmin) {
+    console.log('⏭️  Background workers disabled (Supabase not configured)');
+    console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable workers');
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);

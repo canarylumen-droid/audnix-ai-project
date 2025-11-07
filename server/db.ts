@@ -4,15 +4,23 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL environment variable is not set');
-  console.log('📝 Add DATABASE_URL to Secrets in Replit');
-  console.log('💡 You can use Replit PostgreSQL or any PostgreSQL database');
-  throw new Error("DATABASE_URL environment variable is not set");
+// Allow app to run without database (demo mode)
+let db: any = null;
+let pool: any = null;
+
+if (process.env.DATABASE_URL) {
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    db = drizzle(pool, { schema });
+    console.log('✅ PostgreSQL database connected');
+  } catch (error) {
+    console.warn('⚠️  Database connection failed, running in demo mode:', error);
+  }
+} else {
+  console.warn('⚠️  DATABASE_URL not set - app will run in demo mode');
+  console.log('💡 Add DATABASE_URL to Replit Secrets for full functionality');
 }
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const db = drizzle(pool, { schema });
+export { db, pool };
