@@ -185,11 +185,17 @@ export async function getSubscriptionPaymentLink(
   const link = paymentLinks[planKey];
 
   // If payment link exists, use it (preferred method)
-  if (link && link.includes('buy.stripe.com')) {
-    const params = new URLSearchParams({
-      client_reference_id: userId,
-    });
-    return `${link}?${params.toString()}`;
+  if (link) {
+    try {
+      const url = new URL(link);
+      // Only allow Stripe payment links
+      if (url.hostname === 'buy.stripe.com' && url.protocol === 'https:') {
+        url.searchParams.set('client_reference_id', userId);
+        return url.toString();
+      }
+    } catch (e) {
+      console.error('Invalid payment link URL:', e);
+    }
   }
 
   // Method 2: Price IDs (if your friend gave you these instead)
@@ -237,11 +243,17 @@ export async function getTopupPaymentLink(
   const link = paymentLinks[topupKey];
 
   // If payment link exists, use it (preferred method)
-  if (link && link.includes('buy.stripe.com')) {
-    const params = new URLSearchParams({
-      client_reference_id: userId,
-    });
-    return `${link}?${params.toString()}`;
+  if (link) {
+    try {
+      const url = new URL(link);
+      // Only allow Stripe payment links
+      if (url.hostname === 'buy.stripe.com' && url.protocol === 'https:') {
+        url.searchParams.set('client_reference_id', userId);
+        return url.toString();
+      }
+    } catch (e) {
+      console.error('Invalid payment link URL:', e);
+    }
   }
 
   // Method 2: Price IDs fallback

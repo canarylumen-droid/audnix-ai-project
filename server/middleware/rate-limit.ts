@@ -125,3 +125,22 @@ export const whatsappLimiter = rateLimit({
     })
   })
 });
+
+/**
+ * Vite dev server limiter - 200 requests per minute
+ * Protects development server from abuse
+ */
+export const viteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: 'Too many requests to development server',
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  ...(redisClient && {
+    store: new RedisStore({
+      client: redisClient,
+      prefix: 'rl:vite:'
+    })
+  })
+});

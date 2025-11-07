@@ -297,6 +297,21 @@ function createMimeMessage(
 ): string {
   const boundary = '----=_Part_' + Date.now();
   
+  // Helper function to properly strip HTML tags
+  const stripHtml = (html: string): string => {
+    // Remove HTML tags more safely
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .trim();
+  };
+
   const parts = [
     `From: ${from}`,
     `To: ${to}`,
@@ -307,7 +322,7 @@ function createMimeMessage(
     `--${boundary}`,
     'Content-Type: text/plain; charset=UTF-8',
     '',
-    isHtml ? body.replace(/<[^>]*>/g, '') : body,
+    isHtml ? stripHtml(body) : body,
     ''
   ];
 

@@ -7,6 +7,7 @@ import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
@@ -33,7 +34,7 @@ if (missingOptional.length > 0) {
 
 // Generate a session secret for development if not provided
 if (!process.env.SESSION_SECRET) {
-  process.env.SESSION_SECRET = 'dev-secret-' + Math.random().toString(36);
+  process.env.SESSION_SECRET = 'dev-secret-' + crypto.randomBytes(32).toString('hex');
   console.warn('⚠️  Using generated SESSION_SECRET for development. Set a secure one for production!');
 }
 
@@ -70,6 +71,41 @@ if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
 }
 
 app.use(session(sessionConfig));
+
+// CSRF Protection via SameSite cookies (modern approach)
+// The session cookie is already configured with sameSite: 'strict' in production
+// This prevents CSRF attacks without needing additional CSRF tokens
+// Additional layer: verify origin header for state-changing requests
+app.use((req, res, next) => {
+  // Skip CSRF check for GET, HEAD, OPTIONS
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  
+  // Skip CSRF check for webhooks (they use signature verification)
+  if (req.path.startsWith('/webhook/')) {
+    return next();
+  }
+  
+  // Verify origin header matches host for state-changing requests
+  const origin = req.get('origin') || req.get('referer');
+  const host = req.get('host');
+  
+  if (origin && host) {
+    try {
+      const originHost = new URL(origin).host;
+      if (originHost !== host) {
+        console.warn(`CSRF attempt detected: origin ${originHost} !== host ${host}`);
+        return res.status(403).json({ error: 'Invalid request origin' });
+      }
+    } catch (e) {
+      // Invalid origin URL
+      return res.status(403).json({ error: 'Invalid origin' });
+    }
+  }
+  
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -22,7 +22,8 @@ const multerStorage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (_req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const crypto = require('crypto');
+    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
     cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });

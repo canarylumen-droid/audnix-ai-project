@@ -5,6 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { viteLimiter } from "./middleware/rate-limit";
 
 const viteLogger = createLogger();
 
@@ -37,6 +38,8 @@ export async function setupVite(app: Express, server: Server) {
     appType: "custom",
   });
 
+  // Apply rate limiting to vite routes
+  app.use(viteLimiter);
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
