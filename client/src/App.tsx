@@ -7,6 +7,8 @@ import Landing from "@/pages/landing";
 import Auth from "@/pages/auth";
 import DashboardRoutes from "@/pages/dashboard";
 import NotFound from "@/pages/not-found";
+import PrivacyPolicy from "@/pages/privacy-policy";
+import TermsOfService from "@/pages/terms-of-service";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import ConversationsPage from "./pages/dashboard/conversations";
 import CalendarPage from "./pages/dashboard/calendar";
@@ -25,6 +27,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Landing} />
       <Route path="/auth" component={Auth} />
+      <Route path="/privacy-policy" component={PrivacyPolicy} />
+      <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/dashboard" component={DashboardRoutes} />
       <Route path="/dashboard/:rest*" component={DashboardRoutes} />
       <Route path="/dashboard/conversations/:id?" component={ConversationsPage} />

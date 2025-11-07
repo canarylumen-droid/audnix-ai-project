@@ -52,10 +52,10 @@ export function Navigation() {
               Pricing
             </a>
             <a
-              href="#contact"
+              href="#how-it-works"
               className="text-foreground/80 hover:text-foreground transition-colors"
             >
-              Contact
+              How It Works
             </a>
             <Button 
               variant="ghost" 
@@ -124,11 +124,11 @@ export function Navigation() {
                 Pricing
               </a>
               <a
-                href="#contact"
+                href="#features"
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Contact
+                How It Works
               </a>
               <Link href="/auth">
                 <Button

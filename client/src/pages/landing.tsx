@@ -887,9 +887,13 @@ export default function Landing() {
               © 2025 Audnix AI. All rights reserved.
             </div>
             <div className="flex items-center gap-6 text-white/70 text-sm">
-              <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-primary transition-colors">Contact</a>
+              <Link href="/privacy-policy">
+                <a className="hover:text-primary transition-colors">Privacy Policy</a>
+              </Link>
+              <Link href="/terms-of-service">
+                <a className="hover:text-primary transition-colors">Terms of Service</a>
+              </Link>
+              <a href="mailto:support@audnix.ai" className="hover:text-primary transition-colors">Contact</a>
             </div>
           </div>
         </div>
