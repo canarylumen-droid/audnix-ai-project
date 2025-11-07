@@ -72,10 +72,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
 
 app.use(session(sessionConfig));
 
-// CSRF Protection via SameSite cookies (modern approach)
-// The session cookie is already configured with sameSite: 'strict' in production
-// This prevents CSRF attacks without needing additional CSRF tokens
-// Additional layer: verify origin header for state-changing requests
+// CSRF Protection via SameSite cookies + Origin validation
 app.use((req, res, next) => {
   // Skip CSRF check for GET, HEAD, OPTIONS
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
@@ -87,19 +84,36 @@ app.use((req, res, next) => {
     return next();
   }
   
-  // Verify origin header matches host for state-changing requests
+  // Verify origin header matches allowed domains
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    'http://localhost:5000',
+    'https://localhost:5000',
+    `http://0.0.0.0:5000`,
+    `https://0.0.0.0:5000`
+  ].filter(Boolean);
+
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
   
   if (origin && host) {
     try {
-      const originHost = new URL(origin).host;
-      if (originHost !== host) {
-        console.warn(`CSRF attempt detected: origin ${originHost} !== host ${host}`);
+      const originUrl = new URL(origin);
+      const isAllowed = allowedOrigins.some(allowed => {
+        try {
+          const allowedUrl = new URL(allowed);
+          return originUrl.host === allowedUrl.host;
+        } catch {
+          return originUrl.host === host;
+        }
+      });
+      
+      if (!isAllowed) {
+        console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
         return res.status(403).json({ error: 'Invalid request origin' });
       }
     } catch (e) {
-      // Invalid origin URL
+      // Invalid origin URL - reject for security
       return res.status(403).json({ error: 'Invalid origin' });
     }
   }

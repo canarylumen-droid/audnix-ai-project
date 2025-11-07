@@ -297,19 +297,39 @@ function createMimeMessage(
 ): string {
   const boundary = '----=_Part_' + Date.now();
   
-  // Helper function to properly strip HTML tags
+  // Helper function to properly strip HTML tags with comprehensive sanitization
   const stripHtml = (html: string): string => {
-    // Remove HTML tags more safely
-    return html
+    // First encode all special characters to prevent injection
+    const encodeHtml = (str: string): string => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+        .replace(/\//g, '&#x2F;');
+    };
+    
+    // Remove dangerous tags first
+    let safe = html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .replace(/<[^>]+>/g, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+    
+    // Strip remaining HTML tags
+    safe = safe.replace(/<[^>]+>/g, '');
+    
+    // Decode common entities to readable text
+    safe = safe
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
-      .trim();
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, '/');
+    
+    return safe.trim();
   };
 
   const parts = [
