@@ -2,6 +2,8 @@
 ALTER TABLE users ADD COLUMN IF NOT EXISTS business_name TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_rules TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS reply_tone TEXT DEFAULT 'professional';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS voice_clone_id TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_insight_generated_at TIMESTAMPTZ;
 
 -- Add indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_business_name ON users(business_name);
