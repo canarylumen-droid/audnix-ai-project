@@ -65,6 +65,15 @@ export default function IntegrationsPage() {
 
   const integrations = integrationsData?.integrations ?? [];
 
+  // Get user's plan and lead limits
+  const userPlan = userData?.user?.subscriptionTier || 'free';
+  const isFreeTrial = userPlan === 'free' || !userData?.user?.subscriptionTier;
+  const currentLeadCount = userData?.user?.totalLeads || 0;
+  const leadsLimit = isFreeTrial ? 500 : (userPlan === 'starter' ? 2500 : userPlan === 'pro' ? 7000 : 20000);
+  const leadUsagePercentage = (currentLeadCount / leadsLimit) * 100;
+  const isNearLimit = leadUsagePercentage >= 80; // 80% threshold
+  const isAtLimit = currentLeadCount >= leadsLimit;
+
   // Fetch voice balance to check if locked
   const { data: voiceBalance } = useQuery({
     queryKey: ["/api/voice/balance"],
@@ -203,19 +212,24 @@ export default function IntegrationsPage() {
       setAllSetChannel(channelMap[provider] || provider);
       setShowAllSetDialog(true);
 
-      // Check if user is on free trial and hit 500 lead limit
+      // Check if user is on free trial and approaching/hit limit
       const isFreeTrial = !userData?.user?.subscriptionTier || userData?.user?.subscriptionTier === 'free';
-      const hitFreeLimit = isFreeTrial && data.leadsImported >= 500;
+      const newTotal = (userData?.user?.totalLeads || 0) + data.leadsImported;
+      const hitFreeLimit = isFreeTrial && newTotal >= 500;
+      const nearLimit = isFreeTrial && newTotal >= 400 && newTotal < 500;
 
       toast({
         title: "Import Complete",
         description: hitFreeLimit 
-          ? `Imported first 500 leads from ${channelMap[provider] || provider}. Upgrade to import more!`
+          ? `🎉 Imported ${data.leadsImported} leads! You've reached your 500 free leads. Upgrade to import unlimited!`
+          : nearLimit
+          ? `Imported ${data.leadsImported} leads (${newTotal}/500 total). ${500 - newTotal} remaining on free trial!`
           : `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
     onError: (error: Error, provider) => {
       setImportingChannel(null);
@@ -437,6 +451,71 @@ export default function IntegrationsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Free Trial Lead Limit Banner */}
+      {isFreeTrial && (
+        <Card className={`${isAtLimit ? 'border-amber-500/50 bg-amber-500/5' : isNearLimit ? 'border-blue-500/50 bg-blue-500/5' : 'border-emerald-500/50 bg-emerald-500/5'}`} data-testid="card-lead-limit">
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <Sparkles className={`h-5 w-5 flex-shrink-0 mt-0.5 ${isAtLimit ? 'text-amber-500' : isNearLimit ? 'text-blue-500' : 'text-emerald-500'}`} />
+                  <div className="flex-1">
+                    <p className={`font-semibold ${isAtLimit ? 'text-amber-700 dark:text-amber-300' : isNearLimit ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                      {isAtLimit ? '🎉 Free Trial Limit Reached!' : isNearLimit ? '💫 Almost There!' : '🚀 Free Trial Active'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isAtLimit 
+                        ? `You've imported ${currentLeadCount} leads on us! Upgrade to continue importing.`
+                        : `${currentLeadCount} / ${leadsLimit} leads imported • ${leadsLimit - currentLeadCount} remaining`
+                      }
+                    </p>
+                  </div>
+                </div>
+                {(isAtLimit || isNearLimit) && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => window.location.href = '/dashboard/pricing'}
+                    className={isAtLimit ? 'bg-amber-500 hover:bg-amber-600' : ''}
+                  >
+                    {isAtLimit ? 'Upgrade Now' : 'View Plans'}
+                  </Button>
+                )}
+              </div>
+              
+              {/* Progress Bar */}
+              <div>
+                <Progress 
+                  value={leadUsagePercentage} 
+                  className={`h-2 ${isAtLimit ? 'bg-amber-500/20' : isNearLimit ? 'bg-blue-500/20' : 'bg-emerald-500/20'}`}
+                />
+              </div>
+
+              {!isAtLimit && (
+                <div className="text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">✨ What you get with paid plans:</p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li><strong>Starter ($49.99/mo):</strong> 2,500 leads/month + 100 voice minutes</li>
+                    <li><strong>Pro ($99.99/mo):</strong> 7,000 leads/month + 400 voice minutes</li>
+                    <li><strong>Enterprise ($199.99/mo):</strong> 20,000 leads/month + 1,000 voice minutes</li>
+                  </ul>
+                </div>
+              )}
+
+              {isAtLimit && (
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    🎁 <strong>Special Offer:</strong> Upgrade now and keep all {currentLeadCount} leads + import thousands more!
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    All your conversations and AI insights are preserved when you upgrade.
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Channel Integrations */}
       <div>
@@ -967,13 +1046,39 @@ export default function IntegrationsPage() {
             <p className="text-sm text-muted-foreground">
               Intelligent follow-ups and engagement analysis are now active
             </p>
-            {userData?.user?.subscriptionTier === 'free' && (
-              <p className="text-xs text-amber-600">
-                💡 Free trial: First 500 leads imported. Upgrade to import unlimited leads!
-              </p>
+            {isFreeTrial && (
+              <div className="space-y-2">
+                {isAtLimit ? (
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                      🎉 You've imported {currentLeadCount} leads on us!
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                      Upgrade to continue importing and unlock unlimited leads
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    💡 Free trial: {currentLeadCount}/{leadsLimit} leads imported • {leadsLimit - currentLeadCount} remaining
+                  </p>
+                )}
+                {(isAtLimit || isNearLimit) && (
+                  <Button 
+                    size="sm" 
+                    variant={isAtLimit ? "default" : "outline"}
+                    onClick={() => {
+                      setShowAllSetDialog(false);
+                      window.location.href = '/dashboard/pricing';
+                    }}
+                    className="w-full"
+                  >
+                    {isAtLimit ? 'Upgrade to Import More' : 'View Upgrade Options'}
+                  </Button>
+                )}
+              </div>
             )}
-            <Button onClick={() => setShowAllSetDialog(false)} className="w-full">
-              Got it!
+            <Button onClick={() => setShowAllSetDialog(false)} className="w-full" variant={isAtLimit ? "outline" : "default"}>
+              {isAtLimit ? 'Continue' : 'Got it!'}
             </Button>
           </div>
         </DialogContent>
