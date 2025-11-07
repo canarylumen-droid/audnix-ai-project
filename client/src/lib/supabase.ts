@@ -23,3 +23,33 @@ if (isSupabaseConfigured()) {
 }
 
 export const supabase = supabaseClient;
+
+// Auth helpers
+export const signIn = async (email: string, password: string) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+  return await supabase.auth.signInWithPassword({ email, password });
+};
+
+export const signUp = async (email: string, password: string) => {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+  return await supabase.auth.signUp({ email, password });
+};
+
+export const signOut = async () => {
+  if (!supabase) {
+    throw new Error('Supabase not configured');
+  }
+  return await supabase.auth.signOut();
+};
+
+export const getCurrentUser = async () => {
+  if (!supabase) {
+    return null;
+  }
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};t;

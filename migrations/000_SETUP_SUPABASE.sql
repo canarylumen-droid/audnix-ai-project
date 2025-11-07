@@ -1,7 +1,7 @@
 -- ============================================================================
--- AUDNIX AI - COMPLETE DATABASE SETUP (No Auth Schema Required)
+-- AUDNIX AI - COMPLETE DATABASE SETUP (Standard PostgreSQL)
 -- ============================================================================
--- Run this in your Supabase SQL Editor or via DATABASE_URL
+-- Run this in your PostgreSQL database
 -- This creates all tables needed for Audnix AI
 -- ============================================================================
 
@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS users (
   stripe_subscription_id TEXT,
   voice_minutes_used REAL DEFAULT 0,
   voice_minutes_topup REAL DEFAULT 0,
+  business_name TEXT,
+  voice_rules TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_login TIMESTAMPTZ,
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -413,91 +415,91 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE brand_embeddings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE semantic_memory ENABLE ROW LEVEL SECURITY;
 
--- Users policies
+-- Users policies (simplified for standard PostgreSQL)
 CREATE POLICY "Users can view own profile" ON users
-  FOR SELECT USING (id = auth.uid() OR supabase_id = auth.uid()::text);
+  FOR SELECT USING (id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can update own profile" ON users
-  FOR UPDATE USING (id = auth.uid() OR supabase_id = auth.uid()::text);
+  FOR UPDATE USING (id = current_setting('app.current_user_id', true)::uuid);
 
 -- Leads policies
 CREATE POLICY "Users can view own leads" ON leads
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can insert own leads" ON leads
-  FOR INSERT WITH CHECK (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can update own leads" ON leads
-  FOR UPDATE USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR UPDATE USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Messages policies
 CREATE POLICY "Users can view own messages" ON messages
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can insert own messages" ON messages
-  FOR INSERT WITH CHECK (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR INSERT WITH CHECK (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Integrations policies
 CREATE POLICY "Users can manage own integrations" ON integrations
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- OAuth tokens policies
 CREATE POLICY "Users can view own OAuth tokens" ON oauth_tokens
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can update own OAuth tokens" ON oauth_tokens
-  FOR UPDATE USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR UPDATE USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Deals policies
 CREATE POLICY "Users can manage own deals" ON deals
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Voice settings policies
 CREATE POLICY "Users can manage own voice settings" ON voice_settings
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Automations policies
 CREATE POLICY "Users can manage own automations" ON automations
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Follow-up queue policies
 CREATE POLICY "Users can view own queue items" ON follow_up_queue
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Calendar events policies
 CREATE POLICY "Users can manage own calendar events" ON calendar_events
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Notifications policies
 CREATE POLICY "Users can manage own notifications" ON notifications
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Team members policies
 CREATE POLICY "Users can view own team" ON team_members
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Webhooks policies
 CREATE POLICY "Users can manage own webhooks" ON webhooks
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Insights policies
 CREATE POLICY "Users can view own insights" ON insights
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- API keys policies
 CREATE POLICY "Users can manage own API keys" ON api_keys
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Payments policies
 CREATE POLICY "Users can view own payments" ON payments
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR SELECT USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- Embeddings policies
 CREATE POLICY "Users can manage own brand embeddings" ON brand_embeddings
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 CREATE POLICY "Users can manage own semantic memory" ON semantic_memory
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -559,10 +561,8 @@ CREATE TRIGGER update_automations_updated_at
 -- You can now use this database with your application.
 -- 
 -- Next steps:
--- 1. Add your Supabase credentials to .env:
---    - NEXT_PUBLIC_SUPABASE_URL
---    - SUPABASE_SERVICE_ROLE_KEY  
---    - SUPABASE_ANON_KEY
+-- 1. Add your database credentials to .env:
+--    - DATABASE_URL
 -- 2. Add other API keys (OPENAI_API_KEY, STRIPE_SECRET_KEY, ENCRYPTION_KEY)
 -- 3. Restart your application
 -- ============================================================================
