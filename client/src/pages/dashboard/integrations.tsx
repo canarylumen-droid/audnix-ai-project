@@ -47,10 +47,16 @@ export default function IntegrationsPage() {
   const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
+  const [showComingSoonDialog, setShowComingSoonDialog] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch user data to check plan
+  const { data: userData } = useQuery({
+    queryKey: ["/api/user"],
+  });
 
   // Fetch integrations from backend
   const { data: integrationsData, isLoading } = useQuery({
@@ -197,9 +203,15 @@ export default function IntegrationsPage() {
       setAllSetChannel(channelMap[provider] || provider);
       setShowAllSetDialog(true);
 
+      // Check if user is on free trial and hit 500 lead limit
+      const isFreeTrial = !userData?.user?.subscriptionTier || userData?.user?.subscriptionTier === 'free';
+      const hitFreeLimit = isFreeTrial && data.leadsImported >= 500;
+
       toast({
         title: "Import Complete",
-        description: `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
+        description: hitFreeLimit 
+          ? `Imported first 500 leads from ${channelMap[provider] || provider}. Upgrade to import more!`
+          : `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
@@ -281,6 +293,12 @@ export default function IntegrationsPage() {
   };
 
   const handleConnect = async (provider: string) => {
+    // Show coming soon dialog for Instagram only
+    if (provider === 'instagram') {
+      setShowComingSoonDialog(true);
+      return;
+    }
+
     try {
       // Get OAuth URL from backend for all providers
       const response = await fetch(`/api/connect/${provider}`, {
@@ -444,93 +462,53 @@ export default function IntegrationsPage() {
                 >
                   {providerId === "instagram" && (
                     <Card
-                      className={`hover-elevate ${
-                        isConnected ? "border-emerald-500/50" : ""
-                      }`}
+                      className="hover-elevate border-amber-500/30 bg-amber-500/5"
                       data-testid={`card-integration-${providerId}`}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-primary/10">
-                              <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
+                            <div className="p-2 rounded-lg bg-amber-500/10">
+                              <Lock className="h-6 w-6 text-amber-500" data-testid={`icon-${providerId}`} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                  Instagram (No Meta Setup Required!)
+                                <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
+                                  Instagram
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs">Public API</Badge>
+                                <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600">Coming Soon</Badge>
                               </div>
                               <CardDescription className="text-sm">
-                                Works with any Instagram account • No Meta approval needed • Connect in seconds
+                                Available after Week 1 • Import manually via CSV for now
                               </CardDescription>
                             </div>
                           </div>
-                          {isConnected && (
-                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                              <Check className="h-3 w-3 mr-1" />
-                              Connected
-                            </Badge>
-                          )}
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {isConnected ? (
-                          <>
-                            <div className="text-sm space-y-2">
-                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">Connected • Importing leads...</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                Instagram DMs are being securely imported • Credentials encrypted
-                              </p>
+                        <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                            <div className="text-xs space-y-1">
+                              <p className="font-semibold text-amber-800 dark:text-amber-300">Coming After Week 1</p>
+                              <p className="text-amber-700 dark:text-amber-400">We're setting up Instagram safely to avoid account bans. For now, you can:</p>
+                              <ul className="list-disc list-inside space-y-0.5 ml-2">
+                                <li>Import leads manually via CSV</li>
+                                <li>Connect WhatsApp & Email (available now)</li>
+                                <li>Free trial: Import up to 500 leads on us</li>
+                              </ul>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleDisconnect(providerId)}
-                                disabled={disconnectProviderMutation.isPending}
-                                data-testid={`button-disconnect-${providerId}`}
-                              >
-                                {disconnectProviderMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Disconnect"
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleSyncNow(providerId)}
-                                disabled={importLeadsMutation.isPending}
-                                data-testid={`button-sync-${providerId}`}
-                              >
-                                {importLeadsMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Sync Now"
-                                )}
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <Button
-                            className="w-full"
-                            onClick={() => handleConnect(providerId)}
-                            disabled={connectProviderMutation.isPending}
-                            data-testid={`button-connect-${providerId}`}
-                          >
-                            {connectProviderMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : null}
-                            Connect Instagram Now
-                          </Button>
-                        )}
+                          </div>
+                        </div>
+                        <Button
+                          className="w-full"
+                          variant="outline"
+                          onClick={() => setShowComingSoonDialog(true)}
+                          data-testid={`button-connect-${providerId}`}
+                        >
+                          <Lock className="h-4 w-4 mr-2" />
+                          Coming Soon - Week 2
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
@@ -926,6 +904,44 @@ export default function IntegrationsPage() {
         <WhatsAppConnect />
       </div>
 
+      {/* Coming Soon Dialog */}
+      <Dialog open={showComingSoonDialog} onOpenChange={setShowComingSoonDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 10 }}
+                className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center"
+              >
+                <Lock className="h-10 w-10 text-amber-500" />
+              </motion.div>
+              <div>
+                <DialogTitle className="text-2xl font-bold">Instagram Coming Soon!</DialogTitle>
+                <DialogDescription className="text-lg mt-2">
+                  Available after Week 1 with safe setup
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="text-center space-y-4 py-4">
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p className="font-medium">We're getting help to set up Instagram safely to avoid account bans.</p>
+              <p>In the meantime, you can:</p>
+              <ul className="list-disc list-inside text-left space-y-1">
+                <li>Import Instagram leads via CSV (up to 500 free on trial)</li>
+                <li>Connect WhatsApp (works now with QR code)</li>
+                <li>Connect Email (Gmail/Outlook available now)</li>
+              </ul>
+            </div>
+            <Button onClick={() => setShowComingSoonDialog(false)} className="w-full">
+              Got it!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* All Set Dialog */}
       <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>
         <DialogContent className="sm:max-w-md">
@@ -951,6 +967,11 @@ export default function IntegrationsPage() {
             <p className="text-sm text-muted-foreground">
               Intelligent follow-ups and engagement analysis are now active
             </p>
+            {userData?.user?.subscriptionTier === 'free' && (
+              <p className="text-xs text-amber-600">
+                💡 Free trial: First 500 leads imported. Upgrade to import unlimited leads!
+              </p>
+            )}
             <Button onClick={() => setShowAllSetDialog(false)} className="w-full">
               Got it!
             </Button>

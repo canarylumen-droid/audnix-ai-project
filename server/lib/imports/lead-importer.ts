@@ -18,6 +18,20 @@ export async function importInstagramLeads(userId: string): Promise<{
   };
 
   try {
+    // Check user's plan and existing lead count
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+    
+    // Free trial users limited to 500 leads
+    const isFreeTrial = !user?.subscriptionTier || user.subscriptionTier === 'free';
+    const maxLeadsForFree = 500;
+    
+    if (isFreeTrial && currentLeadCount >= maxLeadsForFree) {
+      results.errors.push(`Free trial limit reached (${maxLeadsForFree} leads). Upgrade to import more.`);
+      return results;
+    }
+
     // Get user's Instagram integration
     const integrations = await storage.getIntegrations(userId);
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
@@ -137,6 +151,20 @@ export async function importGmailLeads(userId: string): Promise<{
   };
 
   try {
+    // Check user's plan and existing lead count
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+    
+    // Free trial users limited to 500 leads
+    const isFreeTrial = !user?.subscriptionTier || user.subscriptionTier === 'free';
+    const maxLeadsForFree = 500;
+    
+    if (isFreeTrial && currentLeadCount >= maxLeadsForFree) {
+      results.errors.push(`Free trial limit reached (${maxLeadsForFree} leads). Upgrade to import more.`);
+      return results;
+    }
+
     const integrations = await storage.getIntegrations(userId);
     const gmailIntegration = integrations.find(i => i.provider === 'gmail' && i.connected);
 
