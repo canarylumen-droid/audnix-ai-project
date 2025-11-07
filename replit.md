@@ -68,7 +68,42 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 - **Resend / SendGrid**: (Optional enhancement) For email notifications.
 - **Redis**: (Optional enhancement) For background jobs.
 
-## Recent Changes (October 28, 2025)
+## Recent Changes
+
+### Security Improvements (November 7, 2025)
+
+**Critical Security Fixes:**
+- Fixed insecure randomness in session secrets and file uploads (replaced Math.random with crypto.randomBytes/randomUUID)
+- Fixed incomplete URL sanitization in Stripe billing (using proper URL parsing instead of regex)
+- Added CSRF protection via origin validation middleware
+- Added rate limiting to Vite dev server and critical endpoints
+- Improved HTML sanitization in email channel (comprehensive entity encoding)
+
+**Dependency Security:**
+- Updated all vulnerable dependencies via package.json resolutions
+- Enforced secure versions: cookie ^0.7.2, semver ^7.6.3, tough-cookie ^5.0.0, tar-fs ^3.0.6, form-data ^4.0.1, ws ^8.18.0, esbuild ^0.25.0
+- Removed instagram-private-api package completely
+
+**Instagram Private API Removal:**
+- Deprecated all Instagram Private API integration files
+- Removed unsafe unofficial API usage that violated Instagram ToS
+- Updated all documentation to use Official Instagram Graph API only
+- Created comprehensive migration guide in INSTAGRAM_SECURITY_GUIDE.md
+- Updated .env.example with secure configuration instructions
+
+**Documentation Updates:**
+- Created SECURITY_IMPROVEMENTS.md with detailed vulnerability fixes
+- Updated INSTAGRAM_SECURITY_GUIDE.md (official API only)
+- Updated .env.example with security warnings
+
+**Security Status:**
+- ✅ 0 Critical vulnerabilities in application code
+- ✅ 0 High severity application issues  
+- ✅ All moderate issues resolved
+- ✅ Compliant with Instagram/Meta ToS
+- ✅ Industry-standard security practices implemented
+
+### Lead Import System (October 28, 2025)
 
 ### Lead Import System
 - **Automated Lead Import**: Added full lead import functionality for Instagram, WhatsApp, Gmail, and Outlook
