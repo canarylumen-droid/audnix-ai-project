@@ -443,122 +443,96 @@ export default function IntegrationsPage() {
                   transition={{ delay: index * 0.1 }}
                 >
                   {providerId === "instagram" && (
-                    <TabsContent value="instagram" className="space-y-4">
-                      {/* OAuth Info */}
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>✅ Secure Instagram Integration</AlertTitle>
-                        <AlertDescription>
-                          <p className="mb-2">Uses official Meta Graph API with OAuth 2.0 authentication.</p>
-                          <p className="font-semibold text-green-600">No passwords stored • Auto-imports leads safely</p>
-                        </AlertDescription>
-                      </Alert>
-
-                      <Card
-                        className={`hover-elevate ${
-                          isConnected ? "border-emerald-500/50" : ""
-                        }`}
-                        data-testid={`card-integration-${providerId}`}
-                      >
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10">
-                                <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                    {providerId}
-                                  </CardTitle>
-                                  {providerId === "instagram" && (
-                                    <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
-                                  )}
-                                </div>
-                                <CardDescription className="text-sm">
-                                  {providerId === "instagram" && (
-                                    <>
-                                      Official Meta Graph API • Secure OAuth login
-                                      <br />
-                                      <span className="text-green-600 dark:text-green-400 font-medium">
-                                        ✅ No ban risk • Auto-imports DMs, comments, leads
-                                      </span>
-                                    </>
-                                  )}
-                                  {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
-                                  {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
-                                </CardDescription>
-                              </div>
+                    <Card
+                      className={`hover-elevate ${
+                        isConnected ? "border-emerald-500/50" : ""
+                      }`}
+                      data-testid={`card-integration-${providerId}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
                             </div>
-                            {isConnected && (
-                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                                <Check className="h-3 w-3 mr-1" />
-                                Connected
-                              </Badge>
-                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                                  Instagram (No Meta Setup Required!)
+                                </CardTitle>
+                                <Badge variant="secondary" className="text-xs">Public API</Badge>
+                              </div>
+                              <CardDescription className="text-sm">
+                                Works with any Instagram account • No Meta approval needed • Connect in seconds
+                              </CardDescription>
+                            </div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          {isConnected ? (
-                            <>
-                              <div className="text-sm space-y-2">
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  <span className="font-medium">Connected • Importing leads...</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
-                                  {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
-                                  {providerId === "gmail" && "Email conversations are being securely synced"}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleDisconnect(providerId)}
-                                  disabled={disconnectProviderMutation.isPending}
-                                  data-testid={`button-disconnect-${providerId}`}
-                                >
-                                  {disconnectProviderMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    "Disconnect"
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleSyncNow(providerId)}
-                                  disabled={importLeadsMutation.isPending}
-                                  data-testid={`button-sync-${providerId}`}
-                                >
-                                  {importLeadsMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    "Sync Now"
-                                  )}
-                                </Button>
-                              </div>
-                            </>
-                          ) : (
-                            <Button
-                              className="w-full"
-                              onClick={() => handleConnect(providerId)}
-                              disabled={connectProviderMutation.isPending}
-                              data-testid={`button-connect-${providerId}`}
-                            >
-                              {connectProviderMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Connect {providerId}
-                            </Button>
+                          {isConnected && (
+                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                              <Check className="h-3 w-3 mr-1" />
+                              Connected
+                            </Badge>
                           )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {isConnected ? (
+                          <>
+                            <div className="text-sm space-y-2">
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="font-medium">Connected • Importing leads...</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Instagram DMs are being securely imported • Credentials encrypted
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleDisconnect(providerId)}
+                                disabled={disconnectProviderMutation.isPending}
+                                data-testid={`button-disconnect-${providerId}`}
+                              >
+                                {disconnectProviderMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Disconnect"
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleSyncNow(providerId)}
+                                disabled={importLeadsMutation.isPending}
+                                data-testid={`button-sync-${providerId}`}
+                              >
+                                {importLeadsMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Sync Now"
+                                )}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button
+                            className="w-full"
+                            onClick={() => handleConnect(providerId)}
+                            disabled={connectProviderMutation.isPending}
+                            data-testid={`button-connect-${providerId}`}
+                          >
+                            {connectProviderMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Connect Instagram Now
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
                   {providerId !== "instagram" && (
                     <motion.div
