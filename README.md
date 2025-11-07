@@ -109,11 +109,169 @@
 
 ## 🔮 Coming Soon (When We Hit $99-$199/mo Users)
 
-### Team Features (Enterprise)
+### 🚀 High-Impact Features (Revenue Drivers)
+
+#### AI-Powered Lead Qualification Scoring 2.0
+- **Beyond basic scoring**: Train AI on YOUR successful conversions
+- Real-time "deal probability" meter (0-100%)
+- Predict which leads will convert in next 24h/48h/7d
+- Auto-prioritize inbox by conversion likelihood
+- **Revenue Impact**: 20-30% increase in close rates
+
+#### Voice Note Library & Templates
+- Pre-record 10-15 voice note templates for common scenarios (Pricing inquiries, Product questions, Objection handling, Follow-ups)
+- AI picks the right template based on context
+- **Cost Savings**: Reduce voice minute usage by 40%
+
+#### Multi-Touch Attribution
+- Track the FULL customer journey: Instagram comment → DM → WhatsApp → Email → Conversion
+- Show which touchpoint actually closed the deal
+- Optimize where to spend automation effort
+- **Insights**: "80% of conversions happen after 3rd WhatsApp message"
+
+#### Smart Price Negotiation AI
+- Detects price objections automatically
+- Offers dynamic discounts based on lead score, time in funnel, engagement level
+- Learns optimal discount % from past conversions
+- **Example**: "Lead mentioned 'expensive' → AI offers 10% off if they buy now"
+
+#### Competitor Mention Detection
+- AI flags when leads mention competitors (ManyChat, CommentGuard, etc.)
+- Auto-generates comparison response highlighting your advantages
+- Tracks competitor sentiment across all conversations
+- **Competitive Edge**: "Audnix noticed 15 leads mentioned ManyChat this week"
+
+### 💎 Premium Features (Pro/Enterprise Only)
+
+#### Team Collaboration Mode
 - **Team Inbox** - Shared conversations across your team
-- **Lead Assignment** - Round-robin auto-distribution
-- **Performance Leaderboard** - Track top performers
+- **Round-robin lead assignment** - Auto-distribute leads fairly
+- **Internal notes** on leads (invisible to customers)
+- **Performance leaderboard** - Track who closes most deals
+- **"Claim lead" button** - Prevent double-messaging
 - **Role-Based Access** - Admin, Manager, Agent permissions
+
+#### Custom AI Training Playground
+- Upload past successful conversations
+- AI learns YOUR unique selling style
+- A/B test different AI personalities
+- "Formal vs Casual" tone selector per lead
+- **Power User Feature**: Course creators love this
+
+#### Video Response Automation
+- Record 30-60 sec video responses to FAQs
+- AI sends personalized video when lead asks common questions
+- Instagram/WhatsApp video message support
+- **Conversion Boost**: Video replies = 3x higher engagement
+
+#### Appointment Booking Funnel
+- Multi-step booking flow: Qualify → Show calendar → Confirm → Auto-reschedule
+- Integrates with Zoom/Google Meet links
+- **Use Case**: Coaches, consultants, service providers
+
+#### Revenue Forecasting Dashboard
+- Predict monthly revenue based on pipeline
+- "You have $12,500 in potential deals closing this week"
+- Track average deal size, close rate, sales cycle length
+- Visual pipeline by stage (New → Interested → Negotiating → Closed)
+- **C-Suite Feature**: Founders want this
+
+### 🎯 Niche Features (Vertical-Specific)
+
+#### E-commerce Cart Recovery 2.0
+- Detect abandoned carts from Instagram/WhatsApp
+- Send personalized "You left this behind" message + voice note
+- Offer time-sensitive discount (expires in 2 hours)
+- Track recovery rate per product
+- **Target**: D2C brands, Shopify sellers
+
+#### Course Creator Launch Sequence
+- Pre-built automation for course launches
+- Countdown sequence (7 days → 3 days → Last chance)
+- Early bird pricing automation
+- Waitlist management
+- **Target**: Info product sellers
+
+#### Influencer Collaboration Tracker
+- Detects when brands/companies DM you for collabs
+- Auto-tags as "Business Opportunity"
+- Sentiment analysis ("Is this a real offer or spam?")
+- Response templates for negotiating rates
+- **Target**: Content creators, influencers
+
+#### Event/Webinar Reminder System
+- Auto-remind attendees 24h, 2h, 15min before event
+- Send Zoom link via WhatsApp/Instagram
+- Track who opened link (engagement)
+- Post-event follow-up sequence
+- **Target**: Coaches, webinar hosts
+
+### 🔥 Competitive Moat Features
+
+#### Instagram Story Reply Automation
+- Monitor story replies for buying intent
+- Auto-DM leads who react with fire emoji or "interested"
+- Works with polls, questions, countdowns
+- **Unique**: ManyChat can't do this
+
+#### WhatsApp Status Monitoring
+- Detect when leads view your WhatsApp status
+- Auto-message viewers with relevant offer
+- "Saw you checked out my status about [product]"
+- **Unique**: No competitor has this
+
+#### LinkedIn Integration
+- Sync LinkedIn messages to unified inbox
+- AI detects B2B buying signals
+- Professional tone for corporate leads
+- **Target**: B2B sellers, SaaS companies
+
+#### SMS Fallback System
+- If lead goes cold on Instagram/WhatsApp
+- Auto-send SMS with "Miss you" message
+- Last-ditch effort to re-engage
+- **Conversion Recovery**: 10-15% reactivation rate
+
+### 🎨 UX Enhancements
+
+#### Conversation Templates
+- Save best-performing conversation flows
+- One-click apply to new leads
+- "Use 'Price Objection Template' for this lead"
+- **Time Savings**: 5 min → 30 seconds per lead
+
+#### Mobile App (PWA+)
+- Full-featured mobile experience
+- Push notifications for hot leads
+- Reply on-the-go
+- Offline mode (queues messages)
+- **Convenience**: Manage leads from phone
+
+#### Dark Mode Inbox (Enhanced)
+- Eye strain reduction
+- Night shift for late-night lead management
+- **Quality of Life**: Power users love this
+
+### 💰 Monetization Features
+
+#### White-Label Reseller Program
+- Agencies can rebrand Audnix as their own tool
+- Custom domain, logo, colors
+- Charge their clients directly
+- You take 30-40% revenue share
+- **New Revenue Stream**: $10k-50k/month from agencies
+
+#### Pay-Per-Conversion Pricing
+- Alternative to monthly plans
+- Pay $5-10 per converted lead
+- Risk-free for new users
+- **Conversion Magnet**: "Only pay when you make money"
+
+#### API Access (Enterprise)
+- Let developers build custom integrations
+- Connect to Zapier, Make.com, custom CRMs
+- Charge $199-499/month for API access
+- **Target**: Large teams, agencies
 
 ### Advanced Automation
 - **Custom Sequences** - Build multi-step follow-up flows
@@ -125,6 +283,33 @@
 - **Kanban Board** - Visual lead stages (New → Warm → Converted)
 - **Bulk Actions** - Tag/export/assign multiple leads at once
 - **Advanced Filters** - Search by sentiment, intent, engagement score
+
+### 🚀 Moonshot Ideas (Future Vision)
+
+- **AI Clones Your Sales Call Style** - Record 30 min sales call → AI learns your pitch → Uses it in all messages
+- **Predictive Lead Expiration** - "This lead will go cold in 48 hours if you don't act"
+- **Auto-Generate Sales Pages** - AI creates landing page based on your Instagram bio + product info
+- **Voice-to-Voice AI Calls** - AI calls leads on phone (not just messages) using your cloned voice
+
+---
+
+## 📅 Recommended Roadmap
+
+**Q1 2025 (Next 3 months):**
+- Voice Note Library
+- Team Collaboration
+- Competitor Detection
+- Instagram Story Automation
+
+**Q2 2025:**
+- Multi-Touch Attribution
+- Video Response Automation
+- Revenue Forecasting
+
+**Q3 2025:**
+- White-Label Program
+- API Access
+- LinkedIn Integration
 
 **ETA: Q3-Q4 2025** (launching when we have steady $99-$199 MRR)
 
