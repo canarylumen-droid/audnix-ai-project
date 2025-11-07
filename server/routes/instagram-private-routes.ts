@@ -24,12 +24,13 @@ router.post('/connect', requireAuth, async (req, res) => {
       message: 'Instagram connected successfully',
       security_warnings: {
         api_status: 'UNOFFICIAL - This uses reverse-engineered Instagram API',
-        ban_risk: 'HIGH - Instagram may ban accounts using unofficial APIs',
+        ban_risk: 'HIGH - Your Instagram account may be banned (NOT our platform)',
+        who_gets_banned: 'Only YOUR Instagram account - our app stays safe',
         recommendation: 'Use official Graph API with Business/Creator account instead',
         credentials_discarded: true,
         encryption: 'AES-256-GCM with end-to-end encryption',
-        rate_limits: '50 DMs per hour (safer limit)',
-        note: 'Session tokens stored encrypted. Use at your own risk.',
+        rate_limits: '40 DMs per hour (safest limit)',
+        note: 'Session tokens stored encrypted. Use at your own risk. Ban affects only your account.',
       },
     });
   } catch (error: any) {

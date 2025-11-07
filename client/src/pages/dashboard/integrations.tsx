@@ -476,7 +476,15 @@ export default function IntegrationsPage() {
                                   )}
                                 </div>
                                 <CardDescription className="text-sm">
-                                  {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
+                                  {providerId === "instagram" && (
+                                    <>
+                                      Confirm in Instagram app • End-to-end encrypted
+                                      <br />
+                                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                        ⚠️ Unofficial API - Your account may be banned (limit: 40 DMs/hour)
+                                      </span>
+                                    </>
+                                  )}
                                   {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
                                   {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
                                 </CardDescription>
