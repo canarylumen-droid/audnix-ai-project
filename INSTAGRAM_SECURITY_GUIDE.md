@@ -1,169 +1,188 @@
-
 # Instagram Integration Security Guide
 
-## ⚠️ IMPORTANT: Two Different APIs
+## ⚠️ CRITICAL SECURITY UPDATE
 
-Audnix supports **two Instagram integration methods**:
-
-### 1. ✅ Official Facebook Graph API (RECOMMENDED)
-**File:** `server/lib/channels/instagram.ts`
-
-**Pros:**
-- ✅ Officially supported by Meta
-- ✅ No risk of account bans
-- ✅ OAuth-based (no password storage)
-- ✅ 60-day long-lived tokens with auto-refresh
-- ✅ Enterprise-grade security
-
-**Cons:**
-- ❌ Requires Instagram Business or Creator account
-- ❌ Requires Facebook Developer App setup
-- ❌ More complex OAuth flow
-
-**When to use:** Production environments, client-facing apps
+**As of this update, Instagram Private API integration has been REMOVED from this codebase for security and compliance reasons.**
 
 ---
 
-### 2. ⚠️ Instagram Private API (USE WITH CAUTION)
-**File:** `server/lib/integrations/instagram-private.ts`
+## ✅ OFFICIAL Instagram Graph API (ONLY SUPPORTED METHOD)
 
-**Pros:**
-- ✅ Works with personal Instagram accounts
-- ✅ No Facebook app needed
-- ✅ Simple username/password login
+**Implementation Files:**
+- OAuth Flow: `server/routes/oauth.ts`
+- OAuth Service: `server/lib/oauth/instagram.ts`
+- Instagram Channel: `server/lib/channels/instagram.ts`
 
-**Cons:**
-- ❌ **UNOFFICIAL** - Reverse-engineered API
-- ❌ **HIGH BAN RISK** - Instagram actively detects and bans accounts
-- ❌ Requires password (encrypted, but still risky)
-- ❌ No 2FA support
-- ❌ Against Instagram Terms of Service
+### ✅ Benefits
 
-**When to use:** Personal testing, internal tools (NOT recommended for production)
+- **Compliant**: Follows Instagram's Terms of Service
+- **Secure**: OAuth-based, no password storage
+- **Stable**: Officially supported by Meta/Facebook
+- **No Ban Risk**: Safe for production use
+- **Enterprise-Grade**: 60-day tokens with auto-refresh
 
----
+### Requirements
 
-## 🔒 Security Measures Implemented
+1. Instagram Business or Creator account
+2. Facebook Developer App
+3. OAuth credentials (App ID + Secret)
 
-### For Official Graph API:
-1. **OAuth 2.0 Flow** - No passwords stored
-2. **AES-256-GCM Encryption** - All tokens encrypted at rest
-3. **Token Auto-Refresh** - Refreshes 24 hours before expiry
-4. **SSRF Protection** - Validates all Instagram user IDs (numeric only)
-5. **Rate Limiting** - Respects Meta API limits
+### Setup Instructions
 
-### For Private API:
-1. **Session-Only Storage** - Password NEVER stored (only session token)
-2. **AES-256-GCM Encryption** - Session tokens encrypted
-3. **Conservative Rate Limits** - 50 DMs/hour (reduced from 80)
-4. **Human-like Delays** - 3-8 seconds between actions
-5. **Priority Queue** - Hot leads processed first
-6. **Challenge Detection** - Detects 2FA/verification requests
-
----
-
-## 📊 Current Default Behavior
-
-**By default, Audnix uses the OFFICIAL Graph API.**
-
-The Private API is **opt-in only** and requires manual connection:
-```bash
-POST /api/instagram-private/connect
-{
-  "username": "your_username",
-  "password": "your_password"
-}
-```
-
----
-
-## 🛡️ Security Best Practices
-
-### For Production (Official API):
-1. ✅ Use Instagram Business/Creator accounts only
-2. ✅ Store `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` in Replit Secrets
-3. ✅ Enable webhook signature verification
-4. ✅ Monitor API usage in Meta Developer Console
-5. ✅ Set up token refresh monitoring
-
-### For Testing (Private API):
-1. ⚠️ Use throwaway test accounts only
-2. ⚠️ Never use on production/client accounts
-3. ⚠️ Monitor for Instagram rate limit warnings
-4. ⚠️ Disconnect immediately if account is flagged
-5. ⚠️ Keep rate limits conservative (50/hour max)
-
----
-
-## 🚨 Known Risks - Private API
-
-### Account Ban Triggers:
-- ❌ Sending too many DMs in short time
-- ❌ Rapid follow/unfollow actions
-- ❌ Using the same IP for multiple accounts
-- ❌ Automation patterns (same delay times)
-- ❌ Logging in from unusual locations
-
-### Mitigation Strategies:
-✅ **Random Delays** - 3-8 second variance between actions
-✅ **Priority Queue** - Processes hot leads first, pauses when rate limited
-✅ **Smart Resume** - Waits 1 hour + random 5-15 min delay after rate limit
-✅ **Session Persistence** - Reuses sessions to avoid repeated logins
-
----
-
-## 📝 Migration Guide: Private → Official API
-
-If you're currently using the Private API and want to migrate:
-
-### Step 1: Create Facebook Developer App
+#### Step 1: Create Facebook Developer App
 1. Go to https://developers.facebook.com
 2. Create new app → Business → Instagram API
-3. Get App ID and App Secret
+3. Copy App ID and App Secret
 
-### Step 2: Add Credentials to Replit Secrets
-```
-INSTAGRAM_APP_ID=your_app_id
-INSTAGRAM_APP_SECRET=your_app_secret
-INSTAGRAM_REDIRECT_URI=https://your-repl.replit.app/api/oauth/instagram/callback
+#### Step 2: Add to Environment Variables
+```bash
+INSTAGRAM_APP_ID=your_app_id_here
+INSTAGRAM_APP_SECRET=your_app_secret_here
+INSTAGRAM_REDIRECT_URI=https://your-app.replit.app/api/oauth/instagram/callback
 ```
 
-### Step 3: Convert Account to Business/Creator
+#### Step 3: Convert to Business/Creator Account
 1. Open Instagram app
 2. Settings → Account → Switch to Professional Account
 3. Choose Business or Creator
 
-### Step 4: Disconnect Private API
-```bash
-POST /api/instagram-private/disconnect
-```
+#### Step 4: Connect via OAuth
+1. Navigate to integrations page in your app
+2. Click "Connect Instagram"
+3. Authorize via Meta OAuth flow
+4. Done! Token auto-refreshes before expiry
 
-### Step 5: Connect via OAuth
-```bash
-GET /api/oauth/instagram
-# Follow OAuth flow in browser
-```
+---
+
+## 🚫 Instagram Private API - DEPRECATED AND REMOVED
+
+### Why It Was Removed
+
+1. **Terms of Service Violation**: Using unofficial APIs violates Instagram's TOS
+2. **Account Ban Risk**: Instagram actively detects and bans accounts using unofficial APIs
+3. **Security Risks**: Storing user passwords (even encrypted) is a security liability
+4. **Instability**: Instagram frequently changes their private endpoints
+5. **Legal Liability**: Could expose you and your users to legal action
+
+### Migration Path
+
+If you were using the private API:
+
+1. **Backup your data** - Export any lead information
+2. **Disconnect private API** - Remove any stored credentials
+3. **Follow setup instructions above** for Official Graph API
+4. **Test thoroughly** - Ensure OAuth flow works correctly
+
+### Files Removed
+
+- `server/routes/instagram-private-routes.ts` → Deprecated
+- `server/lib/integrations/instagram-private.ts` → Deprecated
+- Migration notice added: `server/routes/instagram-private-routes.ts.REMOVED`
+
+---
+
+## 🔒 Security Best Practices
+
+### For Production Deployments
+
+✅ **DO:**
+- Use Instagram Business/Creator accounts only
+- Store credentials in environment variables (Replit Secrets)
+- Enable webhook signature verification
+- Monitor API usage in Meta Developer Console
+- Implement rate limiting
+- Use HTTPS for all OAuth redirects
+
+❌ **DON'T:**
+- Store user passwords
+- Use personal Instagram accounts for business
+- Share API credentials in code or repositories
+- Bypass OAuth flows
+- Use unofficial/reverse-engineered APIs
+
+### Security Measures Implemented
+
+1. **OAuth 2.0 Flow** - Industry standard authentication
+2. **AES-256-GCM Encryption** - All tokens encrypted at rest
+3. **Token Auto-Refresh** - Refreshes before expiry
+4. **SSRF Protection** - Validates Instagram user IDs (numeric only)
+5. **Rate Limiting** - Respects Meta API limits
+6. **Origin Validation** - CSRF protection via origin headers
+
+---
+
+## 📊 API Comparison
+
+| Feature | Official Graph API | Private API (Removed) |
+|---------|-------------------|----------------------|
+| **Compliance** | ✅ TOS Compliant | ❌ Violates TOS |
+| **Ban Risk** | ✅ No Risk | ❌ HIGH Risk |
+| **Security** | ✅ OAuth 2.0 | ❌ Password Required |
+| **Stability** | ✅ Supported | ❌ Frequently Breaks |
+| **Account Type** | Business/Creator | Any |
+| **Setup Complexity** | Medium | Low |
+| **Production Ready** | ✅ Yes | ❌ NO |
 
 ---
 
 ## 🔍 Security Audit Checklist
 
-- [ ] All Instagram tokens encrypted with AES-256-GCM
-- [ ] No passwords stored in database (Private API uses session tokens only)
-- [ ] SSRF protection validates Instagram user IDs
-- [ ] Rate limits enforced (50 DMs/hour for Private, Meta limits for Official)
-- [ ] Human-like delays implemented (3-8 seconds)
-- [ ] OAuth tokens auto-refresh before expiry
-- [ ] Webhook signatures verified (Official API)
-- [ ] Security warnings shown to users (Private API)
+- [x] Instagram Private API removed from codebase
+- [x] All tokens encrypted with AES-256-GCM
+- [x] No passwords stored in database
+- [x] SSRF protection for Instagram user IDs
+- [x] Rate limits enforced via Meta API limits
+- [x] OAuth tokens auto-refresh before expiry
+- [x] Webhook signatures verified
+- [x] CSRF protection implemented
+- [x] Origin validation for API requests
+- [x] Secure session management
 
 ---
 
-## 📞 Support
+## 📞 Support & Documentation
 
-If you're unsure which API to use or need help setting up OAuth:
-1. Check `CREATOR_AUTH_SETUP.md` for official API setup
-2. Review `server/lib/oauth/instagram.ts` for OAuth implementation
-3. See `server/routes/oauth.ts` for OAuth endpoints
+**Official Instagram API Documentation:**
+- Graph API: https://developers.facebook.com/docs/instagram-api
+- OAuth Setup: https://developers.facebook.com/docs/facebook-login/web
+- Webhooks: https://developers.facebook.com/docs/graph-api/webhooks
 
-**Recommendation:** Always use the Official Graph API for production deployments.
+**Implementation Files:**
+- OAuth Routes: `server/routes/oauth.ts`
+- OAuth Service: `server/lib/oauth/instagram.ts`
+- Instagram Channel: `server/lib/channels/instagram.ts`
+
+**Related Guides:**
+- `CREATOR_AUTH_SETUP.md` - Detailed OAuth setup
+- `INTEGRATIONS_GUIDE.md` - Integration overview
+- `SECURITY.md` - General security practices
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# 1. Set environment variables
+INSTAGRAM_APP_ID=your_app_id
+INSTAGRAM_APP_SECRET=your_app_secret
+INSTAGRAM_REDIRECT_URI=https://your-app/api/oauth/instagram/callback
+
+# 2. User initiates connection
+GET /api/connect/instagram
+
+# 3. User authorizes on Instagram
+# (redirected to Instagram OAuth page)
+
+# 4. Callback handles token exchange
+# (automatic - handled by server)
+
+# 5. Token stored encrypted
+# (AES-256-GCM encryption)
+
+# 6. Ready to use!
+POST /api/instagram/send-dm
+```
+
+---
+
+**Remember:** Always use the Official Instagram Graph API. The private API has been permanently removed for your security and compliance.
