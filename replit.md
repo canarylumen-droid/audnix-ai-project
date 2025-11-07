@@ -70,18 +70,29 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 
 ## Recent Changes
 
-### Landing Page Redesign (November 7, 2025)
+### Landing Page & UX Enhancements (November 7, 2025)
+
+**"AI Sales Closer" Positioning:**
+- Landing page now positions Audnix AI as an "AI Sales Closer" for creators, coaches, agencies & founders
+- Hero headline: "Stop Losing Leads to Slow Follow-Ups → Your AI Sales Closer That Converts DMs Into Deals"
+- ROI-focused messaging with social proof badges: "3X faster response", "94% conversion rate", "Zero manual follow-ups"
+- Aggressive CTA: "Start Closing Deals in 3 Days (FREE) 🚀" with pulsing green gradient
+- Added sub-CTA copy: "No credit card required • Cancel anytime • Upgrade to Pro instantly"
 
 **Brand Colors Update:**
 - Implemented official Instagram gradient (#833AB4 → #C13584 → #F77737)
 - Added authentic WhatsApp colors (#075E54 → #25D366)
 - Integrated Gmail brand palette (#EA4335, #4285F4, #34A853)
 
-**Targeted Messaging:**
-- Hero section now explicitly targets creators, coaches, agencies & founders
-- Updated pain point messaging: "Stop Losing Leads to Slow Follow-Ups"
-- ROI-focused copy: "turns Instagram DMs, emails & WhatsApp into revenue"
-- Channel cards feature outcome-based descriptions with conversion focus
+**Targeted Sales Copy:**
+- Pain point-driven headline with emotional urgency
+- Outcome-focused messaging: "auto-imports leads from Instagram, Email & WhatsApp—then follows up with personalized voice messages & intelligent conversations to close deals on autopilot"
+- Channel cards feature 3 interactive screens: AI Replying, Auto-Import Leads, Revenue Analytics
+
+**Soft Warnings for Channel Connections:**
+- Added soft warning toast when users try to sync leads without connected channels
+- Warning displays: "⚠️ Please connect your [Channel] account first before importing leads. Click 'Connect' above to get started."
+- Prevents confusion and guides users to proper setup flow
 
 **Technical Improvements:**
 - Fixed React hooks violation by extracting ChannelCard component
@@ -92,6 +103,14 @@ The application features a premium dark gradient theme with vibrant cyan (`#00c8
 **Instagram Integration:**
 - Instagram button displays "Coming Soon" dialog (already implemented)
 - Protected Instagram integration from premature connections
+
+**Deployment Documentation:**
+- Created comprehensive RAILWAY_DEPLOYMENT_GUIDE.md with all env vars
+- Documented WhatsApp Web.js (default, FREE, QR code) vs Twilio OTP (optional)
+- Documented custom SMTP support (already implemented in backend)
+- Complete OAuth redirect URL setup for Gmail/Outlook
+- Stripe webhook configuration and pricing setup
+- Production checklist and troubleshooting guide
 
 ### Security Improvements (November 7, 2025)
 

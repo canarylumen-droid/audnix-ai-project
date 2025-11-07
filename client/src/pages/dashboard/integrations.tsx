@@ -414,6 +414,18 @@ export default function IntegrationsPage() {
       gmail: "gmail"
     };
 
+    // Check if the channel is actually connected
+    const integration = integrations.find((i: any) => i.provider === provider);
+    if (!integration || !integration.connected) {
+      toast({
+        title: "Channel Not Connected",
+        description: `⚠️ Please connect your ${provider === 'gmail' ? 'Email' : provider.charAt(0).toUpperCase() + provider.slice(1)} account first before importing leads. Click "Connect" above to get started.`,
+        variant: "default",
+        duration: 5000,
+      });
+      return;
+    }
+
     setImportingChannel(channelMap[provider]);
     importLeadsMutation.mutate(providerToEndpoint[provider]);
   };
