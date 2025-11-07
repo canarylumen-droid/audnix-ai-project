@@ -282,20 +282,43 @@ export default function Landing() {
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block">
-                  Follow up like a human,
+                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-2xl sm:text-3xl md:text-4xl font-semibold mb-2">
+                  Stop Losing Leads to Slow Follow-Ups
                 </span>
-                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>close deals like a pro</span>
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>Your AI Sales Closer</span>
+                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block text-xl sm:text-2xl md:text-3xl font-medium mt-2">
+                  That Converts DMs Into Deals
+                </span>
               </motion.h1>
 
               <motion.p
-                className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/80 mb-8 max-w-3xl mx-auto leading-relaxed px-4"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto leading-relaxed px-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
               >
-                For <span className="text-cyan-400 font-semibold">creators, coaches, agencies & founders</span>: The <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold">AI autopilot CRM</span> that turns Instagram DMs, emails & WhatsApp into revenue—while you focus on building your empire.
+                For <span className="text-cyan-400 font-semibold">creators, coaches, agencies & founders</span>: The <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent font-bold">AI Sales Closer</span> that auto-imports leads from Instagram, Email & WhatsApp—then follows up with <span className="text-emerald-400 font-semibold">personalized voice messages</span> & intelligent conversations to close deals on autopilot.
               </motion.p>
+
+              <motion.div
+                className="flex flex-wrap gap-3 mb-8 px-4 text-sm sm:text-base"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+              >
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/90 font-medium">3X faster response time</span>
+                </div>
+                <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2">
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                  <span className="text-white/90 font-medium">94% conversion rate</span>
+                </div>
+                <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2">
+                  <Zap className="w-4 h-4 text-purple-400" />
+                  <span className="text-white/90 font-medium">Zero manual follow-ups</span>
+                </div>
+              </motion.div>
 
               <motion.div
                 className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 px-4"
@@ -306,10 +329,10 @@ export default function Landing() {
                 <Link href="/auth" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300"
-                    style={{ boxShadow: "0 0 40px rgba(0, 200, 255, 0.4)" }}
+                    className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 animate-pulse"
+                    style={{ boxShadow: "0 0 40px rgba(16, 185, 129, 0.6)" }}
                   >
-                    Start Free Trial (3 Days) ✨
+                    Start Closing Deals in 3 Days (FREE) 🚀
                     <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -322,6 +345,15 @@ export default function Landing() {
                   See How It Works
                 </Button>
               </motion.div>
+
+              <motion.p
+                className="text-sm text-white/60 px-4 mb-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7, duration: 0.8 }}
+              >
+                💳 <span className="font-semibold text-white/80">No credit card required</span> • Cancel anytime • <span className="text-emerald-400">Upgrade to Pro instantly</span> for unlimited leads & AI voice
+              </motion.p>
 
               <motion.div
                 className="flex flex-wrap gap-3 sm:gap-4 text-sm text-white/90"
