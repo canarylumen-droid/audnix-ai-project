@@ -272,7 +272,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1
-                className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight"
+                className="text-xl sm:text-2xl md:text-3xl lg:text-5xl xl:text-6xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight"
                 animate={prefersReducedMotion ? {} : {
                   textShadow: [
                     "0 0 30px rgba(0, 200, 255, 0.4)",
@@ -282,17 +282,17 @@ export default function Landing() {
                 }}
                 transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
               >
-                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-semibold mb-2">
+                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-semibold mb-2">
                   Stop Losing Leads to Slow Follow-Ups
                 </span>
                 <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-2" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>Your AI Sales Closer</span>
-                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-medium mt-2">
+                <span className="bg-gradient-to-r from-cyan-200 via-blue-200 to-teal-200 bg-clip-text text-transparent leading-tight block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-medium mt-2">
                   That Converts DMs Into Deals
                 </span>
               </motion.h1>
 
               <motion.p
-                className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/80 mb-4 max-w-3xl mx-auto leading-relaxed px-4"
+                className="text-sm sm:text-base md:text-lg lg:text-xl text-white/80 mb-4 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
@@ -301,27 +301,27 @@ export default function Landing() {
               </motion.p>
 
               <motion.div
-                className="flex flex-wrap gap-3 mb-8 px-4 text-sm sm:text-base"
+                className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8 px-2 sm:px-4 text-xs sm:text-sm justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.8 }}
               >
-                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-4 py-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/90 font-medium">3X faster response time</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
+                  <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="text-white/90 font-medium whitespace-nowrap">3X faster response</span>
                 </div>
-                <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
-                  <span className="text-white/90 font-medium">94% conversion rate</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400 flex-shrink-0" />
+                  <span className="text-white/90 font-medium whitespace-nowrap">94% conversion</span>
                 </div>
-                <div className="flex items-center gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2">
-                  <Zap className="w-4 h-4 text-purple-400" />
-                  <span className="text-white/90 font-medium">Zero manual follow-ups</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-3 sm:px-4 py-1.5 sm:py-2">
+                  <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400 flex-shrink-0" />
+                  <span className="text-white/90 font-medium whitespace-nowrap">Zero manual work</span>
                 </div>
               </motion.div>
 
               <motion.div
-                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 px-4"
+                className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8 px-2 sm:px-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.8 }}
@@ -344,17 +344,17 @@ export default function Landing() {
                   >
                     <Button
                       size="lg"
-                      className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300"
+                      className="w-full sm:w-auto text-sm sm:text-base md:text-lg px-4 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300"
                     >
-                      Start Closing Deals in 3 Days (FREE) 🚀
-                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                      <span className="whitespace-nowrap">Start Closing Deals in 3 Days (FREE) 🚀</span>
+                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform flex-shrink-0" />
                     </Button>
                   </motion.div>
                 </Link>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-10 py-5 sm:py-7 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
+                  className="w-full sm:w-auto text-sm sm:text-base md:text-lg px-4 sm:px-8 md:px-10 py-4 sm:py-5 md:py-6 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
                   onClick={scrollToFeatures}
                 >
                   See How It Works
@@ -362,7 +362,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.p
-                className="text-sm text-white/60 px-4 mb-2"
+                className="text-xs sm:text-sm text-white/60 px-2 sm:px-4 mb-2 text-center sm:text-left"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7, duration: 0.8 }}
@@ -371,22 +371,22 @@ export default function Landing() {
               </motion.p>
 
               <motion.div
-                className="flex flex-wrap gap-3 sm:gap-4 text-sm text-white/90"
+                className="flex flex-wrap gap-2 sm:gap-3 md:gap-4 text-xs sm:text-sm text-white/90 justify-center sm:justify-start px-2 sm:px-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span>No credit card required</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="whitespace-nowrap">No credit card</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-primary" />
-                  <span>5 minute setup</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                  <span className="whitespace-nowrap">5 min setup</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                  <span>Cancel anytime</span>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Cancel anytime</span>
                 </div>
               </motion.div>
 
