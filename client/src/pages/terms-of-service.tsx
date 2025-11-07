@@ -312,8 +312,8 @@ export default function TermsOfService() {
                 Questions about these Terms? Contact our legal team:
               </p>
               <ul className="space-y-2 text-muted-foreground">
-                <li><strong>Email:</strong> legal@audnix.ai</li>
-                <li><strong>Support:</strong> support@audnix.ai</li>
+                <li><strong>Email:</strong> legal@audnixai.com</li>
+                <li><strong>Support:</strong> support@audnixai.com</li>
                 <li><strong>Address:</strong> Audnix AI, Legal Department</li>
               </ul>
             </Card>

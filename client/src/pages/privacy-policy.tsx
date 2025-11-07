@@ -177,7 +177,7 @@ export default function PrivacyPolicy() {
                   <li><strong>Objection:</strong> Opt out of certain data processing activities</li>
                   <li><strong>Restriction:</strong> Limit how we use your data</li>
                 </ul>
-                <p className="mt-4">To exercise any of these rights, contact us at <strong>privacy@audnix.ai</strong></p>
+                <p className="mt-4">To exercise any of these rights, contact us at <strong>privacy@audnixai.com</strong></p>
               </div>
             </Card>
 
@@ -233,8 +233,8 @@ export default function PrivacyPolicy() {
                 If you have questions about this Privacy Policy or how we handle your data:
               </p>
               <ul className="space-y-2 text-muted-foreground">
-                <li><strong>Email:</strong> privacy@audnix.ai</li>
-                <li><strong>Support:</strong> support@audnix.ai</li>
+                <li><strong>Email:</strong> privacy@audnixai.com</li>
+                <li><strong>Support:</strong> support@audnixai.com</li>
                 <li><strong>Address:</strong> Audnix AI, Privacy Compliance Department</li>
               </ul>
             </Card>
