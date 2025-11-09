@@ -1,155 +1,112 @@
 import { Button } from "@/components/ui/button";
-import { Check, X, MessageSquare, Mic, Calendar, ArrowRight, Clock, Phone, Mail, Instagram as InstagramIcon } from "lucide-react";
+import { Check, X, ArrowRight, TrendingUp, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/landing/Navigation";
-import { getSortedPricingTiers } from "@shared/plan-utils";
-import { Card } from "@/components/ui/card";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { FeatureSection } from "@/components/landing/FeatureSection";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { AnimatedCard } from "@/components/ui/animated-card";
+import { motion } from "framer-motion";
 
 export default function Landing() {
-  const pricingTiers = getSortedPricingTiers();
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white">
       <Navigation />
 
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-24 mt-16">
-        <div className="relative z-10 max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            Stop Letting Warm Leads Go Cold
-          </h1>
-          
-          <p className="text-xl sm:text-2xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed">
-            Your AI sales rep that follows up, handles objections, and books meetings — 24/7.
-          </p>
+      <HeroSection />
 
-          <p className="text-lg text-white/80 mb-8 max-w-3xl mx-auto">
-            Audnix replies like a real human across WhatsApp + Email (+ Instagram soon).<br />
-            Natural timing (2–8 minutes), remembers context, and engages only when leads show intent.<br />
-            It nurtures → handles objections → books meetings → you close.
-          </p>
-
-          <div className="flex flex-wrap gap-4 justify-center mb-8">
-            <div className="flex items-center gap-2 text-white/90">
-              <Check className="w-5 h-5 text-emerald-400" />
-              <span>Human-like timing & tone</span>
-            </div>
-            <div className="flex items-center gap-2 text-white/90">
-              <Check className="w-5 h-5 text-emerald-400" />
-              <span>Voice notes in your voice</span>
-            </div>
-            <div className="flex items-center gap-2 text-white/90">
-              <Check className="w-5 h-5 text-emerald-400" />
-              <span>Auto-booking + intelligent follow-ups</span>
-            </div>
-          </div>
-
-          <Link href="/auth">
-            <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-lg px-8 py-6">
-              Start Closing Deals → No Card Required
-            </Button>
-          </Link>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 border-y border-white/10">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Why You're Losing Money
-          </h2>
-          
-          <p className="text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-            Leads don't die because they don't want what you sell —<br />
-            they die because you're slow.
-          </p>
-
-          <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-4xl mx-auto">
-            <div className="bg-white/5 border border-red-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-red-400 mb-4">You:</h3>
-              <ul className="space-y-2 text-white/80 text-left">
-                <li className="flex items-start gap-2">
-                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <span>Miss messages</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <span>Forget follow-ups</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <span>Reply late</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                  <span>Sleep while prospects are active</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-white/5 border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold text-emerald-400 mb-4">Audnix fixes that.</h3>
-              <p className="text-white/90 text-lg">
-                Right timing → right tone → more booked calls.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 px-4">
+      {/* Problem/Solution Section */}
+      <section className="py-20 px-4 border-y border-white/10 overflow-hidden">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
-            What Audnix Does
-          </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Why You're Losing Money
+            </h2>
+            <p className="text-2xl text-white/80 max-w-3xl mx-auto">
+              Leads don't die because they don't want what you sell —<br />
+              they die because <span className="text-red-400 font-bold">you're slow</span>.
+            </p>
+          </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                number: 1,
-                title: "Auto-imports leads",
-                desc: "WhatsApp + Email + CSV",
-                note: "(Instagram coming soon)",
-                icon: Phone
-              },
-              {
-                number: 2,
-                title: "Talks like you",
-                desc: "Understands your tone, docs, and offers.",
-                icon: MessageSquare
-              },
-              {
-                number: 3,
-                title: "Handles objections",
-                desc: "Price → stalling → questions → hesitations",
-                icon: Check
-              },
-              {
-                number: 4,
-                title: "Sends voice notes in your tone",
-                desc: "",
-                icon: Mic
-              },
-              {
-                number: 5,
-                title: "Books meetings automatically",
-                desc: "Checks your calendar → confirms",
-                icon: Calendar
-              }
-            ].map((item) => (
-              <Card key={item.number} className="bg-white/5 border-white/10 p-6 hover:border-primary/50 transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                    {item.number}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <AnimatedCard 
+              className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/30"
+              glowColor="rgba(239, 68, 68, 0.2)"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                    <X className="w-6 h-6 text-red-400" />
                   </div>
-                  <item.icon className="w-6 h-6 text-primary" />
+                  <h3 className="text-2xl font-bold text-red-400">Manual Follow-Up</h3>
                 </div>
-                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
-                <p className="text-white/80">{item.desc}</p>
-                {item.note && <p className="text-white/60 text-sm mt-2">{item.note}</p>}
-              </Card>
-            ))}
+                <ul className="space-y-3">
+                  {["Miss messages while sleeping", "Forget to follow up", "Reply hours (or days) late", "Lose hot leads to competitors"].map((item, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 }}
+                      className="flex items-start gap-3 text-white/80"
+                    >
+                      <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                      <span>{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+            </AnimatedCard>
+
+            <AnimatedCard 
+              className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30"
+              glowColor="rgba(16, 185, 129, 0.3)"
+            >
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-emerald-400">Audnix Automation</h3>
+                </div>
+                <ul className="space-y-3">
+                  {["Instant replies 24/7", "Never forgets a follow-up", "Perfect timing every time", "Converts while you sleep"].map((item, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 }}
+                      className="flex items-start gap-3 text-white/90"
+                    >
+                      <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                      <span>{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-6 p-4 rounded-lg bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30"
+                >
+                  <p className="text-white/90 text-center font-medium">
+                    Right timing + right tone = more booked calls
+                  </p>
+                </motion.div>
+              </div>
+            </AnimatedCard>
           </div>
         </div>
       </section>
+
+      <FeatureSection />
 
       <section className="py-20 px-4 border-y border-white/10">
         <div className="max-w-6xl mx-auto">
@@ -350,68 +307,67 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="pricing" className="py-20 px-4 bg-white/5">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">
-            Pricing
-          </h2>
-          <p className="text-xl text-white/90 mb-12 text-center">
-            Start free → upgrade when serious
-          </p>
+      <PricingSection />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pricingTiers.filter(tier => tier.id !== 'trial').map((tier) => (
-              <Card key={tier.id} className={`bg-white/5 border p-6 ${tier.id === 'pro' ? 'border-primary shadow-lg shadow-primary/20' : 'border-white/10'}`}>
-                {tier.id === 'pro' && (
-                  <div className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-3">
-                    Most Popular
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold">${tier.price}</span>
-                  <span className="text-white/60">/{tier.period}</span>
-                </div>
-                <p className="text-white/70 mb-6">{tier.description}</p>
-                <ul className="space-y-2 mb-6">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-white/80">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href={tier.id === 'free' ? '/auth' : tier.id === 'enterprise' ? '/contact' : '/dashboard/pricing'}>
-                  <Button className={`w-full ${tier.id === 'pro' ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'}`}>
-                    {tier.id === 'free' ? 'Start Free' : tier.id === 'enterprise' ? 'Talk to Sales' : 'Upgrade'} →
-                  </Button>
-                </Link>
-              </Card>
-            ))}
-          </div>
-
-          <p className="text-center text-white/70 mt-8">
-            Add-ons (paid plans only): Voice top-ups • Lead packs
-          </p>
+      {/* Final CTA */}
+      <section className="py-32 px-4 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 180, 360],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
         </div>
-      </section>
 
-      <section className="py-32 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-bold mb-6">
-            Stop letting prospects vanish.
-          </h2>
-          <p className="text-2xl text-white/90 mb-8">
-            Let Audnix follow up, handle objections, and book meetings.<br />
-            You close.
-          </p>
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/70">
+              Stop letting prospects vanish.
+            </h2>
+            <p className="text-xl md:text-2xl text-white/80 mb-10 leading-relaxed">
+              Let Audnix follow up, handle objections, and book meetings.<br />
+              <span className="text-primary font-semibold">You close.</span>
+            </p>
 
-          <Link href="/auth">
-            <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-xl px-12 py-7">
-              Start Free – No Card
-              <ArrowRight className="ml-2 w-6 h-6" />
-            </Button>
-          </Link>
+            <Link href="/auth">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-lg md:text-xl px-12 py-7 md:py-8 rounded-full shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 group"
+                >
+                  <span className="flex items-center gap-2">
+                    Start Free – No Card Required
+                    <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </Button>
+              </motion.div>
+            </Link>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-white/50 text-sm mt-6"
+            >
+              Join hundreds of closers automating their follow-up
+            </motion.p>
+          </motion.div>
         </div>
       </section>
     </div>

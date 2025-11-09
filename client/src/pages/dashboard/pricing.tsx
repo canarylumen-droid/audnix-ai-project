@@ -2,11 +2,12 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, Mic } from "lucide-react";
+import { Check, Loader2, Mic, Zap, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { getSortedPricingTiers } from "@shared/plan-utils";
+import { AnimatedCard } from "@/components/ui/animated-card";
 
 const topups = [
   {
@@ -105,164 +106,246 @@ export default function PricingPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4 text-white" data-testid="heading-pricing">
-          Stop letting prospects vanish
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="text-center max-w-3xl mx-auto"
+      >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 backdrop-blur-sm mb-6">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-white/90">
+            Upgrade to unlock full automation power
+          </span>
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70" data-testid="heading-pricing">
+          Pricing Built for Closers
         </h1>
-        <p className="text-xl text-white/80" data-testid="text-subtitle">
-          Start free → upgrade when serious
+        <p className="text-xl text-white/70" data-testid="text-subtitle">
+          Start free → upgrade when you're closing deals
         </p>
-      </div>
+      </motion.div>
 
       {/* Pricing Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {plans.map((plan, index) => (
-          <motion.div
-            key={plan.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card
-              className={`relative ${
-                plan.popular ? "border-primary shadow-lg scale-105" : ""
-              } hover-elevate`}
-              data-testid={`card-plan-${plan.name.toLowerCase()}`}
+        {plans.map((plan, index) => {
+          const isPopular = plan.popular;
+          const isEnterprise = plan.id === 'enterprise';
+          
+          return (
+            <AnimatedCard
+              key={plan.name}
+              delay={index * 0.1}
+              className={`bg-gradient-to-b overflow-hidden ${
+                isPopular 
+                  ? 'from-primary/10 to-primary/5 border-primary shadow-lg' 
+                  : 'from-white/5 to-white/[0.02] border-white/10'
+              }`}
+              glowColor={isPopular ? "rgba(16, 185, 129, 0.4)" : "rgba(16, 185, 129, 0.2)"}
             >
-              {plan.popular && (
-                <Badge
-                  className="absolute -top-3 left-1/2 -translate-x-1/2"
-                  data-testid="badge-popular"
-                >
-                  Most Popular
-                </Badge>
-              )}
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl text-white" data-testid={`text-plan-name-${index}`}>
+              <div className="p-6 relative" data-testid={`card-plan-${plan.name.toLowerCase()}`}>
+                {isPopular && (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute -top-3 left-1/2 -translate-x-1/2"
+                  >
+                    <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1 shadow-lg" data-testid="badge-popular">
+                      <Zap className="w-3 h-3" />
+                      Most Popular
+                    </div>
+                  </motion.div>
+                )}
+
+                <h3 className="text-2xl font-bold mb-2 text-white" data-testid={`text-plan-name-${index}`}>
                   {plan.name}
-                </CardTitle>
-                <CardDescription className="text-white/70" data-testid={`text-plan-description-${index}`}>
+                </h3>
+                
+                <p className="text-white/70 mb-4" data-testid={`text-plan-description-${index}`}>
                   {plan.description}
-                </CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold text-white" data-testid={`text-plan-price-${index}`}>
+                </p>
+
+                <div className="mb-6">
+                  <motion.span 
+                    className="text-5xl font-bold text-white"
+                    whileHover={{ scale: 1.05 }}
+                    data-testid={`text-plan-price-${index}`}
+                  >
                     ${plan.price.toFixed(2)}
-                  </span>
-                  <span className="text-white/60">/{plan.period}</span>
+                  </motion.span>
+                  <span className="text-white/60 text-lg">/{plan.period}</span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
+
+                <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, featureIndex) => (
-                    <li
+                    <motion.li
                       key={featureIndex}
-                      className="flex items-start gap-2"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: featureIndex * 0.05 }}
+                      className="flex items-start gap-2.5 text-sm group"
                       data-testid={`feature-${index}-${featureIndex}`}
                     >
-                      <Check className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-white/90">{feature}</span>
-                    </li>
+                      <Check className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                      <span className="text-white/80 group-hover:text-white transition-colors">{feature}</span>
+                    </motion.li>
                   ))}
                 </ul>
-                <Button
-                  className={`w-full ${plan.popular ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white' : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white border-0'}`}
-                  variant={plan.popular ? "default" : "secondary"}
-                  data-testid={`button-cta-${index}`}
-                  onClick={() => handleUpgrade(plan.id)}
-                  disabled={loadingPlan === plan.id}
+
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {loadingPlan === plan.id ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    plan.id === 'enterprise' ? 'Talk to Sales' : 'Upgrade'
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Voice Minutes Top-ups */}
-      <div id="topups" className="max-w-6xl mx-auto mt-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-white">Voice Minutes Top-Ups</h2>
-          <p className="text-xl text-white/80">
-            Ran out of voice minutes? Top up instantly and keep the AI working
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {topups.map((topup, index) => (
-            <motion.div
-              key={topup.name}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card
-                className={`relative ${
-                  topup.popular ? "border-emerald-500 shadow-lg scale-105" : ""
-                } hover-elevate`}
-              >
-                {topup.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500">
-                    Best Value
-                  </Badge>
-                )}
-                <CardHeader className="text-center pb-3">
-                  <CardTitle className="text-lg text-white">{topup.name}</CardTitle>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold text-white">${topup.price}</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="text-center space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-2xl font-bold text-primary">
-                      {topup.minutes} minutes
-                    </p>
-                    <p className="text-sm text-white/70">{topup.description}</p>
-                  </div>
-                  <div className="space-y-2 text-sm text-white/60">
-                    <p>✓ Instant delivery</p>
-                    <p>✓ Never expires</p>
-                    <p>✓ 85%+ profit margin</p>
-                  </div>
                   <Button
-                    className={`w-full ${
-                      topup.popular
-                        ? 'bg-emerald-500 hover:bg-emerald-600'
-                        : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 border-0'
-                    }`}
-                    onClick={() => handleTopup(topup.topupKey)}
-                    disabled={loadingPlan === topup.topupKey}
+                    className={`w-full rounded-full font-bold ${
+                      isPopular
+                        ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/25'
+                        : isEnterprise
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                    } transition-all duration-300`}
+                    size="lg"
+                    data-testid={`button-cta-${index}`}
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={loadingPlan === plan.id}
                   >
-                    {loadingPlan === topup.topupKey ? (
+                    {loadingPlan === plan.id ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Loading...
                       </>
                     ) : (
-                      <>
-                        <Mic className="mr-2 h-4 w-4" />
-                        Buy Now
-                      </>
+                      plan.id === 'enterprise' ? 'Talk to Sales →' : 'Upgrade →'
                     )}
                   </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </motion.div>
+              </div>
+            </AnimatedCard>
+          );
+        })}
+      </div>
+
+      {/* Voice Minutes Top-ups */}
+      <div id="topups" className="max-w-6xl mx-auto mt-20">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold mb-4 text-white">Voice Minutes Top-Ups</h2>
+          <p className="text-xl text-white/70">
+            Ran out of voice minutes? Top up instantly and keep the AI working
+          </p>
+          <p className="text-sm text-cyan-400 mt-2 font-medium">
+            Available for paid plans only
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {topups.map((topup, index) => (
+            <AnimatedCard
+              key={topup.name}
+              delay={index * 0.1}
+              className={`bg-gradient-to-b overflow-hidden ${
+                topup.popular
+                  ? 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/50'
+                  : 'from-white/5 to-white/[0.02] border-white/10'
+              }`}
+              glowColor={topup.popular ? "rgba(16, 185, 129, 0.4)" : "rgba(16, 185, 129, 0.2)"}
+            >
+              <div className="p-6 relative">
+                {topup.popular && (
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute -top-3 left-1/2 -translate-x-1/2"
+                  >
+                    <div className="bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg">
+                      Best Value
+                    </div>
+                  </motion.div>
+                )}
+                
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-white mb-2">{topup.name}</h3>
+                  <div className="mb-4">
+                    <motion.span 
+                      className="text-3xl font-bold text-white"
+                      whileHover={{ scale: 1.05 }}
+                    >
+                      ${topup.price}
+                    </motion.span>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <p className="text-2xl font-bold text-primary">
+                      {topup.minutes} minutes
+                    </p>
+                    <p className="text-sm text-white/70">{topup.description}</p>
+                  </div>
+
+                  <div className="space-y-2 text-sm text-white/60 mb-6">
+                    {["Instant delivery", "Never expires", "85%+ profit margin"].map((item, i) => (
+                      <motion.p
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.05 }}
+                        className="flex items-center justify-center gap-1"
+                      >
+                        <Check className="w-4 h-4 text-emerald-400" />
+                        {item}
+                      </motion.p>
+                    ))}
+                  </div>
+
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      className={`w-full rounded-full font-bold ${
+                        topup.popular
+                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
+                          : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                      } transition-all duration-300`}
+                      onClick={() => handleTopup(topup.topupKey)}
+                      disabled={loadingPlan === topup.topupKey}
+                    >
+                      {loadingPlan === topup.topupKey ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="mr-2 h-4 w-4" />
+                          Buy Now →
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+            </AnimatedCard>
           ))}
         </div>
 
-        <div className="mt-8 text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-8 text-center"
+        >
           <p className="text-sm text-white/60">
             All top-ups sync in real-time via Stripe webhooks • Balance updates instantly
           </p>
-        </div>
+        </motion.div>
       </div>
 
       {/* FAQ */}
