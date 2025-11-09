@@ -30,24 +30,16 @@ CREATE TABLE IF NOT EXISTS processed_comments (
   processed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deals table - track revenue from conversions (skip if already exists from 000_SETUP_SUPABASE.sql)
+-- Deals table already created in 000_SETUP_SUPABASE.sql
+-- Just ensure the column exists (it should)
 DO $$ 
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'deals') THEN
-    CREATE TABLE deals (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      amount NUMERIC NOT NULL DEFAULT 0,
-      currency TEXT DEFAULT 'USD',
-      status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed_won', 'closed_lost', 'pending')),
-      source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation')),
-      closed_at TIMESTAMPTZ,
-      metadata JSONB DEFAULT '{}',
-      created_at TIMESTAMPTZ DEFAULT NOW(),
-      updated_at TIMESTAMPTZ DEFAULT NOW()
-    );
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'deals' AND column_name = 'source'
+  ) THEN
+    ALTER TABLE deals ADD COLUMN source TEXT DEFAULT 'manual' 
+      CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation'));
   END IF;
 END $$;
 
