@@ -1,1111 +1,420 @@
-import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Check, X, MessageSquare, Zap, BarChart3, Flame, ArrowRight, Sparkles, Clock, Shield, Brain, Mic, Target, TrendingUp, Users, Globe, Phone, Mail, Instagram as InstagramIcon, CheckCircle2, Star, Play } from "lucide-react";
-import { Link, navigate } from "wouter";
-import { useEffect, useState, useRef } from "react";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { useReducedMotion } from "@/lib/animation-utils";
-import Hero3D from "@/components/ui/3d-hero";
-import { useGSAP } from "@gsap/react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Check, X, MessageSquare, Mic, Calendar, ArrowRight, Clock, Phone, Mail, Instagram as InstagramIcon } from "lucide-react";
+import { Link } from "wouter";
 import { Navigation } from "@/components/landing/Navigation";
-
-gsap.registerPlugin(ScrollTrigger);
-
-interface ChannelData {
-  name: string;
-  color: string;
-  bgColor: string;
-  borderColor: string;
-  icon: React.ElementType;
-  iconColor: string;
-  screens: Array<{ title: string; desc: string }>;
-}
-
-function ChannelCard({ channel, index }: { channel: ChannelData; index: number }) {
-  const [activeScreen, setActiveScreen] = useState(0);
-  
-  return (
-    <motion.div
-      key={index}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.15 }}
-    >
-      <Card className={`${channel.bgColor} border-2 ${channel.borderColor} p-6 h-full hover:scale-105 transition-all duration-300 group`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${channel.color} flex items-center justify-center`}>
-            <channel.icon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">{channel.name}</h3>
-            <div className="flex gap-1 mt-1">
-              {channel.screens.map((_, dotIndex) => (
-                <button
-                  key={dotIndex}
-                  onClick={() => setActiveScreen(dotIndex)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    activeScreen === dotIndex 
-                      ? `bg-gradient-to-r ${channel.color} w-6` 
-                      : 'bg-white/30 hover:bg-white/50'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 min-h-[180px]">
-          <div className={`p-4 rounded-lg bg-gradient-to-br ${channel.color} bg-opacity-20 border ${channel.borderColor}`}>
-            <div className="flex items-start gap-3">
-              {activeScreen === 0 && <MessageSquare className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-              {activeScreen === 1 && <Users className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-              {activeScreen === 2 && <BarChart3 className={`w-5 h-5 ${channel.iconColor} mt-1`} />}
-              <div>
-                <h4 className="font-semibold text-lg mb-1">{channel.screens[activeScreen].title}</h4>
-                <p className="text-white/80 text-sm">{channel.screens[activeScreen].desc}</p>
-              </div>
-            </div>
-          </div>
-
-          {activeScreen === 0 && (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                  <Brain className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 bg-white/5 rounded-lg p-2">
-                  <p className="text-white/90">Hi! Thanks for your interest...</p>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-lg p-2 max-w-[80%]">
-                  <p className="text-white/90 text-xs">AI typing response...</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeScreen === 1 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/70">Leads imported</span>
-                <span className="font-bold text-primary">127 new</span>
-              </div>
-              <Progress value={85} className="h-2" />
-              <p className="text-xs text-white/60">Auto-syncing every 30 mins</p>
-            </div>
-          )}
-
-          {activeScreen === 2 && (
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-white/60 text-xs mb-1">Response Rate</p>
-                <p className="text-2xl font-bold text-primary">94%</p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-3">
-                <p className="text-white/60 text-xs mb-1">Conversions</p>
-                <p className="text-2xl font-bold text-emerald-400">3.2x</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-    </motion.div>
-  );
-}
+import { landingContent } from "@/config/landingContent";
+import { getSortedPricingTiers } from "@/shared/pricing-config";
+import { Card } from "@/components/ui/card";
 
 export default function Landing() {
-  const [userCount, setUserCount] = useState(0);
-  const [mounted, setMounted] = useState(false);
-  const { toast } = useToast();
-
-  // Ensure client-side rendering for theme
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const prefersReducedMotion = useReducedMotion();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const featuresRef = useRef<HTMLDivElement>(null);
-  const comparisonRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
-
-  const { data: countData } = useQuery<{ count: number }>({
-    queryKey: ["/api/users/count"],
-    enabled: isSupabaseConfigured(),
-  });
-
-  useEffect(() => {
-    if (countData?.count) {
-      setUserCount(countData.count);
-    }
-  }, [countData]);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !supabase) {
-      return;
-    }
-
-    const channel = supabase
-      .channel('users-count')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'users',
-        },
-        (payload) => {
-          setUserCount(prev => prev + 1);
-
-          const newUser = payload.new as any;
-          if (newUser.name) {
-            toast({
-              title: "New user joined!",
-              description: `${newUser.name} just started their free trial`,
-              duration: 3000,
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      if (supabase) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [toast]);
-
-  useGSAP(() => {
-    if (prefersReducedMotion) return;
-
-    const features = featuresRef.current?.querySelectorAll('.feature-card');
-    if (features) {
-      gsap.fromTo(
-        features,
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1,
-          y: 0,
-          stagger: 0.2,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: featuresRef.current,
-            start: "top 80%",
-            end: "bottom 20%",
-            toggleActions: "play none none reverse"
-          }
-        }
-      );
-    }
-
-    if (comparisonRef.current) {
-      gsap.fromTo(
-        comparisonRef.current,
-        { opacity: 0, scale: 0.95 },
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: comparisonRef.current,
-            start: "top 80%",
-            toggleActions: "play none none reverse"
-          }
-        }
-      );
-    }
-  }, { scope: containerRef });
-
-  const scrollToFeatures = () => {
-    document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  if (!mounted) {
-    return null;
-  }
+  const pricingTiers = getSortedPricingTiers();
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] dark:from-[#0d1428] dark:via-[#0a0f1f] dark:to-[#020409] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white">
       <Navigation />
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24 mt-16 md:mt-20">
-        <motion.div
-          className="absolute inset-0 overflow-hidden"
-          style={{ opacity }}
-        >
-          <div className={`absolute top-1/4 left-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-cyan-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} />
-          <div className={`absolute bottom-1/4 right-1/4 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-500/30 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '1s' }} />
-          <div className={`absolute top-1/3 right-1/3 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-teal-500/20 rounded-full blur-3xl ${!prefersReducedMotion ? 'animate-pulse' : ''}`} style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] sm:w-[600px] h-[400px] sm:h-[600px] bg-cyan-400/20 rounded-full blur-3xl" />
-        </motion.div>
 
-        <div className="relative z-10 max-w-7xl mx-auto w-full">
-          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
-            <motion.div
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8 }}
-              style={prefersReducedMotion ? {} : { scale }}
-            >
-              <motion.div
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full mb-6 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-400/30"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                style={{ boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)" }}
-              >
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-                <span className="text-sm font-semibold bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text text-transparent">AI-Powered Voice & Message Automation</span>
-              </motion.div>
+      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-24 mt-16">
+        <div className="relative z-10 max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+            Stop Letting Warm Leads Go Cold
+          </h1>
+          
+          <p className="text-xl sm:text-2xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed">
+            Your AI sales rep that follows up, handles objections, and books meetings — 24/7.
+          </p>
 
-              <motion.h1
-                className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 md:mb-6 bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent leading-tight px-2"
-                animate={prefersReducedMotion ? {} : {
-                  textShadow: [
-                    "0 0 30px rgba(0, 200, 255, 0.4)",
-                    "0 0 50px rgba(37, 99, 235, 0.5)",
-                    "0 0 30px rgba(6, 182, 212, 0.4)"
-                  ]
-                }}
-                transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity }}
-              >
-                <span className="bg-gradient-to-r from-red-300 via-orange-200 to-yellow-200 bg-clip-text text-transparent leading-tight block text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-2">
-                  Never Miss a Lead Again
-                </span>
-                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-teal-400 bg-clip-text text-transparent block mt-1" style={{ textShadow: "0 0 60px rgba(0, 200, 255, 0.5)" }}>AI That Closes Deals 24/7</span>
-              </motion.h1>
+          <p className="text-lg text-white/80 mb-8 max-w-3xl mx-auto">
+            Audnix replies like a real human across WhatsApp + Email (+ Instagram soon).<br />
+            Natural timing (2–8 minutes), remembers context, and engages only when leads show intent.<br />
+            It nurtures → handles objections → books meetings → you close.
+          </p>
 
-              <motion.p
-                className="text-sm sm:text-base md:text-lg text-white/80 mb-4 sm:mb-6 max-w-2xl leading-relaxed px-3 sm:px-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-              >
-                Auto-import leads from <span className="text-cyan-400 font-semibold">Instagram, WhatsApp & Email</span>—then let AI follow up with <span className="text-emerald-400 font-semibold">human-like voice messages</span> and conversations that convert.
-              </motion.p>
-
-              <motion.div
-                className="flex flex-wrap gap-2 mb-5 sm:mb-6 md:mb-8 px-3 sm:px-4 text-xs sm:text-sm justify-center lg:justify-start"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-              >
-                <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2.5 sm:px-3 py-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 flex-shrink-0" />
-                  <span className="text-white/90 font-medium">3X faster</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-full px-2.5 sm:px-3 py-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400 flex-shrink-0" />
-                  <span className="text-white/90 font-medium">94% conversion</span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-purple-500/10 border border-purple-500/30 rounded-full px-2.5 sm:px-3 py-1.5">
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 flex-shrink-0" />
-                  <span className="text-white/90 font-medium">Zero setup</span>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="flex flex-col sm:flex-row gap-3 mb-5 sm:mb-6 md:mb-8 px-3 sm:px-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6, duration: 0.8 }}
-              >
-                <Link href="/auth" className="w-full sm:w-auto">
-                  <motion.div
-                    animate={prefersReducedMotion ? {} : {
-                      boxShadow: [
-                        "0 0 30px rgba(16, 185, 129, 0.5)",
-                        "0 0 45px rgba(16, 185, 129, 0.7)",
-                        "0 0 30px rgba(16, 185, 129, 0.5)"
-                      ]
-                    }}
-                    transition={prefersReducedMotion ? {} : {
-                      duration: 3,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                    className="w-full sm:w-auto"
-                  >
-                    <Button
-                      size="lg"
-                      className="w-full sm:w-auto text-sm sm:text-base px-5 sm:px-8 py-5 sm:py-6 group bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-600 hover:from-emerald-400 hover:via-cyan-400 hover:to-blue-500 text-white font-bold shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300"
-                    >
-                      <span>Start Free Trial 🚀</span>
-                      <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform flex-shrink-0" />
-                    </Button>
-                  </motion.div>
-                </Link>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto text-sm sm:text-base px-5 sm:px-8 py-5 sm:py-6 bg-white/5 border-2 border-white/20 hover:bg-white/10 hover:border-cyan-400/50 text-white font-semibold transition-all duration-300"
-                  onClick={scrollToFeatures}
-                >
-                  See How It Works
-                </Button>
-              </motion.div>
-
-              <motion.p
-                className="text-xs text-white/60 px-3 sm:px-4 mb-3 sm:mb-4 text-center lg:text-left leading-relaxed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7, duration: 0.8 }}
-              >
-                💳 <span className="font-semibold text-white/80">No credit card</span> • <span className="text-emerald-400">3-day free trial</span> • Cancel anytime
-              </motion.p>
-
-              <motion.div
-                className="flex flex-wrap gap-2 sm:gap-3 text-xs text-white/80 justify-center lg:justify-start px-3 sm:px-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span>Free trial</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                  <span>5 min setup</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                  <span>Secure</span>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="mt-12 inline-flex items-center gap-2 glass-card px-6 py-3 rounded-full"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1, duration: 0.5 }}
-              >
-                <Flame className="w-5 h-5 text-primary" />
-                <span className="text-white/90">
-                  <motion.span
-                    className="font-bold text-primary"
-                    key={userCount}
-                    initial={{ scale: 1.2, color: "#00aaff" }}
-                    animate={{ scale: 1, color: "#00aaff" }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {userCount}
-                  </motion.span> people joined Audnix this week
-                </span>
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              className="relative lg:h-[600px] h-[400px]"
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.4 }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-3xl" />
-              <Hero3D />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Multi-Channel Showcase Section */}
-      <section className="py-20 px-4 relative border-y border-white/10">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-12"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Stop Losing Leads to <span className="text-primary">Slow Follow-Ups</span>
-            </h2>
-            <p className="text-lg text-white/80">Your AI works 24/7 across Instagram, Email & WhatsApp—so you never miss a revenue opportunity</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {[
-              {
-                name: "Instagram",
-                color: "from-[#833AB4] via-[#C13584] to-[#F77737]",
-                bgColor: "bg-gradient-to-br from-[#833AB4]/10 via-[#C13584]/10 to-[#F77737]/10",
-                borderColor: "border-[#C13584]/30",
-                icon: InstagramIcon,
-                iconColor: "text-[#E1306C]",
-                screens: [
-                  { title: "AI Replying to DMs", desc: "Turn Instagram followers into paying clients while you sleep - automated responses that feel human" },
-                  { title: "Auto-Import Leads", desc: "Stop manually tracking DMs. Automatically sync every Instagram interaction into your CRM" },
-                  { title: "Revenue Analytics", desc: "See exactly which Instagram conversations are converting and driving revenue" }
-                ]
-              },
-              {
-                name: "Email",
-                color: "from-[#EA4335] via-[#4285F4] to-[#34A853]",
-                bgColor: "bg-gradient-to-br from-[#EA4335]/10 via-[#4285F4]/10 to-[#34A853]/10",
-                borderColor: "border-[#4285F4]/30",
-                icon: Mail,
-                iconColor: "text-[#EA4335]",
-                screens: [
-                  { title: "AI Email Responses", desc: "Never lose a lead to slow email replies. AI responds in minutes, not hours" },
-                  { title: "Gmail Auto-Sync", desc: "Connect Gmail & Outlook. Every email conversation tracked and organized automatically" },
-                  { title: "Email Performance", desc: "Track open rates, response times, and which emails are closing deals" }
-                ]
-              },
-              {
-                name: "WhatsApp",
-                color: "from-[#075E54] to-[#25D366]",
-                bgColor: "bg-gradient-to-br from-[#075E54]/10 to-[#25D366]/10",
-                borderColor: "border-[#25D366]/30",
-                icon: Phone,
-                iconColor: "text-[#25D366]",
-                screens: [
-                  { title: "AI Voice & Messages", desc: "Handle voice notes and text. Perfect for coaches scaling 1-on-1 conversations" },
-                  { title: "QR Code Lead Import", desc: "Scan QR, instant WhatsApp connection. Every contact auto-saved to your CRM" },
-                  { title: "Conversation ROI", desc: "Track which WhatsApp conversations are generating revenue for your business" }
-                ]
-              }
-            ].map((channel, index) => (
-              <ChannelCard key={index} channel={channel} index={index} />
-            ))}
-          </div>
-
-          {/* Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
-            {[
-              { value: "10x", label: "Faster Follow-ups", icon: Zap },
-              { value: "85%", label: "Response Rate", icon: TrendingUp },
-              { value: "3.2x", label: "More Conversions", icon: Target },
-              { value: "24/7", label: "AI Availability", icon: Clock }
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                className="text-center"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <stat.icon className="w-8 h-8 text-primary mx-auto mb-3" />
-                <div className="text-4xl md:text-5xl font-bold text-primary mb-2">{stat.value}</div>
-                <div className="text-white/80">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI Voice System Showcase */}
-      <section className="py-32 px-4 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <div className="inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full mb-6">
-              <Mic className="w-4 h-4 text-primary" />
-              <span className="text-sm text-primary font-semibold">Revolutionary AI Voice Technology</span>
+          <div className="flex flex-wrap gap-4 justify-center mb-8">
+            <div className="flex items-center gap-2 text-white/90">
+              <Check className="w-5 h-5 text-emerald-400" />
+              <span>Human-like timing & tone</span>
             </div>
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Your Voice, <span className="text-primary">Multiplied by AI</span>
-            </h2>
-            <p className="text-xl text-white/90 max-w-3xl mx-auto leading-relaxed">
-              Audnix clones your voice with stunning accuracy, delivering personalized voice messages to warm leads while you focus on closing deals. Each message is tailored based on lead behavior, engagement history, and AI-powered intent analysis.
-            </p>
-          </motion.div>
+            <div className="flex items-center gap-2 text-white/90">
+              <Check className="w-5 h-5 text-emerald-400" />
+              <span>Voice notes in your voice</span>
+            </div>
+            <div className="flex items-center gap-2 text-white/90">
+              <Check className="w-5 h-5 text-emerald-400" />
+              <span>Auto-booking + intelligent follow-ups</span>
+            </div>
+          </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
-            {[
-              {
-                title: "AI Voice Cloning with Smart Limits",
-                description: "Upload 3 minutes of your voice. Audnix learns your tone, cadence, and speaking style to create authentic voice messages. Track usage in real-time and top up instantly when needed.",
-                icon: Mic,
-                features: ["Lifelike voice replication", "Real-time usage tracking", "Instant top-ups (85%+ margin)", "Auto-lock when exhausted"]
-              },
-              {
-                title: "Smart Context Analysis",
-                description: "Our AI analyzes each lead's behavior, previous interactions, and intent signals to craft perfectly timed, contextually relevant voice messages.",
-                icon: Brain,
-                features: ["Intent recognition", "Behavioral triggers", "Conversation history", "Sentiment analysis"]
-              }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <Card className="glass-card p-8 h-full border-primary/20 hover:border-primary/50 transition-all duration-300 group">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-6">
-                    <feature.icon className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">
-                    {feature.title}
-                  </h3>
-                  <p className="text-white/80 mb-6 leading-relaxed">
-                    {feature.description}
-                  </p>
-                  <ul className="space-y-3">
-                    {feature.features.map((item, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-white/90">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              </motion.div>
-            ))}
+          <Link href="/auth">
+            <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-lg px-8 py-6">
+              Start Closing Deals → No Card Required
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      <section className="py-20 px-4 border-y border-white/10">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Why You're Losing Money
+          </h2>
+          
+          <p className="text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+            Leads don't die because they don't want what you sell —<br />
+            they die because you're slow.
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-8 max-w-4xl mx-auto">
+            <div className="bg-white/5 border border-red-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-red-400 mb-4">You:</h3>
+              <ul className="space-y-2 text-white/80 text-left">
+                <li className="flex items-start gap-2">
+                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <span>Miss messages</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <span>Forget follow-ups</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <span>Reply late</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <X className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+                  <span>Sleep while prospects are active</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="bg-white/5 border border-emerald-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold text-emerald-400 mb-4">Audnix fixes that.</h3>
+              <p className="text-white/90 text-lg">
+                Right timing → right tone → more booked calls.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-32 px-4">
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-20"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              From Lead to Sale in <span className="text-primary">4 Simple Steps</span>
-            </h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Set up once, convert forever. Audnix runs on autopilot while you sleep.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                step: "01",
-                title: "Connect Channels",
-                description: "Link Instagram, WhatsApp, and Email in under 5 minutes. No technical skills needed.",
-                icon: Globe
-              },
-              {
-                step: "02",
-                title: "Clone Your Voice",
-                description: "Upload a 3-minute audio sample. Our AI learns your unique speaking style and tone.",
-                icon: Mic
-              },
-              {
-                step: "03",
-                title: "AI Takes Over",
-                description: "Audnix monitors leads 24/7, analyzes intent, and sends personalized voice messages automatically.",
-                icon: Brain
-              },
-              {
-                step: "04",
-                title: "Close More Deals",
-                description: "Focus on hot leads while Audnix nurtures the rest. Watch your conversion rate soar.",
-                icon: TrendingUp
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                className="relative"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-              >
-                <div className="text-center">
-                  <div className="relative mb-6">
-                    <div className="text-6xl font-bold text-primary/20">{item.step}</div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                        <item.icon className="w-8 h-8 text-primary" />
-                      </div>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-white/80 leading-relaxed">{item.description}</p>
-                </div>
-                {index < 3 && (
-                  <div className="hidden lg:block absolute top-12 -right-4 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
-                )}
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features Grid Section */}
-      <section id="features" ref={featuresRef} className="py-32 px-4 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <motion.div
-            className="text-center mb-20"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Everything you need to <span className="text-primary">dominate your market</span>
-            </h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Audnix isn't just a CRM. It's your AI-powered sales team that never sleeps, never forgets, and never misses a follow-up.
-            </p>
-          </motion.div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
+            What Audnix Does
+          </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                icon: MessageSquare,
-                title: "Human-Like AI Conversations",
-                description: "Natural language processing creates conversations so authentic, leads think they're talking to you. Context-aware responses adapt to each lead's unique journey.",
-                gradient: "from-primary/20 to-blue-500/20"
+                number: 1,
+                title: "Auto-imports leads",
+                desc: "WhatsApp + Email + CSV",
+                note: "(Instagram coming soon)",
+                icon: Phone
               },
               {
-                icon: Mic,
-                title: "Custom Voice Cloning",
-                description: "Your voice, scaled infinitely. Send personalized voice messages to hundreds of leads while maintaining your authentic tone and personality.",
-                gradient: "from-emerald-500/20 to-green-500/20"
+                number: 2,
+                title: "Talks like you",
+                desc: "Understands your tone, docs, and offers.",
+                icon: MessageSquare
               },
               {
-                icon: Brain,
-                title: "Intent-Based Automation",
-                description: "AI analyzes every interaction to understand lead intent. Automatically prioritize hot leads, re-engage cold ones, and nurture those in-between.",
-                gradient: "from-purple-500/20 to-pink-500/20"
+                number: 3,
+                title: "Handles objections",
+                desc: "Price → stalling → questions → hesitations",
+                icon: Check
               },
               {
-                icon: Target,
-                title: "Smart Lead Scoring",
-                description: "Machine learning ranks leads by conversion probability. Focus your energy where it matters most while AI handles the rest.",
-                gradient: "from-orange-500/20 to-red-500/20"
+                number: 4,
+                title: "Sends voice notes in your tone",
+                desc: "",
+                icon: Mic
               },
               {
-                icon: BarChart3,
-                title: "Real-Time Analytics",
-                description: "Live dashboards show engagement rates, response times, conversion funnels, and AI performance metrics. Make data-driven decisions instantly.",
-                gradient: "from-cyan-500/20 to-blue-500/20"
-              },
-              {
-                icon: Zap,
-                title: "Multi-Channel Sync",
-                description: "Instagram DMs, WhatsApp messages, and emails - all unified in one intelligent inbox. Never lose a conversation thread again.",
-                gradient: "from-yellow-500/20 to-orange-500/20"
-              },
-              {
-                icon: Users,
-                title: "Automated Segmentation",
-                description: "AI automatically tags and segments leads based on behavior, interests, and engagement level. Perfect targeting, zero manual work.",
-                gradient: "from-pink-500/20 to-purple-500/20"
-              },
-              {
-                icon: Clock,
-                title: "Follow-Up Sequences",
-                description: "Set it and forget it. AI triggers perfectly-timed follow-ups based on lead behavior, ensuring no opportunity slips through the cracks.",
-                gradient: "from-green-500/20 to-emerald-500/20"
-              },
-              {
-                icon: Shield,
-                title: "Enterprise-Grade Security",
-                description: "End-to-end encryption, GDPR compliant, SOC 2 certified. Your data and your leads' privacy are our top priority.",
-                gradient: "from-blue-500/20 to-cyan-500/20"
+                number: 5,
+                title: "Books meetings automatically",
+                desc: "Checks your calendar → confirms",
+                icon: Calendar
               }
-            ].map((feature, index) => (
-              <motion.div
-                key={index}
-                className="feature-card"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: (index % 3) * 0.1 }}
-                whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }}
-              >
-                <Card className="glass-card p-6 h-full border-white/10 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 group relative overflow-hidden">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                  <div className="relative z-10">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                      <feature.icon className="w-6 h-6 text-primary group-hover:text-white transition-colors duration-300" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-3 group-hover:text-primary transition-colors duration-300">
-                      {feature.title}
-                    </h3>
-                    <p className="text-white/80 text-sm leading-relaxed group-hover:text-white/95 transition-colors duration-300">
-                      {feature.description}
-                    </p>
+            ].map((item) => (
+              <Card key={item.number} className="bg-white/5 border-white/10 p-6 hover:border-primary/50 transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                    {item.number}
                   </div>
-                </Card>
-              </motion.div>
+                  <item.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">{item.title}</h3>
+                <p className="text-white/80">{item.desc}</p>
+                {item.note && <p className="text-white/60 text-sm mt-2">{item.note}</p>}
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="py-32 px-4">
+      <section className="py-20 px-4 border-y border-white/10">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Built for <span className="text-primary">High-Performance Teams</span>
-            </h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              From solo creators to enterprise sales teams, Audnix scales with your ambition
-            </p>
-          </motion.div>
+          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
+            Why It's Different
+          </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Content Creators & Influencers",
-                description: "Convert followers into customers. Audnix nurtures your audience with personalized voice messages, turning engagement into revenue.",
-                benefits: ["Monetize DMs automatically", "Scale personal touch", "Never miss a collaboration opportunity"]
-              },
-              {
-                title: "Course Creators & Coaches",
-                description: "Pre-qualify leads and book sales calls on autopilot. AI handles objections, answers FAQs, and warms up prospects before they talk to you.",
-                benefits: ["Automated lead qualification", "24/7 calendar booking", "Higher show-up rates"]
-              },
-              {
-                title: "E-commerce & D2C Brands",
-                description: "Recover abandoned carts, upsell existing customers, and turn browsers into buyers with timely, personalized voice outreach.",
-                benefits: ["Cart recovery automation", "Post-purchase follow-ups", "Customer retention campaigns"]
-              }
-            ].map((useCase, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15 }}
-              >
-                <Card className="glass-card p-8 h-full border-white/10 hover:border-primary/50 transition-all duration-300">
-                  <h3 className="text-2xl font-bold mb-4 text-primary">{useCase.title}</h3>
-                  <p className="text-white/90 mb-6 leading-relaxed">{useCase.description}</p>
-                  <ul className="space-y-3">
-                    {useCase.benefits.map((benefit, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-white/80">{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison Table */}
-      <section ref={comparisonRef} className="py-32 px-4">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Not your average CRM
-            </h2>
-            <p className="text-xl text-white/90">
-              See why thousands are switching to Audnix from legacy platforms
-            </p>
-          </motion.div>
-
-          <Card className="glass-card overflow-hidden border-primary/20">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/10 bg-white/5">
-                    <th className="text-left p-6 text-lg font-semibold">Feature</th>
-                    <th className="text-center p-6 text-lg font-semibold">
-                      <div className="inline-flex items-center gap-2 text-primary">
-                        <Sparkles className="w-5 h-5" />
-                        Audnix
-                      </div>
-                    </th>
-                    <th className="text-center p-6 text-lg font-semibold text-white/60">ManyChat</th>
-                    <th className="text-center p-6 text-lg font-semibold text-white/60">CommentGuard</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: "Keyword-Free Comment Detection", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Context-Aware AI Analysis", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Real Username Personalization", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Emotion & Emoji Intelligence", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Multi-Language Intent Detection", audnix: true, manychat: false, hubspot: "Basic" },
-                    { feature: "AI Voice Messages", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Voice Cloning Technology", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Intent-Based Automation", audnix: true, manychat: "Keyword only", hubspot: "Manual" },
-                    { feature: "Real-time AI Insights", audnix: true, manychat: false, hubspot: "Basic" },
-                    { feature: "Multi-Channel Inbox", audnix: "IG, WA, Email", manychat: "IG only", hubspot: "IG only" },
-                    { feature: "Smart Lead Scoring", audnix: true, manychat: false, hubspot: false },
-                    { feature: "5-minute setup", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Custom AI Training", audnix: true, manychat: false, hubspot: false },
-                    { feature: "Starting Price", audnix: "$49/mo", manychat: "$297/year", hubspot: "$99/mo" }
-                  ].map((row, index) => (
-                    <motion.tr
-                      key={index}
-                      className="border-b border-white/5 hover:bg-primary/10 hover:border-primary/30 transition-all duration-200 group"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <td className="p-6 font-medium text-white/90 group-hover:text-white transition-colors">{row.feature}</td>
-                      <td className="text-center p-6">
-                        {row.audnix === true ? (
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/30 group-hover:bg-primary/50 group-hover:scale-110 transition-all duration-200">
-                            <Check className="w-5 h-5 text-primary group-hover:text-white transition-colors" />
-                          </div>
-                        ) : (
-                          <span className="text-white/90 font-semibold">{row.audnix}</span>
-                        )}
-                      </td>
-                      <td className="text-center p-6 text-white/70">
-                        {row.manychat === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" />}
-                        {row.manychat === false && <X className="w-6 h-6 text-red-400/70 mx-auto" />}
-                        {typeof row.manychat === 'string' && row.manychat !== 'true' && row.manychat !== 'false' && <span className="text-sm">{row.manychat}</span>}
-                      </td>
-                      <td className="text-center p-6 text-white/70">
-                        {row.hubspot === true && <Check className="w-6 h-6 text-emerald-400 mx-auto" />}
-                        {row.hubspot === false && <X className="w-6 h-6 text-red-400/70 mx-auto" />}
-                        {typeof row.hubspot === 'string' && row.hubspot !== 'true' && row.hubspot !== 'false' && <span className="text-sm">{row.hubspot}</span>}
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-8">
+            <div className="bg-white/5 border border-red-500/20 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 text-white/90">Most tools:</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-white/70">
+                  <X className="w-5 h-5 text-red-400" />
+                  <span>Keyword triggers</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/70">
+                  <X className="w-5 h-5 text-red-400" />
+                  <span>Static scripts</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/70">
+                  <X className="w-5 h-5 text-red-400" />
+                  <span>Robotic</span>
+                </li>
+              </ul>
             </div>
-          </Card>
 
-          <motion.div
-            className="text-center mt-12"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <Link href="/auth">
-              <Button size="lg" className="glow text-lg px-12 py-6 group">
-                Start Your Free Trial
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-          </motion.div>
+            <div className="bg-white/5 border border-emerald-500/30 rounded-lg p-6">
+              <h3 className="text-xl font-bold mb-4 text-emerald-400">Audnix:</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-white/90">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <span>Context-aware</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/90">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <span>Natural timing</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/90">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <span>Objection-handling</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/90">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <span>Voice + text</span>
+                </li>
+                <li className="flex items-center gap-2 text-white/90">
+                  <Check className="w-5 h-5 text-emerald-400" />
+                  <span>Continues conversations intelligently</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p className="text-2xl font-bold text-center text-primary">
+            Not automation. Automated persuasion.
+          </p>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-32 px-4 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <span className="text-primary">Your voice</span> → at scale
+          </h2>
+          <h3 className="text-3xl md:text-4xl font-bold mb-6">
+            <span className="text-emerald-400">Your follow-up</span> → automated
+          </h3>
+          <h3 className="text-3xl md:text-4xl font-bold mb-8">
+            <span className="text-cyan-400">Your pipeline</span> → constantly warmed
+          </h3>
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <motion.div
-            className="text-center mb-20"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Simple plans. <span className="text-primary">Serious results</span>
-            </h2>
-            <p className="text-xl text-white/90 max-w-2xl mx-auto">
-              Start with a 3-day free trial. No credit card required. Scale as you grow.
-            </p>
-          </motion.div>
+          <p className="text-xl text-white/90">
+            Perfect for: DMs • inbound leads • price shoppers • ghosted prospects
+          </p>
+        </div>
+      </section>
 
-          <div className="grid md:grid-cols-3 gap-8">
+      <section className="py-20 px-4 bg-white/5">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            Numbers That Matter
+          </h2>
+          <p className="text-xl text-white/90 mb-4">
+            24/7 human-timed replies → more responses → more booked meetings
+          </p>
+          <p className="text-white/70">
+            No fake % claims — just throughput + consistency.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
+            Simple Setup
+          </h2>
+
+          <div className="grid md:grid-cols-4 gap-6 mb-8">
             {[
-              {
-                name: 'Starter',
-                price: 49.99,
-                description: 'Perfect for creators just getting started',
-                features: [
-                  '2,500 leads per month',
-                  '100 voice minutes (~1.5 hours)',
-                  'Instagram & WhatsApp integration',
-                  'AI follow-ups & insights',
-                  'Email support',
-                  'Top-ups available',
-                ],
-                planId: 'starter',
-                testId: 'starter',
-              },
-              {
-                name: "Pro",
-                price: 99.99,
-                description: 'For growing creators who need more power',
-                features: [
-                  "7,000 leads per month",
-                  "400 voice minutes (~6.5 hours)",
-                  "All integrations (IG, WA, Email)",
-                  "Advanced AI insights",
-                  "Voice cloning",
-                  "Priority support",
-                  "Custom automations",
-                ],
-                popular: true,
-                planId: "pro",
-                testId: "pro",
-              },
-              {
-                name: 'Enterprise',
-                price: 199.99,
-                description: 'Unlimited power for scaling businesses',
-                features: [
-                  '20,000 leads per month',
-                  '1,000 voice minutes (16+ hours)',
-                  'All integrations + API access',
-                  'AI-powered insights & reports',
-                  'Custom voice cloning',
-                  'Dedicated account manager',
-                  'White-label option',
-                  'SLA guarantee',
-                ],
-                planId: 'enterprise',
-                testId: 'enterprise',
-              },
-            ].map((plan, index) => (
-              <motion.div
-                key={index}
-                className="relative"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-10">
-                    <div className="glass-card px-4 py-1 rounded-full border-primary text-sm font-semibold text-primary">
-                      Most Popular
-                    </div>
+              { num: 1, text: "Connect channels (WhatsApp + Email — IG soon)" },
+              { num: 2, text: "Upload voice sample + brand PDF" },
+              { num: 3, text: "Add calendar link" },
+              { num: 4, text: "Done — it takes over" }
+            ].map((step) => (
+              <div key={step.num} className="text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary mx-auto mb-4">
+                  {step.num}
+                </div>
+                <p className="text-white/90">{step.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-2xl font-bold text-center text-primary">
+            Your job: show up and close.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-20 px-4 border-y border-white/10">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">
+            Features
+          </h2>
+          <p className="text-xl text-primary mb-12 text-center font-semibold">
+            You're not buying software. You're hiring a closer.
+          </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {[
+              "Human-like replies",
+              "Context + PDF understanding",
+              "Objection handling",
+              "Voice messages",
+              "Smart intent scoring",
+              "Auto-booking",
+              "Cold lead re-engagement",
+              "Email + WhatsApp + CSV",
+              "Unified inbox",
+              "Analytics"
+            ].map((feature) => (
+              <div key={feature} className="flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                <span className="text-white/90">{feature}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-20 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
+            Comparison
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-white/20">
+                  <th className="text-left p-4 text-white/90">Feature</th>
+                  <th className="text-center p-4 text-primary font-bold">Audnix</th>
+                  <th className="text-center p-4 text-white/60">ManyChat</th>
+                  <th className="text-center p-4 text-white/60">CommentGuard</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "Human-like convo", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Objection handling", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Voice notes", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Auto-booking", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Multi-channel", audnix: "✅", manychat: "IG-only", commentguard: "IG-only" },
+                  { feature: "Memory/context", audnix: true, manychat: false, commentguard: false }
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-white/10">
+                    <td className="p-4 text-white/90">{row.feature}</td>
+                    <td className="text-center p-4">
+                      {row.audnix === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : row.audnix}
+                    </td>
+                    <td className="text-center p-4 text-white/60">
+                      {row.manychat === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : 
+                       row.manychat === false ? <X className="w-6 h-6 text-red-400/50 mx-auto" /> : row.manychat}
+                    </td>
+                    <td className="text-center p-4 text-white/60">
+                      {row.commentguard === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : 
+                       row.commentguard === false ? <X className="w-6 h-6 text-red-400/50 mx-auto" /> : row.commentguard}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-2xl font-bold text-center mt-8 text-primary">
+            Audnix isn't a chatbot. It's a closer.
+          </p>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-20 px-4 bg-white/5">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-center">
+            Pricing
+          </h2>
+          <p className="text-xl text-white/90 mb-12 text-center">
+            Start free → upgrade when serious
+          </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {pricingTiers.filter(tier => tier.id !== 'trial').map((tier) => (
+              <Card key={tier.id} className={`bg-white/5 border p-6 ${tier.id === 'pro' ? 'border-primary shadow-lg shadow-primary/20' : 'border-white/10'}`}>
+                {tier.id === 'pro' && (
+                  <div className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full inline-block mb-3">
+                    Most Popular
                   </div>
                 )}
-                <Card
-                  className={`glass-card p-8 h-full transition-all duration-300 group hover:scale-105 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/30 ${
-                    plan.popular ? 'border-primary/50 shadow-lg shadow-primary/20 scale-105' : 'border-white/10'
-                  }`}
-                >
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold mb-2 group-hover:text-primary transition-colors">
-                      {plan.name}
-                    </h3>
-                    <p className="text-white/80 text-sm">
-                      {plan.description}
-                    </p>
-                  </div>
-
-                  <div className="mb-6">
-                    <span className="text-5xl font-bold text-primary">${plan.price}</span>
-                    <span className="text-white/60">/month</span>
-                  </div>
-
-                  <ul className="space-y-3 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <Check className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <span className="text-white/90 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link href="/auth">
-                    <Button
-                      className={`w-full group text-white ${plan.popular ? 'glow bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400' : 'glass border-white/20'}`}
-                      variant={plan.popular ? 'default' : 'outline'}
-                    >
-                      Start Free Trial
-                      <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                </Card>
-              </motion.div>
+                <h3 className="text-2xl font-bold mb-2">{tier.name}</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold">${tier.price}</span>
+                  <span className="text-white/60">/{tier.period}</span>
+                </div>
+                <p className="text-white/70 mb-6">{tier.description}</p>
+                <ul className="space-y-2 mb-6">
+                  {tier.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                      <span className="text-white/80">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href={tier.id === 'free' ? '/auth' : tier.id === 'enterprise' ? '/contact' : '/dashboard/pricing'}>
+                  <Button className={`w-full ${tier.id === 'pro' ? 'bg-primary hover:bg-primary/90' : 'bg-white/10 hover:bg-white/20'}`}>
+                    {tier.id === 'free' ? 'Start Free' : tier.id === 'enterprise' ? 'Talk to Sales' : 'Upgrade'} →
+                  </Button>
+                </Link>
+              </Card>
             ))}
           </div>
 
-          <motion.div
-            className="text-center mt-12 text-white/70"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            <p className="mb-2">All plans include 3-day free trial • Cancel anytime • No credit card required</p>
-            <p className="text-sm">Need more leads? Add top-up packages starting at $29 for 1,000 additional leads</p>
-          </motion.div>
+          <p className="text-center text-white/70 mt-8">
+            Add-ons (paid plans only): Voice top-ups • Lead packs
+          </p>
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-16 sm:py-24 lg:py-32 px-4 sm:px-6 lg:px-8 relative">
+      <section className="py-32 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="glass-card p-8 sm:p-12 lg:p-16 rounded-2xl sm:rounded-3xl border-primary/30 relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
-            <div className="relative z-10">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
-                Ready to <span className="text-primary">10x your conversions</span>?
-              </h2>
-              <p className="text-lg sm:text-xl text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed">
-                Join thousands of creators who are closing more deals with less effort. Your AI sales team is ready to start working for you today.
-              </p>
-              <Link href="/auth" className="inline-block w-full sm:w-auto">
-                <Button size="lg" className="w-full sm:w-auto glow text-lg sm:text-xl px-8 sm:px-12 py-6 sm:py-8 group">
-                  Start Your Free 3-Day Trial
-                  <ArrowRight className="ml-2 w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
-              <p className="mt-4 sm:mt-6 text-white/70 text-xs sm:text-sm">
-                ✨ Setup takes 5 minutes • 🔒 No credit card required • 🚀 Start converting today
-              </p>
-            </div>
-          </motion.div>
+          <h2 className="text-4xl md:text-6xl font-bold mb-6">
+            Stop letting prospects vanish.
+          </h2>
+          <p className="text-2xl text-white/90 mb-8">
+            Let Audnix follow up, handle objections, and book meetings.<br />
+            You close.
+          </p>
+
+          <Link href="/auth">
+            <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-xl px-12 py-7">
+              Start Free – No Card
+              <ArrowRight className="ml-2 w-6 h-6" />
+            </Button>
+          </Link>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="text-white/70 text-sm">
-              © 2025 Audnix AI. All rights reserved.
-            </div>
-            <div className="flex items-center gap-6 text-white/70 text-sm">
-              <Link href="/privacy-policy">
-                <a className="hover:text-primary transition-colors">Privacy Policy</a>
-              </Link>
-              <Link href="/terms-of-service">
-                <a className="hover:text-primary transition-colors">Terms of Service</a>
-              </Link>
-              <a href="mailto:support@audnix.ai" className="hover:text-primary transition-colors">Contact</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
