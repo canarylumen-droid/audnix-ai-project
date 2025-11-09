@@ -256,15 +256,6 @@ async function runMigrations() {
     serveStatic(app);
   }
 
-  // Helper function to check if Supabase admin is configured
-  const isSupabaseAdminConfigured = () => {
-    return Boolean(
-      process.env.NEXT_PUBLIC_SUPABASE_URL && 
-      process.env.SUPABASE_SERVICE_ROLE_KEY &&
-      supabaseAdmin
-    );
-  };
-
   // Start background workers only if database AND Supabase are configured
   const { db } = await import('./db');
   const hasDatabase = process.env.DATABASE_URL && db;
