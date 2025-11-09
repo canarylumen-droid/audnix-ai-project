@@ -2,8 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X, MessageSquare, Mic, Calendar, ArrowRight, Clock, Phone, Mail, Instagram as InstagramIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/landing/Navigation";
-import { landingContent } from "@/config/landingContent";
-import { getSortedPricingTiers } from "@/shared/pricing-config";
+import { getSortedPricingTiers } from "@shared/plan-utils";
 import { Card } from "@/components/ui/card";
 
 export default function Landing() {
