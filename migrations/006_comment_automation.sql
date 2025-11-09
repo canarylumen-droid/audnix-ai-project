@@ -30,16 +30,27 @@ CREATE TABLE IF NOT EXISTS processed_comments (
   processed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deals table already created in 000_SETUP_SUPABASE.sql
--- Just ensure the column exists (it should)
+-- Deals table source column update (if needed)
 DO $$ 
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'deals' AND column_name = 'source'
-  ) THEN
-    ALTER TABLE deals ADD COLUMN source TEXT DEFAULT 'manual' 
-      CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation'));
+  -- Check if deals table exists first
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'deals') THEN
+    -- Add source column if it doesn't exist
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'deals' AND column_name = 'source'
+    ) THEN
+      ALTER TABLE deals ADD COLUMN source TEXT DEFAULT 'manual' 
+        CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation'));
+    END IF;
+    
+    -- Add closed_at column if it doesn't exist
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'deals' AND column_name = 'closed_at'
+    ) THEN
+      ALTER TABLE deals ADD COLUMN closed_at TIMESTAMPTZ;
+    END IF;
   END IF;
 END $$;
 
