@@ -15,6 +15,8 @@ import CalendarPage from "./pages/dashboard/calendar";
 import InsightsPage from "./pages/dashboard/insights";
 import VideoAutomationPage from "./pages/dashboard/video-automation";
 import { lazy } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { BrowserRouter, Routes } from "react-router-dom";
 
 const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
@@ -46,13 +48,15 @@ function Router() {
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <InternetConnectionBanner />
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <InternetConnectionBanner />
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

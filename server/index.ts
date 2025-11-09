@@ -14,12 +14,26 @@ import path from "path";
 const app = express();
 
 // Validate critical environment variables for production
-const criticalEnvVars = ['SESSION_SECRET'];
+const criticalEnvVars = ['SESSION_SECRET', 'ENCRYPTION_KEY'];
 const missingCritical = criticalEnvVars.filter(v => !process.env[v]);
 
 if (missingCritical.length > 0 && process.env.NODE_ENV === 'production') {
   console.error('❌ Missing required environment variables:', missingCritical.join(', '));
-  console.error('💡 Add these to your Replit Secrets before deployment');
+  console.error('💡 Add these to your Replit Secrets:');
+  console.error('   - SESSION_SECRET: Generate with: openssl rand -hex 32');
+  console.error('   - ENCRYPTION_KEY: Generate with: openssl rand -hex 32');
+  process.exit(1);
+}
+
+// Validate Supabase configuration if keys are partially set
+const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const hasSupabaseKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+if (hasSupabaseUrl !== hasSupabaseKey) {
+  console.error('❌ Incomplete Supabase configuration');
+  console.error('💡 Both NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+  if (!hasSupabaseUrl) console.error('   Missing: NEXT_PUBLIC_SUPABASE_URL');
+  if (!hasSupabaseKey) console.error('   Missing: SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
 }
 
