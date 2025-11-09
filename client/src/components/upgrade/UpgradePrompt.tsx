@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, Sparkles, X } from "lucide-react";
-import { navigate } from "wouter";
+import { useLocation } from "wouter";
 
 export type UpgradeVariant = 'trialExpired' | 'trialReminder' | 'planLimit' | 'featureLocked';
 
@@ -73,9 +73,10 @@ export function UpgradePrompt({
   isBlocking = false 
 }: UpgradePromptProps) {
   const content = contentMap[variant];
+  const [, setLocation] = useLocation();
   
   const handleUpgrade = () => {
-    navigate('/dashboard/pricing');
+    setLocation('/dashboard/pricing');
     onClose?.();
   };
 

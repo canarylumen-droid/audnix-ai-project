@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { supabaseAdmin } from "./lib/supabase-admin";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";

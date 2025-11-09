@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, AlertCircle, X } from "lucide-react";
 import { Button } from "./ui/button";
-import { navigate } from "wouter";
+import { useLocation } from "wouter";
 import { useState } from "react";
 
 interface TrialReminderBannerProps {
@@ -11,6 +11,7 @@ interface TrialReminderBannerProps {
 
 export function TrialReminderBanner({ daysLeft, plan }: TrialReminderBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const [, setLocation] = useLocation();
   
   if (plan !== "trial" || daysLeft > 3 || daysLeft < 0 || dismissed) {
     return null;
@@ -50,7 +51,7 @@ export function TrialReminderBanner({ daysLeft, plan }: TrialReminderBannerProps
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                onClick={() => navigate('/dashboard/pricing')}
+                onClick={() => setLocation('/dashboard/pricing')}
                 className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-bold shadow-lg flex-shrink-0"
               >
                 Upgrade Now
