@@ -2,61 +2,11 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, Mic, ArrowRight } from "lucide-react";
+import { Check, Loader2, Mic } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import Link from "next/link";
-
-const plans = [
-  {
-    name: "Starter",
-    price: 49.99,
-    description: "Perfect for solo entrepreneurs and small businesses",
-    features: [
-      "2,500 leads",
-      "100 voice minutes (~1.5 hours)",
-      "Instagram + WhatsApp + Email",
-      "AI follow-ups & insights",
-      "Basic analytics",
-    ],
-    cta: "Upgrade to Starter",
-    planId: "starter",
-    popular: false,
-  },
-  {
-    name: "Pro",
-    price: 99.99,
-    description: "For growing teams that need more power",
-    features: [
-      "7,000 leads",
-      "400 voice minutes (~6.5 hours)",
-      "All Starter features",
-      "Calendar integration",
-      "Advanced insights",
-      "Priority support",
-    ],
-    cta: "Upgrade to Pro",
-    planId: "pro",
-    popular: true,
-  },
-  {
-    name: "Enterprise",
-    price: 199.99,
-    description: "Unlimited power for scaling teams",
-    features: [
-      "20,000+ leads",
-      "1,000 voice minutes (16+ hours)",
-      "All Pro features",
-      "Custom integrations",
-      "Dedicated account manager",
-      "SLA guarantee",
-    ],
-    cta: "Upgrade to Enterprise",
-    planId: "enterprise",
-    popular: false,
-  },
-];
+import { getSortedPricingTiers } from "@shared/plan-utils";
 
 const topups = [
   {
@@ -96,6 +46,7 @@ const topups = [
 export default function PricingPage() {
   const { toast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const plans = getSortedPricingTiers().filter(tier => tier.id !== 'free');
 
   const handleUpgrade = async (planId: string) => {
     setLoadingPlan(planId);
@@ -156,10 +107,10 @@ export default function PricingPage() {
       {/* Header */}
       <div className="text-center max-w-3xl mx-auto">
         <h1 className="text-4xl font-bold mb-4 text-white" data-testid="heading-pricing">
-          Choose Your Plan
+          Stop letting prospects vanish
         </h1>
         <p className="text-xl text-white/80" data-testid="text-subtitle">
-          Start with a 3-day free trial. No credit card required.
+          Start free → upgrade when serious
         </p>
       </div>
 
@@ -195,9 +146,9 @@ export default function PricingPage() {
                 </CardDescription>
                 <div className="mt-4">
                   <span className="text-4xl font-bold text-white" data-testid={`text-plan-price-${index}`}>
-                    ${plan.price}
+                    ${plan.price.toFixed(2)}
                   </span>
-                  <span className="text-white/60">/month</span>
+                  <span className="text-white/60">/{plan.period}</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -217,16 +168,16 @@ export default function PricingPage() {
                   className={`w-full ${plan.popular ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-400 hover:to-purple-400 text-white' : 'bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 text-white border-0'}`}
                   variant={plan.popular ? "default" : "secondary"}
                   data-testid={`button-cta-${index}`}
-                  onClick={() => handleUpgrade(plan.planId)}
-                  disabled={loadingPlan === plan.planId}
+                  onClick={() => handleUpgrade(plan.id)}
+                  disabled={loadingPlan === plan.id}
                 >
-                  {loadingPlan === plan.planId ? (
+                  {loadingPlan === plan.id ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Loading...
                     </>
                   ) : (
-                    plan.cta
+                    plan.id === 'enterprise' ? 'Talk to Sales' : 'Upgrade'
                   )}
                 </Button>
               </CardContent>

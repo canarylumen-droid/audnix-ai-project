@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from '../supabase-admin';
 import { encrypt, decrypt } from '../crypto/encryption';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects';
 
 interface InstagramOAuthConfig {
   clientId: string;
@@ -33,7 +34,7 @@ export class InstagramOAuth {
     this.config = {
       clientId: process.env.INSTAGRAM_APP_ID || '',
       clientSecret: process.env.INSTAGRAM_APP_SECRET || '',
-      redirectUri: process.env.INSTAGRAM_REDIRECT_URI || 'http://localhost:5000/api/oauth/instagram/callback'
+      redirectUri: getOAuthRedirectUrl('instagram')
     };
   }
 

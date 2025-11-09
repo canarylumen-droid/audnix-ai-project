@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects';
 
 export class GoogleCalendarOAuth {
   private oauth2Client: OAuth2Client;
@@ -13,7 +14,7 @@ export class GoogleCalendarOAuth {
     this.config = {
       clientId: process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '',
-      redirectUri: process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:5000/api/oauth/google-calendar/callback'
+      redirectUri: getOAuthRedirectUrl('google-calendar')
     };
 
     this.oauth2Client = new google.auth.OAuth2(

@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from '../supabase-admin';
 import { encrypt, decrypt } from '../crypto/encryption';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects';
 
 interface OutlookOAuthConfig {
   clientId: string;
@@ -38,7 +39,7 @@ export class OutlookOAuth {
     this.config = {
       clientId: process.env.OUTLOOK_CLIENT_ID || '',
       clientSecret: process.env.OUTLOOK_CLIENT_SECRET || '',
-      redirectUri: process.env.OUTLOOK_REDIRECT_URI || 'http://localhost:5000/api/oauth/outlook/callback',
+      redirectUri: getOAuthRedirectUrl('outlook'),
       tenantId: process.env.OUTLOOK_TENANT_ID || 'common' // 'common' allows any Microsoft account
     };
   }

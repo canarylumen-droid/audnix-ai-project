@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import crypto from 'crypto';
 import { supabaseAdmin } from '../supabase-admin';
 import { encrypt, decrypt } from '../crypto/encryption';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects';
 
 interface GmailOAuthConfig {
   clientId: string;
@@ -32,7 +33,7 @@ export class GmailOAuth {
     this.config = {
       clientId: process.env.GMAIL_CLIENT_ID || '',
       clientSecret: process.env.GMAIL_CLIENT_SECRET || '',
-      redirectUri: process.env.GMAIL_REDIRECT_URI || 'http://localhost:5000/api/oauth/gmail/callback'
+      redirectUri: getOAuthRedirectUrl('gmail')
     };
 
     this.oauth2Client = new google.auth.OAuth2(
