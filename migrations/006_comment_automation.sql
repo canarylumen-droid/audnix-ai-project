@@ -30,21 +30,26 @@ CREATE TABLE IF NOT EXISTS processed_comments (
   processed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deals table - track revenue from conversions
-CREATE TABLE IF NOT EXISTS deals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  amount NUMERIC NOT NULL DEFAULT 0,
-  currency TEXT DEFAULT 'USD',
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed_won', 'closed_lost', 'pending')),
-  source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation')),
-  closed_at TIMESTAMPTZ,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- Deals table - track revenue from conversions (skip if already exists from 000_SETUP_SUPABASE.sql)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'deals') THEN
+    CREATE TABLE deals (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      amount NUMERIC NOT NULL DEFAULT 0,
+      currency TEXT DEFAULT 'USD',
+      status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed_won', 'closed_lost', 'pending')),
+      source TEXT DEFAULT 'manual' CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation')),
+      closed_at TIMESTAMPTZ,
+      metadata JSONB DEFAULT '{}',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  END IF;
+END $$;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_video_monitors_user ON video_monitors(user_id, is_active);

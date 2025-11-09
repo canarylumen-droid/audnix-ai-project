@@ -1,8 +1,8 @@
 
 -- Video Monitors for comment automation
 CREATE TABLE IF NOT EXISTS video_monitors (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   video_id TEXT NOT NULL,
   video_url TEXT NOT NULL,
   product_link TEXT NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS video_monitors (
 
 -- Processed comments to avoid duplicate responses
 CREATE TABLE IF NOT EXISTS processed_comments (
-  id TEXT PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   comment_id TEXT NOT NULL UNIQUE,
   action TEXT NOT NULL,
   intent_type TEXT NOT NULL,
