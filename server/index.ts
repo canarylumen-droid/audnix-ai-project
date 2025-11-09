@@ -256,11 +256,12 @@ async function runMigrations() {
     serveStatic(app);
   }
 
-  // Start background workers only if database is configured
+  // Start background workers only if database AND Supabase are configured
   const { db } = await import('./db');
   const hasDatabase = process.env.DATABASE_URL && db;
+  const hasSupabase = isSupabaseAdminConfigured();
   
-  if (hasDatabase && supabaseAdmin) {
+  if (hasDatabase && hasSupabase && supabaseAdmin) {
     console.log('🤖 Starting AI workers...');
     
     // Register workers for health monitoring
@@ -292,12 +293,15 @@ async function runMigrations() {
     console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
     console.log('✅ Worker health monitoring active');
-  } else if (!hasDatabase) {
-    console.log('⏭️  Background workers disabled (no database configured)');
-    console.log('💡 Add DATABASE_URL to enable AI workers');
-  } else if (!supabaseAdmin) {
-    console.log('⏭️  Background workers disabled (Supabase not configured)');
-    console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable workers');
+  } else {
+    if (!hasDatabase) {
+      console.log('⏭️  Background workers disabled (no database configured)');
+      console.log('💡 Add DATABASE_URL to enable AI workers');
+    }
+    if (!hasSupabase) {
+      console.log('⏭️  Background workers disabled (Supabase not configured)');
+      console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable workers');
+    }
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
