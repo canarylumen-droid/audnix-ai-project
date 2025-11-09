@@ -388,8 +388,8 @@ export default function AuthPage() {
                       Welcome to <span className="text-primary">Audnix</span>
                     </CardTitle>
                   </motion.div>
-                  <CardDescription className="text-white/70 text-base">
-                    Sign in with Google. <span className="text-primary font-semibold">No credit card required.</span>
+                  <CardDescription className="text-white/90 text-base leading-relaxed">
+                    Your AI sales rep that follows up + books meetings while you sleep.
                   </CardDescription>
                 </CardHeader>
 
@@ -411,21 +411,35 @@ export default function AuthPage() {
                       />
                       <SiGoogle className="w-5 h-5 mr-3 relative z-10 text-white" />
                       <span className="relative z-10 text-white">
-                        {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
+                        {loading === 'google' ? 'Connecting...' : 'Sign in with Google'}
                       </span>
                     </Button>
                   </motion.div>
 
                   {/* Email OTP temporarily hidden - will be added back later */}
 
-                  {/* Mobile benefits */}
-                  <div className="lg:hidden pt-6 space-y-3">
-                    {benefits.map((benefit, index) => (
-                      <div key={index} className="flex items-center gap-2 text-sm text-white/70">
-                        <Check className="w-4 h-4 text-primary flex-shrink-0" />
-                        <span>{benefit.text}</span>
+                  {/* Value props - visible on all screens */}
+                  <div className="pt-4 pb-2">
+                    <p className="text-sm text-white/60 text-center mb-3">
+                      (5 minutes. Zero setup. No credit card.)
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Instant DM + email follow-ups</span>
                       </div>
-                    ))}
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Auto-booking to your calendar</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Smart lead scoring</span>
+                      </div>
+                    </div>
+                    <p className="text-center text-white/80 font-semibold mt-4 text-sm">
+                      Stop letting money rot in your inbox.
+                    </p>
                   </div>
 
                   <motion.div
@@ -435,10 +449,10 @@ export default function AuthPage() {
                     transition={{ delay: 0.8 }}
                   >
                     <p>
-                      By continuing, you agree to our{' '}
-                      <a href="#" className="text-primary hover:underline">Terms</a>
-                      {' '}and{' '}
-                      <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                      By continuing, you accept our{' '}
+                      <a href="/terms-of-service" className="text-primary hover:underline">Terms</a>
+                      {' '}+{' '}
+                      <a href="/privacy-policy" className="text-primary hover:underline">Privacy</a>
                     </p>
                   </motion.div>
                 </CardContent>
@@ -451,7 +465,7 @@ export default function AuthPage() {
                 transition={{ delay: 1 }}
               >
                 <a href="/" className="text-white/60 hover:text-white transition-colors text-sm inline-flex items-center gap-2">
-                  ← Back to home
+                  Rather keep losing leads? ← Back to home
                 </a>
               </motion.div>
             </motion.div>
