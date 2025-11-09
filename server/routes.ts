@@ -962,100 +962,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/billing/webhook", async (req, res) => {
-    try {
-      const signature = req.headers["stripe-signature"] as string;
-
-      if (!signature) {
-        return res.status(400).json({ error: "Missing signature" });
-      }
-
-      const event = verifyWebhookSignature(req.body, signature);
-
-      // Handle different event types
-      switch (event.type) {
-        case "checkout.session.completed":
-          const session = event.data.object as any;
-
-          // Handle top-up purchases
-          if (session.metadata?.userId && session.metadata?.topupType && session.metadata?.topupAmount) {
-            const userId = session.metadata.userId;
-            const topupAmount = parseInt(session.metadata.topupAmount);
-
-            // Add minutes to user balance
-            const user = await storage.getUserById(userId);
-            if (user) {
-              await storage.updateUser(userId, {
-                voiceMinutesTopup: (user.voiceMinutesTopup || 0) + topupAmount
-              });
-
-              // Create audit log
-              await storage.createUsageTopup({
-                userId,
-                type: 'voice',
-                amount: topupAmount,
-                metadata: {
-                  source: 'stripe_topup',
-                  sessionId: session.id,
-                  amountPaid: session.amount_total / 100,
-                  topupType: session.metadata.topupType
-                }
-              });
-
-              // Send notification
-              await storage.createNotification({
-                userId,
-                type: 'topup_success',
-                title: '✅ Top-up successful!',
-                message: `+${topupAmount} voice minutes added to your account`,
-                actionUrl: '/dashboard/integrations'
-              });
-
-              console.log(`✅ Added ${topupAmount} minutes to user ${userId}`);
-            }
-          }
-
-          // Handle subscription changes
-          if (session.metadata?.userId && session.metadata?.planKey && !session.metadata?.topupType) {
-            const userId = session.metadata.userId;
-            const planKey = session.metadata.planKey;
-
-            await storage.updateUser(userId, {
-              plan: planKey,
-              stripeSubscriptionId: session.subscription as string
-            });
-          }
-          break;
-
-        case "customer.subscription.updated":
-          const updatedSub = event.data.object as any;
-          const { data: customer } = await storage.getUserByEmail(updatedSub.customer);
-          if (customer) {
-            // Update user plan based on subscription
-            await storage.updateUser(customer.id, {
-              plan: updatedSub.status === 'active' ? 'pro' : 'trial'
-            });
-          }
-          break;
-
-        case "customer.subscription.deleted":
-          const deletedSub = event.data.object as any;
-          const { data: deletedCustomer } = await storage.getUserByEmail(deletedSub.customer);
-          if (deletedCustomer) {
-            await storage.updateUser(deletedCustomer.id, {
-              plan: 'trial',
-              stripeSubscriptionId: null
-            });
-          }
-          break;
-      }
-
-      res.json({ received: true });
-    } catch (error) {
-      console.error("Stripe webhook error:", error);
-      res.status(400).json({ error: "Webhook processing failed" });
-    }
-  });
+  // ==================== Stripe Webhook (Disabled Until Revenue Starts) ====================
+  // Webhook endpoint is implemented in server/routes/webhook.ts
+  // Uncomment when ready to handle subscription renewals, cancellations, and refunds
+  // See README.md section "Stripe Webhooks Setup" for instructions
 
   // ==================== Settings API ====================
 
@@ -1830,7 +1740,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", oauthRoutes);
 
   // Register webhook routes
-  app.use("/api/webhook", webhookRouter);
   app.use("/api", workerRouter);
   app.use("/api/automation", commentAutomationRouter);
   app.use("/api/video-automation", videoAutomationRouter);

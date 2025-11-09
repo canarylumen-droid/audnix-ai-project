@@ -719,4 +719,149 @@ Click the **Run** button at the top of Replit. The server will start automatical
 - [VOICE_MINUTES_GUIDE.md](./VOICE_MINUTES_GUIDE.md) - Voice minutes tracking system
 - [PRICING_ANALYSIS.md](./PRICING_ANALYSIS.md) - Detailed profit margin analysis
 
+---
+
+## 🔔 Stripe Webhooks Setup (When You're Ready)
+
+**Current Status: ✅ Not needed yet - Payment links work without webhooks**
+
+You can safely skip webhooks for the first month. Payment links handle:
+- ✅ Initial purchases (subscriptions + top-ups)
+- ✅ User upgrades immediately after payment
+- ✅ Payment confirmations
+
+### When to Add Webhooks
+
+Add webhooks when you need:
+- **Monthly subscription renewals** - Auto-charge users each month
+- **Failed payment handling** - Downgrade users who don't pay
+- **Cancellation management** - Handle subscription cancellations
+- **Refund processing** - Automatically update user access on refunds
+
+### Setup Instructions (5 Minutes)
+
+1. **Create Webhook Endpoint in Stripe Dashboard**
+   - Go to https://dashboard.stripe.com/webhooks
+   - Click **+ Add endpoint**
+   - Enter URL: `https://your-app.repl.co/api/billing/webhook`
+   - Select events:
+     - `checkout.session.completed` - Payment success
+     - `customer.subscription.updated` - Plan changes
+     - `customer.subscription.deleted` - Cancellations
+     - `invoice.payment_failed` - Failed payments
+     - `charge.refunded` - Refunds
+
+2. **Copy Webhook Secret**
+   - After creating endpoint, click **Reveal** next to "Signing secret"
+   - Copy the secret (starts with `whsec_...`)
+
+3. **Add to Replit Secrets**
+   ```bash
+   STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+   ```
+
+4. **Restart your app** - Webhook handler will activate automatically
+
+### What Each Event Does
+
+**`checkout.session.completed`**
+- Upgrades user plan immediately
+- Adds top-up minutes to balance
+- Creates payment record
+- Sends success notification
+
+**`customer.subscription.updated`**
+- Syncs plan changes (upgrades/downgrades)
+- Updates billing period
+- Handles status changes (active → past_due)
+
+**`customer.subscription.deleted`**
+- Downgrades to trial plan
+- Grants 14-day grace period
+- Sends cancellation notification
+
+**`invoice.payment_failed`**
+- Sends payment failure notification
+- Prompts user to update payment method
+- Auto-downgrade after 3 failed attempts (optional)
+
+**`charge.refunded`**
+- Reverts plan downgrade (if refunded within 7 days)
+- Restores voice minutes for top-up refunds
+- Creates refund notification
+
+### Handling Refunds Manually (Before Webhooks)
+
+If a customer requests a refund before you have webhooks:
+
+1. **Process refund in Stripe Dashboard**
+   - Go to Payments → Click payment
+   - Click **Refund** button
+   - Enter refund amount
+
+2. **Manually downgrade user in your database**
+   ```sql
+   -- Find user by email
+   SELECT id, plan FROM users WHERE email = 'customer@example.com';
+   
+   -- Downgrade to trial
+   UPDATE users 
+   SET plan = 'trial', 
+       stripe_subscription_id = NULL,
+       trial_expires_at = NOW() + INTERVAL '14 days'
+   WHERE id = 'user_id_here';
+   
+   -- Remove top-up minutes (if top-up refund)
+   UPDATE users 
+   SET voice_minutes_topup = voice_minutes_topup - 100
+   WHERE id = 'user_id_here';
+   ```
+
+3. **Send manual email**
+   - Subject: "Refund Processed - Trial Extended"
+   - Message: "Your refund of $X.XX has been processed. We've extended your trial by 14 days."
+
+### Handling Downgrades Manually
+
+If user cancels subscription before webhooks are setup:
+
+1. **Check for cancellation in Stripe Dashboard**
+   - Go to Subscriptions → Search customer email
+   - Look for "Canceled" status
+
+2. **Manually downgrade in database**
+   ```sql
+   UPDATE users 
+   SET plan = 'trial',
+       stripe_subscription_id = NULL,
+       trial_expires_at = NOW() + INTERVAL '14 days'
+   WHERE email = 'customer@example.com';
+   ```
+
+### Testing Webhooks (Use Stripe CLI)
+
+```bash
+# Install Stripe CLI
+npm install -g stripe
+
+# Login to Stripe
+stripe login
+
+# Forward webhooks to local server
+stripe listen --forward-to localhost:5000/api/billing/webhook
+
+# Trigger test events
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.deleted
+stripe trigger invoice.payment_failed
+```
+
+### Webhook Code Location
+
+The webhook handler is already implemented in:
+- **File:** `server/routes/webhook.ts`
+- **Route:** `/api/billing/webhook`
+- **Method:** POST
+- **Status:** ✅ Production-ready (just add webhook secret)
+
 **Built with React, Express, PostgreSQL, Supabase, OpenAI, and Meta APIs** | **Ready to deploy on Replit in minutes** 🚀
