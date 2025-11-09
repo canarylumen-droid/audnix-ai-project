@@ -111,6 +111,41 @@
 
 ### 🚀 High-Impact Features (Revenue Drivers)
 
+#### Smart Lead Temperature Tracking
+- Visual heat map showing lead engagement over time
+- 🔥 Hot (replied in last 24h)
+- 🌡️ Warm (replied 24-72h ago)
+- ❄️ Cold (no reply >72h)
+- Auto-adjusts AI tone based on temperature
+
+#### Conversion Playbooks
+- Pre-built AI conversation templates for specific niches
+- Course creators ("How to close $2k sales")
+- Coaches ("Book discovery calls")
+- E-commerce ("Upsell existing customers")
+- Users can customize and AI learns from their tweaks
+
+#### Voice Message A/B Testing
+- Test different voice scripts automatically
+- Script A vs Script B on similar leads
+- Track which converts better
+- AI auto-switches to winning script
+- Shows "Script A: 23% conversion, Script B: 31%"
+
+#### Lead Magnet Automation
+- When someone comments on video:
+  1. AI detects interest
+  2. Sends DM: "Want my free guide? Reply YES"
+  3. Auto-sends PDF/link when they reply
+  4. Follows up 24h later with pitch
+
+#### Deal Size Predictor
+- AI estimates deal value based on:
+  - Lead's questions (asking about premium = higher intent)
+  - Response speed
+  - Engagement level
+- Shows: "Estimated deal value: $500-$1,200"
+
 #### AI-Powered Lead Qualification Scoring 2.0
 - **Beyond basic scoring**: Train AI on YOUR successful conversions
 - Real-time "deal probability" meter (0-100%)
@@ -143,7 +178,7 @@
 
 ### 💎 Premium Features (Pro/Enterprise Only)
 
-#### Team Collaboration Mode
+#### Team Collaboration Mode (Team Inbox with Lead Assignment)
 - **Team Inbox** - Shared conversations across your team
 - **Round-robin lead assignment** - Auto-distribute leads fairly
 - **Internal notes** on leads (invisible to customers)
@@ -151,30 +186,71 @@
 - **"Claim lead" button** - Prevent double-messaging
 - **Role-Based Access** - Admin, Manager, Agent permissions
 
+#### Smart Appointment Scheduler
+- Goes beyond basic calendar links
+- AI suggests best meeting times based on lead timezone
+- Auto-sends reminder 1h before call
+- If lead no-shows, auto-reschedules
+- Integrates with Zoom/Google Meet
+
+#### Revenue Dashboard (Revenue Forecasting)
+- Show potential revenue in pipeline
+- "You have $12,500 in deals closing this week"
+- Visual pipeline: New → Interested → Negotiating → Closed
+- Conversion rate by source (Instagram 15%, WhatsApp 23%)
+- Track average deal size, close rate, sales cycle length
+- **C-Suite Feature**: Founders want this
+
 #### Custom AI Training Playground
 - Upload past successful conversations
 - AI learns YOUR unique selling style
 - A/B test different AI personalities
 - "Formal vs Casual" tone selector per lead
+- Test different personalities (Formal vs Casual)
+- See how AI would respond before sending
 - **Power User Feature**: Course creators love this
 
 #### Video Response Automation
 - Record 30-60 sec video responses to FAQs
 - AI sends personalized video when lead asks common questions
 - Instagram/WhatsApp video message support
+- Works on Instagram/WhatsApp
 - **Conversion Boost**: Video replies = 3x higher engagement
 
-#### Appointment Booking Funnel
-- Multi-step booking flow: Qualify → Show calendar → Confirm → Auto-reschedule
-- Integrates with Zoom/Google Meet links
-- **Use Case**: Coaches, consultants, service providers
+### 🎯 Competitive Moat Features (Unique to Audnix)
 
-#### Revenue Forecasting Dashboard
-- Predict monthly revenue based on pipeline
-- "You have $12,500 in potential deals closing this week"
-- Track average deal size, close rate, sales cycle length
-- Visual pipeline by stage (New → Interested → Negotiating → Closed)
-- **C-Suite Feature**: Founders want this
+#### Multi-Language AI
+- Auto-detect lead's language and respond in it
+- English, Spanish, French, German, Portuguese
+- Same voice clone in different languages
+- Huge advantage for international creators
+
+#### Objection Library
+- AI learns common objections and best responses
+- "Too expensive" → Shows payment plan
+- "Need to think about it" → Offers limited-time bonus
+- "Is this a scam?" → Sends testimonials
+- Users can edit AI's objection responses
+
+#### CRM Pipeline View
+- Kanban board to visualize leads
+- Columns: New → Engaged → Qualified → Closed
+- Drag-drop to move leads
+- Bulk actions (tag 50 leads as "interested")
+
+#### Instagram Story Reply Automation
+- When someone replies to your story
+- AI detects buying intent
+- Sends personalized follow-up
+- Different from comment automation (new channel)
+- **Unique**: ManyChat can't do this
+
+#### Lead Scoring Algorithm
+- Auto-scores leads 0-100 based on:
+  - Response speed (faster = higher score)
+  - Questions asked (pricing questions = hot)
+  - Emoji usage (🔥💯 = excited)
+- Shows "High Intent: 87/100"
 
 ### 🎯 Niche Features (Vertical-Specific)
 
@@ -231,6 +307,41 @@
 - Auto-send SMS with "Miss you" message
 - Last-ditch effort to re-engage
 - **Conversion Recovery**: 10-15% reactivation rate
+
+### 🔮 Future Vision (6-12 Months)
+
+#### WhatsApp Business API Official
+- Upgrade from QR code to official API
+- No QR re-scanning needed
+- Verified green checkmark
+- Send broadcasts to all leads
+- Users pay Meta directly (still $0 platform cost)
+
+#### AI Sales Call Assistant
+- During live sales calls:
+  - Real-time transcription
+  - AI suggests responses in sidebar
+  - Highlights objections as they happen
+  - Post-call summary with action items
+
+#### Conversion Forecasting
+- Predict monthly revenue based on current pipeline
+- "At current rate, you'll close $8,500 this month"
+- Shows best/worst case scenarios
+- Alerts when pipeline is too thin
+
+#### Social Proof Engine
+- Auto-collect and display testimonials
+- When lead converts, AI asks for review
+- Creates graphics from testimonials
+- Suggests best times to post them
+
+#### TikTok Integration
+- Same comment automation for TikTok
+- Monitor video comments
+- Detect buying intent
+- Send DMs automatically
+- Huge untapped market
 
 ### 🎨 UX Enhancements
 
