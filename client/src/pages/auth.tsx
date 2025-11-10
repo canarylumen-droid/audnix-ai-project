@@ -391,6 +391,9 @@ export default function AuthPage() {
                   <CardDescription className="text-white/90 text-base leading-relaxed">
                     Your AI sales rep that follows up + books meetings while you sleep.
                   </CardDescription>
+                  <p className="text-xs text-white/60 pt-1">
+                    (5 minutes. Zero setup. No credit card.)
+                  </p>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
@@ -416,12 +419,10 @@ export default function AuthPage() {
                     </Button>
                   </motion.div>
 
-                  {/* Email OTP temporarily hidden - will be added back later */}
-
-                  {/* Value props - visible on all screens */}
+                  {/* Value props - You get: */}
                   <div className="pt-4 pb-2">
-                    <p className="text-sm text-white/60 text-center mb-3">
-                      (5 minutes. Zero setup. No credit card.)
+                    <p className="text-sm text-white/70 font-semibold mb-3">
+                      You get:
                     </p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-white/90">
@@ -437,7 +438,7 @@ export default function AuthPage() {
                         <span>Smart lead scoring</span>
                       </div>
                     </div>
-                    <p className="text-center text-white/80 font-semibold mt-4 text-sm">
+                    <p className="text-center text-white/90 font-bold mt-6 text-base">
                       Stop letting money rot in your inbox.
                     </p>
                   </div>
@@ -465,7 +466,7 @@ export default function AuthPage() {
                 transition={{ delay: 1 }}
               >
                 <a href="/" className="text-white/60 hover:text-white transition-colors text-sm inline-flex items-center gap-2">
-                  Rather keep losing leads? ← Back to home
+                  Rather keep losing leads?<br />Back to home →
                 </a>
               </motion.div>
             </motion.div>
