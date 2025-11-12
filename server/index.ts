@@ -59,9 +59,17 @@ app.use('/api/auth/', authLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration - use built-in MemoryStore in development
-const sessionSecret = process.env.SESSION_SECRET;
-if (!sessionSecret) {
+// Configure session - ensure secret is set
+// Note: Replit auto-generates SESSION_SECRET, but we validate it's present
+// Use a secure session store in production (PostgreSQL via connect-pg-simple)
+// Falls back to MemoryStore in development
+const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
+}
+
+if (sessionSecret === 'temporary-dev-secret-change-in-production' && process.env.NODE_ENV === 'production') {
+  console.error('❌ SESSION_SECRET must be set in production!');
   throw new Error('SESSION_SECRET environment variable must be set in production');
 }
 
@@ -92,12 +100,12 @@ app.use((req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-  
+
   // Skip CSRF check for webhooks (they use signature verification)
   if (req.path.startsWith('/webhook/')) {
     return next();
   }
-  
+
   // Verify origin header matches allowed domains
   const allowedOrigins = [
     process.env.NEXT_PUBLIC_APP_URL,
@@ -109,7 +117,7 @@ app.use((req, res, next) => {
 
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
-  
+
   if (origin && host) {
     try {
       const originUrl = new URL(origin);
@@ -121,7 +129,7 @@ app.use((req, res, next) => {
           return originUrl.host === host;
         }
       });
-      
+
       if (!isAllowed) {
         console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
         return res.status(403).json({ error: 'Invalid request origin' });
@@ -131,7 +139,7 @@ app.use((req, res, next) => {
       return res.status(403).json({ error: 'Invalid origin' });
     }
   }
-  
+
   next();
 });
 
@@ -173,7 +181,7 @@ async function runMigrations() {
     // Check if DATABASE_URL is set
     if (!process.env.DATABASE_URL) {
       console.log('⏭️  Skipping database migrations (DATABASE_URL not set)');
-      console.log('💡 App will run in demo mode - add DATABASE_URL to enable persistence');
+      console.log('💡 App will run in demo mode without database features');
       return;
     }
 
@@ -181,16 +189,16 @@ async function runMigrations() {
 
     // Use Drizzle's db connection directly
     const { db } = await import('./db');
-    
+
     // Check if db is actually initialized
     if (!db) {
       console.log('⏭️  Database not initialized - skipping migrations');
       return;
     }
-    
+
     // Read all migration files in order
     const migrationsDir = path.join(process.cwd(), 'migrations');
-    
+
     // Check if migrations directory exists
     if (!fs.existsSync(migrationsDir)) {
       console.log('⏭️  No migrations directory found, skipping...');
@@ -260,24 +268,24 @@ async function runMigrations() {
   const { db } = await import('./db');
   const hasDatabase = process.env.DATABASE_URL && db;
   const hasSupabase = isSupabaseAdminConfigured();
-  
+
   if (hasDatabase && hasSupabase && supabaseAdmin) {
     console.log('🤖 Starting AI workers...');
-    
+
     // Register workers for health monitoring
     workerHealthMonitor.registerWorker('follow-up-worker');
     workerHealthMonitor.registerWorker('video-comment-monitor');
     workerHealthMonitor.registerWorker('lead-learning');
     workerHealthMonitor.registerWorker('oauth-token-refresh');
     workerHealthMonitor.start();
-    
+
     followUpWorker.start();
     startVideoCommentMonitoring();
-    
+
     // Start lead learning system
     const { startLeadLearning } = await import('./lib/ai/lead-learning');
     startLeadLearning();
-    
+
     // Start OAuth token refresh worker (every 30 minutes)
     const { GmailOAuth } = await import('./lib/oauth/gmail');
     setInterval(() => {
@@ -288,7 +296,7 @@ async function runMigrations() {
           workerHealthMonitor.recordError('oauth-token-refresh', err.message);
         });
     }, 30 * 60 * 1000);
-    
+
     console.log('✅ AI workers running');
     console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
