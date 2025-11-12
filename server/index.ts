@@ -13,19 +13,23 @@ import path from "path";
 
 const app = express();
 
-// Check for required environment variables on startup
-const requiredEnvVars = [
-  'SESSION_SECRET',
-  'ENCRYPTION_KEY',
-];
+// Generate required secrets for development if not provided
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ SESSION_SECRET must be set in production!');
+    process.exit(1);
+  }
+  process.env.SESSION_SECRET = 'dev-secret-' + crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️  Using generated SESSION_SECRET for development. Set a secure one for production!');
+}
 
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missingEnvVars.forEach(varName => console.error(`   - ${varName}`));
-  console.error('\n💡 Add these to Vercel environment variables');
-  process.exit(1);
+if (!process.env.ENCRYPTION_KEY) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('❌ ENCRYPTION_KEY must be set in production!');
+    process.exit(1);
+  }
+  process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+  console.warn('⚠️  Using generated ENCRYPTION_KEY for development. Set a secure one for production!');
 }
 
 // Supabase is optional (used only for auth if configured)
@@ -40,12 +44,6 @@ if (hasSupabaseUrl && hasSupabaseKey) {
 
 // Warn about optional variables but don't exit
 const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENAI_API_KEY'];
-
-// Generate a session secret for development if not provided
-if (!process.env.SESSION_SECRET) {
-  process.env.SESSION_SECRET = 'dev-secret-' + crypto.randomBytes(32).toString('hex');
-  console.warn('⚠️  Using generated SESSION_SECRET for development. Set a secure one for production!');
-}
 
 // Apply rate limiting
 app.use('/api/', apiLimiter);

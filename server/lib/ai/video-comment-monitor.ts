@@ -3,7 +3,7 @@ import { storage } from '../../storage';
 import { InstagramProvider } from '../providers/instagram';
 import { decrypt } from '../crypto/encryption';
 import { formatDMWithButton } from './dm-formatter';
-import { workerHealthMonitor } from '../utils/worker-health-monitor';
+import { workerHealthMonitor } from '../monitoring/worker-health';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
