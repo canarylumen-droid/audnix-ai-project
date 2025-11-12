@@ -57,10 +57,10 @@ export default function AuthPage() {
   const handleGoogleLogin = async () => {
     setLoading('google');
 
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!supabase) {
       toast({
-        title: "Setup Required",
-        description: "Please configure Supabase in Secrets to enable authentication.",
+        title: "Authentication Error",
+        description: "Unable to connect to authentication service. Please try again.",
         variant: "destructive",
       });
       setLoading(null);
@@ -106,10 +106,10 @@ export default function AuthPage() {
 
     setLoading('email');
 
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!supabase) {
       toast({
-        title: "Setup Required",
-        description: "Please configure Supabase to enable email authentication.",
+        title: "Authentication Error",
+        description: "Unable to connect to authentication service. Please try again.",
         variant: "destructive",
       });
       setLoading(null);
@@ -162,10 +162,10 @@ export default function AuthPage() {
 
     setLoading('verify');
 
-    if (!isSupabaseConfigured() || !supabase) {
+    if (!supabase) {
       toast({
-        title: "Setup Required",
-        description: "Please configure Supabase to verify codes.",
+        title: "Authentication Error",
+        description: "Unable to verify code. Please try again.",
         variant: "destructive",
       });
       setLoading(null);

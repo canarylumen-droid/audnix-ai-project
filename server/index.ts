@@ -38,8 +38,6 @@ const hasSupabaseKey = Boolean(process.env.SUPABASE_ANON_KEY);
 
 if (hasSupabaseUrl && hasSupabaseKey) {
   console.log('✅ Supabase Auth configured');
-} else {
-  console.warn('⚠️  Supabase not configured - some auth features may be limited');
 }
 
 // Warn about optional variables but don't exit
@@ -49,6 +47,11 @@ const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENA
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 
+// Stripe webhook needs raw body for signature verification
+// This MUST come before express.json() to preserve the raw buffer
+app.use('/webhook/stripe', express.raw({ type: 'application/json' }));
+
+// For all other routes, use JSON parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -106,7 +109,7 @@ app.use((req, res, next) => {
     'https://localhost:5000',
     `http://0.0.0.0:5000`,
     `https://0.0.0.0:5000`
-  ].filter(Boolean);
+  ].filter((url): url is string => Boolean(url));
 
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
@@ -298,10 +301,6 @@ async function runMigrations() {
     if (!hasDatabase) {
       console.log('⏭️  Background workers disabled (no database configured)');
       console.log('💡 Add DATABASE_URL to enable AI workers');
-    }
-    if (!hasSupabase) {
-      console.log('⏭️  Background workers disabled (Supabase not configured)');
-      console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_ANON_KEY to enable workers');
     }
   }
 

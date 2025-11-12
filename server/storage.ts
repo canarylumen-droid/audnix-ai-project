@@ -16,6 +16,7 @@ export interface IStorage {
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
+  getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   getTotalLeadsCount(): Promise<number>;
@@ -183,6 +184,11 @@ export class MemStorage implements IStorage {
       lead.name.toLowerCase() === username.toLowerCase() &&
       lead.channel === channel
     );
+  }
+
+  async getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined> {
+    const leads = await this.getLeads({ userId, limit: 1000 });
+    return leads.find(lead => lead.phone === phone);
   }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {

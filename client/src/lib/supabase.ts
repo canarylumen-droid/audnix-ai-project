@@ -18,8 +18,6 @@ let supabaseClient: SupabaseClient | null = null;
 
 if (isSupabaseConfigured()) {
   supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-} else {
-  console.warn('⚡ Developer Mode: Supabase not configured. Some features will use demo mode.');
 }
 
 export const supabase = supabaseClient;

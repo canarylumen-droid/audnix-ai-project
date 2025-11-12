@@ -1,9 +1,21 @@
-// Stripe Payment Links Integration (No API Key Required)
+import Stripe from 'stripe';
 import { storage } from '../../storage';
 
-// No Stripe SDK needed - using payment links only
-
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
+
+// Initialize Stripe SDK (required for webhook verification and API calls)
+let stripe: Stripe | null = null;
+
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2024-11-20.acacia',
+  });
+  console.log('✅ Stripe SDK initialized');
+} else {
+  console.warn('⚠️  STRIPE_SECRET_KEY not set - Stripe functionality will be limited');
+}
+
+export { stripe };
 
 /**
  * Plan configurations
@@ -392,18 +404,28 @@ export async function createTopupCheckout(
 export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
-): any { // Changed return type to 'any' as Stripe.Event might not be available without SDK
+): Stripe.Event | null {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    throw new Error("Stripe webhook secret not configured");
+    console.error("STRIPE_WEBHOOK_SECRET not configured - cannot verify webhooks");
+    return null;
   }
 
-  // Stripe SDK is not initialized here, so webhook verification cannot be performed.
-  // This function would need the Stripe SDK to be initialized with STRIPE_SECRET_KEY.
-  // For now, returning a placeholder or throwing an error indicating it's not functional.
-  console.warn("verifyWebhookSignature called, but Stripe SDK is not initialized for webhook verification.");
-  // Returning a mock event structure or null/undefined if direct verification is not possible.
-  // For now, throwing an error as it's a critical function that can't operate.
-  throw new Error("Webhook verification cannot be performed: Stripe SDK not initialized.");
+  if (!stripe) {
+    console.error("Stripe SDK not initialized - cannot verify webhooks");
+    return null;
+  }
+
+  try {
+    const event = stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      webhookSecret
+    );
+    return event;
+  } catch (err: any) {
+    console.error('Webhook signature verification failed:', err.message);
+    return null;
+  }
 }

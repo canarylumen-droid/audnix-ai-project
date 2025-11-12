@@ -16,9 +16,9 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing signature' });
     }
 
-    // Verify webhook signature
+    // Verify webhook signature (req.body is raw buffer from express.raw())
     const event = await verifyWebhookSignature(
-      (req as any).rawBody,
+      req.body,
       sig
     );
 

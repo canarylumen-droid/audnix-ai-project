@@ -90,25 +90,11 @@ class WhatsAppService {
       session.status = 'ready';
       session.lastActivity = new Date();
       console.log(`✅ WhatsApp ready for user ${userId}`);
-
-      await storage.updateUser(userId, {
-        metadata: {
-          whatsapp_connected: true,
-          whatsapp_connected_at: new Date().toISOString(),
-        },
-      });
     });
 
     client.on('disconnected', async (reason: string) => {
       console.log(`❌ WhatsApp disconnected for user ${userId}:`, reason);
       await this.destroySession(userId);
-
-      await storage.updateUser(userId, {
-        metadata: {
-          whatsapp_connected: false,
-          whatsapp_disconnected_at: new Date().toISOString(),
-        },
-      });
     });
 
     client.on('message', async (message: WhatsAppMessage) => {
