@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: lead.name,
                 email: lead.email || null,
                 phone: lead.phone || null,
-                channel: lead.email ? 'email' : lead.phone ? 'whatsapp' : 'instagram',
+                channel: (lead.email ? 'email' : lead.phone ? 'whatsapp' : 'instagram') as 'email' | 'instagram' | 'whatsapp',
                 status: 'new',
                 tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : ['csv-import'],
                 metadata: {
