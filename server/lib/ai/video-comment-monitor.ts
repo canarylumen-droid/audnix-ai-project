@@ -3,6 +3,7 @@ import { storage } from '../../storage';
 import { InstagramProvider } from '../providers/instagram';
 import { decrypt } from '../crypto/encryption';
 import { formatDMWithButton } from './dm-formatter';
+import { workerHealthMonitor } from '../utils/worker-health-monitor';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
@@ -23,6 +24,10 @@ interface VideoMonitorConfig {
     videoCaption?: string;
     productName?: string;
     pricePoint?: string;
+    pdfContext?: string; // Added for PDF context
+    replyToComments?: boolean; // Added to control comment replies
+    askForFollow?: boolean; // Added to control asking for follow
+    instagramHandle?: string; // Added for Instagram handle
   };
 }
 
@@ -304,7 +309,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         // FILTER: Check for inappropriate content before processing
         const { contentModerationService } = await import('./content-moderation');
         const moderationResult = await contentModerationService.moderateWithAI(comment.text);
-        
+
         if (moderationResult.shouldBlock || moderationResult.category === 'inappropriate') {
           console.log(`🚫 Blocked inappropriate comment from ${comment.username}: ${moderationResult.category}`);
           await storage.markCommentProcessed(comment.id, 'blocked_inappropriate', 'inappropriate');
@@ -355,10 +360,10 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           'cold': 7 * 60 * 1000,
           'replied': 4 * 60 * 1000
         }[existingLead.status] || 5 * 60 * 1000;
-        
+
         const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
         const replyDelay = baseDelay + jitter;
-        
+
         console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
         await new Promise(resolve => setTimeout(resolve, replyDelay));
 
@@ -411,8 +416,15 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
 
         console.log(`✓ Video comment automation complete for ${comment.username} (${intent.intentType})`);
       }
-    } catch (error) {
-      console.error(`Error monitoring video ${monitor.videoId}:`, error);
+    } catch (error: any) {
+      // Check if this is an Instagram auth error (HTML response means invalid token)
+      if (error.message?.includes('<!DOCTYPE html>') || error.message?.includes('<html')) {
+        console.warn('⚠️  Instagram access token expired - user needs to reconnect');
+        workerHealthMonitor.recordError('video-comment-monitor', 'Instagram token expired');
+      } else {
+        console.error('Error fetching queue jobs:', error);
+        workerHealthMonitor.recordError('video-comment-monitor', error.message);
+      }
     }
   } catch (error) {
     console.error('Video comment monitoring error:', error);
