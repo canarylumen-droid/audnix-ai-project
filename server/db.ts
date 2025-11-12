@@ -15,15 +15,17 @@ if (process.env.DATABASE_URL) {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
     });
     db = drizzle(pool, { schema });
-    console.log('✅ PostgreSQL database connected');
+    console.log('✅ PostgreSQL database connected (Neon)');
+    console.log('📊 Database:', process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown');
   } catch (error) {
-    console.warn('⚠️  Database connection failed, running in demo mode:', error);
+    console.error('❌ Database connection failed:', error);
+    console.error('💡 Check your DATABASE_URL in Vercel environment variables');
     db = null;
     pool = null;
   }
 } else {
-  console.warn('⚠️  DATABASE_URL not set - app will run in demo mode');
-  console.log('💡 Add DATABASE_URL to Replit Secrets for full functionality');
+  console.error('❌ DATABASE_URL not set');
+  console.error('💡 Add DATABASE_URL to Vercel environment variables');
 }
 
 export { db, pool };

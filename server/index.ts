@@ -13,38 +13,33 @@ import path from "path";
 
 const app = express();
 
-// Validate critical environment variables for production
-const criticalEnvVars = ['SESSION_SECRET', 'ENCRYPTION_KEY'];
-const missingCritical = criticalEnvVars.filter(v => !process.env[v]);
+// Check for required environment variables on startup
+const requiredEnvVars = [
+  'SESSION_SECRET',
+  'ENCRYPTION_KEY',
+];
 
-if (missingCritical.length > 0 && process.env.NODE_ENV === 'production') {
-  console.error('❌ Missing required environment variables:', missingCritical.join(', '));
-  console.error('💡 Add these to your Replit Secrets:');
-  console.error('   - SESSION_SECRET: Generate with: openssl rand -hex 32');
-  console.error('   - ENCRYPTION_KEY: Generate with: openssl rand -hex 32');
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingEnvVars.forEach(varName => console.error(`   - ${varName}`));
+  console.error('\n💡 Add these to Vercel environment variables');
   process.exit(1);
 }
 
-// Validate Supabase configuration if keys are partially set
+// Supabase is optional (used only for auth if configured)
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-const hasSupabaseKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+const hasSupabaseKey = Boolean(process.env.SUPABASE_ANON_KEY);
 
-if (hasSupabaseUrl !== hasSupabaseKey) {
-  console.error('❌ Incomplete Supabase configuration');
-  console.error('💡 Both NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
-  if (!hasSupabaseUrl) console.error('   Missing: NEXT_PUBLIC_SUPABASE_URL');
-  if (!hasSupabaseKey) console.error('   Missing: SUPABASE_SERVICE_ROLE_KEY');
-  process.exit(1);
+if (hasSupabaseUrl && hasSupabaseKey) {
+  console.log('✅ Supabase Auth configured');
+} else {
+  console.warn('⚠️  Supabase not configured - some auth features may be limited');
 }
 
-// Warn about optional variables (Supabase) but don't exit
-const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
-const missingOptional = optionalEnvVars.filter(v => !process.env[v]);
-
-if (missingOptional.length > 0) {
-  console.warn('⚠️  Optional environment variables not set:', missingOptional.join(', '));
-  console.warn('💡 The app will run in demo mode without these. Add them for full functionality.');
-}
+// Warn about optional variables but don't exit
+const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENAI_API_KEY'];
 
 // Generate a session secret for development if not provided
 if (!process.env.SESSION_SECRET) {
@@ -308,7 +303,7 @@ async function runMigrations() {
     }
     if (!hasSupabase) {
       console.log('⏭️  Background workers disabled (Supabase not configured)');
-      console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to enable workers');
+      console.log('💡 Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_ANON_KEY to enable workers');
     }
   }
 
