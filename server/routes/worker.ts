@@ -1,6 +1,9 @@
 import { Request, Response, Router } from 'express';
 import { followUpWorker } from '../lib/ai/follow-up-worker';
 import { supabaseAdmin } from '../lib/supabase-admin';
+import { db } from '../db';
+import { followUpQueue, leads } from '@shared/schema';
+import { eq, and, gte, sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -61,29 +64,37 @@ router.get('/worker/status', async (req: Request, res: Response) => {
   try {
     const isRunning = (followUpWorker as any).isRunning || false;
     
-    // Get queue statistics if Supabase is configured
+    // Get queue statistics from Neon database
     let queueStats = null;
-    if (supabaseAdmin) {
-      const { data: pending } = await supabaseAdmin
-        .from('follow_up_queue')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending');
+    if (db) {
+      const { count: pendingCount } = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(followUpQueue)
+        .where(eq(followUpQueue.status, 'pending'))
+        .then(rows => rows[0] || { count: 0 });
       
-      const { data: processing } = await supabaseAdmin
-        .from('follow_up_queue')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'processing');
+      const { count: processingCount } = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(followUpQueue)
+        .where(eq(followUpQueue.status, 'processing'))
+        .then(rows => rows[0] || { count: 0 });
       
-      const { data: completed } = await supabaseAdmin
-        .from('follow_up_queue')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'completed')
-        .gte('processed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const { count: completedCount } = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(followUpQueue)
+        .where(
+          and(
+            eq(followUpQueue.status, 'completed'),
+            gte(followUpQueue.processedAt, oneDayAgo)
+          )
+        )
+        .then(rows => rows[0] || { count: 0 });
       
       queueStats = {
-        pending: pending?.length || 0,
-        processing: processing?.length || 0,
-        completedLast24h: completed?.length || 0,
+        pending: pendingCount || 0,
+        processing: processingCount || 0,
+        completedLast24h: completedCount || 0,
       };
     }
     
@@ -106,39 +117,37 @@ router.post('/worker/trigger/:leadId', async (req: Request, res: Response) => {
     const { leadId } = req.params;
     const userId = (req as any).session?.userId || req.body.user_id;
     
-    if (!userId || !leadId || !supabaseAdmin) {
+    if (!userId || !leadId || !db) {
       return res.status(400).json({ error: 'Invalid request' });
     }
 
-    // Get lead details
-    const { data: lead, error } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('id', leadId)
-      .eq('user_id', userId)
-      .single();
+    // Get lead details from Neon
+    const [lead] = await db
+      .select()
+      .from(leads)
+      .where(
+        and(
+          eq(leads.id, leadId),
+          eq(leads.userId, userId)
+        )
+      )
+      .limit(1);
 
-    if (error || !lead) {
+    if (!lead) {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    // Create follow-up job
-    const { error: queueError } = await supabaseAdmin
-      .from('follow_up_queue')
-      .insert({
-        user_id: userId,
-        lead_id: leadId,
-        channel: lead.channel,
-        scheduled_at: new Date().toISOString(),
-        context: {
-          manual_trigger: true,
-          triggered_by: userId,
-        }
-      });
-
-    if (queueError) {
-      throw queueError;
-    }
+    // Create follow-up job in Neon
+    await db.insert(followUpQueue).values({
+      userId,
+      leadId,
+      channel: lead.channel,
+      scheduledAt: new Date(),
+      context: {
+        manual_trigger: true,
+        triggered_by: userId,
+      }
+    });
 
     res.json({
       success: true,
