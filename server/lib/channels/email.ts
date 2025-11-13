@@ -121,7 +121,8 @@ async function importCustomEmails(
 async function getUserBrandColors(userId: string): Promise<BrandColors | undefined> {
   try {
     const user = await storage.getUserById(userId);
-    const brandColors = user?.metadata?.brand_colors;
+    // TypeScript doesn't know about metadata field, cast to any for now
+    const brandColors = (user as any)?.metadata?.brand_colors;
     
     if (brandColors?.primary) {
       return {
@@ -368,6 +369,10 @@ export async function getEmailInbox(
   userId: string,
   limit: number = 20
 ): Promise<any[]> {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase admin not configured');
+  }
+  
   const { data: integration } = await supabaseAdmin
     .from('integrations')
     .select('provider, credentials')

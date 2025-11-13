@@ -182,10 +182,17 @@ export class InstagramProvider {
 
       // Upload audio to a public URL first (using Supabase storage or similar)
       const { uploadToSupabase } = await import('../file-upload');
+      
+      // Save buffer to temp file first
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      const tmpPath = path.join('/tmp', `voice-${Date.now()}.mp3`);
+      await fs.writeFile(tmpPath, audioBuffer);
+      
       const audioUrl = await uploadToSupabase(
-        audioBuffer,
+        'voice-messages',
         `voice-messages/${recipientId}-${Date.now()}.mp3`,
-        'audio/mpeg'
+        tmpPath
       );
 
       if (!audioUrl) {
