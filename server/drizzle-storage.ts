@@ -554,26 +554,30 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getUsageTopups(userId: string, type: 'voice' | 'leads'): Promise<any[]> {
-    const topups = await this.db
+    checkDatabase();
+    const allTopups = await db
       .select()
       .from(usageTopups)
       .where(eq(usageTopups.userId, userId))
       .orderBy(desc(usageTopups.createdAt));
 
     // Filter by type in JavaScript since Drizzle has type constraints
-    return topups.filter(topup => topup.type === type);
+    return allTopups.filter(topup => topup.type === type);
   }
 
   async getUsageHistory(userId: string, type?: string): Promise<any[]> {
     checkDatabase();
-    let query = db.select().from(usageTopups).where(eq(usageTopups.userId, userId));
+    const allHistory = await db
+      .select()
+      .from(usageTopups)
+      .where(eq(usageTopups.userId, userId))
+      .orderBy(desc(usageTopups.createdAt));
 
     if (type) {
-      query = query.where(eq(usageTopups.type, type));
+      return allHistory.filter(h => h.type === type);
     }
 
-    const history = await query.orderBy(desc(usageTopups.createdAt));
-    return history;
+    return allHistory;
   }
 
   async getVoiceMinutesBalance(userId: string): Promise<number> {

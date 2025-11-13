@@ -155,11 +155,11 @@ export async function sendEmail(
   subject: string,
   options: EmailOptions = {}
 ): Promise<void> {
-  // Get email configuration for user
   if (!supabaseAdmin) {
     throw new Error('Supabase admin not configured');
   }
-  
+
+  // Get email configuration for user
   const { data: integration } = await supabaseAdmin
     .from('integrations')
     .select('provider, credentials')

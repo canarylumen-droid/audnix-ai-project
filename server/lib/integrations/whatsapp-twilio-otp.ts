@@ -122,9 +122,14 @@ export class WhatsAppTwilioOTP {
 
       const encryptedMeta = await encrypt(JSON.stringify(credentials));
 
-      // Note: metadata field is not in User schema, store credentials in integration instead
-      // For now, just log the connection
-      console.log(`WhatsApp connected for user ${userId}: ${formattedNumber}`);
+      // Store WhatsApp credentials in integration table
+      await storage.createIntegration({
+        userId,
+        provider: 'whatsapp',
+        encryptedMeta,
+        connected: true,
+        accountType: formattedNumber,
+      });
 
       // Clean up OTP session
       otpSessions.delete(sessionId);

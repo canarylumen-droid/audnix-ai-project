@@ -186,13 +186,15 @@ export class InstagramProvider {
       // Save buffer to temp file first
       const fs = await import('fs/promises');
       const path = await import('path');
-      const tmpPath = path.join('/tmp', `voice-${Date.now()}.mp3`);
+      const os = await import('os');
+      const tmpDir = os.tmpdir();
+      const tmpPath = path.join(tmpDir, `voice-${Date.now()}.mp3`);
       await fs.writeFile(tmpPath, audioBuffer);
       
       const audioUrl = await uploadToSupabase(
-        'voice-messages',
         `voice-messages/${recipientId}-${Date.now()}.mp3`,
-        tmpPath
+        tmpPath,
+        'audio/mpeg'
       );
 
       if (!audioUrl) {
