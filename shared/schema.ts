@@ -241,6 +241,16 @@ export const usageTopups = pgTable("usage_topups", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const brandEmbeddings = pgTable("brand_embeddings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  source: text("source").notNull(),
+  embedding: text("embedding"), // Vector stored as text in Neon
+  snippet: text("snippet").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -256,10 +266,13 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 export const insertWebhookSchema = createInsertSchema(webhooks).omit({ id: true, createdAt: true });
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
 export const insertInsightSchema = createInsertSchema(insights).omit({ id: true, generatedAt: true });
+export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings).omit({ id: true, createdAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type BrandEmbedding = typeof brandEmbeddings.$inferSelect;
+export type InsertBrandEmbedding = typeof brandEmbeddings.$inferInsert;
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
 export type Message = typeof messages.$inferSelect;
