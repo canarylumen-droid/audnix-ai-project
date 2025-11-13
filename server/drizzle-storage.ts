@@ -238,6 +238,16 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(integrations).where(eq(integrations.userId, userId));
   }
 
+  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> {
+    checkDatabase();
+    const result = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)))
+      .limit(1);
+    return result[0];
+  }
+
   async createIntegration(
     integration: Partial<InsertIntegration> & {
       userId: string;
@@ -268,6 +278,10 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)));
   }
 
+  async deleteIntegration(userId: string, provider: string): Promise<void> {
+    return this.disconnectIntegration(userId, provider);
+  }
+
   async getNotifications(userId: string): Promise<any[]> {
     checkDatabase();
     const result = await db
@@ -277,7 +291,7 @@ export class DrizzleStorage implements IStorage {
       .orderBy(desc(notifications.createdAt))
       .limit(20);
 
-    return result.map(n => ({
+    return result.map((n: any) => ({
       id: n.id,
       type: n.type,
       title: n.title,
@@ -532,10 +546,10 @@ export class DrizzleStorage implements IStorage {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const total = closedDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const total = closedDeals.reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0);
     const thisMonth = closedDeals
-      .filter(d => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
-      .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+      .filter((d: any) => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
+      .reduce((sum: number, d: any) => sum + (Number(d.value) || 0), 0);
 
     return { total, thisMonth, deals: closedDeals };
   }
@@ -562,7 +576,7 @@ export class DrizzleStorage implements IStorage {
       .orderBy(desc(usageTopups.createdAt));
 
     // Filter by type in JavaScript since Drizzle has type constraints
-    return allTopups.filter(topup => topup.type === type);
+    return allTopups.filter((topup: any) => topup.type === type);
   }
 
   async getUsageHistory(userId: string, type?: 'voice' | 'leads'): Promise<any[]> {
@@ -574,7 +588,7 @@ export class DrizzleStorage implements IStorage {
       .orderBy(desc(usageTopups.createdAt));
 
     if (type) {
-      return allHistory.filter(h => h.type === type);
+      return allHistory.filter((h: any) => h.type === type);
     }
 
     return allHistory;

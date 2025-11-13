@@ -61,7 +61,7 @@ export const messages = pgTable("messages", {
 export const integrations = pgTable("integrations", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["instagram", "whatsapp", "gmail", "outlook", "manychat"] }).notNull(),
+  provider: text("provider", { enum: ["instagram", "whatsapp", "gmail", "outlook", "manychat", "custom_email"] }).notNull(),
   encryptedMeta: text("encrypted_meta").notNull(),
   connected: boolean("connected").notNull().default(false),
   accountType: text("account_type", { enum: ["personal", "creator", "business"] }),
@@ -367,7 +367,7 @@ export type InsertDeal = Omit<Deal, "id" | "createdAt">;
 export const integrationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  provider: z.enum(["instagram", "whatsapp", "gmail", "outlook", "manychat"]),
+  provider: z.enum(["instagram", "whatsapp", "gmail", "outlook", "manychat", "custom_email"]),
   encryptedMeta: z.string(), // Encrypted credentials as string (iv:tag:ciphertext)
   connected: z.boolean().default(false),
   accountType: z.enum(["personal", "creator", "business"]).nullable(),

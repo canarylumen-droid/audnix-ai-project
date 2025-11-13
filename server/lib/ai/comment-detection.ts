@@ -244,7 +244,7 @@ async function isCommentAppropriate(comment: string): Promise<boolean> {
   try {
     const { contentModerationService } = await import('./content-moderation');
     const result = await contentModerationService.moderateContent(comment);
-    return !result.flagged;
+    return !result.isInappropriate;
   } catch (error) {
     console.error('Content moderation check failed:', error);
     // Default to allowing if moderation fails
@@ -326,9 +326,9 @@ export async function processCommentAutomation(
         name: username,
         channel,
         status: 'new',
-        source: 'comment_automation',
         tags: ['comment', intent.intent, 'auto_dm'],
         metadata: {
+          source: 'comment_automation',
           originalComment: comment,
           commentIntent: intent.intent,
           postContext,

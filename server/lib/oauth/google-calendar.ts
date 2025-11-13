@@ -62,9 +62,9 @@ export class GoogleCalendarOAuth {
 
     return {
       accessToken: tokens.access_token!,
-      refreshToken: tokens.refresh_token,
+      refreshToken: tokens.refresh_token || undefined,
       expiresAt: new Date(tokens.expiry_date || Date.now() + 3600 * 1000),
-      email: userInfo.data.email ?? undefined,
+      email: userInfo.data.email || undefined,
     };
   }
 
