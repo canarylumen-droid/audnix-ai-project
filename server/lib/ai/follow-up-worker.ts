@@ -1,4 +1,7 @@
 import { supabaseAdmin } from '../supabase-admin';
+import { db } from '../../db';
+import { followUpQueue, leads, messages, users, brandEmbeddings } from '@shared/schema';
+import { eq, and, lte, asc } from 'drizzle-orm';
 import { generateReply } from './openai';
 import { InstagramOAuth } from '../oauth/instagram';
 import { sendInstagramMessage } from '../channels/instagram';
@@ -85,24 +88,23 @@ export class FollowUpWorker {
       // Execute comment automation follow-ups first
       await executeCommentFollowUps();
       
-      if (!supabaseAdmin) {
-        console.warn('Supabase admin not configured - skipping queue processing');
+      if (!db) {
+        console.warn('Database not configured - skipping queue processing');
         return;
       }
 
-      // Get pending jobs that are scheduled for now or earlier
-      const { data: jobs, error } = await supabaseAdmin
-        .from('follow_up_queue')
-        .select('*')
-        .eq('status', 'pending')
-        .lte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
+      // Get pending jobs from Neon database
+      const jobs = await db
+        .select()
+        .from(followUpQueue)
+        .where(
+          and(
+            eq(followUpQueue.status, 'pending'),
+            lte(followUpQueue.scheduledAt, new Date())
+          )
+        )
+        .orderBy(asc(followUpQueue.scheduledAt))
         .limit(10);
-
-      if (error) {
-        console.error('Error fetching queue jobs:', error);
-        return;
-      }
 
       if (!jobs || jobs.length === 0) {
         return;
@@ -111,7 +113,7 @@ export class FollowUpWorker {
       console.log(`Processing ${jobs.length} follow-up jobs...`);
 
       // Process jobs in parallel
-      await Promise.all(jobs.map(job => this.processJob(job)));
+      await Promise.all(jobs.map(job => this.processJob(job as any)));
     } catch (error) {
       console.error('Queue processing error:', error);
     }
@@ -122,24 +124,24 @@ export class FollowUpWorker {
    */
   private async processJob(job: FollowUpJob) {
     try {
-      if (!supabaseAdmin) {
-        throw new Error('Supabase admin not configured');
+      if (!db) {
+        throw new Error('Database not configured');
       }
 
       // Mark job as processing
-      await supabaseAdmin
-        .from('follow_up_queue')
-        .update({ status: 'processing' })
-        .eq('id', job.id);
+      await db
+        .update(followUpQueue)
+        .set({ status: 'processing' })
+        .where(eq(followUpQueue.id, job.id));
 
       // Get lead details
-      const { data: lead, error: leadError } = await supabaseAdmin
-        .from('leads')
-        .select('*')
-        .eq('id', job.leadId)
-        .single();
+      const [lead] = await db
+        .select()
+        .from(leads)
+        .where(eq(leads.id, job.leadId))
+        .limit(1);
 
-      if (leadError || !lead) {
+      if (!lead) {
         throw new Error('Lead not found');
       }
 
@@ -160,23 +162,23 @@ export class FollowUpWorker {
         await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant');
 
         // Update lead status and follow-up count
-        await supabaseAdmin
-          .from('leads')
-          .update({
+        await db
+          .update(leads)
+          .set({
             status: 'replied',
-            follow_up_count: lead.follow_up_count + 1,
-            last_message_at: new Date().toISOString()
+            followUpCount: (lead.followUpCount || 0) + 1,
+            lastMessageAt: new Date()
           })
-          .eq('id', job.leadId);
+          .where(eq(leads.id, job.leadId));
 
         // Mark job as completed
-        await supabaseAdmin
-          .from('follow_up_queue')
-          .update({ 
+        await db
+          .update(followUpQueue)
+          .set({ 
             status: 'completed',
-            processed_at: new Date().toISOString()
+            processedAt: new Date()
           })
-          .eq('id', job.id);
+          .where(eq(followUpQueue.id, job.id));
 
         console.log(`Follow-up sent successfully for lead ${lead.name}`);
 
@@ -189,15 +191,16 @@ export class FollowUpWorker {
       console.error(`Error processing job ${job.id}:`, error);
 
       // Update job with error
-      await supabaseAdmin
-        .from('follow_up_queue')
-        .update({
-          status: job.retryCount >= 3 ? 'failed' : 'pending',
-          retry_count: job.retryCount + 1,
-          error_message: (error as Error).message,
-          scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString() // Retry in 5 minutes
-        })
-        .eq('id', job.id);
+      if (db) {
+        await db
+          .update(followUpQueue)
+          .set({
+            status: job.retryCount >= 3 ? 'failed' : 'pending',
+            errorMessage: (error as Error).message,
+            scheduledAt: new Date(Date.now() + 5 * 60 * 1000)
+          })
+          .where(eq(followUpQueue.id, job.id));
+      }
     }
   }
 
@@ -284,23 +287,31 @@ Generate a natural follow-up message:`;
    * Get conversation history for a lead
    */
   private async getConversationHistory(leadId: string): Promise<Message[]> {
-    if (!supabaseAdmin) return [];
+    if (!db) return [];
 
-    const { data: messages } = await supabaseAdmin
-      .from('messages')
-      .select('content, role, created_at')
-      .eq('lead_id', leadId)
-      .order('created_at', { ascending: false })
+    const messageHistory = await db
+      .select({
+        content: messages.body,
+        role: messages.direction,
+        created_at: messages.createdAt
+      })
+      .from(messages)
+      .where(eq(messages.leadId, leadId))
+      .orderBy(asc(messages.createdAt))
       .limit(10);
 
-    return messages || [];
+    return messageHistory.map(msg => ({
+      content: msg.content,
+      role: msg.role === 'inbound' ? 'user' : 'assistant',
+      created_at: msg.created_at.toISOString()
+    })) as Message[];
   }
 
   /**
    * Get brand context for a user
    */
   private async getBrandContext(userId: string): Promise<any> {
-    if (!supabaseAdmin) {
+    if (!db) {
       return {
         businessName: 'Your Business',
         voiceRules: 'Be friendly and professional',
@@ -308,24 +319,27 @@ Generate a natural follow-up message:`;
       };
     }
 
-    // Get brand embeddings and settings
-    const { data: brandData } = await supabaseAdmin
-      .from('brand_embeddings')
-      .select('content, metadata')
-      .eq('user_id', userId)
+    // Get brand embeddings
+    const brandData = await db
+      .select()
+      .from(brandEmbeddings)
+      .where(eq(brandEmbeddings.userId, userId))
       .limit(5);
 
-    // Get user settings - using company and replyTone from schema
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('company, reply_tone')
-      .eq('id', userId)
-      .single();
+    // Get user settings
+    const [user] = await db
+      .select({
+        company: users.company,
+        replyTone: users.replyTone
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
     return {
       businessName: user?.company || 'Your Business',
-      voiceRules: user?.reply_tone ? `Be ${user.reply_tone}` : 'Be professional',
-      brandSnippets: brandData?.map(d => d.content) || []
+      voiceRules: user?.replyTone ? `Be ${user.replyTone}` : 'Be professional',
+      brandSnippets: brandData?.map(d => d.snippet) || []
     };
   }
 
@@ -398,28 +412,26 @@ Generate a natural follow-up message:`;
     content: string,
     role: 'user' | 'assistant'
   ) {
-    if (!supabaseAdmin) return;
+    if (!db) return;
     
-    await supabaseAdmin
-      .from('messages')
-      .insert({
-        user_id: userId,
-        lead_id: leadId,
-        content,
-        role,
-        channel: 'ai',
-        created_at: new Date().toISOString()
-      });
+    await db.insert(messages).values({
+      userId,
+      leadId,
+      body: content,
+      direction: role === 'user' ? 'inbound' : 'outbound',
+      provider: 'instagram',
+      createdAt: new Date()
+    });
   }
 
   /**
    * Schedule next follow-up with human-like timing
    */
   private async scheduleNextFollowUp(userId: string, leadId: string, lead: Lead) {
-    if (!supabaseAdmin) return;
+    if (!db) return;
 
     // Don't schedule if already followed up 5+ times
-    if (lead.follow_up_count >= 5) {
+    if ((lead.followUpCount || 0) >= 5) {
       return;
     }
 
@@ -429,25 +441,23 @@ Generate a natural follow-up message:`;
     }
 
     // Calculate next follow-up time with randomization
-    const baseDelay = this.getFollowUpDelay(lead.follow_up_count);
+    const baseDelay = this.getFollowUpDelay(lead.followUpCount || 0);
     const jitter = Math.random() * 0.3 - 0.15; // ±15% randomization
     const delayMs = baseDelay * (1 + jitter);
     
     const scheduledAt = new Date(Date.now() + delayMs);
 
     // Create next job
-    await supabaseAdmin
-      .from('follow_up_queue')
-      .insert({
-        user_id: userId,
-        lead_id: leadId,
-        channel: lead.channel,
-        scheduled_at: scheduledAt.toISOString(),
-        context: {
-          follow_up_number: lead.follow_up_count + 1,
-          previous_status: lead.status
-        }
-      });
+    await db.insert(followUpQueue).values({
+      userId,
+      leadId,
+      channel: lead.channel,
+      scheduledAt,
+      context: {
+        follow_up_number: (lead.followUpCount || 0) + 1,
+        previous_status: lead.status
+      }
+    });
   }
 
   /**
