@@ -128,7 +128,6 @@ export class WhatsAppTwilioOTP {
         provider: 'whatsapp',
         encryptedMeta,
         connected: true,
-        accountType: formattedNumber,
       });
 
       // Clean up OTP session

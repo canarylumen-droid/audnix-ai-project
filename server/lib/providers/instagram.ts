@@ -192,9 +192,9 @@ export class InstagramProvider {
       await fs.writeFile(tmpPath, audioBuffer);
       
       const audioUrl = await uploadToSupabase(
+        'voice-messages',
         `voice-messages/${recipientId}-${Date.now()}.mp3`,
-        tmpPath,
-        'audio/mpeg'
+        tmpPath
       );
 
       if (!audioUrl) {

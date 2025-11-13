@@ -565,7 +565,7 @@ export class DrizzleStorage implements IStorage {
     return allTopups.filter(topup => topup.type === type);
   }
 
-  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
+  async getUsageHistory(userId: string, type?: 'voice' | 'leads'): Promise<any[]> {
     checkDatabase();
     const allHistory = await db
       .select()

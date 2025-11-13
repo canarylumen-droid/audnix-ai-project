@@ -120,16 +120,9 @@ async function importCustomEmails(
  */
 async function getUserBrandColors(userId: string): Promise<BrandColors | undefined> {
   try {
-    const user = await storage.getUserById(userId);
-    // TypeScript doesn't know about metadata field, cast to any for now
-    const brandColors = (user as any)?.metadata?.brand_colors;
-    
-    if (brandColors?.primary) {
-      return {
-        primary: brandColors.primary,
-        accent: brandColors.accent || brandColors.secondary
-      };
-    }
+    // Brand colors will be fetched from integrations or settings table in the future
+    // For now, return undefined to use default colors
+    return undefined;
   } catch (error) {
     console.error('Error fetching brand colors:', error);
   }
