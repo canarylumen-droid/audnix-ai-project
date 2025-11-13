@@ -1,6 +1,7 @@
 
 -- Video Monitoring & Comment Automation System
 -- This migration adds tables for Instagram comment detection and auto-DM
+-- Compatible with both Supabase and Neon PostgreSQL
 
 -- Video monitors table - tracks which videos to monitor for comments
 CREATE TABLE IF NOT EXISTS video_monitors (
@@ -65,30 +66,25 @@ CREATE INDEX IF NOT EXISTS idx_deals_closed_at ON deals(closed_at);
 -- Enable RLS
 ALTER TABLE video_monitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processed_comments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE deals ENABLE ROW LEVEL SECURITY;
 
--- RLS policies
+-- RLS policies (compatible with Neon - uses users table instead of auth.users)
+DROP POLICY IF EXISTS "Users can manage own video monitors" ON video_monitors;
 CREATE POLICY "Users can manage own video monitors" ON video_monitors
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+  FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid);
 
+DROP POLICY IF EXISTS "Users can view own processed comments" ON processed_comments;
 CREATE POLICY "Users can view own processed comments" ON processed_comments
-  FOR SELECT USING (video_monitor_id IN (SELECT id FROM video_monitors WHERE user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text)));
+  FOR SELECT USING (video_monitor_id IN (
+    SELECT id FROM video_monitors WHERE user_id = current_setting('app.current_user_id', true)::uuid
+  ));
 
-CREATE POLICY "Users can manage own deals" ON deals
-  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
-
--- Trigger for updated_at
+-- Trigger for updated_at (reuse existing function)
+DROP TRIGGER IF EXISTS update_video_monitors_updated_at ON video_monitors;
 CREATE TRIGGER update_video_monitors_updated_at
   BEFORE UPDATE ON video_monitors
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_deals_updated_at
-  BEFORE UPDATE ON deals
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Comments
 COMMENT ON TABLE video_monitors IS 'Tracks Instagram videos for comment automation';
 COMMENT ON TABLE processed_comments IS 'Prevents duplicate DMs by tracking processed comments';
-COMMENT ON TABLE deals IS 'Revenue tracking for closed deals and conversions';
