@@ -404,17 +404,15 @@ export async function createTopupCheckout(
 export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
-): Stripe.Event | null {
+): Stripe.Event {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not configured - cannot verify webhooks");
-    return null;
+    throw new Error("STRIPE_WEBHOOK_SECRET not configured - rejecting webhook for security");
   }
 
   if (!stripe) {
-    console.error("Stripe SDK not initialized - cannot verify webhooks");
-    return null;
+    throw new Error("Stripe SDK not initialized - cannot verify webhooks");
   }
 
   try {
@@ -423,9 +421,10 @@ export function verifyWebhookSignature(
       signature,
       webhookSecret
     );
+    console.log(`✅ Webhook signature verified: ${event.type}`);
     return event;
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
-    return null;
+    console.error(`❌ Webhook signature verification failed: ${err.message}`);
+    throw new Error(`Webhook signature verification failed: ${err.message}`);
   }
 }

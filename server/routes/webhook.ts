@@ -17,14 +17,11 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
     }
 
     // Verify webhook signature (req.body is raw buffer from express.raw())
-    const event = await verifyWebhookSignature(
+    // This will throw an error if verification fails, which will be caught by catch block
+    const event = verifyWebhookSignature(
       req.body,
       sig
     );
-
-    if (!event) {
-      return res.status(400).json({ error: 'Invalid signature' });
-    }
 
     // Handle different event types
     switch (event.type) {
@@ -151,8 +148,12 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
     }
 
     res.json({ received: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Webhook error:', error);
+    // Differentiate between signature verification failures (400) and processing errors (500)
+    if (error.message?.includes('signature') || error.message?.includes('STRIPE_WEBHOOK_SECRET')) {
+      return res.status(400).json({ error: 'Webhook signature verification failed' });
+    }
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
