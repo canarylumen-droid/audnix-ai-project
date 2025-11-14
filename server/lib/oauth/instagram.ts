@@ -75,7 +75,7 @@ export class InstagramOAuth {
     });
 
     const data = await response.json();
-    
+
     if (data.error) {
       throw new Error(data.error.message || 'Failed to exchange code for token');
     }
@@ -129,7 +129,7 @@ export class InstagramOAuth {
     const response = await fetch(
       `https://graph.instagram.com/me?fields=id,username,name,account_type&access_token=${accessToken}`
     );
-    
+
     const data = await response.json();
 
     if (data.error) {
@@ -216,7 +216,7 @@ export class InstagramOAuth {
       try {
         const decryptedToken = await decrypt(tokenData.access_token);
         const refreshedData = await this.refreshLongLivedToken(decryptedToken);
-        
+
         // Save new token
         await this.saveToken(userId, {
           access_token: refreshedData.access_token,
@@ -242,7 +242,7 @@ export class InstagramOAuth {
 
     // Call Instagram API to revoke token
     // Note: Instagram doesn't have a revoke endpoint, so we just delete from DB
-    
+
     // Delete from oauth_tokens table
     await supabaseAdmin
       .from('oauth_tokens')
@@ -277,13 +277,13 @@ export class InstagramOAuth {
     try {
       const decrypted = decrypt(state);
       const [userId, timestamp] = decrypted.split(':');
-      
+
       // Check if state is less than 10 minutes old
       const age = Date.now() - parseInt(timestamp);
       if (age > 10 * 60 * 1000) {
         return null;
       }
-      
+
       return { userId, timestamp: parseInt(timestamp) };
     } catch (error) {
       console.error('Failed to verify state:', error);

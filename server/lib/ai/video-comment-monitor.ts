@@ -419,7 +419,41 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
     } catch (error: any) {
       // Check if this is an Instagram auth error (HTML response means invalid token)
       if (error.message?.includes('<!DOCTYPE html>') || error.message?.includes('<html')) {
-        console.warn('⚠️  Instagram access token expired - user needs to reconnect');
+        console.warn(`⚠️  Instagram access token expired for user ${userId} - attempting refresh`);
+        
+        // Try to refresh the token
+        try {
+          const { InstagramOAuth } = await import('../oauth/instagram');
+          const instagramOAuth = new InstagramOAuth();
+          const newToken = await instagramOAuth.refreshToken(userId);
+          
+          if (newToken) {
+            console.log(`✅ Instagram token refreshed for user ${userId}`);
+            // Retry the monitoring with new token
+            return monitorVideoComments(userId, videoMonitorId);
+          }
+        } catch (refreshError: any) {
+          console.error(`❌ Failed to refresh Instagram token for user ${userId}:`, refreshError.message);
+          
+          // Mark integration as disconnected
+          await storage.updateIntegration(userId, 'instagram', {
+            connected: false,
+            metadata: { 
+              error: 'Token expired - please reconnect',
+              lastError: new Date().toISOString()
+            }
+          });
+          
+          // Create notification for user
+          await storage.createNotification({
+            userId,
+            title: '🔒 Instagram Connection Lost',
+            message: 'Your Instagram connection has expired. Please reconnect to continue automation.',
+            type: 'warning',
+            read: false
+          });
+        }
+        
         workerHealthMonitor.recordError('video-comment-monitor', 'Instagram token expired');
       } else {
         console.error('Error fetching queue jobs:', error);
