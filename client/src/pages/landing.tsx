@@ -33,12 +33,12 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto px-4 sm:px-0">
             <AnimatedCard 
               className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/30"
               glowColor="rgba(239, 68, 68, 0.2)"
             >
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
                     <X className="w-6 h-6 text-red-400" />
@@ -115,8 +115,8 @@ export default function Landing() {
           </h2>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-8">
-            <div className="bg-white/5 border border-red-500/20 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4 text-white/90">Most tools:</h3>
+            <div className="bg-white/5 border border-red-500/20 rounded-lg p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-bold mb-4 text-white/90">Most tools:</h3>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-white/70">
                   <X className="w-5 h-5 text-red-400" />
@@ -133,8 +133,8 @@ export default function Landing() {
               </ul>
             </div>
 
-            <div className="bg-white/5 border border-emerald-500/30 rounded-lg p-6">
-              <h3 className="text-xl font-bold mb-4 text-emerald-400">Audnix:</h3>
+            <div className="bg-white/5 border border-emerald-500/30 rounded-lg p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-bold mb-4 text-emerald-400">Audnix:</h3>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-white/90">
                   <Check className="w-5 h-5 text-emerald-400" />
@@ -199,12 +199,12 @@ export default function Landing() {
       </section>
 
       <section className="py-20 px-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto px-2 sm:px-0">
           <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
             Simple Setup
           </h2>
 
-          <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <div className="grid md:grid-cols-4 gap-4 sm:gap-6 mb-8">
             {[
               { num: 1, text: "Connect channels (WhatsApp + Email — IG soon)" },
               { num: 2, text: "Upload voice sample + brand PDF" },
