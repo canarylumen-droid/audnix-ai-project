@@ -34,7 +34,7 @@ const features = [
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-24 mt-16 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center px-6 sm:px-8 lg:px-8 py-24 mt-16 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -84,7 +84,7 @@ export function HeroSection() {
         {/* Headline */}
         <motion.h1 
           variants={itemVariants}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70"
+          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 px-2 sm:px-0"
         >
           Stop Letting Warm<br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
@@ -95,7 +95,7 @@ export function HeroSection() {
         {/* Subheadline */}
         <motion.p 
           variants={itemVariants}
-          className="text-xl sm:text-2xl md:text-3xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed font-light"
+          className="text-xl sm:text-2xl md:text-3xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed font-light px-2 sm:px-0"
         >
           Your AI sales rep that follows up, handles objections,<br className="hidden md:block" />
           and books meetings — while you sleep.
@@ -103,7 +103,7 @@ export function HeroSection() {
 
         <motion.p 
           variants={itemVariants}
-          className="text-base sm:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed"
+          className="text-base sm:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-0"
         >
           Audnix replies like a real human across WhatsApp and Email.<br className="hidden sm:block" />
           Natural timing (2–8 min), remembers context, engages when leads show intent.
