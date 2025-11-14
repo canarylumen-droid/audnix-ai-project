@@ -41,9 +41,5 @@ export default defineConfig({
     fs: {
       strict: false,
     },
-    allowedHosts: [
-      '.replit.dev',
-      '.repl.co',
-    ],
   },
 });
