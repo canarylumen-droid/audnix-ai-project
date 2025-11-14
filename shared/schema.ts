@@ -251,6 +251,20 @@ export const brandEmbeddings = pgTable("brand_embeddings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const onboardingProfiles = pgTable("onboarding_profiles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  completed: boolean("completed").notNull().default(false),
+  userRole: text("user_role", { enum: ["creator", "founder", "developer", "agency", "freelancer", "other"] }),
+  source: text("source"),
+  useCase: text("use_case"),
+  businessSize: text("business_size", { enum: ["solo", "small_team", "medium", "enterprise"] }),
+  tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -267,6 +281,7 @@ export const insertWebhookSchema = createInsertSchema(webhooks).omit({ id: true,
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
 export const insertInsightSchema = createInsertSchema(insights).omit({ id: true, generatedAt: true });
 export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings).omit({ id: true, createdAt: true });
+export const insertOnboardingProfileSchema = createInsertSchema(onboardingProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -295,6 +310,8 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = typeof apiKeys.$inferInsert;
 export type Insight = typeof insights.$inferSelect;
 export type InsertInsight = typeof insights.$inferInsert;
+export type OnboardingProfile = typeof onboardingProfiles.$inferSelect;
+export type InsertOnboardingProfile = typeof onboardingProfiles.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({
