@@ -22,12 +22,13 @@ import oauthRoutes from "./routes/oauth";
 import webhookRouter from "./routes/webhook";
 import workerRouter from "./routes/worker";
 import commentAutomationRouter from "./routes/comment-automation-routes";
-import videoAutomationRouter from "./routes/video-automation-routes";
+import videoAutomationRoutes from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
 import whatsappRoutes from './routes/whatsapp-routes';
 import whatsappOTPRoutes from './routes/whatsapp-otp-routes';
 import customEmailRoutes from './routes/custom-email-routes';
+import bulkActionsRoutes from "./routes/bulk-actions-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -1783,8 +1784,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register webhook routes
   app.use("/api", workerRouter);
-  app.use("/api/automation", commentAutomationRouter);
-  app.use("/api/video-automation", videoAutomationRouter);
+  app.use("/api/automation", commentAutomationRoutes);
+  app.use("/api/video-automation", videoAutomationRoutes);
 
   // Register WhatsApp routes
   app.use('/api/whatsapp', whatsappRoutes);
@@ -1793,6 +1794,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Webhook routes
   app.use("/api/webhook", webhookRouter); // This line seems to be a duplicate, keeping it as per original code.
+
+  // Register bulk actions routes
+  app.use("/api/bulk", bulkActionsRoutes);
 
   const httpServer = createServer(app);
 

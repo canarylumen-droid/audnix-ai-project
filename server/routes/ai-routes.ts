@@ -12,6 +12,8 @@ import {
 } from '../lib/ai/conversation-ai';
 import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
+import { generateSmartReplies } from '../lib/ai/smart-replies';
+import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring';
 
 const router = Router();
 
@@ -352,6 +354,88 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
   } catch (error: any) {
     console.error("Calendar booking error:", error);
     res.status(500).json({ error: error.message || "Failed to create booking link" });
+  }
+});
+
+/**
+ * Generate smart reply suggestions
+ * GET /api/ai/smart-replies/:leadId
+ */
+router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { leadId } = req.params;
+    const userId = getCurrentUserId(req)!;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    const messages = await storage.getMessagesByLeadId(leadId);
+    const lastMessage = messages[messages.length - 1];
+
+    if (!lastMessage || lastMessage.direction !== 'inbound') {
+      return res.status(400).json({ error: "No inbound message to reply to" });
+    }
+
+    const smartReplies = await generateSmartReplies(leadId, lastMessage);
+
+    res.json({
+      leadId,
+      leadName: lead.name,
+      lastMessage: lastMessage.body,
+      suggestions: smartReplies
+    });
+  } catch (error: any) {
+    console.error("Smart replies error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get lead score
+ * GET /api/ai/score/:leadId
+ */
+router.get("/score/:leadId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { leadId } = req.params;
+    const userId = getCurrentUserId(req)!;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    const scoreData = await calculateLeadScore(leadId);
+
+    res.json({
+      leadId,
+      leadName: lead.name,
+      ...scoreData
+    });
+  } catch (error: any) {
+    console.error("Lead scoring error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Update all lead scores
+ * POST /api/ai/score-all
+ */
+router.post("/score-all", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+
+    await updateAllLeadScores(userId);
+
+    res.json({
+      success: true,
+      message: "All leads scored successfully"
+    });
+  } catch (error: any) {
+    console.error("Bulk scoring error:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
