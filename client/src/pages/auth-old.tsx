@@ -1,49 +1,35 @@
+
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { SiGoogle, SiGithub } from "react-icons/si";
-import { Check, Shield, Clock, Sparkles, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
+import { Check, Shield, Clock, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@/hooks/use-user";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2 } from "lucide-react";
 import { useReducedMotion } from "@/lib/animation-utils";
-import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
-import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
-import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
-
-const options = {
-  dictionary: {
-    ...zxcvbnCommonPackage.dictionary,
-    ...zxcvbnEnPackage.dictionary,
-  },
-  graphs: zxcvbnCommonPackage.adjacencyGraphs,
-  translations: zxcvbnEnPackage.translations,
-};
-zxcvbnOptions.setOptions(options);
-
-type AuthMode = 'social' | 'email-password' | 'email-otp';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
-  const [authMode, setAuthMode] = useState<AuthMode>('social');
-  const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
-  const [loading, setLoading] = useState<'google' | 'github' | 'email' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'email' | 'verify' | null>(null);
   const prefersReducedMotion = useReducedMotion();
-
-  const passwordStrength = password ? zxcvbn(password) : null;
 
   useEffect(() => {
     if (user && !hasAcknowledgedSecurity) {
@@ -74,7 +60,7 @@ export default function AuthPage() {
     if (!supabase) {
       toast({
         title: "Authentication Error",
-        description: "Unable to connect to authentication service.",
+        description: "Unable to connect to authentication service. Please try again.",
         variant: "destructive",
       });
       setLoading(null);
@@ -108,69 +94,11 @@ export default function AuthPage() {
     }
   };
 
-  const handleGitHubLogin = async () => {
-    setLoading('github');
-
-    if (!supabase) {
-      toast({
-        title: "Authentication Error",
-        description: "Unable to connect to authentication service.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "GitHub Sign-In Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        setLoading(null);
-      }
-    } catch (error) {
-      console.error("GitHub OAuth error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initiate GitHub sign-in",
-        variant: "destructive",
-      });
-      setLoading(null);
-    }
-  };
-
-  const handleEmailPasswordAuth = async () => {
+  const handleSendOtp = async () => {
     if (!email || !email.includes('@')) {
       toast({
         title: "Invalid Email",
         description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!password || password.length < 8) {
-      toast({
-        title: "Invalid Password",
-        description: "Password must be at least 8 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isSignUp && passwordStrength && passwordStrength.score < 2) {
-      toast({
-        title: "Weak Password",
-        description: "Please choose a stronger password",
         variant: "destructive",
       });
       return;
@@ -181,7 +109,7 @@ export default function AuthPage() {
     if (!supabase) {
       toast({
         title: "Authentication Error",
-        description: "Unable to connect to authentication service.",
+        description: "Unable to connect to authentication service. Please try again.",
         variant: "destructive",
       });
       setLoading(null);
@@ -189,78 +117,91 @@ export default function AuthPage() {
     }
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-          },
-        });
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
 
-        if (error) {
-          toast({
-            title: "Sign Up Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-          setLoading(null);
-        } else {
-          toast({
-            title: "Check Your Email! 📧",
-            description: "We sent you a verification link. Click it to complete sign up.",
-          });
-          setLoading(null);
-        }
+      if (error) {
+        toast({
+          title: "Failed to Send Code",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(null);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        setShowOtpInput(true);
+        setLoading(null);
+        toast({
+          title: "Check Your Email! 📧",
+          description: "We sent you a 6-digit code. Enter it below to sign in.",
         });
-
-        if (error) {
-          toast({
-            title: "Sign In Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-          setLoading(null);
-        } else {
-          toast({
-            title: "Welcome Back! 🎉",
-            description: "You're signed in. Redirecting...",
-          });
-        }
       }
     } catch (error) {
-      console.error("Email/password auth error:", error);
+      console.error("Email OTP error:", error);
       toast({
         title: "Error",
-        description: `Failed to ${isSignUp ? 'sign up' : 'sign in'}`,
+        description: "Failed to send verification code",
         variant: "destructive",
       });
       setLoading(null);
     }
   };
 
-  const getPasswordStrengthColor = () => {
-    if (!passwordStrength) return 'bg-gray-200';
-    const score = passwordStrength.score;
-    if (score === 0) return 'bg-red-500';
-    if (score === 1) return 'bg-orange-500';
-    if (score === 2) return 'bg-yellow-500';
-    if (score === 3) return 'bg-blue-500';
-    return 'bg-green-500';
-  };
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) {
+      toast({
+        title: "Invalid Code",
+        description: "Please enter the 6-digit code from your email",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const getPasswordStrengthText = () => {
-    if (!passwordStrength) return '';
-    const score = passwordStrength.score;
-    if (score === 0) return 'Very Weak';
-    if (score === 1) return 'Weak';
-    if (score === 2) return 'Fair';
-    if (score === 3) return 'Good';
-    return 'Strong';
+    setLoading('verify');
+
+    if (!supabase) {
+      toast({
+        title: "Authentication Error",
+        description: "Unable to verify code. Please try again.",
+        variant: "destructive",
+      });
+      setLoading(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email,
+        token: otp,
+        type: 'email',
+      });
+
+      if (error) {
+        toast({
+          title: "Invalid Code",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(null);
+      } else {
+        toast({
+          title: "Success! 🎉",
+          description: "You're signed in. Redirecting...",
+        });
+        // User will be redirected automatically
+      }
+    } catch (error) {
+      console.error("OTP verification error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to verify code",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
   };
 
   const benefits = [
@@ -311,7 +252,7 @@ export default function AuthPage() {
               <div className="text-sm">
                 <p className="font-semibold text-foreground">Your Privacy Matters</p>
                 <p className="text-muted-foreground mt-1">
-                  Instagram passwords, WhatsApp sessions, and all messages are encrypted before storage.
+                  Instagram passwords, WhatsApp sessions, and all messages are encrypted before storage. Your data is completely private and secure.
                 </p>
               </div>
             </div>
@@ -321,7 +262,7 @@ export default function AuthPage() {
               <div className="text-sm">
                 <p className="font-semibold text-foreground">Bank-Level Security</p>
                 <p className="text-muted-foreground mt-1">
-                  Military-grade encryption keeps your credentials safe.
+                  Even if our database is compromised, your credentials remain safe with military-grade encryption.
                 </p>
               </div>
             </div>
@@ -387,7 +328,7 @@ export default function AuthPage() {
                   </span>
                 </h1>
                 <p className="text-xl text-white/90 leading-relaxed">
-                  Join creators who close deals on autopilot with AI-powered follow-ups.
+                  Join creators who close deals on autopilot with AI-powered follow-ups across Instagram, WhatsApp & Email.
                 </p>
               </div>
 
@@ -456,173 +397,51 @@ export default function AuthPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {authMode === 'social' && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="space-y-3"
-                      >
-                        <Button
-                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                          variant="outline"
-                          onClick={handleGoogleLogin}
-                          disabled={loading !== null}
-                        >
-                          <SiGoogle className="w-5 h-5 mr-3" />
-                          {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
-                        </Button>
-
-                        <Button
-                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                          variant="outline"
-                          onClick={handleGitHubLogin}
-                          disabled={loading !== null}
-                        >
-                          <SiGithub className="w-5 h-5 mr-3" />
-                          {loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}
-                        </Button>
-                      </motion.div>
-
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-white/10" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-[#0a0f1f] px-2 text-white/50">Or</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        className="w-full h-12 text-base font-semibold bg-primary/20 border-primary/30 hover:bg-primary/30 text-white"
-                        variant="outline"
-                        onClick={() => setAuthMode('email-password')}
-                      >
-                        <Mail className="w-5 h-5 mr-3" />
-                        Continue with Email
-                      </Button>
-                    </>
-                  )}
-
-                  {authMode === 'email-password' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-4"
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <Button
+                      className="w-full h-14 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
+                      variant="outline"
+                      onClick={handleGoogleLogin}
+                      disabled={loading !== null}
                     >
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white/90">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="you@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
-                          disabled={loading !== null}
-                        />
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                        initial={false}
+                      />
+                      <SiGoogle className="w-5 h-5 mr-3 relative z-10 text-white" />
+                      <span className="relative z-10 text-white">
+                        {loading === 'google' ? 'Connecting...' : 'Sign in with Google'}
+                      </span>
+                    </Button>
+                  </motion.div>
+
+                  {/* Value props - You get: */}
+                  <div className="pt-4 pb-2">
+                    <p className="text-sm text-white/70 font-semibold mb-3">
+                      You get:
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Instant DM + email follow-ups</span>
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white/90">Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-white/40 pr-10"
-                            disabled={loading !== null}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-
-                        {isSignUp && password && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-white/60">Password strength</span>
-                              <span className={`font-medium ${
-                                passwordStrength && passwordStrength.score >= 3 ? 'text-green-400' : 'text-yellow-400'
-                              }`}>
-                                {getPasswordStrengthText()}
-                              </span>
-                            </div>
-                            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-300 ${getPasswordStrengthColor()}`}
-                                style={{ width: `${passwordStrength ? (passwordStrength.score + 1) * 20 : 0}%` }}
-                              />
-                            </div>
-                            {passwordStrength && passwordStrength.feedback.warning && (
-                              <div className="flex items-start gap-2 text-xs text-yellow-400/80 mt-2">
-                                <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                <span>{passwordStrength.feedback.warning}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Auto-booking to your calendar</span>
                       </div>
-
-                      <Button
-                        className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                        onClick={handleEmailPasswordAuth}
-                        disabled={loading !== null}
-                      >
-                        {loading === 'email' ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
-                      </Button>
-
-                      <div className="text-center">
-                        <button
-                          onClick={() => setIsSignUp(!isSignUp)}
-                          className="text-sm text-white/70 hover:text-white/90 underline"
-                        >
-                          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-                        </button>
+                      <div className="flex items-center gap-2 text-sm text-white/90">
+                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                        <span>Smart lead scoring</span>
                       </div>
-
-                      <Button
-                        variant="ghost"
-                        className="w-full text-white/60 hover:text-white/90 hover:bg-white/5"
-                        onClick={() => setAuthMode('social')}
-                      >
-                        ← Back to other options
-                      </Button>
-                    </motion.div>
-                  )}
-
-                  {/* Value props */}
-                  {authMode === 'social' && (
-                    <div className="pt-4 pb-2">
-                      <p className="text-sm text-white/70 font-semibold mb-3">
-                        You get:
-                      </p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-white/90">
-                          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          <span>Instant DM + email follow-ups</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-white/90">
-                          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          <span>Auto-booking to your calendar</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-white/90">
-                          <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                          <span>Smart lead scoring</span>
-                        </div>
-                      </div>
-                      <p className="text-center text-white/90 font-bold mt-6 text-base">
-                        Stop letting money rot in your inbox.
-                      </p>
                     </div>
-                  )}
+                    <p className="text-center text-white/90 font-bold mt-6 text-base">
+                      Stop letting money rot in your inbox.
+                    </p>
+                  </div>
 
                   <motion.div
                     className="text-center text-sm text-white/50 pt-6 border-t border-white/10"

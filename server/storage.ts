@@ -58,6 +58,11 @@ export interface IStorage {
   // Usage tracking
   createUsageTopup(data: any): Promise<any>;
   getUsageHistory(userId: string, type?: string): Promise<any[]>;
+
+  // Onboarding methods
+  createOnboardingProfile(data: any): Promise<any>;
+  getOnboardingProfile(userId: string): Promise<any | undefined>;
+  updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -452,6 +457,41 @@ export class MemStorage implements IStorage {
       history = history.filter(item => item.type === type);
     }
     return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  // Onboarding methods
+  private onboardingProfiles: Map<string, any> = new Map();
+
+  async createOnboardingProfile(data: any): Promise<any> {
+    const id = randomUUID();
+    const now = new Date();
+    const profile = {
+      id,
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.onboardingProfiles.set(data.userId, profile);
+    return profile;
+  }
+
+  async getOnboardingProfile(userId: string): Promise<any | undefined> {
+    return this.onboardingProfiles.get(userId);
+  }
+
+  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
+    const existing = this.onboardingProfiles.get(userId);
+    if (!existing) return undefined;
+
+    const updated = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+
+    this.onboardingProfiles.set(userId, updated);
+    return updated;
   }
 }
 

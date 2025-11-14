@@ -257,6 +257,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== Onboarding API ====================
+
+  app.post("/api/onboarding", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const { userRole, source, useCase, businessSize, tags } = req.body;
+
+      // Validation
+      if (!userRole) {
+        return res.status(400).json({ error: "User role is required" });
+      }
+
+      // Create or update onboarding profile
+      const profile = await storage.createOnboardingProfile({
+        userId,
+        userRole,
+        source,
+        useCase,
+        businessSize,
+        tags: tags || [],
+        completed: true,
+        completedAt: new Date(),
+      });
+
+      res.json({ success: true, profile });
+    } catch (error) {
+      console.error("Error saving onboarding:", error);
+      res.status(500).json({ error: "Failed to save onboarding data" });
+    }
+  });
+
+  app.get("/api/onboarding", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const profile = await storage.getOnboardingProfile(userId);
+      res.json({ profile });
+    } catch (error) {
+      console.error("Error fetching onboarding:", error);
+      res.status(500).json({ error: "Failed to fetch onboarding data" });
+    }
+  });
+
   // ==================== Leads API ====================
 
   app.get("/api/leads", requireAuth, async (req, res) => {

@@ -1,7 +1,7 @@
 import type { IStorage } from "./storage";
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration } from "@shared/schema";
 import { db } from "./db";
-import { users, leads, messages, integrations, notifications, deals, usageTopups } from "@shared/schema";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles } from "@shared/schema";
 import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 
@@ -647,6 +647,46 @@ export class DrizzleStorage implements IStorage {
       'trial': 0
     };
     return planMinutes[plan] || 0;
+  }
+
+  // Onboarding methods
+  async createOnboardingProfile(data: any): Promise<any> {
+    checkDatabase();
+    const profile = {
+      userId: data.userId,
+      userRole: data.userRole,
+      source: data.source || null,
+      useCase: data.useCase || null,
+      businessSize: data.businessSize || null,
+      tags: data.tags || [],
+      completed: data.completed || false,
+      completedAt: data.completedAt || null,
+    };
+
+    const result = await db.insert(onboardingProfiles).values(profile).returning();
+    return result[0];
+  }
+
+  async getOnboardingProfile(userId: string): Promise<any | undefined> {
+    checkDatabase();
+    const result = await db
+      .select()
+      .from(onboardingProfiles)
+      .where(eq(onboardingProfiles.userId, userId))
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
+    checkDatabase();
+    const result = await db
+      .update(onboardingProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(onboardingProfiles.userId, userId))
+      .returning();
+    
+    return result[0];
   }
 }
 
