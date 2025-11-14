@@ -23,9 +23,13 @@ export const users = pgTable("users", {
   voiceCloneId: text("voice_clone_id"),
   voiceMinutesUsed: real("voice_minutes_used").notNull().default(0),
   voiceMinutesTopup: real("voice_minutes_topup").notNull().default(0),
+  businessName: text("business_name"),
+  voiceRules: text("voice_rules"),
   lastInsightGeneratedAt: timestamp("last_insight_generated_at"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastLogin: timestamp("last_login"),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const leads = pgTable("leads", {
@@ -76,7 +80,7 @@ export const deals = pgTable("deals", {
   brand: text("brand").notNull(),
   channel: text("channel", { enum: ["instagram", "whatsapp", "email"] }).notNull(),
   value: real("value").notNull(),
-  status: text("status", { enum: ["converted", "lost", "pending"] }).notNull().default("pending"),
+  status: text("status", { enum: ["open", "closed_won", "closed_lost", "pending"] }).notNull().default("open"),
   notes: text("notes"),
   convertedAt: timestamp("converted_at"),
   meetingScheduled: boolean("meeting_scheduled").notNull().default(false),
@@ -265,6 +269,31 @@ export const onboardingProfiles = pgTable("onboarding_profiles", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const oauthAccounts = pgTable("oauth_accounts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider", { enum: ["github", "google", "linkedin", "whatsapp", "instagram", "facebook"] }).notNull(),
+  providerAccountId: text("provider_account_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  scope: text("scope"),
+  tokenType: text("token_type"),
+  idToken: text("id_token"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const otpCodes = pgTable("otp_codes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  verified: boolean("verified").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -282,6 +311,8 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, c
 export const insertInsightSchema = createInsertSchema(insights).omit({ id: true, generatedAt: true });
 export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings).omit({ id: true, createdAt: true });
 export const insertOnboardingProfileSchema = createInsertSchema(onboardingProfiles).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({ id: true, createdAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -312,6 +343,10 @@ export type Insight = typeof insights.$inferSelect;
 export type InsertInsight = typeof insights.$inferInsert;
 export type OnboardingProfile = typeof onboardingProfiles.$inferSelect;
 export type InsertOnboardingProfile = typeof onboardingProfiles.$inferInsert;
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
+export type OtpCode = typeof otpCodes.$inferSelect;
+export type InsertOtpCode = typeof otpCodes.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({

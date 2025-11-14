@@ -244,7 +244,7 @@ async function isCommentAppropriate(comment: string): Promise<boolean> {
   try {
     const { contentModerationService } = await import('./content-moderation');
     const result = await contentModerationService.moderateContent(comment);
-    return !result.isInappropriate;
+    return result.isAppropriate;
   } catch (error) {
     console.error('Content moderation check failed:', error);
     // Default to allowing if moderation fails

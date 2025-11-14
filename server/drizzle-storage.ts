@@ -1,5 +1,5 @@
 import type { IStorage } from "./storage";
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration } from "@shared/schema";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal } from "@shared/schema";
 import { db } from "./db";
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles } from "@shared/schema";
 import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
@@ -71,9 +71,28 @@ export class DrizzleStorage implements IStorage {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     checkDatabase();
+    
+    // If metadata is being updated, merge it with existing metadata instead of overwriting
+    if (updates.metadata) {
+      const { metadata, ...otherUpdates } = updates;
+      const setClause: any = {
+        ...otherUpdates,
+        metadata: sql`users.metadata || ${JSON.stringify(metadata)}::jsonb`,
+        updatedAt: new Date(),
+      };
+      
+      const result = await db
+        .update(users)
+        .set(setClause)
+        .where(eq(users.id, id))
+        .returning();
+      return result[0];
+    }
+    
+    // Always bump updatedAt for any update
     const result = await db
       .update(users)
-      .set(updates)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(users.id, id))
       .returning();
 
@@ -538,10 +557,10 @@ export class DrizzleStorage implements IStorage {
     return result.rows[0];
   }
 
-  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
     checkDatabase();
     const allDeals = await db.select().from(deals).where(eq(deals.userId, userId));
-    const closedDeals = allDeals.filter(d => d.status === 'closed_won');
+    const closedDeals = allDeals.filter((d: Deal) => d.status === 'closed_won');
 
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
