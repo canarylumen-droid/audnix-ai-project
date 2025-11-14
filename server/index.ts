@@ -201,8 +201,20 @@ async function runMigrations() {
       return;
     }
 
+    // Filter migrations based on database type
+    // Skip Supabase-specific migrations (002_*) when using Neon or other non-Supabase databases
+    const isSupabaseDB = process.env.SUPABASE_DB === 'true' || process.env.DATABASE_URL?.includes('supabase');
+    
     const migrationFiles = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
+      .filter(f => {
+        // Skip Supabase-specific migrations if not using Supabase
+        if (f.startsWith('002_') && !isSupabaseDB) {
+          console.log(`  ⏭️  Skipping ${f} (Supabase-only migration, using ${isSupabaseDB ? 'Supabase' : 'Neon/PostgreSQL'})`);
+          return false;
+        }
+        return true;
+      })
       .sort();
 
     if (migrationFiles.length === 0) {
