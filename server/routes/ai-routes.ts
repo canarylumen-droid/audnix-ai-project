@@ -1,7 +1,15 @@
 import { Router, type Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
-import { generateAIReply, generateVoiceScript, scheduleFollowUp, detectConversationStatus, saveConversationToMemory } from "../lib/ai/conversation-ai";
+import {
+  generateAIReply,
+  generateVoiceScript,
+  scheduleFollowUp,
+  detectConversationStatus,
+  saveConversationToMemory,
+  getConversationContext,
+  autoUpdateLeadStatus
+} from '../lib/ai/conversation-ai';
 import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
 
@@ -16,23 +24,23 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
     const { leadId } = req.params;
     const { manualMessage } = req.body; // Optional: override AI with manual message
     const userId = getCurrentUserId(req)!;
-    
+
     // Get lead
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
       return res.status(404).json({ error: "Lead not found" });
     }
-    
+
     // Get conversation history
     const messages = await storage.getMessagesByLeadId(leadId);
-    
+
     // Get user context for AI
     const user = await storage.getUserById(userId);
     const userContext = {
       businessName: user?.company || undefined,
       brandVoice: user?.replyTone || 'professional'
     };
-    
+
     // Generate AI reply
     const aiResponse = await generateAIReply(
       lead,
@@ -40,9 +48,9 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       lead.channel as any,
       userContext
     );
-    
+
     const messageBody = manualMessage || aiResponse.text;
-    
+
     // Create outbound message
     const message = await storage.createMessage({
       leadId,
@@ -56,23 +64,23 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
         should_use_voice: aiResponse.useVoice 
       }
     });
-    
+
     // Update lead status based on conversation
     const statusDetection = detectConversationStatus([...messages, message]);
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
-    
+
     await storage.updateLead(leadId, {
       status: newStatus,
       lastMessageAt: new Date()
     });
-    
+
     // Create notification for status changes
     if (oldStatus !== newStatus) {
       let notificationTitle = '';
       let notificationMessage = '';
       let notificationType: any = 'system';
-      
+
       if (newStatus === 'converted') {
         notificationTitle = '🎉 New Conversion!';
         notificationMessage = `${lead.name} from ${lead.channel} has converted! ${statusDetection.reason || ''}`;
@@ -88,7 +96,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
         notificationTitle = '❄️ Lead Went Cold';
         notificationMessage = `${lead.name}: ${statusDetection.reason || 'No recent engagement'}`;
       }
-      
+
       if (notificationTitle) {
         await storage.createNotification({
           userId,
@@ -107,15 +115,15 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
         });
       }
     }
-    
+
     // Save conversation to Super Memory for permanent storage
     const updatedMessages = [...messages, message];
     await saveConversationToMemory(userId, lead, updatedMessages);
-    
+
     // Schedule next follow-up if needed
     if (statusDetection.status !== 'converted' && statusDetection.status !== 'not_interested') {
       const followUpTime = await scheduleFollowUp(userId, leadId, lead.channel, 'followup');
-      
+
       res.json({
         message,
         aiSuggestion: aiResponse.text,
@@ -129,7 +137,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
         leadStatus: statusDetection.status
       });
     }
-    
+
   } catch (error: any) {
     console.error("AI reply error:", error);
     res.status(500).json({ error: error.message || "Failed to generate reply" });
@@ -144,21 +152,21 @@ router.post("/voice/:leadId", requireAuth, async (req: Request, res: Response) =
   try {
     const { leadId } = req.params;
     const userId = getCurrentUserId(req)!;
-    
+
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
       return res.status(404).json({ error: "Lead not found" });
     }
-    
+
     const messages = await storage.getMessagesByLeadId(leadId);
     const voiceScript = await generateVoiceScript(lead, messages);
-    
+
     res.json({
       script: voiceScript,
       duration: "10-15 seconds",
       leadName: lead.name
     });
-    
+
   } catch (error: any) {
     console.error("Voice generation error:", error);
     res.status(500).json({ error: error.message || "Failed to generate voice script" });
@@ -173,9 +181,9 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
   try {
     const { provider } = req.params;
     const userId = getCurrentUserId(req)!;
-    
+
     let results;
-    
+
     switch (provider) {
       case 'instagram':
         results = await importInstagramLeads(userId);
@@ -192,14 +200,14 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
       default:
         return res.status(400).json({ error: "Invalid provider" });
     }
-    
+
     res.json({
       success: results.errors.length === 0,
       leadsImported: results.leadsImported,
       messagesImported: results.messagesImported,
       errors: results.errors
     });
-    
+
   } catch (error: any) {
     console.error("Import error:", error);
     res.status(500).json({ error: error.message || "Failed to import leads" });
@@ -215,12 +223,12 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
     const { leadId } = req.params;
     const { sendMessage = true, createEvent = false, startTime, duration = 30 } = req.body;
     const userId = getCurrentUserId(req)!;
-    
+
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
       return res.status(404).json({ error: "Lead not found" });
     }
-    
+
     let bookingLink = await createCalendarBookingLink(userId, lead.name, duration);
     let eventData = null;
 
@@ -229,7 +237,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
       try {
         const { supabaseAdmin } = await import('../lib/supabase-admin');
         const { GoogleCalendarOAuth } = await import('../lib/oauth/google-calendar');
-        
+
         if (supabaseAdmin) {
           const { data: integration } = await supabaseAdmin
             .from('integrations')
@@ -242,10 +250,10 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
           if (integration) {
             const tokens = JSON.parse(integration.encrypted_meta);
             const googleCalendar = new GoogleCalendarOAuth();
-            
+
             const requestedStart = new Date(startTime);
             const leadTimezone = lead.metadata?.timezone || 'America/New_York';
-            
+
             // Use intelligent rescheduling
             const availabilityCheck = await googleCalendar.findNextAvailableSlot(
               tokens.accessToken,
@@ -253,7 +261,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
               duration,
               leadTimezone
             );
-            
+
             // Create event with the suggested time
             eventData = await googleCalendar.createEvent(tokens.accessToken, {
               summary: `Meeting with ${lead.name}`,
@@ -262,9 +270,9 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
               endTime: availabilityCheck.suggestedEnd,
               attendeeEmail: lead.email || undefined,
             });
-            
+
             bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
-            
+
             // Send professional rescheduling message if time changed
             if (!availabilityCheck.isOriginalTimeAvailable) {
               await storage.createMessage({
@@ -280,7 +288,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
                 }
               });
             }
-            
+
             // Create notification for meeting booked
             await storage.createNotification({
               userId,
@@ -303,14 +311,14 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         // Continue with booking link even if event creation fails
       }
     }
-    
+
     // Generate message to send to lead
     const messageText = generateMeetingLinkMessage(
       lead.name,
       bookingLink,
       lead.channel as any
     );
-    
+
     // Optionally send message immediately
     if (sendMessage) {
       const message = await storage.createMessage({
@@ -325,7 +333,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
           event_link: eventData?.htmlLink
         }
       });
-      
+
       res.json({
         bookingLink,
         messageSent: true,
@@ -340,7 +348,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         event: eventData
       });
     }
-    
+
   } catch (error: any) {
     console.error("Calendar booking error:", error);
     res.status(500).json({ error: error.message || "Failed to create booking link" });
@@ -355,72 +363,72 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
     const { period = '30d' } = req.query;
-    
+
     // Calculate date range
     const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
-    
+
     // Get all leads for user
     const allLeads = await storage.getLeads({ userId, limit: 10000 });
-    
+
     // Filter by date range
     const leads = allLeads.filter(l => new Date(l.createdAt) >= startDate);
-    
+
     // Calculate analytics
     const byStatus = leads.reduce((acc: any, lead) => {
       acc[lead.status] = (acc[lead.status] || 0) + 1;
       return acc;
     }, {});
-    
+
     const byChannel = leads.reduce((acc: any, lead) => {
       acc[lead.channel] = (acc[lead.channel] || 0) + 1;
       return acc;
     }, {});
-    
+
     const conversions = leads.filter(l => l.status === 'converted').length;
     const ghosted = leads.filter(l => l.status === 'cold').length;
     const notInterested = leads.filter(l => l.status === 'not_interested').length;
     const active = leads.filter(l => l.status === 'open' || l.status === 'replied').length;
-    
+
     const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
-    
+
     // Channel breakdown for graph
     const channelBreakdown = Object.entries(byChannel).map(([channel, count]) => ({
       channel,
       count: count as number,
       percentage: leads.length > 0 ? ((count as number) / leads.length) * 100 : 0
     }));
-    
+
     // Status breakdown for graph
     const statusBreakdown = Object.entries(byStatus).map(([status, count]) => ({
       status,
       count: count as number,
       percentage: leads.length > 0 ? ((count as number) / leads.length) * 100 : 0
     }));
-    
+
     // Timeline data (daily breakdown)
     const timeline = [];
     for (let i = daysBack; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
-      
+
       const nextDate = new Date(date);
       nextDate.setDate(nextDate.getDate() + 1);
-      
+
       const dayLeads = leads.filter(l => {
         const createdAt = new Date(l.createdAt);
         return createdAt >= date && createdAt < nextDate;
       });
-      
+
       timeline.push({
         date: date.toISOString().split('T')[0],
         leads: dayLeads.length,
         conversions: dayLeads.filter(l => l.status === 'converted').length
       });
     }
-    
+
     res.json({
       period,
       summary: {
@@ -435,7 +443,7 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
       statusBreakdown,
       timeline
     });
-    
+
   } catch (error: any) {
     console.error("Analytics error:", error);
     res.status(500).json({ error: error.message || "Failed to generate analytics" });

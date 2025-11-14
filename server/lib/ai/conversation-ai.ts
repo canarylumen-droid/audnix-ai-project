@@ -99,6 +99,68 @@ export function assessLeadWarmth(messages: Message[], lead: Lead): boolean {
 }
 
 /**
+ * Automatically update lead status in database based on conversation analysis
+ */
+export async function autoUpdateLeadStatus(
+  leadId: string,
+  messages: Message[]
+): Promise<void> {
+  const statusDetection = detectConversationStatus(messages);
+  
+  // Only auto-update if confidence is high enough
+  if (statusDetection.confidence < 0.7) {
+    console.log(`⚠️ Low confidence (${statusDetection.confidence}) - skipping auto-update for lead ${leadId}`);
+    return;
+  }
+
+  try {
+    const lead = await storage.getLead(leadId);
+    if (!lead) return;
+
+    const oldStatus = lead.status;
+    const newStatus = statusDetection.status;
+
+    // Don't downgrade converted leads
+    if (oldStatus === 'converted' && newStatus !== 'converted') {
+      return;
+    }
+
+    // Update if status changed
+    if (oldStatus !== newStatus) {
+      await storage.updateLead(leadId, {
+        status: newStatus,
+        metadata: {
+          ...lead.metadata,
+          statusAutoUpdated: true,
+          statusUpdateReason: statusDetection.reason,
+          statusUpdateConfidence: statusDetection.confidence,
+          previousStatus: oldStatus,
+          statusUpdatedAt: new Date().toISOString()
+        }
+      });
+
+      console.log(`✅ Auto-updated lead ${leadId} status: ${oldStatus} → ${newStatus} (${statusDetection.reason})`);
+
+      // Create activity log
+      await storage.createActivity({
+        userId: lead.userId,
+        leadId,
+        type: 'status_change',
+        metadata: {
+          from: oldStatus,
+          to: newStatus,
+          reason: statusDetection.reason,
+          confidence: statusDetection.confidence,
+          automated: true
+        }
+      });
+    }
+  } catch (error: any) {
+    console.error('Failed to auto-update lead status:', error.message);
+  }
+}
+
+/**
  * Detect conversation intent and update lead status automatically
  */
 export function detectConversationStatus(messages: Message[]): {
@@ -185,6 +247,7 @@ export async function generateAIReply(
   const detectionResult = detectConversationStatus(conversationHistory);
 
   // Retrieve additional context from Super Memory for better continuity
+  const memoryResult = await retrieveConversationMemory(lead.userId, lead.id);
   const memoryMessages = await getConversationContext(lead.userId, lead.id);
   const allMessages = [...memoryMessages, ...conversationHistory];
 
@@ -193,6 +256,11 @@ export async function generateAIReply(
     role: m.direction === 'inbound' ? 'user' : 'assistant',
     content: m.body
   }));
+  
+  // Add enriched context to system prompt if available
+  const enrichedContext = memoryResult.context 
+    ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
+    : '';
 
   // Platform-specific tone adjustments
   const platformTone = {
@@ -272,7 +340,7 @@ Core Strategy:
 ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personalized voice note' : ''}
 - Always end with a question that emotionally connects them to their desired outcome
 - Make them FEEL the transformation, not just understand it
-- Create the sense that waiting is more painful than acting now`;
+- Create the sense that waiting is more painful than acting now${enrichedContext}`;
 
   try {
     const completion = await openai.chat.completions.create({

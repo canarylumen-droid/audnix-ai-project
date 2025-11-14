@@ -367,8 +367,6 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
         await new Promise(resolve => setTimeout(resolve, replyDelay));
 
-        // Get brand knowledge for personalization
-        const brandKnowledge = await storage.getBrandKnowledge(userId);
 
         // STEP 3: Generate and send DM
         const dm = await generateSalesmanDM(
@@ -378,7 +376,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           monitor.productLink,
           monitor.ctaText,
           monitor.metadata.videoCaption || '',
-          brandKnowledge,
+          await storage.getBrandKnowledge(userId), // Fetch brand knowledge here
           intent.detectedInterest
         );
 
@@ -420,13 +418,13 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
       // Check if this is an Instagram auth error (HTML response means invalid token)
       if (error.message?.includes('<!DOCTYPE html>') || error.message?.includes('<html')) {
         console.warn(`⚠️  Instagram access token expired for user ${userId} - attempting refresh`);
-        
+
         // Try to refresh the token
         try {
           const { InstagramOAuth } = await import('../oauth/instagram');
           const instagramOAuth = new InstagramOAuth();
           const newToken = await instagramOAuth.refreshToken(userId);
-          
+
           if (newToken) {
             console.log(`✅ Instagram token refreshed for user ${userId}`);
             // Retry the monitoring with new token
@@ -434,16 +432,16 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           }
         } catch (refreshError: any) {
           console.error(`❌ Failed to refresh Instagram token for user ${userId}:`, refreshError.message);
-          
+
           // Mark integration as disconnected
           await storage.updateIntegration(userId, 'instagram', {
             connected: false,
-            metadata: { 
+            metadata: {
               error: 'Token expired - please reconnect',
               lastError: new Date().toISOString()
             }
           });
-          
+
           // Create notification for user
           await storage.createNotification({
             userId,
@@ -453,7 +451,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
             read: false
           });
         }
-        
+
         workerHealthMonitor.recordError('video-comment-monitor', 'Instagram token expired');
       } else {
         console.error('Error fetching queue jobs:', error);

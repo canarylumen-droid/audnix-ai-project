@@ -64,15 +64,15 @@ export async function storeConversationMemory(
 }
 
 /**
- * Retrieve conversation history from Super Memory
+ * Retrieve conversation history from Super Memory with context enrichment
  * @param userId - User ID
  * @param leadId - Optional lead ID to filter
- * @returns Conversation history
+ * @returns Conversation history with enriched context
  */
 export async function retrieveConversationMemory(
   userId: string,
   leadId?: string
-): Promise<{ success: boolean; conversations?: any[] }> {
+): Promise<{ success: boolean; conversations?: any[]; context?: string }> {
   if (!SUPER_MEMORY_API_KEY) {
     return { success: false };
   }
@@ -101,11 +101,62 @@ export async function retrieveConversationMemory(
     }
 
     const data = await response.json() as any;
-    return { success: true, conversations: data.memories || [] };
+    const conversations = data.memories || [];
+    
+    // Generate context summary from all conversations
+    const contextSummary = generateContextSummary(conversations);
+    
+    return { 
+      success: true, 
+      conversations,
+      context: contextSummary
+    };
   } catch (error: any) {
     console.error('Super Memory retrieval error:', error.message);
     return { success: false };
   }
+}
+
+/**
+ * Generate a context summary from conversation history
+ */
+function generateContextSummary(conversations: any[]): string {
+  if (!conversations.length) return '';
+
+  const insights: string[] = [];
+  
+  // Extract key patterns
+  const allMessages = conversations.flatMap(c => c.content?.messages || []);
+  const userMessages = allMessages.filter((m: any) => m.role === 'user');
+  
+  // Identify common topics
+  const topicKeywords = ['price', 'cost', 'when', 'how', 'demo', 'trial', 'interested'];
+  const mentionedTopics = topicKeywords.filter(topic =>
+    userMessages.some((m: any) => m.content?.toLowerCase().includes(topic))
+  );
+  
+  if (mentionedTopics.length) {
+    insights.push(`Lead has asked about: ${mentionedTopics.join(', ')}`);
+  }
+  
+  // Identify engagement level
+  if (userMessages.length > 5) {
+    insights.push('Highly engaged lead with active conversation history');
+  } else if (userMessages.length > 2) {
+    insights.push('Moderately engaged lead');
+  }
+  
+  // Identify objections
+  const objectionKeywords = ['expensive', 'not sure', 'think about', 'later'];
+  const objections = objectionKeywords.filter(obj =>
+    userMessages.some((m: any) => m.content?.toLowerCase().includes(obj))
+  );
+  
+  if (objections.length) {
+    insights.push(`Previous objections: ${objections.join(', ')}`);
+  }
+  
+  return insights.join('. ');
 }
 
 /**
