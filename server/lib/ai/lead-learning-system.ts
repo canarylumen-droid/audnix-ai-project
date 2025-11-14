@@ -177,6 +177,11 @@ export class LeadLearningSystem {
     // Clamp between 0-100
     engagementScore = Math.max(0, Math.min(100, engagementScore));
 
+    // Determine lead temperature based on engagement
+    const temperature: 'hot' | 'warm' | 'cold' = 
+      engagementScore > 70 ? 'hot' :
+      engagementScore > 40 ? 'warm' : 'cold';
+
     return {
       userId: lead.user_id,
       leadId: lead.id,
@@ -185,6 +190,7 @@ export class LeadLearningSystem {
       preferredTime,
       sentimentTrend,
       engagementScore: Math.round(engagementScore),
+      temperature,
       conversionSignals,
       objectionPatterns,
       lastUpdated: new Date().toISOString()

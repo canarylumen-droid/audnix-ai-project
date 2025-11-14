@@ -425,7 +425,7 @@ Generate a natural follow-up message:`;
   }
 
   /**
-   * Schedule next follow-up with human-like timing
+   * Schedule next follow-up with human-like timing based on lead temperature
    */
   private async scheduleNextFollowUp(userId: string, leadId: string, lead: Lead) {
     if (!db) return;
@@ -436,16 +436,22 @@ Generate a natural follow-up message:`;
     }
 
     // Don't schedule if lead is converted or not interested
-    if (['converted', 'not_interested', 'uninterested'].includes(lead.status)) {
+    if (['converted', 'not_interest ed', 'uninterested'].includes(lead.status)) {
       return;
     }
 
-    // Calculate next follow-up time with randomization
-    const baseDelay = this.getFollowUpDelay(lead.followUpCount || 0);
-    const jitter = Math.random() * 0.3 - 0.15; // ±15% randomization
+    // Get conversation history to assess lead temperature
+    const messages = await this.getConversationHistory(leadId);
+    const leadTemperature = this.assessLeadTemperature(lead, messages);
+    
+    // Calculate next follow-up time with intelligent randomization
+    const baseDelay = this.getFollowUpDelay(lead.followUpCount || 0, leadTemperature);
+    const jitter = this.getRandomizationWindow(leadTemperature);
     const delayMs = baseDelay * (1 + jitter);
     
     const scheduledAt = new Date(Date.now() + delayMs);
+
+    console.log(`📅 Scheduling ${leadTemperature} lead follow-up in ${Math.round(delayMs / 60000)} minutes`);
 
     // Create next job
     await db.insert(followUpQueue).values({
@@ -455,24 +461,96 @@ Generate a natural follow-up message:`;
       scheduledAt,
       context: {
         follow_up_number: (lead.followUpCount || 0) + 1,
-        previous_status: lead.status
+        previous_status: lead.status,
+        temperature: leadTemperature,
+        scheduled_time: scheduledAt.toISOString()
       }
     });
   }
 
   /**
-   * Get follow-up delay based on follow-up count
+   * Assess lead temperature based on engagement patterns
    */
-  private getFollowUpDelay(followUpCount: number): number {
-    const delays = {
-      0: 2 * 60 * 60 * 1000,      // 2 hours
+  private assessLeadTemperature(lead: Lead, messages: Message[]): 'hot' | 'warm' | 'cold' {
+    // Hot lead indicators
+    const recentMessages = messages.filter(m => {
+      const hoursSince = (Date.now() - new Date(m.created_at).getTime()) / (1000 * 60 * 60);
+      return hoursSince < 24;
+    });
+    
+    const inboundInLast24h = recentMessages.filter(m => m.role === 'user').length;
+    const hasEngagementScore = (lead.metadata as any)?.behavior_pattern?.engagementScore;
+    const engagementScore = hasEngagementScore || 0;
+
+    // HOT: Recent activity + high engagement
+    if (inboundInLast24h >= 2 || engagementScore > 70) {
+      return 'hot';
+    }
+
+    // WARM: Some recent activity or medium engagement
+    if (inboundInLast24h >= 1 || (engagementScore > 40 && lead.warm)) {
+      return 'warm';
+    }
+
+    // COLD: Low activity or declining engagement
+    return 'cold';
+  }
+
+  /**
+   * Get follow-up delay based on follow-up count and lead temperature
+   */
+  private getFollowUpDelay(followUpCount: number, temperature: 'hot' | 'warm' | 'cold'): number {
+    // Hot leads - respond quickly
+    if (temperature === 'hot') {
+      const hotDelays = {
+        0: 30 * 60 * 1000,         // 30 minutes
+        1: 2 * 60 * 60 * 1000,     // 2 hours
+        2: 4 * 60 * 60 * 1000,     // 4 hours
+        3: 12 * 60 * 60 * 1000,    // 12 hours
+        4: 24 * 60 * 60 * 1000     // 1 day
+      };
+      return hotDelays[followUpCount as keyof typeof hotDelays] || 24 * 60 * 60 * 1000;
+    }
+
+    // Warm leads - moderate timing
+    if (temperature === 'warm') {
+      const warmDelays = {
+        0: 2 * 60 * 60 * 1000,      // 2 hours
+        1: 6 * 60 * 60 * 1000,      // 6 hours
+        2: 24 * 60 * 60 * 1000,     // 1 day
+        3: 2 * 24 * 60 * 60 * 1000, // 2 days
+        4: 3 * 24 * 60 * 60 * 1000  // 3 days
+      };
+      return warmDelays[followUpCount as keyof typeof warmDelays] || 3 * 24 * 60 * 60 * 1000;
+    }
+
+    // Cold leads - slower, more spaced out
+    const coldDelays = {
+      0: 4 * 60 * 60 * 1000,      // 4 hours
       1: 24 * 60 * 60 * 1000,     // 1 day
-      2: 2 * 24 * 60 * 60 * 1000, // 2 days
-      3: 3 * 24 * 60 * 60 * 1000, // 3 days
+      2: 3 * 24 * 60 * 60 * 1000, // 3 days
+      3: 5 * 24 * 60 * 60 * 1000, // 5 days
       4: 7 * 24 * 60 * 60 * 1000  // 1 week
     };
+    return coldDelays[followUpCount as keyof typeof coldDelays] || 7 * 24 * 60 * 60 * 1000;
+  }
 
-    return delays[followUpCount as keyof typeof delays] || 7 * 24 * 60 * 60 * 1000;
+  /**
+   * Get randomization window based on lead temperature
+   */
+  private getRandomizationWindow(temperature: 'hot' | 'warm' | 'cold'): number {
+    // Hot leads: ±10% variance (stay responsive)
+    if (temperature === 'hot') {
+      return Math.random() * 0.2 - 0.1;
+    }
+
+    // Warm leads: ±20% variance (natural timing)
+    if (temperature === 'warm') {
+      return Math.random() * 0.4 - 0.2;
+    }
+
+    // Cold leads: ±30% variance (more unpredictable, human-like)
+    return Math.random() * 0.6 - 0.3;
   }
 }
 
