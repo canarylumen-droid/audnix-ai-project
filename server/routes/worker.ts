@@ -67,20 +67,20 @@ router.get('/worker/status', async (req: Request, res: Response) => {
     // Get queue statistics from Neon database
     let queueStats = null;
     if (db) {
-      const { count: pendingCount } = await db
+      const pendingRows = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(followUpQueue)
-        .where(eq(followUpQueue.status, 'pending'))
-        .then((rows: { count: number }[]) => rows[0] || { count: 0 });
+        .where(eq(followUpQueue.status, 'pending'));
+      const { count: pendingCount } = pendingRows[0] || { count: 0 };
       
-      const { count: processingCount } = await db
+      const processingRows = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(followUpQueue)
-        .where(eq(followUpQueue.status, 'processing'))
-        .then((rows: { count: number }[]) => rows[0] || { count: 0 });
+        .where(eq(followUpQueue.status, 'processing'));
+      const { count: processingCount } = processingRows[0] || { count: 0 };
       
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const { count: completedCount } = await db
+      const completedRows = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(followUpQueue)
         .where(
@@ -88,8 +88,8 @@ router.get('/worker/status', async (req: Request, res: Response) => {
             eq(followUpQueue.status, 'completed'),
             gte(followUpQueue.processedAt, oneDayAgo)
           )
-        )
-        .then((rows: { count: number }[]) => rows[0] || { count: 0 });
+        );
+      const { count: completedCount } = completedRows[0] || { count: 0 };
       
       queueStats = {
         pending: pendingCount || 0,
