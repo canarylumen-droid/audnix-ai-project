@@ -14,6 +14,7 @@ import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importMany
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
 import { generateSmartReplies } from '../lib/ai/smart-replies';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring';
+import { generateAnalyticsInsights } from '../lib/ai/analytics-engine';
 
 const router = Router();
 
@@ -435,6 +436,24 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error("Bulk scoring error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get advanced AI insights
+ * GET /api/ai/insights
+ */
+router.get("/insights", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { period = '30d' } = req.query;
+
+    const insights = await generateAnalyticsInsights(userId, period as string);
+
+    res.json(insights);
+  } catch (error: any) {
+    console.error("Advanced insights error:", error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -102,10 +102,10 @@ export async function retrieveConversationMemory(
 
     const data = await response.json() as any;
     const conversations = data.memories || [];
-    
+
     // Generate context summary from all conversations
     const contextSummary = generateContextSummary(conversations);
-    
+
     return { 
       success: true, 
       conversations,
@@ -124,38 +124,38 @@ function generateContextSummary(conversations: any[]): string {
   if (!conversations.length) return '';
 
   const insights: string[] = [];
-  
+
   // Extract key patterns
   const allMessages = conversations.flatMap(c => c.content?.messages || []);
   const userMessages = allMessages.filter((m: any) => m.role === 'user');
-  
+
   // Identify common topics
   const topicKeywords = ['price', 'cost', 'when', 'how', 'demo', 'trial', 'interested'];
   const mentionedTopics = topicKeywords.filter(topic =>
     userMessages.some((m: any) => m.content?.toLowerCase().includes(topic))
   );
-  
+
   if (mentionedTopics.length) {
     insights.push(`Lead has asked about: ${mentionedTopics.join(', ')}`);
   }
-  
+
   // Identify engagement level
   if (userMessages.length > 5) {
     insights.push('Highly engaged lead with active conversation history');
   } else if (userMessages.length > 2) {
     insights.push('Moderately engaged lead');
   }
-  
+
   // Identify objections
   const objectionKeywords = ['expensive', 'not sure', 'think about', 'later'];
   const objections = objectionKeywords.filter(obj =>
     userMessages.some((m: any) => m.content?.toLowerCase().includes(obj))
   );
-  
+
   if (objections.length) {
     insights.push(`Previous objections: ${objections.join(', ')}`);
   }
-  
+
   return insights.join('. ');
 }
 
@@ -243,4 +243,121 @@ export async function searchConversationMemory(
     console.error('Super Memory search error:', error.message);
     return { success: false };
   }
+}
+
+/**
+ * Save conversation to permanent memory
+ */
+export async function saveConversationToMemory(
+  userId: string,
+  lead: Lead,
+  messages: Message[]
+): Promise<void> {
+  if (!supabaseAdmin) {
+    console.log('Supabase not configured - skipping memory save');
+    return;
+  }
+
+  const conversationSummary = await generateConversationSummary(messages);
+  const keyInsights = extractKeyInsights(messages);
+  const conversationInsights = await extractConversationInsights(messages);
+
+  await supabaseAdmin.from('super_memory').insert({
+    user_id: userId,
+    lead_id: lead.id,
+    conversation_summary: conversationSummary,
+    key_insights: keyInsights,
+    message_count: messages.length,
+    last_message_at: messages[messages.length - 1]?.createdAt || new Date().toISOString(),
+    metadata: {
+      channel: lead.channel,
+      leadName: lead.name,
+      tags: lead.tags || [],
+      insights: conversationInsights,
+      topTopics: conversationInsights.topics,
+      painPoints: conversationInsights.painPoints,
+      buyingSignals: conversationInsights.buyingSignals
+    }
+  });
+}
+
+/**
+ * Extract deep conversation insights
+ */
+async function extractConversationInsights(messages: Message[]): Promise<{
+  topics: string[];
+  painPoints: string[];
+  buyingSignals: string[];
+  objections: string[];
+  questions: string[];
+}> {
+  const inboundMessages = messages.filter(m => m.direction === 'inbound');
+  const allText = inboundMessages.map(m => m.body).join(' ');
+
+  // Extract topics discussed
+  const topics = extractTopics(allText);
+
+  // Extract pain points mentioned
+  const painPoints = extractPainPoints(allText);
+
+  // Extract buying signals
+  const buyingSignals = extractBuyingSignals(allText);
+
+  // Extract objections
+  const objections = extractObjections(allText);
+
+  // Extract questions asked
+  const questions = inboundMessages
+    .filter(m => m.body.includes('?'))
+    .map(m => m.body.split('?')[0] + '?')
+    .slice(0, 5);
+
+  return {
+    topics,
+    painPoints,
+    buyingSignals,
+    objections,
+    questions
+  };
+}
+
+function extractTopics(text: string): string[] {
+  const topicKeywords = [
+    'pricing', 'features', 'integration', 'support', 'demo', 'trial',
+    'onboarding', 'training', 'customization', 'security', 'scalability'
+  ];
+
+  return topicKeywords.filter(topic => 
+    text.toLowerCase().includes(topic)
+  );
+}
+
+function extractPainPoints(text: string): string[] {
+  const painIndicators = [
+    'struggle', 'difficult', 'problem', 'issue', 'challenge',
+    'frustrated', 'time-consuming', 'expensive', 'slow'
+  ];
+
+  const lowerText = text.toLowerCase();
+  return painIndicators.filter(pain => lowerText.includes(pain));
+}
+
+function extractBuyingSignals(text: string): string[] {
+  const buyingKeywords = [
+    'buy', 'purchase', 'price', 'cost', 'budget', 'contract',
+    'ready to', 'when can we', 'how soon', 'sign up'
+  ];
+
+  const lowerText = text.toLowerCase();
+  return buyingKeywords.filter(signal => lowerText.includes(signal));
+}
+
+function extractObjections(text: string): string[] {
+  const objectionIndicators = [
+    'too expensive', 'not sure', 'thinking about', 'concerned about',
+    'worried', 'already have', 'maybe later'
+  ];
+
+  const lowerText = text.toLowerCase();
+  return objectionIndicators.filter(obj => lowerText.includes(obj));
 }

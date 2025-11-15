@@ -213,6 +213,8 @@ export async function updateAllLeadScores(userId: string): Promise<void> {
   for (const lead of leads) {
     try {
       const scoreData = await calculateLeadScore(lead.id);
+      const oldTemperature = lead.metadata?.temperature as string;
+      const newTemperature = scoreData.temperature;
       
       await storage.updateLead(lead.id, {
         score: scoreData.score,
@@ -226,8 +228,60 @@ export async function updateAllLeadScores(userId: string): Promise<void> {
           lastScored: new Date().toISOString()
         }
       });
+
+      // Send notification if temperature changed
+      if (oldTemperature && oldTemperature !== newTemperature) {
+        await notifyTemperatureChange(userId, lead, oldTemperature, newTemperature, scoreData);
+      }
     } catch (error) {
       console.error(`Failed to score lead ${lead.id}:`, error);
     }
+  }
+}
+
+/**
+ * Notify user when lead temperature changes
+ */
+async function notifyTemperatureChange(
+  userId: string,
+  lead: any,
+  oldTemp: string,
+  newTemp: string,
+  scoreData: LeadScore
+): Promise<void> {
+  let title = '';
+  let message = '';
+  let type: any = 'system';
+
+  if (newTemp === 'hot' && oldTemp !== 'hot') {
+    title = '🔥 Lead Heating Up!';
+    message = `${lead.name} is now HOT (${scoreData.score}/100). ${scoreData.recommendedAction}`;
+    type = 'lead_hot';
+  } else if (newTemp === 'cold' && oldTemp !== 'cold') {
+    title = '❄️ Lead Cooling Down';
+    message = `${lead.name} went cold (${scoreData.score}/100). Consider re-engagement campaign.`;
+    type = 'lead_cold';
+  } else if (newTemp === 'warm' && oldTemp === 'cold') {
+    title = '🌡️ Lead Warming Up';
+    message = `${lead.name} is showing renewed interest (${scoreData.score}/100).`;
+    type = 'lead_warm';
+  }
+
+  if (title) {
+    await storage.createNotification({
+      userId,
+      type,
+      title,
+      message,
+      metadata: {
+        leadId: lead.id,
+        leadName: lead.name,
+        oldTemperature: oldTemp,
+        newTemperature: newTemp,
+        score: scoreData.score,
+        priority: scoreData.priority,
+        activityType: 'temperature_change'
+      }
+    });
   }
 }
