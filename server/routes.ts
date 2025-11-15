@@ -21,7 +21,7 @@ import { encrypt } from "./lib/crypto/encryption";
 import oauthRoutes from "./routes/oauth";
 import webhookRouter from "./routes/webhook";
 import workerRouter from "./routes/worker";
-import commentAutomationRouter from "./routes/comment-automation-routes";
+import commentAutomationRoutes from "./routes/comment-automation-routes";
 import videoAutomationRoutes from "./routes/video-automation-routes";
 import aiRoutes from "./routes/ai-routes";
 import voiceRoutes from "./routes/voice-routes";
