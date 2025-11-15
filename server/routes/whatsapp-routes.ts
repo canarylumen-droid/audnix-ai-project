@@ -83,7 +83,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     if (user) {
       await storage.updateUser(userId, {
         metadata: {
-          ...user.metadata,
+          ...(user.metadata ?? {}),
           whatsapp_connected: false,
           whatsapp_disconnected_at: new Date().toISOString(),
         } as any,
