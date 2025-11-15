@@ -85,45 +85,115 @@
 **Lifetime Value (LTV):** $900 (12-month retention)
 **Customer Acquisition Cost (CAC) Target:** <$90 (10:1 LTV:CAC ratio)
 
-## 🆕 Recently Added Features
+## 🆕 Recently Added Features (January 2025)
 
-### Advanced Analytics & Intelligence (January 2025)
-- ✅ **Smart Lead Scoring System** - AI calculates 0-100 scores based on engagement, response time, conversion signals, sentiment, and recency
-- ✅ **Lead Temperature Tracking** - Automatic hot 🔥, warm 🌡️, cold ❄️ classification with real-time notifications
-- ✅ **Predictive Analytics Engine** - Forecasts expected conversions and projected revenue based on pipeline health
-- ✅ **Performance Insights Dashboard** - Shows which channels convert best and optimal engagement times
-- ✅ **Actionable Recommendations** - AI suggests next steps (e.g., "Send voice message today" or "Re-engagement needed")
-- ✅ **Competitor Detection** - Automatically flags when leads mention competitors (ManyChat, CommentGuard, etc.)
-- ✅ **Price Negotiation AI** - Detects price objections and suggests dynamic discounts based on lead score
-- ✅ **Multi-Language Support** - Auto-detects lead language and responds in their native language
-- ✅ **Smart Reply Suggestions** - Generate 3 quick reply options (professional, friendly, urgent) for any conversation
-- ✅ **Weekly Insights Worker** - Automatic performance reports every 7 days with AI-generated insights
-- ✅ **Voice Minutes Tracking** - Real-time usage widget, auto-lock when depleted, instant top-ups
-- ✅ **Super Memory Integration** - Permanent conversation storage for long-term context retention
+We just completed 13 major features that transform Audnix into a complete AI sales automation platform. Here's everything new:
 
-### Video Comment Automation (January 2025)
-- ✅ **Unlimited Video Monitoring** - Track multiple Instagram Reels/videos simultaneously
-- ✅ **Intelligent Comment Detection** - AI reads context, no keyword triggers needed (destroys ManyChat)
-- ✅ **Smart Reply Timing** - 2-8 minute delays based on lead temperature (not instant like bots)
-- ✅ **Per-Video CTA Links** - Each video can have unique product links with custom CTA text
-- ✅ **Professional Follow Requests** - AI asks politely after conversion (only when lead responds positively)
-- ✅ **Real-Time Stats** - Dashboard shows comments checked, DMs sent, conversions, follow requests
+### 1. ✅ Advanced Lead Scoring System
+**Location:** `server/lib/ai/lead-scoring.ts`
+- AI calculates 0-100 scores for every lead
+- **5 scoring factors**: Engagement (30%), Response Time (20%), Conversion Signals (25%), Sentiment (15%), Recency (10%)
+- **Message frequency scoring**: 10+ msgs = 40pts, 5+ msgs = 30pts, 3+ msgs = 20pts
+- **Response time scoring**: <5min = 100pts, <15min = 80pts, <1hr = 60pts
+- **Conversion signals**: Detects "buy", "purchase", "price", "cost" keywords
+- **Urgency detection**: Flags "today", "now", "asap" mentions
+- Auto-updates lead scores every time new message arrives
 
-### Security & Encryption (January 2025)
-- ✅ **AES-256-GCM Encryption** - All sensitive data encrypted at rest
-- ✅ **WhatsApp OTP Authentication** - Secure verification without storing credentials
-- ✅ **Instagram OAuth Security** - Credentials discarded after token exchange
-- ✅ **Session Token Encryption** - All sessions encrypted end-to-end
-- ✅ **No Plain-Text Secrets** - All API keys and tokens encrypted in database
+### 2. ✅ Lead Temperature Tracking with Notifications
+**Location:** `server/lib/ai/lead-scoring.ts` (lines 195-234)
+- **Hot 🔥**: Score ≥70 (High priority - contact immediately)
+- **Warm 🌡️**: Score 40-69 (Follow up with value proposition)
+- **Cold ❄️**: Score <40 (Long-term nurture sequence)
+- **Smart notifications**: Alerts you when leads heat up or cool down
+- Example: "🔥 Lead Heating Up! John is now HOT (85/100). Contact immediately with personalized offer"
 
-### UI/UX Improvements (January 2025)
-- ✅ **Voice Minutes Widget** - Live usage progress bar with real-time updates (30s polling)
-- ✅ **Plan Badge Banner** - Shows current plan (Trial, Starter, Pro, Enterprise) with upgrade CTA
-- ✅ **Trial Reminder System** - Countdown notifications (7 days, 3 days, 1 day, expired)
-- ✅ **Upgrade Prompts** - Feature-gated modals with "Upgrade Now" buttons
-- ✅ **Import Animations** - Beautiful loading states for Instagram/WhatsApp/Email imports
-- ✅ **Dark Mode Support** - Full theme toggle across dashboard
-- ✅ **Mobile Responsive** - Optimized for phones and tablets
+### 3. ✅ Predictive Analytics Engine
+**Location:** `server/lib/ai/analytics-engine.ts`
+- **Expected conversions**: Hot leads 60% conversion, Warm 30% conversion
+- **Projected revenue**: Expected conversions × avg deal size ($500)
+- **Risk lead detection**: Identifies hot/warm leads with no activity in 24h
+- **Trend analysis**: Tracks lead growth, conversion growth, engagement growth
+- Compares current period vs previous period (7d, 30d, 90d options)
+
+### 4. ✅ Performance Insights Dashboard
+**Location:** `server/lib/ai/analytics-engine.ts` (lines 127-185)
+- **Top channels**: Shows which channels convert best (Instagram 15%, WhatsApp 23%, Email 12%)
+- **Best times**: Identifies optimal hours for conversions (e.g., 2pm-4pm = peak)
+- **Conversion funnel**: Visualizes lead progression (New → Replied → Converted)
+- **Time series charts**: Daily lead activity over past week
+- **Channel breakdown**: Lead volume by source with percentages
+
+### 5. ✅ Actionable AI Recommendations
+**Location:** `server/lib/ai/analytics-engine.ts` (lines 96-124)
+- "📉 Lead generation declining. Consider increasing marketing efforts"
+- "📈 Lead growth is strong! Ensure you have enough follow-up capacity"
+- "⚠️ Conversion rate dropping. Review AI responses"
+- "🎯 WhatsApp has highest conversion rate (23%). Focus more efforts here"
+- "❄️ 45 leads went cold. Consider re-engagement campaigns"
+
+### 6. ✅ Competitor Detection System
+**Location:** `server/lib/ai/competitor-detection.ts`
+- Auto-detects mentions of: ManyChat, CommentGuard, ChatGuru, ReplyNow
+- **Sentiment analysis**: Positive, negative, or neutral competitor mentions
+- **Context extraction**: "ManyChat is too expensive" vs "ManyChat recommended this"
+- **Auto-responses**: Generates comparison responses highlighting your advantages
+- **Tracking**: Logs all competitor mentions with timestamps
+
+### 7. ✅ Price Negotiation AI
+**Location:** `server/lib/ai/price-negotiation.ts`
+- **Detects price objections**: "too expensive", "can't afford", "cheaper alternative"
+- **Dynamic discounts**: 5%-20% based on lead score and severity
+- **3 severity levels**: Mild (5% off), Moderate (10% off), Strong (15-20% off)
+- **Smart responses**: "I understand budget is important. If you're ready to commit today, I can offer 10% off"
+- **Tracks attempts**: Prevents offering multiple discounts to same lead
+
+### 8. ✅ Multi-Language Support
+**Location:** `server/lib/ai/language-detector.ts`
+- **Auto-detection**: Identifies language from lead's messages
+- **Supported languages**: English, Spanish, French, German, Portuguese, Italian, Dutch, Polish, Russian, Chinese, Japanese, Korean, Arabic, Hindi
+- **Context-aware translation**: Different tones for greetings vs objections
+- **Language persistence**: Remembers lead's language for future conversations
+- Uses Google Translate API for natural translations
+
+### 9. ✅ Smart Reply Suggestions
+**Location:** `server/lib/ai/smart-replies.ts`
+- **3 quick options**: Professional, Friendly, Urgent
+- **Professional**: "I appreciate your inquiry. Let me provide you with detailed information..."
+- **Friendly**: "Hey! Great question! Here's what I can share..."
+- **Urgent**: "Thanks for reaching out! This is time-sensitive..."
+- **One-click send**: Click suggestion to instantly send
+- Generates based on conversation context and lead status
+
+### 10. ✅ Weekly Insights Worker (Auto-Generated Reports)
+**Location:** `server/lib/ai/weekly-insights-worker.ts`
+- **Runs automatically**: Every 7 days (cron job)
+- **Email notifications**: "Your Weekly Audnix Insights are ready!"
+- **Includes**: Lead count, message count, conversion rate, top channels
+- **AI-powered recommendations**: Personalized next steps
+- **PDF download**: Available in dashboard notifications
+
+### 11. ✅ Language Detection with Auto-Response
+**Location:** `server/lib/ai/language-detector.ts` + `conversation-ai.ts` (lines 157-164)
+- Detects lead's language with 60%+ confidence
+- Updates lead profile with detected language
+- Auto-translates all AI responses to lead's native language
+- Example: Lead writes "Hola, cuánto cuesta?" → AI responds in Spanish
+
+### 12. ✅ Price Objection Handling in Conversations
+**Location:** `server/lib/ai/conversation-ai.ts` (lines 166-180)
+- Integrated into main conversation flow
+- Detects objections mid-conversation
+- Generates contextual negotiation responses
+- Saves negotiation attempt for analytics
+- Returns translated response if lead speaks another language
+
+### 13. ✅ Competitor Mention Detection in Conversations
+**Location:** `server/lib/ai/conversation-ai.ts` (lines 182-198)
+- Real-time detection during conversations
+- Tracks competitor mentions with sentiment
+- Generates competitive positioning responses
+- Logs to analytics for competitive intelligence
+- Example: "I saw ManyChat but it's expensive" → AI explains your unique value
 
 ## ✨ Features
 
@@ -954,14 +1024,14 @@ If a customer requests a refund before you have webhooks:
    ```sql
    -- Find user by email
    SELECT id, plan FROM users WHERE email = 'customer@example.com';
-   
+
    -- Downgrade to trial
    UPDATE users 
-   SET plan = 'trial', 
+   SET plan = 'trial',
        stripe_subscription_id = NULL,
        trial_expires_at = NOW() + INTERVAL '14 days'
    WHERE id = 'user_id_here';
-   
+
    -- Remove top-up minutes (if top-up refund)
    UPDATE users 
    SET voice_minutes_topup = voice_minutes_topup - 100
