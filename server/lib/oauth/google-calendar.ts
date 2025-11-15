@@ -11,11 +11,17 @@ export class GoogleCalendarOAuth {
   };
 
   constructor() {
+    // Can use same Google OAuth credentials for both auth and calendar
+    // Or create separate ones for better security/tracking
     this.config = {
-      clientId: process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET || '',
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       redirectUri: getOAuthRedirectUrl('google-calendar')
     };
+
+    if (!this.config.clientId || !this.config.clientSecret) {
+      console.warn('⚠️  Google Calendar: OAuth credentials not configured. Users cannot connect calendars.');
+    }
 
     this.oauth2Client = new google.auth.OAuth2(
       this.config.clientId,
