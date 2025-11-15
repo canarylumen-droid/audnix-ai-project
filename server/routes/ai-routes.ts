@@ -10,6 +10,8 @@ import {
   getConversationContext,
   autoUpdateLeadStatus
 } from '../lib/ai/conversation-ai';
+import { getCompetitorAnalytics } from '../lib/ai/competitor-detection';
+import { learnOptimalDiscount } from '../lib/ai/price-negotiation';
 import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
 import { generateSmartReplies } from '../lib/ai/smart-replies';
@@ -554,3 +556,40 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
 });
 
 export default router;
+
+/**
+ * Get competitor analytics
+ * GET /api/ai/competitor-analytics
+ */
+router.get("/competitor-analytics", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const analytics = await getCompetitorAnalytics(userId);
+    
+    res.json(analytics);
+  } catch (error: any) {
+    console.error("Competitor analytics error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get optimal discount percentage
+ * GET /api/ai/optimal-discount
+ */
+router.get("/optimal-discount", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const optimalDiscount = await learnOptimalDiscount(userId);
+    
+    res.json({
+      optimalDiscount,
+      message: `Based on your conversion history, ${optimalDiscount}% is the sweet spot`
+    });
+  } catch (error: any) {
+    console.error("Optimal discount error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});

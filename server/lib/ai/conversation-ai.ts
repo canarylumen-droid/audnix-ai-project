@@ -2,6 +2,9 @@ import OpenAI from "openai";
 import { storage } from "../../storage";
 import type { Message, Lead } from "@shared/schema";
 import { storeConversationMemory, retrieveConversationMemory } from "./super-memory";
+import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector';
+import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation';
+import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
@@ -106,7 +109,7 @@ export async function autoUpdateLeadStatus(
   messages: Message[]
 ): Promise<void> {
   const statusDetection = detectConversationStatus(messages);
-  
+
   // Only auto-update if confidence is high enough
   if (statusDetection.confidence < 0.7) {
     console.log(`⚠️ Low confidence (${statusDetection.confidence}) - skipping auto-update for lead ${leadId}`);
@@ -227,7 +230,7 @@ export async function generateAIReply(
   conversationHistory: Message[],
   platform: 'instagram' | 'whatsapp' | 'email',
   userContext?: { businessName?: string; brandVoice?: string }
-): Promise<{ text: string; useVoice: boolean }> {
+): Promise<{ text: string; useVoice: boolean; detections?: any }> {
 
   if (isDemoMode) {
     const demoResponses = [
@@ -256,9 +259,9 @@ export async function generateAIReply(
     role: m.direction === 'inbound' ? 'user' : 'assistant',
     content: m.body
   }));
-  
+
   // Add enriched context to system prompt if available
-  const enrichedContext = memoryResult.context 
+  const enrichedContext = memoryResult.context
     ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
     : '';
 
@@ -341,6 +344,63 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
 - Always end with a question that emotionally connects them to their desired outcome
 - Make them FEEL the transformation, not just understand it
 - Create the sense that waiting is more painful than acting now${enrichedContext}`;
+
+  const lastMessage = conversationHistory[conversationHistory.length - 1];
+  if (!lastMessage || lastMessage.direction !== 'inbound') {
+    return { text: "Thanks for reaching out! How can I help you?", useVoice: false };
+  }
+
+  // Detect language
+  const languageDetection = detectLanguage(lastMessage.body);
+  if (languageDetection.confidence > 0.6 && languageDetection.code !== 'en') {
+    await updateLeadLanguage(lead.id, languageDetection);
+  }
+
+  // Detect price objections
+  const priceObjection = detectPriceObjection(lastMessage.body);
+  if (priceObjection.detected) {
+    const response = await generateNegotiationResponse(priceObjection.severity, lead.id);
+    await saveNegotiationAttempt(lead.id, priceObjection.suggestedDiscount, false);
+
+    // Translate if needed
+    const localizedResponse = await getLocalizedResponse(
+      response,
+      languageDetection,
+      'objection'
+    );
+
+    return {
+      text: localizedResponse,
+      useVoice: false,
+      detections: { priceObjection, language: languageDetection }
+    };
+  }
+
+  // Detect competitor mentions
+  const competitorMention = detectCompetitorMention(lastMessage.body);
+  if (competitorMention.detected) {
+    await trackCompetitorMention(
+      lead.userId,
+      lead.id,
+      competitorMention.competitor,
+      competitorMention.context,
+      competitorMention.sentiment
+    );
+
+    // Translate if needed
+    const localizedResponse = await getLocalizedResponse(
+      competitorMention.response,
+      languageDetection,
+      'product_info'
+    );
+
+    return {
+      text: localizedResponse,
+      useVoice: false,
+      detections: { competitorMention, language: languageDetection }
+    };
+  }
+
 
   try {
     const completion = await openai.chat.completions.create({
