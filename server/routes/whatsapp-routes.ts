@@ -79,12 +79,16 @@ router.post('/disconnect', requireAuth, async (req, res) => {
 
     await whatsAppService.destroySession(userId);
 
-    await storage.updateUser(userId, {
-      metadata: {
-        whatsapp_connected: false,
-        whatsapp_disconnected_at: new Date().toISOString(),
-      },
-    });
+    const user = await storage.getUserById(userId);
+    if (user) {
+      await storage.updateUser(userId, {
+        metadata: {
+          ...user.metadata,
+          whatsapp_connected: false,
+          whatsapp_disconnected_at: new Date().toISOString(),
+        } as any,
+      });
+    }
 
     res.json({
       success: true,
