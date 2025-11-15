@@ -75,15 +75,26 @@ export class DrizzleStorage implements IStorage {
     // If metadata is being updated, merge it with existing metadata instead of overwriting
     if (updates.metadata) {
       const { metadata, ...otherUpdates } = updates;
-      const setClause: any = {
-        ...otherUpdates,
-        metadata: sql`users.metadata || ${JSON.stringify(metadata)}::jsonb`,
-        updatedAt: new Date(),
+      
+      // Get current user to merge metadata
+      const currentUser = await this.getUser(id);
+      if (!currentUser) {
+        return undefined;
+      }
+      
+      // Merge metadata
+      const mergedMetadata = {
+        ...(currentUser.metadata ?? {}),
+        ...metadata,
       };
       
       const result = await db
         .update(users)
-        .set(setClause)
+        .set({ 
+          ...otherUpdates, 
+          metadata: mergedMetadata as any,
+          updatedAt: new Date() 
+        })
         .where(eq(users.id, id))
         .returning();
       return result[0];

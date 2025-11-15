@@ -67,35 +67,44 @@ router.get('/worker/status', async (req: Request, res: Response) => {
     // Get queue statistics from Neon database
     let queueStats = null;
     if (db) {
-      const pendingRows = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(followUpQueue)
-        .where(eq(followUpQueue.status, 'pending'));
-      const { count: pendingCount } = pendingRows[0] || { count: 0 };
-      
-      const processingRows = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(followUpQueue)
-        .where(eq(followUpQueue.status, 'processing'));
-      const { count: processingCount } = processingRows[0] || { count: 0 };
-      
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const completedRows = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(followUpQueue)
-        .where(
-          and(
-            eq(followUpQueue.status, 'completed'),
-            gte(followUpQueue.processedAt, oneDayAgo)
-          )
-        );
-      const { count: completedCount } = completedRows[0] || { count: 0 };
-      
-      queueStats = {
-        pending: pendingCount || 0,
-        processing: processingCount || 0,
-        completedLast24h: completedCount || 0,
-      };
+      try {
+        const pendingRows = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(followUpQueue)
+          .where(eq(followUpQueue.status, 'pending'));
+        const { count: pendingCount } = pendingRows?.[0] || { count: 0 };
+        
+        const processingRows = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(followUpQueue)
+          .where(eq(followUpQueue.status, 'processing'));
+        const { count: processingCount } = processingRows?.[0] || { count: 0 };
+        
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const completedRows = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(followUpQueue)
+          .where(
+            and(
+              eq(followUpQueue.status, 'completed'),
+              gte(followUpQueue.processedAt, oneDayAgo)
+            )
+          );
+        const { count: completedCount } = completedRows?.[0] || { count: 0 };
+        
+        queueStats = {
+          pending: pendingCount || 0,
+          processing: processingCount || 0,
+          completedLast24h: completedCount || 0,
+        };
+      } catch (error) {
+        console.error('Error fetching queue stats:', error);
+        queueStats = {
+          pending: 0,
+          processing: 0,
+          completedLast24h: 0,
+        };
+      }
     }
     
     res.json({

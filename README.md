@@ -85,7 +85,7 @@
 **Lifetime Value (LTV):** $900 (12-month retention)
 **Customer Acquisition Cost (CAC) Target:** <$90 (10:1 LTV:CAC ratio)
 
-## 🆕 Recently Added Features (January 2025)
+## 🆕 Recently Added Features (November 2025)
 
 We just completed 13 major features that transform Audnix into a complete AI sales automation platform. Here's everything new:
 
@@ -560,11 +560,17 @@ We just completed 13 major features that transform Audnix into a complete AI sal
 
 ## 🎯 Current Status: Production-Ready MVP v1.0
 
-**Last Updated:** January 2025
+**Last Updated:** November 15, 2025
 
 This is a fully functional SaaS platform with complete authentication, database, pricing, and feature gating. Ready for production deployment and real users.
 
-**✨ Revolutionary Features (January 2025):**
+**💳 Stripe Payment Note:**
+- **Initial subscription activation** works without webhooks (verified client-side on checkout completion)
+- **Webhooks required for**: automatic downgrades on failed payments, refunds, and subscription cancellations
+- **Recommendation**: Add webhook endpoint before production launch for full payment automation
+- Webhook setup takes ~5 minutes and is documented in `docs/STRIPE_PAYMENT_LINKS_SETUP.md`
+
+**✨ Revolutionary Features (November 2025):**
 - **Intelligent Comment Detection**: No keywords needed - AI analyzes context, tone, and behavior
 - **Real Username Usage**: Uses actual Instagram handles in personalized DMs
 - **Context-Aware Messaging**: Every DM references what the lead said and wants
