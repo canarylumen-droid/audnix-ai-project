@@ -85,6 +85,46 @@
 **Lifetime Value (LTV):** $900 (12-month retention)
 **Customer Acquisition Cost (CAC) Target:** <$90 (10:1 LTV:CAC ratio)
 
+## 🆕 Recently Added Features
+
+### Advanced Analytics & Intelligence (January 2025)
+- ✅ **Smart Lead Scoring System** - AI calculates 0-100 scores based on engagement, response time, conversion signals, sentiment, and recency
+- ✅ **Lead Temperature Tracking** - Automatic hot 🔥, warm 🌡️, cold ❄️ classification with real-time notifications
+- ✅ **Predictive Analytics Engine** - Forecasts expected conversions and projected revenue based on pipeline health
+- ✅ **Performance Insights Dashboard** - Shows which channels convert best and optimal engagement times
+- ✅ **Actionable Recommendations** - AI suggests next steps (e.g., "Send voice message today" or "Re-engagement needed")
+- ✅ **Competitor Detection** - Automatically flags when leads mention competitors (ManyChat, CommentGuard, etc.)
+- ✅ **Price Negotiation AI** - Detects price objections and suggests dynamic discounts based on lead score
+- ✅ **Multi-Language Support** - Auto-detects lead language and responds in their native language
+- ✅ **Smart Reply Suggestions** - Generate 3 quick reply options (professional, friendly, urgent) for any conversation
+- ✅ **Weekly Insights Worker** - Automatic performance reports every 7 days with AI-generated insights
+- ✅ **Voice Minutes Tracking** - Real-time usage widget, auto-lock when depleted, instant top-ups
+- ✅ **Super Memory Integration** - Permanent conversation storage for long-term context retention
+
+### Video Comment Automation (January 2025)
+- ✅ **Unlimited Video Monitoring** - Track multiple Instagram Reels/videos simultaneously
+- ✅ **Intelligent Comment Detection** - AI reads context, no keyword triggers needed (destroys ManyChat)
+- ✅ **Smart Reply Timing** - 2-8 minute delays based on lead temperature (not instant like bots)
+- ✅ **Per-Video CTA Links** - Each video can have unique product links with custom CTA text
+- ✅ **Professional Follow Requests** - AI asks politely after conversion (only when lead responds positively)
+- ✅ **Real-Time Stats** - Dashboard shows comments checked, DMs sent, conversions, follow requests
+
+### Security & Encryption (January 2025)
+- ✅ **AES-256-GCM Encryption** - All sensitive data encrypted at rest
+- ✅ **WhatsApp OTP Authentication** - Secure verification without storing credentials
+- ✅ **Instagram OAuth Security** - Credentials discarded after token exchange
+- ✅ **Session Token Encryption** - All sessions encrypted end-to-end
+- ✅ **No Plain-Text Secrets** - All API keys and tokens encrypted in database
+
+### UI/UX Improvements (January 2025)
+- ✅ **Voice Minutes Widget** - Live usage progress bar with real-time updates (30s polling)
+- ✅ **Plan Badge Banner** - Shows current plan (Trial, Starter, Pro, Enterprise) with upgrade CTA
+- ✅ **Trial Reminder System** - Countdown notifications (7 days, 3 days, 1 day, expired)
+- ✅ **Upgrade Prompts** - Feature-gated modals with "Upgrade Now" buttons
+- ✅ **Import Animations** - Beautiful loading states for Instagram/WhatsApp/Email imports
+- ✅ **Dark Mode Support** - Full theme toggle across dashboard
+- ✅ **Mobile Responsive** - Optimized for phones and tablets
+
 ## ✨ Features
 
 ### Coming Soon: CSV Lead Import & Multi-Channel Outreach 🚀
