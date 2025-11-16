@@ -553,63 +553,53 @@ export default function IntegrationsPage() {
                 >
                   {providerId === "instagram" && (
                     <Card
-                      className="hover-elevate border-blue-500/30 bg-blue-500/5"
+                      className="hover-elevate border-emerald-500/30 bg-emerald-500/5"
                       data-testid={`card-integration-${providerId}`}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-500/10">
-                              <Instagram className="h-6 w-6 text-blue-500" data-testid={`icon-${providerId}`} />
+                            <div className="p-2 rounded-lg bg-emerald-500/10">
+                              <Instagram className="h-6 w-6 text-emerald-500" data-testid={`icon-${providerId}`} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
                                   Instagram
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600">OAuth Setup Pending</Badge>
+                                <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600">CSV Import Ready</Badge>
                               </div>
                               <CardDescription className="text-sm">
-                                API credentials pending • Use CSV import now
+                                Import your Instagram leads manually while OAuth is in setup
                               </CardDescription>
                             </div>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
                             <div className="text-xs space-y-1">
-                              <p className="font-semibold text-blue-800 dark:text-blue-300">Instagram OAuth Unavailable</p>
-                              <p className="text-blue-700 dark:text-blue-400">Meta API credentials are being processed. Meanwhile:</p>
+                              <p className="font-semibold text-emerald-800 dark:text-emerald-300">✅ Week 1 Strategy: CSV Import</p>
+                              <p className="text-emerald-700 dark:text-emerald-400">Perfect for launch while Meta API credentials are processed:</p>
                               <ul className="list-disc list-inside space-y-0.5 ml-2">
-                                <li><strong>Import Instagram leads via CSV</strong> (works now)</li>
-                                <li>Use WhatsApp & Email (fully working)</li>
-                                <li>OAuth will auto-enable when we get API keys</li>
+                                <li><strong>Export Instagram DMs</strong> from your phone/desktop</li>
+                                <li><strong>Upload CSV</strong> with name, username, last message</li>
+                                <li><strong>AI starts working immediately</strong> - no OAuth needed</li>
+                                <li>OAuth auto-enables when credentials arrive (no user action)</li>
                               </ul>
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            className="flex-1"
-                            onClick={() => window.location.href = '/dashboard/lead-import'}
-                            data-testid={`button-csv-import-${providerId}`}
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Import CSV
-                          </Button>
-                          <Button
-                            className="flex-1"
-                            variant="outline"
-                            disabled
-                            data-testid={`button-connect-${providerId}`}
-                          >
-                            <Lock className="h-4 w-4 mr-2" />
-                            OAuth Soon
-                          </Button>
-                        </div>
+                        <Button
+                          className="w-full bg-emerald-500 hover:bg-emerald-600"
+                          onClick={() => window.location.href = '/dashboard/lead-import'}
+                          data-testid={`button-csv-import-${providerId}`}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import Instagram CSV Now
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
