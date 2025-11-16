@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS admin_whitelist (
 -- Replace these with your actual admin emails
 INSERT INTO admin_whitelist (email, status) 
 VALUES 
-  ('admin@audnix.ai', 'active'),
-  ('founder@audnix.ai', 'active'),
-  ('ceo@audnix.ai', 'active')
+  ('admin@audnixai.com', 'active'),
+  ('canarylumen@gmail.com', 'active'),
+  ('ceo@audnixai.com', 'active')
 ON CONFLICT (email) DO NOTHING;
 
 -- Create index for fast email lookups
