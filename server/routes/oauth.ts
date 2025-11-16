@@ -6,6 +6,11 @@ import { GmailOAuth } from '../lib/oauth/gmail';
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { encrypt } from '../lib/crypto/encryption';
+import { Resend } from 'resend';
+
+// ⚠️ CRITICAL: You MUST set RESEND_API_KEY in Replit Secrets
+// OTPs are sent via Resend from auth@audnixai.com
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();
@@ -23,14 +28,14 @@ router.get('/connect/instagram', async (req: Request, res: Response) => {
   try {
     // Get user ID from session or query params
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     // Generate OAuth URL
     const authUrl = instagramOAuth.getAuthorizationUrl(userId);
-    
+
     res.json({ authUrl });
   } catch (error) {
     console.error('Error initiating Instagram OAuth:', error);
@@ -67,21 +72,21 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
       console.error('Failed to exchange code for token');
       return res.redirect('/dashboard/integrations?error=token_exchange_failed');
     }
-    
+
     // Exchange for long-lived token
     const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
     if (!longLivedToken || !longLivedToken.access_token) {
       console.error('Failed to get long-lived token');
       return res.redirect('/dashboard/integrations?error=token_exchange_failed');
     }
-    
+
     // Get user profile
     const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
     if (!profile || !profile.id) {
       console.error('Failed to get user profile');
       return res.redirect('/dashboard/integrations?error=profile_fetch_failed');
     }
-    
+
     // Save token and update user
     await instagramOAuth.saveToken(stateData.userId, {
       access_token: longLivedToken.access_token,
@@ -132,13 +137,13 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
 router.post('/oauth/instagram/disconnect', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     await instagramOAuth.revokeToken(userId);
-    
+
     // Update integration status
     if (supabaseAdmin) {
       await supabaseAdmin
@@ -164,13 +169,13 @@ router.post('/oauth/instagram/disconnect', async (req: Request, res: Response) =
 router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     const token = await instagramOAuth.getValidToken(userId);
-    
+
     if (token) {
       // Try to get profile to verify token is working
       try {
@@ -201,7 +206,7 @@ router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
 router.post('/oauth/whatsapp/connect', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -241,7 +246,7 @@ router.post('/oauth/whatsapp/connect', async (req: Request, res: Response) => {
 router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -261,13 +266,13 @@ router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) =>
 router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     const credentials = await whatsappOAuth.getCredentials(userId);
-    
+
     if (credentials) {
       res.json({ 
         connected: true,
@@ -290,7 +295,7 @@ router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
 router.get('/connect/gmail', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -326,11 +331,11 @@ router.get('/oauth/gmail/callback', async (req: Request, res: Response) => {
 
     // Exchange code for tokens
     const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
-    
+
     // Get user profile
     const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
     const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
-    
+
     // Save tokens
     await gmailOAuth.saveToken(stateData.userId, tokens, {
       ...userProfile,
@@ -369,13 +374,13 @@ router.get('/oauth/gmail/callback', async (req: Request, res: Response) => {
 router.post('/oauth/gmail/disconnect', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     await gmailOAuth.revokeToken(userId);
-    
+
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('integrations')
@@ -400,13 +405,13 @@ router.post('/oauth/gmail/disconnect', async (req: Request, res: Response) => {
 router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     const token = await gmailOAuth.getValidToken(userId);
-    
+
     if (token) {
       try {
         const profile = await gmailOAuth.getGmailProfile(token);
@@ -440,7 +445,7 @@ router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
 router.get('/connect/google-calendar', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -485,7 +490,7 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
     try {
       // Import storage at top of file if not already
       const { storage } = await import('../storage');
-      
+
       await storage.createIntegration({
         userId,
         provider: 'google_calendar',
@@ -512,7 +517,7 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
 router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -541,7 +546,7 @@ router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Respo
 router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -615,7 +620,7 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
 router.get('/oauth/google-calendar/events', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.query.user_id as string;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -639,7 +644,7 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
 
     // Decrypt tokens
     const tokens = JSON.parse(integration.encrypted_meta);
-    
+
     // Check if token needs refresh
     const expiresAt = new Date(tokens.expiresAt);
     let accessToken = tokens.accessToken;
@@ -647,7 +652,7 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
     if (expiresAt < new Date() && tokens.refreshToken) {
       const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
       accessToken = refreshedTokens.accessToken;
-      
+
       // Update stored tokens
       const updatedTokens = {
         ...tokens,
@@ -667,7 +672,7 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
 
     // Get upcoming events
     const rawEvents = await googleCalendarOAuth.listUpcomingEvents(accessToken);
-    
+
     // Transform events to match frontend expectations
     const events = rawEvents.map((event: any) => ({
       id: event.id,
@@ -680,7 +685,7 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
       location: event.location || null,
       description: event.description || null,
     }));
-    
+
     res.json({ events });
   } catch (error) {
     console.error('Error fetching calendar events:', error);
@@ -694,7 +699,7 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
 router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
