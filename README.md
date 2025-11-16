@@ -477,17 +477,17 @@ We just completed 18 major features that transform Audnix into a complete AI sal
 - "Use 'Price Objection Template' for this lead"
 - **Time Savings**: 5 min → 30 seconds per lead
 
-#### Mobile App (PWA+)
-- Full-featured mobile experience
-- Push notifications for hot leads
-- Reply on-the-go
-- Offline mode (queues messages)
-- **Convenience**: Manage leads from phone
-
-#### Dark Mode Inbox (Enhanced)
-- Eye strain reduction
-- Night shift for late-night lead management
-- **Quality of Life**: Power users love this
+#### Mobile & UX
+- ✅ Desktop design polished and professional
+- ✅ Dark mode support with theme toggle
+- ✅ PWA support (installable app)
+- ✅ Push notifications with sound
+- ✅ Real-time updates via WebSocket
+- ✅ Timestamps on all notifications (e.g., "5 mins ago")
+- ⚠️ **Landing page mobile issues** - Text overlaps on phones (needs responsive fixes)
+- ⚠️ **Dashboard sidebar** - Overlaps on tablets (needs drawer on mobile)
+- ⚠️ **Charts on mobile** - Don't resize properly on small screens
+- **Status**: Desktop-first, mobile polish needed (4-6 hours work)
 
 ### 💰 Monetization Features
 
@@ -720,6 +720,13 @@ When voice minutes are exhausted:
 - ✅ Follow button appears only when lead responds positively
 - ✅ Expert-level automation - no pleading, always respectful
 
+### 6. **Comment Reply Feature (100% Done - With Optional Setting)**
+- ✅ Bot can reply to comments BEFORE sending DM (optional setting)
+- ✅ Controlled via `auto_reply_enabled` in video monitor settings
+- ✅ Reply with emoji or short text → then sends personalized DM
+- ✅ Default: DM only (safer for ban prevention)
+- ✅ Advanced users: Enable comment replies for higher engagement
+
 ## 🎨 PDF Brand Extraction & Branded Emails ✅ FULLY IMPLEMENTED
 
 **Automatic Brand Identity Extraction:**
@@ -796,23 +803,39 @@ When voice minutes are exhausted:
 - Reply to comments
 - Follow/unfollow automation
 
-### WhatsApp (OTP Authentication)
-**Setup**: Enter phone → WhatsApp sends OTP → Enter code → Connected
+### WhatsApp (Web.js)
+**Setup**: QR code scan (session storage in `uploads/.wwebjs_auth/`)
 
-**Security:**
-- ✅ WhatsApp sends OTP directly (not us)
-- ✅ No credentials stored anywhere
-- ✅ Persistent encrypted sessions
-- ✅ End-to-end encrypted messages
-- ✅ All data stays in your secure connection
+**What Works:**
+- ✅ QR code authentication
+- ✅ Send/receive text messages
+- ✅ Media support (images, voice notes)
+- ✅ Group message detection (auto-skipped)
+- ✅ Session persistence across restarts
 
-**Features:**
-- Persistent sessions (no re-authentication needed)
-- Auto-import all WhatsApp conversations
-- Send/receive messages in real-time
-- Media support (images, voice notes)
-- Group detection (skips group messages)
-- Human-like delays (anti-ban protection)
+**Known Limitations:**
+- ⚠️ **Session expires after 14 days of inactivity** - Users must re-scan QR
+- ⚠️ **WhatsApp Web limits** - Can't send to users who haven't messaged first
+- ⚠️ **No official API** - Uses wrapper library (ban risk if overused)
+- ⚠️ **Human-like delays required** - 2-5 second gaps between messages
+
+**Alternative**: WhatsApp Business API (official, requires Meta approval, $0 for first 1,000 messages/month)
+
+### Google Calendar
+**Setup**: OAuth flow (backend ready, UI incomplete)
+
+**What Works:**
+- ✅ OAuth connection
+- ✅ Read calendar permissions
+- ✅ Backend API endpoints exist
+
+**What's Missing:**
+- ❌ "Book Call" button in conversations page
+- ❌ Calendar booking page UI
+- ❌ Meeting link creation from dashboard
+- ❌ Automatic follow-up scheduling from calendar events
+
+**Status**: 80% complete - backend done, needs frontend connection
 
 ## 🎯 Why This is Transformative for Creators
 
@@ -1107,4 +1130,33 @@ The webhook handler is already implemented in:
 - **Method:** POST
 - **Status:** ✅ Production-ready (just add webhook secret)
 
-**Built with React, Express, PostgreSQL, Supabase, OpenAI, and Meta APIs** | **Ready to deploy on Replit in minutes** 🚀
+## 🆘 Common Issues & Solutions
+
+### "Users pay but don't get upgraded"
+**Problem**: Webhooks not configured  
+**Solution**: Follow `STRIPE_PAYMENT_LINKS_COMPLETE.md` Step 6 (webhooks are mandatory!)
+
+### "Landing page text overlaps on mobile"
+**Problem**: Need responsive text classes  
+**Solution**: Coming in next update (or fork and fix `client/src/pages/landing.tsx`)
+
+### "Calendar integration not working"
+**Problem**: Backend ready, UI not connected  
+**Solution**: Feature 80% done - booking page UI coming soon
+
+### "Trial user can't access video automation"
+**Problem**: Feature-gated correctly, but no visual lock  
+**Solution**: Working as designed - upgrade to unlock (UX improvement planned)
+
+### "WhatsApp session expired"
+**Problem**: 14-day inactivity limit  
+**Solution**: Users must re-scan QR code (automatic for WhatsApp Web wrapper)
+
+**Check console logs for detailed errors:**
+```bash
+⚠️  STRIPE_WEBHOOK_SECRET not set - payments won't upgrade users!
+⚠️  OPENAI_API_KEY not set - AI features disabled
+✅ Database connected successfully
+```
+
+**Everything works when properly configured. Review `.env.example` for all required keys!** 🚀
