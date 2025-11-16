@@ -46,6 +46,27 @@ export class DrizzleStorage implements IStorage {
     const trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 3);
 
+    // SECURITY: Always default to 'member' - only elevate to 'admin' if whitelist verified
+    // NEVER trust caller-provided role to prevent privilege escalation
+    let userRole: 'admin' | 'member' = 'member';
+    try {
+      const whitelistCheck = await db.execute(sql`
+        SELECT id FROM admin_whitelist 
+        WHERE LOWER(email) = LOWER(${insertUser.email})
+          AND status = 'active'
+        LIMIT 1
+      `);
+      
+      if (whitelistCheck.rows && whitelistCheck.rows.length > 0) {
+        userRole = 'admin';
+        console.log(`[ADMIN] Creating admin user from whitelist: ${insertUser.email}`);
+      }
+    } catch (error) {
+      console.error("[ADMIN] Error checking whitelist during user creation:", error);
+      // SECURITY: Force 'member' role on whitelist check failure
+      userRole = 'member';
+    }
+
     const result = await db
       .insert(users)
       .values({
@@ -58,7 +79,7 @@ export class DrizzleStorage implements IStorage {
         plan: insertUser.plan || "trial",
         trialExpiresAt: insertUser.trialExpiresAt || trialExpiry,
         replyTone: insertUser.replyTone || "professional",
-        role: insertUser.role || "member",
+        role: userRole,
         stripeCustomerId: insertUser.stripeCustomerId || null,
         stripeSubscriptionId: insertUser.stripeSubscriptionId || null,
         supabaseId: insertUser.supabaseId || null,

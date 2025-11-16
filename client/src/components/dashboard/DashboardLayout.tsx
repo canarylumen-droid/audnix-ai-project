@@ -62,6 +62,7 @@ const navItems: NavItem[] = [
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
   { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
   { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
+  { label: "Admin Panel", icon: Shield, path: "/admin", adminOnly: true },
 ];
 
 const mobileNavItems = [

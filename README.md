@@ -87,7 +87,23 @@
 
 ## 🆕 Recently Added Features (November 2025)
 
-We just completed 13 major features that transform Audnix into a complete AI sales automation platform. Here's everything new:
+We just completed 18 major features that transform Audnix into a complete AI sales automation platform. Here's everything new:
+
+### 🛡️ Admin Dashboard (LATEST - Full Platform Management)
+
+**Complete Admin System for SaaS Management**
+- **Location:** `client/src/pages/admin/`, `server/routes/admin-routes.ts`
+- **Whitelist-Based Access**: Only pre-approved emails can access admin panel
+- **Analytics Dashboard**: Real-time metrics (users, revenue, MRR, leads, messages)
+- **User Management**: Search/view all users, see activity, leads, integrations
+- **Lead Monitoring**: Browse all leads across platform (read-only)
+- **Revenue Tracking**: Daily/monthly revenue charts, MRR calculations
+- **Channel Performance**: Instagram, WhatsApp, Email conversion rates
+- **Admin Settings**: Invite/revoke admin access via email whitelist
+- **Security**: Read-only access prevents data tampering
+- **Future Features**: Notifications, announcements, terms updates (documented)
+
+**Documentation:** See `ADMIN_DASHBOARD.md` for complete setup guide
 
 ### 1. ✅ Advanced Lead Scoring System
 **Location:** `server/lib/ai/lead-scoring.ts`

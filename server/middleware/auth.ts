@@ -82,7 +82,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
 
 /**
  * Admin-only middleware - requires user to be an admin
- * Checks both user role and admin whitelist
+ * Checks both user role AND admin whitelist (strict enforcement)
  */
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
@@ -102,33 +102,39 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     });
   }
 
-  if (user.role !== 'admin') {
-    return res.status(403).json({ 
-      error: "Forbidden",
-      message: "Admin access required"
-    });
-  }
-
-  // Check admin whitelist
+  // CRITICAL: Check admin whitelist FIRST (primary security control)
   try {
     const { db } = await import("../db");
     const { sql } = await import("drizzle-orm");
     
     const whitelistCheck = await db.execute(sql`
-      SELECT * FROM admin_whitelist 
-      WHERE email = ${user.email.toLowerCase()} 
+      SELECT id, email, status FROM admin_whitelist 
+      WHERE LOWER(email) = LOWER(${user.email})
         AND status = 'active'
       LIMIT 1
     `);
 
     if (!whitelistCheck.rows || whitelistCheck.rows.length === 0) {
+      console.warn(`[SECURITY] Non-whitelisted user attempted admin access: ${user.email}`);
       return res.status(403).json({ 
         error: "Forbidden",
-        message: "Your email is not in the admin whitelist"
+        message: "Admin access denied"
       });
     }
+
+    // Secondary check: ensure role is set correctly
+    if (user.role !== 'admin') {
+      console.warn(`[SECURITY] Whitelisted user ${user.email} has incorrect role: ${user.role}`);
+      // Auto-fix the role for whitelisted users
+      await storage.updateUser(user.id, { role: 'admin' });
+      user.role = 'admin';
+    }
   } catch (error) {
-    console.error("Admin whitelist check error:", error);
+    console.error("[SECURITY] Admin whitelist check failed:", error);
+    return res.status(500).json({ 
+      error: "Internal server error",
+      message: "Unable to verify admin access"
+    });
   }
 
   (req as any).user = user;

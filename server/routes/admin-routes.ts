@@ -74,8 +74,8 @@ router.get("/overview", async (req: Request, res: Response) => {
       period: "last_30_days",
     });
   } catch (error) {
-    console.error("Error fetching admin overview:", error);
-    res.status(500).json({ error: "Failed to fetch overview data" });
+    console.error("[ADMIN] Error fetching overview:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -98,8 +98,8 @@ router.get("/analytics/user-growth", async (req: Request, res: Response) => {
 
     res.json({ growth: userGrowth.rows });
   } catch (error) {
-    console.error("Error fetching user growth:", error);
-    res.status(500).json({ error: "Failed to fetch user growth data" });
+    console.error("[ADMIN] Error fetching user growth:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -143,8 +143,8 @@ router.get("/analytics/revenue", async (req: Request, res: Response) => {
 
     res.json({ revenue: revenueData });
   } catch (error) {
-    console.error("Error fetching revenue analytics:", error);
-    res.status(500).json({ error: "Failed to fetch revenue data" });
+    console.error("[ADMIN] Error fetching revenue:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -164,8 +164,8 @@ router.get("/analytics/channels", async (req: Request, res: Response) => {
 
     res.json({ channels: channelStats.rows });
   } catch (error) {
-    console.error("Error fetching channel analytics:", error);
-    res.status(500).json({ error: "Failed to fetch channel data" });
+    console.error("[ADMIN] Error fetching channels:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -205,8 +205,8 @@ router.get("/users", async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
+    console.error("[ADMIN] Error fetching users:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -274,8 +274,8 @@ router.get("/users/:userId", async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching user details:", error);
-    res.status(500).json({ error: "Failed to fetch user details" });
+    console.error("[ADMIN] Error fetching user details:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -318,8 +318,8 @@ router.get("/users/:userId/activity", async (req: Request, res: Response) => {
 
     res.json({ activity });
   } catch (error) {
-    console.error("Error fetching user activity:", error);
-    res.status(500).json({ error: "Failed to fetch user activity" });
+    console.error("[ADMIN] Error fetching user activity:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -372,8 +372,8 @@ router.get("/leads", async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching leads:", error);
-    res.status(500).json({ error: "Failed to fetch leads" });
+    console.error("[ADMIN] Error fetching leads:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -389,8 +389,8 @@ router.get("/whitelist", async (req: Request, res: Response) => {
 
     res.json({ whitelist: whitelist.rows });
   } catch (error) {
-    console.error("Error fetching admin whitelist:", error);
-    res.status(500).json({ error: "Failed to fetch whitelist" });
+    console.error("[ADMIN] Error fetching whitelist:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -413,8 +413,8 @@ router.post("/whitelist", async (req: Request, res: Response) => {
 
     res.json({ success: true, admin: result.rows[0] });
   } catch (error) {
-    console.error("Error adding to whitelist:", error);
-    res.status(500).json({ error: "Failed to add email to whitelist" });
+    console.error("[ADMIN] Error adding to whitelist:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -431,8 +431,8 @@ router.delete("/whitelist/:email", async (req: Request, res: Response) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error("Error removing from whitelist:", error);
-    res.status(500).json({ error: "Failed to remove email from whitelist" });
+    console.error("[ADMIN] Error removing from whitelist:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
