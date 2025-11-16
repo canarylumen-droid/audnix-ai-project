@@ -105,7 +105,7 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-base sm:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-0"
         >
-          Audnix replies like a real human across WhatsApp and Email.<br className="hidden sm:block" />
+          Audnix replies like a real human across Instagram, WhatsApp, and Email.<br className="hidden sm:block" />
           Natural timing (2–8 min), remembers context, engages when leads show intent.
         </motion.p>
 

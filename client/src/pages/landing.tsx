@@ -179,7 +179,7 @@ export default function Landing() {
           </h3>
 
           <p className="text-xl text-white/90">
-            Perfect for: DMs • inbound leads • price shoppers • ghosted prospects
+            Perfect for: Instagram DMs • WhatsApp leads • Email follow-ups • ghosted prospects
           </p>
         </div>
       </section>
@@ -206,7 +206,7 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-4 gap-4 sm:gap-6 mb-8">
             {[
-              { num: 1, text: "Connect channels (WhatsApp + Email — IG soon)" },
+              { num: 1, text: "Connect Instagram, WhatsApp & Email" },
               { num: 2, text: "Upload voice sample + brand PDF" },
               { num: 3, text: "Add calendar link" },
               { num: 4, text: "Done — it takes over" }
@@ -237,16 +237,16 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
-              "Human-like replies",
+              "AI-powered Instagram DM automation",
+              "Video comment monitoring & replies",
+              "Human-like WhatsApp & Email follow-ups",
               "Context + PDF understanding",
-              "Objection handling",
-              "Voice messages",
+              "Voice messages in your voice",
               "Smart intent scoring",
               "Auto-booking",
-              "Cold lead re-engagement",
-              "Email + WhatsApp + CSV",
-              "Unified inbox",
-              "Analytics"
+              "Objection handling",
+              "Unified inbox across all channels",
+              "Real-time analytics"
             ].map((feature) => (
               <div key={feature} className="flex items-center gap-2">
                 <Check className="w-5 h-5 text-emerald-400 flex-shrink-0" />
