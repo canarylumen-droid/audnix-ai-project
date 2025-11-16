@@ -368,9 +368,6 @@ export const userSchema = z.object({
   lastLogin: z.date().nullable(),
 });
 
-export type User = z.infer<typeof userSchema>;
-export type InsertUser = Omit<User, "id" | "createdAt">;
-
 // ========== LEADS ==========
 export const leadSchema = z.object({
   id: z.string().uuid(),
@@ -390,9 +387,6 @@ export const leadSchema = z.object({
   updatedAt: z.date(),
 });
 
-export type Lead = z.infer<typeof leadSchema>;
-export type InsertLead = Omit<Lead, "id" | "createdAt" | "updatedAt">;
-
 // ========== MESSAGES ==========
 export const messageSchema = z.object({
   id: z.string().uuid(),
@@ -405,9 +399,6 @@ export const messageSchema = z.object({
   metadata: z.record(z.any()).default({}),
   createdAt: z.date(),
 });
-
-export type Message = z.infer<typeof messageSchema>;
-export type InsertMessage = Omit<Message, "id" | "createdAt">;
 
 // ========== DEALS ==========
 export const dealSchema = z.object({
@@ -425,9 +416,6 @@ export const dealSchema = z.object({
   createdAt: z.date(),
 });
 
-export type Deal = z.infer<typeof dealSchema>;
-export type InsertDeal = Omit<Deal, "id" | "createdAt">;
-
 // ========== INTEGRATIONS ==========
 export const integrationSchema = z.object({
   id: z.string().uuid(),
@@ -439,9 +427,6 @@ export const integrationSchema = z.object({
   lastSync: z.date().nullable(),
   createdAt: z.date(),
 });
-
-export type Integration = z.infer<typeof integrationSchema>;
-export type InsertIntegration = Omit<Integration, "id" | "createdAt">;
 
 // ========== VOICE SETTINGS ==========
 export const voiceSettingSchema = z.object({
@@ -456,9 +441,6 @@ export const voiceSettingSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
 });
-
-export type VoiceSetting = z.infer<typeof voiceSettingSchema>;
-export type InsertVoiceSetting = Omit<VoiceSetting, "id" | "createdAt" | "updatedAt">;
 
 // ========== AUTOMATIONS ==========
 export const automationSchema = z.object({
@@ -482,9 +464,6 @@ export const automationSchema = z.object({
   updatedAt: z.date(),
 });
 
-export type Automation = z.infer<typeof automationSchema>;
-export type InsertAutomation = Omit<Automation, "id" | "createdAt" | "updatedAt">;
-
 // ========== CALENDAR EVENTS ==========
 export const calendarEventSchema = z.object({
   id: z.string().uuid(),
@@ -503,9 +482,6 @@ export const calendarEventSchema = z.object({
   createdAt: z.date(),
 });
 
-export type CalendarEvent = z.infer<typeof calendarEventSchema>;
-export type InsertCalendarEvent = Omit<CalendarEvent, "id" | "createdAt">;
-
 // ========== NOTIFICATIONS ==========
 export const notificationSchema = z.object({
   id: z.string().uuid(),
@@ -518,9 +494,6 @@ export const notificationSchema = z.object({
   metadata: z.record(z.any()).default({}),
   createdAt: z.date(),
 });
-
-export type Notification = z.infer<typeof notificationSchema>;
-export type InsertNotification = Omit<Notification, "id" | "createdAt">;
 
 // ========== TEAM MEMBERS ==========
 export const teamMemberSchema = z.object({
@@ -548,9 +521,6 @@ export const webhookSchema = z.object({
   failureCount: z.number().default(0),
   createdAt: z.date(),
 });
-
-export type Webhook = z.infer<typeof webhookSchema>;
-export type InsertWebhook = Omit<Webhook, "id" | "createdAt">;
 
 // ========== ADMIN METRICS ==========
 export const adminMetricsSchema = z.object({
@@ -610,9 +580,6 @@ export const insightSchema = z.object({
   generatedAt: z.date(),
 });
 
-export type Insight = z.infer<typeof insightSchema>;
-export type InsertInsight = Omit<Insight, "id" | "generatedAt">;
-
 // ========== API KEYS ==========
 export const apiKeySchema = z.object({
   id: z.string().uuid(),
@@ -623,6 +590,3 @@ export const apiKeySchema = z.object({
   expiresAt: z.date().nullable(),
   createdAt: z.date(),
 });
-
-export type ApiKey = z.infer<typeof apiKeySchema>;
-export type InsertApiKey = Omit<ApiKey, "id" | "createdAt">;

@@ -497,7 +497,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       <AvatarImage src={user.avatar || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary">{user.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline text-sm text-foreground">Hey 👋 {user.name}</span>
+                    <span className="hidden md:inline text-sm text-foreground">{user.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" data-testid="dropdown-profile">

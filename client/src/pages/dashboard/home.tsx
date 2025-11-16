@@ -135,10 +135,10 @@ export default function DashboardHome() {
       action: "/dashboard/inbox",
     },
     {
-      label: "Invite Teammate",
-      description: "Add team members",
+      label: "Import Leads",
+      description: "Upload leads from CSV",
       icon: UserPlus,
-      action: "/dashboard/settings",
+      action: "/dashboard/lead-import",
     },
   ];
 
@@ -184,53 +184,21 @@ export default function DashboardHome() {
               style={{ textShadow: "0 0 40px rgba(0, 200, 255, 0.3)" }}
             >
               <span className="inline-flex items-center gap-3">
-                {user?.name ? (
-                  <>
-                    <span className="text-white">Hey</span>
-                    <motion.span
-                      animate={prefersReducedMotion ? {} : {
-                        rotate: [0, 14, -8, 14, -4, 10, 0, 0],
-                        scale: [1, 1.2, 1],
-                      }}
-                      transition={prefersReducedMotion ? {} : {
-                        duration: 2,
-                        delay: 0.5,
-                        ease: "easeInOut",
-                      }}
-                      className="inline-block text-5xl"
-                    >
-                      👋
-                    </motion.span>
-                    <motion.p 
-                      className="text-white mt-3 text-xl font-medium" 
-                      data-testid="text-subtitle"
-                      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.6, delay: 0.3 }}
-                    >
-                      {hasAnyActivity
-                        ? "Here's what's happening with your leads today ✨"
-                        : "You don't have any activity yet. Connect your accounts to get started! 🚀"}
-                    </motion.p>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-white">Hey</span>
-                    <motion.span
-                      animate={prefersReducedMotion ? {} : {
-                        rotate: [0, 14, -8, 14, -4, 10, 0, 0],
-                      }}
-                      transition={prefersReducedMotion ? {} : {
-                        duration: 2,
-                        delay: 0.5,
-                        ease: "easeInOut",
-                      }}
-                      className="inline-block text-5xl"
-                    >
-                      👋
-                    </motion.span>
-                  </>
-                )}
+                <span className="text-white">{user?.name || 'There'}</span>
+                <motion.span
+                  animate={prefersReducedMotion ? {} : {
+                    rotate: [0, 14, -8, 14, -4, 10, 0, 0],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={prefersReducedMotion ? {} : {
+                    duration: 2,
+                    delay: 0.5,
+                    ease: "easeInOut",
+                  }}
+                  className="inline-block text-5xl"
+                >
+                  👋
+                </motion.span>
               </span>
             </motion.h1>
             <motion.p 
