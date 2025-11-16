@@ -84,28 +84,30 @@ export function HeroSection() {
         {/* Headline */}
         <motion.h1 
           variants={itemVariants}
-          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 px-2 sm:px-0"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 px-4 sm:px-6 md:px-0"
         >
-          Stop Letting Warm Leads<br />
+          Stop Letting Warm Leads<br className="hidden xs:block" />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            Go Cold
+            {" "}Go Cold
           </span>
         </motion.h1>
         
         {/* Subheadline */}
         <motion.p 
           variants={itemVariants}
-          className="text-xl sm:text-2xl md:text-3xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed font-light px-2 sm:px-0"
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
         >
-          Your AI sales rep that follows up, handles objections,<br className="hidden md:block" />
+          Your AI sales rep that follows up, handles objections,{" "}
+          <br className="hidden md:block" />
           and books meetings — while you sleep.
         </motion.p>
 
         <motion.p 
           variants={itemVariants}
-          className="text-base sm:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-0"
+          className="text-sm sm:text-base md:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6 md:px-0"
         >
-          Audnix replies like a real human across Instagram, WhatsApp, and Email.<br className="hidden sm:block" />
+          Audnix replies like a real human across Instagram, WhatsApp, and Email.{" "}
+          <br className="hidden sm:block" />
           Natural timing (2–8 min), remembers context, engages when leads show intent.
         </motion.p>
 

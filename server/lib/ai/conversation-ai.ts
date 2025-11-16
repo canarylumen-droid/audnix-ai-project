@@ -357,7 +357,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
   }
 
   // Detect price objections
-  const priceObjection = detectPriceObjection(lastMessage.body);
+  const priceObjection = await detectPriceObjection(lastMessage.body);
   if (priceObjection.detected) {
     const response = await generateNegotiationResponse(priceObjection.severity, lead.id);
     await saveNegotiationAttempt(lead.id, priceObjection.suggestedDiscount, false);

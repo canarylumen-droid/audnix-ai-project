@@ -11,6 +11,116 @@ router.use(requireAdmin);
 
 // ============ ANALYTICS ENDPOINTS ============
 
+// Get admin metrics (for admin dashboard)
+router.get("/metrics", async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    
+    // Get total users
+    const totalUsersResult = await db.select({ count: count() }).from(users);
+    const totalUsers = Number(totalUsersResult[0]?.count || 0);
+
+    // Get active users (logged in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const activeUsersResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(gte(users.lastLogin, thirtyDaysAgo));
+    const activeUsers = Number(activeUsersResult[0]?.count || 0);
+
+    // Get trial users
+    const trialUsersResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(eq(users.plan, 'trial'));
+    const trialUsers = Number(trialUsersResult[0]?.count || 0);
+
+    // Get paid users
+    const paidUsersResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(
+        sql`${users.stripeSubscriptionId} IS NOT NULL`,
+        sql`${users.plan} != 'trial'`
+      ));
+    const paidUsers = Number(paidUsersResult[0]?.count || 0);
+
+    // Calculate MRR
+    const planPrices: Record<string, number> = {
+      starter: 49,
+      pro: 199,
+      enterprise: 499,
+    };
+
+    const paidUsersWithPlans = await db
+      .select({ plan: users.plan })
+      .from(users)
+      .where(and(
+        sql`${users.stripeSubscriptionId} IS NOT NULL`,
+        sql`${users.plan} != 'trial'`
+      ));
+
+    const mrr = paidUsersWithPlans.reduce((total, user) => {
+      return total + (planPrices[user.plan] || 0);
+    }, 0);
+
+    // API burn - count of messages sent today (rough estimate of API usage)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const apiBurnResult = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(and(
+        gte(messages.createdAt, today),
+        eq(messages.direction, 'outbound')
+      ));
+    const apiBurn = Number(apiBurnResult[0]?.count || 0);
+
+    // Failed jobs - this would need a jobs table, for now return 0
+    const failedJobs = 0;
+
+    // Storage used - rough estimate based on message count
+    const totalMessagesResult = await db.select({ count: count() }).from(messages);
+    const totalMessages = Number(totalMessagesResult[0]?.count || 0);
+    const storageUsed = Math.round((totalMessages * 0.5) / 1024); // Rough estimate in MB
+
+    // Recent users (last 10)
+    const recentUsers = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        plan: users.plan,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(10);
+
+    res.json({
+      metrics: {
+        totalUsers,
+        activeUsers,
+        trialUsers,
+        paidUsers,
+        mrr,
+        apiBurn,
+        failedJobs,
+        storageUsed,
+      },
+      recentUsers: recentUsers.map(u => ({
+        ...u,
+        createdAt: u.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error fetching metrics:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Get dashboard overview
 router.get("/overview", async (req: Request, res: Response) => {
   try {

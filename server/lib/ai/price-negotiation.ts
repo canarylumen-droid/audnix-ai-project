@@ -25,7 +25,7 @@ const PRICE_OBJECTION_KEYWORDS = {
 /**
  * Detect price objections in message
  */
-export function detectPriceObjection(message: string): PriceObjection {
+export async function detectPriceObjection(message: string): Promise<PriceObjection> {
   const lowerMessage = message.toLowerCase();
   let severity: 'low' | 'medium' | 'high' = 'low';
   const foundKeywords: string[] = [];
@@ -63,8 +63,8 @@ export function detectPriceObjection(message: string): PriceObjection {
     detected,
     severity,
     keywords: foundKeywords,
-    suggestedDiscount: calculateOptimalDiscount(severity, null),
-    response: generateNegotiationResponse(severity, null)
+    suggestedDiscount: await calculateOptimalDiscount(severity, null),
+    response: await generateNegotiationResponse(severity, null)
   };
 }
 

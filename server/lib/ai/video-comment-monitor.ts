@@ -337,18 +337,29 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           });
         }
 
-        // STEP 1: Reply to comment FIRST (if enabled) with emoji + "check DM"
+        // STEP 1: Reply to comment FIRST with emoji + "check DM"
+        // This happens BEFORE sending DM (human-like flow)
+        let commentReplied = false;
         if (monitor.metadata?.replyToComments !== false) {
-          const commentReply = await generateCommentReply(
-            comment.text,
-            intent.detectedInterest || 'the offer',
-            videoContext,
-            monitor.metadata?.askForFollow || false,
-            monitor.metadata?.instagramHandle
-          );
+          try {
+            const commentReply = await generateCommentReply(
+              comment.text,
+              intent.detectedInterest || 'the offer',
+              videoContext,
+              monitor.metadata?.askForFollow || false,
+              monitor.metadata?.instagramHandle
+            );
 
-          await provider.replyToComment(comment.id, commentReply);
-          console.log(`✓ Replied to comment: "${commentReply}"`);
+            await provider.replyToComment(comment.id, commentReply);
+            commentReplied = true;
+            console.log(`✅ [1/3] Replied to comment: "${commentReply}"`);
+          } catch (error: any) {
+            console.error(`❌ Failed to reply to comment from ${comment.username}:`, error.message);
+            console.log(`⚠️  Will still attempt DM, but comment reply failed`);
+            // Continue to DM even if comment reply fails
+          }
+        } else {
+          console.log(`ℹ️  Comment reply disabled for this monitor`);
         }
 
         // STEP 2: Wait 2-8 minutes AFTER replying (human-like timing)
@@ -364,7 +375,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
         const replyDelay = baseDelay + jitter;
 
-        console.log(`⏰ Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
+        console.log(`⏰ [2/3] Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
         await new Promise(resolve => setTimeout(resolve, replyDelay));
 
 
@@ -384,6 +395,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
 
         await provider.sendMessage(comment.userId, fullMessage);
+        console.log(`✅ [3/3] DM sent to ${comment.username} with product link`);
 
         // Save message
         await storage.createMessage({
@@ -399,7 +411,8 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
             intent_type: intent.intentType,
             link_button: dm.linkButton,
             comment_id: comment.id,
-            comment_replied: monitor.metadata?.replyToComments || false
+            comment_replied: commentReplied,
+            comment_reply_enabled: monitor.metadata?.replyToComments !== false
           }
         });
 

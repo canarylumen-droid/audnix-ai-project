@@ -1,3 +1,6 @@
+import type { Lead, Message } from '@shared/schema';
+import { supabaseAdmin } from '../supabase-admin';
+
 const SUPER_MEMORY_API_KEY = process.env.SUPER_MEMORY_API_KEY;
 const SUPER_MEMORY_API_URL = 'https://api.supermemory.ai/v1';
 
@@ -360,4 +363,47 @@ function extractObjections(text: string): string[] {
 
   const lowerText = text.toLowerCase();
   return objectionIndicators.filter(obj => lowerText.includes(obj));
+}
+
+/**
+ * Generate a summary of the conversation
+ */
+async function generateConversationSummary(messages: Message[]): Promise<string> {
+  if (messages.length === 0) return 'No messages in conversation';
+  
+  const messageCount = messages.length;
+  const inboundCount = messages.filter(m => m.direction === 'inbound').length;
+  const outboundCount = messages.filter(m => m.direction === 'outbound').length;
+  
+  return `Conversation with ${messageCount} messages (${inboundCount} inbound, ${outboundCount} outbound)`;
+}
+
+/**
+ * Extract key insights from messages
+ */
+function extractKeyInsights(messages: Message[]): string[] {
+  const insights: string[] = [];
+  const allText = messages.map(m => m.body).join(' ').toLowerCase();
+  
+  // Check for pricing discussions
+  if (allText.includes('price') || allText.includes('cost') || allText.includes('budget')) {
+    insights.push('Discussed pricing');
+  }
+  
+  // Check for timeline discussions
+  if (allText.includes('when') || allText.includes('timeline') || allText.includes('deadline')) {
+    insights.push('Timeline discussed');
+  }
+  
+  // Check for decision-making signals
+  if (allText.includes('ready') || allText.includes('approve') || allText.includes('sign')) {
+    insights.push('Ready to move forward');
+  }
+  
+  // Check for objections
+  if (allText.includes('concern') || allText.includes('worried') || allText.includes('issue')) {
+    insights.push('Has concerns');
+  }
+  
+  return insights;
 }

@@ -4,12 +4,29 @@
 ## Overview
 Create **7 payment links** in Stripe Dashboard for subscriptions and voice minute top-ups.
 
-⚠️ **CRITICAL: Webhooks are REQUIRED for your app to work!**
-- Payment links let users PAY, but **your app won't know they paid** without webhooks
-- Without webhooks: Users pay → money goes to Stripe → **nothing happens in your app**
-- With webhooks: Users pay → Stripe notifies your app → **plan upgrades + minutes added instantly**
+## ⚠️ CRITICAL REQUIREMENT: WEBHOOKS ARE MANDATORY ⚠️
 
-**You MUST configure webhooks** (Step 6 below) or payments will succeed but users won't get access.
+**Payment links alone DO NOT upgrade users automatically!**
+
+### What Works WITHOUT Webhooks:
+✅ Payment checkout page loads
+✅ Users can enter credit card and pay
+✅ Money goes to your Stripe account
+✅ Payment success page shows
+
+### What DOES NOT Work WITHOUT Webhooks:
+❌ Users are NOT upgraded to paid plan after payment
+❌ Voice minutes are NOT added after top-up purchase
+❌ Subscription status does NOT sync to your database
+❌ Refunds are NOT processed automatically
+❌ Failed payments are NOT tracked
+❌ Subscription cancellations do NOT downgrade users
+
+### The Truth:
+Without webhooks, users will PAY but receive NOTHING. Their payment succeeds in Stripe, but your application has no idea they paid. You must manually upgrade every single user by editing the database.
+
+**YOU MUST CONFIGURE WEBHOOKS (Step 6 below) BEFORE LAUNCHING!**
+This is not optional. This is not "nice to have." This is absolutely required for your app to function.
 
 ---
 
