@@ -3,7 +3,13 @@
 
 ## Overview
 Create **7 payment links** in Stripe Dashboard for subscriptions and voice minute top-ups.
-**NO API keys needed in code** - just paste the links into `.env`
+
+⚠️ **CRITICAL: Webhooks are REQUIRED for your app to work!**
+- Payment links let users PAY, but **your app won't know they paid** without webhooks
+- Without webhooks: Users pay → money goes to Stripe → **nothing happens in your app**
+- With webhooks: Users pay → Stripe notifies your app → **plan upgrades + minutes added instantly**
+
+**You MUST configure webhooks** (Step 6 below) or payments will succeed but users won't get access.
 
 ---
 
@@ -158,6 +164,41 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 ---
 
+## 6️⃣ WEBHOOK SETUP (CRITICAL - DON'T SKIP!)
+
+**Without this, users pay but get NOTHING in your app!**
+
+### Test Mode Webhook
+1. Go to [Stripe Dashboard → Developers → Webhooks](https://dashboard.stripe.com/test/webhooks)
+2. Click **Add endpoint**
+3. **Endpoint URL**: `https://your-repl-name.replit.app/api/webhooks/stripe`
+   - Replace `your-repl-name` with your actual Replit URL
+   - Example: `https://audnix-ai.replit.app/api/webhooks/stripe`
+4. **Events to listen to**: Select these 3 events:
+   - ✅ `checkout.session.completed` (CRITICAL - triggers plan upgrade)
+   - ✅ `customer.subscription.deleted` (handles cancellations)
+   - ✅ `invoice.payment_succeeded` (handles renewals)
+5. Click **Add endpoint**
+6. **Copy the Signing Secret** (starts with `whsec_...`)
+7. Add to Replit Secrets as: `STRIPE_WEBHOOK_SECRET=whsec_xxxxx`
+
+### Live Mode Webhook (Repeat for Production)
+1. Toggle to **Live mode** in Stripe Dashboard
+2. Go to Developers → Webhooks
+3. Add endpoint with your **production URL**: `https://your-production-domain.com/api/webhooks/stripe`
+4. Select same 3 events
+5. Copy **new signing secret** (different from test mode!)
+6. Update production `.env` with live webhook secret
+
+### Verify It Works
+1. Make a test purchase with card `4242 4242 4242 4242`
+2. Check Stripe Dashboard → Webhooks → Recent deliveries
+3. You should see `checkout.session.completed` with ✅ green checkmark
+4. Check your app - user should have upgraded plan or added minutes
+5. If webhook shows ❌ red X, check your server logs for errors
+
+---
+
 ## 🧪 Testing in Test Mode
 
 1. In Stripe Dashboard, toggle **Test mode** (top right)
@@ -198,22 +239,46 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 - [ ] All 7 payment links created in Test Mode
 - [ ] Metadata added to each link correctly
+- [ ] **WEBHOOK configured** (see Step 6 - CRITICAL!)
+- [ ] STRIPE_WEBHOOK_SECRET added to `.env`
 - [ ] Test purchase completed successfully
-- [ ] Webhook receives events
+- [ ] **Verify webhook triggered** in Stripe Dashboard → Developers → Webhooks → Events
 - [ ] All 7 payment links created in Live Mode
 - [ ] Live links added to production `.env`
+- [ ] **Live webhook configured** with production URL
 - [ ] Real purchase tested
-- [ ] User receives minutes/plan upgrade
+- [ ] **User balance updated in app** (check dashboard)
 - [ ] Email confirmation sent
 
 ---
 
 ## ⚠️ Important Notes
 
-- **NO Stripe API keys** needed in frontend/backend code
-- Payment links handle everything: checkout, webhooks, receipts
-- Metadata is critical - don't skip it!
+- **WEBHOOKS ARE MANDATORY** - payment links alone won't update your app!
+- Without webhooks: Users pay → get nothing → angry customers → refunds
+- With webhooks: Users pay → instant upgrade → happy customers → profit
+- Metadata is critical - webhooks use it to know what user bought
 - Always test in Test Mode before going live
-- Keep test and live links separate
+- Keep test and live webhook secrets separate (they're different!)
+- Monitor webhook deliveries in Stripe Dashboard to catch issues
 
-🎊 **You're done! Users can now subscribe and top up voice minutes.**
+🎊 **You're done! Users can now subscribe and top up voice minutes (IF webhooks are configured).**
+
+---
+
+## 🆘 Troubleshooting
+
+**Problem: User paid but didn't get upgrade**
+- ✅ Check Stripe Dashboard → Webhooks → Recent deliveries
+- ✅ Look for red X marks (failed webhook)
+- ✅ Click failed event → see error message
+- ✅ Common issues: Wrong webhook URL, missing STRIPE_WEBHOOK_SECRET, server crashed
+
+**Problem: Webhook shows 401 Unauthorized**
+- ✅ STRIPE_WEBHOOK_SECRET not set in environment variables
+- ✅ Wrong secret (test vs live mode mismatch)
+
+**Problem: Webhook shows 500 Internal Server Error**
+- ✅ Check server logs for detailed error
+- ✅ Database connection issue
+- ✅ Missing metadata in payment link
