@@ -24,11 +24,23 @@ interface OverviewData {
   totalMessages: number;
 }
 
+interface OnboardingStats {
+  total: number;
+  roles: Array<{ user_role: string; count: number }>;
+  sources: Array<{ source: string; count: number }>;
+  businessSizes: Array<{ business_size: string; count: number }>;
+}
+
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
 
   const { data: overview, isLoading } = useQuery<OverviewData>({
     queryKey: ["/api/admin/overview"],
+    refetchInterval: 30000,
+  });
+
+  const { data: onboarding } = useQuery<OnboardingStats>({
+    queryKey: ["/api/admin/analytics/onboarding"],
     refetchInterval: 30000,
   });
 
@@ -95,7 +107,14 @@ export default function AdminDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Audnix AI Premium
+              </h1>
+              <Badge variant="outline" className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border-emerald-500/30">
+                Admin Dashboard
+              </Badge>
+            </div>
             <p className="text-muted-foreground mt-1">
               Monitor and manage your Audnix AI platform
             </p>
@@ -186,6 +205,62 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Onboarding Analytics */}
+        {onboarding && onboarding.total > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold">User Onboarding Insights</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Users by Role</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {onboarding.roles.map((role: any) => (
+                      <div key={role.user_role} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">{role.user_role || 'Unknown'}</span>
+                        <Badge variant="secondary">{role.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Traffic Sources</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {onboarding.sources.slice(0, 6).map((source: any) => (
+                      <div key={source.source} className="flex items-center justify-between">
+                        <span className="text-sm">{source.source || 'Unknown'}</span>
+                        <Badge variant="secondary">{source.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Business Size</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {onboarding.businessSizes.map((size: any) => (
+                      <div key={size.business_size} className="flex items-center justify-between">
+                        <span className="text-sm capitalize">{size.business_size?.replace('_', ' ') || 'Unknown'}</span>
+                        <Badge variant="secondary">{size.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

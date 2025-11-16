@@ -279,6 +279,60 @@ router.get("/analytics/channels", async (req: Request, res: Response) => {
   }
 });
 
+// Get onboarding statistics
+router.get("/analytics/onboarding", async (req: Request, res: Response) => {
+  try {
+    const { onboardingProfiles } = await import("@shared/schema");
+    
+    // Get user role breakdown
+    const roleStats = await db.execute(sql`
+      SELECT 
+        user_role,
+        COUNT(*) as count
+      FROM onboarding_profiles
+      WHERE user_role IS NOT NULL
+      GROUP BY user_role
+      ORDER BY count DESC
+    `);
+
+    // Get source breakdown
+    const sourceStats = await db.execute(sql`
+      SELECT 
+        source,
+        COUNT(*) as count
+      FROM onboarding_profiles
+      WHERE source IS NOT NULL
+      GROUP BY source
+      ORDER BY count DESC
+    `);
+
+    // Get business size breakdown
+    const sizeStats = await db.execute(sql`
+      SELECT 
+        business_size,
+        COUNT(*) as count
+      FROM onboarding_profiles
+      WHERE business_size IS NOT NULL
+      GROUP BY business_size
+      ORDER BY count DESC
+    `);
+
+    // Total onboarded users
+    const totalResult = await db.select({ count: count() }).from(onboardingProfiles);
+    const totalOnboarded = Number(totalResult[0]?.count || 0);
+
+    res.json({
+      total: totalOnboarded,
+      roles: roleStats.rows,
+      sources: sourceStats.rows,
+      businessSizes: sizeStats.rows,
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error fetching onboarding stats:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // ============ USER MANAGEMENT ENDPOINTS ============
 
 // Search and list users

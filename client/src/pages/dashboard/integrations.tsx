@@ -47,7 +47,6 @@ export default function IntegrationsPage() {
   const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
-  const [showComingSoonDialog, setShowComingSoonDialog] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -307,12 +306,6 @@ export default function IntegrationsPage() {
   };
 
   const handleConnect = async (provider: string) => {
-    // Show coming soon dialog for Instagram only
-    if (provider === 'instagram') {
-      setShowComingSoonDialog(true);
-      return;
-    }
-
     try {
       // Get OAuth URL from backend for all providers
       const response = await fetch(`/api/connect/${provider}`, {
@@ -994,58 +987,6 @@ export default function IntegrationsPage() {
         <h2 className="text-xl font-semibold mb-4">WhatsApp Business (QR Code)</h2>
         <WhatsAppConnect />
       </div>
-
-      {/* Coming Soon Dialog */}
-      <Dialog open={showComingSoonDialog} onOpenChange={setShowComingSoonDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex flex-col items-center text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 10 }}
-                className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center"
-              >
-                <AlertCircle className="h-10 w-10 text-blue-500" />
-              </motion.div>
-              <div>
-                <DialogTitle className="text-2xl font-bold">Instagram OAuth Pending</DialogTitle>
-                <DialogDescription className="text-lg mt-2">
-                  Meta API credentials in progress
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="text-center space-y-4 py-4">
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p className="font-medium">We're waiting for Meta to approve our Instagram API access.</p>
-              <p>Meanwhile, you can still use Audnix AI with:</p>
-              <ul className="list-disc list-inside text-left space-y-1">
-                <li><strong>CSV Import:</strong> Upload Instagram leads manually (500 free)</li>
-                <li><strong>WhatsApp:</strong> Fully working with QR code connection</li>
-                <li><strong>Email:</strong> Gmail/Outlook OAuth ready now</li>
-              </ul>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                💡 OAuth will auto-enable when API keys arrive - no action needed!
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => {
-                  setShowComingSoonDialog(false);
-                  window.location.href = '/dashboard/lead-import';
-                }} 
-                className="flex-1"
-              >
-                Import CSV Now
-              </Button>
-              <Button onClick={() => setShowComingSoonDialog(false)} variant="outline" className="flex-1">
-                Got it!
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* All Set Dialog */}
       <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>

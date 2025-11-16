@@ -157,17 +157,6 @@ export function FeatureSection() {
                             <span>{detail}</span>
                           </motion.div>
                         ))}
-                        {feature.comingSoon && (
-                          <div className="mt-3 pt-3 border-t border-white/5">
-                            <p className="text-xs font-semibold text-cyan-400 mb-2">Coming Soon (Paid Plans):</p>
-                            {feature.comingSoon.map((item, i) => (
-                              <div key={i} className="flex items-start gap-2 text-sm text-white/60">
-                                <span className="text-cyan-400">→</span>
-                                <span>{item}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </motion.div>
                   )}
