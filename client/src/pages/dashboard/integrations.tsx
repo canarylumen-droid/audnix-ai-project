@@ -553,53 +553,63 @@ export default function IntegrationsPage() {
                 >
                   {providerId === "instagram" && (
                     <Card
-                      className="hover-elevate border-amber-500/30 bg-amber-500/5"
+                      className="hover-elevate border-blue-500/30 bg-blue-500/5"
                       data-testid={`card-integration-${providerId}`}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-amber-500/10">
-                              <Lock className="h-6 w-6 text-amber-500" data-testid={`icon-${providerId}`} />
+                            <div className="p-2 rounded-lg bg-blue-500/10">
+                              <Instagram className="h-6 w-6 text-blue-500" data-testid={`icon-${providerId}`} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
                                   Instagram
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600">Coming Soon</Badge>
+                                <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600">OAuth Setup Pending</Badge>
                               </div>
                               <CardDescription className="text-sm">
-                                Available after Week 1 • Import manually via CSV for now
+                                API credentials pending • Use CSV import now
                               </CardDescription>
                             </div>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                            <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                             <div className="text-xs space-y-1">
-                              <p className="font-semibold text-amber-800 dark:text-amber-300">Coming After Week 1</p>
-                              <p className="text-amber-700 dark:text-amber-400">We're setting up Instagram safely to avoid account bans. For now, you can:</p>
+                              <p className="font-semibold text-blue-800 dark:text-blue-300">Instagram OAuth Unavailable</p>
+                              <p className="text-blue-700 dark:text-blue-400">Meta API credentials are being processed. Meanwhile:</p>
                               <ul className="list-disc list-inside space-y-0.5 ml-2">
-                                <li>Import leads manually via CSV</li>
-                                <li>Connect WhatsApp & Email (available now)</li>
-                                <li>Free trial: Import up to 500 leads on us</li>
+                                <li><strong>Import Instagram leads via CSV</strong> (works now)</li>
+                                <li>Use WhatsApp & Email (fully working)</li>
+                                <li>OAuth will auto-enable when we get API keys</li>
                               </ul>
                             </div>
                           </div>
                         </div>
-                        <Button
-                          className="w-full"
-                          variant="outline"
-                          onClick={() => setShowComingSoonDialog(true)}
-                          data-testid={`button-connect-${providerId}`}
-                        >
-                          <Lock className="h-4 w-4 mr-2" />
-                          Coming Soon - Week 2
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            className="flex-1"
+                            onClick={() => window.location.href = '/dashboard/lead-import'}
+                            data-testid={`button-csv-import-${providerId}`}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Import CSV
+                          </Button>
+                          <Button
+                            className="flex-1"
+                            variant="outline"
+                            disabled
+                            data-testid={`button-connect-${providerId}`}
+                          >
+                            <Lock className="h-4 w-4 mr-2" />
+                            OAuth Soon
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -1004,31 +1014,45 @@ export default function IntegrationsPage() {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", damping: 10 }}
-                className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center"
+                className="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center"
               >
-                <Lock className="h-10 w-10 text-amber-500" />
+                <AlertCircle className="h-10 w-10 text-blue-500" />
               </motion.div>
               <div>
-                <DialogTitle className="text-2xl font-bold">Instagram Coming Soon!</DialogTitle>
+                <DialogTitle className="text-2xl font-bold">Instagram OAuth Pending</DialogTitle>
                 <DialogDescription className="text-lg mt-2">
-                  Available after Week 1 with safe setup
+                  Meta API credentials in progress
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           <div className="text-center space-y-4 py-4">
             <div className="text-sm text-muted-foreground space-y-2">
-              <p className="font-medium">We're getting help to set up Instagram safely to avoid account bans.</p>
-              <p>In the meantime, you can:</p>
+              <p className="font-medium">We're waiting for Meta to approve our Instagram API access.</p>
+              <p>Meanwhile, you can still use Audnix AI with:</p>
               <ul className="list-disc list-inside text-left space-y-1">
-                <li>Import Instagram leads via CSV (up to 500 free on trial)</li>
-                <li>Connect WhatsApp (works now with QR code)</li>
-                <li>Connect Email (Gmail/Outlook available now)</li>
+                <li><strong>CSV Import:</strong> Upload Instagram leads manually (500 free)</li>
+                <li><strong>WhatsApp:</strong> Fully working with QR code connection</li>
+                <li><strong>Email:</strong> Gmail/Outlook OAuth ready now</li>
               </ul>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                💡 OAuth will auto-enable when API keys arrive - no action needed!
+              </p>
             </div>
-            <Button onClick={() => setShowComingSoonDialog(false)} className="w-full">
-              Got it!
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  setShowComingSoonDialog(false);
+                  window.location.href = '/dashboard/lead-import';
+                }} 
+                className="flex-1"
+              >
+                Import CSV Now
+              </Button>
+              <Button onClick={() => setShowComingSoonDialog(false)} variant="outline" className="flex-1">
+                Got it!
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
