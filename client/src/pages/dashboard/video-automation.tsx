@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -33,7 +34,13 @@ import {
   Edit2,
   Eye,
   Users,
-  Target
+  Target,
+  Brain,
+  Zap,
+  DollarSign,
+  Globe,
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 
 // Countdown timer hook
@@ -68,6 +75,248 @@ function useCountdown(targetDate: Date | null) {
   }, [targetDate]);
 
   return timeLeft;
+}
+
+// Intent Detection Demo Component
+function IntentDetectionDemo() {
+  const [testComment, setTestComment] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const { toast } = useToast();
+
+  const demoComments = [
+    { text: "This is cool! 🔥", type: "high_interest", lang: "EN" },
+    { text: "How much does this cost?", type: "price_question", lang: "EN" },
+    { text: "¿Cuánto cuesta esto?", type: "price_question", lang: "ES" },
+    { text: "Wow amazing 😍", type: "high_interest", lang: "EN" },
+    { text: "Is this worth the money?", type: "price_objection", lang: "EN" },
+    { text: "Tell me more about this", type: "curious", lang: "EN" },
+    { text: "C'est trop cher", type: "price_objection", lang: "FR" }
+  ];
+
+  const analyzeComment = async (comment: string) => {
+    setAnalyzing(true);
+    try {
+      const response = await apiRequest("/api/video-automation/test-intent", {
+        method: "POST",
+        body: JSON.stringify({ comment, videoContext: "Product video" })
+      });
+      setResult(response);
+    } catch (error) {
+      toast({ title: "Failed to analyze", variant: "destructive" });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  return (
+    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20">
+            <Brain className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-xl">🧠 AI Intent Detection Engine</CardTitle>
+            <CardDescription>
+              No keywords needed. Understands context, emotion, and buying signals in any language.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Demo Examples */}
+        <div className="space-y-3">
+          <h4 className="font-semibold text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-yellow-500" />
+            Try These Examples (Click to Test)
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {demoComments.map((demo, idx) => (
+              <motion.button
+                key={idx}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setTestComment(demo.text);
+                  analyzeComment(demo.text);
+                }}
+                className="text-left p-3 rounded-lg bg-muted/50 hover:bg-muted border border-white/10 hover:border-primary/30 transition-all group"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <Badge variant="outline" className="text-xs">
+                    {demo.lang}
+                  </Badge>
+                  <Badge 
+                    className={`text-xs ${
+                      demo.type === 'high_interest' ? 'bg-green-500' :
+                      demo.type === 'price_objection' ? 'bg-red-500' :
+                      demo.type === 'price_question' ? 'bg-orange-500' :
+                      'bg-blue-500'
+                    }`}
+                  >
+                    {demo.type.replace('_', ' ')}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium group-hover:text-primary transition-colors">
+                  "{demo.text}"
+                </p>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Custom Input */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Or Test Your Own Comment
+          </Label>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Enter any comment in any language..."
+              value={testComment}
+              onChange={(e) => setTestComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && testComment.trim()) {
+                  analyzeComment(testComment);
+                }
+              }}
+            />
+            <Button 
+              onClick={() => analyzeComment(testComment)}
+              disabled={!testComment.trim() || analyzing}
+            >
+              {analyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Zap className="h-4 w-4 mr-1" />
+                  Analyze
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Results Display */}
+        <AnimatePresence mode="wait">
+          {result && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-muted/50 to-transparent border border-white/10"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  AI Analysis Results
+                </h4>
+                <Badge 
+                  variant={result.intent?.shouldDM ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {result.intent?.shouldDM ? "✅ SEND DM" : "❌ SKIP"}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Intent Type</p>
+                  <Badge className="w-full justify-center">
+                    {result.intent?.intentType}
+                  </Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Confidence</p>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={result.intent?.confidence * 100} 
+                      className="h-2"
+                    />
+                    <span className="text-xs font-medium">
+                      {Math.round(result.intent?.confidence * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Detected Interest</p>
+                  <p className="text-xs font-medium text-primary">
+                    {result.intent?.detectedInterest || "General curiosity"}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Action</p>
+                  <p className="text-xs font-medium">
+                    {result.recommendation}
+                  </p>
+                </div>
+              </div>
+
+              {/* What AI Detected */}
+              <div className="p-3 rounded-lg bg-muted/30 border border-white/5">
+                <h5 className="text-xs font-semibold mb-2 text-muted-foreground">
+                  🎯 What AI Detected:
+                </h5>
+                <div className="space-y-1 text-xs">
+                  {result.intent?.hasBuyingIntent && (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-3 w-3 text-green-500" />
+                      <span>Buying interest detected</span>
+                    </div>
+                  )}
+                  {result.intent?.detectedInterest && (
+                    <div className="flex items-center gap-2">
+                      <Brain className="h-3 w-3 text-blue-500" />
+                      <span>Interested in: {result.intent.detectedInterest}</span>
+                    </div>
+                  )}
+                  {result.intent?.intentType === 'price_objection' && (
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-3 w-3 text-orange-500" />
+                      <span>Price concern - AI will reframe value</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Premium Features Showcase */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/10">
+          <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="h-4 w-4 text-green-500" />
+              <span className="text-xs font-semibold">Multi-Language</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Detects intent in English, Spanish, French, German, Portuguese, and 50+ more
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Brain className="h-4 w-4 text-blue-500" />
+              <span className="text-xs font-semibold">Context-Aware</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Understands "wow" means different things based on video context
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-4 w-4 text-orange-500" />
+              <span className="text-xs font-semibold">Objection Handler</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Detects price objections and automatically reframes value
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 // Monitor Card Component
@@ -205,9 +454,6 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
               <code className="text-sm flex-1 truncate">{monitor.productLink || "No link set"}</code>
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            💾 Save to apply changes immediately to new DMs
-          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -235,12 +481,6 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
                   {monitor.stats?.replied || 0}
                 </Badge>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ignored</span>
-                <Badge variant="secondary" className="h-5">
-                  {monitor.stats?.ignored || 0}
-                </Badge>
-              </div>
             </div>
           </div>
 
@@ -264,70 +504,6 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
                 </div>
                 <Progress value={syncProgress} className="w-full h-2" />
               </div>
-              <div className="text-xs text-muted-foreground">
-                {monitor.isActive ? (
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" />
-                    Monitoring every 30 seconds
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <Pause className="h-3 w-3 text-orange-500" />
-                    Monitor paused
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Recent Activity Timeline
-          </h4>
-          <ScrollArea className="h-32">
-            <div className="space-y-2 pr-4">
-              {monitor.recentActivity?.length > 0 ? (
-                monitor.recentActivity.map((activity: any, idx: number) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-start gap-2 text-xs border-l-2 border-muted pl-3 py-1"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium">{activity.action}</p>
-                      <p className="text-muted-foreground">{activity.username}</p>
-                    </div>
-                    <span className="text-muted-foreground whitespace-nowrap">
-                      {activity.timestamp}
-                    </span>
-                  </motion.div>
-                ))
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-4">
-                  No recent activity
-                </p>
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-
-        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Follow Request Settings
-          </h4>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${monitor.metadata?.askFollowOnConvert ? 'bg-green-500' : 'bg-gray-400'}`} />
-              <span>On Conversion</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${monitor.metadata?.askFollowOnDecline ? 'bg-green-500' : 'bg-gray-400'}`} />
-              <span>On Decline</span>
             </div>
           </div>
         </div>
@@ -344,12 +520,10 @@ export default function VideoAutomationPage() {
   const [askFollowOnConvert, setAskFollowOnConvert] = useState(true);
   const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
 
-  // Fetch active video monitors
   const { data: monitors, isLoading } = useQuery({
     queryKey: ["/api/video-monitors"],
   });
 
-  // Create new monitor
   const createMonitor = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest("/api/video-monitors", {
@@ -376,7 +550,6 @@ export default function VideoAutomationPage() {
     },
   });
 
-  // Toggle monitor active status
   const toggleMonitor = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       return apiRequest(`/api/video-monitors/${id}`, {
@@ -389,7 +562,6 @@ export default function VideoAutomationPage() {
     },
   });
 
-  // Delete monitor
   const deleteMonitor = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest(`/api/video-monitors/${id}`, {
@@ -399,20 +571,6 @@ export default function VideoAutomationPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
       toast({ title: "Monitor deleted" });
-    },
-  });
-
-  // Update CTA link
-  const updateLink = useMutation({
-    mutationFn: async ({ id, ctaLink }: { id: string; ctaLink: string }) => {
-      return apiRequest(`/api/video-monitors/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ ctaLink }),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
-      toast({ title: "✅ Link updated" });
     },
   });
 
@@ -436,18 +594,74 @@ export default function VideoAutomationPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold">Instagram Video Automation</h1>
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+          Instagram Video Automation
+        </h1>
         <p className="text-muted-foreground mt-1">
-          AI monitors your videos 24/7, detects buying intent, and sends personalized DMs automatically
+          AI-powered sales engine that converts comments into booked meetings
         </p>
       </div>
 
-      {/* Create New Monitor */}
+      {/* Intent Detection Demo */}
+      <IntentDetectionDemo />
+
+      {/* Sales Copy Benefits */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-emerald-500/20">
+                <Brain className="h-5 w-5 text-emerald-400" />
+              </div>
+              <CardTitle className="text-base">No Keywords Needed</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Understands "This is cool!" and "😍" as buying signals. ManyChat needs exact trigger words like "link" or "interested"
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500/10 to-transparent border-orange-500/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-orange-500/20">
+                <DollarSign className="h-5 w-5 text-orange-400" />
+              </div>
+              <CardTitle className="text-base">Handles Price Objections</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Detects "too expensive" in any language and automatically reframes value in personalized DMs
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-blue-500/20">
+                <Users className="h-5 w-5 text-blue-400" />
+              </div>
+              <CardTitle className="text-base">Real Usernames</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Uses actual Instagram handles in DMs. References what THEY said. No robotic templates.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Create Monitor */}
       <Card>
         <CardHeader>
           <CardTitle>Add Video Monitor</CardTitle>
           <CardDescription>
-            Select an Instagram video to monitor for buying intent comments
+            Paste any Instagram video URL - AI handles the rest
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -459,71 +673,16 @@ export default function VideoAutomationPage() {
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              📹 Paste the URL of any Instagram post/reel you want to monitor
-            </p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="cta-link">CTA Button Link (Optional)</Label>
-            <div className="flex gap-2">
-              <LinkIcon className="h-4 w-4 mt-3 text-muted-foreground" />
-              <Input
-                id="cta-link"
-                placeholder="https://yourbrand.com/product"
-                value={ctaLink}
-                onChange={(e) => setCtaLink(e.target.value)}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              🔗 When leads show interest, AI will send this as a button (not plain text)
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="custom-message">Custom Greeting (Optional)</Label>
-            <Textarea
-              id="custom-message"
-              placeholder="Hey {name}! I saw your comment on my latest video..."
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              rows={3}
+            <Input
+              id="cta-link"
+              placeholder="https://yourbrand.com/product"
+              value={ctaLink}
+              onChange={(e) => setCtaLink(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              💬 Leave empty for AI-generated personalized messages. Use {"{name}"} for lead's name
-            </p>
-          </div>
-
-          <div className="space-y-4 border-t pt-4">
-            <h4 className="font-semibold text-sm">Follow Request Settings</h4>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="follow-convert">Ask for Follow After Conversion</Label>
-                <p className="text-xs text-muted-foreground">
-                  "Would you mind following us to stay connected?" (Professional tone)
-                </p>
-              </div>
-              <Switch
-                id="follow-convert"
-                checked={askFollowOnConvert}
-                onCheckedChange={setAskFollowOnConvert}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="follow-decline">Ask for Follow If Not Interested</Label>
-                <p className="text-xs text-muted-foreground">
-                  Politely request connection even if lead declines offer
-                </p>
-              </div>
-              <Switch
-                id="follow-decline"
-                checked={askFollowOnDecline}
-                onCheckedChange={setAskFollowOnDecline}
-              />
-            </div>
           </div>
 
           <Button
@@ -548,11 +707,7 @@ export default function VideoAutomationPage() {
 
       {/* Active Monitors */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Active Video Monitors</h2>
-          <Badge variant="outline">{monitors?.length || 0} videos monitored</Badge>
-        </div>
-
+        <h2 className="text-xl font-semibold">Active Monitors</h2>
         {isLoading ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -563,10 +718,7 @@ export default function VideoAutomationPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No video monitors yet</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add your first video above to start automating DMs
-              </p>
+              <p className="text-muted-foreground">No monitors yet</p>
             </CardContent>
           </Card>
         ) : (
@@ -591,43 +743,6 @@ export default function VideoAutomationPage() {
           </div>
         )}
       </div>
-
-      {/* Info Card */}
-      <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
-        <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">How It Works</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
-          <div className="flex gap-2">
-            <span>1️⃣</span>
-            <p>AI monitors your video comments 24/7 for buying intent signals</p>
-          </div>
-          <div className="flex gap-2">
-            <span>2️⃣</span>
-            <p>When detected, sends personalized DM: "Hey {"{name}"}, I saw your comment..."</p>
-          </div>
-          <div className="flex gap-2">
-            <span>3️⃣</span>
-            <p>Sends CTA link as a clickable button (not plain text) for better conversion</p>
-          </div>
-          <div className="flex gap-2">
-            <span>4️⃣</span>
-            <p>If warm lead or converted, sends 2 voice notes (15 sec each = 30 sec total)</p>
-          </div>
-          <div className="flex gap-2">
-            <span>5️⃣</span>
-            <p>Politely asks: "Would you mind following us to stay connected?" (Professional tone)</p>
-          </div>
-          <div className="flex gap-2">
-            <span>6️⃣</span>
-            <p>Triggers follow button only after lead replies "yes" (not automatic)</p>
-          </div>
-          <div className="flex gap-2">
-            <span>💰</span>
-            <p><strong>Replaces ManyChat entirely</strong> - Professional, scalable, expert-level automation</p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
