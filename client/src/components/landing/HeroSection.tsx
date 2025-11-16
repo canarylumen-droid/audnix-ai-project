@@ -86,9 +86,9 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 px-2 sm:px-0"
         >
-          Stop Letting Warm<br />
+          Audnix isn't a chatbot<br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            Leads Go Cold
+            It's your AI closer
           </span>
         </motion.h1>
         

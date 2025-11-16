@@ -33,6 +33,16 @@ export function Navigation() {
 
           <div className="hidden md:flex items-center gap-6">
             <a
+              href="#instagram"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+            >
+              Instagram Automation
+            </a>
+            <a
               href="#features"
               onClick={(e) => {
                 e.preventDefault();
@@ -52,19 +62,6 @@ export function Navigation() {
               className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
               Pricing
-            </a>
-            <a
-              href="#use-cases"
-              onClick={(e) => {
-                e.preventDefault();
-                const useCasesSection = document.querySelector('section:has(h2:contains("Built for"))');
-                if (useCasesSection) {
-                  useCasesSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-            >
-              Use Cases
             </a>
             <Link href="/auth">
               <Button
@@ -95,6 +92,17 @@ export function Navigation() {
           >
             <div className="flex flex-col gap-4">
               <a
+                href="#instagram"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
+              >
+                Instagram Automation
+              </a>
+              <a
                 href="#features"
                 onClick={(e) => {
                   e.preventDefault();
@@ -116,20 +124,6 @@ export function Navigation() {
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
                 Pricing
-              </a>
-              <a
-                href="#use-cases"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMobileMenuOpen(false);
-                  const useCasesSection = document.querySelector('section:has(h2:contains("Built for"))');
-                  if (useCasesSection) {
-                    useCasesSection.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
-              >
-                Use Cases
               </a>
               <Link href="/auth">
                 <Button

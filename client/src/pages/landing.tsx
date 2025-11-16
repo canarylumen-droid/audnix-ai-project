@@ -106,6 +106,111 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Instagram Features Section */}
+      <section id="instagram" className="py-20 px-4 bg-gradient-to-b from-emerald-500/5 to-transparent border-y border-emerald-500/10">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Instagram DM Automation<br />
+              <span className="text-primary">That Actually Works</span>
+            </h2>
+            <p className="text-xl text-white/80 max-w-3xl mx-auto">
+              Unlike ManyChat's keyword triggers, Audnix uses real AI to understand intent, emotion, and context in every comment and DM.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30 p-8">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                <Check className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4 text-white">Intelligent Comment Detection</h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Understands "This is cool!" as buying intent (no keywords needed)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Detects emotion from emojis: 🔥 = excitement, 👀 = curiosity</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Multi-language support - works in any language</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Context-aware: "wow" means different things in different contexts</span>
+                </li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/30 p-8">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
+                <Check className="w-6 h-6 text-cyan-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-4 text-white">Personalized DM Automation</h3>
+              <ul className="space-y-3 text-white/80">
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Uses actual Instagram usernames in replies</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>References what the lead said and wants</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Human-like timing: 2-8 minute delays</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <span>Handles objections and closes deals automatically</span>
+                </li>
+              </ul>
+            </AnimatedCard>
+          </div>
+
+          <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 rounded-2xl p-8 text-center">
+            <h3 className="text-2xl font-bold mb-4 text-white">The Audnix Difference</h3>
+            <div className="grid md:grid-cols-3 gap-6 text-left">
+              <div>
+                <h4 className="font-semibold text-emerald-400 mb-2">ManyChat</h4>
+                <ul className="space-y-1 text-white/60 text-sm">
+                  <li>• Keyword-based triggers</li>
+                  <li>• Misses 70% of interested leads</li>
+                  <li>• Generic template responses</li>
+                  <li>• Instagram only</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-cyan-400 mb-2">CommentGuard</h4>
+                <ul className="space-y-1 text-white/60 text-sm">
+                  <li>• Basic spam filtering</li>
+                  <li>• No conversation AI</li>
+                  <li>• No follow-up system</li>
+                  <li>• Instagram only</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-primary mb-2">Audnix AI</h4>
+                <ul className="space-y-1 text-white/90 text-sm">
+                  <li>✅ Real AI intent detection</li>
+                  <li>✅ Catches every interested lead</li>
+                  <li>✅ Personalized conversations</li>
+                  <li>✅ Instagram + WhatsApp + Email</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <FeatureSection />
 
       <section className="py-20 px-4 border-y border-white/10">

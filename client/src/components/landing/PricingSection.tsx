@@ -90,7 +90,7 @@ export function PricingSection() {
                     ))}
                   </ul>
 
-                  <Link href={tier.id === 'free' ? '/auth' : tier.id === 'enterprise' ? '/contact' : '/dashboard/pricing'}>
+                  <Link href="/auth">
                     <motion.div
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -99,13 +99,11 @@ export function PricingSection() {
                         className={`w-full rounded-full font-bold ${
                           isPopular
                             ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/25'
-                            : isEnterprise
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
-                            : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                            : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/20'
                         } transition-all duration-300`}
                         size="lg"
                       >
-                        {tier.id === 'free' ? 'Start Free →' : tier.id === 'enterprise' ? 'Talk to Sales' : 'Upgrade →'}
+                        {tier.id === 'free' ? 'Start Free →' : 'Get Started →'}
                       </Button>
                     </motion.div>
                   </Link>
