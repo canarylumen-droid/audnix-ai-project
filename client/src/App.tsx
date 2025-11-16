@@ -22,6 +22,12 @@ const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
 const LeadImportPage = lazy(() => import("./pages/dashboard/lead-import"));
 
+const AdminDashboard = lazy(() => import("./pages/admin"));
+const AdminUsers = lazy(() => import("./pages/admin/users"));
+const AdminAnalytics = lazy(() => import("./pages/admin/analytics"));
+const AdminLeads = lazy(() => import("./pages/admin/leads"));
+const AdminSettings = lazy(() => import("./pages/admin/settings"));
+
 import { ThemeProvider } from "next-themes";
 
 function Router() {
@@ -40,6 +46,11 @@ function Router() {
       <Route path="/dashboard/settings" component={SettingsPage} />
       <Route path="/dashboard/calendar" component={CalendarPage} />
       <Route path="/dashboard/insights" component={InsightsPage} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/analytics" component={AdminAnalytics} />
+      <Route path="/admin/leads" component={AdminLeads} />
+      <Route path="/admin/settings" component={AdminSettings} />
       <Route component={NotFound} />
     </Switch>
   );

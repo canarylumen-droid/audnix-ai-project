@@ -82,6 +82,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
 
 /**
  * Admin-only middleware - requires user to be an admin
+ * Checks both user role and admin whitelist
  */
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
@@ -106,6 +107,28 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
       error: "Forbidden",
       message: "Admin access required"
     });
+  }
+
+  // Check admin whitelist
+  try {
+    const { db } = await import("../db");
+    const { sql } = await import("drizzle-orm");
+    
+    const whitelistCheck = await db.execute(sql`
+      SELECT * FROM admin_whitelist 
+      WHERE email = ${user.email.toLowerCase()} 
+        AND status = 'active'
+      LIMIT 1
+    `);
+
+    if (!whitelistCheck.rows || whitelistCheck.rows.length === 0) {
+      return res.status(403).json({ 
+        error: "Forbidden",
+        message: "Your email is not in the admin whitelist"
+      });
+    }
+  } catch (error) {
+    console.error("Admin whitelist check error:", error);
   }
 
   (req as any).user = user;

@@ -1798,6 +1798,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register bulk actions routes
   app.use("/api/bulk", bulkActionsRoutes);
 
+  // Register admin routes
+  const adminRoutes = await import("./routes/admin-routes");
+  app.use("/api/admin", adminRoutes.default);
+
   const httpServer = createServer(app);
 
   // Initialize follow-up worker on server start
