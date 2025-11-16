@@ -34,7 +34,7 @@ export default function Landing() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto px-4 sm:px-0">
-            <AnimatedCard 
+            <AnimatedCard
               className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/30"
               glowColor="rgba(239, 68, 68, 0.2)"
             >
@@ -63,7 +63,7 @@ export default function Landing() {
               </div>
             </AnimatedCard>
 
-            <AnimatedCard 
+            <AnimatedCard
               className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30"
               glowColor="rgba(16, 185, 129, 0.3)"
             >
@@ -393,11 +393,11 @@ export default function Landing() {
                       {row.audnix === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : row.audnix}
                     </td>
                     <td className="text-center p-4 text-white/60">
-                      {row.manychat === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : 
+                      {row.manychat === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> :
                        row.manychat === false ? <X className="w-6 h-6 text-red-400/50 mx-auto" /> : row.manychat}
                     </td>
                     <td className="text-center p-4 text-white/60">
-                      {row.commentguard === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> : 
+                      {row.commentguard === true ? <Check className="w-6 h-6 text-emerald-400 mx-auto" /> :
                        row.commentguard === false ? <X className="w-6 h-6 text-red-400/50 mx-auto" /> : row.commentguard}
                     </td>
                   </tr>
@@ -451,8 +451,8 @@ export default function Landing() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-base md:text-lg lg:text-xl px-6 py-5 md:px-12 md:py-7 lg:py-8 rounded-full shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 group"
                 >
                   <span className="flex items-center gap-2">

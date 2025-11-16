@@ -41,9 +41,9 @@ export function PricingSection() {
                 className={`bg-gradient-to-b ${
                   isPopular 
                     ? 'from-primary/10 to-primary/5 border-primary shadow-lg shadow-primary/20' 
-                    : 'from-white/5 to-white/[0.02] border-white/10'
+                    : 'from-black/80 to-black/60 border-white/20'
                 } overflow-hidden`}
-                glowColor={isPopular ? "rgba(16, 185, 129, 0.4)" : "rgba(16, 185, 129, 0.2)"}
+                glowColor={isPopular ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)"}
               >
                 <div className="p-6 relative">
                   {isPopular && (
@@ -99,7 +99,7 @@ export function PricingSection() {
                         className={`w-full rounded-full font-bold ${
                           isPopular
                             ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/25'
-                            : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/20'
+                            : 'bg-black hover:bg-black/80 text-white border border-white/30 hover:border-white/50 shadow-lg'
                         } transition-all duration-300`}
                         size="lg"
                       >
@@ -120,8 +120,7 @@ export function PricingSection() {
           className="text-center"
         >
           <p className="text-white/60 text-sm">
-            Add-ons (paid plans only): Voice top-ups • Advanced analytics •{" "}
-            <span className="text-cyan-400 font-medium">Instagram DM automation (coming soon)</span>
+            Add-ons (paid plans only): Voice top-ups • Advanced analytics
           </p>
         </motion.div>
       </div>

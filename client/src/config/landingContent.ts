@@ -35,7 +35,7 @@ export const landingContent = {
         number: 1,
         title: "Auto-imports leads",
         description: "WhatsApp + Email + CSV",
-        note: "(Instagram coming soon)"
+        note: ""
       },
       {
         number: 2,
@@ -103,7 +103,7 @@ export const landingContent = {
     steps: [
       {
         number: 1,
-        text: "Connect channels (WhatsApp + Email — IG soon)"
+        text: "Connect Instagram, WhatsApp & Email"
       },
       {
         number: 2,
