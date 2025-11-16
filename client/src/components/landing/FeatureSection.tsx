@@ -12,10 +12,10 @@ const features = [
     details: [
       "WhatsApp Business API integration",
       "Email inbox sync (Gmail, Outlook)",
+      "Instagram DM automation",
       "Bulk CSV upload with auto-mapping",
       "Real-time contact deduplication"
-    ],
-    comingSoon: ["Instagram DM automation (paid plans)"]
+    ]
   },
   {
     number: 2,

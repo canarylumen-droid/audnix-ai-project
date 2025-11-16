@@ -321,11 +321,27 @@ router.get("/analytics/onboarding", async (req: Request, res: Response) => {
     const totalResult = await db.select({ count: count() }).from(onboardingProfiles);
     const totalOnboarded = Number(totalResult[0]?.count || 0);
 
+    // Transform snake_case to camelCase for frontend
+    const roles = (roleStats.rows as any[]).map(row => ({
+      userRole: row.user_role,
+      count: Number(row.count)
+    }));
+
+    const sources = (sourceStats.rows as any[]).map(row => ({
+      source: row.source,
+      count: Number(row.count)
+    }));
+
+    const businessSizes = (sizeStats.rows as any[]).map(row => ({
+      businessSize: row.business_size,
+      count: Number(row.count)
+    }));
+
     res.json({
       total: totalOnboarded,
-      roles: roleStats.rows,
-      sources: sourceStats.rows,
-      businessSizes: sizeStats.rows,
+      roles,
+      sources,
+      businessSizes,
     });
   } catch (error) {
     console.error("[ADMIN] Error fetching onboarding stats:", error);
