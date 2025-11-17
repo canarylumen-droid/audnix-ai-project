@@ -475,6 +475,55 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 py-12 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/logo.jpg" alt="Audnix AI" className="h-10 w-auto" />
+                <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                  Audnix AI
+                </span>
+              </div>
+              <p className="text-white/60 text-sm">
+                AI-powered sales automation that converts leads while you sleep.
+              </p>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-white mb-3">Legal</h3>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <Link href="/privacy-policy">
+                    <a className="text-white/60 hover:text-primary transition-colors">Privacy Policy</a>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms-of-service">
+                    <a className="text-white/60 hover:text-primary transition-colors">Terms of Service</a>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-white mb-3">Contact</h3>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li>support@audnixai.com</li>
+                <li>privacy@audnixai.com</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-white/10 pt-6 text-center">
+            <p className="text-white/40 text-sm">
+              © {new Date().getFullYear()} Audnix AI. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

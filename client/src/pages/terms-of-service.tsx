@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { FileText, Scale, AlertTriangle, CreditCard, Ban, CheckCircle2, ArrowLeft } from "lucide-react";
+import { FileText, Scale, AlertTriangle, CreditCard, Ban, CheckCircle2, ArrowLeft, Shield } from "lucide-react";
 import { Link } from "wouter";
 
 export default function TermsOfService() {
@@ -92,7 +92,7 @@ export default function TermsOfService() {
                   By accessing or using Audnix AI's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you disagree with any part of these terms, you may not access our service.
                 </p>
                 <p>
-                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses.
+                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses using Audnix AI for sales automation.
                 </p>
               </div>
             </Card>
@@ -106,9 +106,10 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Free Trial</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>New users receive a 3-day free trial with full access to features</li>
+                    <li>New users receive a 3-day free trial with full access to features (500 leads, 30 voice minutes)</li>
                     <li>No credit card required during trial period</li>
                     <li>Trial automatically expires unless you upgrade to a paid plan</li>
+                    <li>One trial per person/business (based on email address)</li>
                   </ul>
                 </div>
                 <div>
@@ -118,6 +119,7 @@ export default function TermsOfService() {
                     <li>Pro Plan: $99.99/month - 7,000 leads, 400 voice minutes</li>
                     <li>Enterprise Plan: $199.99/month - 20,000 leads, 1,000 voice minutes</li>
                     <li>All prices in USD, billed monthly via Stripe</li>
+                    <li>Taxes may apply based on your location</li>
                   </ul>
                 </div>
                 <div>
@@ -126,6 +128,7 @@ export default function TermsOfService() {
                     <li>Voice minutes top-ups available starting at $29 for 60 minutes</li>
                     <li>Lead capacity top-ups available starting at $29 for 1,000 leads</li>
                     <li>Top-ups are one-time purchases and do not auto-renew</li>
+                    <li>Unused top-ups carry over to next billing cycle</li>
                   </ul>
                 </div>
                 <div>
@@ -135,6 +138,7 @@ export default function TermsOfService() {
                     <li>Cancel anytime from your dashboard - no cancellation fees</li>
                     <li>Cancellations take effect at the end of current billing period</li>
                     <li>No refunds for partial months or unused voice minutes</li>
+                    <li>Failed payments may result in service suspension after 7-day grace period</li>
                   </ul>
                 </div>
               </div>
@@ -150,12 +154,14 @@ export default function TermsOfService() {
                   <h3 className="font-semibold text-foreground mb-2">Acceptable Use</h3>
                   <p>You agree to use Audnix AI only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>Sending spam, unsolicited messages, or violating anti-spam laws</li>
-                    <li>Violating Instagram, WhatsApp, or other platform terms of service</li>
-                    <li>Using the service to harass, abuse, or harm others</li>
+                    <li>Sending spam, unsolicited messages, or violating CAN-SPAM Act / GDPR</li>
+                    <li>Violating Instagram, WhatsApp, Gmail, or other platform terms of service</li>
+                    <li>Using the service to harass, abuse, threaten, or harm others</li>
                     <li>Attempting to hack, reverse engineer, or compromise our security</li>
                     <li>Sharing account credentials or reselling our services</li>
                     <li>Using AI-generated content to impersonate or deceive others</li>
+                    <li>Scraping or bulk-downloading data from the platform</li>
+                    <li>Bypassing usage limits or rate limits</li>
                   </ul>
                 </div>
                 <div>
@@ -165,20 +171,32 @@ export default function TermsOfService() {
                       ⚠️ IMPORTANT: Using unofficial Instagram APIs carries risk
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Your Instagram account may be banned by Meta (not our platform)</li>
-                      <li>We provide safe rate limits (40 DMs/hour) but cannot guarantee immunity</li>
-                      <li>We strongly recommend using official Instagram Graph API with Business accounts</li>
-                      <li>Use unofficial APIs at your own risk - Audnix AI is not liable for bans</li>
+                      <li>Your Instagram account may be temporarily or permanently banned by Meta (not our platform)</li>
+                      <li>We provide safe rate limits (40 DMs/hour) and human-like delays, but cannot guarantee immunity</li>
+                      <li>We strongly recommend using official Instagram Graph API with Business/Creator accounts</li>
+                      <li>Use unofficial APIs at your own risk - Audnix AI is not liable for platform bans or restrictions</li>
+                      <li>We recommend creating a separate Instagram account for automation testing</li>
                     </ul>
                   </div>
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Rate Limits & Fair Use</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>Voice message automation respects human-like delays (4-12 seconds)</li>
-                    <li>DM sending follows safe limits to prevent platform bans</li>
-                    <li>Excessive API abuse may result in account suspension</li>
+                    <li>Voice message automation respects human-like delays (4-12 seconds between messages)</li>
+                    <li>Instagram DMs limited to 40/hour to prevent platform flags</li>
+                    <li>WhatsApp messages limited to industry-standard rates</li>
+                    <li>Gmail sending uses Google's rate limits (2,000 emails/day for free Gmail, higher for Workspace)</li>
+                    <li>Excessive API abuse may result in temporary or permanent account suspension</li>
                     <li>We reserve the right to throttle accounts violating fair use policies</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Platform-Specific Policies</h3>
+                  <p className="text-sm mb-2">By using Audnix AI, you also agree to comply with:</p>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li><strong>Instagram:</strong> <a href="https://help.instagram.com/581066165581870" className="text-primary hover:underline" target="_blank">Instagram Community Guidelines</a> and <a href="https://www.facebook.com/help/instagram/477434105621119" className="text-primary hover:underline" target="_blank">Terms of Use</a></li>
+                    <li><strong>WhatsApp:</strong> <a href="https://www.whatsapp.com/legal/business-policy" className="text-primary hover:underline" target="_blank">WhatsApp Business Policy</a> and <a href="https://www.whatsapp.com/legal/terms-of-service" className="text-primary hover:underline" target="_blank">Terms of Service</a></li>
+                    <li><strong>Gmail:</strong> <a href="https://policies.google.com/terms" className="text-primary hover:underline" target="_blank">Google Terms of Service</a> and <a href="https://support.google.com/mail/answer/81126" className="text-primary hover:underline" target="_blank">Gmail Program Policies</a></li>
                   </ul>
                 </div>
               </div>
@@ -186,123 +204,235 @@ export default function TermsOfService() {
 
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-primary" />
+                4. Data Security & Integration Responsibilities
+              </h2>
+              <div className="space-y-4 text-muted-foreground">
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Our Security Obligations</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Encrypt all sensitive data using AES-256-GCM encryption</li>
+                    <li>Use TLS 1.3 for all data in transit</li>
+                    <li>Implement row-level security (RLS) to isolate user data</li>
+                    <li>Never store passwords (OAuth tokens only, encrypted)</li>
+                    <li>Conduct regular security audits and penetration testing</li>
+                    <li>Notify you within 72 hours of any data breach</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Your Responsibilities</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Keep your account credentials secure and confidential</li>
+                    <li>Use strong, unique passwords and enable 2FA when available</li>
+                    <li>Do not share your account with unauthorized users</li>
+                    <li>Comply with all third-party platform policies (Instagram, WhatsApp, Gmail)</li>
+                    <li>Ensure you have legal permission to contact leads in your database</li>
+                    <li>Review and approve AI-generated messages before automation (if uncertain)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Integration Disconnection</h3>
+                  <p className="text-sm">
+                    You can disconnect any integration (Gmail, Instagram, WhatsApp, Calendar) at any time without losing your account or lead data. 
+                    Disconnecting will revoke all access tokens and stop automated messaging for that platform.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-8">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Ban className="w-6 h-6 text-red-500" />
-                4. Account Termination
+                5. Account Termination
               </h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>We reserve the right to suspend or terminate your account if:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>You violate these Terms of Service or our Privacy Policy</li>
-                  <li>You engage in fraudulent activity or payment disputes</li>
-                  <li>You abuse our platform or send spam/malicious content</li>
-                  <li>Your account is used for illegal activities</li>
-                  <li>We're required to do so by law or regulation</li>
+                  <li>You engage in fraudulent activity, chargebacks, or payment disputes</li>
+                  <li>You abuse our platform, send spam, or engage in malicious content delivery</li>
+                  <li>Your account is used for illegal activities (phishing, fraud, harassment)</li>
+                  <li>We're required to do so by law, court order, or regulation</li>
+                  <li>Your account remains inactive for 12+ months without payment</li>
                 </ul>
                 <p className="mt-4">
-                  Upon termination, your access to services will cease immediately. You may request data export within 30 days of termination.
+                  <strong>Termination Process:</strong> Upon termination, your access to services will cease immediately. You may request data export within 30 days of termination. 
+                  After 30 days, all data will be permanently deleted.
+                </p>
+                <p className="mt-2">
+                  <strong>Appeals:</strong> If you believe your account was terminated in error, contact <strong className="text-primary">support@audnixai.com</strong> within 14 days.
                 </p>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">5. Intellectual Property</h2>
+              <h2 className="text-2xl font-bold mb-4">6. Intellectual Property</h2>
               <div className="space-y-3 text-muted-foreground">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Your Content</h3>
                   <p>You retain all rights to content you create using Audnix AI, including:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>Voice recordings and AI-generated clones</li>
-                    <li>Lead data and conversation transcripts</li>
-                    <li>Custom automation workflows and templates</li>
+                    <li>Voice recordings and AI-generated voice clones</li>
+                    <li>Lead data, conversation transcripts, and message content</li>
+                    <li>Custom automation workflows, templates, and scripts</li>
+                    <li>Brand documents, PDFs, and training materials you upload</li>
                   </ul>
                   <p className="mt-2">
-                    By using our service, you grant us a limited license to process and store your content solely to provide our services.
+                    <strong>License Grant:</strong> By using our service, you grant us a limited, non-exclusive, royalty-free license to process, store, and use your content 
+                    solely to provide Audnix AI services. This license terminates when you delete the content or close your account.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Our Platform</h3>
                   <p>
-                    Audnix AI, including our software, AI models, brand assets, and documentation, are protected by copyright and intellectual property laws. You may not copy, modify, or redistribute our platform without explicit permission.
+                    Audnix AI, including our software, AI models, algorithms, brand assets, logos, and documentation, are protected by copyright, trademark, 
+                    and intellectual property laws. You may not:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 mt-2">
+                    <li>Copy, modify, or distribute our platform without explicit permission</li>
+                    <li>Reverse engineer or decompile our software</li>
+                    <li>Remove copyright notices or proprietary markings</li>
+                    <li>Use our brand name, logo, or trademarks without written authorization</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">AI-Generated Content</h3>
+                  <p className="text-sm">
+                    <strong>Ownership:</strong> You own AI-generated messages created by Audnix AI for your leads. However, you are responsible for ensuring 
+                    these messages comply with platform policies and legal regulations.
+                  </p>
+                  <p className="text-sm mt-2">
+                    <strong>Training Data:</strong> With your consent (opt-in), anonymized conversation data may be used to improve AI models. You can opt out at any time in Settings.
                   </p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">6. Disclaimer of Warranties</h2>
+              <h2 className="text-2xl font-bold mb-4">7. Disclaimer of Warranties</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p className="font-semibold text-foreground">
-                  AUDNIX AI IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND.
+                  AUDNIX AI IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
                 </p>
                 <p>We do not guarantee:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Uninterrupted or error-free service operation</li>
-                  <li>Specific conversion rates or sales results</li>
-                  <li>Immunity from third-party platform bans (Instagram, WhatsApp, etc.)</li>
-                  <li>AI accuracy or voice cloning perfection</li>
-                  <li>Compatibility with future platform API changes</li>
+                  <li><strong>Uninterrupted Service:</strong> We may experience downtime for maintenance, updates, or unforeseen technical issues</li>
+                  <li><strong>Specific Results:</strong> We do not guarantee conversion rates, sales, or business outcomes from using our platform</li>
+                  <li><strong>Platform Immunity:</strong> We cannot prevent third-party platforms (Instagram, WhatsApp) from banning or restricting your account</li>
+                  <li><strong>AI Accuracy:</strong> AI-generated messages may occasionally be incorrect, inappropriate, or require human review</li>
+                  <li><strong>Voice Cloning Perfection:</strong> Voice clones aim for 90%+ accuracy but may not perfectly replicate all speech nuances</li>
+                  <li><strong>API Compatibility:</strong> Third-party APIs (Instagram, WhatsApp, Gmail) may change without notice, affecting functionality</li>
+                  <li><strong>Data Loss Prevention:</strong> While we implement backups, we are not liable for data loss due to user error or force majeure</li>
                 </ul>
                 <p className="mt-4">
-                  While we strive for excellence, we cannot be held liable for third-party platform policy changes or account suspensions.
+                  <strong>Testing Recommendation:</strong> We strongly recommend testing automation workflows on a small subset of leads before full deployment.
                 </p>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">7. Limitation of Liability</h2>
+              <h2 className="text-2xl font-bold mb-4">8. Limitation of Liability</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, AUDNIX AI SHALL NOT BE LIABLE FOR:
+                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, AUDNIX AI AND ITS AFFILIATES SHALL NOT BE LIABLE FOR:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Lost profits, revenue, or business opportunities</li>
-                  <li>Instagram/WhatsApp account bans or suspensions</li>
-                  <li>Data loss due to user error or third-party service failures</li>
-                  <li>Indirect, incidental, or consequential damages</li>
-                  <li>Damages exceeding the amount you paid in the past 12 months</li>
+                  <li><strong>Lost Profits or Revenue:</strong> Any loss of business, sales, or opportunities</li>
+                  <li><strong>Platform Bans:</strong> Instagram, WhatsApp, or Gmail account suspensions or restrictions</li>
+                  <li><strong>Data Loss:</strong> Loss of lead data, messages, or content due to user error or third-party service failures</li>
+                  <li><strong>Indirect Damages:</strong> Consequential, incidental, punitive, or special damages</li>
+                  <li><strong>Third-Party Actions:</strong> Actions or failures of OpenAI, ElevenLabs, Stripe, or other integrated services</li>
+                  <li><strong>Unauthorized Access:</strong> Security breaches caused by user negligence (weak passwords, shared credentials)</li>
                 </ul>
                 <p className="mt-4">
-                  Some jurisdictions do not allow liability limitations, so these may not apply to you.
+                  <strong>Maximum Liability:</strong> Our total liability to you for any claims arising from these Terms shall not exceed the amount you paid to Audnix AI 
+                  in the 12 months preceding the claim.
+                </p>
+                <p className="mt-2 text-sm">
+                  <strong>Note:</strong> Some jurisdictions do not allow liability limitations, so these may not apply to you.
                 </p>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">8. Indemnification</h2>
+              <h2 className="text-2xl font-bold mb-4">9. Indemnification</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  You agree to indemnify and hold harmless Audnix AI from any claims, damages, or expenses arising from:
+                  You agree to indemnify, defend, and hold harmless Audnix AI, its affiliates, officers, directors, employees, and agents from any claims, damages, 
+                  losses, liabilities, and expenses (including legal fees) arising from:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Your violation of these Terms or third-party platform policies</li>
-                  <li>Your use of our service in an unlawful manner</li>
-                  <li>Infringement of third-party intellectual property rights</li>
-                  <li>Your lead data or content violating privacy laws</li>
+                  <li>Your use of Audnix AI in an unlawful, fraudulent, or abusive manner</li>
+                  <li>Infringement of third-party intellectual property rights (e.g., using copyrighted content without permission)</li>
+                  <li>Your lead data or messaging content violating privacy laws (GDPR, CCPA, CAN-SPAM)</li>
+                  <li>Claims by leads, customers, or third parties arising from your use of our platform</li>
                 </ul>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">9. Changes to Terms</h2>
+              <h2 className="text-2xl font-bold mb-4">10. Compliance with Laws</h2>
               <div className="space-y-3 text-muted-foreground">
-                <p>
-                  We may modify these Terms at any time. We will notify you of significant changes via email or in-app notification at least 30 days before they take effect.
-                </p>
-                <p>
-                  Your continued use of Audnix AI after changes constitutes acceptance of the new terms. If you disagree, you must cancel your subscription before the effective date.
+                <p>You agree to comply with all applicable laws and regulations, including:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li><strong>CAN-SPAM Act (USA):</strong> Do not send unsolicited commercial emails. Include unsubscribe links.</li>
+                  <li><strong>GDPR (EU):</strong> Obtain consent before messaging EU residents. Honor data deletion requests.</li>
+                  <li><strong>CCPA (California):</strong> Provide privacy notices and allow California residents to opt out of data sales.</li>
+                  <li><strong>TCPA (USA):</strong> Do not send automated text messages without prior express written consent.</li>
+                  <li><strong>Data Protection Laws:</strong> Ensure you have legal permission to contact and store lead data.</li>
+                </ul>
+                <p className="mt-2 text-sm">
+                  <strong>Your Responsibility:</strong> You are solely responsible for ensuring your use of Audnix AI complies with laws in your jurisdiction and your leads' jurisdictions.
                 </p>
               </div>
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">10. Governing Law & Disputes</h2>
+              <h2 className="text-2xl font-bold mb-4">11. Changes to Terms</h2>
+              <p className="text-muted-foreground">
+                We may modify these Terms at any time. We will notify you of significant changes via email or in-app notification at least <strong>30 days before</strong> they take effect.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                Your continued use of Audnix AI after changes constitutes acceptance of the new terms. If you disagree, you must cancel your subscription before the effective date.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                <strong>Version History:</strong> All previous versions are archived at <a href="/terms-history" className="text-primary hover:underline">audnixai.com/terms-history</a>
+              </p>
+            </Card>
+
+            <Card className="p-8">
+              <h2 className="text-2xl font-bold mb-4">12. Governing Law & Disputes</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  These Terms are governed by the laws of [Your Jurisdiction], without regard to conflict of law provisions.
+                  These Terms are governed by the laws of <strong>[Your Jurisdiction - e.g., State of Delaware, USA]</strong>, without regard to conflict of law provisions.
                 </p>
                 <p>
-                  Any disputes shall be resolved through binding arbitration in accordance with [Arbitration Rules], except where prohibited by law.
+                  <strong>Dispute Resolution:</strong> Any disputes arising from these Terms shall be resolved through:
                 </p>
+                <ol className="list-decimal list-inside space-y-1 ml-4">
+                  <li><strong>Informal Negotiation:</strong> Contact <strong>legal@audnixai.com</strong> to attempt resolution (30-day good-faith period)</li>
+                  <li><strong>Binding Arbitration:</strong> If negotiation fails, disputes shall be resolved through binding arbitration in accordance with 
+                  the American Arbitration Association (AAA) rules, except where prohibited by law</li>
+                  <li><strong>Class Action Waiver:</strong> You agree to resolve disputes individually, not as part of a class action lawsuit</li>
+                </ol>
+                <p className="mt-2 text-sm">
+                  <strong>Exception:</strong> Either party may seek injunctive relief in court for intellectual property violations or breaches of confidentiality.
+                </p>
+              </div>
+            </Card>
+
+            <Card className="p-8">
+              <h2 className="text-2xl font-bold mb-4">13. Miscellaneous</h2>
+              <div className="space-y-3 text-muted-foreground">
+                <ul className="list-disc list-inside space-y-2">
+                  <li><strong>Entire Agreement:</strong> These Terms, along with our Privacy Policy, constitute the entire agreement between you and Audnix AI</li>
+                  <li><strong>Severability:</strong> If any provision is found invalid, the remaining provisions remain in effect</li>
+                  <li><strong>No Waiver:</strong> Our failure to enforce any right does not waive that right</li>
+                  <li><strong>Assignment:</strong> You may not assign these Terms. We may assign them to affiliates or acquirers</li>
+                  <li><strong>Force Majeure:</strong> We are not liable for delays or failures due to events beyond our control (natural disasters, wars, pandemics)</li>
+                  <li><strong>Export Compliance:</strong> You agree not to export or re-export our software to embargoed countries or prohibited entities</li>
+                </ul>
               </div>
             </Card>
 
@@ -312,9 +442,10 @@ export default function TermsOfService() {
                 Questions about these Terms? Contact our legal team:
               </p>
               <ul className="space-y-2 text-muted-foreground">
-                <li><strong>Email:</strong> legal@audnixai.com</li>
-                <li><strong>Support:</strong> support@audnixai.com</li>
-                <li><strong>Address:</strong> Audnix AI, Legal Department</li>
+                <li><strong>Legal Inquiries:</strong> <a href="mailto:legal@audnixai.com" className="text-primary hover:underline">legal@audnixai.com</a></li>
+                <li><strong>General Support:</strong> <a href="mailto:support@audnixai.com" className="text-primary hover:underline">support@audnixai.com</a></li>
+                <li><strong>Billing Questions:</strong> <a href="mailto:billing@audnixai.com" className="text-primary hover:underline">billing@audnixai.com</a></li>
+                <li><strong>Mailing Address:</strong> Audnix AI, Legal Department, [Your Address]</li>
               </ul>
             </Card>
           </motion.div>
