@@ -85,7 +85,7 @@ const sessionConfig: session.SessionOptions = {
 
 if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
   console.warn('⚠️  Using memory session store - sessions will be lost on restart');
-  console.log('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
+  console.warn('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
 }
 
 app.use(session(sessionConfig));
@@ -316,16 +316,21 @@ async function runMigrations() {
     }
   }
 
-  // Start background workers for Stripe payments and backups
-  try {
-    const { startStripePaymentPoller } = await import('./lib/ai/stripe-payment-poller');
-    const { startAutoBackup } = await import('../scripts/backup-database');
-    
-    startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
-    startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
-  } catch (error) {
-    console.error('Error starting background workers:', error);
-  }
+  // Start Stripe payment poller on server startup
+  // This section will be updated to include the stripe-payment-poller
+  // For now, it's just a placeholder comment.
+
+  // Import background worker initializers
+  import { initializeFollowUpWorker } from "./lib/ai/follow-up-worker";
+  import { initializeWeeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
+  import { initializeVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
+  import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
+
+  // Initialize and start background workers
+  initializeFollowUpWorker();
+  initializeWeeklyInsightsWorker();
+  initializeVideoCommentMonitoring();
+  startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
 
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
