@@ -85,7 +85,7 @@ const sessionConfig: session.SessionOptions = {
 
 if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
   console.warn('⚠️  Using memory session store - sessions will be lost on restart');
-  console.warn('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
+  console.log('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
 }
 
 app.use(session(sessionConfig));
@@ -325,12 +325,14 @@ async function runMigrations() {
   import { initializeWeeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
   import { initializeVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
   import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
+  import { startAutoBackup } from "../scripts/backup-database";
 
   // Initialize and start background workers
   initializeFollowUpWorker();
   initializeWeeklyInsightsWorker();
   initializeVideoCommentMonitoring();
   startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
+  startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
 
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
