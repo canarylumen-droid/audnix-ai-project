@@ -156,12 +156,17 @@ export async function importGmailLeads(userId: string): Promise<{
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const currentLeadCount = existingLeads.length;
     
-    // Free trial users limited to 500 leads
-    const isFreeTrial = !user?.subscriptionTier || user.subscriptionTier === 'free';
-    const maxLeadsForFree = 500;
+    const planLimits: Record<string, number> = {
+      'free': 100,
+      'trial': 100,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
     
-    if (isFreeTrial && currentLeadCount >= maxLeadsForFree) {
-      results.errors.push(`Free trial limit reached (${maxLeadsForFree} leads). Upgrade to import more.`);
+    if (currentLeadCount >= maxLeads) {
+      results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
       return results;
     }
 
@@ -173,9 +178,118 @@ export async function importGmailLeads(userId: string): Promise<{
       return results;
     }
 
-    // TODO: Implement Gmail API integration using oauth2client
-    // For now, return placeholder
-    results.errors.push('Gmail import not yet implemented');
+    // Get Gmail OAuth tokens
+    const { GmailOAuth } = await import('../oauth/gmail');
+    const oauth = new GmailOAuth();
+    const accessToken = await oauth.getValidToken(userId);
+    
+    if (!accessToken) {
+      results.errors.push('Gmail token expired. Please reconnect Gmail.');
+      return results;
+    }
+
+    // Use Gmail API to fetch threads
+    const { google } = await import('googleapis');
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+    // Fetch threads (limit to last 100)
+    const threadsResponse = await gmail.users.threads.list({
+      userId: 'me',
+      maxResults: 100,
+      q: 'category:primary' // Only primary inbox
+    });
+
+    const threads = threadsResponse.data.threads || [];
+    const leadsToImport = Math.min(threads.length, maxLeads - currentLeadCount);
+
+    for (let i = 0; i < leadsToImport; i++) {
+      const thread = threads[i];
+      
+      try {
+        // Get full thread details
+        const threadDetails = await gmail.users.threads.get({
+          userId: 'me',
+          id: thread.id!
+        });
+
+        const messages = threadDetails.data.messages || [];
+        if (messages.length === 0) continue;
+
+        // Extract sender from first message
+        const firstMessage = messages[0];
+        const headers = firstMessage.payload?.headers || [];
+        const fromHeader = headers.find(h => h.name?.toLowerCase() === 'from');
+        const subjectHeader = headers.find(h => h.name?.toLowerCase() === 'subject');
+        
+        if (!fromHeader?.value) continue;
+
+        // Parse email address
+        const emailMatch = fromHeader.value.match(/<(.+?)>/) || fromHeader.value.match(/(\S+@\S+)/);
+        const email = emailMatch ? emailMatch[1] : fromHeader.value;
+        const name = fromHeader.value.replace(/<.*?>/, '').trim() || email;
+
+        // Check if lead already exists
+        const existingLead = existingLeads.find(l => l.email === email);
+        if (existingLead) continue;
+
+        // Create lead
+        const lead = await storage.createLead({
+          userId,
+          externalId: thread.id!,
+          name,
+          email,
+          channel: 'email',
+          status: 'new',
+          lastMessageAt: messages[0].internalDate ? new Date(parseInt(messages[0].internalDate)) : null,
+          metadata: {
+            subject: subjectHeader?.value,
+            thread_id: thread.id,
+            imported_from_gmail: true
+          }
+        });
+
+        results.leadsImported++;
+
+        // Import all messages in thread
+        for (const msg of messages) {
+          const msgHeaders = msg.payload?.headers || [];
+          const fromMsg = msgHeaders.find(h => h.name?.toLowerCase() === 'from')?.value || '';
+          const isOutbound = fromMsg.includes(user?.email || '');
+          
+          // Get message body
+          let body = '';
+          if (msg.payload?.body?.data) {
+            body = Buffer.from(msg.payload.body.data, 'base64').toString('utf-8');
+          } else if (msg.payload?.parts) {
+            const textPart = msg.payload.parts.find(p => p.mimeType === 'text/plain');
+            if (textPart?.body?.data) {
+              body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+            }
+          }
+
+          await storage.createMessage({
+            leadId: lead.id,
+            userId,
+            provider: 'gmail',
+            direction: isOutbound ? 'outbound' : 'inbound',
+            body: body.substring(0, 5000), // Limit to 5000 chars
+            metadata: {
+              message_id: msg.id,
+              thread_id: thread.id,
+              subject: subjectHeader?.value
+            }
+          });
+
+          results.messagesImported++;
+        }
+
+      } catch (error: any) {
+        results.errors.push(`Failed to import thread: ${error.message}`);
+      }
+    }
+
     return results;
   } catch (error: any) {
     console.error('Gmail import error:', error);
@@ -185,7 +299,7 @@ export async function importGmailLeads(userId: string): Promise<{
 }
 
 /**
- * Import leads from WhatsApp Business API
+ * Import leads from WhatsApp contacts (via WhatsApp Web)
  */
 export async function importWhatsAppLeads(userId: string): Promise<{
   leadsImported: number;
@@ -199,16 +313,108 @@ export async function importWhatsAppLeads(userId: string): Promise<{
   };
 
   try {
+    // Check user's plan and existing lead count
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+    
+    // Plan-based limits
+    const planLimits: Record<string, number> = {
+      'free': 100,
+      'trial': 100,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    
+    if (currentLeadCount >= maxLeads) {
+      results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
+      return results;
+    }
+
     const integrations = await storage.getIntegrations(userId);
     const waIntegration = integrations.find(i => i.provider === 'whatsapp' && i.connected);
 
     if (!waIntegration) {
-      results.errors.push('WhatsApp not connected');
+      results.errors.push('WhatsApp not connected. Please scan QR code first.');
       return results;
     }
 
-    // TODO: Implement WhatsApp Business API integration
-    results.errors.push('WhatsApp import not yet implemented');
+    // Get WhatsApp session
+    const { whatsAppService } = await import('../integrations/whatsapp-web');
+    const session = whatsAppService.getSession(userId);
+    
+    if (!session || session.status !== 'ready') {
+      results.errors.push('WhatsApp not ready. Please reconnect and try again.');
+      return results;
+    }
+
+    // Fetch all WhatsApp chats/contacts
+    const chats = await session.client.getChats();
+    const leadsToImport = Math.min(chats.length, maxLeads - currentLeadCount);
+    
+    for (let i = 0; i < leadsToImport; i++) {
+      const chat = chats[i];
+      
+      // Skip group chats
+      if (chat.isGroup) continue;
+
+      try {
+        const contact = await chat.getContact();
+        const phoneNumber = contact.id.user;
+        
+        // Check if lead already exists
+        const existingLead = await storage.getLeadByPhone(userId, phoneNumber);
+        if (existingLead) {
+          continue; // Skip duplicates
+        }
+
+        // Create new lead
+        const lead = await storage.createLead({
+          userId,
+          externalId: chat.id._serialized,
+          name: contact.pushname || contact.name || phoneNumber,
+          phone: phoneNumber,
+          channel: 'whatsapp',
+          status: 'new',
+          lastMessageAt: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp * 1000) : null,
+          metadata: {
+            whatsapp_contact_id: contact.id._serialized,
+            is_business: contact.isBusiness || false,
+            imported_from_contacts: true
+          }
+        });
+
+        results.leadsImported++;
+
+        // Import last 50 messages from this chat
+        const messages = await chat.fetchMessages({ limit: 50 });
+        
+        for (const msg of messages) {
+          const messageData = {
+            leadId: lead.id,
+            userId,
+            provider: 'whatsapp' as const,
+            direction: msg.fromMe ? 'outbound' as const : 'inbound' as const,
+            body: msg.body || '',
+            audioUrl: msg.hasMedia && msg.type === 'audio' ? 'pending' : null,
+            metadata: {
+              message_id: msg.id._serialized,
+              timestamp: msg.timestamp,
+              has_media: msg.hasMedia
+            }
+          };
+
+          await storage.createMessage(messageData);
+          results.messagesImported++;
+        }
+
+      } catch (error: any) {
+        results.errors.push(`Failed to import ${chat.name}: ${error.message}`);
+      }
+    }
+
     return results;
   } catch (error: any) {
     console.error('WhatsApp import error:', error);
@@ -250,12 +456,16 @@ export async function importManychatLeads(userId: string): Promise<{
     }
 
     // Fetch subscribers from Manychat
-    const response = await fetch('https://api.manychat.com/fb/subscriber/getInfo', {
+    const response = await fetch('https://api.manychat.com/fb/subscriber/findByCustomField', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        field_name: 'email',
+        field_value: '' // Get all subscribers
+      })
     });
 
     if (!response.ok) {
@@ -264,9 +474,56 @@ export async function importManychatLeads(userId: string): Promise<{
     }
 
     const data = await response.json();
-    
-    // TODO: Process Manychat subscribers and create leads
-    results.errors.push('Manychat import processing not yet complete');
+    const subscribers = data.data || [];
+
+    // Check plan limits
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const planLimits: Record<string, number> = {
+      'free': 100,
+      'trial': 100,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    const leadsToImport = Math.min(subscribers.length, maxLeads - existingLeads.length);
+
+    for (let i = 0; i < leadsToImport; i++) {
+      const subscriber = subscribers[i];
+      
+      try {
+        // Check if lead already exists
+        const existingLead = existingLeads.find(l => 
+          l.externalId === subscriber.id || 
+          l.email === subscriber.email
+        );
+        
+        if (existingLead) continue;
+
+        // Create lead from Manychat subscriber
+        await storage.createLead({
+          userId,
+          externalId: subscriber.id,
+          name: subscriber.name || subscriber.first_name || 'Manychat Subscriber',
+          email: subscriber.email || null,
+          phone: subscriber.phone || null,
+          channel: 'instagram', // Manychat is usually Instagram/FB
+          status: 'new',
+          metadata: {
+            manychat_subscriber_id: subscriber.id,
+            tags: subscriber.tags || [],
+            custom_fields: subscriber.custom_fields || {},
+            imported_from_manychat: true
+          }
+        });
+
+        results.leadsImported++;
+      } catch (error: any) {
+        results.errors.push(`Failed to import subscriber ${subscriber.name}: ${error.message}`);
+      }
+    }
+
     return results;
   } catch (error: any) {
     console.error('Manychat import error:', error);

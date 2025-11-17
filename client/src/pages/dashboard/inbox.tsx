@@ -178,6 +178,36 @@ export default function InboxPage() {
             </p>
           </div>
 
+
+        {/* Channel Stats Summary */}
+        {leads.length > 0 && (
+          <Card data-testid="card-channel-stats">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center gap-2">
+                  <Instagram className="h-5 w-5 text-pink-500" />
+                  <span className="font-medium">
+                    {leads.filter((l: any) => l.channel === 'instagram').length} Instagram
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <SiWhatsapp className="h-5 w-5 text-green-500" />
+                  <span className="font-medium">
+                    {leads.filter((l: any) => l.channel === 'whatsapp').length} WhatsApp
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-5 w-5 text-blue-500" />
+                  <span className="font-medium">
+                    {leads.filter((l: any) => l.channel === 'email').length} Email
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+
           <div className="flex items-center gap-2">
             {isAtLimit && (
               <Badge variant="destructive" data-testid="badge-limit">
