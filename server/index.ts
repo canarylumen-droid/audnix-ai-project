@@ -316,15 +316,13 @@ async function runMigrations() {
     }
   }
 
-  // Start background workers for Stripe payments and backups
+  // Start Stripe payment poller
   try {
     const { startStripePaymentPoller } = await import('./lib/ai/stripe-payment-poller');
-    const { startAutoBackup } = await import('../scripts/backup-database');
-    
     startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
-    startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
+    console.log('✅ Stripe payment poller started');
   } catch (error) {
-    console.error('Error starting background workers:', error);
+    console.error('Error starting Stripe payment poller:', error);
   }
 
 
