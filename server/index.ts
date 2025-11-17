@@ -316,21 +316,10 @@ async function runMigrations() {
     }
   }
 
-  // Start Stripe payment poller on server startup
-  // This section will be updated to include the stripe-payment-poller
-  // For now, it's just a placeholder comment.
-
-  // Import background worker initializers
-  import { initializeFollowUpWorker } from "./lib/ai/follow-up-worker";
-  import { initializeWeeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
-  import { initializeVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
-  import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
-  import { startAutoBackup } from "../scripts/backup-database";
-
-  // Initialize and start background workers
-  initializeFollowUpWorker();
-  initializeWeeklyInsightsWorker();
-  initializeVideoCommentMonitoring();
+  // Start background workers for Stripe payments and backups
+  const { startStripePaymentPoller } = await import('./lib/ai/stripe-payment-poller');
+  const { startAutoBackup } = await import('../scripts/backup-database');
+  
   startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
   startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
 

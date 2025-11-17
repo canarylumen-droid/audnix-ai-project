@@ -20,8 +20,15 @@ async function uploadToCloudStorage(filePath: string, fileName: string) {
   }
 
   try {
-    const AWS = await import('@aws-sdk/client-s3');
-    const { Upload } = await import('@aws-sdk/lib-storage');
+    // Dynamic import with fallback if package not installed
+    let AWS, Upload;
+    try {
+      AWS = await import('@aws-sdk/client-s3');
+      Upload = (await import('@aws-sdk/lib-storage')).Upload;
+    } catch (importError) {
+      console.log('⚠️  AWS SDK not installed - cloud backups unavailable');
+      return false;
+    }
     
     const s3Client = new AWS.S3Client({
       region: process.env.BACKUP_S3_REGION || 'us-east-1',
@@ -214,11 +221,11 @@ export async function startAutoBackup() {
   scheduleNextBackup();
 }
 
-// Run backup if called directly
-if (require.main === module) {
+// Run backup if called directly (CommonJS check)
+if (typeof require !== 'undefined' && require.main === module) {
   backupDatabase()
     .then(() => process.exit(0))
     .catch(() => process.exit(1));
 }
 
-export { backupDatabase };
+export { backupDatabase, startAutoBackup };

@@ -14,17 +14,17 @@ router.post('/worker/start', async (req: Request, res: Response) => {
   try {
     // Check if user is admin (implement your auth logic)
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     // Start the worker
     followUpWorker.start();
-    
-    res.json({ 
-      success: true, 
-      message: 'Follow-up worker started successfully' 
+
+    res.json({
+      success: true,
+      message: 'Follow-up worker started successfully'
     });
   } catch (error) {
     console.error('Error starting worker:', error);
@@ -39,17 +39,17 @@ router.post('/worker/stop', async (req: Request, res: Response) => {
   try {
     // Check if user is admin
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     // Stop the worker
     followUpWorker.stop();
-    
-    res.json({ 
-      success: true, 
-      message: 'Follow-up worker stopped successfully' 
+
+    res.json({
+      success: true,
+      message: 'Follow-up worker stopped successfully'
     });
   } catch (error) {
     console.error('Error stopping worker:', error);
@@ -63,7 +63,7 @@ router.post('/worker/stop', async (req: Request, res: Response) => {
 router.get('/worker/status', async (req: Request, res: Response) => {
   try {
     const isRunning = (followUpWorker as any).isRunning || false;
-    
+
     // Get queue statistics from Neon database
     let queueStats = null;
     if (db) {
@@ -73,13 +73,13 @@ router.get('/worker/status', async (req: Request, res: Response) => {
           .from(followUpQueue)
           .where(eq(followUpQueue.status, 'pending'));
         const { count: pendingCount } = pendingRows?.[0] || { count: 0 };
-        
+
         const processingRows = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(followUpQueue)
           .where(eq(followUpQueue.status, 'processing'));
         const { count: processingCount } = processingRows?.[0] || { count: 0 };
-        
+
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const completedRows = await db
           .select({ count: sql<number>`count(*)::int` })
@@ -91,7 +91,7 @@ router.get('/worker/status', async (req: Request, res: Response) => {
             )
           );
         const { count: completedCount } = completedRows?.[0] || { count: 0 };
-        
+
         queueStats = {
           pending: pendingCount || 0,
           processing: processingCount || 0,
@@ -106,7 +106,7 @@ router.get('/worker/status', async (req: Request, res: Response) => {
         };
       }
     }
-    
+
     res.json({
       isRunning,
       queueStats,
@@ -125,7 +125,7 @@ router.post('/worker/trigger/:leadId', async (req: Request, res: Response) => {
   try {
     const { leadId } = req.params;
     const userId = (req as any).session?.userId || req.body.user_id;
-    
+
     if (!userId || !leadId || !db) {
       return res.status(400).json({ error: 'Invalid request' });
     }
