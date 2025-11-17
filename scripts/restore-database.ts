@@ -1,4 +1,3 @@
-
 import { db } from '../server/db';
 import fs from 'fs';
 import path from 'path';
@@ -13,7 +12,7 @@ async function restoreDatabase(backupFileName: string) {
   try {
     const backupDir = path.join(process.cwd(), 'backups');
     const backupFile = path.join(backupDir, backupFileName);
-    
+
     if (!fs.existsSync(backupFile)) {
       console.error(`❌ Backup file not found: ${backupFile}`);
       console.log('\n📁 Available backups:');
@@ -24,32 +23,32 @@ async function restoreDatabase(backupFileName: string) {
       backups.forEach(b => console.log(`  • ${b}`));
       process.exit(1);
     }
-    
+
     console.log('🔄 Starting database restore...');
     console.log(`📁 Backup file: ${backupFileName}`);
     console.log('⚠️  WARNING: This will DELETE all existing data!');
-    
+
     // Read backup SQL
     const backupSQL = fs.readFileSync(backupFile, 'utf-8');
-    
+
     console.log('⏳ Executing restore...');
     await db.execute(backupSQL as any);
-    
+
     console.log('\n✅ Database restored successfully!');
     console.log('📊 Verifying data...');
-    
+
     // Verify restore
     const verification = await db.execute(`
       SELECT tablename, n_live_tup as row_count 
       FROM pg_stat_user_tables 
       ORDER BY tablename
     ` as any);
-    
+
     console.log('\n📋 Database tables:');
     for (const row of verification.rows as any[]) {
       console.log(`  • ${row.tablename}: ${row.row_count.toLocaleString()} rows`);
     }
-    
+
   } catch (error) {
     console.error('❌ Restore failed:', error);
     process.exit(1);

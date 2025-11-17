@@ -72,13 +72,13 @@ router.get('/worker/status', async (req: Request, res: Response) => {
           .select({ count: sql<number>`count(*)::int` })
           .from(followUpQueue)
           .where(eq(followUpQueue.status, 'pending'));
-        const { count: pendingCount } = pendingRows?.[0] || { count: 0 };
+        const pendingCount = (pendingRows?.[0] as any)?.count || 0;
 
         const processingRows = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(followUpQueue)
           .where(eq(followUpQueue.status, 'processing'));
-        const { count: processingCount } = processingRows?.[0] || { count: 0 };
+        const processingCount = (processingRows?.[0] as any)?.count || 0;
 
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const completedRows = await db
@@ -90,7 +90,7 @@ router.get('/worker/status', async (req: Request, res: Response) => {
               gte(followUpQueue.processedAt, oneDayAgo)
             )
           );
-        const { count: completedCount } = completedRows?.[0] || { count: 0 };
+        const completedCount = (completedRows?.[0] as any)?.count || 0;
 
         queueStats = {
           pending: pendingCount || 0,

@@ -317,11 +317,15 @@ async function runMigrations() {
   }
 
   // Start background workers for Stripe payments and backups
-  const { startStripePaymentPoller } = await import('./lib/ai/stripe-payment-poller');
-  const { startAutoBackup } = await import('../scripts/backup-database');
-  
-  startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
-  startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
+  try {
+    const { startStripePaymentPoller } = await import('./lib/ai/stripe-payment-poller');
+    const { startAutoBackup } = await import('../scripts/backup-database');
+    
+    startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
+    startAutoBackup(); // Auto-backup database daily at 2 AM UTC (if enabled)
+  } catch (error) {
+    console.error('Error starting background workers:', error);
+  }
 
 
   const PORT = parseInt(process.env.PORT || '5000', 10);

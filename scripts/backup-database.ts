@@ -1,8 +1,7 @@
 
-import { db } from '../server/db';
-import { sql } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import { sql } from 'drizzle-orm';
 
 /**
  * Database Backup Script
@@ -61,6 +60,8 @@ async function uploadToCloudStorage(filePath: string, fileName: string) {
 
 async function backupDatabase() {
   try {
+    const { db } = await import('../server/db');
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupDir = path.join(process.cwd(), 'backups');
     
