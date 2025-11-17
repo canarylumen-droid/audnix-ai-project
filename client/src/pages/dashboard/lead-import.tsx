@@ -106,6 +106,11 @@ export default function LeadImportPage() {
         <p className="text-muted-foreground">
           Upload CSV, Excel, or PDF - Our AI extracts Name, Email, WhatsApp Number automatically
         </p>
+        <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            💡 <strong>Using Apollo.io?</strong> Export your leads as CSV, then upload here. AI will auto-detect columns and start outreach!
+          </p>
+        </div>
       </div>
 
       {/* Active Import Form */}
@@ -113,7 +118,7 @@ export default function LeadImportPage() {
         <CardHeader>
           <CardTitle>Upload File</CardTitle>
           <CardDescription>
-            CSV/Excel: Name (required), Email, Phone, Company, Instagram Handle • PDF: AI extracts contact info • Apollo.io/Apify: Bulk creator scraping
+            CSV/Excel: Name (required), Email, Phone, Company • PDF: AI extracts contact info automatically
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -194,50 +199,6 @@ export default function LeadImportPage() {
           </div>
         </motion.div>
       )}
-
-      {/* Apollo.io Workflow Card */}
-      <Card className="border-emerald-500 bg-gradient-to-br from-emerald-500/5 to-background">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-emerald-500" />
-            Apollo.io → Audnix Automation (Your Current Workflow)
-          </CardTitle>
-          <CardDescription>
-            Scrape 1,000+ creators, import to Audnix, auto-outreach via Email + WhatsApp
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2 text-sm">
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">Step 1</Badge>
-              <p><strong>Apollo.io Search:</strong> "Instagram influencers" + "30k-500k followers" + Your niche → Export CSV with Name, Email, Instagram Handle</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">Step 2</Badge>
-              <p><strong>Upload Here:</strong> Import CSV → Audnix creates lead profiles automatically</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">Step 3</Badge>
-              <p><strong>AI Email Outreach:</strong> Connect Gmail → AI sends personalized emails (500/day limit) → Auto-follows up 3x if no reply</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">Step 4</Badge>
-              <p><strong>Manual Instagram DMs (for now):</strong> Audnix shows who opened email → You manually DM those on Instagram → Paste Instagram Handle in notes</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="text-emerald-600 border-emerald-600">Step 5</Badge>
-              <p><strong>WhatsApp Follow-Up:</strong> If they give phone number → AI sends WhatsApp message → Books demo call automatically</p>
-            </div>
-          </div>
-          <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-sm font-medium mb-2">📊 Your Goal (Next 7 Days):</p>
-            <p className="text-xs text-muted-foreground">
-              1,050 creators imported → 500 emails sent daily → 150 manual Instagram DMs daily → 
-              Expected: 15-30 sign-ups (1.5-3% conversion) → 5-10 paying users
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Feature Preview Cards */}
       <div className="grid md:grid-cols-2 gap-6">
