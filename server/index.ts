@@ -204,7 +204,7 @@ async function runMigrations() {
     // Filter migrations based on database type
     // Skip Supabase-specific migrations (002_*) when using Neon or other non-Supabase databases
     const isSupabaseDB = process.env.SUPABASE_DB === 'true' || process.env.DATABASE_URL?.includes('supabase');
-    
+
     const migrationFiles = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .filter(f => {
@@ -315,6 +315,23 @@ async function runMigrations() {
       console.log('💡 Add DATABASE_URL to enable AI workers');
     }
   }
+
+  // Start Stripe payment poller on server startup
+  // This section will be updated to include the stripe-payment-poller
+  // For now, it's just a placeholder comment.
+
+  // Import background worker initializers
+  import { initializeFollowUpWorker } from "./lib/ai/follow-up-worker";
+  import { initializeWeeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
+  import { initializeVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
+  import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
+
+  // Initialize and start background workers
+  initializeFollowUpWorker();
+  initializeWeeklyInsightsWorker();
+  initializeVideoCommentMonitoring();
+  startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
+
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
   server.listen(PORT, "0.0.0.0", () => {
