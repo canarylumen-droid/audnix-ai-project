@@ -15,3 +15,7 @@ replit.nix
 .wwebjs_auth/
 .wwebjs_cache/
 .wwebjs_auth.json
+
+# Database backups
+backups/
+*.sql
