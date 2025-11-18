@@ -97,47 +97,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase OAuth callback handler - Now captures real OAuth data with CSRF protection
+  // Supabase auth callback - Handles both OAuth (Google) and Email OTP
   app.get("/api/auth/callback", async (req, res) => {
-    const { code } = req.query;
+    const { code, token_hash, type } = req.query;
 
-    if (!code || !isSupabaseAdminConfigured() || !supabaseAdmin) {
-      // No code or Supabase not configured - redirect to dashboard
+    if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
       return res.redirect("/dashboard");
     }
 
     try {
-      // Exchange code for session - Supabase validates PKCE automatically
-      const { data: { user }, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
+      let user;
+      let session;
 
-      if (error || !user) {
-        console.error("OAuth callback error:", error);
+      // Handle Email OTP verification (magic link or OTP code)
+      if (token_hash && type === 'email') {
+        const { data, error } = await supabaseAdmin.auth.verifyOtp({
+          token_hash: String(token_hash),
+          type: 'email',
+        });
+
+        if (error || !data.user) {
+          console.error("Email OTP verification error:", error);
+          return res.redirect("/auth?error=otp_invalid");
+        }
+
+        user = data.user;
+        session = data.session;
+      }
+      // Handle OAuth callback (Google, etc.)
+      else if (code) {
+        const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
+
+        if (error || !data.user) {
+          console.error("OAuth callback error:", error);
+          return res.redirect("/auth?error=auth_failed");
+        }
+
+        user = data.user;
+        session = data.session;
+      } else {
+        return res.redirect("/dashboard");
+      }
+
+      if (!user || !session) {
         return res.redirect("/auth?error=auth_failed");
       }
 
-      // Get the session with access and refresh tokens
-      const { data: { session: oauthSession }, error: sessionError } = await supabaseAdmin.auth.getSession();
-
-      if (sessionError || !oauthSession) {
-        console.error("Failed to get OAuth session:", sessionError);
-        return res.redirect("/auth?error=session_failed");
-      }
-
-      // Get the full user data with metadata
-      const { data: { user: authUser } } = await supabaseAdmin.auth.getUser();
-
-      // Extract real name, email, and avatar from OAuth provider metadata
-      const userMetadata = authUser?.user_metadata || {};
-      const email = authUser?.email || user.email || '';
-      const fullName = userMetadata.full_name || userMetadata.name || userMetadata.given_name || '';
+      // Extract user info
+      const userMetadata = user.user_metadata || {};
+      const email = user.email || '';
+      const fullName = userMetadata.full_name || userMetadata.name || '';
       const avatar = userMetadata.avatar_url || userMetadata.picture || null;
       const username = email.split('@')[0];
 
-      // Check if user exists
+      // Check if user exists in our database
       let dbUser = await storage.getUserBySupabaseId(user.id);
 
       if (!dbUser) {
-        // Create new user with real OAuth data
         dbUser = await storage.createUser({
           supabaseId: user.id,
           email: email,
@@ -147,44 +163,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           plan: "trial",
         });
       } else {
-        // Update user with latest OAuth data and last login
-        if (dbUser) {
-          dbUser = await storage.updateUser(dbUser.id, {
-            name: fullName || dbUser.name,
-            avatar: avatar || dbUser.avatar,
-            lastLogin: new Date(),
-          });
-        }
+        dbUser = await storage.updateUser(dbUser.id, {
+          name: fullName || dbUser.name,
+          avatar: avatar || dbUser.avatar,
+          lastLogin: new Date(),
+        });
       }
 
-      // Regenerate session ID to prevent session fixation attacks
+      // Store session
       req.session.regenerate((regErr) => {
         if (regErr) {
           console.error("Error regenerating session:", regErr);
           return res.redirect("/auth?error=session_error");
         }
 
-        // Store user ID and auth tokens in secure HTTP-only session cookie
-        (req.session as any).userId = dbUser.id;
-        (req.session as any).userEmail = dbUser.email;
-        (req.session as any).supabaseId = dbUser.supabaseId;
-        (req.session as any).accessToken = oauthSession.access_token;
-        (req.session as any).refreshToken = oauthSession.refresh_token;
-        (req.session as any).expiresAt = oauthSession.expires_at;
+        (req.session as any).userId = dbUser!.id;
+        (req.session as any).userEmail = dbUser!.email;
+        (req.session as any).supabaseId = dbUser!.supabaseId;
+        (req.session as any).accessToken = session!.access_token;
+        (req.session as any).refreshToken = session!.refresh_token;
+        (req.session as any).expiresAt = session!.expires_at;
 
-        // Save session with secure HTTP-only cookies
         req.session.save((err) => {
           if (err) {
             console.error("Error saving session:", err);
             return res.redirect("/auth?error=session_error");
           }
 
-          // Redirect to dashboard
           res.redirect("/dashboard");
         });
       });
     } catch (error) {
-      console.error("Error in OAuth callback:", error);
+      console.error("Error in auth callback:", error);
       res.redirect("/auth?error=server_error");
     }
   });

@@ -243,6 +243,66 @@ export default function AuthPage() {
     }
   };
 
+  const handleEmailSignIn = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('email');
+
+    if (!supabase) {
+      toast({
+        title: "Authentication Error",
+        description: "Email sign-in is not available. Please try Google sign-in.",
+        variant: "destructive",
+      });
+      setLoading(null);
+      return;
+    }
+
+    try {
+      // Send OTP to email with proper callback URL
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Email OTP Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        setLoading(null);
+      } else {
+        toast({
+          title: "Check Your Email! 📧",
+          description: "We sent you a one-time password. Enter it to log in.",
+        });
+        setAuthMode('email-password'); // Temporarily switch to this to show OTP input
+        // In a real app, you might have a separate OTP input state/component
+        setLoading(null);
+      }
+    } catch (error) {
+      console.error("Email OTP error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send email OTP.",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
+
+
   const getPasswordStrengthColor = () => {
     if (!passwordStrength) return 'bg-gray-200';
     const score = passwordStrength.score;
@@ -497,7 +557,7 @@ export default function AuthPage() {
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary/20 border-primary/30 hover:bg-primary/30 text-white"
                         variant="outline"
-                        onClick={() => setAuthMode('email-password')}
+                        onClick={() => setAuthMode('email-otp')}
                       >
                         <Mail className="w-5 h-5 mr-3" />
                         Continue with Email
@@ -505,7 +565,7 @@ export default function AuthPage() {
                     </>
                   )}
 
-                  {authMode === 'email-password' && (
+                  {(authMode === 'email-password' || authMode === 'email-otp') && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -524,68 +584,72 @@ export default function AuthPage() {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white/90">Password</Label>
-                        <div className="relative">
-                          <Input
-                            id="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-white/40 pr-10"
-                            disabled={loading !== null}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-
-                        {isSignUp && password && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-white/60">Password strength</span>
-                              <span className={`font-medium ${
-                                passwordStrength && passwordStrength.score >= 3 ? 'text-green-400' : 'text-yellow-400'
-                              }`}>
-                                {getPasswordStrengthText()}
-                              </span>
-                            </div>
-                            <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full transition-all duration-300 ${getPasswordStrengthColor()}`}
-                                style={{ width: `${passwordStrength ? (passwordStrength.score + 1) * 20 : 0}%` }}
-                              />
-                            </div>
-                            {passwordStrength && passwordStrength.feedback.warning && (
-                              <div className="flex items-start gap-2 text-xs text-yellow-400/80 mt-2">
-                                <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                <span>{passwordStrength.feedback.warning}</span>
-                              </div>
-                            )}
+                      {authMode === 'email-password' && (
+                        <div className="space-y-2">
+                          <Label htmlFor="password" className="text-white/90">Password</Label>
+                          <div className="relative">
+                            <Input
+                              id="password"
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 pr-10"
+                              disabled={loading !== null}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/80"
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
                           </div>
-                        )}
-                      </div>
+
+                          {isSignUp && password && (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-white/60">Password strength</span>
+                                <span className={`font-medium ${
+                                  passwordStrength && passwordStrength.score >= 3 ? 'text-green-400' : 'text-yellow-400'
+                                }`}>
+                                  {getPasswordStrengthText()}
+                                </span>
+                              </div>
+                              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-300 ${getPasswordStrengthColor()}`}
+                                  style={{ width: `${passwordStrength ? (passwordStrength.score + 1) * 20 : 0}%` }}
+                                />
+                              </div>
+                              {passwordStrength && passwordStrength.feedback.warning && (
+                                <div className="flex items-start gap-2 text-xs text-yellow-400/80 mt-2">
+                                  <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  <span>{passwordStrength.feedback.warning}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                        onClick={handleEmailPasswordAuth}
+                        onClick={authMode === 'email-otp' ? handleEmailSignIn : handleEmailPasswordAuth}
                         disabled={loading !== null}
                       >
-                        {loading === 'email' ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
+                        {loading === 'email' ? 'Processing...' : isSignUp && authMode === 'email-password' ? 'Create Account' : isSignUp && authMode === 'email-otp' ? 'Send OTP' : 'Sign In'}
                       </Button>
 
                       <div className="text-center">
-                        <button
-                          onClick={() => setIsSignUp(!isSignUp)}
-                          className="text-sm text-white/70 hover:text-white/90 underline"
-                        >
-                          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-                        </button>
+                        {authMode === 'email-password' && (
+                          <button
+                            onClick={() => setIsSignUp(!isSignUp)}
+                            className="text-sm text-white/70 hover:text-white/90 underline"
+                          >
+                            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                          </button>
+                        )}
                       </div>
 
                       <Button
