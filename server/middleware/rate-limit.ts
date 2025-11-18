@@ -132,12 +132,12 @@ export const whatsappLimiter = rateLimit({
 });
 
 /**
- * Vite dev server limiter - 200 requests per minute
- * Protects development server from abuse
+ * Vite dev server limiter - Higher limit for development, stricter for production
+ * Protects development server from abuse while allowing HMR
  */
 export const viteLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 200,
+  max: process.env.NODE_ENV === 'development' ? 5000 : 500,
   message: 'Too many requests to development server',
   standardHeaders: true,
   legacyHeaders: false,
