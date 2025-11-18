@@ -117,7 +117,7 @@ export async function autoUpdateLeadStatus(
   }
 
   try {
-    const lead = await storage.getLead(leadId);
+    const lead = await storage.getLeadById(leadId);
     if (!lead) return;
 
     const oldStatus = lead.status;
@@ -143,20 +143,6 @@ export async function autoUpdateLeadStatus(
       });
 
       console.log(`✅ Auto-updated lead ${leadId} status: ${oldStatus} → ${newStatus} (${statusDetection.reason})`);
-
-      // Create activity log
-      await storage.createActivity({
-        userId: lead.userId,
-        leadId,
-        type: 'status_change',
-        metadata: {
-          from: oldStatus,
-          to: newStatus,
-          reason: statusDetection.reason,
-          confidence: statusDetection.confidence,
-          automated: true
-        }
-      });
     }
   } catch (error: any) {
     console.error('Failed to auto-update lead status:', error.message);
@@ -170,6 +156,7 @@ export function detectConversationStatus(messages: Message[]): {
   status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
   confidence: number;
   reason?: string;
+  shouldUseVoice?: boolean;
 } {
   if (messages.length === 0) {
     return { status: 'new', confidence: 1.0 };
@@ -195,19 +182,19 @@ export function detectConversationStatus(messages: Message[]): {
   }).length > 0;
 
   if (hasRejection) {
-    return { status: 'not_interested', confidence: 0.9, reason: 'Lead explicitly declined' };
+    return { status: 'not_interested', confidence: 0.9, reason: 'Lead explicitly declined', shouldUseVoice: false };
   }
 
   if (hasConversionSignal && hasEngagement) {
-    return { status: 'converted', confidence: 0.85, reason: 'Lead showed strong buying intent' };
+    return { status: 'converted', confidence: 0.85, reason: 'Lead showed strong buying intent', shouldUseVoice: true };
   }
 
   if (recentEngagement) {
-    return { status: 'replied', confidence: 0.8, reason: 'Lead actively responding' };
+    return { status: 'replied', confidence: 0.8, reason: 'Lead actively responding', shouldUseVoice: true };
   }
 
   if (hasEngagement) {
-    return { status: 'open', confidence: 0.7, reason: 'Lead engaged in conversation' };
+    return { status: 'open', confidence: 0.7, reason: 'Lead engaged in conversation', shouldUseVoice: false };
   }
 
   // Check for cold leads (no response in 3+ days)
@@ -215,11 +202,11 @@ export function detectConversationStatus(messages: Message[]): {
   if (lastInbound) {
     const daysSince = (Date.now() - new Date(lastInbound.createdAt).getTime()) / (1000 * 60 * 60 * 24);
     if (daysSince > 3) {
-      return { status: 'cold', confidence: 0.75, reason: 'No response in 3+ days' };
+      return { status: 'cold', confidence: 0.75, reason: 'No response in 3+ days', shouldUseVoice: false };
     }
   }
 
-  return { status: 'open', confidence: 0.6 };
+  return { status: 'open', confidence: 0.6, shouldUseVoice: false };
 }
 
 /**
@@ -588,10 +575,11 @@ export async function getConversationContext(
           id: `memory-${Date.now()}-${Math.random()}`,
           leadId,
           userId,
-          provider: conv.content.channel || 'unknown',
+          provider: conv.content.channel || 'instagram',
           direction: msg.role === 'user' ? 'inbound' : 'outbound',
           body: msg.content,
-          status: 'delivered',
+          audioUrl: null,
+          metadata: {},
           createdAt: new Date(msg.timestamp || Date.now()),
         } as Message);
       }

@@ -265,11 +265,13 @@ router.post('/webhook/payment', async (req: Request, res: Response) => {
     const { provider } = req.query;
 
     if (provider === 'stripe') {
-      // Delegate to Stripe handler
-      return router.handle(req, res);
+      // Redirect to Stripe webhook handler
+      req.url = '/webhook/stripe';
+      return;
     } else if (provider === 'lemonsqueezy') {
-      // Delegate to Lemon Squeezy handler
-      return router.handle(req, res);
+      // Redirect to Lemon Squeezy webhook handler
+      req.url = '/webhook/lemonsqueezy';
+      return;
     } else {
       return res.status(400).json({ error: 'Unknown payment provider' });
     }
@@ -281,7 +283,8 @@ router.post('/webhook/payment', async (req: Request, res: Response) => {
 
 // Helper functions
 async function getUserIdFromStripeCustomer(customerId: string): Promise<string | null> {
-  const user = await storage.getUserByStripeCustomerId(customerId);
+  const users = await storage.getAllUsers();
+  const user = users.find(u => u.stripeCustomerId === customerId);
   return user?.id || null;
 }
 

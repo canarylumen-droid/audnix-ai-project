@@ -62,7 +62,7 @@ router.get("/metrics", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsersWithPlans.reduce((total, user) => {
+    const mrr = paidUsersWithPlans.reduce((total: number, user: { plan: string }) => {
       return total + (planPrices[user.plan] || 0);
     }, 0);
 
@@ -110,7 +110,7 @@ router.get("/metrics", async (req: Request, res: Response) => {
         failedJobs,
         storageUsed,
       },
-      recentUsers: recentUsers.map(u => ({
+      recentUsers: recentUsers.map((u: any) => ({
         ...u,
         createdAt: u.createdAt.toISOString(),
       })),
@@ -162,7 +162,7 @@ router.get("/overview", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsers.reduce((total, user) => {
+    const mrr = paidUsers.reduce((total: number, user: { plan: string }) => {
       return total + (planPrices[user.plan] || 0);
     }, 0);
 
