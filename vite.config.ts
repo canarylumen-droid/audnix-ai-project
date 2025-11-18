@@ -41,5 +41,6 @@ export default defineConfig({
     fs: {
       strict: false,
     },
+    allowedHosts: true,
   },
 });

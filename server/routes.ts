@@ -302,6 +302,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Direct email/password signup (no email verification)
+  app.post("/api/auth/signup", async (req, res) => {
+    try {
+      const { email, password, name } = req.body;
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email required" });
+      }
+
+      if (!password || password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      // Check if user exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists. Please log in instead." });
+      }
+
+      // Hash password
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const username = name || email.split('@')[0];
+      const user = await storage.createUser({
+        email,
+        name: username,
+        username,
+        password: hashedPassword,
+        plan: "trial",
+        supabaseId: null,
+      });
+
+      // Create session
+      req.session.regenerate((regErr) => {
+        if (regErr) {
+          console.error("Error regenerating session:", regErr);
+          return res.status(500).json({ error: "Session error" });
+        }
+
+        (req.session as any).userId = user.id;
+        (req.session as any).userEmail = user.email;
+
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.status(500).json({ error: "Session save error" });
+          }
+          
+          res.json({ 
+            success: true, 
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              username: user.username
+            }
+          });
+        });
+      });
+    } catch (error: any) {
+      console.error("Error in signup:", error);
+      res.status(500).json({ error: "Signup failed" });
+    }
+  });
+
+  // Direct email/password login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email required" });
+      }
+
+      if (!password) {
+        return res.status(400).json({ error: "Password required" });
+      }
+
+      // Get user
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      if (!user.password) {
+        return res.status(400).json({ error: "This account uses social login. Please use Google or GitHub to sign in." });
+      }
+
+      // Verify password
+      const bcrypt = await import('bcryptjs');
+      const isValid = await bcrypt.compare(password, user.password);
+      
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Update last login
+      await storage.updateUser(user.id, { lastLogin: new Date() });
+
+      // Create session
+      req.session.regenerate((regErr) => {
+        if (regErr) {
+          console.error("Error regenerating session:", regErr);
+          return res.status(500).json({ error: "Session error" });
+        }
+
+        (req.session as any).userId = user.id;
+        (req.session as any).userEmail = user.email;
+
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.status(500).json({ error: "Session save error" });
+          }
+          
+          res.json({ 
+            success: true, 
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name,
+              username: user.username
+            }
+          });
+        });
+      });
+    } catch (error: any) {
+      console.error("Error in login:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
   // Sign out endpoint
   app.post("/api/auth/signout", async (req, res) => {
     try {
