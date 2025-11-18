@@ -258,7 +258,7 @@ export default function AuthPage() {
     if (!supabase) {
       toast({
         title: "Authentication Error",
-        description: "Email sign-in is not available. Please try Google sign-in.",
+        description: "Email sign-in is not available. Please add Supabase credentials.",
         variant: "destructive",
       });
       setLoading(null);
@@ -267,6 +267,7 @@ export default function AuthPage() {
 
     try {
       // Send OTP to email with proper callback URL
+      // ✅ Works for all users including admins
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {
@@ -285,10 +286,9 @@ export default function AuthPage() {
       } else {
         toast({
           title: "Check Your Email! 📧",
-          description: "We sent you a one-time password. Enter it to log in.",
+          description: "We sent you a 6-digit code. Check your inbox (and spam folder).",
         });
         setAuthMode('email-password'); // Temporarily switch to this to show OTP input
-        // In a real app, you might have a separate OTP input state/component
         setLoading(null);
       }
     } catch (error) {
