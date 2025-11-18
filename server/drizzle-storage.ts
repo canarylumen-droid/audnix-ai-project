@@ -1,8 +1,8 @@
 import type { IStorage } from "./storage";
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal } from "@shared/schema";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "@shared/schema";
 import { db } from "./db";
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles } from "@shared/schema";
-import { eq, and, or, like, desc, sql, gte } from "drizzle-orm";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "@shared/schema";
+import { eq, desc, and, gte, lte, sql, not, isNull } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 
 // Function to check if the database connection is available
@@ -56,7 +56,7 @@ export class DrizzleStorage implements IStorage {
           AND status = 'active'
         LIMIT 1
       `);
-      
+
       if (whitelistCheck.rows && whitelistCheck.rows.length > 0) {
         userRole = 'admin';
         console.log(`[ADMIN] Creating admin user from whitelist: ${insertUser.email}`);
@@ -92,23 +92,23 @@ export class DrizzleStorage implements IStorage {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     checkDatabase();
-    
+
     // If metadata is being updated, merge it with existing metadata instead of overwriting
     if (updates.metadata) {
       const { metadata, ...otherUpdates } = updates;
-      
+
       // Get current user to merge metadata
       const currentUser = await this.getUser(id);
       if (!currentUser) {
         return undefined;
       }
-      
+
       // Merge metadata
       const mergedMetadata = {
         ...(currentUser.metadata ?? {}),
         ...metadata,
       };
-      
+
       const result = await db
         .update(users)
         .set({ 
@@ -120,7 +120,7 @@ export class DrizzleStorage implements IStorage {
         .returning();
       return result[0];
     }
-    
+
     // Always bump updatedAt for any update
     const result = await db
       .update(users)
@@ -725,19 +725,60 @@ export class DrizzleStorage implements IStorage {
       .from(onboardingProfiles)
       .where(eq(onboardingProfiles.userId, userId))
       .limit(1);
-    
+
     return result[0];
   }
 
-  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
-    checkDatabase();
-    const result = await db
+  async updateOnboardingProfile(userId: string, updates: Partial<OnboardingProfile>): Promise<OnboardingProfile> {
+    const [updated] = await db
       .update(onboardingProfiles)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(onboardingProfiles.userId, userId))
       .returning();
-    
-    return result[0];
+
+    if (!updated) {
+      throw new Error('Onboarding profile not found');
+    }
+
+    return updated;
+  }
+
+  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any> {
+    const [otp] = await db.insert(otpCodes).values(data).returning();
+    return otp;
+  }
+
+  async getLatestOtpCode(email: string): Promise<any> {
+    const [otp] = await db
+      .select()
+      .from(otpCodes)
+      .where(eq(otpCodes.email, email))
+      .orderBy(desc(otpCodes.createdAt))
+      .limit(1);
+    return otp || null;
+  }
+
+  async incrementOtpAttempts(id: string): Promise<void> {
+    await db
+      .update(otpCodes)
+      .set({ attempts: sql`${otpCodes.attempts} + 1` })
+      .where(eq(otpCodes.id, id));
+  }
+
+  async markOtpVerified(id: string): Promise<void> {
+    await db
+      .update(otpCodes)
+      .set({ verified: true })
+      .where(eq(otpCodes.id, id));
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    return user || null;
   }
 }
 

@@ -63,6 +63,13 @@ export interface IStorage {
   createOnboardingProfile(data: any): Promise<any>;
   getOnboardingProfile(userId: string): Promise<any | undefined>;
   updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined>;
+
+  // OTP methods
+  createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any>;
+  getLatestOtpCode(email: string): Promise<any>;
+  incrementOtpAttempts(id: string): Promise<void>;
+  markOtpVerified(id: string): Promise<void>;
+  getUserByEmail(email: string): Promise<User | null>;
 }
 
 export class MemStorage implements IStorage {
@@ -471,7 +478,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       updatedAt: now,
     };
-    
+
     this.onboardingProfiles.set(data.userId, profile);
     return profile;
   }
@@ -493,6 +500,48 @@ export class MemStorage implements IStorage {
     this.onboardingProfiles.set(userId, updated);
     return updated;
   }
+
+  // OTP methods (MemStorage implementation)
+  private otpCodes: Map<string, any> = new Map();
+
+  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any> {
+    const id = randomUUID();
+    const now = new Date();
+    const otpCode = { id, ...data, createdAt: now, updatedAt: now };
+    this.otpCodes.set(id, otpCode);
+    return otpCode;
+  }
+
+  async getLatestOtpCode(email: string): Promise<any> {
+    // In-memory, this is inefficient, but for demonstration:
+    return Array.from(this.otpCodes.values())
+      .filter(code => code.email === email)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  }
+
+  async incrementOtpAttempts(id: string): Promise<void> {
+    const code = this.otpCodes.get(id);
+    if (code) {
+      code.attempts++;
+      code.updatedAt = new Date();
+      this.otpCodes.set(id, code);
+    }
+  }
+
+  async markOtpVerified(id: string): Promise<void> {
+    const code = this.otpCodes.get(id);
+    if (code) {
+      code.verified = true;
+      code.updatedAt = new Date();
+      this.otpCodes.set(id, code);
+    }
+  }
+
+  // getUserByEmail is already defined above for User, but for OTP context, we might need to return null if not found.
+  // The interface definition for IStorage already has a getUserByEmail that returns User | null.
+  // If the existing implementation returns undefined and needs to return null, it would be changed.
+  // For now, assuming the existing getUserByEmail is compatible or will be adjusted.
+  // If a distinct getUserByEmail for OTP context is needed, it would be implemented here.
 }
 
 // Use DrizzleStorage with Replit PostgreSQL database

@@ -201,6 +201,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Custom email OTP - Send code (independent of Supabase)
+  app.post("/api/auth/send-otp", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email required" });
+      }
+
+      // Generate 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store in database
+      await storage.createOtpCode({
+        email,
+        code,
+        expiresAt,
+        attempts: 0,
+        verified: false
+      });
+
+      // Send email (you can use any SMTP provider or Resend/SendGrid)
+      // For now, just log it (replace with actual email sending)
+      console.log(`OTP Code for ${email}: ${code}`);
+      
+      // TODO: Send actual email via SMTP/SendGrid/Resend
+      // await sendEmail(email, 'Your Login Code', `Your code is: ${code}`);
+
+      res.json({ success: true, message: "Check your email for the code" });
+    } catch (error: any) {
+      console.error("Error sending OTP:", error);
+      res.status(500).json({ error: "Failed to send code" });
+    }
+  });
+
+  // Custom email OTP - Verify code
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+
+      const otpRecord = await storage.getLatestOtpCode(email);
+      
+      if (!otpRecord) {
+        return res.status(400).json({ error: "No code found. Request a new one." });
+      }
+
+      if (otpRecord.verified) {
+        return res.status(400).json({ error: "Code already used" });
+      }
+
+      if (new Date() > new Date(otpRecord.expiresAt)) {
+        return res.status(400).json({ error: "Code expired. Request a new one." });
+      }
+
+      if (otpRecord.attempts >= 3) {
+        return res.status(400).json({ error: "Too many attempts. Request a new code." });
+      }
+
+      if (otpRecord.code !== code) {
+        await storage.incrementOtpAttempts(otpRecord.id);
+        return res.status(400).json({ error: "Invalid code" });
+      }
+
+      // Mark as verified
+      await storage.markOtpVerified(otpRecord.id);
+
+      // Create or get user
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.createUser({
+          email,
+          name: email.split('@')[0],
+          username: email.split('@')[0],
+          plan: "trial",
+          supabaseId: null,
+        });
+      }
+
+      // Create session
+      req.session.regenerate((regErr) => {
+        if (regErr) {
+          return res.status(500).json({ error: "Session error" });
+        }
+
+        (req.session as any).userId = user!.id;
+        (req.session as any).userEmail = user!.email;
+
+        req.session.save((err) => {
+          if (err) {
+            return res.status(500).json({ error: "Session save error" });
+          }
+          res.json({ success: true, user });
+        });
+      });
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
   // Sign out endpoint
   app.post("/api/auth/signout", async (req, res) => {
     try {
