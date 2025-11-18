@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">Admin Panel</h1>
+                <h1 className="text-xl font-bold">Admin Dashboard</h1>
                 <p className="text-xs text-muted-foreground">Full system access</p>
               </div>
             </div>

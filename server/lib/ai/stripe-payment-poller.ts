@@ -18,11 +18,11 @@ export async function pollStripePayments() {
   try {
     console.log('🔍 Polling Stripe for new payments...');
 
-    // Get payments from last 10 minutes (to catch anything we missed)
-    const tenMinutesAgo = Math.floor(Date.now() / 1000) - 600;
+    // Get payments from last 2 minutes (faster polling, checking for recent payments)
+    const twoMinutesAgo = Math.floor(Date.now() / 1000) - 120;
 
     const payments = await stripe.paymentIntents.list({
-      created: { gte: tenMinutesAgo },
+      created: { gte: twoMinutesAgo },
       limit: 100,
     });
 
@@ -101,13 +101,13 @@ export async function pollStripePayments() {
   }
 }
 
-// Run every 5 minutes
+// Run every 1 minute (faster upgrades, better user experience)
 export function startStripePaymentPoller() {
-  console.log('🤖 Starting Stripe payment poller (runs every 5 minutes)');
+  console.log('🤖 Starting Stripe payment poller (runs every 1 minute for faster upgrades)');
   
   // Run immediately on startup
   pollStripePayments();
 
-  // Then every 5 minutes
-  setInterval(pollStripePayments, 5 * 60 * 1000);
+  // Then every 1 minute
+  setInterval(pollStripePayments, 1 * 60 * 1000);
 }

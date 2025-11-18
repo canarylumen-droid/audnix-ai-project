@@ -34,8 +34,13 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
+import { useCanAccessAnalytics } from "@/hooks/use-access-gate";
+import { FeatureLock } from "@/components/upgrade/FeatureLock";
+import { useUser } from "@/hooks/use-user";
 
 export default function InsightsPage() {
+  const { canAccess: canAccessAnalytics } = useCanAccessAnalytics();
+  const { user } = useUser();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["/api/insights"],
     refetchInterval: 10000, // Update every 10 seconds
