@@ -97,30 +97,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auth callback - Only needed if Supabase OAuth is configured
+  // Supabase auth callback - Handles OAuth (Google, GitHub) and Email Magic Link
   app.get("/api/auth/callback", async (req, res) => {
-    const { code } = req.query;
+    const { code, token_hash, type } = req.query;
 
-    // If Supabase isn't configured, redirect to email OTP auth
     if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
-      console.log("Supabase not configured - use email OTP at /auth");
-      return res.redirect("/auth?hint=use_email");
-    }
-
-    if (!code) {
-      return res.redirect("/auth");
+      console.warn("Supabase not configured, redirecting to dashboard");
+      return res.redirect("/dashboard");
     }
 
     try {
-      const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
+      let user;
+      let session;
 
-      if (error || !data.user) {
-        console.error("OAuth callback error:", error);
-        return res.redirect("/auth?error=auth_failed");
+      // Handle Email Magic Link verification
+      if (token_hash && type === 'email') {
+        const { data, error } = await supabaseAdmin.auth.verifyOtp({
+          token_hash: String(token_hash),
+          type: 'email',
+        });
+
+        if (error || !data.user) {
+          console.error("Email verification error:", error);
+          return res.redirect("/auth?error=verification_failed");
+        }
+
+        user = data.user;
+        session = data.session;
       }
+      // Handle OAuth callback (Google, GitHub, etc.)
+      else if (code) {
+        const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
 
-      const user = data.user;
-      const session = data.session;
+        if (error || !data.user) {
+          console.error("OAuth callback error:", error);
+          return res.redirect("/auth?error=auth_failed");
+        }
+
+        user = data.user;
+        session = data.session;
+      } else {
+        console.log("No code or token_hash, redirecting to auth");
+        return res.redirect("/auth");
+      }
 
       if (!user || !session) {
         return res.redirect("/auth?error=auth_failed");

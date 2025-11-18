@@ -518,59 +518,50 @@ export default function AuthPage() {
                 <CardContent className="space-y-4">
                   {authMode === 'social' && (
                     <>
-                      {isSupabaseConfigured() && (
-                        <>
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 }}
-                            className="space-y-3"
-                          >
-                            <Button
-                              className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                              variant="outline"
-                              onClick={handleGoogleLogin}
-                              disabled={loading !== null}
-                            >
-                              <SiGoogle className="w-5 h-5 mr-3" />
-                              {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
-                            </Button>
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="space-y-3"
+                      >
+                        <Button
+                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
+                          variant="outline"
+                          onClick={handleGoogleLogin}
+                          disabled={loading !== null}
+                        >
+                          <SiGoogle className="w-5 h-5 mr-3" />
+                          {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
+                        </Button>
 
-                            <Button
-                              className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                              variant="outline"
-                              onClick={handleGitHubLogin}
-                              disabled={loading !== null}
-                            >
-                              <SiGithub className="w-5 h-5 mr-3" />
-                              {loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}
-                            </Button>
-                          </motion.div>
+                        <Button
+                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
+                          variant="outline"
+                          onClick={handleGitHubLogin}
+                          disabled={loading !== null}
+                        >
+                          <SiGithub className="w-5 h-5 mr-3" />
+                          {loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}
+                        </Button>
+                      </motion.div>
 
-                          <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-white/10" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                              <span className="bg-[#0a0f1f] px-2 text-white/50">Or</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-white/10" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-[#0a0f1f] px-2 text-white/50">Or</span>
+                        </div>
+                      </div>
 
                       <Button
-                        className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-white"
+                        className="w-full h-12 text-base font-semibold bg-primary/20 border-primary/30 hover:bg-primary/30 text-white"
+                        variant="outline"
                         onClick={() => setAuthMode('email-otp')}
                       >
                         <Mail className="w-5 h-5 mr-3" />
-                        {isSupabaseConfigured() ? 'Continue with Email' : 'Sign In with Email'}
+                        Continue with Email
                       </Button>
-
-                      {!isSupabaseConfigured() && (
-                        <p className="text-center text-sm text-white/60 mt-4">
-                          Using secure email verification (no OAuth required)
-                        </p>
-                      )}
                     </>
                   )}
 
