@@ -97,11 +97,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase auth callback - Handles both OAuth (Google) and Email OTP
+  // Supabase auth callback - Handles OAuth (Google, GitHub) and Email Magic Link
   app.get("/api/auth/callback", async (req, res) => {
     const { code, token_hash, type } = req.query;
 
     if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
+      console.warn("Supabase not configured, redirecting to dashboard");
       return res.redirect("/dashboard");
     }
 
@@ -109,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let user;
       let session;
 
-      // Handle Email OTP verification (magic link or OTP code)
+      // Handle Email Magic Link verification
       if (token_hash && type === 'email') {
         const { data, error } = await supabaseAdmin.auth.verifyOtp({
           token_hash: String(token_hash),
@@ -117,14 +118,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         if (error || !data.user) {
-          console.error("Email OTP verification error:", error);
-          return res.redirect("/auth?error=otp_invalid");
+          console.error("Email verification error:", error);
+          return res.redirect("/auth?error=verification_failed");
         }
 
         user = data.user;
         session = data.session;
       }
-      // Handle OAuth callback (Google, etc.)
+      // Handle OAuth callback (Google, GitHub, etc.)
       else if (code) {
         const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
 
@@ -136,7 +137,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user = data.user;
         session = data.session;
       } else {
-        return res.redirect("/dashboard");
+        console.log("No code or token_hash, redirecting to auth");
+        return res.redirect("/auth");
       }
 
       if (!user || !session) {
