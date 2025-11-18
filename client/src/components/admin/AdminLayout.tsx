@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
 import { useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Users,
+  TrendingUp,
   Target,
   Settings,
   Shield
@@ -34,12 +34,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-red-100 dark:bg-red-900/20 p-2 rounded-lg">
-                <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Admin Dashboard</h1>
-                <p className="text-xs text-muted-foreground">Full system access</p>
+              <div className="flex items-center gap-3 px-6 py-4 border-b border-border/50">
+                <img src="/logo.jpg" alt="Audnix AI" className="h-10 w-10 rounded-lg" />
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix AI</h1>
+                  <p className="text-xs text-muted-foreground">Admin Portal</p>
+                </div>
               </div>
             </div>
           </div>
@@ -79,6 +79,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </main>
         </div>
       </div>
+
+      {/* Footer with Privacy Policy & Terms of Service */}
+      <footer className="mt-auto py-6 border-t border-border/50">
+        <div className="container mx-auto px-4 flex items-center justify-between text-sm text-muted-foreground">
+          <p>&copy; {new Date().getFullYear()} Audnix AI. All rights reserved.</p>
+          <div className="flex space-x-4">
+            <a href="/privacy-policy" className="hover:text-primary">Privacy Policy</a>
+            <a href="/terms-of-service" className="hover:text-primary">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

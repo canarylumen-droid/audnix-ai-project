@@ -9,6 +9,11 @@ import { AnimatedCard } from "@/components/ui/animated-card";
 import { motion } from "framer-motion";
 
 export default function Landing() {
+  // Placeholder for handleGetStarted, assuming it's defined elsewhere or not needed for this diff.
+  const handleGetStarted = () => {
+    console.log("Get started clicked");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#020409] text-white">
       <Navigation />
@@ -491,7 +496,7 @@ export default function Landing() {
                 AI-powered sales automation that converts leads while you sleep.
               </p>
             </div>
-            
+
             <div>
               <h3 className="font-semibold text-white mb-3">Legal</h3>
               <ul className="space-y-2 text-sm">
