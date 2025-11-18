@@ -148,6 +148,76 @@ export default function AuthPage() {
     }
   };
 
+  const handleDirectEmailPasswordAuth = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!password || password.length < 8) {
+      toast({
+        title: "Invalid Password",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isSignUp && passwordStrength && passwordStrength.score < 2) {
+      toast({
+        title: "Weak Password",
+        description: "Please choose a stronger password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('email');
+
+    try {
+      const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name: email.split('@')[0] }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: isSignUp ? "Sign Up Failed" : "Sign In Failed",
+          description: data.error || "Something went wrong",
+          variant: "destructive",
+        });
+        setLoading(null);
+        return;
+      }
+
+      toast({
+        title: isSignUp ? "Account Created! 🎉" : "Welcome Back! 🎉",
+        description: isSignUp ? "Redirecting to your dashboard..." : "You're signed in. Redirecting...",
+      });
+
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+    } catch (error) {
+      console.error("Direct auth error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to ${isSignUp ? 'sign up' : 'sign in'}`,
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
+
   const handleEmailPasswordAuth = async () => {
     if (!email || !email.includes('@')) {
       toast({
@@ -557,11 +627,15 @@ export default function AuthPage() {
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary/20 border-primary/30 hover:bg-primary/30 text-white"
                         variant="outline"
-                        onClick={() => setAuthMode('email-otp')}
+                        onClick={() => setAuthMode('email-password')}
                       >
                         <Mail className="w-5 h-5 mr-3" />
-                        Continue with Email
+                        Sign up with Email/Password
                       </Button>
+                      
+                      <p className="text-xs text-white/50 text-center -mt-2">
+                        No email verification required - instant access
+                      </p>
                     </>
                   )}
 
@@ -635,7 +709,7 @@ export default function AuthPage() {
 
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                        onClick={authMode === 'email-otp' ? handleEmailSignIn : handleEmailPasswordAuth}
+                        onClick={authMode === 'email-otp' ? handleEmailSignIn : handleDirectEmailPasswordAuth}
                         disabled={loading !== null}
                       >
                         {loading === 'email' ? 'Processing...' : isSignUp && authMode === 'email-password' ? 'Create Account' : isSignUp && authMode === 'email-otp' ? 'Send OTP' : 'Sign In'}

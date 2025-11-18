@@ -9,6 +9,7 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   supabaseId: text("supabase_id"),
   email: text("email").notNull().unique(),
+  password: text("password"),
   name: text("name"),
   username: text("username"),
   avatar: text("avatar"),
