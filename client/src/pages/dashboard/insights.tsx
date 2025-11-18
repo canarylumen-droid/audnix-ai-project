@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   TrendingUp,
   RefreshCw,
@@ -176,6 +177,7 @@ export default function InsightsPage() {
         </Card>
       ) : (
         <>
+          {/* Show 1 AI Insight for free users to give them a taste */}
           {insights && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -186,19 +188,35 @@ export default function InsightsPage() {
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-primary" />
                     <CardTitle>AI Insights</CardTitle>
+                    {!canAccessAnalytics && (
+                      <Badge variant="outline" className="ml-auto">Preview</Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
                   <p className="text-lg leading-relaxed" data-testid="text-ai-summary">
                     {insights}
                   </p>
+                  {!canAccessAnalytics && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-2">
+                        🔒 Unlock full AI insights and detailed analytics with a paid plan
+                      </p>
+                      <Button size="sm" onClick={() => window.location.href = '/dashboard/pricing'}>
+                        Upgrade to see more
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
           )}
 
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Wrap analytics in FeatureLock for free/trial users */}
+          {canAccessAnalytics ? (
+            <>
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <Card data-testid="card-metric-response">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -400,6 +418,25 @@ export default function InsightsPage() {
                 </CardContent>
               </Card>
             </motion.div>
+          )}
+            </>
+          ) : (
+            /* Show Feature Lock for free/trial users */
+            <FeatureLock
+              featureName="Advanced Analytics"
+              description="Get detailed charts, conversion funnels, and channel performance metrics to optimize your lead generation"
+              requiredPlan="Starter"
+              variant="card"
+              className="min-h-[400px]"
+            >
+              <div className="blur-sm opacity-50 pointer-events-none">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
+                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
+                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
+                </div>
+              </div>
+            </FeatureLock>
           )}
         </>
       )}

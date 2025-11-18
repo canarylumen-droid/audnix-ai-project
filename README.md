@@ -554,7 +554,7 @@ We just completed 18 major features that transform Audnix into a complete AI sal
 
 ### Revolutionary AI Comment Detection (NO Keywords Required!)
 
-**Unlike ManyChat and competitors, Audnix uses REAL AI intelligence:**
+**Competitor Comparison:** Unlike ManyChat and similar tools, Audnix uses REAL AI intelligence:
 - ✅ **Context-aware analysis** - Understands intent from ANY comment, not just "link" or "interested"
 - ✅ **Emotion detection** - Picks up on excitement, curiosity, or questions
 - ✅ **Multi-language support** - Detects interest in any language
@@ -598,7 +598,9 @@ This is a fully functional SaaS platform with complete authentication, database,
 
 ## 🤖 AI-Powered Comment Automation
 
-**NEW: Intelligent DM Follow-Up System (Destroys ManyChat)**
+**NEW: Intelligent DM Follow-Up System**
+
+> **Note:** ManyChat, CommentGuard, and Inflact are **competitor tools** - not integrations. The comparison tables below show how Audnix AI differs from these alternatives.
 
 ### Key Features
 - ✅ **Unlimited Video Monitoring** - Monitor as many videos as you want simultaneously
@@ -650,9 +652,9 @@ This is a fully functional SaaS platform with complete authentication, database,
    - Professional follow request after conversion
    - Handles objections intelligently
 
-### Example Flows
+### Example Flows (Competitor Comparison)
 
-**Traditional ManyChat:**
+**Traditional tools like ManyChat:**
 ```
 User: "This is cool!"
 Bot: *no response* (not a keyword)
