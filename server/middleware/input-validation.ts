@@ -115,10 +115,3 @@ export function sanitizeBody(req: Request, res: Response, next: NextFunction) {
   }
   next();
 }
-//async
-function (
-event.listener
-)
-else if [
-res.object = return:null;
-]
