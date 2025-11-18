@@ -273,7 +273,9 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
     }
 
     // Get video monitor config
-    const monitor = await storage.getVideoMonitor(videoMonitorId);
+    const monitors = await storage.getVideoMonitors(userId);
+    const monitor = monitors.find(m => m.id === videoMonitorId);
+    if (!monitor) return;
 
     // Get Instagram integration
     const integrations = await storage.getIntegrations(userId);
@@ -310,9 +312,9 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
         const { contentModerationService } = await import('./content-moderation');
         const moderationResult = await contentModerationService.moderateWithAI(comment.text);
 
-        if (moderationResult.shouldBlock || moderationResult.category === 'inappropriate') {
+        if (moderationResult.shouldBlock) {
           console.log(`🚫 Blocked inappropriate comment from ${comment.username}: ${moderationResult.category}`);
-          await storage.markCommentProcessed(comment.id, 'blocked_inappropriate', 'inappropriate');
+          await storage.markCommentProcessed(comment.id, 'blocked_inappropriate', moderationResult.category || 'inappropriate');
           continue;
         }
 
@@ -326,9 +328,9 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
             channel: 'instagram',
             externalId: comment.userId,
             status: 'new',
-            source: 'video_comment_automation',
             tags: ['video-comment', intent.intentType, 'auto-captured'],
             metadata: {
+              source: 'video_comment_automation',
               originalComment: comment.text,
               videoId: monitor.videoId,
               videoUrl: monitor.videoUrl,

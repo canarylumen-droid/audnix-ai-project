@@ -28,7 +28,8 @@ interface Lead {
   tags?: string[];
   preferred_name?: string;
   timezone?: string;
-  follow_up_count: number;
+  metadata?: Record<string, any>;
+  follow_up_count?: number;
   externalId?: string;
 }
 
@@ -87,7 +88,7 @@ export class FollowUpWorker {
     try {
       // Execute comment automation follow-ups first
       await executeCommentFollowUps();
-      
+
       if (!db) {
         console.warn('Database not configured - skipping queue processing');
         return;
@@ -166,7 +167,10 @@ export class FollowUpWorker {
           .update(leads)
           .set({
             status: 'replied',
-            followUpCount: (lead.followUpCount || 0) + 1,
+            metadata: {
+              ...lead.metadata,
+              follow_up_count: ((lead.metadata as any)?.follow_up_count || 0) + 1
+            },
             lastMessageAt: new Date()
           })
           .where(eq(leads.id, job.leadId));
@@ -214,7 +218,7 @@ export class FollowUpWorker {
   ): Promise<string> {
     const systemPrompt = "You are an AI assistant helping with lead follow-ups. Generate natural, human-like messages based on the context provided.";
     const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext);
-    
+
     const result = await generateReply(systemPrompt, userPrompt, {
       temperature: 0.7,
       maxTokens: 200,
@@ -230,7 +234,7 @@ export class FollowUpWorker {
   private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: any): string {
     const firstName = lead.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
-    
+
     // Build conversation history string
     const historyStr = history
       .slice(-5) // Last 5 messages
@@ -246,7 +250,7 @@ LEAD INFORMATION:
 - Name: ${firstName}
 - Channel: ${lead.channel}
 - Status: ${lead.status}
-- Follow-up #: ${lead.follow_up_count + 1}
+- Follow-up #: ${(lead.metadata as any)?.follow_up_count + 1 || 1}
 - Tags: ${lead.tags?.join(', ') || 'none'}
 
 CONVERSATION HISTORY:
@@ -394,7 +398,7 @@ Generate a natural follow-up message:`;
    */
   private getChannelPriority(preferred: string, lead: Lead): string[] {
     const channels = [preferred];
-    
+
     // Add fallback channels
     if (preferred !== 'whatsapp' && lead.phone) channels.push('whatsapp');
     if (preferred !== 'email' && lead.email) channels.push('email');
@@ -413,13 +417,14 @@ Generate a natural follow-up message:`;
     role: 'user' | 'assistant'
   ) {
     if (!db) return;
-    
+
     await db.insert(messages).values({
       userId,
       leadId,
       body: content,
       direction: role === 'user' ? 'inbound' : 'outbound',
       provider: 'instagram',
+      metadata: {},
       createdAt: new Date()
     });
   }
@@ -431,7 +436,7 @@ Generate a natural follow-up message:`;
     if (!db) return;
 
     // Don't schedule if already followed up 5+ times
-    if ((lead.followUpCount || 0) >= 5) {
+    if (((lead.metadata as any)?.follow_up_count || 0) >= 5) {
       return;
     }
 
@@ -443,12 +448,12 @@ Generate a natural follow-up message:`;
     // Get conversation history to assess lead temperature
     const messages = await this.getConversationHistory(leadId);
     const leadTemperature = this.assessLeadTemperature(lead, messages);
-    
+
     // Calculate next follow-up time with intelligent randomization
     const baseDelay = this.getFollowUpDelay(lead.followUpCount || 0, leadTemperature);
     const jitter = this.getRandomizationWindow(leadTemperature);
     const delayMs = baseDelay * (1 + jitter);
-    
+
     const scheduledAt = new Date(Date.now() + delayMs);
 
     console.log(`📅 Scheduling ${leadTemperature} lead follow-up in ${Math.round(delayMs / 60000)} minutes`);
@@ -460,7 +465,7 @@ Generate a natural follow-up message:`;
       channel: lead.channel,
       scheduledAt,
       context: {
-        follow_up_number: (lead.followUpCount || 0) + 1,
+        follow_up_number: ((lead.metadata as any)?.follow_up_count || 0) + 1,
         previous_status: lead.status,
         temperature: leadTemperature,
         scheduled_time: scheduledAt.toISOString()
@@ -477,7 +482,7 @@ Generate a natural follow-up message:`;
       const hoursSince = (Date.now() - new Date(m.created_at).getTime()) / (1000 * 60 * 60);
       return hoursSince < 24;
     });
-    
+
     const inboundInLast24h = recentMessages.filter(m => m.role === 'user').length;
     const hasEngagementScore = (lead.metadata as any)?.behavior_pattern?.engagementScore;
     const engagementScore = hasEngagementScore || 0;

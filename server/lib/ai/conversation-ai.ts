@@ -358,7 +358,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
 
     return {
       text: localizedResponse,
-      useVoice: false,
+      useVoice: false as boolean,
       detections: { priceObjection, language: languageDetection }
     };
   }

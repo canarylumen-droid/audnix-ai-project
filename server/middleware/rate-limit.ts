@@ -38,6 +38,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:api:'
     })
@@ -56,6 +57,7 @@ export const authLimiter = rateLimit({
   skipSuccessfulRequests: true,
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:auth:'
     })
@@ -73,6 +75,7 @@ export const webhookLimiter = rateLimit({
   legacyHeaders: false,
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:webhook:'
     })
@@ -96,6 +99,7 @@ export const aiLimiter = rateLimit({
   validate: false, // Disable IPv6 validation warnings
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:ai:'
     })
@@ -120,6 +124,7 @@ export const whatsappLimiter = rateLimit({
   validate: false,
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:whatsapp:'
     })
@@ -139,6 +144,7 @@ export const viteLimiter = rateLimit({
   validate: false,
   ...(redisClient && {
     store: new RedisStore({
+      // @ts-ignore - RedisStore types don't match express-rate-limit
       client: redisClient,
       prefix: 'rl:vite:'
     })

@@ -148,11 +148,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // Update user with latest OAuth data and last login
-        dbUser = await storage.updateUser(dbUser.id, {
-          name: fullName || dbUser.name,
-          avatar: avatar || dbUser.avatar,
-          lastLogin: new Date(),
-        });
+        if (dbUser) {
+          dbUser = await storage.updateUser(dbUser.id, {
+            name: fullName || dbUser.name,
+            avatar: avatar || dbUser.avatar,
+            lastLogin: new Date(),
+          });
+        }
       }
 
       // Regenerate session ID to prevent session fixation attacks
@@ -1545,7 +1547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF upload and processing with auto-outreach
-  app.post("/api/leads/upload-pdf", requireAuth, upload.single('file'), async (req, res) => {
+  app.post("/api/leads/upload-pdf", requireAuth, upload.single('pdf'), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
