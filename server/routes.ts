@@ -531,6 +531,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedAt: new Date(),
       });
 
+      // Mark onboarding as completed in user metadata
+      const user = await storage.getUserById(userId);
+      if (user) {
+        await storage.updateUser(userId, {
+          metadata: {
+            ...user.metadata,
+            onboardingCompleted: true,
+          },
+        });
+      }
+
       res.json({ success: true, profile });
     } catch (error) {
       console.error("Error saving onboarding:", error);

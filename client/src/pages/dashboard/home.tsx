@@ -22,6 +22,8 @@ import {
 import { Link } from "wouter";
 import { SiWhatsapp } from "react-icons/si";
 import { useReducedMotion } from "@/lib/animation-utils";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { useState, useEffect } from "react";
 
 const channelIcons = {
   instagram: Instagram,
@@ -31,12 +33,25 @@ const channelIcons = {
 
 export default function DashboardHome() {
   const prefersReducedMotion = useReducedMotion();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Fetch real user profile
   const { data: user } = useQuery({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (user) {
+      const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
+      setShowOnboarding(!hasCompletedOnboarding);
+    }
+  }, [user]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
 
   // Fetch real dashboard stats with aggressive real-time updates
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -154,9 +169,11 @@ export default function DashboardHome() {
   const hasAnyActivity = stats && (stats.leads > 0 || stats.messages > 0 || stats.aiReplies > 0);
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      {/* Hero Section */}
-      <motion.div
+    <>
+      <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+        {/* Hero Section */}
+        <motion.div
         initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
@@ -447,5 +464,6 @@ export default function DashboardHome() {
         )}
       </motion.div>
     </div>
+    </>
   );
 }
