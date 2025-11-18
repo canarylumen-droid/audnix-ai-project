@@ -320,18 +320,6 @@ async function runMigrations() {
   // This section will be updated to include the stripe-payment-poller
   // For now, it's just a placeholder comment.
 
-  // Import background worker initializers
-  import { initializeFollowUpWorker } from "./lib/ai/follow-up-worker";
-  import { initializeWeeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
-  import { initializeVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
-  import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
-
-  // Initialize and start background workers
-  initializeFollowUpWorker();
-  initializeWeeklyInsightsWorker();
-  initializeVideoCommentMonitoring();
-  startStripePaymentPoller(); // Auto-upgrade users from Stripe payments (no webhooks needed)
-
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
   server.listen(PORT, "0.0.0.0", () => {
