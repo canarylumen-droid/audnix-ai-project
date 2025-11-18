@@ -62,7 +62,7 @@ router.get("/metrics", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsersWithPlans.reduce((total: number, user: { plan: string }) => {
+    const mrr = paidUsersWithPlans.reduce((total: number, user: any) => {
       return total + (planPrices[user.plan] || 0);
     }, 0);
 
@@ -162,7 +162,7 @@ router.get("/overview", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsers.reduce((total: number, user: { plan: string }) => {
+    const mrr = paidUsers.reduce((total: number, user: any) => {
       return total + (planPrices[user.plan] || 0);
     }, 0);
 

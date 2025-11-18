@@ -283,9 +283,14 @@ router.post('/webhook/payment', async (req: Request, res: Response) => {
 
 // Helper functions
 async function getUserIdFromStripeCustomer(customerId: string): Promise<string | null> {
-  const users = await storage.getAllUsers();
-  const user = users.find(u => u.stripeCustomerId === customerId);
-  return user?.id || null;
+  try {
+    const users = await storage.getAllUsers();
+    const user = users.find(u => u.stripeCustomerId === customerId);
+    return user?.id || null;
+  } catch (error) {
+    console.error('Error finding user by Stripe customer ID:', error);
+    return null;
+  }
 }
 
 function getPlanFromSubscription(subscription: any): string {
