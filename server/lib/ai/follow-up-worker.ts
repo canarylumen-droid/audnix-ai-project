@@ -8,6 +8,7 @@ import { sendInstagramMessage } from '../channels/instagram';
 import { sendWhatsAppMessage } from '../channels/whatsapp';
 import { sendEmail } from '../channels/email';
 import { executeCommentFollowUps } from './comment-detection';
+import { storage } from '../storage'; // Assuming storage is available for lead fetching
 
 interface FollowUpJob {
   id: string;
@@ -31,6 +32,7 @@ interface Lead {
   metadata?: Record<string, any>;
   follow_up_count?: number;
   externalId?: string;
+  lastMessageAt?: Date | null; // Added for best reply hour calculation
 }
 
 interface Message {
@@ -171,7 +173,7 @@ export class FollowUpWorker {
               ...lead.metadata,
               follow_up_count: ((lead.metadata as any)?.follow_up_count || 0) + 1
             },
-            lastMessageAt: new Date()
+            lastMessageAt: new Date() // Update last message time
           })
           .where(eq(leads.id, job.leadId));
 
@@ -216,7 +218,7 @@ export class FollowUpWorker {
     history: Message[], 
     brandContext: any
   ): Promise<string> {
-    const systemPrompt = "You are an AI assistant helping with lead follow-ups. Generate natural, human-like messages based on the context provided.";
+    const systemPrompt = "You are an AI assistant helping with lead follow-ups. Generate natural, human-like messages based on the context provided. For emails, include a subject line based on the content and brand info. Ensure all outgoing messages are well-branded and professional.";
     const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext);
 
     const result = await generateReply(systemPrompt, userPrompt, {
@@ -241,16 +243,36 @@ export class FollowUpWorker {
       .map(msg => `${msg.role === 'user' ? 'Lead' : 'You'}: ${msg.content}`)
       .join('\n');
 
+    // Determine follow-up number
+    const followUpNumber = ((lead.metadata as any)?.follow_up_count || 0) + 1;
+
+    // Determine email subject for email channel
+    let emailSubject = '';
+    if (lead.channel === 'email') {
+      emailSubject = `Regarding Your Inquiry with ${brandContext.businessName}`;
+      // Basic subject line generation based on content (can be improved)
+      if (historyStr.length > 0) {
+        const firstLine = historyStr.split('\n')[0];
+        if (firstLine.length < 50) {
+          emailSubject = firstLine;
+        } else {
+          emailSubject = firstLine.substring(0, 50) + '...';
+        }
+      }
+    }
+
     return `You are an AI assistant helping with lead follow-ups for ${brandContext.businessName || 'a business'}.
 
-BRAND VOICE:
-${brandContext.voiceRules || '- Be friendly and professional\n- Keep messages concise\n- Focus on value'}
+BRAND INFORMATION:
+- Business Name: ${brandContext.businessName || 'Your Business'}
+- Brand Colors: ${brandContext.brandColors || '#000000'} (Use these for email styling)
+- Brand Voice: ${brandContext.voiceRules || '- Be friendly and professional\n- Keep messages concise\n- Focus on value'}
 
 LEAD INFORMATION:
 - Name: ${firstName}
 - Channel: ${lead.channel}
 - Status: ${lead.status}
-- Follow-up #: ${(lead.metadata as any)?.follow_up_count + 1 || 1}
+- Follow-up #: ${followUpNumber}
 - Tags: ${lead.tags?.join(', ') || 'none'}
 
 CONVERSATION HISTORY:
@@ -260,13 +282,15 @@ ${channelContext}
 
 RULES:
 1. ALWAYS address the lead by their first name (${firstName})
-2. Keep message under 150 characters for SMS/WhatsApp, under 200 for Instagram
-3. Be conversational and human-like
-4. If this is follow-up #1, introduce yourself briefly
-5. If this is follow-up #3+, consider being more direct or offering something specific
-6. Never mention you're an AI
-7. End with a soft call-to-action or question
-8. Match the tone to the channel (Instagram: casual, Email: professional)
+2. For email, generate a subject line using brand info and conversation context. Example: "Subject: ${emailSubject}"
+3. Keep message under 150 characters for SMS/WhatsApp, under 200 for Instagram. Emails can be longer but concise.
+4. Be conversational and human-like.
+5. If this is follow-up #1, introduce yourself briefly.
+6. If this is follow-up #3+, consider being more direct or offering something specific.
+7. Never mention you're an AI.
+8. End with a soft call-to-action or question.
+9. Match the tone to the channel (Instagram: casual, WhatsApp: friendly professional, Email: professional).
+10. For emails, use the provided brand colors for styling (e.g., button backgrounds, links).
 
 Generate a natural follow-up message:`;
   }
@@ -281,7 +305,7 @@ Generate a natural follow-up message:`;
       case 'whatsapp':
         return 'CHANNEL: WhatsApp - Be friendly but professional, okay to use 1-2 emojis';
       case 'email':
-        return 'CHANNEL: Email - More formal, can be slightly longer, include subject line';
+        return 'CHANNEL: Email - More formal, can be slightly longer, include subject line and professional branding';
       default:
         return '';
     }
@@ -319,13 +343,14 @@ Generate a natural follow-up message:`;
       return {
         businessName: 'Your Business',
         voiceRules: 'Be friendly and professional',
+        brandColors: '#007bff', // Default fallback color
         brandSnippets: []
       };
     }
 
-    // Get brand embeddings
+    // Get brand embeddings (assuming this table has color information)
     const brandData = await db
-      .select()
+      .select({ snippet: brandEmbeddings.snippet, color: brandEmbeddings.color })
       .from(brandEmbeddings)
       .where(eq(brandEmbeddings.userId, userId))
       .limit(5);
@@ -340,9 +365,15 @@ Generate a natural follow-up message:`;
       .where(eq(users.id, userId))
       .limit(1);
 
+    // Extract brand colors, prioritize specific colors if available, else use a default
+    const brandColors = brandData && brandData.length > 0 && brandData[0].color
+      ? brandData[0].color
+      : '#007bff'; // Default brand color
+
     return {
       businessName: user?.company || 'Your Business',
       voiceRules: user?.replyTone ? `Be ${user.replyTone}` : 'Be professional',
+      brandColors: brandColors,
       brandSnippets: brandData?.map(d => d.snippet) || []
     };
   }
@@ -380,6 +411,7 @@ Generate a natural follow-up message:`;
 
           case 'email':
             if (lead.email) {
+              // Assume sendEmail can handle HTML and branding
               await sendEmail(userId, lead.email, content, 'Follow-up');
               return true;
             }
@@ -423,16 +455,20 @@ Generate a natural follow-up message:`;
       leadId,
       body: content,
       direction: role === 'user' ? 'inbound' : 'outbound',
-      provider: 'instagram',
+      provider: 'automated', // Generic provider for AI messages
       metadata: {},
       createdAt: new Date()
     });
   }
 
   /**
-   * Schedule next follow-up with human-like timing based on lead temperature
+   * Schedule next follow-up based on lead temperature AND best reply time
    */
-  private async scheduleNextFollowUp(userId: string, leadId: string, lead: Lead) {
+  private async scheduleNextFollowUp(
+    userId: string,
+    leadId: string,
+    lead: Lead // Changed parameter to include lead object
+  ): Promise<void> { // Changed return type to void as it inserts into db
     if (!db) return;
 
     // Don't schedule if already followed up 5+ times
@@ -441,7 +477,7 @@ Generate a natural follow-up message:`;
     }
 
     // Don't schedule if lead is converted or not interested
-    if (['converted', 'not_interest ed', 'uninterested'].includes(lead.status)) {
+    if (['converted', 'not_interested', 'uninterested'].includes(lead.status)) {
       return;
     }
 
@@ -449,12 +485,35 @@ Generate a natural follow-up message:`;
     const messages = await this.getConversationHistory(leadId);
     const leadTemperature = this.assessLeadTemperature(lead, messages);
 
+    // Get user's leads to find best reply hour (This part needs to be optimized, fetching all leads on every schedule might be slow)
+    const allLeads = await storage.getLeads({ userId, limit: 1000 }); // Assuming storage.getLeads fetches leads with lastMessageAt
+    const replyHours: Record<number, number> = {};
+    for (const l of allLeads) {
+      if (l.lastMessageAt) {
+        const hour = new Date(l.lastMessageAt).getHours();
+        replyHours[hour] = (replyHours[hour] || 0) + 1;
+      }
+    }
+    const bestReplyHour = Object.keys(replyHours).length > 0
+      ? parseInt(Object.entries(replyHours).sort((a, b) => b[1] - a[1])[0][0])
+      : null;
+
     // Calculate next follow-up time with intelligent randomization
-    const baseDelay = this.getFollowUpDelay(lead.followUpCount || 0, leadTemperature);
+    const baseDelay = this.getFollowUpDelay(lead.follow_up_count || 0, leadTemperature);
     const jitter = this.getRandomizationWindow(leadTemperature);
     const delayMs = baseDelay * (1 + jitter);
 
     const scheduledAt = new Date(Date.now() + delayMs);
+
+    // ADAPTIVE: If we know the best reply hour, adjust scheduled time to match it
+    if (bestReplyHour !== null && leadTemperature === 'hot') {
+      const currentHour = scheduledAt.getHours();
+      // Adjust if the scheduled time is more than 2 hours away from the best reply hour
+      if (Math.abs(currentHour - bestReplyHour) > 2) {
+        scheduledAt.setHours(bestReplyHour, 0, 0, 0); // Set to best reply hour
+        console.log(`🎯 Adaptive scheduling: Shifted follow-up to ${bestReplyHour}:00 (best reply time)`);
+      }
+    }
 
     console.log(`📅 Scheduling ${leadTemperature} lead follow-up in ${Math.round(delayMs / 60000)} minutes`);
 
@@ -472,6 +531,7 @@ Generate a natural follow-up message:`;
       }
     });
   }
+
 
   /**
    * Assess lead temperature based on engagement patterns

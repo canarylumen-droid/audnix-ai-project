@@ -165,6 +165,20 @@ export async function sendEmail(
     throw new Error('Email not connected');
   }
 
+  // Get brand colors from brand_embeddings
+  const brandColors = options.brandColors || await getUserBrandColors(userId);
+  
+  // Auto-generate subject if not provided
+  const emailSubject = subject || await generateEmailSubject(userId, content);
+
+  // Get business name
+  const { data: userData } = await supabaseAdmin
+    .from('users')
+    .select('business_name, company')
+    .eq('user_id', userId)
+    .single();
+  const businessName = options.businessName || userData?.business_name || userData?.company || 'Our Team';
+
   // Generate HTML email if button is provided
   let emailBody = content;
   if (options.buttonUrl && options.buttonText) {
@@ -172,17 +186,26 @@ export async function sendEmail(
       emailBody = generateMeetingEmail(
         content,
         options.buttonUrl,
-        options.brandColors,
-        options.businessName
+        brandColors,
+        businessName
       );
     } else {
       emailBody = generateBrandedEmail(
         content,
         { text: options.buttonText, url: options.buttonUrl },
-        options.brandColors,
-        options.businessName
+        brandColors,
+        businessName
       );
     }
+    options.isHtml = true;
+  } else {
+    // Always send as branded HTML for professional look
+    emailBody = generateBrandedEmail(
+      content,
+      { text: 'View Details', url: '#' },
+      brandColors,
+      businessName
+    );
     options.isHtml = true;
   }
 
@@ -190,7 +213,7 @@ export async function sendEmail(
     await sendGmailMessage(
       integration.credentials as any, 
       recipientEmail, 
-      subject, 
+      emailSubject, 
       emailBody,
       options.isHtml
     );
@@ -198,7 +221,7 @@ export async function sendEmail(
     await sendOutlookMessage(
       integration.credentials as any, 
       recipientEmail, 
-      subject, 
+      emailSubject, 
       emailBody,
       options.isHtml
     );

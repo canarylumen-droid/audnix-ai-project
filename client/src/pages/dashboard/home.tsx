@@ -178,7 +178,7 @@ export default function DashboardHome() {
         animate={{ opacity: 1, y: 0 }}
         transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5 }}
       >
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 relative">
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="relative">
             <motion.div
               className="absolute -inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-pink-500/30 rounded-3xl blur-3xl -z-10"
@@ -192,8 +192,8 @@ export default function DashboardHome() {
                 ease: "easeInOut",
               }}
             />
-            <motion.h1 
-              className="text-4xl md:text-5xl font-bold drop-shadow-lg" 
+            <motion.h1
+              className="text-4xl md:text-5xl font-bold drop-shadow-lg"
               data-testid="heading-welcome"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -218,8 +218,8 @@ export default function DashboardHome() {
                 </motion.span>
               </span>
             </motion.h1>
-            <motion.p 
-              className="text-white mt-3 text-xl font-medium" 
+            <motion.p
+              className="text-white mt-3 text-xl font-medium"
               data-testid="text-subtitle"
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -238,9 +238,9 @@ export default function DashboardHome() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3 }}
               >
-                <Badge 
-                  variant="secondary" 
-                  className="w-fit glass-card border-primary/30 px-4 py-2 text-base hover:scale-105 transition-transform" 
+                <Badge
+                  variant="secondary"
+                  className="w-fit glass-card border-primary/30 px-4 py-2 text-base hover:scale-105 transition-transform"
                   data-testid="badge-trial"
                 >
                   <Sparkles className="w-4 h-4 mr-2 text-primary" />
@@ -262,13 +262,13 @@ export default function DashboardHome() {
                 initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5, delay: index * 0.1 }}
-                whileHover={prefersReducedMotion ? {} : { 
-                  y: -8, 
+                whileHover={prefersReducedMotion ? {} : {
+                  y: -8,
                   scale: 1.03,
                   transition: { duration: 0.2 }
                 }}
               >
-                <Card 
+                <Card
                   data-testid={`card-kpi-${index}`}
                   className="relative overflow-hidden border-2 border-transparent hover:border-white/20 transition-all duration-300 group"
                   style={{
@@ -287,8 +287,8 @@ export default function DashboardHome() {
                   </CardHeader>
                   <CardContent className="relative z-10">
                     <div className="flex items-end justify-between">
-                      <motion.div 
-                        className="text-3xl font-extrabold text-white" 
+                      <motion.div
+                        className="text-3xl font-extrabold text-white"
                         data-testid={`text-kpi-value-${index}`}
                         whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
                         transition={{ duration: 0.2 }}
@@ -296,10 +296,10 @@ export default function DashboardHome() {
                         {kpi.value}{kpi.suffix || ''}
                       </motion.div>
                       {kpi.percentage !== "—" && (
-                        <motion.div 
+                        <motion.div
                           className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                            kpi.trend === "up" ? "bg-emerald-500/20 text-emerald-300" : 
-                            kpi.trend === "down" ? "bg-red-500/20 text-red-300" : 
+                            kpi.trend === "up" ? "bg-emerald-500/20 text-emerald-300" :
+                            kpi.trend === "down" ? "bg-red-500/20 text-red-300" :
                             "bg-gray-500/20 text-gray-300"
                           }`}
                           initial={{ opacity: 0, scale: 0.8 }}
