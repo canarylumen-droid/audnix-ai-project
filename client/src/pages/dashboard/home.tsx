@@ -61,6 +61,13 @@ export default function DashboardHome() {
     retry: false,
   });
 
+  // Fetch previous period stats for real-time percentage calculations
+  const { data: previousStats } = useQuery({
+    queryKey: ["/api/dashboard/stats/previous"],
+    refetchInterval: 10000,
+    retry: false,
+  });
+
   // Fetch real activity feed with real-time updates
   const { data: activityData, isLoading: activityLoading } = useQuery({
     queryKey: ["/api/dashboard/activity"],
@@ -96,14 +103,29 @@ export default function DashboardHome() {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   };
 
+  // Helper function to calculate real-time percentage change
+  const calculatePercentageChange = (current: number, previous: number | undefined): string => {
+    // If no previous data yet, show dash instead of claiming growth
+    if (!previousStats || previous === undefined) {
+      return "—";
+    }
+    if (previous === 0) {
+      return current > 0 ? "+100%" : "—";
+    }
+    const change = ((current - previous) / previous) * 100;
+    if (isNaN(change) || !isFinite(change)) return "—";
+    const formatted = change.toFixed(1);
+    return change > 0 ? `+${formatted}%` : `${formatted}%`;
+  };
+
   const kpis = [
     {
       label: "Leads This Month",
       value: stats?.leads || 0,
       icon: Users,
       change: stats?.leads > 0 ? "New this month" : "Get started",
-      percentage: stats?.leads > 5 ? "+24%" : stats?.leads > 0 ? "+12%" : "—",
-      trend: stats?.leads > 5 ? "up" : stats?.leads > 0 ? "up" : "neutral",
+      percentage: calculatePercentageChange(stats?.leads || 0, previousStats?.leads),
+      trend: previousStats ? ((stats?.leads || 0) > (previousStats?.leads || 0) ? "up" : (stats?.leads || 0) < (previousStats?.leads || 0) ? "down" : "neutral") : "neutral",
       gradient: "from-cyan-500 to-blue-500",
     },
     {
@@ -111,8 +133,8 @@ export default function DashboardHome() {
       value: stats?.messages || 0,
       icon: MessageSquare,
       change: stats?.messages > 0 ? "Active engagement" : "Start messaging",
-      percentage: stats?.messages > 10 ? "+18%" : stats?.messages > 0 ? "+8%" : "—",
-      trend: stats?.messages > 10 ? "up" : stats?.messages > 0 ? "up" : "neutral",
+      percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
+      trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
       gradient: "from-purple-500 to-pink-500",
     },
     {
@@ -120,8 +142,8 @@ export default function DashboardHome() {
       value: stats?.aiReplies || 0,
       icon: Zap,
       change: stats?.aiReplies > 0 ? "Automation active" : "Enable AI",
-      percentage: stats?.aiReplies > 5 ? "+32%" : stats?.aiReplies > 0 ? "+15%" : "—",
-      trend: stats?.aiReplies > 5 ? "up" : stats?.aiReplies > 0 ? "up" : "neutral",
+      percentage: calculatePercentageChange(stats?.aiReplies || 0, previousStats?.aiReplies),
+      trend: previousStats ? ((stats?.aiReplies || 0) > (previousStats?.aiReplies || 0) ? "up" : (stats?.aiReplies || 0) < (previousStats?.aiReplies || 0) ? "down" : "neutral") : "neutral",
       gradient: "from-emerald-500 to-teal-500",
     },
     {
@@ -130,8 +152,8 @@ export default function DashboardHome() {
       suffix: "%",
       icon: TrendingUp,
       change: stats?.conversions > 0 ? `${stats.conversions} converted` : "Track conversions",
-      percentage: stats?.conversions > 2 ? "+15%" : stats?.conversions > 0 ? "+8%" : "—",
-      trend: stats?.conversions > 2 ? "up" : stats?.conversions > 0 ? "up" : "neutral",
+      percentage: calculatePercentageChange(stats?.conversions || 0, previousStats?.conversions),
+      trend: previousStats ? ((stats?.conversions || 0) > (previousStats?.conversions || 0) ? "up" : (stats?.conversions || 0) < (previousStats?.conversions || 0) ? "down" : "neutral") : "neutral",
       gradient: "from-orange-500 to-red-500",
     },
   ];

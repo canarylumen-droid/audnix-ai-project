@@ -1429,6 +1429,65 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
     }
   });
 
+  // Get previous period dashboard stats for percentage comparisons
+  app.get("/api/dashboard/stats/previous", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+
+      if (!userId) {
+        return res.json({
+          leads: 0,
+          messages: 0,
+          aiReplies: 0,
+          conversions: 0,
+        });
+      }
+
+      // Calculate date range for previous 30 days (30-60 days ago)
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sixtyDaysAgo = new Date(now);
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+      const allLeads = await storage.getLeads({ userId, limit: 1000 });
+      
+      // Filter leads created in previous period
+      const previousLeads = allLeads.filter(l => {
+        const createdDate = new Date(l.createdAt);
+        return createdDate >= sixtyDaysAgo && createdDate < thirtyDaysAgo;
+      });
+
+      const previousConversions = previousLeads.filter(l => l.status === 'converted').length;
+
+      // Get message counts from previous period
+      const previousMessages = await Promise.all(
+        previousLeads.map(lead => storage.getMessagesByLeadId(lead.id))
+      );
+      const previousMessageFlat = previousMessages.flat();
+      const previousMessageCount = previousMessageFlat.filter(m => {
+        const msgDate = new Date(m.createdAt);
+        return msgDate >= sixtyDaysAgo && msgDate < thirtyDaysAgo;
+      }).length;
+      
+      const previousAiReplyCount = previousMessageFlat.filter(m => {
+        const msgDate = new Date(m.createdAt);
+        return msgDate >= sixtyDaysAgo && msgDate < thirtyDaysAgo &&
+               m.direction === 'outbound' && (m.metadata as any)?.isAiGenerated;
+      }).length;
+
+      res.json({
+        leads: previousLeads.length,
+        messages: previousMessageCount,
+        aiReplies: previousAiReplyCount,
+        conversions: previousConversions,
+      });
+    } catch (error) {
+      console.error("Error fetching previous period stats:", error);
+      res.status(500).json({ error: "Failed to fetch previous period stats" });
+    }
+  });
+
   // Get real-time activity feed
   app.get("/api/dashboard/activity", async (req, res) => {
     try {
@@ -1709,6 +1768,95 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
     } catch (error) {
       console.error("Error fetching deals:", error);
       res.status(500).json({ error: "Failed to fetch deals" });
+    }
+  });
+
+  // Get deals analytics with revenue trends and projections
+  app.get("/api/deals/analytics", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get all deals for this user
+      const { deals } = await storage.calculateRevenue(userId);
+      const convertedDeals = deals.filter((d: any) => d.status === 'converted');
+
+      // Calculate time-based metrics
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(startOfWeek.getDate() - 7);
+      const startOfMonth = new Date(now);
+      startOfMonth.setDate(startOfMonth.getDate() - 30);
+      
+      // Previous periods for comparison
+      const startOfPrevWeek = new Date(now);
+      startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 14);
+      const endOfPrevWeek = new Date(now);
+      endOfPrevWeek.setDate(endOfPrevWeek.getDate() - 7);
+      
+      const startOfPrevMonth = new Date(now);
+      startOfPrevMonth.setDate(startOfPrevMonth.getDate() - 60);
+      const endOfPrevMonth = new Date(now);
+      endOfPrevMonth.setDate(endOfPrevMonth.getDate() - 30);
+
+      // Current period revenue
+      const weekDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfWeek);
+      const monthDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfMonth);
+      
+      const weekRevenue = weekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+      const monthRevenue = monthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+
+      // Previous period revenue
+      const prevWeekDeals = convertedDeals.filter((d: any) => {
+        const date = new Date(d.convertedAt);
+        return date >= startOfPrevWeek && date < endOfPrevWeek;
+      });
+      const prevMonthDeals = convertedDeals.filter((d: any) => {
+        const date = new Date(d.convertedAt);
+        return date >= startOfPrevMonth && date < endOfPrevMonth;
+      });
+      
+      const previousWeekRevenue = prevWeekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+      const previousMonthRevenue = prevMonthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+
+      // Timeline data for graphs (last 30 days)
+      const timelineData = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        
+        const dayDeals = convertedDeals.filter((d: any) => {
+          const dealDate = new Date(d.convertedAt);
+          return dealDate >= date && dealDate < nextDate;
+        });
+        
+        const dayRevenue = dayDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+        
+        timelineData.push({
+          date: date.toISOString().split('T')[0],
+          revenue: dayRevenue,
+          deals: dayDeals.length
+        });
+      }
+
+      res.json({
+        previousWeekRevenue,
+        previousMonthRevenue,
+        timelineData,
+        weekRevenue,
+        monthRevenue,
+        weekDeals: weekDeals.length,
+        monthDeals: monthDeals.length
+      });
+    } catch (error) {
+      console.error("Error fetching deals analytics:", error);
+      res.status(500).json({ error: "Failed to fetch deals analytics" });
     }
   });
 
