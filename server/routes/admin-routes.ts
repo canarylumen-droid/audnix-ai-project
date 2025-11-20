@@ -97,7 +97,29 @@ router.get("/metrics", async (req: Request, res: Response) => {
       })
       .from(users)
       .orderBy(desc(users.createdAt))
+      .limit(10);
 
+    res.json({
+      metrics: {
+        totalUsers,
+        activeUsers,
+        trialUsers,
+        paidUsers,
+        mrr,
+        apiBurn,
+        failedJobs,
+        storageUsed,
+      },
+      recentUsers: recentUsers.map((u: any) => ({
+        ...u,
+        createdAt: u.createdAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error fetching metrics:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // Get previous period overview for comparison
 router.get("/overview/previous", async (req: Request, res: Response) => {
@@ -181,30 +203,6 @@ router.get("/overview/previous", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("[ADMIN] Error fetching previous period:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-      .limit(10);
-
-    res.json({
-      metrics: {
-        totalUsers,
-        activeUsers,
-        trialUsers,
-        paidUsers,
-        mrr,
-        apiBurn,
-        failedJobs,
-        storageUsed,
-      },
-      recentUsers: recentUsers.map((u: any) => ({
-        ...u,
-        createdAt: u.createdAt.toISOString(),
-      })),
-    });
-  } catch (error) {
-    console.error("[ADMIN] Error fetching metrics:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

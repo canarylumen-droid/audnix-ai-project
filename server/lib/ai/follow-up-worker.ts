@@ -8,7 +8,7 @@ import { sendInstagramMessage } from '../channels/instagram';
 import { sendWhatsAppMessage } from '../channels/whatsapp';
 import { sendEmail } from '../channels/email';
 import { executeCommentFollowUps } from './comment-detection';
-import { storage } from '../storage'; // Assuming storage is available for lead fetching
+import { storage } from '../../storage'; // Assuming storage is available for lead fetching
 
 interface FollowUpJob {
   id: string;
