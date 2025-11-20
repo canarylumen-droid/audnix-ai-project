@@ -555,8 +555,6 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-export default router;
-
 /**
  * Get competitor analytics
  * GET /api/ai/competitor-analytics
@@ -564,9 +562,9 @@ export default router;
 router.get("/competitor-analytics", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const analytics = await getCompetitorAnalytics(userId);
-    
+
     res.json(analytics);
   } catch (error: any) {
     console.error("Competitor analytics error:", error);
@@ -581,9 +579,9 @@ router.get("/competitor-analytics", requireAuth, async (req: Request, res: Respo
 router.get("/optimal-discount", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const optimalDiscount = await learnOptimalDiscount(userId);
-    
+
     res.json({
       optimalDiscount,
       message: `Based on your conversion history, ${optimalDiscount}% is the sweet spot`
@@ -593,3 +591,51 @@ router.get("/optimal-discount", requireAuth, async (req: Request, res: Response)
     res.status(500).json({ error: error.message });
   }
 });
+
+/**
+ * Update brand info (re-upload brand context)
+ * POST /api/ai/brand-info
+ */
+router.post("/brand-info", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { brandSnippets, promotions, siteUrl } = req.body;
+
+    if (!brandSnippets || !Array.isArray(brandSnippets)) {
+      return res.status(400).json({ error: "brandSnippets array required" });
+    }
+
+    const { db } = await import('../db');
+    const { brandEmbeddings } = await import('@shared/schema');
+    const { embed } = await import('../lib/ai/openai');
+
+    // Clear old brand embeddings
+    await db.delete(brandEmbeddings).where(eq(brandEmbeddings.userId, userId));
+
+    // Insert new brand snippets with embeddings
+    for (const snippet of brandSnippets) {
+      const embedding = await embed(snippet);
+      await db.insert(brandEmbeddings).values({
+        userId,
+        snippet,
+        embedding,
+        metadata: {
+          promotions: promotions || [],
+          siteUrl: siteUrl || null,
+          updatedAt: new Date().toISOString()
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Brand info updated! AI will now use this in all responses",
+      snippetsCount: brandSnippets.length
+    });
+  } catch (error: any) {
+    console.error("Brand info update error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
