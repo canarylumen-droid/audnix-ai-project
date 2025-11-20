@@ -31,12 +31,33 @@ interface OnboardingStats {
   businessSizes: Array<{ businessSize: string; count: number }>;
 }
 
+// Helper function to calculate percentage change
+function calculatePercentageChange(current: number, previous: number | undefined): string {
+  if (previous === undefined || previous === 0) {
+    return current > 0 ? "+100%" : "0%";
+  }
+  const change = ((current - previous) / previous) * 100;
+  if (isNaN(change)) return "0%";
+  return change > 0 ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`;
+}
+
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
 
   const { data: overview, isLoading } = useQuery<OverviewData>({
     queryKey: ["/api/admin/overview"],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Real-time updates
+  });
+
+  const { data: metrics } = useQuery({
+    queryKey: ["/api/admin/metrics"],
+    refetchInterval: 5000,
+  });
+
+  // Fetch previous period data for real-time percentages
+  const { data: previousPeriod } = useQuery({
+    queryKey: ["/api/admin/overview/previous"],
+    refetchInterval: 10000,
   });
 
   const { data: onboarding } = useQuery<OnboardingStats>({
@@ -63,6 +84,7 @@ export default function AdminDashboard() {
       trend: "up",
       color: "text-blue-600 dark:text-blue-400",
       bgColor: "bg-blue-100 dark:bg-blue-900/20",
+      percentageChange: calculatePercentageChange(overview?.totalUsers || 0, previousPeriod?.totalUsers),
     },
     {
       title: "Active Users",
@@ -72,6 +94,7 @@ export default function AdminDashboard() {
       trend: "neutral",
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-100 dark:bg-green-900/20",
+      percentageChange: calculatePercentageChange(overview?.activeUsers || 0, previousPeriod?.activeUsers),
     },
     {
       title: "Monthly Revenue (MRR)",
@@ -81,6 +104,7 @@ export default function AdminDashboard() {
       trend: "up",
       color: "text-emerald-600 dark:text-emerald-400",
       bgColor: "bg-emerald-100 dark:bg-emerald-900/20",
+      percentageChange: calculatePercentageChange(overview?.mrr || 0, previousPeriod?.mrr),
     },
     {
       title: "Total Leads",
@@ -90,6 +114,7 @@ export default function AdminDashboard() {
       trend: "neutral",
       color: "text-purple-600 dark:text-purple-400",
       bgColor: "bg-purple-100 dark:bg-purple-900/20",
+      percentageChange: calculatePercentageChange(overview?.totalLeads || 0, previousPeriod?.totalLeads),
     },
     {
       title: "Total Messages",
@@ -99,6 +124,7 @@ export default function AdminDashboard() {
       trend: "neutral",
       color: "text-orange-600 dark:text-orange-400",
       bgColor: "bg-orange-100 dark:bg-orange-900/20",
+      percentageChange: calculatePercentageChange(overview?.totalMessages || 0, previousPeriod?.totalMessages),
     },
   ];
 
@@ -138,8 +164,11 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.change}
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  {stat.change} 
+                  <span className={`font-semibold ${stat.percentageChange.startsWith('+') ? 'text-green-500' : stat.percentageChange.startsWith('-') ? 'text-red-500' : 'text-gray-500'}`}>
+                    {stat.percentageChange}
+                  </span>
                 </p>
               </CardContent>
             </Card>

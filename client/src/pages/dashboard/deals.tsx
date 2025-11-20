@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,16 @@ import {
   Calendar,
   Instagram,
   Mail,
-  Phone,
   Loader2,
   Package,
   TrendingUp,
+  TrendingDown,
+  BarChart3,
 } from "lucide-react";
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const channelIcons = {
   instagram: Instagram,
@@ -27,7 +30,14 @@ export default function DealsPage() {
   // Fetch real deals from backend
   const { data: dealsData, isLoading, error } = useQuery({
     queryKey: ["/api/deals"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 5000, // Real-time updates every 5s
+    retry: false,
+  });
+
+  // Fetch revenue analytics
+  const { data: revenueAnalytics } = useQuery({
+    queryKey: ["/api/deals/analytics"],
+    refetchInterval: 5000,
     retry: false,
   });
 
@@ -36,6 +46,37 @@ export default function DealsPage() {
   const convertedDeals = deals.filter((d: any) => d.status === "converted");
   const pendingDeals = deals.filter((d: any) => d.status === "pending");
   const avgDealValue = deals.length > 0 ? Math.round(totalValue / deals.length) : 0;
+
+  // Calculate time-based metrics
+  const today = new Date();
+  const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+  const startOfMonth = new Date(today);
+  startOfMonth.setDate(startOfMonth.getDate() - 30);
+
+  const todayDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfToday);
+  const weekDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfWeek);
+  const monthDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfMonth);
+
+  const todayRevenue = todayDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+  const weekRevenue = weekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+  const monthRevenue = monthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+
+  // Calculate growth percentages (real-time, not hardcoded)
+  const previousWeekRevenue = revenueAnalytics?.previousWeekRevenue || 0;
+  const weekGrowth = previousWeekRevenue > 0 
+    ? Math.round(((weekRevenue - previousWeekRevenue) / previousWeekRevenue) * 100) 
+    : weekRevenue > 0 ? 100 : 0;
+
+  const previousMonthRevenue = revenueAnalytics?.previousMonthRevenue || 0;
+  const monthGrowth = previousMonthRevenue > 0
+    ? Math.round(((monthRevenue - previousMonthRevenue) / previousMonthRevenue) * 100)
+    : monthRevenue > 0 ? 100 : 0;
+
+  // Projections for next 7 days
+  const avgDailyRevenue = weekRevenue / 7;
+  const projected7Days = Math.round(avgDailyRevenue * 7);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -73,7 +114,7 @@ export default function DealsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold" data-testid="heading-deals">
-          Deals & Conversions
+          Revenue & Deals
         </h1>
         <p className="text-muted-foreground mt-1">
           {deals.length > 0 
@@ -82,7 +123,124 @@ export default function DealsPage() {
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Revenue Stats - Real-time percentages */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card data-testid="card-stat-today">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Today's Revenue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-today-revenue">
+              ${todayRevenue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {todayDeals.length} deal{todayDeals.length !== 1 ? 's' : ''} closed
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-stat-week">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Last 7 Days
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-week-revenue">
+              ${weekRevenue.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              {weekGrowth > 0 ? (
+                <TrendingUp className="h-3 w-3 text-emerald-500" />
+              ) : weekGrowth < 0 ? (
+                <TrendingDown className="h-3 w-3 text-red-500" />
+              ) : null}
+              <p className={`text-xs font-medium ${weekGrowth > 0 ? 'text-emerald-500' : weekGrowth < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {weekGrowth > 0 ? '+' : ''}{weekGrowth}% vs last week
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-stat-month">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Last 30 Days
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="text-month-revenue">
+              ${monthRevenue.toLocaleString()}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              {monthGrowth > 0 ? (
+                <TrendingUp className="h-3 w-3 text-emerald-500" />
+              ) : monthGrowth < 0 ? (
+                <TrendingDown className="h-3 w-3 text-red-500" />
+              ) : null}
+              <p className={`text-xs font-medium ${monthGrowth > 0 ? 'text-emerald-500' : monthGrowth < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                {monthGrowth > 0 ? '+' : ''}{monthGrowth}% vs last month
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-stat-projection" className="border-dashed border-primary/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Next 7 Days Projection
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary" data-testid="text-projection">
+              ${projected7Days.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Based on current pace
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue Timeline Chart */}
+      {revenueAnalytics?.timeline && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Revenue Timeline (Last 30 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={revenueAnalytics.timeline}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="date" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))' 
+                  }}
+                  formatter={(value: any) => `$${value}`}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#10b981" 
+                  strokeWidth={2}
+                  name="Revenue"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Old Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card data-testid="card-stat-total">
           <CardHeader className="pb-3">

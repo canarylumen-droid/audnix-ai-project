@@ -97,6 +97,94 @@ router.get("/metrics", async (req: Request, res: Response) => {
       })
       .from(users)
       .orderBy(desc(users.createdAt))
+
+
+// Get previous period overview for comparison
+router.get("/overview/previous", async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    
+    // Calculate previous 30-day period (30-60 days ago)
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get previous period users
+    const previousUsersResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(
+        gte(users.createdAt, sixtyDaysAgo),
+        sql`${users.createdAt} < ${thirtyDaysAgo}`
+      ));
+    const totalUsers = Number(previousUsersResult[0]?.count || 0);
+
+    // Get previous active users
+    const previousActiveResult = await db
+      .select({ count: count() })
+      .from(users)
+      .where(and(
+        gte(users.lastLogin, sixtyDaysAgo),
+        sql`${users.lastLogin} < ${thirtyDaysAgo}`
+      ));
+    const activeUsers = Number(previousActiveResult[0]?.count || 0);
+
+    // Calculate previous MRR (simplified - same logic as current)
+    const planPrices: Record<string, number> = {
+      starter: 49,
+      pro: 199,
+      enterprise: 499,
+    };
+
+    const previousPaidUsers = await db
+      .select({ plan: users.plan })
+      .from(users)
+      .where(and(
+        sql`${users.stripeSubscriptionId} IS NOT NULL`,
+        sql`${users.plan} != 'trial'`,
+        gte(users.createdAt, sixtyDaysAgo),
+        sql`${users.createdAt} < ${thirtyDaysAgo}`
+      ));
+
+    const mrr = previousPaidUsers.reduce((total: number, user: any) => {
+      return total + (planPrices[user.plan] || 0);
+    }, 0);
+
+    // Get previous leads
+    const previousLeadsResult = await db
+      .select({ count: count() })
+      .from(leads)
+      .where(and(
+        gte(leads.createdAt, sixtyDaysAgo),
+        sql`${leads.createdAt} < ${thirtyDaysAgo}`
+      ));
+    const totalLeads = Number(previousLeadsResult[0]?.count || 0);
+
+    // Get previous messages
+    const previousMessagesResult = await db
+      .select({ count: count() })
+      .from(messages)
+      .where(and(
+        gte(messages.createdAt, sixtyDaysAgo),
+        sql`${messages.createdAt} < ${thirtyDaysAgo}`
+      ));
+    const totalMessages = Number(previousMessagesResult[0]?.count || 0);
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      mrr,
+      totalLeads,
+      totalMessages,
+      period: "previous_30_days",
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error fetching previous period:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
       .limit(10);
 
     res.json({
