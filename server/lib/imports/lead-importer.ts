@@ -1,4 +1,6 @@
-import { storage } from "../../storage";
+import { storage } from '../../storage';
+import { db } from '../../db';
+import { followUpQueue } from '@shared/schema';
 import { InstagramOAuth } from "../oauth/instagram";
 import { decrypt } from "../crypto/encryption";
 import type { Lead, Message } from "@shared/schema";
@@ -22,11 +24,11 @@ export async function importInstagramLeads(userId: string): Promise<{
     const user = await storage.getUserById(userId);
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const currentLeadCount = existingLeads.length;
-    
+
     // Free trial users limited to 500 leads
     const isFreeTrial = !user?.subscriptionTier || user.subscriptionTier === 'free';
     const maxLeadsForFree = 500;
-    
+
     if (isFreeTrial && currentLeadCount >= maxLeadsForFree) {
       results.errors.push(`Free trial limit reached (${maxLeadsForFree} leads). Upgrade to import more.`);
       return results;
@@ -91,14 +93,14 @@ export async function importInstagramLeads(userId: string): Promise<{
           try {
             // Fetch ALL messages from the conversation thread
             const allMessages = await oauth.getAllMessages(accessToken, conversation.id);
-            
+
             for (const msg of allMessages) {
               // Check if message already exists
               const existingMessages = await storage.getMessages(lead.id);
               const exists = existingMessages.some(m => 
                 (m.metadata as any)?.ig_message_id === msg.id
               );
-              
+
               if (!exists) {
                 const messageData = {
                   leadId: lead.id,
@@ -155,7 +157,7 @@ export async function importGmailLeads(userId: string): Promise<{
     const user = await storage.getUserById(userId);
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const currentLeadCount = existingLeads.length;
-    
+
     const planLimits: Record<string, number> = {
       'free': 100,
       'trial': 100,
@@ -164,7 +166,7 @@ export async function importGmailLeads(userId: string): Promise<{
       'enterprise': 20000
     };
     const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
-    
+
     if (currentLeadCount >= maxLeads) {
       results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
       return results;
@@ -182,7 +184,7 @@ export async function importGmailLeads(userId: string): Promise<{
     const { GmailOAuth } = await import('../oauth/gmail');
     const oauth = new GmailOAuth();
     const accessToken = await oauth.getValidToken(userId);
-    
+
     if (!accessToken) {
       results.errors.push('Gmail token expired. Please reconnect Gmail.');
       return results;
@@ -206,7 +208,7 @@ export async function importGmailLeads(userId: string): Promise<{
 
     for (let i = 0; i < leadsToImport; i++) {
       const thread = threads[i];
-      
+
       try {
         // Get full thread details
         const threadDetails = await gmail.users.threads.get({
@@ -222,7 +224,7 @@ export async function importGmailLeads(userId: string): Promise<{
         const headers = firstMessage.payload?.headers || [];
         const fromHeader = headers.find(h => h.name?.toLowerCase() === 'from');
         const subjectHeader = headers.find(h => h.name?.toLowerCase() === 'subject');
-        
+
         if (!fromHeader?.value) continue;
 
         // Parse email address
@@ -257,7 +259,7 @@ export async function importGmailLeads(userId: string): Promise<{
           const msgHeaders = msg.payload?.headers || [];
           const fromMsg = msgHeaders.find(h => h.name?.toLowerCase() === 'from')?.value || '';
           const isOutbound = fromMsg.includes(user?.email || '');
-          
+
           // Get message body
           let body = '';
           if (msg.payload?.body?.data) {
@@ -317,7 +319,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
     const user = await storage.getUserById(userId);
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const currentLeadCount = existingLeads.length;
-    
+
     // Plan-based limits
     const planLimits: Record<string, number> = {
       'free': 100,
@@ -327,7 +329,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
       'enterprise': 20000
     };
     const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
-    
+
     if (currentLeadCount >= maxLeads) {
       results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
       return results;
@@ -344,7 +346,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
     // Get WhatsApp session
     const { whatsAppService } = await import('../integrations/whatsapp-web');
     const session = whatsAppService.getSession(userId);
-    
+
     if (!session || session.status !== 'ready') {
       results.errors.push('WhatsApp not ready. Please reconnect and try again.');
       return results;
@@ -353,17 +355,17 @@ export async function importWhatsAppLeads(userId: string): Promise<{
     // Fetch all WhatsApp chats/contacts
     const chats = await session.client.getChats();
     const leadsToImport = Math.min(chats.length, maxLeads - currentLeadCount);
-    
+
     for (let i = 0; i < leadsToImport; i++) {
       const chat = chats[i];
-      
+
       // Skip group chats
       if (chat.isGroup) continue;
 
       try {
         const contact = await chat.getContact();
         const phoneNumber = contact.id.user;
-        
+
         // Check if lead already exists
         const existingLead = await storage.getLeadByPhone(userId, phoneNumber);
         if (existingLead) {
@@ -390,7 +392,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
 
         // Import last 50 messages from this chat
         const messages = await chat.fetchMessages({ limit: 50 });
-        
+
         for (const msg of messages) {
           const messageData = {
             leadId: lead.id,
@@ -408,6 +410,18 @@ export async function importWhatsAppLeads(userId: string): Promise<{
 
           await storage.createMessage(messageData);
           results.messagesImported++;
+
+          // Add to follow-up queue if it's an inbound message and not from a business
+          if (!msg.fromMe && !contact.isBusiness) {
+            await db.insert(followUpQueue).values({
+              userId,
+              leadId: lead.id,
+              messageId: lead.id, // Using leadId as a placeholder, should be message ID
+              createdAt: new Date(msg.timestamp * 1000),
+              nextFollowUpAt: new Date(msg.timestamp * 1000 + 24 * 60 * 60 * 1000), // Default 24 hours
+              status: 'pending',
+            });
+          }
         }
 
       } catch (error: any) {
@@ -491,14 +505,14 @@ export async function importManychatLeads(userId: string): Promise<{
 
     for (let i = 0; i < leadsToImport; i++) {
       const subscriber = subscribers[i];
-      
+
       try {
         // Check if lead already exists
         const existingLead = existingLeads.find(l => 
           l.externalId === subscriber.id || 
           l.email === subscriber.email
         );
-        
+
         if (existingLead) continue;
 
         // Create lead from Manychat subscriber

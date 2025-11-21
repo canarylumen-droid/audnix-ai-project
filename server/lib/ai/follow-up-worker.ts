@@ -404,48 +404,36 @@ Generate a natural follow-up message:`;
 
           case 'whatsapp':
             if (lead.phone) {
-              // Check if lead is eligible for WhatsApp message based on last interaction
-              const lastMessage = await db
-                .select()
-                .from(messages)
-                .where(
-                  and(
-                    eq(messages.leadId, lead.id),
-                    eq(messages.direction, 'inbound') // Only consider inbound messages from lead
-                  )
-                )
-                .orderBy(desc(messages.createdAt))
-                .limit(1);
-
-              const lastMessageTime = lastMessage.length > 0 ? new Date(lastMessage[0].createdAt) : null;
-              const now = new Date();
-              const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-              // If the lead hasn't messaged in the last 24 hours, we cannot send a session message.
-              // If the last message was from the system, we also can't send.
-              if (lastMessageTime && lastMessageTime < twentyFourHoursAgo) {
-                console.warn(`⚠️ Cannot send WhatsApp follow-up to ${lead.name} (${lead.phone}): Last inbound message was more than 24 hours ago.`);
-
-                // Update lead metadata to track this and suggest template message
-                await db
-                  .update(leads)
-                  .set({
-                    metadata: {
-                      ...(lead.metadata || {}),
-                      last_follow_up_failed: new Date().toISOString(),
-                      follow_up_failure_reason: '24_hour_window_expired',
-                      needs_template_message: true
-                    } as any
-                  })
-                  .where(eq(leads.id, lead.id));
-
-                // Skip this lead for now, don't mark job as failed, it might be re-evaluated later
-                continue; 
+              try {
+                // Try to send message - the channel handler will check permissions
+                await sendWhatsAppMessage(userId, lead.phone, content);
+                console.log(`✅ WhatsApp message sent to ${lead.name} (${lead.phone})`);
+                return true;
+              } catch (error: any) {
+                // Handle specific messaging window errors
+                if (error.message.includes('24 hours') || error.message.includes('not messaged you')) {
+                  console.warn(`⚠️ WhatsApp follow-up blocked for ${lead.name}: ${error.message}`);
+                  
+                  // Update lead metadata
+                  await db
+                    .update(leads)
+                    .set({
+                      metadata: {
+                        ...(lead.metadata || {}),
+                        last_follow_up_failed: new Date().toISOString(),
+                        follow_up_failure_reason: 'messaging_window_restriction',
+                        needs_manual_outreach: true
+                      } as any
+                    })
+                    .where(eq(leads.id, lead.id));
+                  
+                  // Try next channel instead of failing
+                  continue;
+                }
+                
+                // Re-throw other errors
+                throw error;
               }
-              
-              // If no recent inbound message, proceed to send
-              await sendWhatsAppMessage(userId, lead.phone, content);
-              return true;
             }
             break;
 

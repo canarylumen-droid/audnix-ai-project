@@ -7,24 +7,44 @@ import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/
 import { storage } from '../../storage';
 
 /**
- * Check if we can send a session message to this phone number
- * WhatsApp allows session messages only within 24 hours of last inbound message
+ * Check if we can send a message to this phone number
+ * For imported leads: Allow first-time outreach (they're in your contacts)
+ * For ongoing conversations: Respect 24-hour window
  */
-async function checkMessagingWindow(userId: string, recipientPhone: string): Promise<boolean> {
+async function checkMessagingWindow(userId: string, recipientPhone: string): Promise<{ 
+  canSend: boolean; 
+  isFirstMessage: boolean;
+  reason?: string;
+}> {
   if (!supabaseAdmin) {
-    return false;
+    return { canSend: false, isFirstMessage: false, reason: 'Database not configured' };
   }
 
   // Get the lead by phone number
   const lead = await storage.getLeadByPhone(userId, recipientPhone);
   
   if (!lead) {
-    // No lead exists = never messaged us = can't send
-    return false;
+    // No lead exists = never imported = can't send
+    return { canSend: false, isFirstMessage: false, reason: 'Lead not imported' };
   }
 
-  // Get the most recent INBOUND message from this lead
-  const { data: recentMessage } = await supabaseAdmin
+  // Check if we've ever sent a message to this lead
+  const { data: sentMessages } = await supabaseAdmin
+    .from('messages')
+    .select('created_at')
+    .eq('lead_id', lead.id)
+    .eq('direction', 'outbound')
+    .limit(1);
+
+  const isFirstMessage = !sentMessages || sentMessages.length === 0;
+
+  // If this is the first message to an imported contact, allow it
+  if (isFirstMessage) {
+    return { canSend: true, isFirstMessage: true };
+  }
+
+  // For follow-ups, check the 24-hour window
+  const { data: recentInbound } = await supabaseAdmin
     .from('messages')
     .select('created_at')
     .eq('lead_id', lead.id)
@@ -33,17 +53,29 @@ async function checkMessagingWindow(userId: string, recipientPhone: string): Pro
     .limit(1)
     .single();
 
-  if (!recentMessage) {
-    // Lead exists but has never sent us a message
-    return false;
+  if (!recentInbound) {
+    // We sent messages but they never replied - can't send more
+    return { 
+      canSend: false, 
+      isFirstMessage: false, 
+      reason: 'No response from lead - waiting for reply' 
+    };
   }
 
   // Check if message was within last 24 hours
-  const lastMessageTime = new Date(recentMessage.created_at);
+  const lastMessageTime = new Date(recentInbound.created_at);
   const now = new Date();
   const hoursSinceLastMessage = (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60);
 
-  return hoursSinceLastMessage <= 24;
+  if (hoursSinceLastMessage <= 24) {
+    return { canSend: true, isFirstMessage: false };
+  }
+
+  return { 
+    canSend: false, 
+    isFirstMessage: false, 
+    reason: `Last reply was ${Math.round(hoursSinceLastMessage)}h ago - outside 24h window` 
+  };
 }
 
 
@@ -69,15 +101,19 @@ export async function sendWhatsAppMessage(
   message: string,
   options: WhatsAppMessageOptions = {}
 ): Promise<void> {
-  // CRITICAL: Enforce 24-hour messaging window
-  // WhatsApp only allows session messages to users who messaged you in last 24 hours
-  const canSendSessionMessage = await checkMessagingWindow(userId, recipientPhone);
+  // Check messaging permissions
+  const messagingStatus = await checkMessagingWindow(userId, recipientPhone);
   
-  if (!canSendSessionMessage) {
+  if (!messagingStatus.canSend) {
     throw new Error(
-      'Cannot send message: User has not messaged you in the last 24 hours. ' +
-      'Use a WhatsApp Template Message instead, or wait for the user to message you first.'
+      `Cannot send message: ${messagingStatus.reason || 'Unknown reason'}. ` +
+      (messagingStatus.isFirstMessage ? '' : 'Consider using a WhatsApp Template Message.')
     );
+  }
+
+  // Log if this is first outreach to imported contact
+  if (messagingStatus.isFirstMessage) {
+    console.log(`📤 First-time outreach to imported contact: ${recipientPhone}`);
   }
   
   // Apply formatting if button is provided
