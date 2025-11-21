@@ -3,6 +3,50 @@ import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/
 
 /**
  * WhatsApp messaging functions using WhatsApp Business API with rich formatting
+
+import { storage } from '../../storage';
+
+/**
+ * Check if we can send a session message to this phone number
+ * WhatsApp allows session messages only within 24 hours of last inbound message
+ */
+async function checkMessagingWindow(userId: string, recipientPhone: string): Promise<boolean> {
+  if (!supabaseAdmin) {
+    return false;
+  }
+
+  // Get the lead by phone number
+  const lead = await storage.getLeadByPhone(userId, recipientPhone);
+  
+  if (!lead) {
+    // No lead exists = never messaged us = can't send
+    return false;
+  }
+
+  // Get the most recent INBOUND message from this lead
+  const { data: recentMessage } = await supabaseAdmin
+    .from('messages')
+    .select('created_at')
+    .eq('lead_id', lead.id)
+    .eq('direction', 'inbound')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!recentMessage) {
+    // Lead exists but has never sent us a message
+    return false;
+  }
+
+  // Check if message was within last 24 hours
+  const lastMessageTime = new Date(recentMessage.created_at);
+  const now = new Date();
+  const hoursSinceLastMessage = (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60);
+
+  return hoursSinceLastMessage <= 24;
+}
+
+
  */
 
 interface WhatsAppConfig {
@@ -25,6 +69,17 @@ export async function sendWhatsAppMessage(
   message: string,
   options: WhatsAppMessageOptions = {}
 ): Promise<void> {
+  // CRITICAL: Enforce 24-hour messaging window
+  // WhatsApp only allows session messages to users who messaged you in last 24 hours
+  const canSendSessionMessage = await checkMessagingWindow(userId, recipientPhone);
+  
+  if (!canSendSessionMessage) {
+    throw new Error(
+      'Cannot send message: User has not messaged you in the last 24 hours. ' +
+      'Use a WhatsApp Template Message instead, or wait for the user to message you first.'
+    );
+  }
+  
   // Apply formatting if button is provided
   let formattedMessage = message;
   if (options.button) {
@@ -192,6 +247,54 @@ export async function sendWhatsAppAudio(
       type: 'audio',
       audio: {
         link: audioUrl
+
+
+/**
+ * Check if a lead requires a template message (outside 24-hour window)
+ * This can be used by the UI to show appropriate messaging options
+ */
+export async function requiresTemplateMessage(
+  userId: string,
+  recipientPhone: string
+): Promise<boolean> {
+  const canSendSession = await checkMessagingWindow(userId, recipientPhone);
+  return !canSendSession;
+}
+
+/**
+ * Get time remaining in messaging window
+ * Returns hours remaining, or null if window has expired
+ */
+export async function getMessagingWindowTimeRemaining(
+  userId: string,
+  recipientPhone: string
+): Promise<number | null> {
+  if (!supabaseAdmin) {
+    return null;
+  }
+
+  const lead = await storage.getLeadByPhone(userId, recipientPhone);
+  if (!lead) return null;
+
+  const { data: recentMessage } = await supabaseAdmin
+    .from('messages')
+    .select('created_at')
+    .eq('lead_id', lead.id)
+    .eq('direction', 'inbound')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!recentMessage) return null;
+
+  const lastMessageTime = new Date(recentMessage.created_at);
+  const now = new Date();
+  const hoursSinceLastMessage = (now.getTime() - lastMessageTime.getTime()) / (1000 * 60 * 60);
+  const hoursRemaining = 24 - hoursSinceLastMessage;
+
+  return hoursRemaining > 0 ? hoursRemaining : null;
+}
+
       }
     })
   });
