@@ -205,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email || !email.includes('@')) {
         return res.status(400).json({ error: "Valid email required" });
       }
@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email (you can use any SMTP provider or Resend/SendGrid)
       // For now, just log it (replace with actual email sending)
       console.log(`OTP Code for ${email}: ${code}`);
-      
+
       // TODO: Send actual email via SMTP/SendGrid/Resend
       // await sendEmail(email, 'Your Login Code', `Your code is: ${code}`);
 
@@ -243,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { email, code } = req.body;
 
       const otpRecord = await storage.getLatestOtpCode(email);
-      
+
       if (!otpRecord) {
         return res.status(400).json({ error: "No code found. Request a new one." });
       }
@@ -325,47 +325,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create user
-      const username = name || email.split('@')[0];
+      // Create user account
       const user = await storage.createUser({
         email,
-        name: username,
-        username,
         password: hashedPassword,
-        plan: "trial",
-        supabaseId: null,
+        name,
+        plan: 'trial',
+        role: 'user',
       });
 
-      // Create session
-      req.session.regenerate((regErr) => {
-        if (regErr) {
-          console.error("Error regenerating session:", regErr);
-          return res.status(500).json({ error: "Session error" });
-        }
+      // Automatically log them in
+      req.session.userId = user.id;
+      req.session.userEmail = user.email;
 
-        (req.session as any).userId = user.id;
-        (req.session as any).userEmail = user.email;
-
+      // Save session before responding
+      await new Promise<void>((resolve, reject) => {
         req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session:", err);
-            return res.status(500).json({ error: "Session save error" });
-          }
-          
-          res.json({ 
-            success: true, 
-            user: {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              username: user.username
-            }
-          });
+          if (err) reject(err);
+          else resolve();
         });
       });
-    } catch (error: any) {
-      console.error("Error in signup:", error);
-      res.status(500).json({ error: "Signup failed" });
+
+      res.json({
+        message: "Account created successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: user.plan,
+        },
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Failed to create account" });
     }
   });
 
@@ -395,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify password
       const bcrypt = await import('bcryptjs');
       const isValid = await bcrypt.compare(password, user.password);
-      
+
       if (!isValid) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
@@ -418,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("Error saving session:", err);
             return res.status(500).json({ error: "Session save error" });
           }
-          
+
           res.json({ 
             success: true, 
             user: {
@@ -853,6 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
  * Get deals analytics with revenue timeline
  * GET /api/deals/analytics
  */
+const router = require('express').Router(); // Assuming router is imported elsewhere or defined globally
 router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
@@ -1451,7 +1444,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
       sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
       const allLeads = await storage.getLeads({ userId, limit: 1000 });
-      
+
       // Filter leads created in previous period
       const previousLeads = allLeads.filter(l => {
         const createdDate = new Date(l.createdAt);
@@ -1469,7 +1462,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
         const msgDate = new Date(m.createdAt);
         return msgDate >= sixtyDaysAgo && msgDate < thirtyDaysAgo;
       }).length;
-      
+
       const previousAiReplyCount = previousMessageFlat.filter(m => {
         const msgDate = new Date(m.createdAt);
         return msgDate >= sixtyDaysAgo && msgDate < thirtyDaysAgo &&
@@ -1775,7 +1768,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
   app.get("/api/deals/analytics", requireAuth, async (req, res) => {
     try {
       const userId = getCurrentUserId(req);
-      
+
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
       }
@@ -1790,13 +1783,13 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
       startOfWeek.setDate(startOfWeek.getDate() - 7);
       const startOfMonth = new Date(now);
       startOfMonth.setDate(startOfMonth.getDate() - 30);
-      
+
       // Previous periods for comparison
       const startOfPrevWeek = new Date(now);
       startOfPrevWeek.setDate(startOfPrevWeek.getDate() - 14);
       const endOfPrevWeek = new Date(now);
       endOfPrevWeek.setDate(endOfPrevWeek.getDate() - 7);
-      
+
       const startOfPrevMonth = new Date(now);
       startOfPrevMonth.setDate(startOfPrevMonth.getDate() - 60);
       const endOfPrevMonth = new Date(now);
@@ -1805,7 +1798,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
       // Current period revenue
       const weekDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfWeek);
       const monthDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfMonth);
-      
+
       const weekRevenue = weekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
       const monthRevenue = monthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
 
@@ -1818,7 +1811,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
         const date = new Date(d.convertedAt);
         return date >= startOfPrevMonth && date < endOfPrevMonth;
       });
-      
+
       const previousWeekRevenue = prevWeekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
       const previousMonthRevenue = prevMonthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
 
@@ -1830,14 +1823,14 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
         date.setHours(0, 0, 0, 0);
         const nextDate = new Date(date);
         nextDate.setDate(nextDate.getDate() + 1);
-        
+
         const dayDeals = convertedDeals.filter((d: any) => {
           const dealDate = new Date(d.convertedAt);
           return dealDate >= date && dealDate < nextDate;
         });
-        
+
         const dayRevenue = dayDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
-        
+
         timelineData.push({
           date: date.toISOString().split('T')[0],
           revenue: dayRevenue,

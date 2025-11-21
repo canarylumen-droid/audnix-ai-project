@@ -33,7 +33,7 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
-  const [authMode, setAuthMode] = useState<AuthMode>('social');
+  const [authMode, setAuthMode] = useState<AuthMode>('email-password');
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -201,11 +201,13 @@ export default function AuthPage() {
 
       toast({
         title: isSignUp ? "Account Created! 🎉" : "Welcome Back! 🎉",
-        description: isSignUp ? "Setting up your account..." : "You're signed in. Redirecting...",
+        description: isSignUp ? "Taking you to onboarding..." : "You're signed in!",
       });
 
-      // Reload to ensure session is established
-      window.location.href = '/dashboard';
+      // Redirect immediately - session is already set
+      setTimeout(() => {
+        window.location.href = isSignUp ? '/dashboard/onboarding' : '/dashboard';
+      }, 500);
     } catch (error) {
       console.error("Direct auth error:", error);
       toast({
@@ -585,60 +587,7 @@ export default function AuthPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {authMode === 'social' && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="space-y-3"
-                      >
-                        <Button
-                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                          variant="outline"
-                          onClick={handleGoogleLogin}
-                          disabled={loading !== null}
-                        >
-                          <SiGoogle className="w-5 h-5 mr-3" />
-                          {loading === 'google' ? 'Connecting...' : 'Continue with Google'}
-                        </Button>
-
-                        <Button
-                          className="w-full h-12 text-base font-semibold group relative overflow-hidden bg-white/10 border-white/20 hover:bg-white/15 hover:border-white/30 text-white"
-                          variant="outline"
-                          onClick={handleGitHubLogin}
-                          disabled={loading !== null}
-                        >
-                          <SiGithub className="w-5 h-5 mr-3" />
-                          {loading === 'github' ? 'Connecting...' : 'Continue with GitHub'}
-                        </Button>
-                      </motion.div>
-
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-white/10" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-[#0a0f1f] px-2 text-white/50">Or</span>
-                        </div>
-                      </div>
-
-                      <Button
-                        className="w-full h-12 text-base font-semibold bg-primary/20 border-primary/30 hover:bg-primary/30 text-white"
-                        variant="outline"
-                        onClick={() => setAuthMode('email-password')}
-                      >
-                        <Mail className="w-5 h-5 mr-3" />
-                        Sign up with Email/Password
-                      </Button>
-                      
-                      <p className="text-xs text-white/50 text-center -mt-2">
-                        No email verification required - instant access
-                      </p>
-                    </>
-                  )}
-
-                  {(authMode === 'email-password' || authMode === 'email-otp') && (
+                  {(
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -715,28 +664,18 @@ export default function AuthPage() {
                       </Button>
 
                       <div className="text-center">
-                        {authMode === 'email-password' && (
-                          <button
-                            onClick={() => setIsSignUp(!isSignUp)}
-                            className="text-sm text-white/70 hover:text-white/90 underline"
-                          >
-                            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => setIsSignUp(!isSignUp)}
+                          className="text-sm text-white/70 hover:text-white/90 underline"
+                        >
+                          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                        </button>
                       </div>
-
-                      <Button
-                        variant="ghost"
-                        className="w-full text-white/60 hover:text-white/90 hover:bg-white/5"
-                        onClick={() => setAuthMode('social')}
-                      >
-                        ← Back to other options
-                      </Button>
                     </motion.div>
                   )}
 
                   {/* Value props */}
-                  {authMode === 'social' && (
+                  {(
                     <div className="pt-4 pb-2">
                       <p className="text-sm text-white/70 font-semibold mb-3">
                         You get:
