@@ -38,10 +38,64 @@ router.post('/connect', requireAuth, async (req, res) => {
       accountType: email,
     });
 
-    res.json({
-      success: true,
-      message: 'Custom email connected successfully'
-    });
+    // Auto-import emails after connection
+    try {
+      const { importCustomEmails } = await import('../lib/channels/email');
+      const emails = await importCustomEmails(credentials, 50);
+
+      let leadsImported = 0;
+      let messagesImported = 0;
+
+      for (const emailData of emails) {
+        const senderEmail = emailData.from?.split('<')[1]?.split('>')[0] || emailData.from;
+        
+        let lead = await storage.getLeadByEmail(userId, senderEmail);
+        
+        if (!lead) {
+          lead = await storage.createLead({
+            userId,
+            name: emailData.from?.split('<')[0]?.trim() || senderEmail.split('@')[0],
+            email: senderEmail,
+            channel: 'email',
+            status: 'new',
+            metadata: {
+              imported_from_custom_email: true,
+              subject: emailData.subject
+            }
+          });
+          leadsImported++;
+        }
+
+        await storage.createMessage({
+          userId,
+          leadId: lead.id,
+          channel: 'email',
+          direction: 'inbound',
+          content: emailData.text || emailData.html || '',
+          status: 'received',
+          metadata: {
+            subject: emailData.subject,
+            receivedAt: emailData.date
+          }
+        });
+        messagesImported++;
+      }
+
+      res.json({
+        success: true,
+        message: 'Custom email connected successfully',
+        leadsImported,
+        messagesImported
+      });
+    } catch (importError: any) {
+      console.error('Auto-import failed:', importError);
+      // Still return success for connection, but note import failed
+      res.json({
+        success: true,
+        message: 'Custom email connected, but initial import failed. You can manually import later.',
+        importError: importError.message
+      });
+    }
   } catch (error: any) {
     console.error('Error connecting custom email:', error);
     res.status(500).json({ error: 'Failed to connect custom email' });
@@ -62,13 +116,62 @@ router.post('/import', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Custom email not connected' });
     }
 
-    // Import would happen here using the importCustomEmails function
-    // For now, return success
+    // Decrypt credentials
+    const { decrypt } = await import('../lib/crypto/encryption');
+    const credentialsStr = await decrypt(integration.encryptedMeta!);
+    const credentials = JSON.parse(credentialsStr);
+
+    // Import emails
+    const { importCustomEmails } = await import('../lib/channels/email');
+    const emails = await importCustomEmails(credentials, 50);
+
+    // Store leads and messages
+    let leadsImported = 0;
+    let messagesImported = 0;
+
+    for (const email of emails) {
+      const senderEmail = email.from?.split('<')[1]?.split('>')[0] || email.from;
+      
+      // Check if lead exists
+      let lead = await storage.getLeadByEmail(userId, senderEmail);
+      
+      if (!lead) {
+        // Create new lead
+        lead = await storage.createLead({
+          userId,
+          name: email.from?.split('<')[0]?.trim() || senderEmail.split('@')[0],
+          email: senderEmail,
+          channel: 'email',
+          status: 'new',
+          metadata: {
+            imported_from_custom_email: true,
+            subject: email.subject
+          }
+        });
+        leadsImported++;
+      }
+
+      // Store message
+      await storage.createMessage({
+        userId,
+        leadId: lead.id,
+        channel: 'email',
+        direction: 'inbound',
+        content: email.text || email.html || '',
+        status: 'received',
+        metadata: {
+          subject: email.subject,
+          receivedAt: email.date
+        }
+      });
+      messagesImported++;
+    }
+
     res.json({
       success: true,
-      leadsImported: 0,
-      messagesImported: 0,
-      message: 'Import started'
+      leadsImported,
+      messagesImported,
+      message: 'Import completed successfully'
     });
   } catch (error: any) {
     console.error('Error importing custom emails:', error);

@@ -49,7 +49,7 @@ async function sendCustomSMTP(
 /**
  * Import emails from custom IMAP server
  */
-async function importCustomEmails(
+export async function importCustomEmails(
   config: EmailConfig,
   limit: number = 50
 ): Promise<any[]> {
@@ -139,52 +139,6 @@ interface EmailOptions {
 }
 
 /**
- * Check Gmail daily send limit and queue if needed
- */
-async function checkGmailDailyLimit(userId: string): Promise<{
-  canSend: boolean;
-  emailsSentToday: number;
-  limit: number;
-  resetTime: Date;
-}> {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase admin not configured');
-  }
-
-  // Get user's Gmail limit (500 for regular, 2000 for workspace)
-  const { data: user } = await supabaseAdmin
-    .from('users')
-    .select('gmail_email, subscription_tier')
-    .eq('id', userId)
-    .single();
-
-  const isWorkspace = user?.gmail_email?.endsWith('@yourdomain.com'); // Check if workspace
-  const dailyLimit = isWorkspace ? 2000 : 500;
-
-  // Count emails sent today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const { data: sentToday } = await supabaseAdmin
-    .from('messages')
-    .select('id', { count: 'exact' })
-    .eq('user_id', userId)
-    .eq('channel', 'email')
-    .gte('created_at', today.toISOString());
-
-  const emailsSentToday = sentToday?.length || 0;
-  const resetTime = new Date(today);
-  resetTime.setDate(resetTime.getDate() + 1);
-
-  return {
-    canSend: emailsSentToday < dailyLimit,
-    emailsSentToday,
-    limit: dailyLimit,
-    resetTime
-  };
-}
-
-/**
  * Send email using appropriate provider with optional branding
  */
 export async function sendEmail(
@@ -209,18 +163,6 @@ export async function sendEmail(
 
   if (!integration) {
     throw new Error('Email not connected');
-  }
-
-  // Check Gmail rate limit
-  if (integration.provider === 'gmail') {
-    const limitCheck = await checkGmailDailyLimit(userId);
-    
-    if (!limitCheck.canSend) {
-      throw new Error(
-        `Gmail daily limit reached (${limitCheck.emailsSentToday}/${limitCheck.limit}). ` +
-        `Resets at ${limitCheck.resetTime.toLocaleTimeString()}.`
-      );
-    }
   }
 
   // Get brand colors from brand_embeddings
@@ -347,85 +289,6 @@ async function sendOutlookMessage(
             emailAddress: {
               address: to
             }
-
-
-/**
- * Batch send emails with Gmail rate limiting (100 per batch, max 500/day)
- */
-export async function sendBatchEmails(
-  userId: string,
-  recipients: Array<{ email: string; content: string; subject: string }>,
-  options: EmailOptions = {}
-): Promise<{
-  sent: number;
-  queued: number;
-  failed: number;
-  errors: string[];
-  resetTime?: Date;
-}> {
-  const results = {
-    sent: 0,
-    queued: 0,
-    failed: 0,
-    errors: [] as string[],
-    resetTime: undefined as Date | undefined
-  };
-
-  try {
-    // Check daily limit first
-    const limitCheck = await checkGmailDailyLimit(userId);
-    
-    if (!limitCheck.canSend) {
-      // Queue all emails for tomorrow
-      results.queued = recipients.length;
-      results.resetTime = limitCheck.resetTime;
-      results.errors.push(
-        `Daily limit reached (${limitCheck.emailsSentToday}/${limitCheck.limit}). ` +
-        `All ${recipients.length} emails queued for ${limitCheck.resetTime.toLocaleString()}`
-      );
-      
-      // TODO: Store in email_queue table for tomorrow
-      return results;
-    }
-
-    const remaining = limitCheck.limit - limitCheck.emailsSentToday;
-    const canSendNow = Math.min(recipients.length, remaining, 100); // Max 100 per batch
-    const toQueue = recipients.length - canSendNow;
-
-    // Send what we can now
-    for (let i = 0; i < canSendNow; i++) {
-      try {
-        await sendEmail(
-          userId,
-          recipients[i].email,
-          recipients[i].content,
-          recipients[i].subject,
-          options
-        );
-        results.sent++;
-        
-        // Rate limit: 1 email per 100ms (600/minute max)
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error: any) {
-        results.failed++;
-        results.errors.push(`${recipients[i].email}: ${error.message}`);
-      }
-    }
-
-    // Queue the rest
-    if (toQueue > 0) {
-      results.queued = toQueue;
-      results.resetTime = limitCheck.resetTime;
-      results.errors.push(`${toQueue} emails queued for tomorrow (daily limit reached)`);
-    }
-
-    return results;
-  } catch (error: any) {
-    results.errors.push(`Batch error: ${error.message}`);
-    return results;
-  }
-}
-
           }
         ]
       },

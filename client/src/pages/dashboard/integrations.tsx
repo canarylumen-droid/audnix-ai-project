@@ -47,6 +47,12 @@ export default function IntegrationsPage() {
   const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
+  const [customEmailConfig, setCustomEmailConfig] = useState({
+    smtpHost: '',
+    smtpPort: '587',
+    email: '',
+    password: ''
+  });
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -190,6 +196,31 @@ export default function IntegrationsPage() {
         description: "Integration has been disconnected",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+    },
+  });
+
+  // Connect custom email mutation
+  const connectCustomEmailMutation = useMutation({
+    mutationFn: async (config: typeof customEmailConfig) => {
+      return await apiRequest('/api/custom-email/connect', {
+        method: 'POST',
+        body: JSON.stringify(config),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Custom Email Connected",
+        description: "Your business email has been connected successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', email: '', password: '' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Connection failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -726,6 +757,8 @@ export default function IntegrationsPage() {
                   id="smtp-host"
                   type="text"
                   placeholder="smtp.yourdomain.com"
+                  value={customEmailConfig.smtpHost}
+                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpHost: e.target.value })}
                   data-testid="input-smtp-host"
                 />
               </div>
@@ -735,7 +768,8 @@ export default function IntegrationsPage() {
                   id="smtp-port"
                   type="number"
                   placeholder="587"
-                  defaultValue="587"
+                  value={customEmailConfig.smtpPort}
+                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpPort: e.target.value })}
                   data-testid="input-smtp-port"
                 />
               </div>
@@ -745,6 +779,8 @@ export default function IntegrationsPage() {
                   id="smtp-email"
                   type="email"
                   placeholder="you@yourbusiness.com"
+                  value={customEmailConfig.email}
+                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
                   data-testid="input-smtp-email"
                 />
               </div>
@@ -754,6 +790,8 @@ export default function IntegrationsPage() {
                   id="smtp-password"
                   type="password"
                   placeholder="••••••••"
+                  value={customEmailConfig.password}
+                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
                   data-testid="input-smtp-password"
                 />
               </div>
@@ -770,9 +808,18 @@ export default function IntegrationsPage() {
               </div>
             </div>
 
-            <Button className="w-full" data-testid="button-connect-custom-email">
-              <Mail className="h-4 w-4 mr-2" />
-              Connect Custom Email
+            <Button 
+              className="w-full" 
+              onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
+              disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || connectCustomEmailMutation.isPending}
+              data-testid="button-connect-custom-email"
+            >
+              {connectCustomEmailMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4 mr-2" />
+              )}
+              {connectCustomEmailMutation.isPending ? 'Connecting...' : 'Connect Custom Email'}
             </Button>
 
             <div className="text-xs text-muted-foreground">

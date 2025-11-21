@@ -411,8 +411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ error: "Session save error" });
           }
 
-          res.json({ 
-            success: true, 
+          res.json({
+            success: true,
             user: {
               id: user.id,
               email: user.email,
@@ -763,8 +763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (user.plan === 'trial') {
-        return res.status(403).json({ 
-          error: "Premium feature", 
+        return res.status(403).json({
+          error: "Premium feature",
           message: "Lead import is available on paid plans. Upgrade to import unlimited leads via CSV, Excel, or PDF.",
           redirectTo: "/dashboard/pricing"
         });
@@ -805,7 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
 
               const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-              const existingByEmail = lead.email ? 
+              const existingByEmail = lead.email ?
                 existingLeads.find(l => l.email?.toLowerCase() === lead.email.toLowerCase()) : null;
               const existingByPhone = lead.phone ?
                 existingLeads.find(l => l.phone === lead.phone) : null;
@@ -835,8 +835,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (lead.email && hasEmail) {
                 try {
                   const { sendEmailToLead } = await import('./lib/email/gmail-sender');
-                  await sendEmailToLead(userId, leadData.id, 
-                    `Hi ${lead.name}, thank you for your interest!`, 
+                  await sendEmailToLead(userId, leadData.id,
+                    `Hi ${lead.name}, thank you for your interest!`,
                     `We're excited to connect with you.`
                   );
 
@@ -866,7 +866,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
     const prevMonthStart = new Date(startOfMonth);
     prevMonthStart.setDate(prevMonthStart.getDate() - 30);
 
-    const weekDeals = convertedDeals.filter((d: any) => 
+    const weekDeals = convertedDeals.filter((d: any) =>
       new Date(d.convertedAt) >= startOfWeek
     );
     const prevWeekDeals = convertedDeals.filter((d: any) => {
@@ -983,8 +983,8 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
       }
 
       if (user.plan === 'trial') {
-        return res.status(403).json({ 
-          error: "Premium feature", 
+        return res.status(403).json({
+          error: "Premium feature",
           message: "PDF lead extraction with AI is available on paid plans. Upgrade to extract leads, brand colors, and product info from PDFs.",
           redirectTo: "/dashboard/pricing"
         });
@@ -1003,8 +1003,8 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
       });
 
       if (!result.success) {
-        return res.status(400).json({ 
-          error: result.error || "Failed to extract leads from PDF" 
+        return res.status(400).json({
+          error: result.error || "Failed to extract leads from PDF"
         });
       }
 
