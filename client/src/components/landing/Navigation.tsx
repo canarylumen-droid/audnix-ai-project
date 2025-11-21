@@ -27,23 +27,16 @@ export function Navigation() {
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-              Audnix AI
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                Audnix AI
+              </span>
+              <span className="text-[10px] text-foreground/60 -mt-1 hidden sm:block">Your AI Closer</span>
+            </div>
           </div>
 
           <div className="hidden md:flex items-center gap-6">
             <ThemeToggle />
-            <a
-              href="#instagram"
-              onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-            >
-              Instagram Automation
-            </a>
             <a
               href="#features"
               onClick={(e) => {
@@ -52,7 +45,7 @@ export function Navigation() {
               }}
               className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
-              Features
+              Solutions
             </a>
             <a
               href="#pricing"
@@ -64,6 +57,16 @@ export function Navigation() {
               className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
             >
               Pricing
+            </a>
+            <a
+              href="#instagram"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+            >
+              Use Cases
             </a>
             <Link href="/auth">
               <Button
@@ -95,17 +98,6 @@ export function Navigation() {
           >
             <div className="flex flex-col gap-4">
               <a
-                href="#instagram"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setMobileMenuOpen(false);
-                  document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
-              >
-                Instagram Automation
-              </a>
-              <a
                 href="#features"
                 onClick={(e) => {
                   e.preventDefault();
@@ -114,7 +106,7 @@ export function Navigation() {
                 }}
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
-                Features
+                Solutions
               </a>
               <a
                 href="#pricing"
@@ -127,6 +119,17 @@ export function Navigation() {
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
                 Pricing
+              </a>
+              <a
+                href="#instagram"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMobileMenuOpen(false);
+                  document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
+              >
+                Use Cases
               </a>
               <Link href="/auth">
                 <Button

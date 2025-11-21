@@ -201,12 +201,11 @@ export default function AuthPage() {
 
       toast({
         title: isSignUp ? "Account Created! 🎉" : "Welcome Back! 🎉",
-        description: isSignUp ? "Redirecting to your dashboard..." : "You're signed in. Redirecting...",
+        description: isSignUp ? "Setting up your account..." : "You're signed in. Redirecting...",
       });
 
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
+      // Reload to ensure session is established
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error("Direct auth error:", error);
       toast({

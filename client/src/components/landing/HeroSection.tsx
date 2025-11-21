@@ -34,7 +34,7 @@ const features = [
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-6 sm:px-8 lg:px-8 py-24 mt-16 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-8 py-24 mt-16 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
@@ -108,7 +108,7 @@ export function HeroSection() {
         >
           Audnix replies like a real human across Instagram, WhatsApp, and Email.{" "}
           <br className="hidden sm:block" />
-          Natural timing (2–8 min), remembers context, engages when leads show intent.
+          Natural timing (2–8 min), remembers context, and engages when leads show intent.
         </motion.p>
 
         {/* Feature Pills */}
