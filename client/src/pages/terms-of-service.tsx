@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -106,7 +105,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Free Trial</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>New users receive a 3-day free trial with full access to features (500 leads, 30 voice minutes)</li>
+                    <li>New users receive a 3-day free trial with full feature access with trial-level limits (500 leads, 30 voice minutes).</li>
                     <li>No credit card required during trial period</li>
                     <li>Trial automatically expires unless you upgrade to a paid plan</li>
                     <li>One trial per person/business (based on email address)</li>
@@ -137,7 +136,7 @@ export default function TermsOfService() {
                     <li>Subscriptions renew automatically on the monthly anniversary</li>
                     <li>Cancel anytime from your dashboard - no cancellation fees</li>
                     <li>Cancellations take effect at the end of current billing period</li>
-                    <li>No refunds for partial months or unused voice minutes</li>
+                    <li>No refunds for partial months or unused voice minutes. Refunds are only provided in cases of duplicate charges or clear billing errors.</li>
                     <li>Failed payments may result in service suspension after 7-day grace period</li>
                   </ul>
                 </div>
@@ -233,7 +232,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Integration Disconnection</h3>
                   <p className="text-sm">
-                    You can disconnect any integration (Gmail, Instagram, WhatsApp, Calendar) at any time without losing your account or lead data. 
+                    You can disconnect any integration (Gmail, Instagram, WhatsApp, Calendar) at any time without losing your account or lead data.
                     Disconnecting will revoke all access tokens and stop automated messaging for that platform.
                   </p>
                 </div>
@@ -256,7 +255,7 @@ export default function TermsOfService() {
                   <li>Your account remains inactive for 12+ months without payment</li>
                 </ul>
                 <p className="mt-4">
-                  <strong>Termination Process:</strong> Upon termination, your access to services will cease immediately. You may request data export within 30 days of termination. 
+                  <strong>Termination Process:</strong> Upon termination, your access to services will cease immediately. You may request data export within 30 days of termination.
                   After 30 days, all data will be permanently deleted.
                 </p>
                 <p className="mt-2">
@@ -278,14 +277,14 @@ export default function TermsOfService() {
                     <li>Brand documents, PDFs, and training materials you upload</li>
                   </ul>
                   <p className="mt-2">
-                    <strong>License Grant:</strong> By using our service, you grant us a limited, non-exclusive, royalty-free license to process, store, and use your content 
+                    <strong>License Grant:</strong> By using our service, you grant us a limited, non-exclusive, royalty-free license to process, store, and use your content
                     solely to provide Audnix AI services. This license terminates when you delete the content or close your account.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Our Platform</h3>
                   <p>
-                    Audnix AI, including our software, AI models, algorithms, brand assets, logos, and documentation, are protected by copyright, trademark, 
+                    Audnix AI, including our software, AI models, algorithms, brand assets, logos, and documentation, are protected by copyright, trademark,
                     and intellectual property laws. You may not:
                   </p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
@@ -298,7 +297,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">AI-Generated Content</h3>
                   <p className="text-sm">
-                    <strong>Ownership:</strong> You own AI-generated messages created by Audnix AI for your leads. However, you are responsible for ensuring 
+                    <strong>Ownership:</strong> You own AI-generated messages created by Audnix AI for your leads. However, you are responsible for ensuring
                     these messages comply with platform policies and legal regulations.
                   </p>
                   <p className="text-sm mt-2">
@@ -320,7 +319,7 @@ export default function TermsOfService() {
                   <li><strong>Specific Results:</strong> We do not guarantee conversion rates, sales, or business outcomes from using our platform</li>
                   <li><strong>Platform Immunity:</strong> We cannot prevent third-party platforms (Instagram, WhatsApp) from banning or restricting your account</li>
                   <li><strong>AI Accuracy:</strong> AI-generated messages may occasionally be incorrect, inappropriate, or require human review</li>
-                  <li><strong>Voice Cloning Perfection:</strong> Voice clones aim for 90%+ accuracy but may not perfectly replicate all speech nuances</li>
+                  <li><strong>Voice Cloning Perfection:</strong> Voice clones aim for 90%+ accuracy but may not perfectly replicate all speech nuances. Users are solely responsible for ensuring they have rights to use any voice they upload or clone.</li>
                   <li><strong>API Compatibility:</strong> Third-party APIs (Instagram, WhatsApp, Gmail) may change without notice, affecting functionality</li>
                   <li><strong>Data Loss Prevention:</strong> While we implement backups, we are not liable for data loss due to user error or force majeure</li>
                 </ul>
@@ -345,7 +344,7 @@ export default function TermsOfService() {
                   <li><strong>Unauthorized Access:</strong> Security breaches caused by user negligence (weak passwords, shared credentials)</li>
                 </ul>
                 <p className="mt-4">
-                  <strong>Maximum Liability:</strong> Our total liability to you for any claims arising from these Terms shall not exceed the amount you paid to Audnix AI 
+                  <strong>Maximum Liability:</strong> Our total liability to you for any claims arising from these Terms shall not exceed the amount you paid to Audnix AI
                   in the 12 months preceding the claim.
                 </p>
                 <p className="mt-2 text-sm">
@@ -358,7 +357,7 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-bold mb-4">9. Indemnification</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  You agree to indemnify, defend, and hold harmless Audnix AI, its affiliates, officers, directors, employees, and agents from any claims, damages, 
+                  You agree to indemnify, defend, and hold harmless Audnix AI, its affiliates, officers, directors, employees, and agents from any claims, damages,
                   losses, liabilities, and expenses (including legal fees) arising from:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
@@ -412,8 +411,8 @@ export default function TermsOfService() {
                 </p>
                 <ol className="list-decimal list-inside space-y-1 ml-4">
                   <li><strong>Informal Negotiation:</strong> Contact <strong>legal@audnixai.com</strong> to attempt resolution (30-day good-faith period)</li>
-                  <li><strong>Binding Arbitration:</strong> If negotiation fails, disputes shall be resolved through binding arbitration in accordance with 
-                  the American Arbitration Association (AAA) rules, except where prohibited by law</li>
+                  <li><strong>Binding Arbitration:</strong> If negotiation fails, disputes shall be resolved through binding arbitration in accordance with
+                  the American Arbitration Association (AAA) rules, except where prohibited by law. BY USING THE SERVICE YOU WAIVE YOUR RIGHT TO A JURY TRIAL.</li>
                   <li><strong>Class Action Waiver:</strong> You agree to resolve disputes individually, not as part of a class action lawsuit</li>
                 </ol>
                 <p className="mt-2 text-sm">
@@ -433,6 +432,27 @@ export default function TermsOfService() {
                   <li><strong>Force Majeure:</strong> We are not liable for delays or failures due to events beyond our control (natural disasters, wars, pandemics)</li>
                   <li><strong>Export Compliance:</strong> You agree not to export or re-export our software to embargoed countries or prohibited entities</li>
                 </ul>
+              </div>
+            </Card>
+
+            <Card className="p-8">
+              <h2 className="text-2xl font-bold mb-4">International Data Transfers & Storage</h2>
+              <div className="space-y-3 text-muted-foreground">
+                <p>
+                  <strong>Data Residency:</strong> All user data is stored on Supabase infrastructure (SOC 2 Type II certified) with primary storage regions in the United States.
+                  EU users' data may be replicated to EU-based Supabase servers for compliance.
+                </p>
+                <p>
+                  Audnix AI operates globally. Your data may be transferred to and processed in countries outside your residence,
+                  including the United States and European Union.
+                </p>
+                <p>
+                  <strong>EU-US Data Transfers:</strong> We comply with the EU-US Data Privacy Framework and use Standard Contractual Clauses (SCCs)
+                  approved by the European Commission for data transfers.
+                </p>
+                <p>
+                  <strong>Data Localization:</strong> You can request that your data be stored in specific regions (EU, US) if required by local regulations.
+                </p>
               </div>
             </Card>
 
