@@ -3,6 +3,7 @@ import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/
 
 /**
  * WhatsApp messaging functions using WhatsApp Business API with rich formatting
+ */
 
 import { storage } from '../../storage';
 
