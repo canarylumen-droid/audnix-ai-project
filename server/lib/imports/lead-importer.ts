@@ -301,6 +301,73 @@ export async function importGmailLeads(userId: string): Promise<{
 }
 
 /**
+ * Import leads from CSV/manual entry for cold outreach
+ */
+export async function importManualWhatsAppLeads(
+  userId: string, 
+  leadsData: Array<{ name: string; phone: string; email?: string; company?: string }>
+): Promise<{
+  leadsImported: number;
+  errors: string[];
+}> {
+  const results = {
+    leadsImported: 0,
+    errors: [] as string[]
+  };
+
+  try {
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+
+    const planLimits: Record<string, number> = {
+      'free': 100,
+      'trial': 100,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+
+    if (currentLeadCount >= maxLeads) {
+      results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
+      return results;
+    }
+
+    for (const leadData of leadsData) {
+      // Check if lead already exists
+      const existingLead = await storage.getLeadByPhone(userId, leadData.phone);
+      if (existingLead) {
+        results.errors.push(`Phone ${leadData.phone} already exists`);
+        continue;
+      }
+
+      // Create new lead (allows cold outreach)
+      await storage.createLead({
+        userId,
+        name: leadData.name,
+        phone: leadData.phone,
+        email: leadData.email || null,
+        channel: 'whatsapp',
+        status: 'new',
+        metadata: {
+          imported_from_csv: true,
+          company: leadData.company,
+          cold_lead: true // Mark as cold lead for tracking
+        }
+      });
+
+      results.leadsImported++;
+    }
+
+    return results;
+  } catch (error: any) {
+    results.errors.push(`Import failed: ${error.message}`);
+    return results;
+  }
+}
+
+/**
  * Import leads from WhatsApp contacts (via WhatsApp Web)
  */
 export async function importWhatsAppLeads(userId: string): Promise<{

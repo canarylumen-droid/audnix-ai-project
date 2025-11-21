@@ -24,8 +24,10 @@ async function checkMessagingWindow(userId: string, recipientPhone: string): Pro
   const lead = await storage.getLeadByPhone(userId, recipientPhone);
   
   if (!lead) {
-    // No lead exists = never imported = can't send
-    return { canSend: false, isFirstMessage: false, reason: 'Lead not imported' };
+    // Lead doesn't exist in database - could be a new CSV import
+    // Allow sending if using WhatsApp Business Cloud API (not WhatsApp Web)
+    // The actual API call will fail if we don't have permission
+    return { canSend: true, isFirstMessage: true, reason: 'New lead - attempting cold outreach' };
   }
 
   // Check if we've ever sent a message to this lead
