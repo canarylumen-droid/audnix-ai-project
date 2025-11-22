@@ -23,6 +23,7 @@ import { Link } from "wouter";
 import { SiWhatsapp } from "react-icons/si";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect } from "react";
 
 const channelIcons = {
@@ -34,6 +35,7 @@ const channelIcons = {
 export default function DashboardHome() {
   const prefersReducedMotion = useReducedMotion();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
 
   // Fetch real user profile
   const { data: user } = useQuery({
@@ -41,11 +43,20 @@ export default function DashboardHome() {
     retry: false,
   });
 
-  // Check if user needs onboarding
+  // Check if user needs onboarding and show celebration on first dashboard visit
   useEffect(() => {
     if (user) {
       const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
       setShowOnboarding(!hasCompletedOnboarding);
+
+      // Show celebration if first dashboard visit (track with localStorage)
+      const celebrationKey = `celebration_shown_${user.id}`;
+      const hasSeenCelebration = localStorage.getItem(celebrationKey);
+      
+      if (!hasSeenCelebration && user.username) {
+        setShowWelcomeCelebration(true);
+        localStorage.setItem(celebrationKey, "true");
+      }
     }
   }, [user]);
 
@@ -192,6 +203,16 @@ export default function DashboardHome() {
 
   return (
     <>
+      {/* Welcome Celebration on First Dashboard Visit */}
+      <AnimatePresence>
+        {showWelcomeCelebration && user?.username && (
+          <WelcomeCelebration
+            username={user.username}
+            onComplete={() => setShowWelcomeCelebration(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Hero Section */}
