@@ -152,35 +152,71 @@ export async function uploadToSupabase(
 export async function processPDFEmbeddings(
   userId: string,
   fileUrl: string,
-  fileName: string
+  fileName: string,
+  localPath?: string
 ): Promise<void> {
   if (!supabase) {
     throw new Error("Supabase not configured");
   }
 
-  // In a real implementation, you would:
-  // 1. Extract text from PDF using a library like pdf-parse
-  // 2. Chunk the text into smaller pieces
-  // 3. Generate embeddings for each chunk
-  // 4. Store in brand_embeddings table
+  try {
+    // Create upload record
+    const { error: insertError } = await supabase
+      .from("uploads")
+      .insert({
+        user_id: userId,
+        type: "pdf",
+        file_url: fileUrl,
+        file_name: fileName,
+        status: "processing",
+      });
 
-  // For now, create a placeholder record
-  const { error } = await supabase
-    .from("uploads")
-    .insert({
-      user_id: userId,
-      type: "pdf",
-      file_url: fileUrl,
-      file_name: fileName,
-      status: "processing",
-    });
+    if (insertError) {
+      console.error("Failed to create upload record:", insertError);
+      return;
+    }
 
-  if (error) {
-    console.error("Failed to create upload record:", error);
+    // Extract text from PDF
+    let extractedText = '';
+    if (localPath) {
+      extractedText = await extractTextFromPDF(localPath);
+    }
+
+    if (!extractedText || extractedText.trim().length === 0) {
+      console.warn(`No text extracted from PDF: ${fileName}`);
+      // Update status to failed
+      await supabase
+        .from("uploads")
+        .update({ status: "failed" })
+        .eq("file_name", fileName)
+        .eq("user_id", userId);
+      return;
+    }
+
+    // Generate and store embeddings for extracted text
+    await generateAndStoreEmbeddings(userId, extractedText, fileName, "pdf");
+
+    // Update status to completed
+    await supabase
+      .from("uploads")
+      .update({ status: "completed" })
+      .eq("file_name", fileName)
+      .eq("user_id", userId);
+
+    console.log(`✅ PDF processed successfully: ${fileName} (${extractedText.length} chars extracted)`);
+  } catch (error: any) {
+    console.error(`Error processing PDF ${fileName}:`, error.message);
+    
+    // Update status to failed
+    if (supabase) {
+      await supabase
+        .from("uploads")
+        .update({ status: "failed" })
+        .eq("file_name", fileName)
+        .eq("user_id", userId)
+        .catch(console.error);
+    }
   }
-
-  // TODO: Implement actual PDF text extraction and embedding generation
-  console.log(`PDF processing queued for ${fileName}`);
 }
 
 /**
@@ -215,12 +251,31 @@ export async function storeVoiceSample(
 }
 
 /**
- * Extract text from PDF (placeholder - needs pdf-parse library)
+ * Extract text from PDF using pdf-parse library
  */
 async function extractTextFromPDF(filePath: string): Promise<string> {
-  // TODO: Implement with pdf-parse or similar library
-  // For now, return placeholder
-  return "PDF text extraction not yet implemented. Install pdf-parse library.";
+  try {
+    const pdfParse = require('pdf-parse');
+    const fileBuffer = await fs.readFile(filePath);
+    const pdfData = await pdfParse(fileBuffer);
+    
+    // Extract text from all pages
+    let fullText = '';
+    if (pdfData.text) {
+      fullText = pdfData.text;
+    }
+    
+    // If pdf-parse doesn't extract text well, try page-by-page
+    if (!fullText || fullText.trim().length < 50) {
+      fullText = pdfData.pages?.map((page: any) => page.getTextContent?.() || '').join('\n') || '';
+    }
+    
+    return fullText || '';
+  } catch (error: any) {
+    console.error('Error extracting PDF text:', error.message);
+    // Return empty string instead of error to allow graceful degradation
+    return '';
+  }
 }
 
 /**

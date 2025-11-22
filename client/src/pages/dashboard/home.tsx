@@ -351,40 +351,76 @@ export default function DashboardHome() {
             animate={{ opacity: 1 }}
             transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.3 }}
           >
-            <Card data-testid="card-activity" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg md:text-xl">Recent Activity</CardTitle>
+            <Card data-testid="card-activity" className="glass-card border-border/50 hover:border-primary/30 transition-colors overflow-hidden">
+              <CardHeader className="pb-4 border-b border-border/30 bg-gradient-to-r from-primary/10 via-transparent to-transparent">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-cyan-400" />
+                    Recent Activity
+                  </CardTitle>
+                  {activities.length > 0 && (
+                    <Badge variant="outline" className="bg-primary/20 border-primary/30 text-cyan-300">
+                      {activities.length} events
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="px-4 md:px-6">
+              <CardContent className="px-0 py-0">
                 {activityLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+                      <p className="text-xs text-white/60">Loading activity...</p>
+                    </div>
                   </div>
                 ) : activities.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-0 divide-y divide-border/20 max-h-[400px] overflow-y-auto">
                     {activities.map((activity: any, index) => {
                       const ChannelIcon = channelIcons[activity.channel as keyof typeof channelIcons] || AlertCircle;
+                      const getActivityColor = (type: string) => {
+                        switch(type) {
+                          case 'conversion': return 'emerald';
+                          case 'message': return 'blue';
+                          case 'lead': return 'cyan';
+                          case 'email': return 'purple';
+                          default: return 'primary';
+                        }
+                      };
+                      const color = getActivityColor(activity.type);
                       return (
                         <motion.div
                           key={activity.id}
-                          className="flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 hover:border hover:border-primary/20 transition-all duration-200 group"
+                          className={`flex items-start gap-3 px-4 py-3 hover:bg-${color}-500/5 border-l-2 border-l-${color}-500/30 hover:border-l-${color}-500/60 transition-all duration-200 group cursor-pointer`}
                           initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={prefersReducedMotion ? { duration: 0 } : { delay: index * 0.1 }}
-                          whileHover={prefersReducedMotion ? {} : { x: 4 }}
+                          transition={prefersReducedMotion ? { duration: 0 } : { delay: index * 0.05 }}
+                          whileHover={prefersReducedMotion ? {} : { x: 4, paddingLeft: 20 }}
                           data-testid={`activity-item-${index}`}
                         >
-                          <div className={`p-2 rounded-full ${
-                            activity.type === 'conversion' ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30' : 'bg-primary/20 group-hover:bg-primary/30'
+                          <div className={`p-2.5 rounded-lg flex-shrink-0 ${
+                            activity.type === 'conversion' ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30' : 
+                            activity.type === 'message' ? 'bg-blue-500/20 group-hover:bg-blue-500/30' :
+                            'bg-cyan-500/20 group-hover:bg-cyan-500/30'
                           } transition-colors group-hover:scale-110 transition-transform duration-200`}>
-                            <ChannelIcon className={`h-4 w-4 ${
-                              activity.type === 'conversion' ? 'text-emerald-400' : 'text-primary'
+                            <ChannelIcon className={`h-5 w-5 ${
+                              activity.type === 'conversion' ? 'text-emerald-400' : 
+                              activity.type === 'message' ? 'text-blue-400' :
+                              'text-cyan-400'
                             }`} />
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm text-white/90 group-hover:text-white transition-colors">{activity.message}</p>
-                            <p className="text-xs text-white/60 group-hover:text-white/80 mt-1 transition-colors">
-                              {formatTimeAgo(activity.time)}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm text-white/90 group-hover:text-white transition-colors font-medium truncate">{activity.message}</p>
+                              <Badge variant="secondary" className={`flex-shrink-0 text-xs ${
+                                activity.type === 'conversion' ? 'bg-emerald-500/20 text-emerald-300' :
+                                activity.type === 'message' ? 'bg-blue-500/20 text-blue-300' :
+                                'bg-cyan-500/20 text-cyan-300'
+                              }`}>
+                                {activity.type}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-white/50 group-hover:text-white/70 mt-1.5 transition-colors">
+                              🕐 {formatTimeAgo(activity.time)}
                             </p>
                           </div>
                         </motion.div>
@@ -392,11 +428,13 @@ export default function DashboardHome() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="h-12 w-12 text-cyan-400/60 mx-auto mb-3" />
-                    <p className="text-white/90 font-medium">No activity yet</p>
-                    <p className="text-sm text-white/70 mt-1">
-                      Connect your accounts to start receiving leads
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
+                    <div className="p-3 rounded-full bg-primary/10 mb-4 group-hover:bg-primary/20 transition-colors">
+                      <AlertCircle className="h-8 w-8 text-cyan-400/60" />
+                    </div>
+                    <p className="text-white/90 font-medium text-sm">No activity yet</p>
+                    <p className="text-xs text-white/60 mt-2 text-center">
+                      Your activity will appear here when you start importing leads and sending messages
                     </p>
                   </div>
                 )}
