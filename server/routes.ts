@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!user.password) {
-        return res.status(400).json({ error: "This account uses social login. Please use Google or GitHub to sign in." });
+        return res.status(400).json({ error: "This account uses social login. Please use Google to sign in." });
       }
 
       // Verify password

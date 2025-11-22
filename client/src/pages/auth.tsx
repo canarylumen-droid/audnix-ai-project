@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SiGoogle, SiGithub } from "react-icons/si";
+import { SiGoogle } from "react-icons/si";
 import { Check, Shield, Clock, Sparkles, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -40,7 +40,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
-  const [loading, setLoading] = useState<'google' | 'github' | 'email' | null>(null);
+  const [loading, setLoading] = useState<'google' | 'email' | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
   const passwordStrength = password ? zxcvbn(password) : null;
@@ -108,45 +108,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleGitHubLogin = async () => {
-    setLoading('github');
-
-    if (!supabase) {
-      toast({
-        title: "Authentication Error",
-        description: "Unable to connect to authentication service.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "GitHub Sign-In Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        setLoading(null);
-      }
-    } catch (error) {
-      console.error("GitHub OAuth error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to initiate GitHub sign-in",
-        variant: "destructive",
-      });
-      setLoading(null);
-    }
-  };
 
   const handleDirectEmailPasswordAuth = async () => {
     if (!email || !email.includes('@')) {
@@ -661,6 +622,25 @@ export default function AuthPage() {
                         disabled={loading !== null}
                       >
                         {loading === 'email' ? 'Processing...' : isSignUp && authMode === 'email-password' ? 'Create Account' : isSignUp && authMode === 'email-otp' ? 'Send OTP' : 'Sign In'}
+                      </Button>
+
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-white/10"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-card text-white/50">Or continue with</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 text-base font-semibold border-white/20 text-white hover:bg-white/5"
+                        onClick={handleGoogleLogin}
+                        disabled={loading !== null}
+                      >
+                        <SiGoogle className="w-5 h-5 mr-2" />
+                        {loading === 'google' ? 'Connecting...' : 'Google'}
                       </Button>
 
                       <div className="text-center">
