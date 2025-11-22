@@ -98,22 +98,43 @@ async function processEmailForLead(
 }
 
 /**
- * Detect if email is transactional (receipts, alerts, notifications)
+ * Detect if email is transactional (receipts, alerts, notifications, OTP, etc)
  */
 function isTransactionalEmail(email: any): boolean {
   const transactionalKeywords = [
-    'receipt', 'invoice', 'confirmation', 'order',
-    'password', 'reset', 'verify', 'alert',
-    'notification', 'update', 'change', 'billing',
-    'payment', 'confirm', 'validate', 'expire',
-    'security', 'unusual', 'activity'
+    // Financial
+    'receipt', 'invoice', 'confirmation', 'order', 'billing', 'payment',
+    // Security & OTP
+    'password', 'reset', 'verify', 'verification', 'otp', 'code', 'confirm',
+    'two-factor', '2fa', 'authenticator', 'security alert', 'unusual activity',
+    // System alerts
+    'alert', 'notification', 'update', 'change', 'validate', 'expire',
+    'security', 'urgent', 'action required', 'warning',
+    // App-generated
+    'no-reply', 'noreply', 'do-not-reply', 'bounced', 'undeliverable',
+    'automatic', 'automated', 'no response', 'do not reply',
+    // Service messages
+    'welcome', 'signup', 'registered', 'activation', 'account created'
   ];
   
   const subject = (email.subject || '').toLowerCase();
   const from = (email.from || '').toLowerCase();
+  const body = (email.text || '').toLowerCase().substring(0, 500); // Check first 500 chars
+  
+  // Check for OTP-specific patterns
+  const otpPatterns = /\b\d{4,8}\b|otp|one-time|one time password|verification code|verify your/i;
+  if (otpPatterns.test(subject) || otpPatterns.test(body)) {
+    return true;
+  }
+  
+  // Check email address for automation indicators
+  if (from.includes('noreply') || from.includes('no-reply') || from.includes('donotreply') ||
+      from.includes('automatic') || from.includes('notification') || from.includes('alert')) {
+    return true;
+  }
   
   return transactionalKeywords.some(kw => 
-    subject.includes(kw) || from.includes('noreply') || from.includes('no-reply')
+    subject.includes(kw) || body.includes(kw)
   );
 }
 

@@ -189,10 +189,12 @@ export const emailImportLimiter = rateLimit({
   keyGenerator: (req) => {
     const userId = (req.session as any)?.userId;
     if (userId) return `import:${userId}`;
-    return req.ip || 'unknown';
+    // Use ipv6KeyGenerator for IPv6 support
+    return req.ip?.includes(':') ? `ip:${req.ip}` : `ip:${req.ip || 'unknown'}`;
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore
