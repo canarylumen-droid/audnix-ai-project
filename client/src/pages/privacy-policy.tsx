@@ -19,7 +19,7 @@ export default function PrivacyPolicy() {
               </Button>
             </Link>
             <div className="flex items-center gap-3">
-              <img src="/logo.jpg" alt="Audnix AI" className="h-8 w-auto" />
+              <img src="/logo.png" alt="Audnix AI" className="h-8 w-auto" />
               <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 Audnix AI
               </span>

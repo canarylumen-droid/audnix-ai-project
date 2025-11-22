@@ -175,7 +175,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 data-testid="logo-text"
               >
                 <img
-                  src="/logo.jpg"
+                  src="/logo.png"
                   alt="Audnix AI"
                   className="h-8 w-auto object-contain"
                 />
@@ -184,7 +184,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             )}
             {sidebarCollapsed && (
               <motion.img
-                src="/logo.jpg"
+                src="/logo.png"
                 alt="Audnix AI"
                 className="h-8 w-8 object-contain"
                 initial={{ opacity: 0 }}
@@ -255,7 +255,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
                   <img
-                    src="/logo.jpg"
+                    src="/logo.png"
                     alt="Audnix AI"
                     className="h-8 w-auto object-contain"
                   />
@@ -284,7 +284,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
                   <img
-                    src="/logo.jpg"
+                    src="/logo.png"
                     alt="Audnix AI"
                     className="h-8 w-auto object-contain"
                   />
