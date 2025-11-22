@@ -274,16 +274,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create or get user
       let user = await storage.getUserByEmail(email);
       if (!user) {
+        // Generate nice username from email (capitalize first letter)
+        const emailUsername = email.split('@')[0];
+        const username = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+        
         user = await storage.createUser({
           email,
-          name: email.split('@')[0],
-          username: email.split('@')[0],
+          name: username,
+          username: username,
           plan: "trial",
           supabaseId: null,
+          lastLogin: new Date(),
         });
+      } else {
+        // Update last login for returning user
+        await storage.updateUser(user.id, { lastLogin: new Date() });
       }
 
-      // Create session
+      // Create session with 24-hour expiry
       req.session.regenerate((regErr) => {
         if (regErr) {
           return res.status(500).json({ error: "Session error" });
@@ -291,6 +299,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         (req.session as any).userId = user!.id;
         (req.session as any).userEmail = user!.email;
+        (req.session as any).createdAt = new Date();
+        // Set 24-hour cookie expiry
+        req.session.cookie.maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
         req.session.save((err) => {
           if (err) {
