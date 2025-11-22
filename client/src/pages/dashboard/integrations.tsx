@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
 import { WhatsAppConnect } from "@/components/integrations/whatsapp-connect";
+import { InstagramComingSoonModal } from "@/components/instagram-coming-soon-modal";
 import {
   Instagram,
   Mail,
@@ -47,6 +48,7 @@ export default function IntegrationsPage() {
   const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
+  const [showInstagramComingSoon, setShowInstagramComingSoon] = useState(false);
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -577,8 +579,9 @@ export default function IntegrationsPage() {
                 >
                   {providerId === "instagram" && (
                     <Card
-                      className="hover-elevate border-emerald-500/30 bg-emerald-500/5"
+                      className="hover-elevate border-emerald-500/30 bg-emerald-500/5 opacity-60 blur-sm cursor-pointer transition-all hover:opacity-75 hover:blur-sm"
                       data-testid={`card-integration-${providerId}`}
+                      onClick={() => setShowInstagramComingSoon(true)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -618,7 +621,10 @@ export default function IntegrationsPage() {
                         </div>
                         <Button
                           className="w-full bg-emerald-500 hover:bg-emerald-600"
-                          onClick={() => window.location.href = '/dashboard/lead-import'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = '/dashboard/lead-import';
+                          }}
                           data-testid={`button-csv-import-${providerId}`}
                         >
                           <Upload className="h-4 w-4 mr-2" />
@@ -1097,6 +1103,12 @@ export default function IntegrationsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Instagram Coming Soon Modal */}
+      <InstagramComingSoonModal 
+        open={showInstagramComingSoon} 
+        onOpenChange={setShowInstagramComingSoon}
+      />
     </div>
   );
 }
