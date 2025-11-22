@@ -6,6 +6,7 @@ import {
   bookMeeting,
   formatBookingMessage
 } from '../lib/calendar/calendar-booking';
+import { validateCalendlyToken } from '../lib/calendar/calendly';
 import { storage } from '../storage';
 
 const router = Router();
@@ -143,6 +144,114 @@ router.post('/format-message', requireAuth, async (req, res) => {
   } catch (error: any) {
     console.error('Error formatting message:', error);
     res.status(500).json({ error: 'Failed to format message' });
+  }
+});
+
+/**
+ * Connect Calendly integration
+ */
+router.post('/connect-calendly', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { apiToken } = req.body;
+
+    if (!apiToken || !apiToken.trim()) {
+      return res.status(400).json({ error: 'Calendly API token required' });
+    }
+
+    // Validate token
+    const validation = await validateCalendlyToken(apiToken);
+    if (!validation.valid) {
+      return res.status(400).json({
+        error: 'Invalid Calendly API token',
+        details: validation.error
+      });
+    }
+
+    // Encrypt and save
+    const { encrypt } = await import('../lib/crypto/encryption');
+    const encrypted = await encrypt(JSON.stringify({ api_token: apiToken }));
+
+    // Save to integrations
+    await storage.saveIntegration(userId, 'calendly', {
+      provider: 'calendly',
+      connected: true,
+      encryptedMeta: encrypted,
+      account_type: `Calendly (${validation.userName})`
+    });
+
+    res.json({
+      success: true,
+      message: `Calendly connected! Ready to book meetings.`,
+      userName: validation.userName
+    });
+  } catch (error: any) {
+    console.error('Error connecting Calendly:', error);
+    res.status(500).json({ error: 'Failed to connect Calendly' });
+  }
+});
+
+/**
+ * Disconnect Calendly
+ */
+router.post('/disconnect-calendly', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+
+    // Remove integration
+    const integrations = await storage.getIntegrations(userId);
+    const calendlyIntegration = integrations.find(i => i.provider === 'calendly');
+
+    if (!calendlyIntegration) {
+      return res.status(400).json({ error: 'Calendly not connected' });
+    }
+
+    // Disconnect (mark as not connected or delete)
+    await storage.disconnectIntegration(userId, 'calendly');
+
+    res.json({
+      success: true,
+      message: 'Calendly disconnected'
+    });
+  } catch (error: any) {
+    console.error('Error disconnecting Calendly:', error);
+    res.status(500).json({ error: 'Failed to disconnect Calendly' });
+  }
+});
+
+/**
+ * Get calendar status (which provider is connected)
+ */
+router.get('/status', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const integrations = await storage.getIntegrations(userId);
+
+    const calendly = integrations.find(i => i.provider === 'calendly' && i.connected);
+    const google = integrations.find(i => i.provider === 'google_calendar' && i.connected);
+
+    res.json({
+      success: true,
+      calendly: {
+        connected: !!calendly,
+        provider: 'calendly',
+        accountType: calendly?.account_type || null
+      },
+      google: {
+        connected: !!google,
+        provider: 'google_calendar',
+        accountType: google?.account_type || null
+      },
+      primary: calendly ? 'calendly' : google ? 'google_calendar' : null,
+      message: calendly 
+        ? 'Using Calendly for instant booking' 
+        : google 
+        ? 'Using Google Calendar for booking'
+        : 'No calendar connected. Connect Calendly or Google Calendar to enable booking.'
+    });
+  } catch (error: any) {
+    console.error('Error getting calendar status:', error);
+    res.status(500).json({ error: 'Failed to get calendar status' });
   }
 });
 

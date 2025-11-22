@@ -2,11 +2,12 @@
  * Calendar Booking Integration
  * 
  * Automatically creates calendar booking links and sends them to leads
- * Supports: Google Calendar + Calendly integration
+ * Supports: Calendly (primary) + Google Calendar (fallback)
  */
 
 import { storage } from '../../storage';
 import { createCalendarEvent, listUpcomingEvents } from './google-calendar';
+import { getCalendlySlots, createCalendlyEvent, validateCalendlyToken } from './calendly';
 
 interface BookingSlot {
   startTime: Date;
@@ -25,6 +26,7 @@ interface BookingRequest {
 
 /**
  * Get available time slots for booking
+ * Tries Calendly first (instant API), falls back to Google Calendar
  */
 export async function getAvailableTimeSlots(
   userId: string,
@@ -32,20 +34,50 @@ export async function getAvailableTimeSlots(
   slotDuration: number = 30
 ): Promise<BookingSlot[]> {
   try {
-    // Get user's Google Calendar integration
     const integrations = await storage.getIntegrations(userId);
-    const calendarIntegration = integrations.find(
+    const decrypt = (await import('../crypto/encryption')).decrypt;
+
+    // Try Calendly first (instant API access)
+    const calendlyIntegration = integrations.find(
+      i => i.provider === 'calendly' && i.connected
+    );
+
+    if (calendlyIntegration?.encryptedMeta) {
+      try {
+        const decrypted = await decrypt(calendlyIntegration.encryptedMeta);
+        const credentials = JSON.parse(decrypted);
+
+        const calendlySlots = await getCalendlySlots(
+          credentials.api_token,
+          daysAhead,
+          slotDuration
+        );
+
+        if (calendlySlots.length > 0) {
+          console.log(`✅ Using Calendly slots: ${calendlySlots.length} available`);
+          return calendlySlots.map(slot => ({
+            startTime: new Date(slot.time),
+            endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
+            available: slot.available,
+            timezone: 'America/New_York'
+          }));
+        }
+      } catch (error: any) {
+        console.warn('Calendly slot fetch failed, trying Google Calendar:', error.message);
+      }
+    }
+
+    // Fallback to Google Calendar
+    const googleIntegration = integrations.find(
       i => i.provider === 'google_calendar' && i.connected
     );
 
-    if (!calendarIntegration?.encryptedMeta) {
-      console.warn('Google Calendar not connected for user:', userId);
+    if (!googleIntegration?.encryptedMeta) {
+      console.warn('No calendar integration connected for user:', userId);
       return [];
     }
 
-    // Decrypt token
-    const { decrypt } = await import('../crypto/encryption');
-    const decrypted = await decrypt(calendarIntegration.encryptedMeta);
+    const decrypted = await decrypt(googleIntegration.encryptedMeta);
     const credentials = JSON.parse(decrypted);
 
     // Get upcoming events
@@ -94,6 +126,7 @@ export async function getAvailableTimeSlots(
       }
     }
 
+    console.log(`✅ Using Google Calendar slots: ${slots.length} available`);
     return slots.slice(0, 20); // Return top 20 slots
   } catch (error: any) {
     console.error('Error getting available time slots:', error);
@@ -147,6 +180,7 @@ export async function sendBookingLinkToLead(
 
 /**
  * Book meeting when lead accepts
+ * Tries Calendly first, falls back to Google Calendar
  */
 export async function bookMeeting(
   userId: string,
@@ -159,25 +193,57 @@ export async function bookMeeting(
   success: boolean;
   eventId?: string;
   meetingLink?: string;
+  provider?: string;
   error?: string;
 }> {
   try {
-    // Get user's Google Calendar integration
     const integrations = await storage.getIntegrations(userId);
-    const calendarIntegration = integrations.find(
+    const decrypt = (await import('../crypto/encryption')).decrypt;
+
+    // Try Calendly first (instant API)
+    const calendlyIntegration = integrations.find(
+      i => i.provider === 'calendly' && i.connected
+    );
+
+    if (calendlyIntegration?.encryptedMeta) {
+      try {
+        const decrypted = await decrypt(calendlyIntegration.encryptedMeta);
+        const credentials = JSON.parse(decrypted);
+
+        const result = await createCalendlyEvent(
+          credentials.api_token,
+          leadEmail,
+          leadName,
+          slotStart
+        );
+
+        if (result.success) {
+          console.log(`✅ Meeting booked via Calendly: ${result.eventId}`);
+          return {
+            success: true,
+            eventId: result.eventId,
+            meetingLink: `https://calendly.com/bookings/${result.eventId}`,
+            provider: 'calendly'
+          };
+        }
+      } catch (error: any) {
+        console.warn('Calendly booking failed, trying Google Calendar:', error.message);
+      }
+    }
+
+    // Fallback to Google Calendar
+    const googleIntegration = integrations.find(
       i => i.provider === 'google_calendar' && i.connected
     );
 
-    if (!calendarIntegration?.encryptedMeta) {
+    if (!googleIntegration?.encryptedMeta) {
       return {
         success: false,
-        error: 'Google Calendar not connected'
+        error: 'No calendar integration connected'
       };
     }
 
-    // Decrypt token
-    const { decrypt } = await import('../crypto/encryption');
-    const decrypted = await decrypt(calendarIntegration.encryptedMeta);
+    const decrypted = await decrypt(googleIntegration.encryptedMeta);
     const credentials = JSON.parse(decrypted);
 
     // Get user info
@@ -202,10 +268,12 @@ export async function bookMeeting(
       };
     }
 
+    console.log(`✅ Meeting booked via Google Calendar: ${event.id}`);
     return {
       success: true,
       eventId: event.id,
-      meetingLink: event.conferenceData?.entryPoints?.[0]?.uri || event.htmlLink
+      meetingLink: event.conferenceData?.entryPoints?.[0]?.uri || event.htmlLink,
+      provider: 'google_calendar'
     };
   } catch (error: any) {
     console.error('Error booking meeting:', error);
