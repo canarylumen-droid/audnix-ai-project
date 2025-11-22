@@ -1,4 +1,3 @@
-import OpenAI from 'openai';
 import { supabaseAdmin } from '../supabase-admin';
 
 export interface IntentAnalysis {

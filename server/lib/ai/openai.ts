@@ -1,4 +1,3 @@
-// Using OpenAI blueprint integration
 // Default model is gpt-4o-mini for cost-effective AI features
 import OpenAI from "openai";
 

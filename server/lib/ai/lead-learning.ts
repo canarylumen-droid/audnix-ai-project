@@ -1,4 +1,3 @@
-
 import { supabaseAdmin } from '../supabase-admin';
 
 interface LeadScore {

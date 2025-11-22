@@ -1,4 +1,3 @@
-
 /**
  * Format messages with channel-specific rich formatting
  * Instagram: Visual button-like elements (ManyChat style)

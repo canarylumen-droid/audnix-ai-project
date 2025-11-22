@@ -1,4 +1,3 @@
-
 interface ContentFilterResult {
   isSafe: boolean;
   flags: string[];

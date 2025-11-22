@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 /**
  * Multi-Provider Email Failover System
  * 

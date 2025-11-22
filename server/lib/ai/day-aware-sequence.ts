@@ -1,4 +1,4 @@
-/**
+/*
  * Day-aware email sequence generation
  * 
  * The AI should know:

@@ -1,4 +1,3 @@
-import { ElevenLabsProvider } from '../providers/elevenlabs';
 import { InstagramProvider } from '../providers/instagram';
 import { WhatsAppProvider } from '../providers/whatsapp';
 import { storage } from '../../storage';

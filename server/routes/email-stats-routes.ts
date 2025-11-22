@@ -1,4 +1,3 @@
-import { Router } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { bounceHandler } from '../lib/email/bounce-handler';
 import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection';

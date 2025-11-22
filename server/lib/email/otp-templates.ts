@@ -1,4 +1,4 @@
-/**
+/*
  * Premium OTP Email Templates
  * 
  * Professional, branded OTP email templates with:

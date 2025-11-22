@@ -1,4 +1,3 @@
-import { Router, type Request, type Response } from "express";
 import { requireAdmin } from "../middleware/auth";
 import { db } from "../db";
 import { users, leads, messages, integrations } from "../../shared/schema";

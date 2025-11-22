@@ -1,4 +1,3 @@
-import { Request, Response, Router } from 'express';
 import { followUpWorker } from '../lib/ai/follow-up-worker';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { db } from '../db';

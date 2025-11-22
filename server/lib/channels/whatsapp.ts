@@ -1,4 +1,3 @@
-
 import { supabaseAdmin } from '../supabase-admin';
 import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/dm-formatter';
 import { storage } from '../../storage';

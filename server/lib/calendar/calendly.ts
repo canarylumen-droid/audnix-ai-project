@@ -1,4 +1,4 @@
-/**
+/*
  * Calendly API Integration
  * 
  * Official Calendly API wrapper for booking management

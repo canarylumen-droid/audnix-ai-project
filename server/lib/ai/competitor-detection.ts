@@ -1,4 +1,3 @@
-
 import { storage } from '../../storage';
 import type { Message } from '@shared/schema';
 

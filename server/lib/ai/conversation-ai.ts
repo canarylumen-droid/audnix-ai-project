@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import OpenAI from "openai";
 import { storage } from "../../storage";
 import type { Message, Lead } from "@shared/schema";

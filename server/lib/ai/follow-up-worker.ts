@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { supabaseAdmin } from '../supabase-admin';
 import { db } from '../../db';
 import { followUpQueue, leads, messages, users, brandEmbeddings } from '@shared/schema';

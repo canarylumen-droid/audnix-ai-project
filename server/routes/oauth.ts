@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Request, Response, Router } from 'express';
 import { InstagramOAuth } from '../lib/oauth/instagram';
 import { WhatsAppOAuth } from '../lib/oauth/whatsapp';

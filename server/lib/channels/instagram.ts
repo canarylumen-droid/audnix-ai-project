@@ -1,4 +1,4 @@
-/**
+/*
  * Instagram messaging functions using Facebook Graph API
  * 
  * IMPORTANT: All media URLs must be publicly accessible HTTPS URLs.

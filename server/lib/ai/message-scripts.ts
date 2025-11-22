@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 /**
  * Campaign Message Scripts
  * 

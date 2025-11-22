@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { storage } from "../../storage";
 import { generateInsights } from "./openai";
 

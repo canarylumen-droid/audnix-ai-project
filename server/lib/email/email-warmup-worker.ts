@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { db } from '../../db';
 import { emailWarmupSchedules, users } from '@shared/schema';
 import { eq, and, lt, gte } from 'drizzle-orm';

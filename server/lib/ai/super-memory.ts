@@ -1,4 +1,3 @@
-import type { Lead, Message } from '@shared/schema';
 import { supabaseAdmin } from '../supabase-admin';
 
 const SUPER_MEMORY_API_KEY = process.env.SUPER_MEMORY_API_KEY;

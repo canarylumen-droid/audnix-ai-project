@@ -1,4 +1,3 @@
-import { storage } from '../../storage';
 
 interface FollowRequestContext {
   leadName: string;

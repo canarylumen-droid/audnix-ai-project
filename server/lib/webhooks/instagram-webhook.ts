@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import { supabaseAdmin } from '../supabase-admin';
 import { analyzeLeadIntent } from '../ai/intent-analyzer';
 import { followUpWorker } from '../ai/follow-up-worker';

@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Request, Response, Router } from 'express';
 import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe';
 import { supabaseAdmin } from '../lib/supabase-admin';
