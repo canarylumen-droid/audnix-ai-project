@@ -29,12 +29,12 @@ router.post('/send', requireAuth, async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Store OTP in database (expires in 10 minutes)
-    await storage.createOTPCode({
-      userId,
-      code: otp,
+    await storage.createOtpCode({
       email,
+      code: otp,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      used: false
+      attempts: 0,
+      verified: false
     });
 
     // Generate branded HTML email
@@ -138,12 +138,12 @@ router.post('/resend', requireAuth, async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Store OTP
-    await storage.createOTPCode({
-      userId,
-      code: otp,
+    await storage.createOtpCode({
       email,
+      code: otp,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      used: false
+      attempts: 0,
+      verified: false
     });
 
     // Send OTP
