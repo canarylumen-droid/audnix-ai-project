@@ -314,29 +314,17 @@ function createMimeMessage(
 ): string {
   const boundary = '----=_Part_' + Date.now();
   
-  // Helper function to properly strip HTML tags with comprehensive sanitization
+  // Helper function to safely strip HTML tags
   const stripHtml = (html: string): string => {
-    // First encode all special characters to prevent injection
-    const encodeHtml = (str: string): string => {
-      return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#x27;')
-        .replace(/\//g, '&#x2F;');
-    };
-    
-    // Remove dangerous tags first
-    let safe = html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-    
-    // Strip remaining HTML tags
+    // Remove script tags and content safely
+    let safe = html.replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
+    // Remove style tags and content safely
+    safe = safe.replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, '');
+    // Remove iframe tags and content safely
+    safe = safe.replace(/<iframe(?:\s[^>]*)?>[\s\S]*?<\/iframe>/gi, '');
+    // Remove all remaining HTML tags
     safe = safe.replace(/<[^>]+>/g, '');
-    
-    // Decode common entities to readable text
+    // Decode HTML entities to readable text (no double encoding)
     safe = safe
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')

@@ -227,10 +227,13 @@ export async function importGmailLeads(userId: string): Promise<{
 
         if (!fromHeader?.value) continue;
 
-        // Parse email address
+        // Parse email address safely - sanitize to prevent injection
         const emailMatch = fromHeader.value.match(/<(.+?)>/) || fromHeader.value.match(/(\S+@\S+)/);
-        const email = emailMatch ? emailMatch[1] : fromHeader.value;
-        const name = fromHeader.value.replace(/<.*?>/, '').trim() || email;
+        const email = emailMatch ? emailMatch[1].trim() : fromHeader.value.trim();
+        // Sanitize name by removing HTML tags and special characters
+        let name = fromHeader.value.replace(/<.*?>/g, '').trim() || email;
+        // Remove potentially dangerous characters but keep basic names
+        name = name.replace(/[<>\"']/g, '').substring(0, 100).trim();
 
         // Check if lead already exists
         const existingLead = existingLeads.find(l => l.email === email);

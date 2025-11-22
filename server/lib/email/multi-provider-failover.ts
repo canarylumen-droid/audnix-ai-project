@@ -323,13 +323,25 @@ ${html}
   }
 
   /**
-   * Strip HTML tags from string
+   * Strip HTML tags from string - use safe method
    */
   private stripHtml(html: string): string {
-    let text = html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      .replace(/<[^>]+>/g, '');
+    // Create a temporary DOM element to safely parse HTML
+    const text = html
+      // Remove script tags and content
+      .replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '')
+      // Remove style tags and content
+      .replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, '')
+      // Remove all remaining HTML tags
+      .replace(/<[^>]+>/g, '')
+      // Decode HTML entities safely
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#x27;/g, "'")
+      .replace(/&#x2F;/g, '/');
 
     return text.trim();
   }
