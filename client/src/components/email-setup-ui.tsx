@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { AlertCircle, CheckCircle, Unlink, Mail, ArrowRight } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Progress } from './ui/progress';
+import { EmailFilterIntelligence } from './email-filter-intelligence';
 
 interface EmailStatus {
   connected: boolean;
@@ -33,6 +34,7 @@ export function EmailSetupUI() {
   const [importing, setImporting] = useState(false);
   const [importStats, setImportStats] = useState({ imported: 0, skipped: 0, errors: 0 });
   const [showSetup, setShowSetup] = useState(false);
+  const [showFilterInfo, setShowFilterInfo] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -57,12 +59,15 @@ export function EmailSetupUI() {
     }
   };
 
-  const handleConnect = async () => {
+  const handleShowFilterInfo = () => {
     if (!config.host || !config.email || !config.password) {
       toast({ title: 'Error', description: 'Please fill all fields', variant: 'destructive' });
       return;
     }
+    setShowFilterInfo(true);
+  };
 
+  const handleConnect = async () => {
     setConnecting(true);
     setImporting(true);
     setImportProgress(0);
@@ -102,6 +107,7 @@ export function EmailSetupUI() {
         });
 
         setConfig({ host: '', port: 587, email: '', password: '' });
+        setShowFilterInfo(false);
         setShowSetup(false);
         await fetchStatus();
       } else {
@@ -315,7 +321,7 @@ export function EmailSetupUI() {
             {/* Action Buttons */}
             <div className="flex gap-2 pt-2">
               <Button
-                onClick={handleConnect}
+                onClick={handleShowFilterInfo}
                 disabled={connecting || importing}
                 className="flex-1 bg-cyan-600 hover:bg-cyan-700"
               >
@@ -351,6 +357,14 @@ export function EmailSetupUI() {
           No limits, no paid plan required. Your contacts will be auto-imported and campaigns start right away.
         </p>
       </div>
+
+      {/* Filter Intelligence Modal */}
+      {showFilterInfo && (
+        <EmailFilterIntelligence
+          onAcknowledge={handleConnect}
+          isLoading={importing}
+        />
+      )}
     </div>
   );
 }
