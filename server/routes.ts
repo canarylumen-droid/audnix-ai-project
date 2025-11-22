@@ -29,6 +29,7 @@ import whatsappRoutes from './routes/whatsapp-routes';
 import whatsappOTPRoutes from './routes/whatsapp-otp-routes';
 import customEmailRoutes from './routes/custom-email-routes';
 import emailStatsRoutes from './routes/email-stats-routes';
+import otpRoutes from './routes/otp-routes';
 import bulkActionsRoutes from "./routes/bulk-actions-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
@@ -2278,6 +2279,7 @@ router.get("/deals/analytics", requireAuth, async (req: Request, res: Response) 
   app.use('/api/whatsapp-otp', whatsappOTPRoutes);
   app.use('/api/custom-email', customEmailRoutes);
   app.use('/api/email', emailStatsRoutes);
+  app.use('/api/otp', otpRoutes);
 
   // Webhook routes
   app.use("/api/webhook", webhookRouter); // This line seems to be a duplicate, keeping it as per original code.

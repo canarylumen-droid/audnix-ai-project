@@ -13,6 +13,7 @@ import MultiChannelOrchestrator from '../multi-channel-orchestrator';
 import DayAwareSequence from './day-aware-sequence';
 import { getMessageScript, personalizeScript } from './message-scripts';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization';
+import { multiProviderEmailFailover } from '../email/multi-provider-failover';
 
 interface FollowUpJob {
   id: string;
