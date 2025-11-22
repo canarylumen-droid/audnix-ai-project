@@ -2,8 +2,23 @@ import { Request, Response, Router } from 'express';
 import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { storage } from '../storage';
+import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook';
 
 const router = Router();
+
+/**
+ * Calendly webhook handler
+ */
+router.post('/webhook/calendly', async (req: Request, res: Response) => {
+  // Check if this is a verification challenge
+  if (req.body?.webhook_used_for_testing) {
+    handleCalendlyVerification(req, res);
+    return;
+  }
+
+  // Handle actual webhook events
+  await handleCalendlyWebhook(req, res);
+});
 
 /**
  * Stripe webhook handler

@@ -4,7 +4,7 @@ import { WhatsAppOAuth } from '../lib/oauth/whatsapp';
 import { GmailOAuth } from '../lib/oauth/gmail';
 // import { OutlookOAuth } from '../lib/oauth/outlook'; // Removed - use Gmail + custom SMTP
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
-import { CalendlyOAuth } from '../lib/oauth/calendly';
+import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { encrypt } from '../lib/crypto/encryption';
 import { Resend } from 'resend';
@@ -771,6 +771,14 @@ router.get('/oauth/calendly/callback', async (req: Request, res: Response) => {
         }, {
           onConflict: 'user_id,provider'
         });
+    }
+
+    // Register webhooks for real-time meeting notifications
+    try {
+      await registerCalendlyWebhook(userId, tokenData.accessToken);
+    } catch (err) {
+      console.warn('⚠️ Webhook registration failed but OAuth connection successful:', err);
+      // Don't fail OAuth if webhook registration fails
     }
 
     res.redirect('/dashboard/integrations?success=calendly_connected');

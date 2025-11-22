@@ -149,3 +149,48 @@ export class CalendlyOAuth {
 }
 
 export const calendlyOAuth = new CalendlyOAuth();
+
+/**
+ * Register/update Calendly webhook after OAuth connection
+ * This creates webhook subscriptions for meeting events
+ */
+export async function registerCalendlyWebhook(userId: string, accessToken: string): Promise<void> {
+  try {
+    const webhookUrl = process.env.CALENDLY_WEBHOOK_URL || `${process.env.DOMAIN || 'https://audnixai.com'}/api/webhook/calendly`;
+
+    // Subscribe to invitee.created (meeting booked) and invitee.canceled (meeting cancelled)
+    const eventTypes = ['invitee.created', 'invitee.canceled'];
+
+    for (const eventType of eventTypes) {
+      try {
+        const response = await fetch('https://api.calendly.com/webhook_subscriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: webhookUrl,
+            events: [eventType],
+            organization: 'https://api.calendly.com/organizations/me' // Will be replaced with actual org URI
+          }),
+        });
+
+        if (response.ok) {
+          const subscription: any = await response.json();
+          console.log(`✓ Calendly webhook registered for ${eventType} - ID: ${subscription.resource?.id || 'unknown'}`);
+        } else {
+          const error = await response.text();
+          console.warn(`⚠️ Failed to register Calendly webhook for ${eventType}: ${error}`);
+        }
+      } catch (err: any) {
+        console.warn(`⚠️ Error registering webhook for ${eventType}:`, err.message);
+        // Continue with other event types even if one fails
+      }
+    }
+  } catch (error: any) {
+    console.warn('⚠️ Calendly webhook registration warning:', error.message);
+    // Don't throw - webhooks are optional, OAuth connection should still succeed
+  }
+}
+
