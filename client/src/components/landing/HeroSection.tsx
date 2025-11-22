@@ -84,7 +84,7 @@ export function HeroSection() {
         {/* Headline */}
         <motion.h1 
           variants={itemVariants}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 px-4 sm:px-6 md:px-0"
+          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight text-white px-4 sm:px-6 md:px-0"
         >
           Stop Letting Warm Leads<br className="hidden xs:block" />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
@@ -95,7 +95,7 @@ export function HeroSection() {
         {/* Subheadline */}
         <motion.p 
           variants={itemVariants}
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white/90 mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
         >
           Your AI sales rep that follows up, handles objections,{" "}
           <br className="hidden md:block" />

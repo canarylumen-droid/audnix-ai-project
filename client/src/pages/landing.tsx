@@ -5,6 +5,7 @@ import { Navigation } from "@/components/landing/Navigation";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FeatureSection } from "@/components/landing/FeatureSection";
 import { PricingSection } from "@/components/landing/PricingSection";
+import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { motion } from "framer-motion";
 
@@ -529,6 +530,9 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Privacy Modal */}
+      <PrivacyModal />
     </div>
   );
 }

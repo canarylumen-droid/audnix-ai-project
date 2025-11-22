@@ -41,9 +41,9 @@ export function Navigation() {
                 e.preventDefault();
                 document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer text-sm"
             >
-              Solutions
+              How It Works
             </a>
             <a
               href="#pricing"
@@ -52,20 +52,31 @@ export function Navigation() {
                 const pricingSection = document.querySelector('[id*="pricing"]');
                 pricingSection?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer text-sm"
             >
               Pricing
             </a>
             <a
-              href="#instagram"
+              href="#resources"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('resources')?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer text-sm"
             >
-              Use Cases
+              Resources
             </a>
+            <button
+              onClick={() => {
+                const privacyModal = document.getElementById('privacy-modal');
+                if (privacyModal) {
+                  privacyModal.classList.remove('hidden');
+                }
+              }}
+              className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer text-sm"
+            >
+              Privacy
+            </button>
             <Link href="/auth">
               <Button
                 size="sm"
@@ -103,7 +114,7 @@ export function Navigation() {
                 }}
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
-                Solutions
+                How It Works
               </a>
               <a
                 href="#pricing"
@@ -118,16 +129,28 @@ export function Navigation() {
                 Pricing
               </a>
               <a
-                href="#instagram"
+                href="#resources"
                 onClick={(e) => {
                   e.preventDefault();
                   setMobileMenuOpen(false);
-                  document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
+                  document.getElementById('resources')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >
-                Use Cases
+                Resources
               </a>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  const privacyModal = document.getElementById('privacy-modal');
+                  if (privacyModal) {
+                    privacyModal.classList.remove('hidden');
+                  }
+                }}
+                className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer text-left"
+              >
+                Privacy
+              </button>
               <Link href="/auth">
                 <Button
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg py-3"
