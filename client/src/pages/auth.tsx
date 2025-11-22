@@ -141,6 +141,8 @@ export default function AuthPage() {
 
     try {
       const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
+      console.log(`🔐 Attempting ${isSignUp ? 'signup' : 'login'} to ${endpoint}`, { email });
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,8 +151,10 @@ export default function AuthPage() {
       });
 
       const data = await response.json();
+      console.log(`📍 Response status: ${response.status}`, { data });
 
       if (!response.ok) {
+        console.error(`❌ Auth failed: ${data.error}`);
         toast({
           title: isSignUp ? "Sign Up Failed" : "Sign In Failed",
           description: data.error || "Something went wrong",
