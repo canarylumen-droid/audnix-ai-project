@@ -26,7 +26,7 @@ interface BookingRequest {
 
 /**
  * Get available time slots for booking
- * Tries Calendly first (instant API), falls back to Google Calendar
+ * Priority: User's Calendly → User's Google Calendar → Audnix's fallback Calendly
  */
 export async function getAvailableTimeSlots(
   userId: string,
@@ -37,7 +37,7 @@ export async function getAvailableTimeSlots(
     const integrations = await storage.getIntegrations(userId);
     const decrypt = (await import('../crypto/encryption')).decrypt;
 
-    // Try Calendly first (instant API access)
+    // 1. Try user's own Calendly token (instant API access)
     const calendlyIntegration = integrations.find(
       i => i.provider === 'calendly' && i.connected
     );
@@ -54,7 +54,7 @@ export async function getAvailableTimeSlots(
         );
 
         if (calendlySlots.length > 0) {
-          console.log(`✅ Using Calendly slots: ${calendlySlots.length} available`);
+          console.log(`✅ Using user's Calendly: ${calendlySlots.length} slots`);
           return calendlySlots.map(slot => ({
             startTime: new Date(slot.time),
             endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
@@ -63,19 +63,16 @@ export async function getAvailableTimeSlots(
           }));
         }
       } catch (error: any) {
-        console.warn('Calendly slot fetch failed, trying Google Calendar:', error.message);
+        console.warn('User Calendly failed, trying Google Calendar:', error.message);
       }
     }
 
-    // Fallback to Google Calendar
+    // 2. Try user's Google Calendar
     const googleIntegration = integrations.find(
       i => i.provider === 'google_calendar' && i.connected
     );
 
-    if (!googleIntegration?.encryptedMeta) {
-      console.warn('No calendar integration connected for user:', userId);
-      return [];
-    }
+    if (googleIntegration?.encryptedMeta) {
 
     const decrypted = await decrypt(googleIntegration.encryptedMeta);
     const credentials = JSON.parse(decrypted);
@@ -126,8 +123,37 @@ export async function getAvailableTimeSlots(
       }
     }
 
-    console.log(`✅ Using Google Calendar slots: ${slots.length} available`);
-    return slots.slice(0, 20); // Return top 20 slots
+      console.log(`✅ Using Google Calendar: ${slots.length} slots`);
+      return slots.slice(0, 20); // Return top 20 slots
+    }
+
+    // 3. Fallback to Audnix's Calendly account (FREE instant booking for all users)
+    const audnixCalendlyToken = process.env.AUDNIX_CALENDLY_API_TOKEN;
+    if (audnixCalendlyToken) {
+      try {
+        console.log(`⚠️ Google Calendar not connected, using Audnix Calendly fallback`);
+        const calendlySlots = await getCalendlySlots(
+          audnixCalendlyToken,
+          daysAhead,
+          slotDuration
+        );
+
+        if (calendlySlots.length > 0) {
+          console.log(`✅ Using Audnix fallback Calendly: ${calendlySlots.length} slots`);
+          return calendlySlots.map(slot => ({
+            startTime: new Date(slot.time),
+            endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
+            available: slot.available,
+            timezone: 'America/New_York'
+          }));
+        }
+      } catch (error: any) {
+        console.warn('Audnix Calendly fallback failed:', error.message);
+      }
+    }
+
+    console.warn('No calendar available (user not connected, Audnix fallback not configured)');
+    return [];
   } catch (error: any) {
     console.error('Error getting available time slots:', error);
     return [];
@@ -180,7 +206,7 @@ export async function sendBookingLinkToLead(
 
 /**
  * Book meeting when lead accepts
- * Tries Calendly first, falls back to Google Calendar
+ * Priority: User's Calendly → User's Google Calendar → Audnix's fallback Calendly
  */
 export async function bookMeeting(
   userId: string,
@@ -200,7 +226,7 @@ export async function bookMeeting(
     const integrations = await storage.getIntegrations(userId);
     const decrypt = (await import('../crypto/encryption')).decrypt;
 
-    // Try Calendly first (instant API)
+    // 1. Try user's own Calendly (instant API)
     const calendlyIntegration = integrations.find(
       i => i.provider === 'calendly' && i.connected
     );
@@ -218,62 +244,90 @@ export async function bookMeeting(
         );
 
         if (result.success) {
-          console.log(`✅ Meeting booked via Calendly: ${result.eventId}`);
+          console.log(`✅ Meeting booked via user's Calendly: ${result.eventId}`);
           return {
             success: true,
             eventId: result.eventId,
             meetingLink: `https://calendly.com/bookings/${result.eventId}`,
-            provider: 'calendly'
+            provider: 'user_calendly'
           };
         }
       } catch (error: any) {
-        console.warn('Calendly booking failed, trying Google Calendar:', error.message);
+        console.warn('User Calendly booking failed, trying Google Calendar:', error.message);
       }
     }
 
-    // Fallback to Google Calendar
+    // 2. Try user's Google Calendar
     const googleIntegration = integrations.find(
       i => i.provider === 'google_calendar' && i.connected
     );
 
-    if (!googleIntegration?.encryptedMeta) {
-      return {
-        success: false,
-        error: 'No calendar integration connected'
-      };
+    if (googleIntegration?.encryptedMeta) {
+      try {
+        const decrypted = await decrypt(googleIntegration.encryptedMeta);
+        const credentials = JSON.parse(decrypted);
+
+        // Get user info
+        const user = await storage.getUserById(userId);
+        if (!user) {
+          return { success: false, error: 'User not found' };
+        }
+
+        // Create calendar event
+        const event = await createCalendarEvent(credentials.access_token, {
+          summary: `Meeting with ${leadName}`,
+          description: `Follow-up meeting\nLead: ${leadName}\nEmail: ${leadEmail}`,
+          startTime: slotStart,
+          endTime: slotEnd,
+          attendeeEmail: leadEmail
+        });
+
+        if (!event) {
+          console.warn('Google Calendar event creation failed, trying Audnix fallback Calendly');
+          // Continue to Audnix fallback
+        } else {
+          console.log(`✅ Meeting booked via Google Calendar: ${event.id}`);
+          return {
+            success: true,
+            eventId: event.id,
+            meetingLink: event.conferenceData?.entryPoints?.[0]?.uri || event.htmlLink,
+            provider: 'user_google_calendar'
+          };
+        }
+      } catch (error: any) {
+        console.warn('Google Calendar booking failed, trying Audnix fallback Calendly:', error.message);
+      }
     }
 
-    const decrypted = await decrypt(googleIntegration.encryptedMeta);
-    const credentials = JSON.parse(decrypted);
+    // 3. Fallback to Audnix's Calendly account (FREE for all users)
+    const audnixCalendlyToken = process.env.AUDNIX_CALENDLY_API_TOKEN;
+    if (audnixCalendlyToken) {
+      try {
+        console.log(`⚠️ No user calendar, booking via Audnix Calendly...`);
+        const result = await createCalendlyEvent(
+          audnixCalendlyToken,
+          leadEmail,
+          leadName,
+          slotStart
+        );
 
-    // Get user info
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return { success: false, error: 'User not found' };
+        if (result.success) {
+          console.log(`✅ Meeting booked via Audnix fallback Calendly: ${result.eventId}`);
+          return {
+            success: true,
+            eventId: result.eventId,
+            meetingLink: `https://calendly.com/bookings/${result.eventId}`,
+            provider: 'audnix_calendly_fallback'
+          };
+        }
+      } catch (error: any) {
+        console.error('Audnix Calendly fallback failed:', error.message);
+      }
     }
 
-    // Create calendar event
-    const event = await createCalendarEvent(credentials.access_token, {
-      summary: `Meeting with ${leadName}`,
-      description: `Follow-up meeting\nLead: ${leadName}\nEmail: ${leadEmail}`,
-      startTime: slotStart,
-      endTime: slotEnd,
-      attendeeEmail: leadEmail
-    });
-
-    if (!event) {
-      return {
-        success: false,
-        error: 'Failed to create calendar event'
-      };
-    }
-
-    console.log(`✅ Meeting booked via Google Calendar: ${event.id}`);
     return {
-      success: true,
-      eventId: event.id,
-      meetingLink: event.conferenceData?.entryPoints?.[0]?.uri || event.htmlLink,
-      provider: 'google_calendar'
+      success: false,
+      error: 'No calendar available to book meeting. Please connect Calendly or Google Calendar.'
     };
   } catch (error: any) {
     console.error('Error booking meeting:', error);
