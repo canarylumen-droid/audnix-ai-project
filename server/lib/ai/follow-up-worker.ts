@@ -11,6 +11,8 @@ import { executeCommentFollowUps } from './comment-detection';
 import { storage } from '../../storage';
 import MultiChannelOrchestrator from '../multi-channel-orchestrator';
 import DayAwareSequence from './day-aware-sequence';
+import { getMessageScript, personalizeScript } from './message-scripts';
+import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization';
 
 interface FollowUpJob {
   id: string;
@@ -161,8 +163,8 @@ export class FollowUpWorker {
         (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
       );
 
-      // Generate AI reply with day-aware context
-      const aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date());
+      // Generate AI reply with day-aware context and brand personalization
+      const aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
 
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
@@ -218,15 +220,25 @@ export class FollowUpWorker {
   }
 
   /**
-   * Generate AI follow-up message with day-aware context
+   * Generate AI follow-up message with day-aware context and brand personalization
    */
   private async generateFollowUp(
     lead: Lead, 
     history: Message[], 
     brandContext: any,
     campaignDay: number = 0,
-    campaignDayCreated: Date = new Date()
+    campaignDayCreated: Date = new Date(),
+    userId?: string
   ): Promise<string> {
+    // Get message script for this stage
+    const script = getMessageScript(lead.channel as 'email' | 'whatsapp' | 'instagram', campaignDay);
+    
+    // Get brand personalization
+    let personalizationContext = null;
+    if (userId) {
+      personalizationContext = await getBrandPersonalization(userId);
+    }
+
     // Use day-aware sequence for context-aware prompt
     const dayAwareContext = {
       campaignDay,
@@ -237,11 +249,16 @@ export class FollowUpWorker {
       leadEngagement: this.assessLeadTemperature(lead, history),
       leadName: lead.preferred_name || lead.name.split(' ')[0],
       brandName: brandContext.businessName || 'Your Business',
-      userSenderName: brandContext.senderName,
+      userSenderName: personalizationContext?.senderName || brandContext.senderName,
     };
 
-    const systemPrompt = DayAwareSequence.buildSystemPrompt(dayAwareContext);
-    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext);
+    // Build system prompt with brand context
+    let systemPrompt = DayAwareSequence.buildSystemPrompt(dayAwareContext);
+    if (personalizationContext) {
+      systemPrompt = getContextAwareSystemPrompt(personalizationContext, lead.channel);
+    }
+
+    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script);
 
     const result = await generateReply(systemPrompt, userPrompt, {
       temperature: 0.7,
@@ -249,15 +266,30 @@ export class FollowUpWorker {
       jsonMode: false
     });
 
-    return result.text;
+    // Format with brand personalization
+    let finalMessage = result.text;
+    if (personalizationContext) {
+      finalMessage = await formatChannelMessage(finalMessage, lead.channel as 'email' | 'whatsapp' | 'instagram', userId || '', lead.channel === 'email');
+    }
+
+    return finalMessage;
   }
 
   /**
-   * Build follow-up prompt with context
+   * Build follow-up prompt with context and message script
    */
-  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: any): string {
+  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: any, script?: any): string {
     const firstName = lead.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
+    
+    // Include message script guidelines if available
+    let scriptGuidance = '';
+    if (script) {
+      scriptGuidance = `
+SCRIPT GUIDANCE (use as reference, not required):
+- Tone: ${script.tone}
+- Structure: ${script.structure}`;
+    }
 
     // Build conversation history string
     const historyStr = history
@@ -300,7 +332,7 @@ LEAD INFORMATION:
 CONVERSATION HISTORY:
 ${historyStr || 'This is the first message'}
 
-${channelContext}
+${channelContext}${scriptGuidance}
 
 RULES:
 1. ALWAYS address the lead by their first name (${firstName})

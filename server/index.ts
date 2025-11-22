@@ -7,6 +7,7 @@ import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";
 import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
+import { emailWarmupWorker } from "./lib/email/email-warmup-worker";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit";
 import crypto from "crypto";
 import fs from "fs";
@@ -310,6 +311,10 @@ async function runMigrations() {
     console.log('✅ Lead learning system active');
     console.log('✅ OAuth token refresh worker started');
     console.log('✅ Worker health monitoring active');
+
+    // Start email warmup worker
+    emailWarmupWorker.start();
+    console.log('🔥 Email warmup worker active');
   } else {
     if (!hasDatabase) {
       console.log('⏭️  Background workers disabled (no database configured)');

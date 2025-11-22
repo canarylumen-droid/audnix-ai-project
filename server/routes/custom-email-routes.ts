@@ -3,6 +3,9 @@ import { Router } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { encrypt } from '../lib/crypto/encryption';
+import { pagedEmailImport } from '../lib/imports/paged-email-importer';
+import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection';
+import { bounceHandler } from '../lib/email/bounce-handler';
 
 const router = Router();
 
@@ -38,54 +41,28 @@ router.post('/connect', requireAuth, async (req, res) => {
       accountType: email,
     });
 
-    // Auto-import emails after connection
+    // Auto-import emails after connection using paged importer with abuse protection
     try {
       const { importCustomEmails } = await import('../lib/channels/email');
-      const emails = await importCustomEmails(credentials, 50);
+      const emails = await importCustomEmails(credentials, 100); // Fetch 100 at a time
 
-      let leadsImported = 0;
-      let messagesImported = 0;
-
-      for (const emailData of emails) {
-        const senderEmail = emailData.from?.split('<')[1]?.split('>')[0] || emailData.from;
-        
-        let lead = await storage.getLeadByEmail(userId, senderEmail);
-        
-        if (!lead) {
-          lead = await storage.createLead({
-            userId,
-            name: emailData.from?.split('<')[0]?.trim() || senderEmail.split('@')[0],
-            email: senderEmail,
-            channel: 'email',
-            status: 'new',
-            metadata: {
-              imported_from_custom_email: true,
-              subject: emailData.subject
-            }
-          });
-          leadsImported++;
-        }
-
-        await storage.createMessage({
-          userId,
-          leadId: lead.id,
-          channel: 'email',
-          direction: 'inbound',
-          content: emailData.text || emailData.html || '',
-          status: 'received',
-          metadata: {
-            subject: emailData.subject,
-            receivedAt: emailData.date
-          }
-        });
-        messagesImported++;
-      }
+      // Use paged importer to process in batches
+      const importResults = await pagedEmailImport(userId, emails.map((emailData: any) => ({
+        from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
+        subject: emailData.subject,
+        text: emailData.text || emailData.html || '',
+        date: emailData.date,
+        html: emailData.html
+      })), (progress) => {
+        console.log(`📧 Email import progress: ${progress}%`);
+      });
 
       res.json({
         success: true,
         message: 'Custom email connected successfully',
-        leadsImported,
-        messagesImported
+        leadsImported: importResults.imported,
+        leadsSkipped: importResults.skipped,
+        errors: importResults.errors
       });
     } catch (importError: any) {
       console.error('Auto-import failed:', importError);
@@ -103,12 +80,21 @@ router.post('/connect', requireAuth, async (req, res) => {
 });
 
 /**
- * Import emails from custom domain
+ * Import emails from custom domain (paged + abuse protection)
  */
 router.post('/import', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
     
+    // Check SMTP abuse protection first
+    const abuseCheck = await smtpAbuseProtection.canSendEmail(userId);
+    if (!abuseCheck.allowed) {
+      return res.status(429).json({
+        error: abuseCheck.reason,
+        retryAfter: abuseCheck.delay
+      });
+    }
+
     // Get custom email integration
     const integration = await storage.getIntegration(userId, 'custom_email');
     
@@ -123,55 +109,34 @@ router.post('/import', requireAuth, async (req, res) => {
 
     // Import emails
     const { importCustomEmails } = await import('../lib/channels/email');
-    const emails = await importCustomEmails(credentials, 50);
+    const emails = await importCustomEmails(credentials, 100); // Fetch in batches of 100
 
-    // Store leads and messages
-    let leadsImported = 0;
-    let messagesImported = 0;
+    // Use paged importer for smart processing
+    const importResults = await pagedEmailImport(userId, emails.map((emailData: any) => ({
+      from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
+      subject: emailData.subject,
+      text: emailData.text || emailData.html || '',
+      date: emailData.date,
+      html: emailData.html
+    })), (progress) => {
+      console.log(`📧 Email import progress: ${progress}%`);
+    });
 
-    for (const email of emails) {
-      const senderEmail = email.from?.split('<')[1]?.split('>')[0] || email.from;
-      
-      // Check if lead exists
-      let lead = await storage.getLeadByEmail(userId, senderEmail);
-      
-      if (!lead) {
-        // Create new lead
-        lead = await storage.createLead({
-          userId,
-          name: email.from?.split('<')[0]?.trim() || senderEmail.split('@')[0],
-          email: senderEmail,
-          channel: 'email',
-          status: 'new',
-          metadata: {
-            imported_from_custom_email: true,
-            subject: email.subject
-          }
-        });
-        leadsImported++;
-      }
-
-      // Store message
-      await storage.createMessage({
-        userId,
-        leadId: lead.id,
-        channel: 'email',
-        direction: 'inbound',
-        content: email.text || email.html || '',
-        status: 'received',
-        metadata: {
-          subject: email.subject,
-          receivedAt: email.date
-        }
-      });
-      messagesImported++;
+    // Record sends in abuse protection
+    for (let i = 0; i < importResults.imported; i++) {
+      smtpAbuseProtection.recordSend(userId);
     }
+
+    // Get bounce stats
+    const bounceStats = await bounceHandler.getBounceStats(userId);
 
     res.json({
       success: true,
-      leadsImported,
-      messagesImported,
-      message: 'Import completed successfully'
+      leadsImported: importResults.imported,
+      leadsSkipped: importResults.skipped,
+      errors: importResults.errors,
+      bounceRate: bounceStats.bounceRate,
+      message: `Import completed: ${importResults.imported} leads imported, ${importResults.skipped} skipped`
     });
   } catch (error: any) {
     console.error('Error importing custom emails:', error);
