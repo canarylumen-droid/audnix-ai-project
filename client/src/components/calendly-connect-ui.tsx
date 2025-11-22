@@ -12,12 +12,14 @@ interface CalendarStatus {
   message: string;
 }
 
+type ConnectionMethod = 'oauth' | 'manual' | null;
+
 export function CalendlyConnectUI() {
   const [status, setStatus] = useState<CalendarStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState('');
   const [connecting, setConnecting] = useState(false);
-  const [showTokenInput, setShowTokenInput] = useState(false);
+  const [connectionMethod, setConnectionMethod] = useState<ConnectionMethod>(null);
 
   useEffect(() => {
     fetchStatus();
@@ -39,7 +41,28 @@ export function CalendlyConnectUI() {
     }
   };
 
-  const handleConnectCalendly = async () => {
+  const handleConnectCalendlyOAuth = async () => {
+    setConnecting(true);
+    try {
+      const res = await fetch('/api/oauth/connect/calendly', {
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Redirect to Calendly OAuth page
+        window.location.href = data.authUrl;
+      } else {
+        toast({ title: 'Error', description: 'Failed to start OAuth flow', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to connect Calendly', variant: 'destructive' });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const handleConnectCalendlyManual = async () => {
     if (!token.trim()) {
       toast({ title: 'Error', description: 'Please paste your Calendly API token', variant: 'destructive' });
       return;
@@ -58,7 +81,7 @@ export function CalendlyConnectUI() {
         const data = await res.json();
         toast({ title: 'Success', description: data.message });
         setToken('');
-        setShowTokenInput(false);
+        setConnectionMethod(null);
         await fetchStatus();
       } else {
         const error = await res.json();
@@ -129,25 +152,61 @@ export function CalendlyConnectUI() {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Get your API token in 2 minutes:
-              </p>
-              <ol className="text-sm space-y-2 ml-4 list-decimal text-gray-700 dark:text-gray-300">
-                <li>Sign up free: <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">calendly.com</a></li>
-                <li>Settings → Integrations → API & Webhooks</li>
-                <li>Create personal API token</li>
-                <li>Copy and paste below</li>
-              </ol>
-
-              {!showTokenInput ? (
-                <Button
-                  onClick={() => setShowTokenInput(true)}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700"
-                >
-                  Connect Calendly
-                </Button>
-              ) : (
+              {!connectionMethod ? (
                 <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                    How do you want to connect?
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setConnectionMethod('oauth')}
+                      className="flex-1 bg-cyan-600 hover:bg-cyan-700"
+                    >
+                      ✨ Instant OAuth (Recommended)
+                    </Button>
+                    <Button
+                      onClick={() => setConnectionMethod('manual')}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      🔑 Manual API Key
+                    </Button>
+                  </div>
+                </div>
+              ) : connectionMethod === 'oauth' ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Click below to log in to Calendly:
+                  </p>
+                  <Button
+                    onClick={handleConnectCalendlyOAuth}
+                    disabled={connecting}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700"
+                  >
+                    {connecting ? 'Redirecting...' : 'Login with Calendly'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setConnectionMethod(null);
+                      setToken('');
+                    }}
+                    className="w-full"
+                  >
+                    Back
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Get your API token in 2 minutes:
+                  </p>
+                  <ol className="text-sm space-y-2 ml-4 list-decimal text-gray-700 dark:text-gray-300">
+                    <li>Sign up free: <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">calendly.com</a></li>
+                    <li>Settings → Integrations → API & Webhooks</li>
+                    <li>Create personal API token</li>
+                    <li>Copy and paste below</li>
+                  </ol>
                   <Input
                     placeholder="calendly_xxxxxxxxxxxxxxxxxxxxxxxx"
                     type="password"
@@ -157,7 +216,7 @@ export function CalendlyConnectUI() {
                   />
                   <div className="flex gap-2">
                     <Button
-                      onClick={handleConnectCalendly}
+                      onClick={handleConnectCalendlyManual}
                       disabled={connecting}
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >
@@ -166,11 +225,12 @@ export function CalendlyConnectUI() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        setShowTokenInput(false);
+                        setConnectionMethod(null);
                         setToken('');
                       }}
+                      className="flex-1"
                     >
-                      Cancel
+                      Back
                     </Button>
                   </div>
                 </div>

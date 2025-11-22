@@ -1,4 +1,4 @@
-export function getOAuthRedirectUrl(provider: 'gmail' | 'google-calendar' | 'outlook' | 'instagram' | 'whatsapp'): string {
+export function getOAuthRedirectUrl(provider: 'gmail' | 'google-calendar' | 'outlook' | 'instagram' | 'whatsapp' | 'calendly'): string {
   const isProduction = process.env.NODE_ENV === 'production';
   const domain = process.env.DOMAIN || 'audnixai.com';
   
@@ -18,6 +18,7 @@ export function getAllOAuthRedirectUrls() {
     googleCalendar: getOAuthRedirectUrl('google-calendar'),
     outlook: getOAuthRedirectUrl('outlook'),
     instagram: getOAuthRedirectUrl('instagram'),
-    whatsapp: getOAuthRedirectUrl('whatsapp')
+    whatsapp: getOAuthRedirectUrl('whatsapp'),
+    calendly: getOAuthRedirectUrl('calendly')
   };
 }
