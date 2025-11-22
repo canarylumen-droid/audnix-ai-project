@@ -450,6 +450,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check username availability
+  app.post("/api/auth/check-username", async (req, res) => {
+    try {
+      const { username } = req.body;
+
+      if (!username || username.trim().length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ error: "Invalid username format" });
+      }
+
+      // Check if username exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+
+      res.json({ success: true, message: "Username available" });
+    } catch (error: any) {
+      console.error("Error checking username:", error);
+      res.status(500).json({ error: "Failed to check username" });
+    }
+  });
+
+  // Set username for logged-in user
+  app.post("/api/auth/set-username", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { username } = req.body;
+
+      if (!username || username.trim().length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+
+      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        return res.status(400).json({ error: "Invalid username format" });
+      }
+
+      // Check if username is already taken by someone else
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+
+      // Update user's username
+      const updatedUser = await storage.updateUser(userId, { username });
+
+      res.json({ 
+        success: true, 
+        message: "Username updated",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          username: updatedUser.username,
+          name: updatedUser.name
+        }
+      });
+    } catch (error: any) {
+      console.error("Error setting username:", error);
+      res.status(500).json({ error: "Failed to set username" });
+    }
+  });
+
   // Sign out endpoint
   app.post("/api/auth/signout", async (req, res) => {
     try {

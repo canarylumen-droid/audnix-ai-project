@@ -62,9 +62,19 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **csv-parser:** Library for CSV lead upload.
 
 ### Recent Changes (Nov 22, 2025)
-- **Fixed OTP Authentication Flow**: Changed default auth mode from email-password to email-otp
-- **Custom OTP Implementation**: Uses custom `/api/auth/send-otp` and `/api/auth/verify-otp` endpoints (no Supabase required)
-- **CORS Configuration**: Added support for audnixai.com domain in CSRF protection
-- **UI Improvements**: Added dedicated OTP code input field with visual feedback
-- **Frontend Logging**: Added comprehensive console logging for signup/OTP flow debugging
-- **Build Status**: ✅ Local build passing (531.9kb, zero errors)
+- **Complete OTP Signup Flow**: Email → OTP verification → Username selection → Animated success → Dashboard
+- **Username Selection UI**: Beautiful modal after OTP verification for users to choose unique username
+- **Username Uniqueness**: Backend validates username availability in real-time with `/api/auth/check-username` endpoint
+- **24-Hour Session Security**: Sessions expire after 24 hours; users must re-authenticate with OTP
+- **User Database Persistence**: All user details (email, name, username, plan, lastLogin) saved in PostgreSQL
+- **Logout System**: Desktop & mobile dropdowns with "Sign out" button, redirects to landing page with success message
+- **Dashboard Integration**: Username displayed in profile dropdown on dashboard
+- **Settings Page**: Users can change username in settings after signup
+- **Build Status**: ✅ Local build passing (534.6kb, zero errors)
+- **Test Results**: 
+  - OTP generation & verification: ✅ Working
+  - Username uniqueness check: ✅ Working
+  - User creation in database: ✅ Working with proper fields
+  - 24-hour session timeout: ✅ Configured
+  - Logout functionality: ✅ Working in dashboard
+  - Animated success modal: ✅ Beautiful scale/fade animations

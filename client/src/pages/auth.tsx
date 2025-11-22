@@ -44,6 +44,10 @@ export default function AuthPage() {
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
   const [showSignupSuccess, setShowSignupSuccess] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [loading, setLoading] = useState<'google' | 'email' | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -209,14 +213,11 @@ export default function AuthPage() {
         return;
       }
 
-      // Show animated success modal before redirecting
-      setShowSignupSuccess(true);
+      // Show username selection modal
+      const suggestedUsername = signupEmail.split('@')[0];
+      setUsername(suggestedUsername);
+      setShowUsernameModal(true);
       setLoading(null);
-
-      // Redirect after animation completes
-      setTimeout(() => {
-        window.location.href = '/dashboard/onboarding';
-      }, 2000);
     } catch (error) {
       console.error("❌ OTP verify error:", error);
       toast({
@@ -228,6 +229,97 @@ export default function AuthPage() {
     }
   };
 
+
+  const handleCheckUsername = async (value: string) => {
+    setUsername(value);
+    setUsernameError("");
+
+    if (!value.trim()) {
+      setUsernameError("Username is required");
+      return;
+    }
+
+    if (value.length < 3) {
+      setUsernameError("Username must be at least 3 characters");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+      setUsernameError("Username can only contain letters, numbers, hyphens, and underscores");
+      return;
+    }
+
+    setCheckingUsername(true);
+    try {
+      const response = await fetch('/api/auth/check-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: value }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setUsernameError(data.error || "Username not available");
+      } else {
+        setUsernameError("");
+      }
+    } catch (error) {
+      console.error("Username check error:", error);
+      setUsernameError("Failed to check username availability");
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handleSetUsername = async () => {
+    if (!username.trim() || usernameError) {
+      toast({
+        title: "Invalid Username",
+        description: usernameError || "Please choose a valid username",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('email');
+    try {
+      const response = await fetch('/api/auth/set-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to set username",
+          variant: "destructive",
+        });
+        setLoading(null);
+        return;
+      }
+
+      // Show success modal then redirect
+      setShowUsernameModal(false);
+      setShowSignupSuccess(true);
+
+      setTimeout(() => {
+        window.location.href = '/dashboard/onboarding';
+      }, 2000);
+    } catch (error) {
+      console.error("Set username error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set username",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
 
   const getPasswordStrengthColor = () => {
     if (!passwordStrength) return 'bg-gray-200';
@@ -266,6 +358,68 @@ export default function AuthPage() {
 
   return (
     <>
+      {/* Username Selection Modal */}
+      <Dialog open={showUsernameModal} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold text-white">Create Your Username</h2>
+              <p className="text-white/70">Choose a unique username for your Audnix profile</p>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="username" className="text-white/90">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Enter username..."
+                value={username}
+                onChange={(e) => handleCheckUsername(e.target.value)}
+                disabled={checkingUsername || loading !== null}
+                className={`bg-white/5 border-white/10 text-white placeholder:text-white/40 ${
+                  usernameError ? 'border-red-500/50' : ''
+                }`}
+              />
+              {usernameError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-red-400"
+                >
+                  {usernameError}
+                </motion.p>
+              )}
+              {!usernameError && username && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 text-xs text-emerald-400"
+                >
+                  <Check className="h-4 w-4" />
+                  Username available!
+                </motion.div>
+              )}
+              <p className="text-xs text-white/50">
+                Letters, numbers, hyphens and underscores only. 3+ characters.
+              </p>
+            </div>
+
+            <Button
+              className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              onClick={handleSetUsername}
+              disabled={!username || usernameError.length > 0 || checkingUsername || loading !== null}
+            >
+              {loading === 'email' ? 'Setting up...' : 'Continue to Dashboard'}
+            </Button>
+          </motion.div>
+        </DialogContent>
+      </Dialog>
+
       {/* Signup Success Modal */}
       <Dialog open={showSignupSuccess} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md border-0">
