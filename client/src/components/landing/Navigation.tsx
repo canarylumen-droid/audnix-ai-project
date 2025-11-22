@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,7 +35,6 @@ export function Navigation() {
           </div>
 
           <div className="hidden md:flex items-center gap-6">
-            <ThemeToggle />
             <a
               href="#features"
               onClick={(e) => {
@@ -79,7 +77,6 @@ export function Navigation() {
           </div>
 
           <div className="md:hidden flex items-center gap-2">
-            <ThemeToggle />
             <button
               className="text-foreground p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
