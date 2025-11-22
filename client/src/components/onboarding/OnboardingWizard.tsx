@@ -169,7 +169,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+      <style>{`[class*="onboarding-modal"] button.absolute { display: none !important; }`}</style>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 onboarding-modal">
         <div className="relative">
           {/* Progress bar */}
           <div className="h-1 bg-muted">
