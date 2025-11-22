@@ -6,6 +6,7 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";
+import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit";
 import crypto from "crypto";
 import fs from "fs";
@@ -317,9 +318,12 @@ async function runMigrations() {
   }
 
   // Start Stripe payment poller on server startup
-  // This section will be updated to include the stripe-payment-poller
-  // For now, it's just a placeholder comment.
-
+  if (hasDatabase && process.env.STRIPE_SECRET_KEY) {
+    console.log('💳 Starting Stripe payment poller...');
+    startStripePaymentPoller();
+  } else {
+    console.log('⏭️  Stripe poller disabled (no Stripe key configured)');
+  }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
   server.listen(PORT, "0.0.0.0", () => {

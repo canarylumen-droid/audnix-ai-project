@@ -1,9 +1,7 @@
 
 import { stripe } from '../billing/stripe';
 import { storage } from '../../storage';
-import { createSupabaseAdmin } from '../supabase-admin';
-
-const supabaseAdmin = createSupabaseAdmin();
+import { supabaseAdmin } from '../supabase-admin';
 
 /**
  * Poll Stripe for recent successful payments and auto-upgrade users

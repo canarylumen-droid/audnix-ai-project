@@ -325,13 +325,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash(password, 10);
 
+      // ADMIN WHITELIST: Check if email is in admin list
+      const adminWhitelist = [
+        'canarylumen@gmail.com',
+        process.env.ADMIN_EMAIL_1 || 'admin1@audnix.com',
+        process.env.ADMIN_EMAIL_2 || 'admin2@audnix.com',
+      ];
+      const isAdmin = adminWhitelist.includes(email.toLowerCase());
+
       // Create user account
       const user = await storage.createUser({
         email,
         password: hashedPassword,
         name,
         plan: 'trial',
-        role: 'user',
+        role: isAdmin ? 'admin' : 'member',
       });
 
       // Automatically log them in
