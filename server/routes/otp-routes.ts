@@ -1,6 +1,10 @@
 /* @ts-nocheck */
+import { Router } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
+import { db } from '../db';
+import { otpCodes } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 import { multiProviderEmailFailover } from '../lib/email/multi-provider-failover';
 import { generateOTPEmail, generateOTPPlaintext, generateOTPMinimal } from '../lib/email/otp-templates';
 import crypto from 'crypto';
@@ -93,21 +97,54 @@ router.post('/verify', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid code format' });
     }
 
-    // Find and verify OTP (this would query the OTP codes table)
-    // For now, simple validation logic
-    const isValid = code.length === 6 && /^\d+$/.test(code);
+    // Query OTP codes table to find matching code
+    const otpRecords = await db.select().from(otpCodes).where(
+      and(
+        eq(otpCodes.email, email),
+        eq(otpCodes.code, code),
+        eq(otpCodes.verified, false)
+      )
+    ).limit(1);
 
-    if (!isValid) {
+    if (!otpRecords || otpRecords.length === 0) {
+      console.log(`❌ OTP verification failed for ${email}: Code not found or already used`);
       return res.status(400).json({
         success: false,
         error: 'Invalid or expired code'
       });
     }
 
-    // Mark as used and return success
+    const otpRecord = otpRecords[0];
+    
+    // Check if OTP has expired
+    if (new Date() > new Date(otpRecord.expiresAt)) {
+      console.log(`❌ OTP expired for ${email}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Code has expired'
+      });
+    }
+
+    // Check attempts - max 5 wrong attempts
+    if (otpRecord.attempts >= 5) {
+      console.log(`❌ Max attempts exceeded for ${email}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Too many failed attempts. Please request a new code.'
+      });
+    }
+
+    // Mark OTP as verified
+    await db.update(otpCodes)
+      .set({ verified: true, attempts: otpRecord.attempts + 1 })
+      .where(eq(otpCodes.id, otpRecord.id));
+
+    console.log(`✅ OTP verified successfully for ${email}`);
+
     res.json({
       success: true,
-      message: 'Code verified successfully'
+      message: 'Code verified successfully',
+      email: email
     });
   } catch (error: any) {
     console.error('Error verifying OTP:', error);

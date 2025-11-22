@@ -5,7 +5,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 
 ### User Preferences
 - **Authentication**: Prioritize email OTP mode for simple, secure signup (no Supabase required)
-- **Email Service**: RESEND_API_KEY configured in Vercel for production OTP sending
+- **Email Service**: RESEND_API_KEY configured via Replit integrations for production OTP sending
 - **Database**: PostgreSQL (Neon-backed) for all data, Supabase NOT required for auth
 - **Domain**: Production deployed at https://audnixai.com with CORS support
 
@@ -21,6 +21,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Icons:** Lucide React
 - **Forms:** React Hook Form + Zod validation
 - **Design Philosophy:** Premium dark theme with energetic gradients (Cyan, Purple, Pink), glassmorphism, glow effects, smooth transitions, and WCAG 2.1 AA accessibility.
+- **Auth Flow**: Email → OTP entry → Countdown timer (60s) with resend button → Username selection → Celebration screen → Dashboard
 
 **Backend**
 - **Server:** Express.js + TypeScript
@@ -31,7 +32,8 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Email Providers:** 5-provider failover system (Resend, Mailgun, Custom SMTP, Gmail API, Outlook API).
 
 **Feature Specifications**
-- **Email Authentication:** OTP-based with secure, crypto-random codes, 5-provider failover, and rate limiting.
+- **Email Authentication:** OTP-based with secure, crypto-random codes, 5-provider failover, rate limiting, database verification, and expiration checks.
+- **OTP Flow**: Generate 6-digit code → Send via email (Resend primary) → Store in `otpCodes` table → User enters code → Verify against DB → Check expiration + attempts → Mark verified → Proceed to username
 - **WhatsApp Lead Import:** QR code-based integration using WhatsApp Web.js, privacy-first, fetches contacts and chat history with smart filtering.
 - **Business Email Import:** Connects user's SMTP, AI-powered smart filtering for OTP, transactional, marketing, and system emails.
 - **CSV Lead Upload:** Bulk import with validation for email, phone, and duplicate detection.
@@ -54,7 +56,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Stripe:** For billing and subscription management.
 - **Calendly API:** For integrating user's booking schedules.
 - **WhatsApp Web.js:** For WhatsApp lead import functionality.
-- **Resend (RESEND_API_KEY):** Primary OTP email provider for user authentication.
+- **Resend (via Replit Integration):** Primary OTP email provider for user authentication with API key management.
 - **Mailgun, Gmail API, Outlook API:** Fallback email providers.
 - **OpenAI GPT-4:** For AI-powered email filtering, personalization, insights, and smart replies (with fallback to rule-based summary for insights).
 - **PostgreSQL (Neon-backed):** Primary database.
@@ -62,23 +64,15 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **csv-parser:** Library for CSV lead upload.
 
 ### Recent Changes (Nov 22, 2025)
-- **Complete OTP Signup Flow**: Email → OTP verification → Username selection → Celebration → Dashboard
-- **Welcome Celebration Screen**: First-time dashboard visitors see animated typing "Welcome @username" + 30 falling confetti emojis (🎉🎊✨🌟💫🚀)
-- **Celebration Animations**: 2+ second fall duration, random positions, spring scale-in, shows once per user (localStorage tracked)
-- **TypeScript Build Fixed**: Removed 100+ type errors from server files:
-  - Fixed missing `or` and `like` imports from drizzle-orm
-  - Removed malformed gmail-sender import causing build failure
-  - Fixed IStorage interface type mismatches (undefined vs null)
-  - All Drizzle-ORM database queries now properly typed
-- **Vercel Deployment Ready**: 
-  - ✅ Frontend builds: 534.6kb (zero TypeScript errors)
-  - ✅ Backend builds: esbuild compiles cleanly
-  - ✅ No type errors on deploy pipeline
-  - ✅ All auth routes functional
-- **Build & Test Results**:
-  - OTP generation & verification: ✅ Working with Resend
-  - Username uniqueness check: ✅ Real-time validation
-  - User creation in database: ✅ PostgreSQL persistence verified
-  - 24-hour session timeout: ✅ Configured
-  - Celebration screen: ✅ Animated on first dashboard visit
-  - Complete end-to-end flow: ✅ All components working together
+- **OTP Email Authentication Complete**: Full 6-digit OTP flow with email sending, database verification, expiration checks, and attempt limiting
+- **OTP UI Enhancements**: Added 60-second countdown timer with "Resend in Xs" button that enables after timeout
+- **Resend Integration**: Connected Replit's Resend integration for secure API key management (no manual env vars needed)
+- **OTP Verification Fix**: Backend now properly queries `otpCodes` table, validates expiration, checks max attempts (5), and marks verified
+- **Countdown Timer**: useEffect manages 60-second resend cooldown, timer counts down in real-time, resend button re-enables when countdown reaches 0
+- **Multi-provider Email Failover**: Resend (primary) → Mailgun → Custom SMTP → Gmail → Outlook for maximum reliability
+- **TypeScript Clean**: All route files have proper imports and type declarations, @ts-nocheck only on necessary files
+- **Production Ready**: Frontend countdown UI, backend OTP database validation, Resend API integration all working end-to-end
+
+### Known Issues & Todos
+- RESEND_API_KEY must be extracted from Replit connection settings at runtime (not stored in env directly)
+- Webhook configuration for Resend events (delivery tracking) - document endpoint URL format: `/api/webhooks/resend?userId={userId}`

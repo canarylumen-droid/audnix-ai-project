@@ -49,6 +49,7 @@ export default function AuthPage() {
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [loading, setLoading] = useState<'google' | 'email' | null>(null);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const prefersReducedMotion = useReducedMotion();
 
   const passwordStrength = password ? zxcvbn(password) : null;
@@ -64,6 +65,13 @@ export default function AuthPage() {
       }
     }
   }, [user, hasAcknowledgedSecurity, setLocation]);
+
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCountdown]);
 
   const handleSecurityAcknowledge = () => {
     localStorage.setItem("security_acknowledged", "true");
@@ -158,6 +166,7 @@ export default function AuthPage() {
       });
       setSignupEmail(email);
       setOtpSent(true);
+      setResendCountdown(60);
       setLoading(null);
     } catch (error) {
       console.error("❌ OTP send error:", error);
@@ -339,6 +348,12 @@ export default function AuthPage() {
     if (score === 2) return 'Fair';
     if (score === 3) return 'Good';
     return 'Strong';
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCountdown > 0) return;
+    setResendCountdown(60);
+    await handleSendOTP();
   };
 
   const benefits = [
@@ -668,20 +683,33 @@ export default function AuthPage() {
                       </div>
 
                       {authMode === 'email-otp' && otpSent && (
-                        <div className="space-y-2">
-                          <Label htmlFor="otp-code" className="text-white/90">Verification Code</Label>
-                          <Input
-                            id="otp-code"
-                            type="text"
-                            placeholder="000000"
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            maxLength={6}
-                            className="bg-white/5 border-white/10 text-white placeholder:text-white/40 text-center text-lg tracking-widest font-mono"
-                            disabled={loading !== null}
-                            autoComplete="one-time-code"
-                          />
-                          <p className="text-xs text-white/60 text-center">Check your email for the 6-digit code</p>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="otp-code" className="text-white/90">Verification Code</Label>
+                            <Input
+                              id="otp-code"
+                              type="text"
+                              placeholder="000000"
+                              value={otpCode}
+                              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              maxLength={6}
+                              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 text-center text-lg tracking-widest font-mono"
+                              disabled={loading !== null}
+                              autoComplete="one-time-code"
+                            />
+                            <p className="text-xs text-white/60 text-center">Check your email for the 6-digit code</p>
+                          </div>
+                          
+                          <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                            <span className="text-xs text-white/70">Didn't receive the code?</span>
+                            <button
+                              onClick={handleResendOTP}
+                              disabled={resendCountdown > 0 || loading !== null}
+                              className="text-xs font-semibold text-primary hover:text-primary/80 disabled:text-white/40 disabled:cursor-not-allowed"
+                            >
+                              {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : 'Resend OTP'}
+                            </button>
+                          </div>
                         </div>
                       )}
 
