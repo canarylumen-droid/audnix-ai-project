@@ -203,7 +203,7 @@ export default function PricingPage() {
                       isPopular
                         ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/25'
                         : isEnterprise
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white'
                         : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
                     } transition-all duration-300`}
                     size="lg"

@@ -52,7 +52,7 @@ export default function AdminLeads() {
   const getChannelColor = (channel: string) => {
     switch (channel) {
       case "instagram":
-        return "bg-pink-100 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400";
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
       case "whatsapp":
         return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
       case "email":

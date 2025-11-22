@@ -185,7 +185,7 @@ export default function InboxPage() {
             <CardContent className="p-4">
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center gap-2">
-                  <Instagram className="h-5 w-5 text-pink-500" />
+                  <Instagram className="h-5 w-5 text-purple-500" />
                   <span className="font-medium">
                     {leads.filter((l: any) => l.channel === 'instagram').length} Instagram
                   </span>

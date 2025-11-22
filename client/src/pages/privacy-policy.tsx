@@ -256,7 +256,7 @@ export default function PrivacyPolicy() {
                   <h3 className="font-semibold text-foreground mb-3">What We Access</h3>
                   
                   <div className="space-y-4">
-                    <div className="border-l-4 border-pink-500 pl-4">
+                    <div className="border-l-4 border-blue-500 pl-4">
                       <h4 className="font-semibold text-foreground">Instagram Direct Messages (DMs)</h4>
                       <p className="text-sm mt-1"><strong>What we access:</strong></p>
                       <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
@@ -271,7 +271,7 @@ export default function PrivacyPolicy() {
                         <li>Send automated follow-ups if leads go silent</li>
                         <li>Handle objections and book calls via DM</li>
                       </ul>
-                      <p className="text-sm mt-2 text-pink-400"><strong>Security:</strong> DM credentials are AES-256 encrypted and never logged in plain text.</p>
+                      <p className="text-sm mt-2 text-blue-400"><strong>Security:</strong> DM credentials are AES-256 encrypted and never logged in plain text.</p>
                     </div>
 
                     <div className="border-l-4 border-purple-500 pl-4">

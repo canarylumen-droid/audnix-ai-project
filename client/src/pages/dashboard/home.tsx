@@ -135,7 +135,7 @@ export default function DashboardHome() {
       change: stats?.messages > 0 ? "Active engagement" : "Start messaging",
       percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
       trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-purple-500 to-blue-500",
     },
     {
       label: "AI Voice Replies",
@@ -203,7 +203,7 @@ export default function DashboardHome() {
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div className="relative">
             <motion.div
-              className="absolute -inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-pink-500/30 rounded-3xl blur-3xl -z-10"
+              className="absolute -inset-6 bg-gradient-to-r from-cyan-500/30 via-purple-500/20 to-blue-500/30 rounded-3xl blur-3xl -z-10"
               animate={prefersReducedMotion ? {} : {
                 opacity: [0.4, 0.7, 0.4],
                 scale: [1, 1.05, 1],
