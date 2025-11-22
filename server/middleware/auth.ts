@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
+import type { User } from "@shared/schema";
 
 // Extend Express session to include our custom fields
 declare module "express-session" {
@@ -7,6 +8,15 @@ declare module "express-session" {
     userId?: string;
     userEmail?: string;
     supabaseId?: string;
+  }
+}
+
+// Extend Express Request to include user property
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
   }
 }
 
@@ -59,7 +69,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   }
 
   // Attach user to request for downstream handlers
-  (req as any).user = user;
+  req.user = user;
   next();
 }
 
@@ -73,7 +83,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
   if (userId) {
     const user = await storage.getUserById(userId);
     if (user) {
-      (req as any).user = user;
+      req.user = user;
     }
   }
   
@@ -137,7 +147,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     });
   }
 
-  (req as any).user = user;
+  req.user = user;
   next();
 }
 
@@ -177,13 +187,13 @@ export async function requireActiveSubscription(req: Request, res: Response, nex
   // DEVELOPER MODE: Skip subscription checks if API keys not configured
   if (isDevMode()) {
     console.log('⚡ Developer Mode: Bypassing subscription check (API keys not configured)');
-    (req as any).user = user;
+    req.user = user;
     return next();
   }
 
   // Check if user has a paid plan
   if (user.plan && user.plan !== 'trial') {
-    (req as any).user = user;
+    req.user = user;
     return next();
   }
 
@@ -192,7 +202,7 @@ export async function requireActiveSubscription(req: Request, res: Response, nex
     const now = new Date();
     if (now < user.trialExpiresAt) {
       // Trial is still valid
-      (req as any).user = user;
+      req.user = user;
       return next();
     }
   }
@@ -209,7 +219,7 @@ export async function requireActiveSubscription(req: Request, res: Response, nex
  * Helper function to get current user from request
  */
 export function getCurrentUser(req: Request) {
-  return (req as any).user;
+  return req.user;
 }
 
 /**

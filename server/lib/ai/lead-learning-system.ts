@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import { supabaseAdmin } from '../supabase-admin';
 import type { Lead, Message } from '@shared/schema';

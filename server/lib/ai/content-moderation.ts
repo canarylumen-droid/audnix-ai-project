@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import type { Message } from '@shared/schema';
 

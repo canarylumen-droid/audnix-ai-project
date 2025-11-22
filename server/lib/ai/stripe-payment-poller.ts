@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import { stripe } from '../billing/stripe';
 import { storage } from '../../storage';

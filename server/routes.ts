@@ -2036,6 +2036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const autoReachOut = req.body.autoReachOut === 'true';
       const extractOffer = req.body.extractOffer === 'true';
 
+      const { processPDF } = await import('./lib/pdf-processor');
       const result = await processPDF(req.file.buffer, req.user!.id, {
         autoReachOut,
         extractOffer
