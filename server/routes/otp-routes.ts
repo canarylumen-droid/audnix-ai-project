@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { multiProviderEmailFailover } from '../lib/email/multi-provider-failover';

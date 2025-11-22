@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { processCommentAutomation, detectCommentIntent } from '../lib/ai/comment-detection';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 

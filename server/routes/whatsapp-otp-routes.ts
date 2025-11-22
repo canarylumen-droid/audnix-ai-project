@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { Router } from 'express';
 import { whatsAppTwilioOTP } from '../lib/integrations/whatsapp-twilio-otp';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';

@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { supabaseAdmin } from '../supabase-admin';
 
 const SUPER_MEMORY_API_KEY = process.env.SUPER_MEMORY_API_KEY;

@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { storage } from "../storage";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
 import {

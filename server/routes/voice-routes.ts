@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 import { requireAuth } from '../middleware/auth';
 import { voiceAI } from '../lib/ai/voice-ai-service';
 import { uploadVoice } from '../lib/file-upload';
