@@ -2,7 +2,7 @@ import type { IStorage } from "./storage";
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "@shared/schema";
 import { db } from "./db";
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "@shared/schema";
-import { eq, desc, and, gte, lte, sql, not, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 
 // Function to check if the database connection is available

@@ -70,7 +70,6 @@ export interface IStorage {
   getLatestOtpCode(email: string): Promise<any>;
   incrementOtpAttempts(id: string): Promise<void>;
   markOtpVerified(id: string): Promise<void>;
-  getUserByEmail(email: string): Promise<User | null>;
 }
 
 export class MemStorage implements IStorage {
