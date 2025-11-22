@@ -33,10 +33,12 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useUser();
   const { toast } = useToast();
-  const [authMode, setAuthMode] = useState<AuthMode>('email-password');
+  const [authMode, setAuthMode] = useState<AuthMode>('email-otp');
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
@@ -279,7 +281,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleEmailSignIn = async () => {
+  const handleSendOTP = async () => {
     if (!email || !email.includes('@')) {
       toast({
         title: "Invalid Email",
@@ -290,48 +292,102 @@ export default function AuthPage() {
     }
 
     setLoading('email');
-
-    if (!supabase) {
-      toast({
-        title: "Authentication Error",
-        description: "Email sign-in is not available. Please add Supabase credentials.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
+    console.log(`📧 Sending OTP to ${email}...`);
 
     try {
-      // Send OTP to email with proper callback URL
-      // ✅ Works for all users including admins
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-          shouldCreateUser: true,
-        },
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+        credentials: 'include',
       });
 
-      if (error) {
+      const data = await response.json();
+      console.log(`📍 Send OTP response:`, { status: response.status, data });
+
+      if (!response.ok) {
         toast({
-          title: "Email OTP Failed",
-          description: error.message,
+          title: "Failed to Send OTP",
+          description: data.error || "Something went wrong",
           variant: "destructive",
         });
         setLoading(null);
-      } else {
-        toast({
-          title: "Check Your Email! 📧",
-          description: "We sent you a 6-digit code. Check your inbox (and spam folder).",
-        });
-        setAuthMode('email-password'); // Temporarily switch to this to show OTP input
-        setLoading(null);
+        return;
       }
+
+      toast({
+        title: "Check Your Email! 📧",
+        description: "We sent you a 6-digit code. Check your inbox (and spam folder).",
+      });
+      setOtpSent(true);
+      setLoading(null);
     } catch (error) {
-      console.error("Email OTP error:", error);
+      console.error("❌ OTP send error:", error);
       toast({
         title: "Error",
-        description: "Failed to send email OTP.",
+        description: "Failed to send OTP code",
+        variant: "destructive",
+      });
+      setLoading(null);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!email || !otpCode) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter email and OTP code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^\d{6}$/.test(otpCode)) {
+      toast({
+        title: "Invalid Code",
+        description: "OTP code must be 6 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading('email');
+    console.log(`✅ Verifying OTP...`);
+
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: otpCode }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      console.log(`📍 Verify OTP response:`, { status: response.status, data });
+
+      if (!response.ok) {
+        toast({
+          title: "Verification Failed",
+          description: data.error || "Invalid or expired code",
+          variant: "destructive",
+        });
+        setLoading(null);
+        return;
+      }
+
+      toast({
+        title: "Verified! 🎉",
+        description: "Signing you in...",
+      });
+
+      setTimeout(() => {
+        window.location.href = '/dashboard/onboarding';
+      }, 500);
+    } catch (error) {
+      console.error("❌ OTP verify error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to verify OTP",
         variant: "destructive",
       });
       setLoading(null);
@@ -567,9 +623,27 @@ export default function AuthPage() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="bg-white/5 border-white/10 text-white placeholder:text-white/40"
-                          disabled={loading !== null}
+                          disabled={loading !== null || (authMode === 'email-otp' && otpSent)}
                         />
                       </div>
+
+                      {authMode === 'email-otp' && otpSent && (
+                        <div className="space-y-2">
+                          <Label htmlFor="otp-code" className="text-white/90">Verification Code</Label>
+                          <Input
+                            id="otp-code"
+                            type="text"
+                            placeholder="000000"
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            maxLength={6}
+                            className="bg-white/5 border-white/10 text-white placeholder:text-white/40 text-center text-lg tracking-widest font-mono"
+                            disabled={loading !== null}
+                            autoComplete="one-time-code"
+                          />
+                          <p className="text-xs text-white/60 text-center">Check your email for the 6-digit code</p>
+                        </div>
+                      )}
 
                       {authMode === 'email-password' && (
                         <div className="space-y-2">
@@ -622,10 +696,20 @@ export default function AuthPage() {
 
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                        onClick={authMode === 'email-otp' ? handleEmailSignIn : handleDirectEmailPasswordAuth}
+                        onClick={() => {
+                          if (authMode === 'email-otp') {
+                            if (otpSent) {
+                              handleVerifyOTP();
+                            } else {
+                              handleSendOTP();
+                            }
+                          } else {
+                            handleDirectEmailPasswordAuth();
+                          }
+                        }}
                         disabled={loading !== null}
                       >
-                        {loading === 'email' ? 'Processing...' : isSignUp && authMode === 'email-password' ? 'Create Account' : isSignUp && authMode === 'email-otp' ? 'Send OTP' : 'Sign In'}
+                        {loading === 'email' ? 'Processing...' : authMode === 'email-otp' && otpSent ? 'Verify Code' : authMode === 'email-password' && isSignUp ? 'Create Account' : 'Sign In'}
                       </Button>
 
                       <div className="relative">

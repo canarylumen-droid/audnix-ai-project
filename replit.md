@@ -1,10 +1,13 @@
 # Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
 
 ### Overview
-Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform designed for creators, coaches, agencies, and founders. It automates lead imports from WhatsApp, Email (custom SMTP), and CSV, then intelligently follows up with personalized campaigns across 24/7 workers. The platform emphasizes privacy by connecting directly to users' own business email, Calendly accounts, and WhatsApp, avoiding Audnix API dependencies. Key capabilities include real-time progress tracking, AI-powered email filtering, day-aware campaign automation (Day 1, 2, 5, 7), and Stripe billing with a 3-day free trial. The project is currently production-ready with zero errors, clean TypeScript build, and all core features operational, prepared for Vercel deployment.
+Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform designed for creators, coaches, agencies, and founders. It automates lead imports from WhatsApp, Email (custom SMTP), and CSV, then intelligently follows up with personalized campaigns across 24/7 workers. The platform emphasizes privacy by connecting directly to users' own business email, Calendly accounts, and WhatsApp, avoiding Audnix API dependencies. Key capabilities include real-time progress tracking, AI-powered email filtering, day-aware campaign automation (Day 1, 2, 5, 7), OTP email authentication, and Stripe billing with a 3-day free trial. The project is currently production-ready with zero errors, clean TypeScript build, and all core features operational, prepared for Vercel deployment.
 
 ### User Preferences
-No specific user preferences were provided in the original `replit.md` file.
+- **Authentication**: Prioritize email OTP mode for simple, secure signup (no Supabase required)
+- **Email Service**: RESEND_API_KEY configured in Vercel for production OTP sending
+- **Database**: PostgreSQL (Neon-backed) for all data, Supabase NOT required for auth
+- **Domain**: Production deployed at https://audnixai.com with CORS support
 
 ### System Architecture
 
@@ -51,8 +54,17 @@ No specific user preferences were provided in the original `replit.md` file.
 - **Stripe:** For billing and subscription management.
 - **Calendly API:** For integrating user's booking schedules.
 - **WhatsApp Web.js:** For WhatsApp lead import functionality.
-- **Resend, Mailgun, Gmail API, Outlook API:** For email sending and failover.
+- **Resend (RESEND_API_KEY):** Primary OTP email provider for user authentication.
+- **Mailgun, Gmail API, Outlook API:** Fallback email providers.
 - **OpenAI GPT-4:** For AI-powered email filtering, personalization, insights, and smart replies (with fallback to rule-based summary for insights).
 - **PostgreSQL (Neon-backed):** Primary database.
-- **Vercel:** Target deployment platform.
+- **Vercel:** Target deployment platform (all env vars configured).
 - **csv-parser:** Library for CSV lead upload.
+
+### Recent Changes (Nov 22, 2025)
+- **Fixed OTP Authentication Flow**: Changed default auth mode from email-password to email-otp
+- **Custom OTP Implementation**: Uses custom `/api/auth/send-otp` and `/api/auth/verify-otp` endpoints (no Supabase required)
+- **CORS Configuration**: Added support for audnixai.com domain in CSRF protection
+- **UI Improvements**: Added dedicated OTP code input field with visual feedback
+- **Frontend Logging**: Added comprehensive console logging for signup/OTP flow debugging
+- **Build Status**: ✅ Local build passing (531.9kb, zero errors)

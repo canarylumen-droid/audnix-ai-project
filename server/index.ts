@@ -107,6 +107,8 @@ app.use((req, res, next) => {
   // Verify origin header matches allowed domains
   const allowedOrigins = [
     process.env.NEXT_PUBLIC_APP_URL,
+    'https://audnixai.com',
+    'https://www.audnixai.com',
     'http://localhost:5000',
     'https://localhost:5000',
     `http://0.0.0.0:5000`,
