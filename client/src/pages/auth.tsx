@@ -42,6 +42,8 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showSecurityNotice, setShowSecurityNotice] = useState(false);
   const [hasAcknowledgedSecurity, setHasAcknowledgedSecurity] = useState(false);
+  const [showSignupSuccess, setShowSignupSuccess] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
   const [loading, setLoading] = useState<'google' | 'email' | null>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -111,175 +113,6 @@ export default function AuthPage() {
   };
 
 
-  const handleDirectEmailPasswordAuth = async () => {
-    if (!email || !email.includes('@')) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!password || password.length < 8) {
-      toast({
-        title: "Invalid Password",
-        description: "Password must be at least 8 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isSignUp && passwordStrength && passwordStrength.score < 2) {
-      toast({
-        title: "Weak Password",
-        description: "Please choose a stronger password",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading('email');
-
-    try {
-      const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
-      console.log(`🔐 Attempting ${isSignUp ? 'signup' : 'login'} to ${endpoint}`, { email });
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: email.split('@')[0] }),
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-      console.log(`📍 Response status: ${response.status}`, { data });
-
-      if (!response.ok) {
-        console.error(`❌ Auth failed: ${data.error}`);
-        toast({
-          title: isSignUp ? "Sign Up Failed" : "Sign In Failed",
-          description: data.error || "Something went wrong",
-          variant: "destructive",
-        });
-        setLoading(null);
-        return;
-      }
-
-      toast({
-        title: isSignUp ? "Account Created! 🎉" : "Welcome Back! 🎉",
-        description: isSignUp ? "Taking you to onboarding..." : "You're signed in!",
-      });
-
-      // Redirect immediately - session is already set
-      setTimeout(() => {
-        window.location.href = isSignUp ? '/dashboard/onboarding' : '/dashboard';
-      }, 500);
-    } catch (error) {
-      console.error("Direct auth error:", error);
-      toast({
-        title: "Error",
-        description: `Failed to ${isSignUp ? 'sign up' : 'sign in'}`,
-        variant: "destructive",
-      });
-      setLoading(null);
-    }
-  };
-
-  const handleEmailPasswordAuth = async () => {
-    if (!email || !email.includes('@')) {
-      toast({
-        title: "Invalid Email",
-        description: "Please enter a valid email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!password || password.length < 8) {
-      toast({
-        title: "Invalid Password",
-        description: "Password must be at least 8 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isSignUp && passwordStrength && passwordStrength.score < 2) {
-      toast({
-        title: "Weak Password",
-        description: "Please choose a stronger password",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading('email');
-
-    if (!supabase) {
-      toast({
-        title: "Authentication Error",
-        description: "Unable to connect to authentication service.",
-        variant: "destructive",
-      });
-      setLoading(null);
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-          },
-        });
-
-        if (error) {
-          toast({
-            title: "Sign Up Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-          setLoading(null);
-        } else {
-          toast({
-            title: "Check Your Email! 📧",
-            description: "We sent you a verification link. Click it to complete sign up.",
-          });
-          setLoading(null);
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          toast({
-            title: "Sign In Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-          setLoading(null);
-        } else {
-          toast({
-            title: "Welcome Back! 🎉",
-            description: "You're signed in. Redirecting...",
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Email/password auth error:", error);
-      toast({
-        title: "Error",
-        description: `Failed to ${isSignUp ? 'sign up' : 'sign in'}`,
-        variant: "destructive",
-      });
-      setLoading(null);
-    }
-  };
 
   const handleSendOTP = async () => {
     if (!email || !email.includes('@')) {
@@ -319,6 +152,7 @@ export default function AuthPage() {
         title: "Check Your Email! 📧",
         description: "We sent you a 6-digit code. Check your inbox (and spam folder).",
       });
+      setSignupEmail(email);
       setOtpSent(true);
       setLoading(null);
     } catch (error) {
@@ -375,14 +209,14 @@ export default function AuthPage() {
         return;
       }
 
-      toast({
-        title: "Verified! 🎉",
-        description: "Signing you in...",
-      });
+      // Show animated success modal before redirecting
+      setShowSignupSuccess(true);
+      setLoading(null);
 
+      // Redirect after animation completes
       setTimeout(() => {
         window.location.href = '/dashboard/onboarding';
-      }, 500);
+      }, 2000);
     } catch (error) {
       console.error("❌ OTP verify error:", error);
       toast({
@@ -432,6 +266,58 @@ export default function AuthPage() {
 
   return (
     <>
+      {/* Signup Success Modal */}
+      <Dialog open={showSignupSuccess} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md border-0">
+          <div className="flex flex-col items-center justify-center space-y-6 py-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="relative"
+            >
+              <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, duration: 0.3 }}
+                >
+                  <Check className="h-10 w-10 text-emerald-400" />
+                </motion.div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center space-y-2"
+            >
+              <h2 className="text-2xl font-bold text-white">Welcome to Audnix! 🎉</h2>
+              <p className="text-white/70">Your account is all set up and ready to go.</p>
+              <p className="text-sm text-white/50">Let's get your AI sales rep working...</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "100%" }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
+            />
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-xs text-white/50"
+            >
+              Redirecting to onboarding...
+            </motion.p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security Notice Modal */}
       <Dialog open={showSecurityNotice} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -697,19 +583,15 @@ export default function AuthPage() {
                       <Button
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
                         onClick={() => {
-                          if (authMode === 'email-otp') {
-                            if (otpSent) {
-                              handleVerifyOTP();
-                            } else {
-                              handleSendOTP();
-                            }
+                          if (otpSent) {
+                            handleVerifyOTP();
                           } else {
-                            handleDirectEmailPasswordAuth();
+                            handleSendOTP();
                           }
                         }}
                         disabled={loading !== null}
                       >
-                        {loading === 'email' ? 'Processing...' : authMode === 'email-otp' && otpSent ? 'Verify Code' : authMode === 'email-password' && isSignUp ? 'Create Account' : 'Sign In'}
+                        {loading === 'email' ? 'Processing...' : otpSent ? 'Verify Code' : 'Send OTP'}
                       </Button>
 
                       <div className="relative">
