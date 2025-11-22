@@ -8,7 +8,9 @@ import { sendInstagramMessage } from '../channels/instagram';
 import { sendWhatsAppMessage } from '../channels/whatsapp';
 import { sendEmail } from '../channels/email';
 import { executeCommentFollowUps } from './comment-detection';
-import { storage } from '../../storage'; // Assuming storage is available for lead fetching
+import { storage } from '../../storage';
+import MultiChannelOrchestrator from '../multi-channel-orchestrator';
+import DayAwareSequence from './day-aware-sequence';
 
 interface FollowUpJob {
   id: string;
@@ -154,8 +156,13 @@ export class FollowUpWorker {
       // Get user's brand context
       const brandContext = await this.getBrandContext(job.userId);
 
-      // Generate AI reply
-      const aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext);
+      // Calculate campaign day (how many days since lead was created)
+      const campaignDay = Math.floor(
+        (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
+      );
+
+      // Generate AI reply with day-aware context
+      const aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date());
 
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
@@ -211,14 +218,29 @@ export class FollowUpWorker {
   }
 
   /**
-   * Generate AI follow-up message
+   * Generate AI follow-up message with day-aware context
    */
   private async generateFollowUp(
     lead: Lead, 
     history: Message[], 
-    brandContext: any
+    brandContext: any,
+    campaignDay: number = 0,
+    campaignDayCreated: Date = new Date()
   ): Promise<string> {
-    const systemPrompt = "You are an AI assistant helping with lead follow-ups. Generate natural, human-like messages based on the context provided. For emails, include a subject line based on the content and brand info. Ensure all outgoing messages are well-branded and professional.";
+    // Use day-aware sequence for context-aware prompt
+    const dayAwareContext = {
+      campaignDay,
+      previousMessages: history.map(msg => ({
+        sentAt: new Date(msg.created_at),
+        body: msg.content,
+      })),
+      leadEngagement: this.assessLeadTemperature(lead, history),
+      leadName: lead.preferred_name || lead.name.split(' ')[0],
+      brandName: brandContext.businessName || 'Your Business',
+      userSenderName: brandContext.senderName,
+    };
+
+    const systemPrompt = DayAwareSequence.buildSystemPrompt(dayAwareContext);
     const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext);
 
     const result = await generateReply(systemPrompt, userPrompt, {
@@ -510,13 +532,18 @@ Generate a natural follow-up message:`;
   }
 
   /**
-   * Schedule next follow-up based on lead temperature AND best reply time
+   * Schedule next follow-up with multi-channel orchestration and day-aware timing
+   * 
+   * Human-like timing:
+   * - Email: Day 1 (24h), Day 2 (48h), Day 5, Day 7
+   * - WhatsApp: Day 3, Day 6 (only if email opened or ignored)
+   * - Instagram: Day 5, Day 8 (failover if email + WhatsApp failed)
    */
   private async scheduleNextFollowUp(
     userId: string,
     leadId: string,
-    lead: Lead // Changed parameter to include lead object
-  ): Promise<void> { // Changed return type to void as it inserts into db
+    lead: Lead
+  ): Promise<void> {
     if (!db) return;
 
     // Don't schedule if already followed up 5+ times
@@ -533,51 +560,36 @@ Generate a natural follow-up message:`;
     const messages = await this.getConversationHistory(leadId);
     const leadTemperature = this.assessLeadTemperature(lead, messages);
 
-    // Get user's leads to find best reply hour (This part needs to be optimized, fetching all leads on every schedule might be slow)
-    const allLeads = await storage.getLeads({ userId, limit: 1000 }); // Assuming storage.getLeads fetches leads with lastMessageAt
-    const replyHours: Record<number, number> = {};
-    for (const l of allLeads) {
-      if (l.lastMessageAt) {
-        const hour = new Date(l.lastMessageAt).getHours();
-        replyHours[hour] = (replyHours[hour] || 0) + 1;
-      }
+    // Use multi-channel orchestrator to get next follow-ups with proper timing
+    const campaignCreatedAt = lead.createdAt || new Date();
+    const schedules = MultiChannelOrchestrator.calculateNextSchedule(leadId, campaignCreatedAt, lead.channel);
+
+    // Schedule the next follow-up from the orchestrator
+    if (schedules.length > 0) {
+      const nextSchedule = schedules[0]; // Get the first pending schedule
+      const followUpCount = ((lead.metadata as any)?.follow_up_count || 0) + 1;
+
+      console.log(`📅 Scheduling ${leadTemperature} lead - Channel: ${nextSchedule.channel}, Sequence: ${nextSchedule.sequenceNumber}, Time: ${nextSchedule.scheduledFor.toISOString()}`);
+
+      // Create follow-up job with multi-channel context
+      await db.insert(followUpQueue).values({
+        userId,
+        leadId,
+        channel: nextSchedule.channel,
+        scheduledAt: nextSchedule.scheduledFor,
+        context: {
+          follow_up_number: followUpCount,
+          previous_status: lead.status,
+          temperature: leadTemperature,
+          campaign_day: Math.floor(
+            (Date.now() - campaignCreatedAt.getTime()) / (1000 * 60 * 60 * 24)
+          ),
+          sequence_number: nextSchedule.sequenceNumber,
+          multi_channel: true, // Flag for multi-channel processing
+          scheduled_time: nextSchedule.scheduledFor.toISOString()
+        }
+      });
     }
-    const bestReplyHour = Object.keys(replyHours).length > 0
-      ? parseInt(Object.entries(replyHours).sort((a, b) => b[1] - a[1])[0][0])
-      : null;
-
-    // Calculate next follow-up time with intelligent randomization
-    const baseDelay = this.getFollowUpDelay(lead.follow_up_count || 0, leadTemperature);
-    const jitter = this.getRandomizationWindow(leadTemperature);
-    const delayMs = baseDelay * (1 + jitter);
-
-    const scheduledAt = new Date(Date.now() + delayMs);
-
-    // ADAPTIVE: If we know the best reply hour, adjust scheduled time to match it
-    if (bestReplyHour !== null && leadTemperature === 'hot') {
-      const currentHour = scheduledAt.getHours();
-      // Adjust if the scheduled time is more than 2 hours away from the best reply hour
-      if (Math.abs(currentHour - bestReplyHour) > 2) {
-        scheduledAt.setHours(bestReplyHour, 0, 0, 0); // Set to best reply hour
-        console.log(`🎯 Adaptive scheduling: Shifted follow-up to ${bestReplyHour}:00 (best reply time)`);
-      }
-    }
-
-    console.log(`📅 Scheduling ${leadTemperature} lead follow-up in ${Math.round(delayMs / 60000)} minutes`);
-
-    // Create next job
-    await db.insert(followUpQueue).values({
-      userId,
-      leadId,
-      channel: lead.channel,
-      scheduledAt,
-      context: {
-        follow_up_number: ((lead.metadata as any)?.follow_up_count || 0) + 1,
-        previous_status: lead.status,
-        temperature: leadTemperature,
-        scheduled_time: scheduledAt.toISOString()
-      }
-    });
   }
 
 

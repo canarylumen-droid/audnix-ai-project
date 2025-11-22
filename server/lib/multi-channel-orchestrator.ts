@@ -1,6 +1,6 @@
 import { storage } from '../storage';
 import { db } from '../db';
-import { followUps } from '../../shared/schema';
+import { followUpQueue, leads } from '../../shared/schema';
 import { eq, and, lt } from 'drizzle-orm';
 
 /**
@@ -135,15 +135,15 @@ export class MultiChannelOrchestrator {
     try {
       const followUp = await db
         .select()
-        .from(followUps)
+        .from(followUpQueue)
         .where(
           and(
-            eq(followUps.leadId, leadId),
-            lt(followUps.scheduledAt, new Date()),
-            eq(followUps.status, 'pending')
+            eq(followUpQueue.leadId, leadId),
+            lt(followUpQueue.scheduledAt, new Date()),
+            eq(followUpQueue.status, 'pending')
           )
         )
-        .orderBy(followUps.scheduledAt)
+        .orderBy(followUpQueue.scheduledAt)
         .limit(1);
 
       return followUp[0] || null;
@@ -160,14 +160,14 @@ export class MultiChannelOrchestrator {
     // Check last few email sends
     const recentEmails = await db
       .select()
-      .from(followUps)
+      .from(followUpQueue)
       .where(
         and(
-          eq(followUps.leadId, leadId),
-          eq(followUps.channel, 'email')
+          eq(followUpQueue.leadId, leadId),
+          eq(followUpQueue.channel, 'email')
         )
       )
-      .orderBy(followUps.scheduledAt)
+      .orderBy(followUpQueue.scheduledAt)
       .limit(3);
 
     // If last 2 emails were ignored (no opens/clicks), escalate to WhatsApp
@@ -179,12 +179,12 @@ export class MultiChannelOrchestrator {
     // If WhatsApp also failed, try Instagram
     const whatsappFailed = await db
       .select()
-      .from(followUps)
+      .from(followUpQueue)
       .where(
         and(
-          eq(followUps.leadId, leadId),
-          eq(followUps.channel, 'whatsapp'),
-          eq(followUps.status, 'failed')
+          eq(followUpQueue.leadId, leadId),
+          eq(followUpQueue.channel, 'whatsapp'),
+          eq(followUpQueue.status, 'failed')
         )
       );
 
