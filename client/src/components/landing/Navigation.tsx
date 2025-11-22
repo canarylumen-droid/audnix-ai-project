@@ -18,7 +18,7 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             <img
-              src="/logo.jpg"
+              src="/logo.png"
               alt="Audnix AI Logo"
               className="h-8 w-auto object-contain"
               onError={(e) => {
