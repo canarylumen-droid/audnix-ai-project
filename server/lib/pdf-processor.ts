@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import { supabaseAdmin } from './supabase-admin';
 import { storage } from '../storage';

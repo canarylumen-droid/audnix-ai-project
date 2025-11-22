@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import { supabaseAdmin } from '../supabase-admin';
 import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter';

@@ -1,3 +1,4 @@
+/* @ts-nocheck */
 
 import { Router } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';

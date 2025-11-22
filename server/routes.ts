@@ -502,6 +502,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update user's username
       const updatedUser = await storage.updateUser(userId, { username });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ error: "Failed to update username" });
+      }
 
       res.json({ 
         success: true, 
