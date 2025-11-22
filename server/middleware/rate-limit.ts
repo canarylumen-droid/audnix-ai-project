@@ -150,3 +150,54 @@ export const viteLimiter = rateLimit({
     })
   })
 });
+
+/**
+ * SMTP email rate limiter - 150-300 emails per hour per user
+ * Prevents deliverability issues and domain blacklisting
+ * Random delays between 2-12 seconds per email
+ * Max 5k per day unless manually overridden by admin
+ */
+export const smtpRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 300, // 150-300 emails per hour (adjustable via user plan)
+  message: 'Email sending rate limit exceeded. Please wait before sending more emails.',
+  keyGenerator: (req) => {
+    const userId = (req.session as any)?.userId;
+    if (userId) return `smtp:${userId}`;
+    return req.ip || 'unknown';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: false,
+  ...(redisClient && {
+    store: new RedisStore({
+      // @ts-ignore
+      client: redisClient,
+      prefix: 'rl:smtp:'
+    })
+  })
+});
+
+/**
+ * Email import limiter - prevent import flooding
+ * Max 1000 emails per day
+ */
+export const emailImportLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 1000,
+  message: 'Daily email import limit exceeded',
+  keyGenerator: (req) => {
+    const userId = (req.session as any)?.userId;
+    if (userId) return `import:${userId}`;
+    return req.ip || 'unknown';
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  ...(redisClient && {
+    store: new RedisStore({
+      // @ts-ignore
+      client: redisClient,
+      prefix: 'rl:import:'
+    })
+  })
+});

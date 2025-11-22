@@ -611,16 +611,24 @@ Generate a natural follow-up message:`;
 
   /**
    * Get follow-up delay based on follow-up count and lead temperature
+   * HUMAN RHYTHM TIMING:
+   * - Email Day 1: 24 hours (not 4 hours - avoids desperation vibes)
+   * - Email Day 2: 48 hours  
+   * - Email Day 3: Day 5 (120 hours)
+   * - Email Day 4: Day 7 (168 hours)
+   * 
+   * Multi-channel spacing:
+   * - Email → +48 hours WhatsApp → +72 hours IG DM
    */
   private getFollowUpDelay(followUpCount: number, temperature: 'hot' | 'warm' | 'cold'): number {
-    // Hot leads - respond quickly
+    // Hot leads - respond quickly but HUMAN (not desperate)
     if (temperature === 'hot') {
       const hotDelays = {
-        0: 30 * 60 * 1000,         // 30 minutes
-        1: 2 * 60 * 60 * 1000,     // 2 hours
-        2: 4 * 60 * 60 * 1000,     // 4 hours
-        3: 12 * 60 * 60 * 1000,    // 12 hours
-        4: 24 * 60 * 60 * 1000     // 1 day
+        0: 24 * 60 * 60 * 1000,    // 24 hours (Day 1 - initial follow-up)
+        1: 48 * 60 * 60 * 1000,    // 48 hours (Day 2 - second follow-up)
+        2: 120 * 60 * 60 * 1000,   // 5 days (Day 5 - re-engagement)
+        3: 168 * 60 * 60 * 1000,   // 7 days (Day 7 - final touch)
+        4: 336 * 60 * 60 * 1000    // 14 days (archive if no response)
       };
       return hotDelays[followUpCount as keyof typeof hotDelays] || 24 * 60 * 60 * 1000;
     }

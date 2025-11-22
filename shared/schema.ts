@@ -216,6 +216,26 @@ export const followUpQueue = pgTable("follow_up_queue", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const emailWarmupSchedules = pgTable("email_warmup_schedules", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  day: integer("day").notNull(), // 1-30
+  dailyLimit: integer("daily_limit").notNull(), // emails to send today
+  randomDelay: boolean("random_delay").notNull().default(true), // 2-12s delays
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const bounceTracker = pgTable("bounce_tracker", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  bounceType: text("bounce_type", { enum: ["hard", "soft", "spam"] }).notNull(),
+  email: text("email").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insights = pgTable("insights", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -314,6 +334,8 @@ export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings).om
 export const insertOnboardingProfileSchema = createInsertSchema(onboardingProfiles).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({ id: true, createdAt: true });
+export const insertEmailWarmupScheduleSchema = createInsertSchema(emailWarmupSchedules).omit({ id: true, createdAt: true });
+export const insertBounceTrackerSchema = createInsertSchema(bounceTracker).omit({ id: true, createdAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -348,6 +370,10 @@ export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
 export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
+export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;
+export type InsertEmailWarmupSchedule = typeof emailWarmupSchedules.$inferInsert;
+export type BounceTracker = typeof bounceTracker.$inferSelect;
+export type InsertBounceTracker = typeof bounceTracker.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({
