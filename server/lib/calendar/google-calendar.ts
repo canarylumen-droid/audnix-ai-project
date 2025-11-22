@@ -1,5 +1,5 @@
-/* @ts-nocheck */
 import { OAuth2Client } from 'google-auth-library';
+import { google } from 'googleapis';
 
 /**
  * Create a Google Calendar booking link for a lead

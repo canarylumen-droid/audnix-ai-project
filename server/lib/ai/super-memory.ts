@@ -1,5 +1,5 @@
-/* @ts-nocheck */
 import { supabaseAdmin } from '../supabase-admin';
+import type { Lead, Message } from '@shared/schema';
 
 const SUPER_MEMORY_API_KEY = process.env.SUPER_MEMORY_API_KEY;
 const SUPER_MEMORY_API_URL = 'https://api.supermemory.ai/v1';
