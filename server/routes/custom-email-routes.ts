@@ -164,3 +164,23 @@ router.post('/disconnect', requireAuth, async (req, res) => {
 });
 
 export default router;
+
+/**
+ * Get custom email status
+ */
+router.get('/status', requireAuth, async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const integration = await storage.getIntegration(userId, 'custom_email');
+
+    res.json({
+      success: true,
+      connected: !!integration?.connected,
+      email: integration?.accountType || null,
+      provider: 'custom_smtp'
+    });
+  } catch (error: any) {
+    console.error('Error getting email status:', error);
+    res.status(500).json({ error: 'Failed to get email status' });
+  }
+});
