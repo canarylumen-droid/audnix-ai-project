@@ -488,7 +488,9 @@ export default function Landing() {
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <img src="/logo.png" alt="Audnix AI" className="h-10 w-auto" />
+                <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
+                  <img src="/logo.png" alt="Audnix AI" className="h-10 w-auto" />
+                </div>
                 <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                   Audnix AI
                 </span>

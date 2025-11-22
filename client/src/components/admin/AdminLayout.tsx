@@ -35,7 +35,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center gap-3 px-6 py-4 border-b border-border/50">
-                <img src="/logo.png" alt="Audnix AI" className="h-10 w-10 rounded-lg" />
+                <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded-lg">
+                  <img src="/logo.png" alt="Audnix AI" className="h-8 w-8 rounded-lg" />
+                </div>
                 <div>
                   <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix AI</h1>
                   <p className="text-xs text-muted-foreground">Admin Portal</p>

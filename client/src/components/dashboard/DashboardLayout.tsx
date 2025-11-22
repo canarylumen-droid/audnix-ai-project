@@ -174,23 +174,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 className="flex items-center gap-2"
                 data-testid="logo-text"
               >
-                <img
-                  src="/logo.png"
-                  alt="Audnix AI"
-                  className="h-8 w-auto object-contain"
-                />
+                <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
+                  <img
+                    src="/logo.png"
+                    alt="Audnix AI"
+                    className="h-8 w-auto object-contain"
+                  />
+                </div>
                 <span className="font-bold text-xl text-primary">Audnix</span>
               </motion.div>
             )}
             {sidebarCollapsed && (
-              <motion.img
-                src="/logo.png"
-                alt="Audnix AI"
-                className="h-8 w-8 object-contain"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              />
+              <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
+                <motion.img
+                  src="/logo.png"
+                  alt="Audnix AI"
+                  className="h-8 w-8 object-contain"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+              </div>
             )}
           </AnimatePresence>
           <Button
@@ -254,11 +258,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <SheetContent side="left" className="w-64 p-0">
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
-                  <img
-                    src="/logo.png"
-                    alt="Audnix AI"
-                    className="h-8 w-auto object-contain"
-                  />
+                  <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
+                    <img
+                      src="/logo.png"
+                      alt="Audnix AI"
+                      className="h-8 w-auto object-contain"
+                    />
+                  </div>
                   <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
                 </div>
                 <nav className="flex flex-col gap-1 flex-1">
@@ -283,11 +289,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
-                  <img
-                    src="/logo.png"
-                    alt="Audnix AI"
-                    className="h-8 w-auto object-contain"
-                  />
+                  <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
+                    <img
+                      src="/logo.png"
+                      alt="Audnix AI"
+                      className="h-8 w-auto object-contain"
+                    />
+                  </div>
                   <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
                 </div>
                 <nav className="flex flex-col gap-1 flex-1">
