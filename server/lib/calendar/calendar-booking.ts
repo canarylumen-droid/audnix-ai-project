@@ -127,32 +127,7 @@ export async function getAvailableTimeSlots(
       return slots.slice(0, 20); // Return top 20 slots
     }
 
-    // 3. Fallback to Audnix's Calendly account (FREE instant booking for all users)
-    const audnixCalendlyToken = process.env.AUDNIX_CALENDLY_API_TOKEN;
-    if (audnixCalendlyToken) {
-      try {
-        console.log(`⚠️ Google Calendar not connected, using Audnix Calendly fallback`);
-        const calendlySlots = await getCalendlySlots(
-          audnixCalendlyToken,
-          daysAhead,
-          slotDuration
-        );
-
-        if (calendlySlots.length > 0) {
-          console.log(`✅ Using Audnix fallback Calendly: ${calendlySlots.length} slots`);
-          return calendlySlots.map(slot => ({
-            startTime: new Date(slot.time),
-            endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
-            available: slot.available,
-            timezone: 'America/New_York'
-          }));
-        }
-      } catch (error: any) {
-        console.warn('Audnix Calendly fallback failed:', error.message);
-      }
-    }
-
-    console.warn('No calendar available (user not connected, Audnix fallback not configured)');
+    console.warn('No calendar connected. User needs to connect Calendly or Google Calendar.');
     return [];
   } catch (error: any) {
     console.error('Error getting available time slots:', error);
@@ -299,35 +274,9 @@ export async function bookMeeting(
       }
     }
 
-    // 3. Fallback to Audnix's Calendly account (FREE for all users)
-    const audnixCalendlyToken = process.env.AUDNIX_CALENDLY_API_TOKEN;
-    if (audnixCalendlyToken) {
-      try {
-        console.log(`⚠️ No user calendar, booking via Audnix Calendly...`);
-        const result = await createCalendlyEvent(
-          audnixCalendlyToken,
-          leadEmail,
-          leadName,
-          slotStart
-        );
-
-        if (result.success) {
-          console.log(`✅ Meeting booked via Audnix fallback Calendly: ${result.eventId}`);
-          return {
-            success: true,
-            eventId: result.eventId,
-            meetingLink: `https://calendly.com/bookings/${result.eventId}`,
-            provider: 'audnix_calendly_fallback'
-          };
-        }
-      } catch (error: any) {
-        console.error('Audnix Calendly fallback failed:', error.message);
-      }
-    }
-
     return {
       success: false,
-      error: 'No calendar available to book meeting. Please connect Calendly or Google Calendar.'
+      error: 'No calendar connected. Please connect your Calendly or Google Calendar to book meetings.'
     };
   } catch (error: any) {
     console.error('Error booking meeting:', error);
