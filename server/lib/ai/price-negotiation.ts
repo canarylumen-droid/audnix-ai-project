@@ -16,8 +16,8 @@ interface NegotiationHistory {
 }
 
 const PRICE_OBJECTION_KEYWORDS = {
-  high: ['too expensive', 'too much', 'can\'t afford', 'out of budget', 'overpriced', 'rip off'],
-  medium: ['expensive', 'pricey', 'costly', 'high price', 'a lot of money'],
+  high: ['too premium', 'too much', 'can\'t afford', 'out of budget', 'overpriced', 'rip off'],
+  medium: ['premium', 'pricey', 'costly', 'high price', 'a lot of money'],
   low: ['cheaper', 'discount', 'deal', 'promo', 'sale', 'lower price', 'best price']
 };
 
@@ -129,7 +129,7 @@ export async function generateNegotiationResponse(
     ],
     medium: [
       `I get it! Good news - I can offer you ${discount}% off this week only 🔥`,
-      `Let me help with that - I can give you ${discount}% off as a first-time customer deal!`,
+      `Let me help with that - I can give you ${discount}% off as a first-time client deal!`,
       `Great timing! We actually have a ${discount}% discount running right now 🎁`
     ],
     low: [

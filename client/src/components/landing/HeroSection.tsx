@@ -29,7 +29,7 @@ const itemVariants = {
 const features = [
   "Human-like timing & tone",
   "Voice notes in your voice",
-  "Auto-booking + intelligent follow-ups"
+  "Auto-booking + intelligent re-connects"
 ];
 
 export function HeroSection() {

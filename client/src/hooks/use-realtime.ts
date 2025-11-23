@@ -115,12 +115,12 @@ export function useRealtime(userId?: string) {
               playNotificationSound();
               toast({
                 title: '🎉 Conversion!',
-                description: `${payload.new.name} converted to customer`,
+                description: `${payload.new.name} converted to client`,
               });
               
               // Push notification
               showPushNotification('🎉 Conversion!', {
-                body: `${payload.new.name} converted to customer`,
+                body: `${payload.new.name} converted to client`,
                 tag: 'conversion',
                 requireInteraction: true,
                 data: { url: '/dashboard/deals' }

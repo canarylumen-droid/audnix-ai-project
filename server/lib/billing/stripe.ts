@@ -104,7 +104,7 @@ export const TOPUPS = {
 };
 
 /**
- * Create Stripe customer for user
+ * Create Stripe client for user
  */
 export async function createStripeCustomer(
   email: string,
@@ -116,18 +116,18 @@ export async function createStripeCustomer(
   }
 
   // Stripe SDK is not initialized here as we only use payment links
-  // A customer is created implicitly by Stripe when a payment link is used.
-  // We store the Stripe customer ID in our DB upon successful checkout.
+  // A client is created implicitly by Stripe when a payment link is used.
+  // We store the Stripe client ID in our DB upon successful checkout.
 
   // For now, returning a mock ID for demo mode.
-  // In a real scenario, this function might not be needed if customer creation is handled by Stripe checkout.
-  // If we need to explicitly create a customer, we would need the Stripe SDK initialized.
+  // In a real scenario, this function might not be needed if client creation is handled by Stripe checkout.
+  // If we need to explicitly create a client, we would need the Stripe SDK initialized.
   // Given the current context (payment links only), this function might be vestigial or needs re-evaluation.
   return `cus_mock_${Date.now()}`;
 }
 
 /**
- * Create subscription for customer
+ * Create subscription for client
  */
 export async function createSubscription(
   customerId: string,

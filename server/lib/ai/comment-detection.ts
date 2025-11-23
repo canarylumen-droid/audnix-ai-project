@@ -375,13 +375,13 @@ export async function processCommentAutomation(
 }
 
 /**
- * Check and execute scheduled comment follow-ups
+ * Check and execute scheduled comment re-connects
  */
 export async function executeCommentFollowUps(): Promise<void> {
   try {
     const now = new Date();
     
-    // Get all notifications for comment follow-ups that are due
+    // Get all notifications for comment re-connects that are due
     const allUsers = await storage.getAllUsers().catch(() => []);
     
     for (const user of allUsers) {
@@ -443,6 +443,6 @@ export async function executeCommentFollowUps(): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('Error executing comment follow-ups:', error);
+    console.error('Error executing comment re-connects:', error);
   }
 }

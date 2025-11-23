@@ -164,7 +164,7 @@ export function EmailSetupUI() {
                 Your campaigns will send from this email address
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                🔄 Auto-follow-ups active • 📊 Real-time tracking • ✉️ Multi-channel ready
+                🔄 Auto-re-connects active • 📊 Real-time tracking • ✉️ Multi-channel ready
               </p>
             </div>
             <Button

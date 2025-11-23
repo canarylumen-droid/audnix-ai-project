@@ -207,7 +207,7 @@ export default function AuthPage() {
   const benefits = [
     {
       icon: Sparkles,
-      text: "AI-powered follow-ups that convert",
+      text: "AI-powered re-connects that convert",
     },
     {
       icon: Clock,
@@ -328,7 +328,7 @@ export default function AuthPage() {
                   </span>
                 </h1>
                 <p className="text-xl text-white/90 leading-relaxed">
-                  Join creators who close deals on autopilot with AI-powered follow-ups across Instagram, WhatsApp & Email.
+                  Join creators who close deals on autopilot with AI-powered re-connects across Instagram, WhatsApp & Email.
                 </p>
               </div>
 
@@ -427,7 +427,7 @@ export default function AuthPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-white/90">
                         <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                        <span>Instant DM + email follow-ups</span>
+                        <span>Instant DM + email re-connects</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-white/90">
                         <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
