@@ -44,6 +44,7 @@ import stripeAutoApprove from "./routes/stripe-auto-approve";
 import authUsernameOnboarding from "./routes/auth-username-onboarding";
 import authClean from "./routes/auth-clean";
 import whatsappConnect from "./routes/whatsapp-connect";
+import dashboardRoutes from "./routes/dashboard-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2317,6 +2318,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register WhatsApp connection routes (for dashboard)
   app.use("/api/whatsapp-connect", whatsappConnect);
+
+  // Register dashboard routes
+  app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api", dashboardRoutes); // Also available at /api/user/profile
 
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
