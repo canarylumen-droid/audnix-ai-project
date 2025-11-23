@@ -103,35 +103,35 @@ function Router() {
       </Route>
       <Route path="/admin">
         {() => (
-          <AuthGuard>
+          <AuthGuard adminOnly={true}>
             <AdminDashboard />
           </AuthGuard>
         )}
       </Route>
       <Route path="/admin/users">
         {() => (
-          <AuthGuard>
+          <AuthGuard adminOnly={true}>
             <AdminUsers />
           </AuthGuard>
         )}
       </Route>
       <Route path="/admin/analytics">
         {() => (
-          <AuthGuard>
+          <AuthGuard adminOnly={true}>
             <AdminAnalytics />
           </AuthGuard>
         )}
       </Route>
       <Route path="/admin/leads">
         {() => (
-          <AuthGuard>
+          <AuthGuard adminOnly={true}>
             <AdminLeads />
           </AuthGuard>
         )}
       </Route>
       <Route path="/admin/settings">
         {() => (
-          <AuthGuard>
+          <AuthGuard adminOnly={true}>
             <AdminSettings />
           </AuthGuard>
         )}

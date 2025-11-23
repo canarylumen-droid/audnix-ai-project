@@ -9,7 +9,6 @@ import IntegrationsPage from "./integrations";
 import InsightsPage from "./insights";
 import PricingPage from "./pricing";
 import SettingsPage from "./settings";
-import AdminPage from "./admin";
 
 export default function DashboardRoutes() {
   return (
@@ -25,7 +24,6 @@ export default function DashboardRoutes() {
         <Route path="/dashboard/insights" component={InsightsPage} />
         <Route path="/dashboard/pricing" component={PricingPage} />
         <Route path="/dashboard/settings" component={SettingsPage} />
-        <Route path="/dashboard/admin" component={AdminPage} />
       </Switch>
     </DashboardLayout>
   );

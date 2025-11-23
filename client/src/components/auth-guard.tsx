@@ -5,13 +5,22 @@ import { Loader2 } from "lucide-react";
 
 interface AuthGuardProps {
   children: ReactNode;
+  adminOnly?: boolean;
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: "user" | "admin";
+  plan?: string;
 }
 
 /**
- * ProtectedRoute: Checks if user is authenticated before rendering dashboard
- * Redirects to /auth if not logged in
+ * AuthGuard: Enforces authentication and optional role-based access
+ * - Regular users: redirects to /auth if not logged in
+ * - Admin users: requires role === 'admin', redirects to /auth if not admin
  */
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   const [, setLocation] = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,37 +28,50 @@ export function AuthGuard({ children }: AuthGuardProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Try to fetch user profile - if it fails, user is not authenticated
         const response = await fetch("/api/user/profile", {
           credentials: "include",
         });
 
-        if (response.ok) {
-          // User is authenticated
-          setIsAuthenticated(true);
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.log("🔓 Not authenticated - redirecting to /auth");
+            setLocation("/auth");
+          } else {
+            console.error(`Auth check failed: ${response.status}`);
+            setLocation("/auth");
+          }
           setIsChecking(false);
-        } else if (response.status === 401) {
-          // Not authenticated - redirect to auth
-          console.log("❌ Not authenticated - redirecting to /auth");
-          setLocation("/auth");
-        } else {
-          // Other error - still block access
-          console.error("Auth check failed with status:", response.status);
-          setLocation("/auth");
+          return;
         }
+
+        const user: AuthUser = await response.json();
+
+        // If admin-only route, check role
+        if (adminOnly) {
+          if (user.role !== "admin") {
+            console.warn(`⛔ User is not admin (role: ${user.role}), redirecting to /auth`);
+            setLocation("/auth");
+            setIsChecking(false);
+            return;
+          }
+        }
+
+        setIsAuthenticated(true);
+        setIsChecking(false);
       } catch (error) {
         console.error("Auth check error:", error);
         setLocation("/auth");
+        setIsChecking(false);
       }
     };
 
     checkAuth();
-  }, [setLocation]);
+  }, [setLocation, adminOnly]);
 
   // Show loading while checking auth
   if (isChecking) {
     return (
-      <Dialog open={true}>
+      <Dialog open={true} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-md border-0">
           <div className="flex flex-col items-center justify-center space-y-4 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -62,11 +84,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // If authenticated, show the protected content
+  // If authenticated (and admin check passed if required), show content
   if (isAuthenticated) {
     return <>{children}</>;
   }
 
-  // This shouldn't happen - but just in case
+  // Fallback - this shouldn't happen but just in case
   return null;
 }

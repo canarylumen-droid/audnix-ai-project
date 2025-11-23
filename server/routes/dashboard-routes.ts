@@ -121,16 +121,13 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response) => 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     res.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        plan: user.plan,
-        businessName: user.businessName,
-        trialExpiresAt: user.trialExpiresAt,
-        metadata: user.metadata,
-      },
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role || 'user',
+      plan: user.plan,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch profile' });
