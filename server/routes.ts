@@ -38,6 +38,8 @@ import adminPdfRoutes from "./routes/admin-pdf-routes";
 import adminPdfRoutesV2 from "./routes/admin-pdf-routes-v2";
 import leadIntelligenceRouter from "./routes/lead-intelligence";
 import aiSalesSuggestionRouter from "./routes/ai-sales-suggestion";
+import emailOTPRoutes from "./routes/email-otp-routes";
+import stripePaymentConfirmation from "./routes/stripe-payment-confirmation";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2281,6 +2283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register WhatsApp routes
   app.use('/api/whatsapp', whatsappRoutes);
   app.use('/api/whatsapp-otp', whatsappOTPRoutes);
+  app.use('/api/auth', emailOTPRoutes);
   app.use('/api/custom-email', customEmailRoutes);
   app.use('/api/email', emailStatsRoutes);
   app.use('/api/otp', otpRoutes);
@@ -2297,6 +2300,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register AI sales suggestion routes
   app.use("/api/ai", aiSalesSuggestionRouter);
+
+  // Register Stripe payment confirmation routes (works anywhere: Vercel, local, etc)
+  app.use("/api/stripe", stripePaymentConfirmation);
 
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
