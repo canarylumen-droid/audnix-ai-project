@@ -14,16 +14,23 @@ const authLimiter = rateLimit({
   message: 'Too many auth attempts',
 });
 
+// Temporary password storage (in-memory) - for email/password flow
+const tempPasswords = new Map<string, { password: string; expiresAt: Date }>();
+
 /**
  * POST /api/user/auth/signup/request-otp
- * Step 1: User requests OTP for signup (ANYONE can signup)
+ * Step 1: User submits email + password, we send OTP
  */
 router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: 'Valid email required' });
+    }
+
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
     // Check if user already exists
@@ -36,9 +43,17 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return res.status(503).json({ error: 'Email service not configured' });
     }
 
+    // Store password temporarily (15 min expiry)
+    tempPasswords.set(email.toLowerCase(), {
+      password: await bcrypt.hash(password, 10),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+    });
+
+    // Send OTP
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
+      tempPasswords.delete(email.toLowerCase());
       return res.status(400).json({ error: result.error || 'Failed to send OTP' });
     }
 
@@ -47,6 +62,8 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       message: 'OTP sent to your email',
       expiresIn: '10 minutes',
     });
+
+    console.log(`✅ OTP sent to ${email}`);
   } catch (error: any) {
     console.error('Signup OTP error:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
@@ -55,22 +72,28 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 
 /**
  * POST /api/user/auth/signup/verify-otp
- * Step 2: User verifies OTP and sets password
+ * Step 2: User verifies OTP, account created
  */
 router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { email, otp, password, username } = req.body;
+    const { email, otp } = req.body;
 
-    if (!email || !otp || !password || !username) {
-      return res.status(400).json({ error: 'Email, OTP, password, and username required' });
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP required' });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const normalizedEmail = email.toLowerCase();
+
+    // Get stored password
+    const tempData = tempPasswords.get(normalizedEmail);
+    if (!tempData) {
+      return res.status(400).json({ error: 'Password not found. Please sign up again.' });
     }
 
-    if (username.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    // Check if password expired
+    if (new Date() > tempData.expiresAt) {
+      tempPasswords.delete(normalizedEmail);
+      return res.status(400).json({ error: 'Session expired. Please sign up again.' });
     }
 
     // Verify OTP
@@ -79,27 +102,24 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       return res.status(400).json({ error: verifyResult.error });
     }
 
-    // Check username availability
-    const existingUsername = await storage.getUserByUsername(username);
-    if (existingUsername) {
-      return res.status(400).json({ error: 'Username already taken' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate username from email
+    const username = normalizedEmail.split('@')[0] + Date.now();
 
     // Create user
     const user = await storage.createUser({
-      email,
+      email: normalizedEmail,
       username,
-      password: hashedPassword,
+      password: tempData.password, // Use stored hashed password
       plan: 'trial',
       role: 'user',
     });
 
+    // Clean up
+    tempPasswords.delete(normalizedEmail);
+
     // Set session (7-day expiry)
     (req as any).session.userId = user.id;
-    (req as any).session.email = email;
+    (req as any).session.email = normalizedEmail;
     (req as any).session.isAdmin = false;
     (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -116,7 +136,7 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       sessionExpiresIn: '7 days',
     });
 
-    console.log(`✅ New user signed up: ${email}`);
+    console.log(`✅ New user signed up: ${normalizedEmail}`);
   } catch (error: any) {
     console.error('Signup verification error:', error);
     res.status(500).json({ error: 'Signup failed' });
@@ -126,7 +146,6 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
 /**
  * POST /api/user/auth/login
  * User logs in with email + password
- * Session lasts 7 days
  */
 router.post('/login', authLimiter, async (req: Request, res: Response) => {
   try {
