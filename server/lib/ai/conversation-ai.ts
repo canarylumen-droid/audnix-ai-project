@@ -6,6 +6,7 @@ import { storeConversationMemory, retrieveConversationMemory } from "./super-mem
 import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector';
 import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation';
 import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection';
+import { optimizeSalesLanguage } from './sales-language-optimizer';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
@@ -335,7 +336,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
 
   const lastMessage = conversationHistory[conversationHistory.length - 1];
   if (!lastMessage || lastMessage.direction !== 'inbound') {
-    return { text: "Thanks for reaching out! How can I help you?", useVoice: false };
+    return { text: optimizeSalesLanguage("Thanks for reaching out! How can I help you?"), useVoice: false };
   }
 
   // Detect language
@@ -358,7 +359,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
     );
 
     return {
-      text: localizedResponse,
+      text: optimizeSalesLanguage(localizedResponse),
       useVoice: false as boolean,
       detections: { priceObjection, language: languageDetection }
     };
@@ -383,7 +384,7 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
     );
 
     return {
-      text: localizedResponse,
+      text: optimizeSalesLanguage(localizedResponse),
       useVoice: false,
       detections: { competitorMention, language: languageDetection }
     };
@@ -404,13 +405,13 @@ ${detectionResult.shouldUseVoice ? '- This lead is engaged enough for a personal
     const responseText = completion.choices[0].message.content || "";
 
     return {
-      text: responseText,
+      text: optimizeSalesLanguage(responseText),
       useVoice: detectionResult.shouldUseVoice && isWarm
     };
   } catch (error: any) {
     console.error("AI reply generation error:", error.message);
     return {
-      text: "Thanks for your message! Let me get back to you shortly with more details.",
+      text: optimizeSalesLanguage("Thanks for your message! Let me get back to you shortly with more details."),
       useVoice: false
     };
   }
