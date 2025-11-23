@@ -22,17 +22,11 @@ function checkBlocked(email: string, ip: string): { blocked: boolean; reason?: s
 
   if (!record) return { blocked: false };
 
-  // Unblock after 24 hours
-  const now = Date.now();
-  if (record.blocked && now > record.blockedUntil) {
-    failedAttempts.delete(key);
-    return { blocked: false };
-  }
-
+  // Permanent block for non-whitelisted emails (device ban)
   if (record.blocked) {
     return { 
       blocked: true, 
-      reason: `Access blocked. Try again after ${new Date(record.blockedUntil).toLocaleString()}` 
+      reason: `Access permanently blocked. Device banned after 2 failed attempts. Contact support.` 
     };
   }
 
@@ -48,8 +42,8 @@ function recordFailedAttempt(email: string, ip: string) {
 
   if (record.count >= 2) {
     record.blocked = true;
-    record.blockedUntil = Date.now() + 24 * 60 * 60 * 1000; // 24 hour block
-    console.warn(`[SECURITY] Admin login BLOCKED for ${email} from ${ip} for 24 hours`);
+    record.blockedUntil = Date.now() + 7 * 24 * 60 * 60 * 1000; // 1 WEEK permanent block
+    console.warn(`[SECURITY] Admin login PERMANENTLY BLOCKED (device ban) for ${email} from ${ip} for 1 week`);
   }
 
   failedAttempts.set(key, record);
@@ -70,13 +64,15 @@ router.post('/auth/check-email', async (req: Request, res: Response) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if blocked
+    // Check if device/IP is permanently blocked
     const blocked = checkBlocked(normalizedEmail, ip);
     if (blocked.blocked) {
+      console.warn(`[SECURITY] Blocked device attempted access: ${normalizedEmail} from ${ip}`);
       return res.status(403).json({ 
-        error: 'Access denied',
+        error: 'Access permanently denied',
         reason: blocked.reason,
-        blocked: true 
+        blocked: true,
+        permanent: true
       });
     }
 
@@ -85,9 +81,12 @@ router.post('/auth/check-email', async (req: Request, res: Response) => {
 
     if (!isWhitelisted) {
       recordFailedAttempt(normalizedEmail, ip);
+      const record = failedAttempts.get(getAttemptsKey(normalizedEmail, ip));
       return res.status(403).json({ 
         error: 'Not authorized for admin access',
-        isWhitelisted: false 
+        isWhitelisted: false,
+        attempts: record?.count || 0,
+        attemptsRemaining: 2 - (record?.count || 0)
       });
     }
 
@@ -119,21 +118,27 @@ router.post('/auth/request-otp', async (req: Request, res: Response) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if blocked
+    // Check if device/IP is permanently blocked
     const blocked = checkBlocked(normalizedEmail, ip);
     if (blocked.blocked) {
+      console.warn(`[SECURITY] Blocked device attempted OTP request: ${normalizedEmail} from ${ip}`);
       return res.status(403).json({ 
-        error: 'Access denied - too many failed attempts',
-        blocked: true 
+        error: 'Access permanently denied',
+        reason: blocked.reason,
+        blocked: true,
+        permanent: true
       });
     }
 
     // Check whitelist
     if (!ADMIN_WHITELIST.includes(normalizedEmail)) {
       recordFailedAttempt(normalizedEmail, ip);
+      const record = failedAttempts.get(getAttemptsKey(normalizedEmail, ip));
       return res.status(403).json({ 
         error: 'Email not authorized for admin access',
-        isWhitelisted: false 
+        isWhitelisted: false,
+        attempts: record?.count || 0,
+        attemptsRemaining: 2 - (record?.count || 0)
       });
     }
 
@@ -176,21 +181,27 @@ router.post('/auth/verify-otp', async (req: Request, res: Response) => {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check if blocked
+    // Check if device/IP is permanently blocked
     const blocked = checkBlocked(normalizedEmail, ip);
     if (blocked.blocked) {
+      console.warn(`[SECURITY] Blocked device attempted verify: ${normalizedEmail} from ${ip}`);
       return res.status(403).json({ 
-        error: 'Access denied - too many failed attempts',
-        blocked: true 
+        error: 'Access permanently denied',
+        reason: blocked.reason,
+        blocked: true,
+        permanent: true
       });
     }
 
     // Check whitelist
     if (!ADMIN_WHITELIST.includes(normalizedEmail)) {
       recordFailedAttempt(normalizedEmail, ip);
+      const record = failedAttempts.get(getAttemptsKey(normalizedEmail, ip));
       return res.status(403).json({ 
         error: 'Email not authorized for admin access',
-        isWhitelisted: false 
+        isWhitelisted: false,
+        attempts: record?.count || 0,
+        attemptsRemaining: 2 - (record?.count || 0)
       });
     }
 

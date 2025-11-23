@@ -11,7 +11,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **WhatsApp**: Twilio OTP verification for dashboard connection, QR code + phone number methods
 - **Database**: PostgreSQL (Neon-backed) for all data
 - **Billing**: Stripe integration with real-time payment confirmation, admin auto-approve (5s auto-click), no webhooks/pollers
-- **Admin Access**: Whitelist-only access, 2 failed attempts → 24 hour block per IP+email
+- **Admin Access**: Whitelist-only access, 2 failed attempts → 1 WEEK permanent device ban per IP+email (prevents daily hack attempts)
 - **Deployment**: Vercel (no Replit dependency), all env vars in Vercel settings
 - **Domain**: Production deployed at https://audnixai.com with CORS support
 
@@ -38,7 +38,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 **Feature Specifications**
 - **User Email Authentication:** Twilio SendGrid OTP (for signup), rate-limited, crypto-random codes, 10-min expiry.
 - **User Password Login:** 7-day session (no re-OTP needed), bcrypt hashed, permanently stored per user.
-- **Admin Authentication:** Twilio OTP-only (no password), whitelisted emails only, 2 failed attempts → 24 hour block.
+- **Admin Authentication:** Twilio OTP-only (no password), whitelisted emails only, 2 failed attempts → 1 WEEK permanent device ban.
 - **Admin Whitelist:** Pre-configured emails (env var ADMIN_WHITELIST_EMAILS): canarylumen@gmail.com, treasure@audnixai.com, team@audnixai.com
 - **WhatsApp Connection:** Twilio OTP verification or QR code scan, imports full contact list, real-time access.
 - **Lead Import:** WhatsApp (OTP/QR verified), Business Email (user's SMTP, AI-powered filtering), and CSV (bulk upload with validation).
@@ -85,7 +85,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **User Login:** Email + password → 7-day session (no re-OTP)
 - **Admin Login:** Whitelisted email only → Twilio OTP → 30-day admin session (no password)
 - **Admin Whitelist:** Only 3 emails: canarylumen@gmail.com, treasure@audnixai.com, team@audnixai.com
-- **Failed Attempt Protection:** Non-whitelisted emails blocked after 2 failed attempts for 24 hours
+- **Failed Attempt Protection:** Non-whitelisted emails blocked after 2 failed attempts for 1 WEEK (permanent device ban, prevents daily hack attempts)
 - **Files:** 
   - `server/routes/user-auth.ts` - User signup/login (anyone)
   - `server/routes/admin-auth.ts` - Admin login (whitelist-only)
