@@ -324,14 +324,19 @@ async function runMigrations() {
     }
   }
 
-  // Start Stripe payment poller on server startup
-  // Poller fetches credentials from Replit connection on each run
-  if (hasDatabase) {
+  // Start Stripe payment poller on server startup (Replit only)
+  // Note: Poller won't work on Vercel serverless (functions terminate after requests)
+  // On Vercel, use webhooks or Cron Jobs (paid plan)
+  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
+  
+  if (hasDatabase && !isVercel) {
     // Give Stripe client a moment to initialize
     setTimeout(() => {
       console.log('💳 Starting Stripe payment poller...');
       startStripePaymentPoller();
     }, 2000);
+  } else if (isVercel) {
+    console.log('⏭️  Stripe poller disabled on Vercel (use Cron Jobs or webhooks for production)');
   } else {
     console.log('⏭️  Stripe poller disabled (no database configured)');
   }
