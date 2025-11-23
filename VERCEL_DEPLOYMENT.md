@@ -1,32 +1,34 @@
-# Vercel Deployment Guide
+# Vercel Deployment Guide - Audnix AI
+
+## Overview
+This app uses **Stripe payment links + poller** (NO webhooks, NO API key exposure).
+Payment link is standalone. Poller detects payments on every request.
 
 ## Prerequisites
 
 1. **Vercel Account**: Sign up at [vercel.com](https://vercel.com)
-2. **Vercel CLI** (optional): `npm i -g vercel`
-3. **PostgreSQL Database**: Set up a Neon or Vercel Postgres database
+2. **Neon PostgreSQL Database** (already set up)
+3. **Stripe Secret Key** (from Replit integration or live account)
 
-## Environment Variables
+## Environment Variables for Vercel
 
-Set these in your Vercel Project Settings → Environment Variables:
+Set these in Vercel Project Settings → Environment Variables:
 
-### Required
+### REQUIRED
 ```bash
-DATABASE_URL=postgresql://user:password@host:5432/database
-SESSION_SECRET=your-secure-random-session-secret-here
+STRIPE_SECRET_KEY=sk_test_XXXX (from Replit integration shown in logs)
+DATABASE_URL=postgresql://... (from your Neon database)
 ```
 
-### Optional (for full functionality)
+### OPTIONAL
 ```bash
-# Supabase (for authentication)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SUPABASE_ANON_KEY=your-anon-key
+# Session & Security
+SESSION_SECRET=generate with: openssl rand -hex 32
+ENCRYPTION_KEY=generate with: openssl rand -hex 32
 
-# Stripe (for payments)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PUBLISHABLE_KEY=pk_live_...
+# If you want to add these later
+# OPENAI_API_KEY=sk-...
+# RESEND_API_KEY=re_XXXX...
 
 # OpenAI (for AI features)
 OPENAI_API_KEY=sk-...
@@ -50,29 +52,51 @@ GMAIL_REDIRECT_URI=...
 ENCRYPTION_KEY=your-32-character-encryption-key-here
 ```
 
+## How Stripe Payments Work (No Webhook Setup Needed)
+
+```
+User clicks Payment Link
+    ↓
+Pays on Stripe (money goes to Canada account)
+    ↓
+User returns to your app
+    ↓
+Request triggers middleware → Poller checks Stripe
+    ↓
+Poller detects successful payment ✅
+    ↓
+User auto-upgraded in database
+    ↓
+Success notification sent
+```
+
+**Zero webhook configuration needed.** Poller runs automatically on every request.
+
 ## Deployment Steps
 
-### Option 1: Deploy via Vercel Dashboard (Recommended)
-
-1. Push your code to GitHub
-2. Go to [vercel.com/new](https://vercel.com/new)
-3. Import your repository
-4. Configure the following:
-   - **Framework Preset**: Other
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist/public`
-   - **Install Command**: `npm install`
-5. Add all required environment variables
-6. Click "Deploy"
-
-### Option 2: Deploy via CLI
-
+### 1. Push Code to GitHub
 ```bash
-# Login to Vercel
-vercel login
+git push origin main
+```
 
-# Deploy to production
-vercel --prod
+### 2. Connect to Vercel
+- Go to [vercel.com/new](https://vercel.com/new)
+- Import your GitHub repository
+- Choose these settings:
+  - **Framework**: Other
+  - **Build Command**: `npm run build`
+  - **Output Directory**: `dist/public`
+  - **Root Directory**: ./
+
+### 3. Add Environment Variables in Vercel
+- **Settings → Environment Variables**
+- Add:
+  ```
+  STRIPE_SECRET_KEY = sk_test_XXXX...
+  DATABASE_URL = postgresql://...
+  SESSION_SECRET = (generate with: openssl rand -hex 32)
+  ```
+- **Deploy**
 
 # The CLI will prompt you for environment variables
 # or you can add them in the dashboard
