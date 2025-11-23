@@ -394,7 +394,90 @@ export default function AuthPage() {
           />
         </div>
 
-        <div className="relative z-10 w-full max-w-md">
+        <div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          {/* LEFT SIDE: Sales Copy (Hidden on Mobile) */}
+          <motion.div
+            className="hidden lg:flex flex-col justify-center space-y-8"
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="space-y-4">
+              <h1 className="text-5xl font-bold leading-tight">
+                <span className="bg-gradient-to-r from-primary via-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                  Close Your First Deal
+                </span>
+              </h1>
+              <p className="text-xl text-white/70 leading-relaxed">
+                Join creators, coaches, and founders who are closing their first $1,000 deals in Week 1 with Audnix AI.
+              </p>
+            </div>
+
+            {/* Benefits */}
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Smart Lead Follow-ups</h3>
+                  <p className="text-white/60 text-sm">AI-powered messaging across WhatsApp, Email & more</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Zero Setup Required</h3>
+                  <p className="text-white/60 text-sm">Connect your own email, WhatsApp & Calendly instantly</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">24/7 Sales Agent</h3>
+                  <p className="text-white/60 text-sm">Never miss a lead again with personalized campaigns</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
+                  <Check className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white">Privacy-First</h3>
+                  <p className="text-white/60 text-sm">Your data stays in your control. No data selling.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Proof */}
+            <div className="pt-4 border-t border-white/10">
+              <p className="text-sm text-white/50 mb-3">Trusted by:</p>
+              <div className="flex flex-wrap gap-2">
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
+                  Creators
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
+                  Coaches
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
+                  Agencies
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
+                  Founders
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* RIGHT SIDE: Auth Form */}
+          <div className="w-full max-w-md mx-auto lg:mx-0">
           <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
             <CardContent className="p-8">
               <motion.div
@@ -644,9 +727,10 @@ export default function AuthPage() {
             </CardContent>
           </Card>
 
-          {/* Footer */}
-          <div className="mt-8 text-center text-xs text-white/50">
-            <p>🔒 Your data is encrypted and secure</p>
+            {/* Footer */}
+            <div className="mt-6 text-center text-xs text-white/50">
+              <p>🔒 Your data is encrypted and secure</p>
+            </div>
           </div>
         </div>
       </div>
