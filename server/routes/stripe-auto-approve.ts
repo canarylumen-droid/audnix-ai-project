@@ -5,9 +5,12 @@ import { storage } from '../storage';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+
+// Only initialize Stripe if API key is provided
+const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
   apiVersion: '2023-10-16',
-});
+}) : null;
 
 // Track pending approvals in memory (or use database for persistence)
 const pendingApprovals = new Map<string, { sessionId: string; userId: string; email: string; amount: number; createdAt: Date }>();
@@ -43,6 +46,9 @@ router.get('/admin/pending-approvals', requireAuth, requireAdmin, async (req: Re
  */
 router.post('/admin/auto-approve', requireAuth, requireAdmin, async (req: Request, res: Response) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
     const { sessionId, userId } = req.body;
 
     if (!sessionId || !userId) {

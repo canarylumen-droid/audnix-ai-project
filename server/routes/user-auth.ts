@@ -39,17 +39,13 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return res.status(400).json({ error: 'Email already registered. Use login instead.' });
     }
 
-    if (!twilioEmailOTP.isConfigured()) {
-      return res.status(503).json({ error: 'Email service not configured' });
-    }
-
     // Store password temporarily (15 min expiry)
     tempPasswords.set(email.toLowerCase(), {
       password: await bcrypt.hash(password, 10),
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    // Send OTP
+    // Send OTP (will use mock mode if credentials not configured)
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {

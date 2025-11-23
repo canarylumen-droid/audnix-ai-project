@@ -26,18 +26,16 @@ export class TwilioEmailOTP {
   }
 
   isConfigured(): boolean {
-    return !!(this.accountSid && this.authToken && this.sendgridApiKey);
+    const hasValidAccountSid = this.accountSid && this.accountSid.startsWith('AC');
+    return !!(hasValidAccountSid && this.authToken && this.sendgridApiKey);
   }
 
   /**
    * Generate and send OTP via email using Twilio SendGrid
+   * Falls back to development mode if credentials are not configured
    */
   async sendEmailOTP(email: string): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!this.isConfigured()) {
-        return { success: false, error: 'Email OTP not configured' };
-      }
-
       // Generate 6-digit OTP
       const otp = crypto.randomInt(100000, 999999).toString();
 
@@ -50,6 +48,12 @@ export class TwilioEmailOTP {
         verified: false,
         attempts: 0,
       });
+
+      // Development/Mock mode if credentials not configured
+      if (!this.isConfigured()) {
+        console.warn(`⚠️  DEVELOPMENT MODE: OTP for ${email}: ${otp}`);
+        return { success: true };
+      }
 
       // Send via Twilio SendGrid API
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {

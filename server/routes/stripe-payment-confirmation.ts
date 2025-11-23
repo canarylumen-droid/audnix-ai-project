@@ -3,9 +3,12 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+
+// Only initialize Stripe if API key is provided
+const stripeApiKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
   apiVersion: '2023-10-16',
-});
+}) : null;
 
 /**
  * POST /api/stripe/confirm-payment
@@ -14,6 +17,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  */
 router.post('/confirm-payment', async (req: Request, res: Response) => {
   try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+
     const { sessionId, subscriptionId } = req.body;
 
     if (!sessionId) {

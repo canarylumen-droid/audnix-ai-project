@@ -14,10 +14,12 @@ const whatsappLimiter = rateLimit({
   message: 'Too many WhatsApp OTP requests',
 });
 
-const twilioClient = Twilio(
+// Only initialize Twilio if credentials are valid
+const hasTwilioCredentials = process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && process.env.TWILIO_AUTH_TOKEN;
+const twilioClient = hasTwilioCredentials ? Twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
-);
+) : null;
 
 // Store WhatsApp OTP sessions
 const whatsappOTPSessions = new Map<string, { phoneNumber: string; otp: string; expiresAt: Date }>();
@@ -29,6 +31,10 @@ const whatsappOTPSessions = new Map<string, { phoneNumber: string; otp: string; 
  */
 router.post('/request-otp', requireAuth, whatsappLimiter, async (req: Request, res: Response) => {
   try {
+    if (!twilioClient) {
+      return res.status(503).json({ error: 'WhatsApp service not configured' });
+    }
+
     const userId = (req as any).session?.userId;
     const { phoneNumber } = req.body;
 
