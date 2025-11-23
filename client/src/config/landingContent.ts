@@ -7,7 +7,7 @@ export const landingContent = {
     features: [
       { icon: "check", text: "Human-like timing & tone" },
       { icon: "mic", text: "Voice notes in your voice" },
-      { icon: "calendar", text: "Auto-booking + intelligent re-connect" }
+      { icon: "calendar", text: "Auto-booking + intelligent follow-up" }
     ],
     cta: {
       primary: "Start Closing Deals",
@@ -21,7 +21,7 @@ export const landingContent = {
     subtitle: "Leads don't die because they don't want what you sell — they die because you're slow.",
     problems: [
       "Miss messages",
-      "Forget re-connects",
+      "Forget follow-ups",
       "Reply late",
       "Sleep while prospects are active"
     ],
