@@ -76,8 +76,27 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Multi-provider Email Failover**: Resend (primary) → Mailgun → Custom SMTP → Gmail → Outlook for maximum reliability
 - **TypeScript Clean**: All route files have proper imports and type declarations, @ts-nocheck only on necessary files
 - **Production Ready**: Frontend countdown UI, backend OTP database validation, Resend API integration, Stripe poller all working end-to-end
+- **Premium Sales Language Optimizer**: 24+ word replacements (buy→join, cost→investment, follow-up→reconnect, etc.)
+- **Conversational Tone**: System prompt updated for natural, human-like responses instead of corporate language
+- **Brand Context Integration**: AI replies now reference user's company info, industry, and unique value for personalization
+- **Smart Objection Handling**: Real-world, conversational responses to price objections, competitor comparisons, and hesitation
+- **Personalized Examples**: AI uses lead's industry context to share relevant success stories
+- **Less Professional, More Real**: AI talks like a real person (contractions, short sentences, no corporate BS)
+
+### Sales Language Optimization Details
+- **24+ Word Replacements**: buy→join, cost→investment, follow-up→reconnect, customer→client, expensive→premium, sell→share, service→solution, etc.
+- **Conversational Filters**: Removes formal language like "kindly", "please", "I appreciate", replaces with natural alternatives
+- **Brand-Context Responses**: Loads user's company name, industry, business description for personalized examples
+- **Real Objection Handling**: 
+  - Price: "Look, money matters...most people see 3-5x return in first month"
+  - Already Using: "That's cool you're testing things...difference is usually 10+ hours saved per week"
+  - Unsure/Busy: "Most people feel that way at first, then see the value pretty fast"
+  - Not Interested: "No pressure...if something changes, you know where to find me"
+- **Smart System Prompt**: AI instructed to talk like a real person, use contractions, short sentences, minimal emojis
+- **Files**: `server/lib/ai/sales-language-optimizer.ts`, `server/lib/ai/brand-context.ts`, updated `server/lib/ai/conversation-ai.ts`
 
 ### Known Issues & Todos
 - Webhook configuration for Resend events (delivery tracking) - document endpoint URL format: `/api/webhooks/resend?userId={userId}`
 - Stripe webhook endpoint not yet configured (optional - poller is primary mechanism)
 - Need to create Stripe payment links in Stripe Dashboard and add to secrets as: STRIPE_PAYMENT_LINK_STARTER, STRIPE_PAYMENT_LINK_PRO, STRIPE_PAYMENT_LINK_ENTERPRISE
+- **Future Enhancement**: PDF brand context upload (currently uses metadata fields: businessDescription, industry, uniqueValue, targetAudience, successStories)

@@ -1,113 +1,173 @@
 /* @ts-nocheck */
 
 /**
- * Sales Language Optimizer
+ * Sales Language Optimizer v2
  * 
- * Replaces basic sales terms with premium/professional language
- * Used when responding to objections and handling leads
+ * 20+ Premium-to-Natural conversational word replacements
+ * Makes AI responses sound like a real person, not a robot
  * 
- * Word Replacements:
- * - "buy" → "join"
- * - "contract" → "agreement"
- * - "cost/price" → "investment"
- * - "follow up/follow-up" → "reconnect"
- * - "customer" → "client"
- * - "expensive" → "premium"
- * - "maybe" → "for sure" (in sales context)
+ * Strategy: Replace formal/sales terms with conversational alternatives
  */
 
 /**
- * Optimize sales language in AI-generated responses
- * Smart replacements that maintain context and don't break sentences
+ * 20+ word replacements for natural, conversational tone
+ * Less corporate, more human
  */
 export function optimizeSalesLanguage(text: string): string {
   if (!text) return text;
 
   let optimized = text;
 
-  // Replace "buy" with "join" (case-insensitive, word boundaries)
-  optimized = optimized.replace(/\bbuy\b/gi, (match) => {
-    return match.toLowerCase() === 'buy' ? 'join' : 'Join';
-  });
+  // 1. "buy" → "join" or "get started"
+  optimized = optimized.replace(/\bbuy\b/gi, (match) => 
+    match.toLowerCase() === 'buy' ? 'join' : 'Join'
+  );
 
-  // Replace "contract" with "agreement"
+  // 2. "contract" → "agreement" or "terms"
   optimized = optimized.replace(/\bcontracts?\b/gi, (match) => {
     if (match.toLowerCase() === 'contracts') return 'agreements';
-    if (match.toLowerCase() === 'contract') return 'agreement';
-    return match;
+    return 'agreement';
   });
 
-  // Replace "cost" or "price" with "investment"
-  optimized = optimized.replace(/\b(cost|costs|price|pricing|priced)\b/gi, (match) => {
+  // 3. "cost/price" → "investment"
+  optimized = optimized.replace(/\b(cost|costs|pricing|price|priced)\b/gi, (match) => {
     const lower = match.toLowerCase();
-    if (lower === 'cost') return 'investment';
     if (lower === 'costs') return 'investments';
-    if (lower === 'price' || lower === 'priced') return 'investment';
     if (lower === 'pricing') return 'investment plan';
-    return match;
+    return 'investment';
   });
 
-  // Replace "follow up" or "follow-up" with "reconnect"
-  optimized = optimized.replace(/\bfollow[- ]?ups?\b/gi, (match) => {
-    if (match.toLowerCase().includes('ups')) return 'reconnects';
-    return 'reconnect';
-  });
+  // 4. "follow up/follow-up" → "reconnect" or "touch base"
+  optimized = optimized.replace(/\bfollow[- ]?ups?\b/gi, () => 'reconnect');
 
-  // Replace "customer" with "client"
-  optimized = optimized.replace(/\bcustomers?\b/gi, (match) => {
-    if (match.toLowerCase() === 'customers') return 'clients';
-    return 'client';
-  });
+  // 5. "customer" → "client" or "team member"
+  optimized = optimized.replace(/\bcustomers?\b/gi, (match) => 
+    match.toLowerCase() === 'customers' ? 'clients' : 'client'
+  );
 
-  // Replace "expensive" with "premium"
+  // 6. "expensive" → "premium" or "investment"
   optimized = optimized.replace(/\bexpensive\b/gi, 'premium');
 
-  // Replace "maybe" with "for sure" (only in sales context)
-  // Be careful: only replace "maybe" when it appears as a standalone word indicating uncertainty in a sales context
+  // 7. "maybe" → "for sure" (context-aware)
   optimized = optimized.replace(/\bmaybe\b/gi, (match, offset, string) => {
-    // Check context: if followed by "later", "next time", "another time" - skip
     const afterContext = string.substring(offset + match.length, offset + match.length + 30).toLowerCase();
-    
     if (afterContext.includes('later') || afterContext.includes('another') || afterContext.includes('next')) {
-      return match; // Don't replace
+      return match;
     }
-
-    // Replace in sales/commitment context
     return 'for sure';
   });
+
+  // 8. "problem" → "challenge" or "situation"
+  optimized = optimized.replace(/\bproblems?\b/gi, (match) => 
+    match.toLowerCase() === 'problems' ? 'challenges' : 'challenge'
+  );
+
+  // 9. "sell" → "share" or "introduce"
+  optimized = optimized.replace(/\bsell(ing|s)?\b/gi, (match) => {
+    if (match.toLowerCase() === 'selling') return 'sharing';
+    if (match.toLowerCase() === 'sells') return 'shares';
+    return 'share';
+  });
+
+  // 10. "sales" → "growth" or "business"
+  optimized = optimized.replace(/\bsales\b/gi, 'growth');
+
+  // 11. "free trial" → "test it out" or "try it first"
+  optimized = optimized.replace(/\bfree\s+trial\b/gi, 'try-before-you-buy');
+
+  // 12. "deal" → "opportunity" or "offer"
+  optimized = optimized.replace(/\bdeal\b/gi, 'opportunity');
+
+  // 13. "service" → "solution" or "tool"
+  optimized = optimized.replace(/\bservice\b/gi, 'solution');
+
+  // 14. "guarantee" → "I've got your back" or "you're covered"
+  optimized = optimized.replace(/\bguarantee\b/gi, (match) => 
+    match === 'Guarantee' ? "I've got your back" : "i've got your back"
+  );
+
+  // 15. "reach out" → "connect" or "chat"
+  optimized = optimized.replace(/\breach\s+out\b/gi, 'connect');
+
+  // 16. "implement" → "get going" or "set up"
+  optimized = optimized.replace(/\bimplement(ing|s)?\b/gi, (match) => {
+    if (match.toLowerCase() === 'implementing') return 'getting going';
+    if (match.toLowerCase() === 'implements') return 'gets going';
+    return 'get going';
+  });
+
+  // 17. "utilize" → "use" or "leverage"
+  optimized = optimized.replace(/\butilize\b/gi, 'use');
+
+  // 18. "signify" → "mean" or "show"
+  optimized = optimized.replace(/\bsignify\b/gi, 'mean');
+
+  // 19. "request" → "ask" or "need"
+  optimized = optimized.replace(/\brequests?\b/gi, (match) => 
+    match.toLowerCase() === 'requests' ? 'asks' : 'ask'
+  );
+
+  // 20. "proceed" → "move forward" or "keep going"
+  optimized = optimized.replace(/\bproceed\b/gi, 'move forward');
+
+  // 21. "hesitant" → "unsure" or "not sure yet"
+  optimized = optimized.replace(/\bhesitant\b/gi, 'unsure');
+
+  // 22. "commitment" → "all-in" or "partnership"
+  optimized = optimized.replace(/\bcommitment\b/gi, 'partnership');
+
+  // 23. "leverage" → "tap into" or "use"
+  optimized = optimized.replace(/\bleverag(e|ing)\b/gi, (match) => 
+    match.toLowerCase().includes('ing') ? 'tapping into' : 'tap into'
+  );
+
+  // 24. "synergy" → "team up" or "together"
+  optimized = optimized.replace(/\bsynergy\b/gi, 'teamwork');
 
   return optimized;
 }
 
 /**
- * Generate objection-handling response with premium language
- * Used when lead says "price is too high" or similar objections
+ * Generate natural objection-handling response
+ * More conversational, less salesy
  */
-export function buildObjectionResponse(objection: string, businessContext?: string): string {
+export function buildObjectionResponse(objection: string): string {
   const objectionLower = objection.toLowerCase();
 
   // Price objection
-  if (objectionLower.includes('price') || objectionLower.includes('expensive') || objectionLower.includes('cost') || objectionLower.includes('too much')) {
-    return `I understand the investment is significant. Let me show you the ROI - our clients typically see 3-5x return within the first month. Can we schedule a quick 15-minute call to explore which plan works best for you?`;
+  if (objectionLower.includes('price') || objectionLower.includes('expensive') || 
+      objectionLower.includes('cost') || objectionLower.includes('too much') ||
+      objectionLower.includes('expensive')) {
+    return `Look, I get it - money's a big deal. But here's the thing: most of our team members see 3-5x return in the first month. How about we hop on a quick 15-min call so I can show you exactly how this works for someone like you?`;
   }
 
   // Time/commitment objection
-  if (objectionLower.includes('time') || objectionLower.includes('busy') || objectionLower.includes('now')) {
-    return `I completely get it - you're busy building your business. Our clients spend just 10 minutes per day managing everything. When would be a good time for a quick reconnect to see if this is a fit?`;
+  if (objectionLower.includes('time') || objectionLower.includes('busy') || 
+      objectionLower.includes('later') || objectionLower.includes('now')) {
+    return `Totally get it - you're slammed right now. The cool part? Most team members spend just 10 mins a day managing everything. When's a good time this week to touch base and see if this is a fit?`;
   }
 
   // Unsure/hesitant objection
-  if (objectionLower.includes('not sure') || objectionLower.includes('think about') || objectionLower.includes('consider')) {
-    return `No pressure at all! Many of our top clients felt the same way initially. How about I share a quick success story from someone in your industry, and we can reconnect in 2 days?`;
+  if (objectionLower.includes('not sure') || objectionLower.includes('think about') || 
+      objectionLower.includes('consider') || objectionLower.includes('unsure') ||
+      objectionLower.includes('hesitant')) {
+    return `No pressure at all, honestly. A lot of our best team members felt the same way at first. Want me to share a quick success story from someone in your space? We can reconnect in 2 days if you'd like.`;
   }
 
   // Already have solution objection
-  if (objectionLower.includes('already have') || objectionLower.includes('using') || objectionLower.includes('different')) {
-    return `That's awesome you've got a solution in place. Most clients we work with switch because they save 15+ hours per week. Could we grab 15 minutes to see if there's a better way?`;
+  if (objectionLower.includes('already have') || objectionLower.includes('using') || 
+      objectionLower.includes('different') || objectionLower.includes('another')) {
+    return `That's awesome - love that you're trying things. Real talk though: most people who switch save 15+ hours per week. Could we grab 15 mins so I can show you what's different here?`;
   }
 
-  // Default: ask to reconnect
-  return `Got it - totally understand. Would you be open to a quick reconnect next week to explore if this could help you grow faster?`;
+  // Not interested objection
+  if (objectionLower.includes('not interested') || objectionLower.includes('not for me') ||
+      objectionLower.includes("doesn't sound") || objectionLower.includes('pass')) {
+    return `Cool, I hear you. No hard feelings. Just so you know, if things change or you want to see what all the buzz is about, I'm right here. Talk soon!`;
+  }
+
+  // Default: ask to reconnect naturally
+  return `Got it - totally understand. Would you be down to reconnect next week? No pressure, but I think you'd dig what we're doing here.`;
 }
 
 /**
@@ -116,4 +176,24 @@ export function buildObjectionResponse(objection: string, businessContext?: stri
 export function handleObjectionWithSalesLanguage(objection: string, baseResponse?: string): string {
   const response = baseResponse || buildObjectionResponse(objection);
   return optimizeSalesLanguage(response);
+}
+
+/**
+ * Make text more conversational (less corporate, more human)
+ * Used to soften professional language
+ */
+export function makeConversational(text: string): string {
+  if (!text) return text;
+
+  let result = text;
+
+  // Replace corporate phrases
+  result = result.replace(/\bplease\b/gi, ''); // Remove unnecessary pleases
+  result = result.replace(/\bkindly\b/gi, ''); // Remove kindly
+  result = result.replace(/\bthank\s+you\b/gi, 'thanks'); // thank you → thanks
+  result = result.replace(/\bregretting\b/gi, 'wishing I'); // regretting → wishing I
+  result = result.replace(/\bwould\s+you\s+mind\b/gi, 'can you'); // would you mind → can you
+  result = result.replace(/\bit\s+would\s+be\s+appreciated\b/gi, "i'd appreciate it"); // formal → casual
+
+  return result.trim();
 }
