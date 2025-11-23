@@ -268,7 +268,7 @@ export default function LeadImportPage() {
               <p className="text-sm font-medium mb-2">💡 Use Case Example:</p>
               <p className="text-xs text-muted-foreground">
                 Import 500 leads from event attendees → AI sends personalized WhatsApp intro → 
-                Auto-follow up if no reply → Book meetings automatically
+                Auto-reconnect if no reply → Book meetings automatically
               </p>
             </div>
           </CardContent>
@@ -292,7 +292,7 @@ export default function LeadImportPage() {
               </div>
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
-                <p><strong>AI-powered sequences:</strong> Create multi-step email campaigns with smart follow-ups</p>
+                <p><strong>AI-powered sequences:</strong> Create multi-step email campaigns with smart reconnects</p>
               </div>
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
@@ -302,7 +302,7 @@ export default function LeadImportPage() {
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-sm font-medium mb-2">🎯 Perfect For:</p>
               <p className="text-xs text-muted-foreground">
-                Cold outreach, event follow-ups, webinar attendees, purchased lead lists
+                Cold outreach, event reconnects, webinar attendees, purchased lead lists
               </p>
             </div>
           </CardContent>
