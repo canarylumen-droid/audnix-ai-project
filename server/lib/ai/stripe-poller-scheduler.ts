@@ -15,22 +15,11 @@ const POLL_INTERVAL = 60 * 1000; // 1 minute
 
 /**
  * Trigger poller if enough time has passed (non-blocking)
- * Safe to call on every request - it checks the timer internally
+ * DISABLED: Using manual admin approvals instead (no API key needed)
  */
 export async function triggerStripePollerIfNeeded() {
-  const now = Date.now();
-  const timeSinceLastPoll = now - lastPolledAt;
-
-  // Only trigger if 1+ minute has passed since last poll
-  if (timeSinceLastPoll >= POLL_INTERVAL) {
-    lastPolledAt = now;
-    
-    // Run in background - don't wait for it (non-blocking)
-    // This way requests complete instantly, but polling still happens
-    pollStripePayments().catch((err) => {
-      console.error('❌ Stripe poller error:', err.message);
-    });
-  }
+  // Poller disabled - using manual admin approval system
+  return;
 }
 
 /**

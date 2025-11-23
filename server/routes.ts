@@ -32,6 +32,7 @@ import emailStatsRoutes from './routes/email-stats-routes';
 import otpRoutes from './routes/otp-routes';
 import calendarRoutes from './routes/calendar-routes';
 import bulkActionsRoutes from "./routes/bulk-actions-routes";
+import { paymentApprovalRouter } from "./routes/payment-approval";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2264,6 +2265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register OAuth routes
   app.use("/api", oauthRoutes);
+  app.use("/api/payment-approval", paymentApprovalRouter);
 
   // Register webhook routes
   app.use("/api", workerRouter);
