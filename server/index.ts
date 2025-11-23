@@ -329,25 +329,18 @@ async function runMigrations() {
     }
   }
 
-  // Start Stripe payment poller on server startup (Replit only)
-  // On Vercel, poller runs via request middleware (lazy triggering, non-blocking)
+  // Start Stripe payment poller on server startup
+  // Uses Replit connection (no env vars needed)
   const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  
-  if (stripeSecretKey) {
-    console.log('✅ Stripe Secret Key configured');
-  } else {
-    console.log('⚠️  Stripe Secret Key NOT set (payments will fail)');
-  }
   
   if (hasDatabase && !isVercel) {
     // On Replit: use setInterval for consistent background polling
     setTimeout(() => {
-      console.log('💳 Starting Stripe payment poller (every 1 minute)...');
+      console.log('💳 Stripe payment poller starting (every 1 minute)...');
       startStripePaymentPoller();
     }, 2000);
   } else if (isVercel) {
-    console.log('💳 Stripe poller active (runs on every request, non-blocking)');
+    console.log('💳 Stripe poller active (runs on every request)');
     // Poller is now controlled by middleware - runs automatically with every request
   } else {
     console.log('⏭️  Stripe poller disabled (no database configured)');
