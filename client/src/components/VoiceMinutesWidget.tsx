@@ -94,7 +94,7 @@ export function VoiceMinutesWidget() {
                 <Link href="/dashboard/pricing#topups">
                   <Button size="sm" className="w-full bg-red-500 hover:bg-red-600 text-xs sm:text-sm">
                     <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    Join More Minutes
+                    Buy More Minutes
                   </Button>
                 </Link>
               </div>

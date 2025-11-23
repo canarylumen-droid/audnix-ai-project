@@ -211,9 +211,9 @@ export default function AdminUsers() {
                   <div className="flex items-start gap-3">
                     <CreditCard className="w-5 h-5 text-muted-foreground mt-1" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Stripe client</p>
+                      <p className="text-sm text-muted-foreground">Stripe Customer</p>
                       <p className="font-medium">
-                        {userDetails.user.stripeCustomerId || "No client ID"}
+                        {userDetails.user.stripeCustomerId || "No customer ID"}
                       </p>
                     </div>
                   </div>

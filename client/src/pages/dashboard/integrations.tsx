@@ -938,7 +938,7 @@ export default function IntegrationsPage() {
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
                   I consent to Audnix AI using my voice sample to generate AI voice messages for
-                  lead re-connects. I understand this voice clone will only be used for my account
+                  lead follow-ups. I understand this voice clone will only be used for my account
                   and can be deleted at any time.
                 </label>
               </div>
@@ -1064,7 +1064,7 @@ export default function IntegrationsPage() {
           </DialogHeader>
           <div className="text-center space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Intelligent re-connects and engagement analysis are now active
+              Intelligent follow-ups and engagement analysis are now active
             </p>
             {isFreeTrial && (
               <div className="space-y-2">

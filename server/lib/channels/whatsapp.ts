@@ -45,7 +45,7 @@ async function checkMessagingWindow(userId: string, recipientPhone: string): Pro
     return { canSend: true, isFirstMessage: true };
   }
 
-  // For re-connects, check the 24-hour window
+  // For follow-ups, check the 24-hour window
   const { data: recentInbound } = await supabaseAdmin
     .from('messages')
     .select('created_at')

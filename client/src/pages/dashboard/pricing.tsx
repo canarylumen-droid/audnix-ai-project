@@ -325,7 +325,7 @@ export default function PricingPage() {
                       ) : (
                         <>
                           <Mic className="mr-2 h-4 w-4" />
-                          Join Now →
+                          Buy Now →
                         </>
                       )}
                     </Button>

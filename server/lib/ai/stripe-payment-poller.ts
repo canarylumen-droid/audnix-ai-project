@@ -30,14 +30,14 @@ export async function pollStripePayments() {
     for (const payment of payments.data) {
       if (payment.status !== 'succeeded') continue;
 
-      // Get client details
-      const customerId = payment.client as string;
+      // Get customer details
+      const customerId = payment.customer as string;
       if (!customerId) continue;
 
-      const client = await stripe.customers.retrieve(customerId);
-      if (client.deleted) continue;
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer.deleted) continue;
 
-      const email = client.email;
+      const email = customer.email;
       if (!email) continue;
 
       // Check if user exists and needs upgrade

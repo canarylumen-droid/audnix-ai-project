@@ -634,7 +634,7 @@ export default function VideoAutomationPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Detects "too premium" in any language and automatically reframes value in personalized DMs
+              Detects "too expensive" in any language and automatically reframes value in personalized DMs
             </p>
           </CardContent>
         </Card>
