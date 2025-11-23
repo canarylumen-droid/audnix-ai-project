@@ -116,7 +116,7 @@ export class LeadLearningSystem {
     // Analyze sentiment trend
     const recentMessages = userMessages.slice(-5);
     const positiveWords = ['yes', 'great', 'thanks', 'perfect', 'interested', 'good', 'awesome'];
-    const negativeWords = ['no', 'not', "don't", 'busy', 'later', 'expensive', 'stop'];
+    const negativeWords = ['no', 'not', "don't", 'busy', 'later', 'premium', 'stop'];
     
     let positiveCount = 0;
     let negativeCount = 0;
@@ -143,7 +143,7 @@ export class LeadLearningSystem {
 
     // Detect objection patterns
     const objectionPatterns: string[] = [];
-    const objectionPhrases = ['too expensive', 'not sure', 'need to think', 'maybe later', 'not now', 'not interested'];
+    const objectionPhrases = ['too premium', 'not sure', 'need to think', 'for sure later', 'not now', 'not interested'];
     userMessages.forEach(m => {
       const lower = m.content.toLowerCase();
       objectionPhrases.forEach(phrase => {

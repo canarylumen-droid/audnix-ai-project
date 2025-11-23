@@ -109,7 +109,7 @@ export default function PrivacyPolicy() {
                     Why We Need Gmail Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates lead follow-ups via email. To do this effectively, we need to read incoming messages, 
+                    Audnix AI automates lead re-connects via email. To do this effectively, we need to read incoming messages, 
                     understand conversation context, and send intelligent replies on your behalf.
                   </p>
                 </div>
@@ -248,7 +248,7 @@ export default function PrivacyPolicy() {
                   </h3>
                   <p className="text-sm">
                     Audnix AI automates Instagram DM replies and comment engagement. We need access to read incoming messages, 
-                    detect buying intent in comments, and send personalized follow-ups.
+                    detect buying intent in comments, and send personalized re-connects.
                   </p>
                 </div>
 
@@ -268,7 +268,7 @@ export default function PrivacyPolicy() {
                       <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
                         <li>Detect when leads message you with questions or interest</li>
                         <li>Understand full conversation history for context-aware AI replies</li>
-                        <li>Send automated follow-ups if leads go silent</li>
+                        <li>Send automated re-connects if leads go silent</li>
                         <li>Handle objections and book calls via DM</li>
                       </ul>
                       <p className="text-sm mt-2 text-blue-400"><strong>Security:</strong> DM credentials are AES-256 encrypted and never logged in plain text.</p>
@@ -332,7 +332,7 @@ export default function PrivacyPolicy() {
                     Why We Need WhatsApp Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates WhatsApp follow-ups and voice message replies. We need access to send messages, 
+                    Audnix AI automates WhatsApp re-connects and voice message replies. We need access to send messages, 
                     read incoming chats, and deliver AI-cloned voice notes on your behalf.
                   </p>
                 </div>
@@ -455,7 +455,7 @@ export default function PrivacyPolicy() {
                   <li><strong>Process and manage your account:</strong> Authentication, subscription management, billing</li>
                   <li><strong>Enable AI automation:</strong> Generate intelligent replies, detect buying intent, handle objections</li>
                   <li><strong>Deliver voice messages:</strong> Clone your voice and send personalized voice notes</li>
-                  <li><strong>Provide customer support:</strong> Respond to your requests, troubleshoot issues</li>
+                  <li><strong>Provide client support:</strong> Respond to your requests, troubleshoot issues</li>
                   <li><strong>Send service updates:</strong> Critical security notifications, feature announcements (opt-out available)</li>
                   <li><strong>Improve AI models:</strong> Anonymized conversation data to train better AI (opt-out available)</li>
                   <li><strong>Prevent fraud:</strong> Detect suspicious activity, enforce usage limits</li>

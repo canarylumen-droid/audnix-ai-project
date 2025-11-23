@@ -44,7 +44,7 @@ const SOURCES = [
 ];
 
 const USE_CASES = [
-  'Automate lead follow-ups',
+  'Automate lead re-connects',
   'Close more deals',
   'Save time on DMs',
   'Never miss a lead',

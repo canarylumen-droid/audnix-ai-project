@@ -162,7 +162,7 @@ export function ImportingLeadsAnimation({
                     AI will start working on your {config.name} leads
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Intelligent follow-ups and engagement analysis are now active
+                    Intelligent re-connects and engagement analysis are now active
                   </p>
                 </div>
 

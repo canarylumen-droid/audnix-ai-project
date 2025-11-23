@@ -140,7 +140,7 @@ function calculateSentimentScore(messages: Message[]): number {
   const allText = inboundMessages.map(m => m.body.toLowerCase()).join(' ');
   
   const positiveWords = ['great', 'awesome', 'perfect', 'thanks', 'yes', 'love', 'excellent', 'amazing'];
-  const negativeWords = ['no', 'not', "don't", 'never', 'stop', 'unsubscribe', 'expensive', 'too much'];
+  const negativeWords = ['no', 'not', "don't", 'never', 'stop', 'unsubscribe', 'premium', 'too much'];
   
   let positiveCount = 0;
   let negativeCount = 0;
