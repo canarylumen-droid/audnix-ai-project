@@ -66,11 +66,12 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **csv-parser:** Library for CSV lead upload.
 
 ### Recent Changes (Nov 23, 2025)
-- **Stripe Integration Complete**: Replit Stripe connection installed, secure API key management active
-- **Stripe Payment Poller Fixed**: Poller now enabled and running every 1 minute (was incorrectly disabled)
-- **Stripe Client Created**: `server/lib/stripe-client.ts` fetches credentials from Replit connection with env var fallback
-- **Payment Auto-Upgrade Flow**: Poller detects successful payments → Auto-upgrades users to correct plan → Sends success notification
-- **Redundant Payment System**: Both payment link checkout + 1-minute poller ensure 100% payment capture
+- **Manual Payment Approval System**: Zero API keys, zero webhooks - user pays via link → auto-marked pending → admin dashboard auto-approves in 5 seconds
+- **Payment Success Page**: User sees "Payment Successful ✅" with plan/amount confirmation
+- **Admin Approvals Dashboard**: Shows pending payments, 5-second countdown auto-approve button (no manual clicking needed)
+- **Auto-Mark Pending**: User auto-marked as pending after payment link redirect (no user input required)
+- **Stripe Poller Disabled**: Using manual approvals instead (no STRIPE_SECRET_KEY needed anywhere)
+- **Payment Routes**: `/api/payment-approval/mark-pending/:userId` (auto), `/api/payment-approval/pending` (admin list), `/api/payment-approval/approve/:userId` (auto-click)
 - **OTP Email Authentication Complete**: Full 6-digit OTP flow with email sending, database verification, expiration checks, and attempt limiting
 - **OTP UI Enhancements**: Added 60-second countdown timer with "Resend in Xs" button that enables after timeout
 - **Multi-provider Email Failover**: Resend (primary) → Mailgun → Custom SMTP → Gmail → Outlook for maximum reliability
@@ -95,8 +96,26 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Smart System Prompt**: AI instructed to talk like a real person, use contractions, short sentences, minimal emojis
 - **Files**: `server/lib/ai/sales-language-optimizer.ts`, `server/lib/ai/brand-context.ts`, updated `server/lib/ai/conversation-ai.ts`
 
+### Payment System Details (Manual Approvals - No API Keys)
+**Flow:**
+1. User clicks payment link (from friend's Canada Stripe account)
+2. Completes payment on Stripe → Returns to `/payment-success?plan=starter&amount=49`
+3. Success page auto-marks user as `payment_status = 'pending'` (no user action needed)
+4. Admin dashboard shows pending approvals, refreshes every 5 seconds
+5. Auto-approve button appears with 5-second countdown
+6. Button auto-clicks → User upgraded to plan, `payment_status = 'approved'`
+7. User gets instant access to all features
+
+**Database Schema:**
+- `users.payment_status` → 'none' | 'pending' | 'approved' | 'rejected'
+- `users.pending_payment_amount`, `pending_payment_plan`, `pending_payment_date`, `payment_approved_date`
+
+**API Endpoints:**
+- `POST /api/payment-approval/mark-pending/:userId` → User marks self as paid (called from success page)
+- `GET /api/payment-approval/pending` → Admin gets pending list
+- `POST /api/payment-approval/approve/:userId` → Admin approves (auto-clicked after 5s)
+- `POST /api/payment-approval/reject/:userId` → Admin rejects (optional)
+
 ### Known Issues & Todos
 - Webhook configuration for Resend events (delivery tracking) - document endpoint URL format: `/api/webhooks/resend?userId={userId}`
-- Stripe webhook endpoint not yet configured (optional - poller is primary mechanism)
-- Need to create Stripe payment links in Stripe Dashboard and add to secrets as: STRIPE_PAYMENT_LINK_STARTER, STRIPE_PAYMENT_LINK_PRO, STRIPE_PAYMENT_LINK_ENTERPRISE
 - **Future Enhancement**: PDF brand context upload (currently uses metadata fields: businessDescription, industry, uniqueValue, targetAudience, successStories)
