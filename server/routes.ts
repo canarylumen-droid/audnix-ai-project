@@ -35,6 +35,7 @@ import bulkActionsRoutes from "./routes/bulk-actions-routes";
 import { paymentApprovalRouter } from "./routes/payment-approval";
 import { paymentCheckoutRouter } from "./routes/payment-checkout";
 import adminPdfRoutes from "./routes/admin-pdf-routes";
+import leadIntelligenceRouter from "./routes/lead-intelligence";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2288,6 +2289,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register bulk actions routes
   app.use("/api/bulk", bulkActionsRoutes);
+
+  // Register lead intelligence routes (TIER 1 + TIER 4)
+  app.use("/api/lead-intelligence", leadIntelligenceRouter);
 
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
