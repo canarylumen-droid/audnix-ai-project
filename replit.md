@@ -4,11 +4,14 @@
 Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform designed for creators, coaches, agencies, and founders. It automates lead imports from WhatsApp, Email (custom SMTP), and CSV, then intelligently follows up with personalized campaigns across 24/7 workers. The platform emphasizes privacy by connecting directly to users' own business email, Calendly accounts, and WhatsApp, avoiding Audnix API dependencies. Key capabilities include real-time progress tracking, AI-powered email filtering, day-aware campaign automation, OTP email authentication, and Stripe billing with a 3-day free trial. The project is production-ready with all core features operational, prepared for Vercel deployment.
 
 ### User Preferences
-- **Authentication**: Twilio email OTP for signup (one-time), then password login for 7 days (no re-OTP needed)
+- **Authentication**: 
+  - **Users**: Twilio email OTP for signup → password login (7 days)
+  - **Admins**: Twilio email OTP only (no password), whitelisted emails only (3 emails: canarylumen@gmail.com, treasure@audnixai.com, team@audnixai.com)
 - **Email Service**: Twilio SendGrid API for email OTP sending (TWILIO_SENDGRID_API_KEY)
 - **WhatsApp**: Twilio OTP verification for dashboard connection, QR code + phone number methods
 - **Database**: PostgreSQL (Neon-backed) for all data
 - **Billing**: Stripe integration with real-time payment confirmation, admin auto-approve (5s auto-click), no webhooks/pollers
+- **Admin Access**: Whitelist-only access, 2 failed attempts → 24 hour block per IP+email
 - **Deployment**: Vercel (no Replit dependency), all env vars in Vercel settings
 - **Domain**: Production deployed at https://audnixai.com with CORS support
 
@@ -33,8 +36,10 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **AI:** OpenAI GPT-4 for voice note generation, real-time replies, sales language engine.
 
 **Feature Specifications**
-- **Email Authentication:** Twilio SendGrid OTP (one-time for signup), rate-limited, crypto-random codes, 10-min expiry.
-- **Password Login:** 7-day session (no re-OTP needed), bcrypt hashed, permanently stored per user.
+- **User Email Authentication:** Twilio SendGrid OTP (for signup), rate-limited, crypto-random codes, 10-min expiry.
+- **User Password Login:** 7-day session (no re-OTP needed), bcrypt hashed, permanently stored per user.
+- **Admin Authentication:** Twilio OTP-only (no password), whitelisted emails only, 2 failed attempts → 24 hour block.
+- **Admin Whitelist:** Pre-configured emails (env var ADMIN_WHITELIST_EMAILS): canarylumen@gmail.com, treasure@audnixai.com, team@audnixai.com
 - **WhatsApp Connection:** Twilio OTP verification or QR code scan, imports full contact list, real-time access.
 - **Lead Import:** WhatsApp (OTP/QR verified), Business Email (user's SMTP, AI-powered filtering), and CSV (bulk upload with validation).
 - **Campaign Automation:** Multi-day email sequences with human-like timing, dynamic personalization, warm-up protection, bounce/reply handling.
@@ -73,13 +78,17 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Vercel:** Deployment platform (no Replit dependency).
 - **csv-parser:** CSV lead upload library.
 
-### Recent Features (COMPLETE - READY FOR VERCEL)
+### Recent Features (TIER 5 - COMPLETE - READY FOR VERCEL)
 
-**Authentication System (Complete)**
-- **Signup:** Email OTP (Twilio SendGrid) → Create password → Account created
-- **Login:** Email + password → 7-day session (no re-OTP)
-- **Logout:** Session destroyed cleanly
-- **Files:** `server/routes/auth-clean.ts` - Clean auth implementation
+**Authentication System (Complete - Separated User/Admin)**
+- **User Signup:** Email OTP → Create password + username → Account created
+- **User Login:** Email + password → 7-day session (no re-OTP)
+- **Admin Login:** Whitelisted email only → Twilio OTP → 30-day admin session (no password)
+- **Admin Whitelist:** Only 3 emails: canarylumen@gmail.com, treasure@audnixai.com, team@audnixai.com
+- **Failed Attempt Protection:** Non-whitelisted emails blocked after 2 failed attempts for 24 hours
+- **Files:** 
+  - `server/routes/user-auth.ts` - User signup/login (anyone)
+  - `server/routes/admin-auth.ts` - Admin login (whitelist-only)
 
 **WhatsApp Dashboard Integration (Complete)**
 - **Connection:** QR code scan OR phone number → Twilio OTP

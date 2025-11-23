@@ -43,6 +43,8 @@ import stripePaymentConfirmation from "./routes/stripe-payment-confirmation";
 import stripeAutoApprove from "./routes/stripe-auto-approve";
 import authUsernameOnboarding from "./routes/auth-username-onboarding";
 import authClean from "./routes/auth-clean";
+import userAuth from "./routes/user-auth";
+import adminAuth from "./routes/admin-auth";
 import whatsappConnect from "./routes/whatsapp-connect";
 import dashboardRoutes from "./routes/dashboard-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
@@ -2313,8 +2315,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register auth username + onboarding routes
   app.use("/api/auth", authUsernameOnboarding);
 
-  // Register clean auth routes (signup + login with password)
-  app.use("/api/auth", authClean);
+  // Register auth routes
+  app.use("/api/auth", authClean); // Legacy routes
+  app.use("/api/user/auth", userAuth); // User signup/login (anyone)
+  app.use("/api/admin", adminAuth); // Admin login (whitelisted only)
 
   // Register WhatsApp connection routes (for dashboard)
   app.use("/api/whatsapp-connect", whatsappConnect);
