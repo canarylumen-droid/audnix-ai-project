@@ -17,6 +17,7 @@ import VideoAutomationPage from "./pages/dashboard/video-automation";
 import { lazy } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
+import { AuthGuard } from "@/components/auth-guard";
 
 const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
@@ -37,20 +38,104 @@ function Router() {
       <Route path="/auth" component={Auth} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
-      <Route path="/dashboard" component={DashboardRoutes} />
-      <Route path="/dashboard/:rest*" component={DashboardRoutes} />
-      <Route path="/dashboard/conversations/:id?" component={ConversationsPage} />
-      <Route path="/dashboard/video-automation" component={VideoAutomationPage} />
-      <Route path="/dashboard/lead-import" component={LeadImportPage} />
-      <Route path="/dashboard/pricing" component={PricingPage} />
-      <Route path="/dashboard/settings" component={SettingsPage} />
-      <Route path="/dashboard/calendar" component={CalendarPage} />
-      <Route path="/dashboard/insights" component={InsightsPage} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/analytics" component={AdminAnalytics} />
-      <Route path="/admin/leads" component={AdminLeads} />
-      <Route path="/admin/settings" component={AdminSettings} />
+      <Route path="/dashboard">
+        {() => (
+          <AuthGuard>
+            <DashboardRoutes />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/:rest*">
+        {() => (
+          <AuthGuard>
+            <DashboardRoutes />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/conversations/:id?">
+        {() => (
+          <AuthGuard>
+            <ConversationsPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/video-automation">
+        {() => (
+          <AuthGuard>
+            <VideoAutomationPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/lead-import">
+        {() => (
+          <AuthGuard>
+            <LeadImportPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/pricing">
+        {() => (
+          <AuthGuard>
+            <PricingPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/settings">
+        {() => (
+          <AuthGuard>
+            <SettingsPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/calendar">
+        {() => (
+          <AuthGuard>
+            <CalendarPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/insights">
+        {() => (
+          <AuthGuard>
+            <InsightsPage />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin">
+        {() => (
+          <AuthGuard>
+            <AdminDashboard />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin/users">
+        {() => (
+          <AuthGuard>
+            <AdminUsers />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin/analytics">
+        {() => (
+          <AuthGuard>
+            <AdminAnalytics />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin/leads">
+        {() => (
+          <AuthGuard>
+            <AdminLeads />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin/settings">
+        {() => (
+          <AuthGuard>
+            <AdminSettings />
+          </AuthGuard>
+        )}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
