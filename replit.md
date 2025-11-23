@@ -66,3 +66,27 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **PostgreSQL (Neon-backed):** Primary database.
 - **Vercel:** Target deployment platform.
 - **csv-parser:** CSV lead upload library.
+
+### Recent Features (TIER 4 Unleashed)
+
+**PDF Upload UX v2 - All 15 Conversion Patterns**
+- **15 UX Patterns:** Quality gate, AI analyzer, auto-fill fixer, confidence scores, micro-interactions
+- **Smart File Validation:** Prevents trash uploads (detects JPGs saved as PDFs, oversized files)
+- **AI Intake Analyzer:** 10-item checklist with real-time status (present/missing/critical)
+- **Confidence Scoring:** 4 metrics (clarity, detail, structure, missing info)
+- **Output Quality Preview:** 5-star display showing expected AI output quality
+- **Smart Suggestions:** AI-powered contextual recommendations (add stories, tone examples, etc.)
+- **Micro-Interactions:** Animated checks, pulsing warnings, wiggling buttons, smooth transitions
+- **Error-Proofing:** Catches nonsense uploads with smart warnings
+
+**Instant AI Sales Suggestions (No 7-Day Wait)**
+- `/api/ai/suggest-best` → Generates 3 ranked sales options instantly
+- `/api/ai/suggest-instant-follow-up` → Perfect 1-line follow-ups
+- Includes reasoning for why each option works
+- Fully trained on brand context + lead intelligence
+
+**Files:**
+- `client/src/components/admin/pdf-upload-modal-v2.tsx` - Enhanced UI component
+- `server/routes/admin-pdf-routes-v2.ts` - AI intake analyzer engine
+- `server/routes/ai-sales-suggestion.ts` - Instant suggestion generation
+- `PDF_UPLOAD_UX_SYSTEM.md` - Complete documentation with usage examples
