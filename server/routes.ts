@@ -40,6 +40,8 @@ import leadIntelligenceRouter from "./routes/lead-intelligence";
 import aiSalesSuggestionRouter from "./routes/ai-sales-suggestion";
 import emailOTPRoutes from "./routes/email-otp-routes";
 import stripePaymentConfirmation from "./routes/stripe-payment-confirmation";
+import stripeAutoApprove from "./routes/stripe-auto-approve";
+import authUsernameOnboarding from "./routes/auth-username-onboarding";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2303,6 +2305,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Stripe payment confirmation routes (works anywhere: Vercel, local, etc)
   app.use("/api/stripe", stripePaymentConfirmation);
+  app.use("/api/stripe", stripeAutoApprove);
+
+  // Register auth username + onboarding routes
+  app.use("/api/auth", authUsernameOnboarding);
 
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
