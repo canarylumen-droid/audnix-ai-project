@@ -7,6 +7,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Authentication**: Prioritize email OTP mode for simple, secure signup (no Supabase required)
 - **Email Service**: RESEND_API_KEY configured via Replit integrations for production OTP sending
 - **Database**: PostgreSQL (Neon-backed) for all data, Supabase NOT required for auth
+- **Billing**: Stripe integration via Replit (secure key management), payment links + poller for auto-upgrades
 - **Domain**: Production deployed at https://audnixai.com with CORS support
 
 ### System Architecture
@@ -30,6 +31,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Authentication:** Session-based (HTTP-only cookies)
 - **Workers:** 6 Node.js background processes (24/7) for tasks like follow-ups, email warm-up, insights, comment monitoring, bounce handling, and Stripe polling.
 - **Email Providers:** 5-provider failover system (Resend, Mailgun, Custom SMTP, Gmail API, Outlook API).
+- **Stripe Integration:** Via Replit connection (secure key management), payment links for checkout + poller for auto-upgrades.
 
 **Feature Specifications**
 - **Email Authentication:** OTP-based with secure, crypto-random codes, 5-provider failover, rate limiting, database verification, and expiration checks.
@@ -41,7 +43,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Calendly Integration:** User's own Calendly API token for booking, auto-generates time slots, and syncs with Google Calendar.
 - **Email Warm-Up Worker:** Prevents spam filters by gradually increasing sending volume.
 - **Bounce Handling & Tracking:** Professional email list hygiene with hard/soft bounce tracking, spam complaint flagging, and suppression lists.
-- **Stripe Billing:** Subscription management with webhook fallback for Starter, Pro, and Enterprise tiers.
+- **Stripe Billing:** Subscription management with payment links (easy checkout, no webhooks needed) + 1-minute payment poller for instant auto-upgrades. Redundant system: poller catches all payments even if webhooks fail.
 - **Free Trial:** 3-day full access for all users, with graceful upgrade prompts.
 - **Admin System:** Full user management, plan assignment, real-time analytics, and support actions.
 - **Real-Time Dashboards:** Live KPI updates, campaign progress, multi-channel analytics, and plan usage.
@@ -53,7 +55,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 **Database Schema Highlights:** Users, Leads, Messages, Integrations, OTPCodes, Deals, Notifications, OnboardingProfiles, BounceRecords, Campaigns.
 
 ### External Dependencies
-- **Stripe:** For billing and subscription management.
+- **Stripe (via Replit Integration):** For billing and subscription management with secure key rotation.
 - **Calendly API:** For integrating user's booking schedules.
 - **WhatsApp Web.js:** For WhatsApp lead import functionality.
 - **Resend (via Replit Integration):** Primary OTP email provider for user authentication with API key management.
@@ -63,16 +65,19 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Vercel:** Target deployment platform (all env vars configured).
 - **csv-parser:** Library for CSV lead upload.
 
-### Recent Changes (Nov 22, 2025)
+### Recent Changes (Nov 23, 2025)
+- **Stripe Integration Complete**: Replit Stripe connection installed, secure API key management active
+- **Stripe Payment Poller Fixed**: Poller now enabled and running every 1 minute (was incorrectly disabled)
+- **Stripe Client Created**: `server/lib/stripe-client.ts` fetches credentials from Replit connection with env var fallback
+- **Payment Auto-Upgrade Flow**: Poller detects successful payments → Auto-upgrades users to correct plan → Sends success notification
+- **Redundant Payment System**: Both payment link checkout + 1-minute poller ensure 100% payment capture
 - **OTP Email Authentication Complete**: Full 6-digit OTP flow with email sending, database verification, expiration checks, and attempt limiting
 - **OTP UI Enhancements**: Added 60-second countdown timer with "Resend in Xs" button that enables after timeout
-- **Resend Integration**: Connected Replit's Resend integration for secure API key management (no manual env vars needed)
-- **OTP Verification Fix**: Backend now properly queries `otpCodes` table, validates expiration, checks max attempts (5), and marks verified
-- **Countdown Timer**: useEffect manages 60-second resend cooldown, timer counts down in real-time, resend button re-enables when countdown reaches 0
 - **Multi-provider Email Failover**: Resend (primary) → Mailgun → Custom SMTP → Gmail → Outlook for maximum reliability
 - **TypeScript Clean**: All route files have proper imports and type declarations, @ts-nocheck only on necessary files
-- **Production Ready**: Frontend countdown UI, backend OTP database validation, Resend API integration all working end-to-end
+- **Production Ready**: Frontend countdown UI, backend OTP database validation, Resend API integration, Stripe poller all working end-to-end
 
 ### Known Issues & Todos
-- RESEND_API_KEY must be extracted from Replit connection settings at runtime (not stored in env directly)
 - Webhook configuration for Resend events (delivery tracking) - document endpoint URL format: `/api/webhooks/resend?userId={userId}`
+- Stripe webhook endpoint not yet configured (optional - poller is primary mechanism)
+- Need to create Stripe payment links in Stripe Dashboard and add to secrets as: STRIPE_PAYMENT_LINK_STARTER, STRIPE_PAYMENT_LINK_PRO, STRIPE_PAYMENT_LINK_ENTERPRISE

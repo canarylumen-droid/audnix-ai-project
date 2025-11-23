@@ -1,20 +1,21 @@
 /* @ts-nocheck */
-import Stripe from 'stripe';
+import { getStripeClient } from '../stripe-client';
 import { storage } from '../../storage';
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
 
 // Initialize Stripe SDK (required for webhook verification and API calls)
-let stripe: Stripe | null = null;
+let stripe = null;
 
-if (process.env.STRIPE_SECRET_KEY) {
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-09-30.clover',
-  });
-  console.log('✅ Stripe SDK initialized');
-} else {
-  console.warn('⚠️  STRIPE_SECRET_KEY not set - Stripe functionality will be limited');
-}
+// Initialize on module load (async)
+(async () => {
+  stripe = await getStripeClient();
+  if (stripe) {
+    console.log('✅ Stripe SDK initialized (from Replit connection)');
+  } else {
+    console.warn('⚠️  Stripe not configured - Payment polling and webhooks will be limited');
+  }
+})();
 
 export { stripe };
 

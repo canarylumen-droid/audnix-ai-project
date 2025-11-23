@@ -325,10 +325,13 @@ async function runMigrations() {
   }
 
   // Start Stripe payment poller on server startup
-  // Poller works with payment links - doesn't require SECRET_KEY
+  // Poller fetches credentials from Replit connection on each run
   if (hasDatabase) {
-    console.log('💳 Starting Stripe payment poller...');
-    startStripePaymentPoller();
+    // Give Stripe client a moment to initialize
+    setTimeout(() => {
+      console.log('💳 Starting Stripe payment poller...');
+      startStripePaymentPoller();
+    }, 2000);
   } else {
     console.log('⏭️  Stripe poller disabled (no database configured)');
   }

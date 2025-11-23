@@ -1,14 +1,16 @@
 /* @ts-nocheck */
 
-import { stripe } from '../billing/stripe';
+import { getStripeClient } from '../stripe-client';
 import { storage } from '../../storage';
 import { supabaseAdmin } from '../supabase-admin';
 
 /**
  * Poll Stripe for recent successful payments and auto-upgrade users
- * Runs every 5 minutes as a fallback to webhooks
+ * Runs every 1 minute as a fallback to webhooks
  */
 export async function pollStripePayments() {
+  const stripe = await getStripeClient();
+  
   if (!stripe) {
     console.log('⏭️  Stripe not configured - skipping payment poll');
     return;
