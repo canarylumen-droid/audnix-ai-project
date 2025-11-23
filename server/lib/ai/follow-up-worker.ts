@@ -94,7 +94,7 @@ export class FollowUpWorker {
    */
   private async processQueue() {
     try {
-      // Execute comment automation re-connects first
+      // Execute comment automation follow-ups first
       await executeCommentFollowUps();
 
       if (!db) {
@@ -318,7 +318,7 @@ SCRIPT GUIDANCE (use as reference, not required):
       }
     }
 
-    return `You are an AI assistant helping with lead re-connects for ${brandContext.businessName || 'a business'}.
+    return `You are an AI assistant helping with lead follow-ups for ${brandContext.businessName || 'a business'}.
 
 BRAND INFORMATION:
 - Business Name: ${brandContext.businessName || 'Your Business'}
@@ -597,7 +597,7 @@ Generate a natural follow-up message:`;
     const messages = await this.getConversationHistory(leadId);
     const leadTemperature = this.assessLeadTemperature(lead, messages);
 
-    // Use multi-channel orchestrator to get next re-connects with proper timing
+    // Use multi-channel orchestrator to get next follow-ups with proper timing
     const campaignCreatedAt = lead.createdAt || new Date();
     const schedules = MultiChannelOrchestrator.calculateNextSchedule(leadId, campaignCreatedAt, lead.channel);
 

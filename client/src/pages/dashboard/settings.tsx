@@ -305,8 +305,8 @@ export default function SettingsPage() {
                   <ul className="space-y-1 text-muted-foreground ml-3">
                     <li>• Product name and one-sentence description</li>
                     <li>• Key features as bullet points (AI will use in emails)</li>
-                    <li>• Benefits - how it solves client pain points</li>
-                    <li>• Use cases or client success stories</li>
+                    <li>• Benefits - how it solves customer pain points</li>
+                    <li>• Use cases or customer success stories</li>
                   </ul>
                 </div>
                 
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                🌍 Sets your local time for scheduling re-connects and analytics
+                🌍 Sets your local time for scheduling follow-ups and analytics
               </p>
             </div>
           </div>

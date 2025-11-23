@@ -290,7 +290,7 @@ export default function Landing() {
           </h3>
 
           <p className="text-xl text-white/90">
-            Perfect for: Instagram DMs • WhatsApp leads • Email re-connects • ghosted prospects
+            Perfect for: Instagram DMs • WhatsApp leads • Email follow-ups • ghosted prospects
           </p>
         </div>
       </section>
@@ -350,7 +350,7 @@ export default function Landing() {
             {[
               "AI-powered Instagram DM automation",
               "Video comment monitoring & replies",
-              "Human-like WhatsApp & Email re-connects",
+              "Human-like WhatsApp & Email follow-ups",
               "Context + PDF understanding",
               "Voice messages in your voice",
               "Smart intent scoring",

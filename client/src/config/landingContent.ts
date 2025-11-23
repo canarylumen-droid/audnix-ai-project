@@ -7,7 +7,7 @@ export const landingContent = {
     features: [
       { icon: "check", text: "Human-like timing & tone" },
       { icon: "mic", text: "Voice notes in your voice" },
-      { icon: "calendar", text: "Auto-booking + intelligent follow-up" }
+      { icon: "calendar", text: "Auto-booking + intelligent follow-ups" }
     ],
     cta: {
       primary: "Start Closing Deals",
@@ -87,7 +87,7 @@ export const landingContent = {
   
   coreValue: {
     title: "Your voice → at scale",
-    subtitle: "Your re-connect → automated",
+    subtitle: "Your follow-up → automated",
     description: "Your pipeline → constantly warmed",
     perfectFor: "Perfect for: DMs • inbound leads • price shoppers • ghosted prospects"
   },
@@ -123,7 +123,7 @@ export const landingContent = {
   
   features: {
     title: "Features",
-    tagline: "You're not joining software. You're hiring a closer.",
+    tagline: "You're not buying software. You're hiring a closer.",
     list: [
       "Human-like replies",
       "Context + PDF understanding",
@@ -158,7 +158,7 @@ export const landingContent = {
   
   finalCta: {
     title: "Stop letting prospects vanish.",
-    subtitle: "Let Audnix re-connect, handle objections, and book meetings. You close.",
+    subtitle: "Let Audnix follow up, handle objections, and book meetings. You close.",
     cta: "Start Free – No Card"
   }
 };

@@ -292,7 +292,7 @@ export default function LeadImportPage() {
               </div>
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
-                <p><strong>AI-powered sequences:</strong> Create multi-step email campaigns with smart re-connects</p>
+                <p><strong>AI-powered sequences:</strong> Create multi-step email campaigns with smart follow-ups</p>
               </div>
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
@@ -302,7 +302,7 @@ export default function LeadImportPage() {
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-sm font-medium mb-2">🎯 Perfect For:</p>
               <p className="text-xs text-muted-foreground">
-                Cold outreach, event re-connects, webinar attendees, purchased lead lists
+                Cold outreach, event follow-ups, webinar attendees, purchased lead lists
               </p>
             </div>
           </CardContent>
@@ -386,7 +386,7 @@ export default function LeadImportPage() {
               </div>
               <h3 className="font-semibold mb-2">AI Takes Over</h3>
               <p className="text-sm text-muted-foreground">
-                Automated outreach + re-connects + booking
+                Automated outreach + follow-ups + booking
               </p>
             </div>
           </div>

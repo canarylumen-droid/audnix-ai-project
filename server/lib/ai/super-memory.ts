@@ -150,7 +150,7 @@ function generateContextSummary(conversations: any[]): string {
   }
 
   // Identify objections
-  const objectionKeywords = ['premium', 'not sure', 'think about', 'later'];
+  const objectionKeywords = ['expensive', 'not sure', 'think about', 'later'];
   const objections = objectionKeywords.filter(obj =>
     userMessages.some((m: any) => m.content?.toLowerCase().includes(obj))
   );
@@ -338,7 +338,7 @@ function extractTopics(text: string): string[] {
 function extractPainPoints(text: string): string[] {
   const painIndicators = [
     'struggle', 'difficult', 'problem', 'issue', 'challenge',
-    'frustrated', 'time-consuming', 'premium', 'slow'
+    'frustrated', 'time-consuming', 'expensive', 'slow'
   ];
 
   const lowerText = text.toLowerCase();
@@ -357,8 +357,8 @@ function extractBuyingSignals(text: string): string[] {
 
 function extractObjections(text: string): string[] {
   const objectionIndicators = [
-    'too premium', 'not sure', 'thinking about', 'concerned about',
-    'worried', 'already have', 'for sure later'
+    'too expensive', 'not sure', 'thinking about', 'concerned about',
+    'worried', 'already have', 'maybe later'
   ];
 
   const lowerText = text.toLowerCase();

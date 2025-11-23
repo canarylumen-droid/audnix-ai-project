@@ -7,7 +7,7 @@
  * - Whether they opened/clicked the previous email
  * - Their engagement level (hot/warm/cold)
  * 
- * This allows personalized, context-aware re-connects that feel human
+ * This allows personalized, context-aware follow-ups that feel human
  */
 
 export interface DayAwareContext {

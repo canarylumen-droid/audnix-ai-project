@@ -40,7 +40,7 @@ export function isLeadActivelyReplying(messages: Message[]): boolean {
  *
  * Active leads (replying immediately): 50s-1min
  * Normal replies: 3-8 minutes (respects Instagram 20/hour limit)
- * re-connects: 6-12 hours
+ * Follow-ups: 6-12 hours
  */
 export function calculateReplyDelay(
   messageType: 'reply' | 'followup',

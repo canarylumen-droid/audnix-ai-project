@@ -27,7 +27,7 @@ export function SettingsPage() {
               <CardHeader>
                 <CardTitle>Business Email Integration</CardTitle>
                 <CardDescription>
-                  Connect your SMTP email to start sending automatic re-connects
+                  Connect your SMTP email to start sending automatic follow-ups
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -76,7 +76,7 @@ Focus on buying signals like:
 
 Negative signals:
 - "not interested", "no thanks", "unsubscribe", "stop"
-- "too premium", "can't afford", "not now"
+- "too expensive", "can't afford", "not now"
 - "already have", "using another", "competitor"
 
 Return ONLY valid JSON, no explanation.`;
