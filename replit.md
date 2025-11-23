@@ -43,6 +43,18 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Millionaire Closer Sales Language Engine:** A 10-engine system with 40+ word replacements, tone engine, industry mirroring, objection crushing, re-engagement, brand context, urgency, conversion, personality adaptation, and memory engines. Includes non-negotiable rules for lead framing and identity-based communication.
 - **PDF Brand Context Upload Modal:** Validates 9 required fields from PDFs, provides a quality score, and pre-fills AI system prompts with brand voice.
 - **Robust Stripe Checkout Session Verification:** Unique `subscription_id` per payment, `stripe_session_id` stored with 24-hour expiry, admin approval workflow to prevent bypass.
+- **UNIVERSAL AI SALES AGENT v4** (Revolutionary - NOT Audnix-specific, works for ANY business!)
+  - Helps ANY business/agency close first $1,000 deal + 5 clients in 1 week
+  - Free trial users close first 2 clients FAST & EASILY (import → verify → analyze → reach → close)
+  - 🌐 **Internet Research Engine**: AI searches competitors + finds market gaps automatically
+  - 🧠 **Smart Testimonial Extraction**: Auto-extracts testimonials from PDFs + finds URLs
+  - 📊 **UVP Detection**: Auto-discovers unique value proposition vs competitors
+  - 🎯 **Real-Time Learning**: Learns from each lead response, continuously adapts messaging
+  - ✅ **Pre-Send Verification**: Checks EVERY message (personalization, CTAs, tone, defensive language)
+  - 🚀 **Industry-Specific Guidance**: Researches how million-dollar closers dominate THEIR space
+  - 💡 **Competitive Intelligence**: Finds gaps competitors DON'T have → positioning advantage
+  - Files: `server/lib/ai/universal-sales-agent.ts`, `server/lib/ai/pdf-context-extractor.ts`
+  - See `UNIVERSAL_SALES_AGENT_GUIDE.md` for complete details
 
 ### External Dependencies
 - **Stripe (via Replit Integration):** Billing and subscription management.
