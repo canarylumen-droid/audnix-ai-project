@@ -1,5 +1,4 @@
 /* @ts-nocheck */
-import { Router, Request, Response } from "express";
 import { requireAdmin } from "../middleware/auth";
 import { db } from "../db";
 import { users, leads, messages, integrations } from "../../shared/schema";

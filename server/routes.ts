@@ -29,7 +29,7 @@ import whatsappRoutes from './routes/whatsapp-routes';
 import whatsappOTPRoutes from './routes/whatsapp-otp-routes';
 import customEmailRoutes from './routes/custom-email-routes';
 import emailStatsRoutes from './routes/email-stats-routes';
-import authRoutes from './routes/auth-routes';
+import otpRoutes from './routes/otp-routes';
 import calendarRoutes from './routes/calendar-routes';
 import bulkActionsRoutes from "./routes/bulk-actions-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
@@ -2275,7 +2275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/whatsapp-otp', whatsappOTPRoutes);
   app.use('/api/custom-email', customEmailRoutes);
   app.use('/api/email', emailStatsRoutes);
-  app.use('/api/auth', authRoutes);
+  app.use('/api/otp', otpRoutes);
   app.use('/api/calendar', calendarRoutes);
 
   // Webhook routes

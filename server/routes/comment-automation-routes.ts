@@ -1,5 +1,4 @@
 /* @ts-nocheck */
-import { Router, Request, Response } from 'express';
 import { processCommentAutomation, detectCommentIntent } from '../lib/ai/comment-detection';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 
