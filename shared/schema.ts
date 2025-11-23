@@ -45,6 +45,8 @@ export const leads = pgTable("leads", {
   score: integer("score").notNull().default(0),
   warm: boolean("warm").notNull().default(false),
   lastMessageAt: timestamp("last_message_at"),
+  aiPaused: boolean("ai_paused").notNull().default(false),
+  pdfConfidence: real("pdf_confidence"),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -303,6 +305,35 @@ export const oauthAccounts = pgTable("oauth_accounts", {
   idToken: text("id_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const auditTrail = pgTable("audit_trail", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  action: text("action").notNull(), // "ai_message_sent", "opt_out_toggled", "pdf_processed", "upload_rate_limited"
+  messageId: uuid("message_id"),
+  details: jsonb("details").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const pdfAnalytics = pgTable("pdf_analytics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  confidence: real("confidence").notNull(),
+  missingFields: jsonb("missing_fields").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  leadsExtracted: integer("leads_extracted").notNull().default(0),
+  processedAt: timestamp("processed_at").notNull().defaultNow(),
+});
+
+export const uploadRateLimit = pgTable("upload_rate_limit", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  uploads: integer("uploads").notNull().default(0),
+  lastResetAt: timestamp("last_reset_at").notNull().defaultNow(),
+  windowSizeMinutes: integer("window_size_minutes").notNull().default(60),
 });
 
 export const otpCodes = pgTable("otp_codes", {

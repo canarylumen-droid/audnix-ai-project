@@ -155,6 +155,20 @@ export class FollowUpWorker {
         throw new Error('Lead not found');
       }
 
+      // CHECK: User has opted out of AI messages
+      if (lead.aiPaused) {
+        console.log(`⏸️  Skipping follow-up for lead ${lead.name} (AI paused by user)`);
+        // Mark job as completed without sending
+        await db
+          .update(followUpQueue)
+          .set({ 
+            status: 'completed',
+            processedAt: new Date()
+          })
+          .where(eq(followUpQueue.id, job.id));
+        return;
+      }
+
       // Get conversation history
       const conversationHistory = await this.getConversationHistory(job.leadId);
 
@@ -174,7 +188,22 @@ export class FollowUpWorker {
 
       if (sent) {
         // Save message to database
-        await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant');
+        const savedMessage = await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant');
+
+        // UPDATE: Log to audit trail
+        try {
+          const { AuditTrailService } = await import('./audit-trail-service');
+          await AuditTrailService.logAiMessageSent(
+            job.userId,
+            job.leadId,
+            savedMessage?.id || '',
+            job.channel,
+            aiReply,
+            ((lead.metadata as any)?.follow_up_count || 0) + 1
+          );
+        } catch (auditError) {
+          console.error('Failed to log audit trail:', auditError);
+        }
 
         // Update lead status and follow-up count
         await db

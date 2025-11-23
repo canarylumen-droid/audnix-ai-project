@@ -54,7 +54,7 @@ localPort = 35771
 externalPort = 3002
 
 [[ports]]
-localPort = 35813
+localPort = 36517
 externalPort = 8000
 
 [[ports]]

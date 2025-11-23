@@ -997,6 +997,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No PDF file uploaded" });
       }
 
+      // CHECK: Rate limiting
+      const { UploadRateLimiter } = await import('./lib/upload-rate-limiter');
+      const rateLimitCheck = await UploadRateLimiter.canUpload(userId);
+      if (!rateLimitCheck.allowed) {
+        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        await AuditTrailService.logRateLimitHit(userId, `PDF upload rate limited - ${rateLimitCheck.message}`);
+        
+        return res.status(429).json({
+          error: "Rate limit exceeded",
+          message: rateLimitCheck.message,
+          resetTime: rateLimitCheck.resetTime
+        });
+      }
+
       const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
@@ -1028,6 +1042,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // LOG: PDF confidence to analytics
+      try {
+        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        const confidence = result.confidence || 0.75; // Default to 75% if not provided
+        const missingFields = result.missingFields || [];
+        await AuditTrailService.logPdfProcessed(
+          userId,
+          req.file.originalname || 'unknown.pdf',
+          req.file.size || 0,
+          confidence,
+          missingFields,
+          result.leadsCreated || 0
+        );
+
+        // Alert if low confidence
+        const qualityCheck = await AuditTrailService.checkPdfQualityThreshold(userId);
+        if (qualityCheck.shouldAlert) {
+          console.warn(`🚨 PDF Quality Alert for user ${userId}`);
+        }
+      } catch (analyticsError) {
+        console.error('Failed to log PDF analytics:', analyticsError);
+      }
+
       res.json({
         success: true,
         leadsImported: result.leadsCreated || 0,
@@ -1036,12 +1073,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         brandExtracted: result.brandExtracted || null,
         leads: result.leads || [],
         hasEmailConnected: hasEmail,
-        hasWhatsAppConnected: hasWhatsApp
+        hasWhatsAppConnected: hasWhatsApp,
+        uploadStatus: rateLimitCheck.message,
+        remainingUploads: rateLimitCheck.remainingUploads
       });
 
     } catch (error: any) {
       console.error("PDF import error:", error);
       res.status(500).json({ error: error.message || "PDF import failed" });
+    }
+  });
+
+  /**
+   * Toggle AI pause for a lead (opt-out)
+   * PATCH /api/leads/:id/ai-pause
+   */
+  app.patch("/api/leads/:id/ai-pause", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const leadId = req.params.id;
+      const { aiPaused } = req.body;
+
+      if (typeof aiPaused !== 'boolean') {
+        return res.status(400).json({ error: "aiPaused must be a boolean" });
+      }
+
+      // Verify lead belongs to user
+      const lead = await storage.getLead(leadId);
+      if (!lead || lead.userId !== userId) {
+        return res.status(404).json({ error: "Lead not found" });
+      }
+
+      // Update lead
+      await storage.updateLead(leadId, { aiPaused });
+
+      // LOG: Audit trail
+      try {
+        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        await AuditTrailService.logOptOutToggle(userId, leadId, aiPaused);
+      } catch (auditError) {
+        console.error('Failed to log opt-out:', auditError);
+      }
+
+      res.json({
+        success: true,
+        leadId,
+        aiPaused,
+        message: aiPaused ? `✋ AI paused for ${lead.name}` : `▶️ AI resumed for ${lead.name}`
+      });
+
+    } catch (error: any) {
+      console.error("Opt-out toggle error:", error);
+      res.status(500).json({ error: error.message || "Failed to update lead" });
     }
   });
 
