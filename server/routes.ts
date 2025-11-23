@@ -34,6 +34,7 @@ import calendarRoutes from './routes/calendar-routes';
 import bulkActionsRoutes from "./routes/bulk-actions-routes";
 import { paymentApprovalRouter } from "./routes/payment-approval";
 import { paymentCheckoutRouter } from "./routes/payment-checkout";
+import adminPdfRoutes from "./routes/admin-pdf-routes";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2291,6 +2292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
   app.use("/api/admin", adminRoutes.default);
+  app.use("/api/admin", adminPdfRoutes);
 
   const httpServer = createServer(app);
 
