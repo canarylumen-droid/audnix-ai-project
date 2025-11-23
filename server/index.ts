@@ -325,11 +325,12 @@ async function runMigrations() {
   }
 
   // Start Stripe payment poller on server startup
-  if (hasDatabase && process.env.STRIPE_SECRET_KEY) {
+  // Poller works with payment links - doesn't require SECRET_KEY
+  if (hasDatabase) {
     console.log('💳 Starting Stripe payment poller...');
     startStripePaymentPoller();
   } else {
-    console.log('⏭️  Stripe poller disabled (no Stripe key configured)');
+    console.log('⏭️  Stripe poller disabled (no database configured)');
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
