@@ -7,7 +7,7 @@ const router = Router();
 
 /**
  * GET /api/payment-approval/pending
- * Admin: Get all pending payment approvals
+ * Admin: Get all pending payment approvals with subscription IDs
  */
 router.get("/pending", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -18,20 +18,26 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Admin only" });
     }
 
-    // Get all pending payments
-    const pendingUsers = await storage.db.query.users.findMany({
-      where: (users, { eq }) => eq(users.payment_status, "pending"),
-    });
+    // Get pending payments with subscription IDs
+    const result = await storage.db.execute(`
+      SELECT 
+        u.id,
+        u.email,
+        u.name,
+        u.pending_payment_plan as plan,
+        u.pending_payment_amount as amount,
+        u.pending_payment_date as pending_date,
+        ps.subscription_id,
+        ps.stripe_session_id,
+        ps.verified_at
+      FROM users u
+      LEFT JOIN payment_sessions ps ON ps.user_id = u.id AND ps.status = 'completed'
+      WHERE u.payment_status = 'pending'
+      ORDER BY u.pending_payment_date DESC
+    `);
 
     return res.json({
-      pending: pendingUsers.map(u => ({
-        id: u.id,
-        email: u.email,
-        name: u.name,
-        plan: u.pending_payment_plan,
-        amount: u.pending_payment_amount,
-        pendingDate: u.pending_payment_date,
-      }))
+      pending: result.rows || []
     });
   } catch (error: any) {
     console.error("Error fetching pending approvals:", error);
@@ -191,14 +197,48 @@ router.post("/mark-pending/:userId", requireAuth, async (req: Request, res: Resp
 
     console.log(`⏳ User ${user.email} marked as pending approval (${plan} - $${amount})`);
 
-    // TODO: Email notification to admins: "User {name} ({email}) paid ${amount} for {plan} plan. Awaiting approval."
-
     res.json({ 
       success: true, 
       message: "Payment pending admin approval. You'll get access soon!",
     });
   } catch (error: any) {
     console.error("Error marking pending:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/payment-approval/stats
+ * Admin: Get payment and user statistics
+ */
+router.get("/stats", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const adminId = getCurrentUserId(req);
+    const admin = await storage.getUserById(adminId!);
+
+    if (!admin || admin.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    // Get stats
+    const statsResult = await storage.db.execute(`
+      SELECT 
+        COUNT(*) FILTER (WHERE plan = 'trial') as trial_users,
+        COUNT(*) FILTER (WHERE plan = 'starter') as starter_users,
+        COUNT(*) FILTER (WHERE plan = 'pro') as pro_users,
+        COUNT(*) FILTER (WHERE plan = 'enterprise') as enterprise_users,
+        COUNT(*) as total_users,
+        COUNT(*) FILTER (WHERE payment_status = 'pending') as pending_approvals,
+        COUNT(*) FILTER (WHERE payment_status = 'approved') as approved_payments,
+        COUNT(DISTINCT DATE(created_at)) as signup_days
+      FROM users
+    `);
+
+    return res.json({
+      stats: statsResult.rows[0] || {}
+    });
+  } catch (error: any) {
+    console.error("Error fetching stats:", error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -9,28 +9,50 @@ interface PendingPayment {
   name: string;
   plan: string;
   amount: number;
-  pendingDate: string;
+  pending_date: string;
+  subscription_id: string;
+  stripe_session_id: string;
+  verified_at: string;
+}
+
+interface Stats {
+  trial_users: number;
+  starter_users: number;
+  pro_users: number;
+  enterprise_users: number;
+  total_users: number;
+  pending_approvals: number;
+  approved_payments: number;
 }
 
 export default function PaymentApprovalsPage() {
   const [pending, setPending] = useState<PendingPayment[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoApproving, setAutoApproving] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchPending = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch("/api/payment-approval/pending");
-        if (response.ok) {
-          const data = await response.json();
-          setPending(data.pending || []);
+        // Fetch pending payments
+        const pendingRes = await fetch("/api/payment-approval/pending");
+        if (pendingRes.ok) {
+          const pendingData = await pendingRes.json();
+          setPending(pendingData.pending || []);
+        }
+
+        // Fetch stats
+        const statsRes = await fetch("/api/payment-approval/stats");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData.stats);
         }
       } catch (error) {
-        console.error("Error fetching pending approvals:", error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
-          description: "Failed to load pending approvals",
+          description: "Failed to load payment data",
           variant: "destructive",
         });
       } finally {
@@ -38,9 +60,9 @@ export default function PaymentApprovalsPage() {
       }
     };
 
-    fetchPending();
-    // Refresh every 5 seconds to catch new payments
-    const interval = setInterval(fetchPending, 5000);
+    fetchData();
+    // Refresh every 5 seconds
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -55,7 +77,6 @@ export default function PaymentApprovalsPage() {
       });
 
       if (response.ok) {
-        // Remove from pending list
         setPending((prev) => prev.filter((p) => p.id !== userId));
         toast({
           title: "Approved ✅",
@@ -115,63 +136,157 @@ export default function PaymentApprovalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white">Payment Approvals</h1>
-        <p className="text-gray-400 mt-2">Auto-approve pending payments or review manually</p>
+        <p className="text-gray-400 mt-2">Verify payments and approve user upgrades</p>
       </div>
 
-      {pending.length === 0 ? (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="pt-6 text-center text-gray-400">
-            No pending approvals at this time.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {pending.map((payment) => (
-            <Card key={payment.id} className="bg-slate-800/50 border-cyan-500/20">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-white">{payment.name}</CardTitle>
-                    <CardDescription>{payment.email}</CardDescription>
-                  </div>
-                  <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm font-semibold capitalize">
-                    {payment.plan}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Amount:</span>
-                    <span className="text-white font-semibold">${payment.amount}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Paid:</span>
-                    <span className="text-white">{new Date(payment.pendingDate).toLocaleString()}</span>
-                  </div>
-
-                  {/* Auto-approve button with 5-second countdown */}
-                  <AutoApproveButton
-                    userId={payment.id}
-                    onApprove={() => approvePayment(payment.id)}
-                    isApproving={autoApproving[payment.id] || false}
-                  />
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => rejectPayment(payment.id)}
-                    className="w-full mt-2"
-                    disabled={autoApproving[payment.id]}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Stats Overview */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6">
+              <div className="text-3xl font-bold text-white">{stats.total_users}</div>
+              <p className="text-sm text-gray-400">Total Users</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6">
+              <div className="text-3xl font-bold text-white">{stats.trial_users}</div>
+              <p className="text-sm text-gray-400">Trial Users</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6">
+              <div className="text-3xl font-bold text-cyan-400">{stats.starter_users + stats.pro_users + stats.enterprise_users}</div>
+              <p className="text-sm text-gray-400">Paid Users</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6">
+              <div className="text-3xl font-bold text-green-400">{stats.approved_payments}</div>
+              <p className="text-sm text-gray-400">Approved</p>
+            </CardContent>
+          </Card>
         </div>
       )}
+
+      {/* Plan Breakdown */}
+      {stats && (
+        <Card className="bg-slate-800/50 border-slate-700">
+          <CardHeader>
+            <CardTitle className="text-white">User Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.starter_users}</p>
+                <p className="text-sm text-gray-400">Starter</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.pro_users}</p>
+                <p className="text-sm text-gray-400">Pro</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.enterprise_users}</p>
+                <p className="text-sm text-gray-400">Enterprise</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-amber-400">{stats.pending_approvals}</p>
+                <p className="text-sm text-gray-400">Pending</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending Approvals */}
+      <div>
+        <h2 className="text-xl font-bold text-white mb-4">
+          Pending Approvals ({pending.length})
+        </h2>
+
+        {pending.length === 0 ? (
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardContent className="pt-6 text-center text-gray-400">
+              No pending approvals at this time.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {pending.map((payment) => (
+              <Card key={payment.id} className="bg-slate-800/50 border-cyan-500/20">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="text-white">{payment.name}</CardTitle>
+                      <CardDescription>{payment.email}</CardDescription>
+                    </div>
+                    <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-sm font-semibold capitalize">
+                      {payment.plan}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Payment Verification Details */}
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                      <p className="text-sm font-semibold text-green-300 mb-2">✅ Payment Verified</p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Subscription ID:</span>
+                          <code className="bg-slate-700 px-2 py-1 rounded text-green-300 font-mono text-xs">
+                            {payment.subscription_id}
+                          </code>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400">Verified At:</span>
+                          <span className="text-white">{new Date(payment.verified_at).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Details */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Amount:</span>
+                        <span className="text-white font-semibold">${payment.amount}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Paid:</span>
+                        <span className="text-white">{new Date(payment.pending_date).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Session ID:</span>
+                        <code className="bg-slate-700 px-2 py-1 rounded text-cyan-300 font-mono text-xs">
+                          {payment.stripe_session_id.substring(0, 20)}...
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 pt-2 border-t border-slate-700">
+                      <AutoApproveButton
+                        userId={payment.id}
+                        onApprove={() => approvePayment(payment.id)}
+                        isApproving={autoApproving[payment.id] || false}
+                      />
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => rejectPayment(payment.id)}
+                        className="w-full"
+                        disabled={autoApproving[payment.id]}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -96,25 +96,57 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - **Smart System Prompt**: AI instructed to talk like a real person, use contractions, short sentences, minimal emojis
 - **Files**: `server/lib/ai/sales-language-optimizer.ts`, `server/lib/ai/brand-context.ts`, updated `server/lib/ai/conversation-ai.ts`
 
-### Payment System Details (Manual Approvals - No API Keys)
-**Flow:**
-1. User clicks payment link (from friend's Canada Stripe account)
-2. Completes payment on Stripe → Returns to `/payment-success?plan=starter&amount=49`
-3. Success page auto-marks user as `payment_status = 'pending'` (no user action needed)
-4. Admin dashboard shows pending approvals, refreshes every 5 seconds
-5. Auto-approve button appears with 5-second countdown
-6. Button auto-clicks → User upgraded to plan, `payment_status = 'approved'`
-7. User gets instant access to all features
+### Payment System Details (Option 2: Stripe Checkout Session Verification - Robust & Verified)
+**Complete Flow:**
+1. User clicks "Upgrade" → POST `/api/payment/checkout-session`
+   - Creates unique `stripe_session_id`
+   - Generates `subscription_id` (e.g., `sub_test_xxx`)
+   - Stores in `payment_sessions` table with 24-hour expiry
+   
+2. User receives payment link with session_id and pays on Stripe
+   - Stripe processes payment successfully
+   - Redirects back with session_id in URL
+
+3. User verifies payment → POST `/api/payment/verify-session?sessionId=xxx`
+   - Checks session_id exists in database
+   - Verifies it matches this user AND status = 'pending'
+   - Ensures not expired (24-hour window)
+   - Marks payment_sessions.status = 'completed'
+   - Marks user.payment_status = 'pending'
+   - Returns subscription_id as proof
+
+4. Admin dashboard → GET `/api/payment-approval/pending`
+   - Shows verified payment with subscription_id
+   - Shows session_id, verified_at timestamp
+   - Shows amount, plan, user email
+   - Refreshes every 5 seconds for real-time updates
+
+5. Admin approves → POST `/api/payment-approval/approve/:userId`
+   - Verify subscription_id exists (cannot approve without it)
+   - Mark user.payment_status = 'approved'
+   - Log to user_plan_history table
+   - Auto-upgrade user to paid plan
 
 **Database Schema:**
-- `users.payment_status` → 'none' | 'pending' | 'approved' | 'rejected'
-- `users.pending_payment_amount`, `pending_payment_plan`, `pending_payment_date`, `payment_approved_date`
+- `payment_sessions` → subscription_id, stripe_session_id, status (pending/completed/expired), verified_at, expires_at
+- `users` → payment_status ('none'|'pending'|'approved'|'rejected'), pending_payment_amount/plan/date
+- `user_plan_history` → Audit trail of all plan changes with admin approval info
 
 **API Endpoints:**
-- `POST /api/payment-approval/mark-pending/:userId` → User marks self as paid (called from success page)
-- `GET /api/payment-approval/pending` → Admin gets pending list
-- `POST /api/payment-approval/approve/:userId` → Admin approves (auto-clicked after 5s)
-- `POST /api/payment-approval/reject/:userId` → Admin rejects (optional)
+- `POST /api/payment/checkout-session` → Create session with subscription_id
+- `POST /api/payment/verify-session` → Verify payment and mark pending (checks subscription_id exists)
+- `GET /api/payment-approval/pending` → Admin: Get pending with subscription_id & verification details
+- `POST /api/payment-approval/approve/:userId` → Admin: Approve (requires subscription_id verification)
+- `POST /api/payment-approval/reject/:userId` → Admin: Reject
+- `GET /api/payment-approval/stats` → Admin: See total users by plan (trial/starter/pro/enterprise) + pending count
+
+**Why This Can't Be Bypassed:**
+- Session ID must exist in DB (can't fake it)
+- Subscription ID verification required (proves payment)
+- 24-hour expiry enforced (time window limit)
+- Session marked as 'completed' after use (can't reuse)
+- Admin must verify subscription_id to approve (can't skip)
+- Audit trail in user_plan_history (full transparency)
 
 ### Known Issues & Todos
 - Webhook configuration for Resend events (delivery tracking) - document endpoint URL format: `/api/webhooks/resend?userId={userId}`
