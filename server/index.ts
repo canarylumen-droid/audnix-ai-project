@@ -7,6 +7,7 @@ import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";
 import { startStripePaymentPoller } from "./lib/ai/stripe-payment-poller";
+import { stripePollerMiddleware, triggerStripePollerIfNeeded } from "./lib/ai/stripe-poller-scheduler";
 import { emailWarmupWorker } from "./lib/email/email-warmup-worker";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit";
 import crypto from "crypto";
@@ -48,6 +49,10 @@ const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENA
 // Apply rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
+
+// Add Stripe poller middleware (runs on every request, non-blocking)
+// This makes the poller work on Vercel without setInterval
+app.use(stripePollerMiddleware);
 
 // Stripe webhook needs raw body for signature verification
 // This MUST come before express.json() to preserve the raw buffer
@@ -325,18 +330,18 @@ async function runMigrations() {
   }
 
   // Start Stripe payment poller on server startup (Replit only)
-  // Note: Poller won't work on Vercel serverless (functions terminate after requests)
-  // On Vercel, use webhooks or Cron Jobs (paid plan)
+  // On Vercel, poller runs via request middleware (lazy triggering, non-blocking)
   const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
   
   if (hasDatabase && !isVercel) {
-    // Give Stripe client a moment to initialize
+    // On Replit: use setInterval for consistent background polling
     setTimeout(() => {
-      console.log('💳 Starting Stripe payment poller...');
+      console.log('💳 Starting Stripe payment poller (every 1 minute)...');
       startStripePaymentPoller();
     }, 2000);
   } else if (isVercel) {
-    console.log('⏭️  Stripe poller disabled on Vercel (use Cron Jobs or webhooks for production)');
+    console.log('💳 Stripe poller active (runs on every request, non-blocking)');
+    // Poller is now controlled by middleware - runs automatically with every request
   } else {
     console.log('⏭️  Stripe poller disabled (no database configured)');
   }
