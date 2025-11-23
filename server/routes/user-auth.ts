@@ -18,6 +18,16 @@ const authLimiter = rateLimit({
 const tempPasswords = new Map<string, { password: string; expiresAt: Date }>();
 
 /**
+ * GET /api/user/auth/otp-configured
+ * Check if OTP is configured
+ */
+router.get('/otp-configured', async (req: Request, res: Response) => {
+  res.json({
+    configured: twilioEmailOTP.isConfigured(),
+  });
+});
+
+/**
  * POST /api/user/auth/signup/request-otp
  * Step 1: User submits email + password, we send OTP
  */
@@ -45,6 +55,16 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
+    // Check if OTP is configured - if not, tell frontend to skip it
+    if (!twilioEmailOTP.isConfigured()) {
+      console.log(`⚠️  OTP not configured for ${email}, will skip OTP`);
+      return res.json({
+        success: true,
+        skipOTP: true,
+        message: 'OTP skipped - please enter username',
+      });
+    }
+
     // Send OTP (will use mock mode if credentials not configured)
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
@@ -55,6 +75,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 
     res.json({
       success: true,
+      skipOTP: false,
       message: 'OTP sent to your email',
       expiresIn: '10 minutes',
     });
@@ -63,6 +84,80 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
   } catch (error: any) {
     console.error('Signup OTP error:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
+  }
+});
+
+/**
+ * POST /api/user/auth/signup/skip-otp
+ * Create account without OTP verification (when OTP not configured)
+ */
+router.post('/signup/skip-otp', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email, username } = req.body;
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Valid email required' });
+    }
+
+    if (!username || username.length < 3) {
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    }
+
+    const normalizedEmail = email.toLowerCase();
+
+    // Get stored password
+    const tempData = tempPasswords.get(normalizedEmail);
+    if (!tempData) {
+      return res.status(400).json({ error: 'Password not found. Please sign up again.' });
+    }
+
+    // Check if password expired
+    if (new Date() > tempData.expiresAt) {
+      tempPasswords.delete(normalizedEmail);
+      return res.status(400).json({ error: 'Session expired. Please sign up again.' });
+    }
+
+    // Check username availability
+    const existingUsername = await storage.getUserByUsername(username);
+    if (existingUsername) {
+      return res.status(400).json({ error: 'Username already taken' });
+    }
+
+    // Create user
+    const user = await storage.createUser({
+      email: normalizedEmail,
+      username,
+      password: tempData.password, // Use stored hashed password
+      plan: 'trial',
+      role: 'user',
+    });
+
+    // Clean up
+    tempPasswords.delete(normalizedEmail);
+
+    // Set session (7-day expiry)
+    (req as any).session.userId = user.id;
+    (req as any).session.email = normalizedEmail;
+    (req as any).session.isAdmin = false;
+    (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    res.json({
+      success: true,
+      message: 'Account created successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        plan: user.plan,
+        role: 'user',
+      },
+      sessionExpiresIn: '7 days',
+    });
+
+    console.log(`✅ User signed up (without OTP): ${normalizedEmail}`);
+  } catch (error: any) {
+    console.error('Skip OTP signup error:', error);
+    res.status(500).json({ error: 'Signup failed' });
   }
 });
 
