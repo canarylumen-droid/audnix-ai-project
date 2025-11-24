@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, X, ArrowRight, TrendingUp, Zap } from "lucide-react";
+import { Check, X, ArrowRight, TrendingUp, Zap, Brain, BarChart3, Sparkles, Lock } from "lucide-react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/landing/Navigation";
 import { HeroSection } from "@/components/landing/HeroSection";
