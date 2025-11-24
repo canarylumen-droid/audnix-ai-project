@@ -41,7 +41,6 @@ import leadIntelligenceRouter from "./routes/lead-intelligence";
 import aiSalesSuggestionRouter from "./routes/ai-sales-suggestion";
 import emailOTPRoutes from "./routes/email-otp-routes";
 import stripePaymentConfirmation from "./routes/stripe-payment-confirmation";
-import stripeAutoApprove from "./routes/stripe-auto-approve";
 import authUsernameOnboarding from "./routes/auth-username-onboarding";
 import authClean from "./routes/auth-clean";
 import userAuth from "./routes/user-auth";
@@ -2113,7 +2112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Stripe payment confirmation routes (works anywhere: Vercel, local, etc)
   app.use("/api/stripe", stripePaymentConfirmation);
-  app.use("/api/stripe", stripeAutoApprove);
+  // Note: Using new payment-approval system (database-driven, no API keys needed)
 
   // Register auth username + onboarding routes
   app.use("/api/auth", authUsernameOnboarding);
