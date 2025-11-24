@@ -58,10 +58,10 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     // Check if OTP is configured - REQUIRED (no fallback)
     if (!twilioEmailOTP.isConfigured()) {
       tempPasswords.delete(email.toLowerCase());
-      console.error(`❌ OTP FAILED: Twilio not configured. Missing env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY`);
+      console.error(`❌ OTP FAILED: SendGrid not configured. Missing env var: TWILIO_SENDGRID_API_KEY`);
       return res.status(503).json({ 
         error: 'Email service not configured',
-        details: 'Missing required environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY',
+        details: 'Missing required SendGrid API key: TWILIO_SENDGRID_API_KEY (from SendGrid, not Twilio)',
         configured: false 
       });
     }
