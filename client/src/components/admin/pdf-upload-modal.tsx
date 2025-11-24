@@ -262,111 +262,218 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
   if (analysis) {
     const missingCount = analysis.missing_critical.length;
     const hasIssues = missingCount > 0;
+    const extractedCount = analysis.items.filter(i => i.present).length;
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md bg-slate-800 border-slate-700 max-h-[80vh] overflow-y-auto">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Brand PDF Analysis</CardTitle>
-                <CardDescription>Quality Score: {analysis.overall_score}%</CardDescription>
-              </div>
-              <div className="text-2xl font-bold">{analysis.overall_score}%</div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {/* Checklist */}
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-white">Content Found:</p>
-              {analysis.items.map((item, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  {item.present ? (
-                    <span className="text-green-400">✅</span>
-                  ) : (
-                    <span className="text-red-400">❌</span>
-                  )}
-                  <span className={item.present ? "text-gray-300" : "text-gray-500"}>
-                    {item.name}
-                    {item.required && !item.present && " (required)"}
-                  </span>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-lg"
+        >
+          <Card className="w-full bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 max-h-[85vh] overflow-y-auto">
+            <CardHeader className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <span>📊 Brand PDF Analysis</span>
+                  </CardTitle>
+                  <CardDescription>What your AI will learn from this</CardDescription>
                 </div>
-              ))}
-            </div>
-
-            {/* Missing Critical */}
-            {hasIssues && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                <p className="text-sm font-semibold text-red-300 mb-2">
-                  ⚠️ Missing {missingCount} critical item{missingCount > 1 ? "s" : ""}:
-                </p>
-                <ul className="text-xs text-red-200 space-y-1">
-                  {analysis.missing_critical.map((item, i) => (
-                    <li key={i}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Recommendations */}
-            {analysis.recommendations.length > 0 && (
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                <p className="text-sm font-semibold text-blue-300 mb-2">💡 Recommendations:</p>
-                <ul className="text-xs text-blue-200 space-y-1">
-                  {analysis.recommendations.map((rec, i) => (
-                    <li key={i}>• {rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="space-y-2 pt-4 border-t border-slate-700">
-              {hasIssues ? (
-                <>
-                  <Button
-                    className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-semibold"
-                    onClick={() => {
-                      setFile(null);
-                      setAnalysis(null);
-                    }}
-                  >
-                    Go Back & Fix
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleUpload(true)}
-                    disabled={uploading}
-                  >
-                    {uploading ? "Uploading..." : "Continue Anyway"}
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-semibold"
-                  onClick={() => handleUpload()}
-                  disabled={uploading}
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-3xl font-bold text-cyan-400"
                 >
-                  {uploading ? "Uploading..." : "Upload PDF"}
-                </Button>
+                  {analysis.overall_score}%
+                </motion.div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5">
+              {/* Quality Score Progress Bar */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-300">BRAND PROFILE QUALITY</p>
+                  <p className="text-xs text-gray-400">{extractedCount}/{analysis.items.length} items</p>
+                </div>
+                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${analysis.overall_score}%` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
+                  />
+                </div>
+              </motion.div>
+
+              {/* What AI Learns Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3"
+              >
+                <p className="text-sm font-semibold text-cyan-300 mb-2">🧠 AI Will Learn:</p>
+                <ul className="text-xs text-cyan-100 space-y-1">
+                  {analysis.items.filter(i => i.present).map((item, i) => (
+                    <motion.li
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                    >
+                      ✨ {item.name}
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+
+              {/* Content Found Checklist */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="space-y-2"
+              >
+                <p className="text-sm font-semibold text-white">📋 Content Analysis:</p>
+                {analysis.items.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.08 }}
+                    className="flex items-center gap-2 text-sm p-2 bg-slate-700/50 rounded"
+                  >
+                    {item.present ? (
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.6, repeat: Infinity }}
+                        className="text-green-400 text-base"
+                      >
+                        ✅
+                      </motion.span>
+                    ) : (
+                      <span className="text-red-400 text-base">❌</span>
+                    )}
+                    <span className={item.present ? "text-gray-300" : "text-gray-500"}>
+                      {item.name}
+                      {item.required && !item.present && " (required)"}
+                    </span>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Missing Critical */}
+              {hasIssues && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="bg-red-500/10 border border-red-500/30 rounded-lg p-3"
+                >
+                  <p className="text-sm font-semibold text-red-300 mb-2">
+                    ⚠️ Missing {missingCount} item{missingCount > 1 ? "s" : ""} to improve AI:
+                  </p>
+                  <ul className="text-xs text-red-200 space-y-1">
+                    {analysis.missing_critical.map((item, i) => (
+                      <motion.li
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + i * 0.1 }}
+                      >
+                        • {item}
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
               )}
 
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={onClose}
-                disabled={uploading}
+              {/* Recommendations */}
+              {analysis.recommendations.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3"
+                >
+                  <p className="text-sm font-semibold text-blue-300 mb-2">💡 How to improve:</p>
+                  <ul className="text-xs text-blue-200 space-y-1">
+                    {analysis.recommendations.map((rec, i) => (
+                      <motion.li
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.7 + i * 0.1 }}
+                      >
+                        • {rec}
+                      </motion.li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+
+              {/* Action Buttons */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="space-y-2 pt-4 border-t border-slate-700"
               >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                {hasIssues ? (
+                  <>
+                    <Button
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-semibold"
+                      onClick={() => {
+                        setFile(null);
+                        setAnalysis(null);
+                      }}
+                    >
+                      ← Go Back & Improve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleUpload(true)}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Uploading..." : "Upload Anyway"}
+                    </Button>
+                  </>
+                ) : (
+                  <motion.div
+                    animate={{ scale: [1, 1.02, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  >
+                    <Button
+                      className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-semibold"
+                      onClick={() => handleUpload()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Uploading..." : "✨ Upload & Train AI"}
+                    </Button>
+                  </motion.div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={onClose}
+                  disabled={uploading}
+                >
+                  Cancel
+                </Button>
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }

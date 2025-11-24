@@ -236,35 +236,73 @@ export default function InsightsPage() {
         </Card>
       ) : (
         <>
-          {/* Show 1 AI Insight for free users to give them a taste */}
+          {/* AI Insights - FREE for all users! Show preview for trial users */}
           {insights && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
             >
-              <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent" data-testid="card-ai-summary">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <CardTitle>AI Insights</CardTitle>
+              <Card className="border-transparent bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-transparent" data-testid="card-ai-summary">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3 justify-between">
+                    <div className="flex items-center gap-3">
+                      <motion.div
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                        className="p-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full"
+                      >
+                        <TrendingUp className="h-5 w-5 text-white" />
+                      </motion.div>
+                      <div>
+                        <CardTitle className="text-lg">🤖 AI Insights</CardTitle>
+                        <CardDescription className="text-xs">Live analysis of your campaigns</CardDescription>
+                      </div>
+                    </div>
                     {!canAccessAnalytics && (
-                      <Badge variant="outline" className="ml-auto">Preview</Badge>
+                      <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
+                        FREE Preview
+                      </Badge>
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-lg leading-relaxed" data-testid="text-ai-summary">
+                <CardContent className="space-y-4">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-base leading-relaxed text-foreground font-medium" 
+                    data-testid="text-ai-summary"
+                  >
                     {insights}
-                  </p>
+                  </motion.p>
+                  
                   {!canAccessAnalytics && (
-                    <div className="mt-4 p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-2">
-                        🔒 Unlock full AI insights and detailed analytics with a paid plan
-                      </p>
-                      <Button size="sm" onClick={() => window.location.href = '/dashboard/pricing'}>
-                        Upgrade to see more
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="mt-4 p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-lg space-y-3"
+                    >
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-cyan-300">
+                          ✨ Upgrade to unlock full analytics:
+                        </p>
+                        <ul className="text-xs text-gray-300 space-y-1 ml-2">
+                          <li>✓ Detailed channel breakdowns (Instagram, WhatsApp, Email)</li>
+                          <li>✓ Conversion rates & engagement scores</li>
+                          <li>✓ Real-time performance charts</li>
+                          <li>✓ AI-powered recommendations</li>
+                        </ul>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => window.location.href = '/dashboard/pricing'}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
+                      >
+                        See Full Analytics → Upgrade Now
                       </Button>
-                    </div>
+                    </motion.div>
                   )}
                 </CardContent>
               </Card>

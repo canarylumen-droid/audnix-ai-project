@@ -38,7 +38,7 @@ export function getPlanCapabilities(planId: string) {
     leadsLimit: tier.leadsLimit,
     voiceMinutes: tier.voiceMinutes,
     hasVoiceNotes,
-    hasAnalytics: isPaid,
+    hasAnalytics: true, // FREE for all users - show preview for trial/free, full features for paid
     hasAutoBooking: isPaid,
     hasObjectionHandling: isPaid,
     hasAdvancedSequencing: isProOrAbove,
