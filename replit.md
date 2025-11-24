@@ -309,6 +309,43 @@ NODE_ENV=production
 - ✅ Users are responsible for message content
 - ✅ Regulated industry restrictions in place
 
+**Admin Security (v2.4):**
+- ✅ Secret admin URL (not `/admin`)
+- ✅ Admin whitelist (specific emails only)
+- ✅ OTP verification for admin access
+- ✅ 30-day sessions for admins
+- ✅ Device ban after 2 failed attempts
+- ✅ Requires `role === 'admin'` server-side
+
+---
+
+## 📝 HOW TO SET UP SECRET ADMIN URL
+
+### For Development
+```env
+# In .env file
+VITE_ADMIN_SECRET_URL=admin-secret-test
+```
+
+Then access: `http://localhost:5000/admin-secret-test`
+
+### For Production (Replit)
+1. Go to **Secrets** tab in Replit
+2. Add: `VITE_ADMIN_SECRET_URL=admin-secret-[random-value]`
+3. Deploy
+
+### For Production (Vercel)
+1. Dashboard → Settings → Environment Variables
+2. Add: `VITE_ADMIN_SECRET_URL=admin-secret-[random-value]`
+3. Deploy
+
+### Generate Random Secret
+```bash
+openssl rand -hex 8
+# Output: a1b2c3d4e5f6g7h8
+# Then use: VITE_ADMIN_SECRET_URL=admin-secret-a1b2c3d4
+```
+
 ---
 
 ## 📞 SUPPORT
