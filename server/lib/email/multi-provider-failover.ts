@@ -3,14 +3,14 @@
  * Multi-Provider Email Failover System
  * 
  * Automatically tries multiple email providers in order:
- * 1. Resend (fast, reliable, no setup)
- * 2. Mailgun (bulletproof, industry standard)
- * 3. Custom SMTP (user's own server)
- * 4. Gmail API fallback
- * 5. Outlook API fallback
+ * 1. Mailgun (bulletproof, industry standard)
+ * 2. Custom SMTP (user's own server)
+ * 3. Gmail API fallback
+ * 4. Outlook API fallback
+ * 
+ * NOTE: Using Twilio SendGrid for OTP emails (auth@audnixai.com)
  */
 
-import { Resend } from 'resend';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 import { storage } from '../../storage';
@@ -30,16 +30,10 @@ interface FailoverResult {
 }
 
 class MultiProviderEmailFailover {
-  private resend: Resend | null = null;
   private mailgunKey: string | null = null;
   private mailgunDomain: string | null = null;
 
   constructor() {
-    // Initialize Resend if key available
-    if (process.env.RESEND_API_KEY) {
-      this.resend = new Resend(process.env.RESEND_API_KEY);
-    }
-
     // Initialize Mailgun if keys available
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
       this.mailgunKey = process.env.MAILGUN_API_KEY;
@@ -57,15 +51,7 @@ class MultiProviderEmailFailover {
   ): Promise<FailoverResult> {
     const providers: Array<{ name: string; fn: () => Promise<void> }> = [];
 
-    // 1. Try Resend (primary - fastest)
-    if (this.resend) {
-      providers.push({
-        name: 'Resend',
-        fn: () => this.sendViaResend(email)
-      });
-    }
-
-    // 2. Try Mailgun (secondary - bulletproof)
+    // 1. Try Mailgun (primary - bulletproof)
     if (this.mailgunKey && this.mailgunDomain) {
       providers.push({
         name: 'Mailgun',
@@ -73,7 +59,7 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 3. Try custom SMTP if configured
+    // 2. Try custom SMTP if configured
     if (customSmtpConfig || userId) {
       providers.push({
         name: 'Custom SMTP',
@@ -81,7 +67,7 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 4. Gmail fallback
+    // 3. Gmail fallback
     if (userId) {
       providers.push({
         name: 'Gmail',
@@ -89,7 +75,7 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 5. Outlook fallback
+    // 4. Outlook fallback
     if (userId) {
       providers.push({
         name: 'Outlook',
@@ -116,27 +102,6 @@ class MultiProviderEmailFailover {
       provider: 'none',
       error: `All email providers failed. Last tried: ${lastError?.name || 'unknown'}`
     };
-  }
-
-  /**
-   * Send via Resend (fastest)
-   */
-  private async sendViaResend(email: EmailPayload): Promise<void> {
-    if (!this.resend) {
-      throw new Error('Resend not configured');
-    }
-
-    const result = await this.resend.emails.send({
-      from: email.from || 'noreply@resend.dev',
-      to: email.to,
-      subject: email.subject,
-      html: email.html,
-      replyTo: email.replyTo
-    });
-
-    if (result.error) {
-      throw new Error(result.error.message);
-    }
   }
 
   /**

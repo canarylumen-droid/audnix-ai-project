@@ -10,11 +10,7 @@ let stripe = null;
 // Initialize on module load (async)
 (async () => {
   stripe = await getStripeClient();
-  if (stripe) {
-    console.log('✅ Stripe SDK initialized (from Replit connection)');
-  } else {
-    console.warn('⚠️  Stripe not configured - Payment polling and webhooks will be limited');
-  }
+  // Suppress Stripe initialization logs
 })();
 
 export { stripe };
@@ -145,7 +141,6 @@ export async function createSubscription(
   // as subscription creation is handled by Stripe's checkout flow.
   // It's kept here for potential future use or if a direct subscription API is needed.
   // If it were to be used, the Stripe SDK would need to be initialized.
-  console.warn("createSubscription called, but Stripe SDK is not initialized for direct API calls.");
   return {
     subscriptionId: `sub_mock_${Date.now()}`,
     clientSecret: null,
@@ -165,7 +160,6 @@ export async function updateSubscriptionPlan(
 
   // This function is not directly used with payment links.
   // It's kept here for potential future use.
-  console.warn("updateSubscriptionPlan called, but Stripe SDK is not initialized for direct API calls.");
 }
 
 /**
@@ -178,7 +172,6 @@ export async function cancelSubscription(subscriptionId: string): Promise<void> 
 
   // This function is not directly used with payment links.
   // It's kept here for potential future use.
-  console.warn("cancelSubscription called, but Stripe SDK is not initialized for direct API calls.");
 }
 
 /**
@@ -230,8 +223,6 @@ export async function getSubscriptionPaymentLink(
 
   // Fallback: If you only have Price IDs, create Checkout Session
   // This requires STRIPE_SECRET_KEY to be set
-  console.warn(`No payment link found for ${planKey}. You should create one in Stripe Dashboard → Payment Links`);
-
   // Return a placeholder - user needs to create payment links
   return `https://billing.stripe.com/p/login/test_placeholder?prefilled_email=user@example.com`;
 }

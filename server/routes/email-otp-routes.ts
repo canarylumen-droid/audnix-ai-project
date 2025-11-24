@@ -27,16 +27,29 @@ router.post('/email-otp/request', otpLimiter, async (req: Request, res: Response
       return res.status(400).json({ error: 'Valid email required' });
     }
 
+    // Debug: Log env vars loaded
+    const hasAccountSid = !!process.env.TWILIO_ACCOUNT_SID;
+    const hasAuthToken = !!process.env.TWILIO_AUTH_TOKEN;
+    const hasSendgridKey = !!process.env.TWILIO_SENDGRID_API_KEY;
+    const emailFrom = process.env.TWILIO_EMAIL_FROM || 'auth@audnixai.com';
+    
+    console.log(`📧 OTP Request for: ${email}`);
+    console.log(`🔐 Twilio Config - AccountSID: ${hasAccountSid}, AuthToken: ${hasAuthToken}, SendGrid: ${hasSendgridKey}`);
+    console.log(`📬 Email From: ${emailFrom}`);
+
     if (!twilioEmailOTP.isConfigured()) {
+      console.error('❌ OTP Service Not Configured');
       return res.status(503).json({ error: 'Email OTP service not configured' });
     }
 
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
+      console.error(`❌ OTP Send Failed: ${result.error}`);
       return res.status(400).json({ error: result.error || 'Failed to send OTP' });
     }
 
+    console.log(`✅ OTP Sent Successfully to ${email}`);
     res.json({
       success: true,
       message: 'OTP sent to your email',

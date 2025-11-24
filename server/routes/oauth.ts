@@ -8,11 +8,8 @@ import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { encrypt } from '../lib/crypto/encryption';
-import { Resend } from 'resend';
-
-// ⚠️ CRITICAL: You MUST set RESEND_API_KEY in Replit Secrets
-// OTPs are sent via email from configured TWILIO_EMAIL_FROM address
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// ⚠️ CRITICAL: OTPs are sent via email from configured TWILIO_EMAIL_FROM address (auth@audnixai.com)
+// Using Twilio SendGrid for all email delivery - Resend removed
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();

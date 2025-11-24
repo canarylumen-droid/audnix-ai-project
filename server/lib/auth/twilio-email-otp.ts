@@ -21,7 +21,7 @@ export class TwilioEmailOTP {
   constructor() {
     this.accountSid = process.env.TWILIO_ACCOUNT_SID || '';
     this.authToken = process.env.TWILIO_AUTH_TOKEN || '';
-    this.emailFrom = process.env.TWILIO_EMAIL_FROM || 'noreply@audnixai.com';
+    this.emailFrom = process.env.TWILIO_EMAIL_FROM || 'auth@audnixai.com';
     this.sendgridApiKey = process.env.TWILIO_SENDGRID_API_KEY || '';
   }
 
