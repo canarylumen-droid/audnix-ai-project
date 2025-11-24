@@ -55,28 +55,33 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
-    // Check if OTP is configured - if not, tell frontend to skip it
+    // Check if OTP is configured - REQUIRED (no fallback)
     if (!twilioEmailOTP.isConfigured()) {
-      console.log(`⚠️  OTP not configured for ${email}, will skip OTP`);
-      return res.json({
-        success: true,
-        skipOTP: true,
-        message: 'OTP skipped - please enter username',
+      tempPasswords.delete(email.toLowerCase());
+      console.error(`❌ OTP FAILED: Twilio not configured. Missing env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY`);
+      return res.status(503).json({ 
+        error: 'Email service not configured',
+        details: 'Missing required environment variables: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY',
+        configured: false 
       });
     }
 
-    // Send OTP (will use mock mode if credentials not configured)
+    // Send OTP via Twilio SendGrid (auth@audnixai.com)
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
       tempPasswords.delete(email.toLowerCase());
-      return res.status(400).json({ error: result.error || 'Failed to send OTP' });
+      console.error(`❌ OTP FAILED for ${email}: ${result.error}`);
+      return res.status(400).json({ 
+        error: result.error || 'Failed to send OTP',
+        reason: result.error 
+      });
     }
 
+    console.log(`✅ OTP sent to ${email} from auth@audnixai.com`);
     res.json({
       success: true,
-      skipOTP: false,
-      message: 'OTP sent to your email',
+      message: 'OTP sent to your email from auth@audnixai.com',
       expiresIn: '10 minutes',
     });
 
@@ -88,78 +93,9 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 });
 
 /**
- * POST /api/user/auth/signup/skip-otp
- * Create account without OTP verification (when OTP not configured)
+ * NOTE: skipOTP endpoint removed - OTP is MANDATORY via Twilio SendGrid
+ * All signups must verify email via OTP
  */
-router.post('/signup/skip-otp', authLimiter, async (req: Request, res: Response) => {
-  try {
-    const { email, username } = req.body;
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Valid email required' });
-    }
-
-    if (!username || username.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
-    }
-
-    const normalizedEmail = email.toLowerCase();
-
-    // Get stored password
-    const tempData = tempPasswords.get(normalizedEmail);
-    if (!tempData) {
-      return res.status(400).json({ error: 'Password not found. Please sign up again.' });
-    }
-
-    // Check if password expired
-    if (new Date() > tempData.expiresAt) {
-      tempPasswords.delete(normalizedEmail);
-      return res.status(400).json({ error: 'Session expired. Please sign up again.' });
-    }
-
-    // Check username availability
-    const existingUsername = await storage.getUserByUsername(username);
-    if (existingUsername) {
-      return res.status(400).json({ error: 'Username already taken' });
-    }
-
-    // Create user
-    const user = await storage.createUser({
-      email: normalizedEmail,
-      username,
-      password: tempData.password, // Use stored hashed password
-      plan: 'trial',
-      role: 'user',
-    });
-
-    // Clean up
-    tempPasswords.delete(normalizedEmail);
-
-    // Set session (7-day expiry)
-    (req as any).session.userId = user.id;
-    (req as any).session.email = normalizedEmail;
-    (req as any).session.isAdmin = false;
-    (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-    res.json({
-      success: true,
-      message: 'Account created successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        plan: user.plan,
-        role: 'user',
-      },
-      sessionExpiresIn: '7 days',
-    });
-
-    console.log(`✅ User signed up (without OTP): ${normalizedEmail}`);
-  } catch (error: any) {
-    console.error('Skip OTP signup error:', error);
-    res.status(500).json({ error: 'Signup failed' });
-  }
-});
 
 /**
  * POST /api/user/auth/signup/verify-otp

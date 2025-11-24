@@ -40,8 +40,6 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [otpConfigured, setOtpConfigured] = useState(false);
-  const [skipOTPMode, setSkipOTPMode] = useState(false);
   const [showRedirectPopup, setShowRedirectPopup] = useState(false);
 
   const passwordStrength = password ? zxcvbn(password) : null;
@@ -152,11 +150,6 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      // Check if OTP is configured
-      const configCheck = await fetch('/api/user/auth/otp-configured');
-      const { configured } = await configCheck.json();
-      setOtpConfigured(configured);
-
       const response = await fetch('/api/user/auth/signup/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -169,29 +162,17 @@ export default function AuthPage() {
       if (!response.ok) {
         toast({
           title: "Failed",
-          description: data.error,
+          description: data.error || data.details || 'Email service not configured',
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      // If OTP should be skipped
-      if (data.skipOTP) {
-        setShowRedirectPopup(true);
-        setSkipOTPMode(true);
-        setTimeout(() => {
-          setShowRedirectPopup(false);
-          setSignupStep(3); // Go to username step
-        }, 2000);
-        setLoading(false);
-        return;
-      }
-
-      // Otherwise show OTP step
+      // OTP is mandatory - show OTP verification step
       toast({
         title: "Check Your Email! 📧",
-        description: "We sent you a 6-digit OTP code",
+        description: "We sent you a 6-digit OTP code from auth@audnixai.com",
       });
 
       setSignupStep(2);
@@ -260,75 +241,8 @@ export default function AuthPage() {
     }
   };
 
-  // SIGNUP STEP 3: Username (if skipped OTP)
-  const handleSignupStep3 = async () => {
-    if (!username) {
-      toast({
-        title: "Missing Username",
-        description: "Please enter a username",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (username.length < 3) {
-      toast({
-        title: "Invalid Username",
-        description: "Username must be at least 3 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-      toast({
-        title: "Invalid Username",
-        description: "Username can only contain letters, numbers, hyphens, and underscores",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch('/api/user/auth/signup/skip-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username }),
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast({
-          title: "Error",
-          description: data.error,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      toast({
-        title: "Account Created! 🎉",
-        description: "Welcome to Audnix AI",
-      });
-
-      setSignupStep(4);
-      setTimeout(() => {
-        window.location.href = '/dashboard/onboarding';
-      }, 2000);
-    } catch (error: any) {
-      console.error("Signup step 3 error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create account",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
+  // NOTE: OTP is mandatory - removed skipOTP/step3
+  // All signups must verify via OTP from auth@audnixai.com
 
   const handleResendOTP = async () => {
     if (resendCountdown > 0) return;

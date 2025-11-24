@@ -27,7 +27,18 @@ export class TwilioEmailOTP {
 
   isConfigured(): boolean {
     const hasValidAccountSid = this.accountSid && this.accountSid.startsWith('AC');
-    return !!(hasValidAccountSid && this.authToken && this.sendgridApiKey);
+    const isFullyConfigured = !!(hasValidAccountSid && this.authToken && this.sendgridApiKey);
+    
+    // Debug log missing env vars
+    if (!isFullyConfigured) {
+      const missing = [];
+      if (!hasValidAccountSid) missing.push('TWILIO_ACCOUNT_SID (must start with AC)');
+      if (!this.authToken) missing.push('TWILIO_AUTH_TOKEN');
+      if (!this.sendgridApiKey) missing.push('TWILIO_SENDGRID_API_KEY');
+      console.error(`❌ Twilio OTP not configured. Missing: ${missing.join(', ')}`);
+    }
+    
+    return isFullyConfigured;
   }
 
   /**
@@ -49,10 +60,11 @@ export class TwilioEmailOTP {
         attempts: 0,
       });
 
-      // Development/Mock mode if credentials not configured
+      // REQUIRED: Credentials must be configured (no fallback/mock mode)
       if (!this.isConfigured()) {
-        console.warn(`⚠️  DEVELOPMENT MODE: OTP for ${email}: ${otp}`);
-        return { success: true };
+        const error = 'Twilio SendGrid not configured. Required env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY';
+        console.error(`❌ OTP ERROR: ${error}`);
+        return { success: false, error };
       }
 
       // Send via Twilio SendGrid API
