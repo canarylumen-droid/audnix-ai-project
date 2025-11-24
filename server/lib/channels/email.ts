@@ -170,6 +170,7 @@ export async function sendEmail(
   const brandColors = options.brandColors || await getUserBrandColors(userId);
   
   // Auto-generate subject if not provided
+  const { generateEmailSubject } = await import('./email-subject-generator');
   const emailSubject = subject || await generateEmailSubject(userId, content);
 
   // Get business name

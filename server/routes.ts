@@ -17,6 +17,7 @@ import {
 } from "./lib/billing/stripe";
 import { generateInsights } from "./lib/ai/openai";
 import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
+import { processPDF } from "./lib/pdf-processor";
 import { encrypt } from "./lib/crypto/encryption";
 import oauthRoutes from "./routes/oauth";
 import webhookRouter from "./routes/webhook";
