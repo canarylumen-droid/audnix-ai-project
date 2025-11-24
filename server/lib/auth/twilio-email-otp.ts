@@ -26,16 +26,12 @@ export class TwilioEmailOTP {
   }
 
   isConfigured(): boolean {
-    const hasValidAccountSid = this.accountSid && this.accountSid.startsWith('AC');
-    const isFullyConfigured = !!(hasValidAccountSid && this.authToken && this.sendgridApiKey);
+    // SendGrid API ONLY needs API key - Twilio Account SID/Token are NOT required for SendGrid
+    const isFullyConfigured = !!this.sendgridApiKey;
     
-    // Debug log missing env vars
+    // Debug log if missing
     if (!isFullyConfigured) {
-      const missing = [];
-      if (!hasValidAccountSid) missing.push('TWILIO_ACCOUNT_SID (must start with AC)');
-      if (!this.authToken) missing.push('TWILIO_AUTH_TOKEN');
-      if (!this.sendgridApiKey) missing.push('TWILIO_SENDGRID_API_KEY');
-      console.error(`❌ Twilio OTP not configured. Missing: ${missing.join(', ')}`);
+      console.error(`❌ SendGrid OTP not configured. Missing: TWILIO_SENDGRID_API_KEY`);
     }
     
     return isFullyConfigured;
@@ -60,14 +56,15 @@ export class TwilioEmailOTP {
         attempts: 0,
       });
 
-      // REQUIRED: Credentials must be configured (no fallback/mock mode)
+      // REQUIRED: SendGrid API key must be configured
       if (!this.isConfigured()) {
-        const error = 'Twilio SendGrid not configured. Required env vars: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SENDGRID_API_KEY';
+        const error = 'SendGrid API not configured. Required: TWILIO_SENDGRID_API_KEY';
         console.error(`❌ OTP ERROR: ${error}`);
         return { success: false, error };
       }
 
-      // Send via Twilio SendGrid API
+      // Send via SendGrid API (NOT Twilio SDK, direct HTTP API)
+      console.log(`📧 Sending OTP to: ${email} from: ${this.emailFrom}`);
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: {
@@ -96,14 +93,27 @@ export class TwilioEmailOTP {
               `,
             },
           ],
-          reply_to: { email: this.emailFrom }, // Use configured email for replies
+          reply_to: { email: this.emailFrom },
         }),
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('SendGrid error:', error);
-        return { success: false, error: 'Failed to send OTP email' };
+        const errorText = await response.text();
+        const statusCode = response.status;
+        console.error(`❌ SendGrid API Error [${statusCode}]: ${errorText}`);
+        
+        // Parse error for better messaging
+        let errorMsg = 'Failed to send OTP email';
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.errors?.[0]?.message) {
+            errorMsg = errorJson.errors[0].message;
+          }
+        } catch (e) {
+          // Keep default error message
+        }
+        
+        return { success: false, error: errorMsg };
       }
 
       console.log(`✅ OTP email sent to ${email}`);
