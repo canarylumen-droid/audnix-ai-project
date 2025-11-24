@@ -101,7 +101,54 @@ export default function InsightsPage() {
   if (isLoading) {
     return (
       <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col items-center gap-4"
+        >
+          {/* Animated brain/thinking indicator */}
+          <div className="relative w-16 h-16">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1], rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40 rounded-full"
+            />
+            <motion.div
+              animate={{ scale: [1.2, 1, 1.2] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="absolute inset-2 bg-gradient-to-r from-primary to-primary/60 rounded-full flex items-center justify-center"
+            >
+              <BarChart className="h-6 w-6 text-white" />
+            </motion.div>
+          </div>
+          
+          {/* Animated text */}
+          <div className="text-center space-y-2">
+            <p className="text-lg font-semibold text-foreground">
+              🤖 AI is working...
+            </p>
+            <motion.p
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-sm text-muted-foreground"
+            >
+              Deep reasoning • Analyzing patterns • Building insights
+            </motion.p>
+          </div>
+
+          {/* Animated progress dots */}
+          <div className="flex gap-1">
+            {[0, 1, 2, 3].map((i) => (
+              <motion.div
+                key={i}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
+                className="w-2 h-2 rounded-full bg-primary"
+              />
+            ))}
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -148,13 +195,25 @@ export default function InsightsPage() {
               onClick={handleRegenerate}
               disabled={isFetching}
               data-testid="button-regenerate"
+              className="relative overflow-hidden"
             >
               {isFetching ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="inline-block"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  </motion.div>
+                  <span className="opacity-70">Generating...</span>
+                </>
               ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </>
               )}
-              Refresh
             </Button>
           </div>
         )}

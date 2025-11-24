@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Zap, Brain, Sparkles } from "lucide-react";
 
 interface PDFChecklistItem {
   name: string;
@@ -159,12 +161,100 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
   if (analyzing) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md bg-slate-800 border-slate-700">
-          <CardContent className="pt-8 text-center">
-            <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-white">Analyzing your brand PDF...</p>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md"
+        >
+          <Card className="w-full bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 overflow-hidden">
+            <CardContent className="pt-8 text-center space-y-6">
+              {/* Animated AI brain */}
+              <div className="flex justify-center gap-6 h-12">
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-cyan-400"
+                >
+                  <Brain className="w-8 h-8" />
+                </motion.div>
+                
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-purple-400"
+                >
+                  <Zap className="w-8 h-8" />
+                </motion.div>
+                
+                <motion.div
+                  animate={{ rotate: [0, 360], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                  className="text-yellow-400"
+                >
+                  <Sparkles className="w-8 h-8" />
+                </motion.div>
+              </div>
+
+              {/* Main text */}
+              <div className="space-y-2">
+                <motion.p
+                  animate={{ opacity: [0.8, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-white font-semibold text-lg"
+                >
+                  🧠 AI is analyzing...
+                </motion.p>
+                <motion.p
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-slate-300 text-sm"
+                >
+                  Extracting context • Understanding tone • Learning your brand
+                </motion.p>
+              </div>
+
+              {/* Animated progress bar */}
+              <div className="space-y-2">
+                <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
+                  <motion.div
+                    animate={{ 
+                      width: ['0%', '100%', '0%'],
+                      backgroundPosition: ['0% center', '100% center', '0% center']
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
+                  />
+                </div>
+                <p className="text-xs text-slate-400">Analyzing quality...</p>
+              </div>
+
+              {/* Floating particles effect */}
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(3)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      x: [0, Math.random() * 100 - 50],
+                      y: [0, Math.random() * 100 - 50],
+                      opacity: [1, 0],
+                    }}
+                    transition={{
+                      duration: 2 + i * 0.5,
+                      repeat: Infinity,
+                      delay: i * 0.3,
+                    }}
+                    className="absolute w-1 h-1 bg-cyan-400 rounded-full"
+                    style={{
+                      left: `${25 + i * 25}%`,
+                      top: '50%',
+                    }}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     );
   }
