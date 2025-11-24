@@ -1,6 +1,7 @@
 /* @ts-nocheck */
 import crypto from 'crypto';
 import { storage } from '../../storage';
+import { SendGridDiagnostic } from './sendgrid-diagnostic';
 
 interface EmailOTPSession {
   email: string;
@@ -182,3 +183,8 @@ export class TwilioEmailOTP {
 }
 
 export const twilioEmailOTP = new TwilioEmailOTP();
+
+// Run diagnostic on startup to help debug SendGrid issues
+if (process.env.NODE_ENV === 'development') {
+  SendGridDiagnostic.diagnose().catch(console.error);
+}
