@@ -10,7 +10,7 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 **Build Status:** ✅ Passing (656.2KB, ZERO TypeScript errors)
 **Auth Status:** ✅ Fully Protected + Admin Secret URLs + OTP Email Working ✅
 **Payment Status:** ✅ Admin Auto-Approve System (No API Keys Needed)
-**OTP Status:** ✅ Real Twilio SendGrid Integration (auth@audnixai.com) - ALL ENDPOINTS WORKING
+**OTP Status:** ✅ Real Twilio SendGrid Integration - ALL ENDPOINTS WORKING
 **API Status:** ✅ FIXED: Vite middleware no longer blocks `/api/` and `/webhook/` routes
 **Legal Status:** ✅ AI Disclaimers + Terms/Privacy Updated
 **Analytics:** ✅ FREE for all users
@@ -29,10 +29,10 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 - ✅ **POST /api/auth/email-otp/request** - Request OTP (returns JSON)
 - ✅ **POST /api/auth/email-otp/verify** - Verify OTP (returns JSON)
 - ✅ **POST /api/auth/email-otp/resend** - Resend OTP (returns JSON)
-- ✅ **Real Twilio SendGrid Integration** - OTP emails send via `auth@audnixai.com`
-- ✅ **Account SID:** AC46a88ba0c89d63e3a74af0d38832b216 ✅ 
+- ✅ **Real Twilio SendGrid Integration** - OTP emails send from configured email
+- ✅ **Account SID:** Configured in Replit Secrets ✅ 
 - ✅ **Auth Token:** Configured securely in Replit Secrets ✅
-- ✅ **SendGrid API Key:** Loaded and active ✅
+- ✅ **SendGrid API Key:** Configured in Replit Secrets ✅
 - ✅ **10-minute OTP expiry** - Automatic cleanup
 - ✅ **Database persistence** - OTP sessions in PostgreSQL
 
@@ -193,16 +193,27 @@ User Payment Link → Stripe Payment → Frontend Detects ✅
 
 **Required Environment Variables:**
 ```env
-DATABASE_URL=postgresql://...
-SESSION_SECRET=<openssl rand -base64 32>
-ENCRYPTION_KEY=<openssl rand -hex 32>
-STRIPE_SECRET_KEY=sk_live_... (ONLY used for creating payment links, not for approval)
-TWILIO_ACCOUNT_SID=AC46a88ba0c89d63e3a74af0d38832b216
-TWILIO_AUTH_TOKEN=f49e6eb171bd7d15b249741b73253fe7
-TWILIO_SENDGRID_API_KEY=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
-TWILIO_EMAIL_FROM=auth@audnixai.com
-ADMIN_WHITELIST_EMAILS=canarylumen@gmail.com,treasure@audnixai.com,team@audnixai.com
-VITE_ADMIN_SECRET_URL=admin-secret-xyz
+# Database
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# Session & Encryption
+SESSION_SECRET=<generate with: openssl rand -base64 32>
+ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
+
+# Stripe (for payment links only - no API key needed for approval)
+STRIPE_SECRET_KEY=sk_live_your_stripe_key
+
+# Twilio SendGrid Configuration
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_SENDGRID_API_KEY=your_sendgrid_api_key
+TWILIO_EMAIL_FROM=your-email@yourdomain.com
+
+# Admin Settings
+ADMIN_WHITELIST_EMAILS=admin1@example.com,admin2@example.com
+VITE_ADMIN_SECRET_URL=admin-secret-unique-value
+
+# Environment
 NODE_ENV=production
 ```
 

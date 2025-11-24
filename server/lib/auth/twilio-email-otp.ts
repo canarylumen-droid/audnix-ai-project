@@ -84,7 +84,7 @@ export class TwilioEmailOTP {
               `,
             },
           ],
-          reply_to: { email: 'support@audnixai.com' },
+          reply_to: { email: this.emailFrom }, // Use configured email for replies
         }),
       });
 

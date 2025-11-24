@@ -354,12 +354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // ADMIN WHITELIST: Check if email is in admin list
-      const adminWhitelist = [
-        'canarylumen@gmail.com',
-        process.env.ADMIN_EMAIL_1 || 'admin1@audnix.com',
-        process.env.ADMIN_EMAIL_2 || 'admin2@audnix.com',
-      ];
+      // ADMIN WHITELIST: Check if email is in admin list (from environment variable)
+      const adminWhitelistEnv = process.env.ADMIN_WHITELIST_EMAILS || '';
+      const adminWhitelist = adminWhitelistEnv
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.length > 0);
       const isAdmin = adminWhitelist.includes(email.toLowerCase());
 
       // Create user account

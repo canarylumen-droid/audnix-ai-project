@@ -11,7 +11,7 @@ import { encrypt } from '../lib/crypto/encryption';
 import { Resend } from 'resend';
 
 // ⚠️ CRITICAL: You MUST set RESEND_API_KEY in Replit Secrets
-// OTPs are sent via Resend from auth@audnixai.com
+// OTPs are sent via email from configured TWILIO_EMAIL_FROM address
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const router = Router();
