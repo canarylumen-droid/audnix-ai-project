@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
@@ -7,7 +6,7 @@ const router = Router();
 
 /**
  * GET /api/payment-approval/pending
- * Admin: Get all pending payment approvals with subscription IDs
+ * Admin: Get all pending payment approvals (NO API KEY NEEDED)
  */
 router.get("/pending", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -18,27 +17,22 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Admin only" });
     }
 
-    // Get pending payments with subscription IDs
-    const result = await storage.db.execute(`
-      SELECT 
-        u.id,
-        u.email,
-        u.name,
-        u.pending_payment_plan as plan,
-        u.pending_payment_amount as amount,
-        u.pending_payment_date as pending_date,
-        ps.subscription_id,
-        ps.stripe_session_id,
-        ps.verified_at
-      FROM users u
-      LEFT JOIN payment_sessions ps ON ps.user_id = u.id AND ps.status = 'completed'
-      WHERE u.payment_status = 'pending'
-      ORDER BY u.pending_payment_date DESC
-    `);
+    // Query database for pending payments (no API key needed)
+    const users = await storage.getUsers();
+    const pending = users
+      .filter((u: any) => u.paymentStatus === "pending")
+      .map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        plan: u.pendingPaymentPlan,
+        amount: u.pendingPaymentAmount,
+        pendingDate: u.pendingPaymentDate,
+        subscriptionId: u.subscriptionId,
+        sessionId: u.stripeSessionId,
+      }));
 
-    return res.json({
-      pending: result.rows || []
-    });
+    return res.json({ pending });
   } catch (error: any) {
     console.error("Error fetching pending approvals:", error);
     res.status(500).json({ error: error.message });
@@ -46,14 +40,45 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/payment-approval/stats
+ * Admin: Get payment statistics
+ */
+router.get("/stats", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const adminId = getCurrentUserId(req);
+    const admin = await storage.getUserById(adminId!);
+
+    if (!admin || admin.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const users = await storage.getUsers();
+    const stats = {
+      trial_users: users.filter((u: any) => u.plan === "trial").length,
+      starter_users: users.filter((u: any) => u.plan === "starter").length,
+      pro_users: users.filter((u: any) => u.plan === "pro").length,
+      enterprise_users: users.filter((u: any) => u.plan === "enterprise").length,
+      total_users: users.length,
+      pending_approvals: users.filter((u: any) => u.paymentStatus === "pending").length,
+      approved_payments: users.filter((u: any) => u.paymentStatus === "approved").length,
+    };
+
+    return res.json({ stats });
+  } catch (error: any) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/payment-approval/approve/:userId
  * Admin: Approve a pending payment and upgrade user
+ * NO API KEY NEEDED - only database operations
  */
 router.post("/approve/:userId", requireAuth, async (req: Request, res: Response) => {
   try {
     const adminId = getCurrentUserId(req);
     const { userId } = req.params;
-    const { reason } = req.body;
 
     // Verify admin
     const admin = await storage.getUserById(adminId!);
@@ -67,46 +92,32 @@ router.post("/approve/:userId", requireAuth, async (req: Request, res: Response)
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (user.payment_status !== "pending") {
+    if (user.paymentStatus !== "pending") {
       return res.status(400).json({ error: "User is not pending approval" });
     }
 
-    const plan = user.pending_payment_plan as any;
-    const amount = user.pending_payment_amount;
+    const plan = user.pendingPaymentPlan as any;
 
-    // Upgrade user
-    const voiceMinutes = {
-      starter: 100,
-      pro: 400,
-      enterprise: 1000,
-    }[plan] || 100;
-
+    // Upgrade user - store in database only
     await storage.updateUser(userId, {
       plan,
-      payment_status: "approved",
-      pending_payment_amount: null,
-      pending_payment_plan: null,
-      pending_payment_date: null,
-      payment_approved_date: new Date(),
-      voiceMinutesUsed: 0,
+      paymentStatus: "approved",
+      pendingPaymentPlan: null,
+      pendingPaymentAmount: null,
+      pendingPaymentDate: null,
+      paymentApprovedAt: new Date(),
     });
-
-    // Log admin action (stored in metadata for now)
-    // TODO: Create admin_payment_approvals table for audit trail
 
     console.log(`✅ Admin ${admin.email} approved payment for ${user.email} → ${plan} plan`);
 
-    // Send notification to user
-    // TODO: Email notification: "Your payment has been approved! Access your features now."
-
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `User upgraded to ${plan} plan`,
       user: {
         id: user.id,
         email: user.email,
         plan,
-      }
+      },
     });
   } catch (error: any) {
     console.error("Error approving payment:", error);
@@ -136,29 +147,24 @@ router.post("/reject/:userId", requireAuth, async (req: Request, res: Response) 
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (user.payment_status !== "pending") {
-      return res.status(400).json({ error: "User is not pending approval" });
-    }
-
-    const plan = user.pending_payment_plan;
-    const amount = user.pending_payment_amount;
-
-    // Reject and reset
+    // Mark as rejected (stays in trial)
     await storage.updateUser(userId, {
-      payment_status: "rejected",
-      pending_payment_amount: null,
-      pending_payment_plan: null,
-      pending_payment_date: null,
+      paymentStatus: "rejected",
+      pendingPaymentPlan: null,
+      pendingPaymentAmount: null,
+      pendingPaymentDate: null,
     });
 
-    // Log admin action (stored in metadata for now)
-    // TODO: Create admin_payment_approvals table for audit trail
+    console.log(`❌ Admin ${admin.email} rejected payment for ${user.email}. Reason: ${reason}`);
 
-    console.log(`❌ Admin ${admin.email} rejected payment for ${user.email}`);
-
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Payment rejected",
+      user: {
+        id: user.id,
+        email: user.email,
+        plan: user.plan,
+      },
     });
   } catch (error: any) {
     console.error("Error rejecting payment:", error);
@@ -167,80 +173,38 @@ router.post("/reject/:userId", requireAuth, async (req: Request, res: Response) 
 });
 
 /**
- * POST /api/payment-approval/mark-pending/:userId
- * User: Mark themselves as paid (after clicking payment link)
- * This is how the admin knows they paid
+ * POST /api/payment-approval/mark-pending
+ * Internal: Mark payment as pending (called after user initiates payment)
+ * NO API KEY NEEDED
  */
-router.post("/mark-pending/:userId", requireAuth, async (req: Request, res: Response) => {
+router.post("/mark-pending", async (req: Request, res: Response) => {
   try {
-    const currentUserId = getCurrentUserId(req);
-    const { userId } = req.params;
-    const { amount, plan } = req.body;
+    const { userId, plan, amount, sessionId, subscriptionId } = req.body;
 
-    // Users can only mark themselves
-    if (currentUserId !== userId) {
-      return res.status(403).json({ error: "Unauthorized" });
+    if (!userId || !plan || !amount) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Mark as pending approval
+    // Store pending payment in database
     await storage.updateUser(userId, {
-      payment_status: "pending",
-      pending_payment_amount: amount,
-      pending_payment_plan: plan,
-      pending_payment_date: new Date(),
+      paymentStatus: "pending",
+      pendingPaymentPlan: plan,
+      pendingPaymentAmount: amount,
+      pendingPaymentDate: new Date(),
+      stripeSessionId: sessionId || null,
+      subscriptionId: subscriptionId || null,
     });
 
-    console.log(`⏳ User ${user.email} marked as pending approval (${plan} - $${amount})`);
+    console.log(`💳 Payment marked as pending for user ${userId} → ${plan} plan ($${amount})`);
 
-    res.json({ 
-      success: true, 
-      message: "Payment pending admin approval. You'll get access soon!",
+    res.json({
+      success: true,
+      message: "Payment pending admin approval",
     });
   } catch (error: any) {
-    console.error("Error marking pending:", error);
+    console.error("Error marking payment pending:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-/**
- * GET /api/payment-approval/stats
- * Admin: Get payment and user statistics
- */
-router.get("/stats", requireAuth, async (req: Request, res: Response) => {
-  try {
-    const adminId = getCurrentUserId(req);
-    const admin = await storage.getUserById(adminId!);
-
-    if (!admin || admin.role !== "admin") {
-      return res.status(403).json({ error: "Admin only" });
-    }
-
-    // Get stats
-    const statsResult = await storage.db.execute(`
-      SELECT 
-        COUNT(*) FILTER (WHERE plan = 'trial') as trial_users,
-        COUNT(*) FILTER (WHERE plan = 'starter') as starter_users,
-        COUNT(*) FILTER (WHERE plan = 'pro') as pro_users,
-        COUNT(*) FILTER (WHERE plan = 'enterprise') as enterprise_users,
-        COUNT(*) as total_users,
-        COUNT(*) FILTER (WHERE payment_status = 'pending') as pending_approvals,
-        COUNT(*) FILTER (WHERE payment_status = 'approved') as approved_payments,
-        COUNT(DISTINCT DATE(created_at)) as signup_days
-      FROM users
-    `);
-
-    return res.json({
-      stats: statsResult.rows[0] || {}
-    });
-  } catch (error: any) {
-    console.error("Error fetching stats:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-export { router as paymentApprovalRouter };
+export const paymentApprovalRouter = router;
