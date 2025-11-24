@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, X, ArrowRight, TrendingUp, Zap, Brain, BarChart3, Sparkles, Lock } from "lucide-react";
+import { Check, X, ArrowRight, TrendingUp, Zap, Brain, BarChart3, Sparkles, Lock, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 import { Navigation } from "@/components/landing/Navigation";
 import { HeroSection } from "@/components/landing/HeroSection";
@@ -112,7 +112,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Complex AI Reasoning Section - NEW */}
+      {/* How It Works - Upload PDF, AI Learns Your Voice */}
       <section className="py-20 px-4 border-y border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-transparent">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -121,71 +121,57 @@ export default function Landing() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Brain className="w-8 h-8 text-purple-400" />
-              <span className="text-purple-400 font-semibold">COMPLEX AI REASONING</span>
-            </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Deep Thinking AI That Actually Understands Context
+              Upload Your Brand PDF → AI Learns Your Voice
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Unlike simple chatbots, Audnix uses extended reasoning to understand your business, your leads, and the right approach. Every message is thoughtfully crafted.
+              Stop writing emails. Upload your brand PDF once, and AI instantly understands your unique value proposition, testimonials, success metrics, and competitive positioning.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
             <AnimatedCard className="bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/30 p-8">
               <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
                 <Brain className="w-6 h-6 text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-white">Multi-Turn Analysis</h3>
-              <p className="text-white/80 text-sm">
-                AI analyzes your PDFs, past conversations, and lead behavior to understand the complete picture before responding.
-              </p>
+              <h3 className="text-xl font-bold mb-3 text-white">What AI Extracts</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li>✓ Your unique value proposition</li>
+                <li>✓ Target audience & industry positioning</li>
+                <li>✓ Success metrics & testimonials</li>
+                <li>✓ Case studies & real results</li>
+                <li>✓ Your brand tone & voice</li>
+                <li>✓ Competitive landscape gaps</li>
+                <li>✓ Pricing & offer structure</li>
+              </ul>
             </AnimatedCard>
 
             <AnimatedCard className="bg-gradient-to-br from-pink-500/10 to-purple-500/5 border-pink-500/30 p-8">
               <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center mb-4">
                 <Sparkles className="w-6 h-6 text-pink-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-white">Smart Objection Handling</h3>
-              <p className="text-white/80 text-sm">
-                Reasoning through objections: analyzes the real concern, crafts personalized responses that actually move deals forward.
-              </p>
-            </AnimatedCard>
-
-            <AnimatedCard className="bg-gradient-to-br from-indigo-500/10 to-purple-500/5 border-indigo-500/30 p-8">
-              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-indigo-400" />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-white">Adaptive Strategy</h3>
-              <p className="text-white/80 text-sm">
-                AI adjusts messaging, timing, and channel based on what works. Learns from every interaction.
-              </p>
+              <h3 className="text-xl font-bold mb-3 text-white">How AI Uses It</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li>✓ Personalize every message automatically</li>
+                <li>✓ Match your exact tone & voice</li>
+                <li>✓ Reference your real testimonials</li>
+                <li>✓ Highlight relevant success metrics</li>
+                <li>✓ Position you vs competitors</li>
+                <li>✓ Handle objections with your data</li>
+                <li>✓ Adapt across 24/7 automation</li>
+              </ul>
             </AnimatedCard>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-4 text-white">The Result?</h3>
-            <div className="grid md:grid-cols-3 gap-6 text-left max-w-3xl mx-auto">
-              <div>
-                <p className="text-3xl font-bold text-purple-400 mb-2">3x</p>
-                <p className="text-white/80">More responses compared to generic templates</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-pink-400 mb-2">2x</p>
-                <p className="text-white/80">Higher conversion rates from qualified leads</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-indigo-400 mb-2">24/7</p>
-                <p className="text-white/80">Always-on reasoning without burnout</p>
-              </div>
-            </div>
+          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-8 text-center">
+            <p className="text-lg text-white/90">
+              <span className="font-bold text-purple-400">Result:</span> Leads receive personalized, data-driven messages that sound like YOU—not a bot. Instant credibility + higher response rates.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Real Analytics Section - NEW */}
+      {/* Real Analytics - What You Actually See */}
       <section className="py-20 px-4 border-b border-cyan-500/20">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -196,63 +182,57 @@ export default function Landing() {
           >
             <div className="flex items-center justify-center gap-3 mb-4">
               <BarChart3 className="w-8 h-8 text-cyan-400" />
-              <span className="text-cyan-400 font-semibold">REAL-TIME ANALYTICS</span>
+              <span className="text-cyan-400 font-semibold">REAL-TIME INSIGHTS</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              See Your Results Before Paying
+              See What's Working. Immediately.
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Everyone gets FREE analytics dashboard. Free users see 1 AI insight. When you close your first deal in 3 days, upgrade to Pro and unlock full analytics.
+              Track lead engagement, response rates, and AI insights in real-time. Free tier gives you 1 insight preview. Pro tier unlocks unlimited analysis to scale.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             <AnimatedCard className="bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/30 p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Check className="w-6 h-6 text-cyan-400" />
-                <h3 className="text-xl font-bold text-white">Free Trial Dashboard</h3>
-              </div>
-              <ul className="space-y-3 text-white/80">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>1 AI Insight (see what you're missing on paid)</span>
+              <h3 className="text-xl font-bold text-white mb-4">Dashboard Tracks</h3>
+              <ul className="space-y-3 text-white/80 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
+                  <span><strong>Channel breakdown:</strong> Email vs WhatsApp vs Instagram performance</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Real message history across all channels</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
+                  <span><strong>Conversion funnel:</strong> New → Replied → Converted</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Lead quality scores</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
+                  <span><strong>Lead scoring:</strong> AI ranks leads by buying intent (0-100)</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Response rate tracking</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
+                  <span><strong>Response rates:</strong> Message-by-message engagement</span>
                 </li>
               </ul>
             </AnimatedCard>
 
             <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border-blue-500/30 p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="w-6 h-6 text-blue-400" />
-                <h3 className="text-xl font-bold text-white">Pro Plan (Unlock at $1K)</h3>
-              </div>
-              <ul className="space-y-3 text-white/80">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <span>Unlimited AI Insights (channel breakdown, conversion rates)</span>
+              <h3 className="text-xl font-bold text-white mb-4">AI Insights</h3>
+              <ul className="space-y-3 text-white/80 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold mt-0.5">→</span>
+                  <span><strong>Free tier:</strong> 1 preview insight + upgrade prompts</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <span>Real-time charts & trends</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold mt-0.5">→</span>
+                  <span><strong>Pro tier:</strong> Unlimited AI-generated insights & recommendations</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <span>Custom reporting</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold mt-0.5">→</span>
+                  <span><strong>Real-time charts:</strong> 7-day trends for all channels</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <span>Unlimited leads & automations</span>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400 font-bold mt-0.5">→</span>
+                  <span><strong>Lead intelligence:</strong> Buyer stage detection & churn risk alerts</span>
                 </li>
               </ul>
             </AnimatedCard>
@@ -260,13 +240,13 @@ export default function Landing() {
 
           <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 text-center">
             <p className="text-lg text-white/90">
-              <span className="font-bold text-cyan-400">Strategy:</span> Limited leads (100/month free) + free analytics = you see the value immediately. Close your first deal in 3 days, then upgrade to Pro to scale.
+              <span className="font-bold text-cyan-400">Strategy:</span> Free tier limits you to 500 leads/month to close your first deal fast. After your first $1K, upgrade to Pro for unlimited scale.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Week-1 Revenue Sequences - NEW */}
+      {/* Multi-Channel Automation - Not Just DMs */}
       <section className="py-20 px-4 border-b border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -276,84 +256,70 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Week-1 Revenue Battle Plan
+              Automated Across Every Channel
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Proven 4-email sequence designed to close your first $1,000 deal in week 1
+              Day-aware sequences that escalate across Email → WhatsApp → Instagram. Not DMs-only. Not a chatbot. Real multi-channel automation.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-            {[
-              {
-                day: "Day 1-2",
-                email: "Welcome",
-                goal: "Build rapport",
-                status: "Warm lead"
-              },
-              {
-                day: "Day 3",
-                email: "Value prop",
-                goal: "Show benefits",
-                status: "Interested"
-              },
-              {
-                day: "Day 5",
-                email: "Case study",
-                goal: "Build credibility",
-                status: "Warm"
-              },
-              {
-                day: "Day 7",
-                email: "Close offer",
-                goal: "Convert to first deal",
-                status: "$1K target"
-              }
-            ].map((step, i) => (
-              <AnimatedCard
-                key={i}
-                className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30 p-6"
-                delay={i * 0.1}
-              >
-                <div className="text-center">
-                  <p className="text-emerald-400 font-bold text-sm mb-2">{step.day}</p>
-                  <h3 className="text-lg font-bold text-white mb-3">{step.email}</h3>
-                  <p className="text-sm text-white/70 mb-3">{step.goal}</p>
-                  <div className="px-3 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                    <p className="text-xs font-semibold text-emerald-400">{step.status}</p>
-                  </div>
-                </div>
-              </AnimatedCard>
-            ))}
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+            <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30 p-8" delay={0}>
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                <Zap className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Email Sequences</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li>• Day 0: Initial hook</li>
+                <li>• Day 1: Value prop</li>
+                <li>• Day 2: Benefit deep-dive</li>
+                <li>• Day 5: Soft check-in</li>
+                <li>• Day 7: Final close</li>
+                <li>• AI subject lines included</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/30 p-8" delay={0.1}>
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">WhatsApp + Instagram</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li>• Escalates if email ignored</li>
+                <li>• Day 3, 6, 8 timing</li>
+                <li>• Voice messages supported</li>
+                <li>• Real-time engagement detection</li>
+                <li>• Respects rate limits (human-like)</li>
+                <li>• Multi-language auto-detect</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border-blue-500/30 p-8" delay={0.2}>
+              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Always Personalized</h3>
+              <ul className="space-y-2 text-white/80 text-sm">
+                <li>• Learns from lead behavior</li>
+                <li>• Detects objections in real-time</li>
+                <li>• Suggests negotiation strategies</li>
+                <li>• Adapts messaging by stage</li>
+                <li>• Scores lead warmth automatically</li>
+                <li>• 24/7 follow-up, no sleep</li>
+              </ul>
+            </AnimatedCard>
           </div>
 
-          <div className="mt-12 max-w-3xl mx-auto">
-            <div className="p-8 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
-              <h3 className="text-2xl font-bold mb-4 text-white">What Makes It Work?</h3>
-              <ul className="space-y-3 text-white/80">
-                <li className="flex items-start gap-3">
-                  <Zap className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span><strong>AI writes each email</strong> - personalized based on lead behavior & your brand</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Zap className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span><strong>Timing is automatic</strong> - sends at moments when leads are most engaged</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Zap className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span><strong>Zero copy writing needed</strong> - just upload your PDF, AI learns your voice</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Zap className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span><strong>Scales to all channels</strong> - email, WhatsApp, Instagram at once</span>
-                </li>
-              </ul>
-            </div>
+          <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center">
+            <h3 className="text-2xl font-bold mb-3 text-white">Not A Sequence Blaster</h3>
+            <p className="text-white/90 text-lg">
+              Audnix doesn't just send emails. It <strong>learns</strong> which channels work best for each lead. If a lead replies on WhatsApp, it stops emailing and focuses there. If they're a hot lead, it replies in 50 seconds. Cold lead? It waits 8 minutes to feel human.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Legal Compliance - NEW */}
+      {/* Legal Compliance - REAL Protection */}
       <section className="py-20 px-4 border-b border-purple-500/20">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -367,34 +333,34 @@ export default function Landing() {
               <span className="text-purple-400 font-semibold">LEGALLY PROTECTED</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Full Legal Compliance Built In
+              AI Disclaimers + Audit Trail + User Control
             </h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-3">AI Disclaimers</h3>
+              <h3 className="text-lg font-bold text-white mb-3">✓ AI Disclaimers</h3>
               <p className="text-white/80 text-sm">
-                Auto-included on every AI message (email, WhatsApp, SMS, voice). Transparent. Legally sound.
+                Auto-included in every AI message (not a popup that scares leads). Blends naturally. Legally protects you.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-3">Audit Trail</h3>
+              <h3 className="text-lg font-bold text-white mb-3">✓ Complete Audit Trail</h3>
               <p className="text-white/80 text-sm">
-                Every message logged with timestamps. Proves compliance in case of disputes.
+                Every message timestamped. Proves disclaimers were included. Essential for disputes.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-3">User Control</h3>
+              <h3 className="text-lg font-bold text-white mb-3">✓ Lead Control</h3>
               <p className="text-white/80 text-sm">
-                Leads can opt-out of AI anytime. Privacy & data security built from day 1.
+                Leads can opt-out anytime. Privacy + data security built in. Transparent, trustworthy.
               </p>
             </div>
           </div>
 
           <div className="mt-8 p-6 rounded-lg bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-center">
-            <p className="text-white/90">
-              See full legal details in our <Link href="/terms-of-service"><a className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</a></Link> and <Link href="/privacy-policy"><a className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</a></Link>
+            <p className="text-white/90 text-sm">
+              Full details: <Link href="/terms-of-service"><a className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</a></Link> (Section 13: AI Communications) and <Link href="/privacy-policy"><a className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</a></Link>
             </p>
           </div>
         </div>
