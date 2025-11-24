@@ -129,7 +129,7 @@ export async function processPDF(
           name: lead.name,
           email: lead.email || undefined,
           phone: lead.phone || undefined,
-          company: lead.company || undefined
+          company: lead.metadata?.company || undefined
         });
 
         // Auto-reach out if enabled and offer data exists
@@ -279,7 +279,7 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
       max_completion_tokens: 1200
     });
     
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.choices[0].message.body || '{}');
     
     // Merge AI-extracted colors with regex-extracted colors for maximum coverage
     const aiColors = result.brand?.colors || {};
@@ -455,7 +455,7 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
       max_completion_tokens: 1000
     });
     
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.choices[0].message.body || '{}');
     return result.leads || [];
   } catch (error) {
     console.error('AI lead extraction failed:', error);
@@ -541,7 +541,7 @@ export async function exportLeadsToCSV(userId: string): Promise<string> {
     lead.name,
     lead.email || '',
     lead.phone || '',
-    lead.company || '',
+    lead.metadata?.company || '',
     lead.channel,
     lead.status,
     lead.score || 0,

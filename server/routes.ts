@@ -935,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 status: 'new',
                 tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : ['csv-import'],
                 metadata: {
-                  company: lead.company,
+                  company: lead.metadata?.company,
                   source: 'csv_import',
                   imported_at: new Date().toISOString()
                 }
@@ -1891,7 +1891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Name: lead.name,
         Email: lead.email || '',
         Phone: lead.phone || '',
-        Company: lead.company || '',
+        Company: lead.metadata?.company || '',
         Channel: lead.channel,
         Status: lead.status,
         Score: lead.score || 0,

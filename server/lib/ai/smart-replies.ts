@@ -79,7 +79,7 @@ Return JSON array:
       temperature: 0.8
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{"replies":[]}');
+    const result = JSON.parse(response.choices[0].message.body || '{"replies":[]}');
     const replies = result.replies || [];
 
     return replies.map((reply: any, index: number) => ({

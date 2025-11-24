@@ -173,11 +173,11 @@ export async function autoGenerateFollowUp(lead: any, messages: any[], daysSince
   let followUpMessage = "";
 
   if (followUpType === "urgency") {
-    followUpMessage = `Quick update: We've helped ${lead.industry} companies like yours see results in 30 days. Timeline working for you?`;
+    followUpMessage = `Quick update: We've helped ${lead.metadata?.industry} companies like yours see results in 30 days. Timeline working for you?`;
   } else if (followUpType === "value") {
-    followUpMessage = `Sarah, wanted to share a case study that might be relevant to ${lead.company}. Similar company: 40% faster results. Worth a 5-min chat?`;
+    followUpMessage = `Sarah, wanted to share a case study that might be relevant to ${lead.metadata?.company}. Similar company: 40% faster results. Worth a 5-min chat?`;
   } else {
-    followUpMessage = `Different angle on ${lead.company}: Most of your competitors are missing one key thing. Can I show you?`;
+    followUpMessage = `Different angle on ${lead.metadata?.company}: Most of your competitors are missing one key thing. Can I show you?`;
   }
 
   return {

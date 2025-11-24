@@ -243,7 +243,7 @@ router.post("/generate-message-with-intelligence", async (req, res) => {
         churn_risk: intelligence.churnRisk.churnRiskLevel,
         next_action: intelligence.nextBestAction,
       },
-      suggestion: `📧 Send to ${lead.firstName} → ${intelligence.nextBestAction}`,
+      suggestion: `📧 Send to ${lead.name} → ${intelligence.nextBestAction}`,
     });
   } catch (error) {
     console.error("Error generating message with intelligence:", error);

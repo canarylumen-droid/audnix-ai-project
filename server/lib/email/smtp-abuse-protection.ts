@@ -60,7 +60,7 @@ class SmtpAbuseProtection {
     try {
       // Get user's plan
       const [user] = await db
-        .select({ subscriptionTier: users.subscriptionTier })
+        .select({ subscriptionTier: users.plan })
         .from(users)
         .where(eq(users.id, userId))
         .limit(1);
@@ -144,7 +144,7 @@ class SmtpAbuseProtection {
     plan: string;
   }> {
     const [user] = await db
-      .select({ subscriptionTier: users.subscriptionTier })
+      .select({ subscriptionTier: users.plan })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);

@@ -290,7 +290,7 @@ export class FollowUpWorker {
       campaignDay,
       previousMessages: history.map(msg => ({
         sentAt: new Date(msg.created_at),
-        body: msg.content,
+        body: msg.body,
       })),
       leadEngagement: this.assessLeadTemperature(lead, history),
       leadName: lead.preferred_name || lead.name.split(' ')[0],
@@ -340,7 +340,7 @@ SCRIPT GUIDANCE (use as reference, not required):
     // Build conversation history string
     const historyStr = history
       .slice(-5) // Last 5 messages
-      .map(msg => `${msg.role === 'user' ? 'Lead' : 'You'}: ${msg.content}`)
+      .map(msg => `${msg.role === 'user' ? 'Lead' : 'You'}: ${msg.body}`)
       .join('\n');
 
     // Determine follow-up number
@@ -430,7 +430,7 @@ Generate a natural follow-up message:`;
       .limit(10);
 
     return messageHistory.map(msg => ({
-      content: msg.content,
+      content: msg.body,
       role: msg.role === 'inbound' ? 'user' : 'assistant',
       created_at: msg.created_at.toISOString()
     })) as Message[];

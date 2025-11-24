@@ -100,7 +100,7 @@ export class SupabaseStorage implements IStorage {
       provider: row.provider,
       encryptedMeta: row.encrypted_meta,
       connected: row.connected,
-      accountType: row.account_type,
+      accountType: row.accountType,
       lastSync: row.last_sync ? new Date(row.last_sync) : null,
       createdAt: new Date(row.created_at),
     };

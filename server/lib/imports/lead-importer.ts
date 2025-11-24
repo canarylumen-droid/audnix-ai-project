@@ -26,7 +26,7 @@ export async function importInstagramLeads(userId: string): Promise<{
     const currentLeadCount = existingLeads.length;
 
     // Free trial users limited to 500 leads
-    const isFreeTrial = !user?.subscriptionTier || user.subscriptionTier === 'free';
+    const isFreeTrial = !user?.subscriptionTier || user.plan === 'free';
     const maxLeadsForFree = 500;
 
     if (isFreeTrial && currentLeadCount >= maxLeadsForFree) {

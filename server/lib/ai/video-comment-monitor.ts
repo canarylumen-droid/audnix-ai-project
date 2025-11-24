@@ -108,7 +108,7 @@ Return JSON:
       temperature: 0.5
     });
 
-    return JSON.parse(response.choices[0].message.content || '{}');
+    return JSON.parse(response.choices[0].message.body || '{}');
   } catch (error) {
     console.error('Buying intent detection error:', error);
     return {
@@ -190,7 +190,7 @@ REMEMBER: Use their REAL username (${leadName}), reference their actual comment,
       temperature: 0.9
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.choices[0].message.body || '{}');
     return result;
   } catch (error) {
     console.error('Salesman DM generation error:', error);
@@ -252,7 +252,7 @@ Generate ONLY the comment reply text (no quotes, no explanations):`;
       temperature: 0.9
     });
 
-    return response.choices[0].message.content?.trim() || "Check your DM! 💬";
+    return response.choices[0].message.body?.trim() || "Check your DM! 💬";
   } catch (error) {
     console.error('Comment reply generation error:', error);
     return askForFollow ? `Follow me for the link! 🔥` : "Check your DM! 💬";

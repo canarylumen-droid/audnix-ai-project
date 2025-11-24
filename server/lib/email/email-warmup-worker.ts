@@ -84,7 +84,7 @@ class EmailWarmupWorker {
       const activeUsers = await db
         .select()
         .from(users)
-        .where(eq(users.subscriptionTier, 'starter'));
+        .where(eq(users.plan, 'starter'));
 
       for (const user of activeUsers) {
         await this.updateUserWarmupSchedule(user.id);

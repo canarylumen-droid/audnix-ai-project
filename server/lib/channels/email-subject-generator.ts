@@ -17,7 +17,7 @@ export async function generateEmailSubject(userId: string, content: string): Pro
       ]
     });
 
-    const subject = message.content[0].type === 'text' ? message.content[0].text.trim() : 'Hello';
+    const subject = message.body[0].type === 'text' ? message.body[0].text.trim() : 'Hello';
     return subject.replace(/^["']|["']$/g, ''); // Remove quotes if any
   } catch (error) {
     console.warn('Failed to generate email subject with AI, using default:', error);

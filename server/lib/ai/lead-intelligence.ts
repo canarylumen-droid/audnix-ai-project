@@ -62,8 +62,8 @@ CONVERSATION:
 ${conversationText}
 
 LEAD PROFILE:
-Company: ${lead.company}
-Industry: ${lead.industry}
+Company: ${lead.metadata?.company}
+Industry: ${lead.metadata?.industry}
 
 Determine:
 1. Intent Level (high/medium/low/not_interested)
@@ -85,7 +85,7 @@ Format as JSON:
       max_tokens: 400,
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0].message.body || "{}");
     return {
       intentLevel: result.intentLevel || "low",
       intentScore: result.intentScore || 20,
@@ -152,7 +152,7 @@ Keep replies under 100 words each.`,
       max_tokens: 600,
     });
 
-    const replies = JSON.parse(response.choices[0].message.content || "[]");
+    const replies = JSON.parse(response.choices[0].message.body || "[]");
     return replies.slice(0, 3);
   } catch (error) {
     console.error("Error suggesting reply:", error);
@@ -210,7 +210,7 @@ Format as JSON:
       max_tokens: 400,
     });
 
-    const objection = JSON.parse(response.choices[0].message.content || "{}");
+    const objection = JSON.parse(response.choices[0].message.body || "{}");
     return {
       objectType: objection.objectType || "unknown",
       confidence: objection.confidence || 50,
@@ -283,11 +283,11 @@ export async function predictDealAmount(
     "e-commerce": 1.2,
   };
 
-  let baseAmount = sizeMultiplier[lead.companySize || ""] || 5000;
+  let baseAmount = sizeMultiplier[lead.metadata?.companySize || ""] || 5000;
   let confidence = 40;
 
   // Apply industry multiplier
-  const industryKey = (lead.industry || "").toLowerCase();
+  const industryKey = (lead.metadata?.industry || "").toLowerCase();
   for (const [ind, mult] of Object.entries(industryMultiplier)) {
     if (industryKey.includes(ind)) {
       baseAmount *= mult;

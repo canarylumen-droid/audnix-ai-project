@@ -86,10 +86,10 @@ function calculateCompanyScore(lead: Lead): number {
     "201-500": 75,
     "500+": 100,
   };
-  score += sizeMap[lead.companySize || ""] || 30;
+  score += sizeMap[lead.metadata?.companySize || ""] || 30;
 
   // Company has website / LinkedIn = established company
-  if (lead.companyWebsite) score += 15;
+  if (lead.metadata?.companyWebsite) score += 15;
 
   return Math.min(100, score);
 }
@@ -110,7 +110,7 @@ function calculateIndustryScore(lead: Lead): number {
     "consulting",
   ];
 
-  if (highValueIndustries.some((ind) => lead.industry?.toLowerCase().includes(ind))) {
+  if (highValueIndustries.some((ind) => lead.metadata?.industry?.toLowerCase().includes(ind))) {
     return 80;
   }
 
@@ -204,20 +204,20 @@ export async function findDuplicateLeads(
       const leadDomain = lead.email.split("@")[1];
       const otherDomain = otherLead.email.split("@")[1];
 
-      if (leadDomain === otherDomain && lead.firstName?.toLowerCase() === otherLead.firstName?.toLowerCase()) {
+      if (leadDomain === otherDomain && lead.name?.toLowerCase() === otherLead.firstName?.toLowerCase()) {
         matchScore = Math.max(matchScore, 80);
         matchFields.push("email_domain", "first_name");
       }
     }
 
     // Company + email domain match
-    if (lead.company && lead.email && otherLead.company && otherLead.email) {
+    if (lead.metadata?.company && lead.email && otherLead.company && otherLead.email) {
       const leadDomain = lead.email.split("@")[1];
       const otherDomain = otherLead.email.split("@")[1];
 
       if (
         leadDomain === otherDomain &&
-        lead.company.toLowerCase() === otherLead.company.toLowerCase()
+        lead.metadata?.company.toLowerCase() === otherLead.company.toLowerCase()
       ) {
         matchScore = Math.max(matchScore, 75);
         matchFields.push("company", "email_domain");
@@ -276,12 +276,12 @@ export async function getLeadsInSegment(
 
     // Industry filter
     if (segmentCriteria.industries && segmentCriteria.industries.length > 0) {
-      if (!segmentCriteria.industries.some((ind) => lead.industry?.includes(ind))) return false;
+      if (!segmentCriteria.industries.some((ind) => lead.metadata?.industry?.includes(ind))) return false;
     }
 
     // Company size filter
     if (segmentCriteria.companySize && segmentCriteria.companySize.length > 0) {
-      if (!segmentCriteria.companySize.includes(lead.companySize)) return false;
+      if (!segmentCriteria.companySize.includes(lead.metadata?.companySize)) return false;
     }
 
     return true;
@@ -342,9 +342,9 @@ export async function enrichLeadCompany(lead: Lead): Promise<{
   const emailDomain = lead.email?.split("@")[1];
 
   return {
-    company_name: lead.company || "",
-    company_size: lead.companySize || "unknown",
-    industry: lead.industry || "unknown",
+    company_name: lead.metadata?.company || "",
+    company_size: lead.metadata?.companySize || "unknown",
+    industry: lead.metadata?.industry || "unknown",
     revenue_estimate: "unknown",
     employee_count: 0,
     website: `https://${emailDomain}` || "",

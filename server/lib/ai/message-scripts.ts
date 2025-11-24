@@ -13,9 +13,9 @@ export const messageScripts = {
       subject: 'Quick question about {{lead.name}}',
       tone: 'friendly, curious, no pitch',
       structure: 'Personal greeting → Show you did research → Ask a genuine question → Keep it short',
-      example: `Hi {{lead.firstName}},
+      example: `Hi {{lead.name}},
 
-I came across {{lead.company || 'your work'}} and noticed {{specific_observation}}.
+I came across {{lead.metadata?.company || 'your work'}} and noticed {{specific_observation}}.
 
 I was wondering: {{genuine_question}}
 
@@ -27,7 +27,7 @@ Looking forward to hearing from you!
       subject: 'Re: {{previous_subject}} - {{quick_value_add}}',
       tone: 'helpful, still no pressure',
       structure: 'Acknowledge if no response → Add something valuable → Soft call-to-action',
-      example: `Hi {{lead.firstName}},
+      example: `Hi {{lead.name}},
 
 Wanted to add one more thing to my previous email: {{specific_value}}.
 
@@ -41,7 +41,7 @@ Let me know if you'd like to explore further.
       subject: 'Last thing: {{specific_value_prop}}',
       tone: 'educational, valuable, final opportunity',
       structure: 'Light acknowledgment → Share insight/resource → Final soft ask → Exit gracefully',
-      example: `Hi {{lead.firstName}},
+      example: `Hi {{lead.name}},
 
 I'll keep this short - just wanted to share {{resource_or_insight}} that might be relevant.
 
@@ -52,10 +52,10 @@ If you ever want to discuss further, I'm here. If not, no worries!
 {{sender.name}}`
     },
     day7: {
-      subject: 'One last thought about {{lead.firstName}}',
+      subject: 'One last thought about {{lead.name}}',
       tone: 'personal, warm, graceful exit',
       structure: 'Personal note → Offer without expectation → Clear exit path → Stay connected',
-      example: `Hi {{lead.firstName}},
+      example: `Hi {{lead.name}},
 
 Not going to follow up anymore, but wanted to say - {{genuine_personal_comment}}.
 
@@ -70,7 +70,7 @@ All the best,
     day3: {
       tone: 'casual, conversational, friendly',
       structure: 'Casual greeting → Specific mention → Question or update',
-      example: `Hey {{lead.firstName}}! 👋
+      example: `Hey {{lead.name}}! 👋
 
 Saw {{specific_thing}} and thought of you. How are things going with {{context}}?
 
@@ -79,7 +79,7 @@ No pressure, just checking in 😊`
     day6: {
       tone: 'helpful, value-first, quick',
       structure: 'Quick value add → Open door → Light ask',
-      example: `{{lead.firstName}} - found this and thought you might like it: {{link_or_brief_value}}
+      example: `{{lead.name}} - found this and thought you might like it: {{link_or_brief_value}}
 
 Curious what you think 🤔`
     }
@@ -89,7 +89,7 @@ Curious what you think 🤔`
     day5: {
       tone: 'authentic, brief, visual-aware',
       structure: 'Comment or DM friendly → Share observation → Light engage',
-      example: `Hey {{lead.firstName}}! 👀
+      example: `Hey {{lead.name}}! 👀
 
 Saw {{specific_visual_observation}} on your latest - {{genuine_comment}}.
 
@@ -98,7 +98,7 @@ How's {{topic}} treating you?`
     day8: {
       tone: 'casual check-in, knowing might not connect',
       structure: 'Brief, low-pressure message',
-      example: `{{lead.firstName}}, loved that {{observation}}. 
+      example: `{{lead.name}}, loved that {{observation}}. 
 
 Anytime you want to chat about {{topic}}, I'm around! 🤙`
     }
@@ -152,8 +152,8 @@ export function personalizeScript(
 
   // Replace all template variables
   template = template.replace(/{{lead\.name}}/g, context.lead.name);
-  template = template.replace(/{{lead\.firstName}}/g, context.lead.firstName);
-  template = template.replace(/{{lead\.company}}/g, context.lead.company || 'your work');
+  template = template.replace(/{{lead\.firstName}}/g, context.lead.name);
+  template = template.replace(/{{lead\.company}}/g, context.lead.metadata?.company || 'your work');
   template = template.replace(/{{specific_observation}}/g, context.observation || 'something interesting');
   template = template.replace(/{{genuine_question}}/g, context.question || 'how are things going?');
   template = template.replace(/{{specific_value}}/g, context.value || 'something useful');

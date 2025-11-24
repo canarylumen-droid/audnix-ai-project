@@ -236,12 +236,12 @@ router.get('/status', requireAuth, async (req, res) => {
       calendly: {
         connected: !!calendly,
         provider: 'calendly',
-        accountType: calendly?.account_type || null
+        accountType: calendly?.accountType || null
       },
       google: {
         connected: !!google,
         provider: 'google_calendar',
-        accountType: google?.account_type || null
+        accountType: google?.accountType || null
       },
       primary: calendly ? 'calendly' : google ? 'google_calendar' : null,
       message: calendly 

@@ -119,7 +119,7 @@ function calculateSentimentScore(messages: any[]): number {
   let negativeCount = 0;
   
   messages.forEach(msg => {
-    const text = msg.content.toLowerCase();
+    const text = msg.body.toLowerCase();
     positiveWords.forEach(word => {
       if (text.includes(word)) positiveCount++;
     });
@@ -141,7 +141,7 @@ function calculateIntentScore(messages: any[]): number {
   const recentMessages = messages.slice(-10); // Last 10 messages
   
   recentMessages.forEach(msg => {
-    const text = msg.content.toLowerCase();
+    const text = msg.body.toLowerCase();
     buyingSignals.forEach(signal => {
       if (text.includes(signal)) signalCount++;
     });

@@ -34,7 +34,7 @@ export async function getBrandPersonalization(userId: string): Promise<BrandCont
     }
 
     return {
-      senderName: user.firstName || user.email?.split('@')[0] || 'Team',
+      senderName: user.name || user.email?.split('@')[0] || 'Team',
       senderEmail: user.email,
       companyName: user.company || 'Our Team',
       voiceTone: user.replyTone || 'professional and friendly',

@@ -54,7 +54,7 @@ export class LeadLearningSystem {
       await supabaseAdmin
         .from('semantic_memory')
         .upsert({
-          user_id: lead.user_id,
+          user_id: lead.userId,
           lead_id: leadId,
           content: JSON.stringify(pattern),
           metadata: {
@@ -184,7 +184,7 @@ export class LeadLearningSystem {
       engagementScore > 40 ? 'warm' : 'cold';
 
     return {
-      userId: lead.user_id,
+      userId: lead.userId,
       leadId: lead.id,
       responseTime: Math.round(avgResponseTime),
       messageLength: Math.round(avgMessageLength),
