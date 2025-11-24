@@ -41,7 +41,13 @@ export async function setupVite(app: Express, server: Server) {
   // Apply rate limiting to vite routes
   app.use(viteLimiter);
   app.use(vite.middlewares);
+  // Skip Vite for API routes - let Express handlers take over
   app.use("*", async (req, res, next) => {
+    // Skip Vite for API routes
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
+      return next();
+    }
+
     const url = req.originalUrl;
 
     try {

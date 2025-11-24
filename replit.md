@@ -5,27 +5,36 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 
 ### Current Status: ✅ PRODUCTION-READY & VERCEL-DEPLOYABLE
 
-**Version:** 2.7 (OTP Email System + Twilio Integration Active)
-**Last Updated:** November 24, 2025, 9:38 AM
+**Version:** 2.7.1 (OTP Email System + CRITICAL API ROUTING FIX)
+**Last Updated:** November 24, 2025, 10:09 AM
 **Build Status:** ✅ Passing (656.2KB, ZERO TypeScript errors)
-**Auth Status:** ✅ Fully Protected + Admin Secret URLs + OTP Email Working
+**Auth Status:** ✅ Fully Protected + Admin Secret URLs + OTP Email Working ✅
 **Payment Status:** ✅ Admin Auto-Approve System (No API Keys Needed)
-**OTP Status:** ✅ Real Twilio SendGrid Integration (auth@audnixai.com)
+**OTP Status:** ✅ Real Twilio SendGrid Integration (auth@audnixai.com) - ALL ENDPOINTS WORKING
+**API Status:** ✅ FIXED: Vite middleware no longer blocks `/api/` and `/webhook/` routes
 **Legal Status:** ✅ AI Disclaimers + Terms/Privacy Updated
 **Analytics:** ✅ FREE for all users
 
 ---
 
-## 🆕 VERSION 2.7 - OTP EMAIL SYSTEM LIVE ✅
+## 🆕 VERSION 2.7.1 - CRITICAL API ROUTING FIX ✅
 
-### What's New:
-- ✅ **Real Twilio SendGrid Integration** - OTP emails now send via `auth@audnixai.com`
-- ✅ **Account SID:** AC46a88ba0c89d63e3a74af0d38832b216
-- ✅ **Auth Token:** Configured securely in Replit Secrets
-- ✅ **SendGrid API Key:** SG.6G-BxdzTTqKVGko4-CQzpQ... (loaded)
+### Critical Fix (Nov 24, 10:09 AM):
+**BUG:** Vite dev server middleware was catching ALL requests (including `/api/`) with catch-all `app.use("*", ...)`, returning HTML instead of JSON
+**ROOT CAUSE:** Middleware order + missing route check
+**FIX:** Added check in `server/vite.ts` line 50 to skip Vite for `/api/` and `/webhook/` routes, letting Express API handlers take over
+**RESULT:** ✅ All API endpoints now working correctly!
+
+### OTP System - FULLY OPERATIONAL:
+- ✅ **POST /api/auth/email-otp/request** - Request OTP (returns JSON)
+- ✅ **POST /api/auth/email-otp/verify** - Verify OTP (returns JSON)
+- ✅ **POST /api/auth/email-otp/resend** - Resend OTP (returns JSON)
+- ✅ **Real Twilio SendGrid Integration** - OTP emails send via `auth@audnixai.com`
+- ✅ **Account SID:** AC46a88ba0c89d63e3a74af0d38832b216 ✅ 
+- ✅ **Auth Token:** Configured securely in Replit Secrets ✅
+- ✅ **SendGrid API Key:** Loaded and active ✅
 - ✅ **10-minute OTP expiry** - Automatic cleanup
 - ✅ **Database persistence** - OTP sessions in PostgreSQL
-- ✅ **Development fallback** - Logs to console if credentials missing
 
 ### OTP Flow:
 ```
