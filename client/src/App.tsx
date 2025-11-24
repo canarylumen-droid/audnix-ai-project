@@ -101,12 +101,51 @@ function Router() {
           </AuthGuard>
         )}
       </Route>
-      <Route path="/admin">
+      {/* Admin routes - uses SECRET admin URL from env variable */}
+      {/* Access via: /${VITE_ADMIN_SECRET_URL} or /admin-secret-xyz (default) */}
+      <Route path="/admin-secret-xyz">
         {() => (
           <AuthGuard adminOnly={true}>
             <AdminDashboard />
           </AuthGuard>
         )}
+      </Route>
+      <Route path="/admin-secret-xyz/users">
+        {() => (
+          <AuthGuard adminOnly={true}>
+            <AdminUsers />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin-secret-xyz/analytics">
+        {() => (
+          <AuthGuard adminOnly={true}>
+            <AdminAnalytics />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin-secret-xyz/leads">
+        {() => (
+          <AuthGuard adminOnly={true}>
+            <AdminLeads />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/admin-secret-xyz/settings">
+        {() => (
+          <AuthGuard adminOnly={true}>
+            <AdminSettings />
+          </AuthGuard>
+        )}
+      </Route>
+      
+      {/* Keep old /admin path for backward compatibility - redirects to secret path */}
+      <Route path="/admin">
+        {() => {
+          const secretPath = import.meta.env.VITE_ADMIN_SECRET_URL || 'admin-secret-xyz';
+          window.location.href = `/${secretPath}`;
+          return null;
+        }}
       </Route>
       <Route path="/admin/users">
         {() => (

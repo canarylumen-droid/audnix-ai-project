@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAdminSecretPath } from "@/hooks/useAdminSecretPath";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import { PlanBadgeBanner } from "@/components/PlanBadgeBanner";
@@ -49,20 +50,8 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
-  { label: "Dashboard", icon: Home, path: "/dashboard" },
-  { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
-  { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
-  { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
-  { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
-  { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
-  { label: "Insights", icon: BarChart3, path: "/dashboard/insights" },
-  { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
-  { label: "Settings", icon: Settings, path: "/dashboard/settings" },
-  { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
-  { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
-  { label: "Admin Panel", icon: Shield, path: "/admin", adminOnly: true },
-];
+// NOTE: navItems moved inside component so we can use adminSecretPath
+// See DashboardLayout component below
 
 const mobileNavItems = [
   { label: "Home", icon: Home, path: "/dashboard" },
@@ -75,6 +64,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const adminSecretPath = useAdminSecretPath();
+
+  // Define nav items (with admin secret path)
+  const navItems: NavItem[] = [
+    { label: "Dashboard", icon: Home, path: "/dashboard" },
+    { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
+    { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
+    { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
+    { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
+    { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
+    { label: "Insights", icon: BarChart3, path: "/dashboard/insights" },
+    { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
+    { label: "Settings", icon: Settings, path: "/dashboard/settings" },
+    { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
+    { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
+    { label: "Admin Panel", icon: Shield, path: adminSecretPath, adminOnly: true },
+  ];
 
   // Calculate trial days left
   const getTrialDaysLeft = (user: any) => {

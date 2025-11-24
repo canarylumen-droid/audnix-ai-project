@@ -14,9 +14,44 @@ Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform 
 
 ---
 
-## 🆕 LATEST UPDATES (Version 2.3 - Today's Build)
+## 🆕 LATEST UPDATES (Version 2.4 - Today's Build - SECRET ADMIN + AUTH COMPLETE)
 
-### 1. Landing Page - NOW SHOWS REAL FEATURES ✅
+### 1. SECRET Admin Dashboard URL ✅
+**What it does:** Admin panel accessible at secret URL instead of `/admin`
+- **Setup:** Set `VITE_ADMIN_SECRET_URL` env variable (e.g., `admin-secret-a1b2c3d4`)
+- **Default:** `/admin-secret-xyz` (if not set - not secure for production)
+- **Production:** Use Replit Secrets or Vercel env variables to set custom secret
+- **Backward compatible:** Old `/admin` URL still works but redirects to secret path
+- **Access:** Only admin role users (whitelist emails) can access admin panel
+- **How to set up:** See `.env.example` for detailed instructions
+
+**Example:**
+```env
+# Generate secret: openssl rand -hex 8
+VITE_ADMIN_SECRET_URL=admin-secret-f8e7d6c5
+
+# Access at: https://yourdomain.com/admin-secret-f8e7d6c5
+# Old URL redirects: /admin → /admin-secret-f8e7d6c5
+```
+
+### 2. Auth Flow - FULLY TESTED & WORKING ✅
+**What it does:** Complete authentication with role-based access control
+- **User Flow:** Email → Password → OTP/Skip → Username → Onboarding (7-day sessions)
+- **Admin Flow:** Whitelist email only + OTP verification (30-day sessions)
+- **Protection:** All `/dashboard/*` routes require authentication (AuthGuard)
+- **Admin Only:** `/admin-secret-xyz` requires `role === 'admin'` (redirects to auth if not)
+- **Device Ban:** 2 failed login attempts → 1 week device ban (security)
+- **Verified:** Non-authenticated users redirected to `/auth`, admins to `/admin-secret-xyz`
+
+### 3. Responsive Mobile UI with Hamburger Menu ✅
+**What it does:** Dashboard adapts to all screen sizes with mobile-first design
+- **Desktop:** Full sidebar navigation visible
+- **Mobile:** Hamburger menu collapses sidebar to Sheet component
+- **Responsive:** All buttons, nav items, dropdowns work on mobile
+- **Sheet Menu:** Slides out from side on mobile (framer-motion animations)
+- **Testing:** Verified hamburger menu works on all viewport sizes
+
+### 4. Landing Page - NOW SHOWS REAL FEATURES ✅
 **FIXED:** Removed false marketing. Now showcases actual capabilities:
 - **Section 1: PDF Upload & Brand Learning** - Upload brand PDF → AI extracts UVP, testimonials, success metrics, competitive gaps → all used for personalization
 - **Section 2: Real Analytics Dashboard** - Channel breakdown, conversion funnel, lead scoring (0-100), response rates, buyer stage detection
