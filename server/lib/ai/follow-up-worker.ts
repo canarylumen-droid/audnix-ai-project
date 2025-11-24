@@ -181,7 +181,21 @@ export class FollowUpWorker {
       );
 
       // Generate AI reply with day-aware context and brand personalization
-      const aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+      let aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+
+      // Prepend disclaimer for legal compliance
+      try {
+        const { prependDisclaimerToMessage } = await import('./disclaimer-generator');
+        const { messageWithDisclaimer } = prependDisclaimerToMessage(
+          aiReply,
+          job.channel as 'email' | 'whatsapp' | 'sms' | 'voice',
+          brandContext?.companyName || 'Audnix'
+        );
+        aiReply = messageWithDisclaimer;
+      } catch (disclaimerError) {
+        console.warn('Failed to add disclaimer:', disclaimerError);
+        // Continue without disclaimer rather than failing the entire message
+      }
 
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);

@@ -403,7 +403,7 @@ export default function TermsOfService() {
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">12. Governing Law & Disputes</h2>
+              <h2 className="text-2xl font-bold mb-4">13. Governing Law & Disputes</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
                   These Terms are governed by the laws of <strong>[Your Jurisdiction - e.g., State of Delaware, USA]</strong>, without regard to conflict of law provisions.
@@ -423,8 +423,57 @@ export default function TermsOfService() {
               </div>
             </Card>
 
+            <Card className="p-8 border-amber-500/20 bg-amber-500/5">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-amber-500" />
+                13. AI-Generated Communications Disclaimer
+              </h2>
+              <div className="space-y-4 text-muted-foreground">
+                <p>
+                  <strong>Important:</strong> Audnix AI uses artificial intelligence to generate and send automated messages on your behalf (email, WhatsApp, SMS, voice). Please understand the following:
+                </p>
+                
+                <div className="bg-background/50 p-4 rounded-lg border border-amber-500/20">
+                  <h3 className="font-semibold text-foreground mb-2">AI Messages Are Not Legally Binding</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>AI-generated messages are <strong>informational only</strong> and do not represent official company commitments or policies</li>
+                    <li>Recipients should not rely on AI messages for legal, financial, or binding business decisions</li>
+                    <li>Only written communications from authorized company representatives are legally binding</li>
+                    <li>For official policies, commitments, or legal matters, recipients must contact your company directly</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Your Responsibility</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>You are responsible for the content of all AI-generated messages sent through Audnix AI</li>
+                    <li>You must ensure AI messages comply with all applicable laws (CAN-SPAM, GDPR, CCPA, TCPA, etc.)</li>
+                    <li>You must ensure you have permission to contact all recipients with automated messages</li>
+                    <li>You must regularly review AI-generated content to ensure accuracy and compliance</li>
+                    <li>If an AI message makes statements you disagree with or that violate laws, you are still liable</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Regulated Industries</h3>
+                  <p className="text-sm">
+                    If you operate in regulated industries (finance, healthcare, legal, real estate), you must:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm ml-4">
+                    <li>Obtain prior written approval before using AI to send regulated communications</li>
+                    <li>Ensure compliance with industry-specific regulations and licensing requirements</li>
+                    <li>Add human review before sending high-value or sensitive communications</li>
+                  </ul>
+                </div>
+
+                <p className="text-sm bg-amber-500/10 p-3 rounded border border-amber-500/20">
+                  <strong>Summary:</strong> AI messages are tools for efficiency, not replacements for official company communication. Always verify important information directly with authorized representatives.
+                </p>
+              </div>
+            </Card>
+
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">13. Miscellaneous</h2>
+              <h2 className="text-2xl font-bold mb-4">14. Miscellaneous</h2>
               <div className="space-y-3 text-muted-foreground">
                 <ul className="list-disc list-inside space-y-2">
                   <li><strong>Entire Agreement:</strong> These Terms, along with our Privacy Policy, constitute the entire agreement between you and Audnix AI</li>
@@ -438,7 +487,7 @@ export default function TermsOfService() {
             </Card>
 
             <Card className="p-8">
-              <h2 className="text-2xl font-bold mb-4">International Data Transfers & Storage</h2>
+              <h2 className="text-2xl font-bold mb-4">15. International Data Transfers & Storage</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
                   <strong>Data Residency:</strong> All user data is stored on Supabase infrastructure (SOC 2 Type II certified) with primary storage regions in the United States.

@@ -575,6 +575,61 @@ export default function PrivacyPolicy() {
               </div>
             </Card>
 
+            <Card className="p-8 border-blue-500/20 bg-blue-500/5">
+              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-blue-500" />
+                AI-Generated Message Data Processing
+              </h2>
+              <div className="space-y-4 text-muted-foreground">
+                <p>
+                  When you use Audnix AI to send automated messages, we process the following data:
+                </p>
+                
+                <div className="bg-background/50 p-4 rounded-lg border border-blue-500/20">
+                  <h3 className="font-semibold text-foreground mb-2">Data Processed for Message Generation</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li><strong>Lead Information:</strong> Names, emails, phone numbers, company details, conversation history</li>
+                    <li><strong>Brand Context:</strong> Your company voice, tone, industry, previous messaging patterns</li>
+                    <li><strong>Conversation History:</strong> Past messages to generate contextual follow-ups</li>
+                    <li><strong>Message Content:</strong> The AI-generated text/voice sent to leads (encrypted in transit and at rest)</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">How We Use This Data</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>To generate personalized AI messages on your behalf</li>
+                    <li>To improve our AI models (with your opt-out option in Settings)</li>
+                    <li>To maintain an audit trail for compliance and dispute resolution</li>
+                    <li>To detect abuse, spam, or regulatory violations</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Lead Data You Import</h3>
+                  <p className="text-sm">
+                    <strong>You are responsible for:</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm ml-4">
+                    <li>Ensuring you have legal permission to contact all imported leads</li>
+                    <li>Obtaining consent where required by law (GDPR, CCPA, etc.)</li>
+                    <li>Complying with anti-spam regulations (CAN-SPAM, GDPR, TCPA)</li>
+                    <li>Deleting lead data when requested (we honor deletion requests)</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">AI Training & Privacy</h3>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>By default, we DO NOT use your message content to train AI models</li>
+                    <li>You can opt-in to AI training improvements in Settings → Privacy → AI Training</li>
+                    <li>All training data is anonymized and cannot be re-identified</li>
+                    <li>You can opt-out at any time, and we delete training data within 30 days</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4">Changes to This Policy</h2>
               <p className="text-muted-foreground">
