@@ -28,8 +28,8 @@ const showPushNotification = async (title: string, options: any) => {
   if ('Notification' in window && Notification.permission === 'granted') {
     const registration = await navigator.serviceWorker.ready;
     registration.showNotification(title, {
-      icon: '/favicon.png',
-      badge: '/favicon.png',
+      icon: '/logo.png',
+      badge: '/logo.png',
       vibrate: [200, 100, 200],
       ...options
     });

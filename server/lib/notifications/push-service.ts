@@ -30,8 +30,8 @@ export async function sendPushNotification(
   const payload = JSON.stringify({
     title: notification.title,
     body: notification.body,
-    icon: notification.icon || '/favicon.png',
-    badge: notification.badge || '/favicon.png',
+    icon: notification.icon || '/logo.png',
+    badge: notification.badge || '/logo.png',
     data: { url: notification.url }
   });
 
