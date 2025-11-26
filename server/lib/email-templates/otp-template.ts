@@ -235,10 +235,10 @@ export function generateOTPEmail(options: OTPEmailOptions): { html: string; text
             
             <!-- Main Content -->
             <div class="content">
-                <p class="greeting">Hi ${recipientName},</p>
+                <p class="greeting">Welcome to Audnix AI, ${recipientName}</p>
                 
                 <p class="intro">
-                    Your verification code is below. This code is valid for <strong>10 minutes</strong> only.
+                    Your secure verification code is ready. This unlocks your AI-powered sales engine that closes deals while you sleep. Enter the code below to get started — valid for <strong>10 minutes</strong>.
                 </p>
                 
                 <!-- OTP Display -->
@@ -254,22 +254,22 @@ export function generateOTPEmail(options: OTPEmailOptions): { html: string; text
                 <div class="security-note">
                     <p>
                         <span class="security-icon">🔒</span>
-                        <strong>Never share this code.</strong> Audnix support will never ask for your verification code.
+                        <strong>Keep this code private.</strong> Our team will never request it. This code is for your account security only.
                     </p>
                 </div>
                 
                 <!-- Disclaimer -->
                 <p class="disclaimer">
-                    <strong>Didn't request this?</strong> If you didn't try to sign in to Audnix, you can safely ignore this email. Your account is secure.
+                    <strong>Didn't sign up for Audnix?</strong> You can safely disregard this email. If you believe this was sent in error, please don't reply — your account remains secure.
                 </p>
             </div>
             
             <!-- Footer -->
             <div class="footer">
+                <p class="tagline">Your AI Sales Closer — Always On, Always Closing</p>
                 <p class="footer-text">
-                    Questions? <a href="https://audnixai.com/support">Contact our support team</a>
+                    <a href="https://audnixai.com">Visit Audnix AI</a> • <a href="https://audnixai.com/support">Support</a> • <a href="https://audnixai.com/privacy">Privacy</a>
                 </p>
-                <p class="tagline">Audnix AI — Automate Revenue</p>
                 <p class="footer-text" style="margin-top: 16px; color: #9CA3AF;">
                     © 2025 Audnix AI. All rights reserved.
                 </p>
@@ -279,11 +279,11 @@ export function generateOTPEmail(options: OTPEmailOptions): { html: string; text
 </body>
 </html>`;
 
-  const text = `Audnix AI - Your Verification Code
+  const text = `Welcome to Audnix AI — Your AI Sales Closer
 
 Hi ${recipientName},
 
-Your verification code is below. This code is valid for 10 minutes only.
+Your secure verification code is ready. This unlocks your AI-powered sales engine that closes deals while you sleep. Enter the code below to get started — valid for 10 minutes.
 
 VERIFICATION CODE:
 ${otpCode}
@@ -291,18 +291,18 @@ ${otpCode}
 Expires in: 10 minutes
 
 SECURITY NOTE:
-Never share this code. Audnix support will never ask for your verification code.
+Keep this code private. Our team will never request it. This code is for your account security only.
 
 ---
 
-Didn't request this?
-If you didn't try to sign in to Audnix, you can safely ignore this email. Your account is secure.
+Didn't sign up for Audnix?
+You can safely disregard this email. If you believe this was sent in error, please don't reply — your account remains secure.
 
-Questions?
-Contact our support team at https://audnixai.com/support
+Need help?
+Visit us at https://audnixai.com/support
 
 © 2025 Audnix AI. All rights reserved.
-Audnix AI — Automate Revenue`;
+Your AI Sales Closer — Always On, Always Closing`;
 
   return { html, text };
 }

@@ -76,7 +76,7 @@ export class TwilioEmailOTP {
           personalizations: [
             {
               to: [{ email }],
-              subject: `Audnix AI - Your Verification Code: ${otp}`,
+              subject: `Your Audnix AI Verification Code: ${otp}`,
             },
           ],
           from: { email: this.emailFrom, name: 'Audnix AI' },
@@ -96,8 +96,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .logo-text{color:#fff;font-size:24px;font-weight:700;margin-top:12px}
 .tagline{color:#B4B8FF;font-size:13px;margin-top:4px;font-weight:500}
 .content{padding:40px 24px}
-.greeting{font-size:16px;color:#0E0E0E;margin-bottom:16px;font-weight:500}
-.intro{font-size:14px;color:#4A5A7A;margin-bottom:32px;line-height:1.8}
+.greeting{font-size:16px;color:#0E0E0E;margin-bottom:8px;font-weight:600;letter-spacing:-0.3px}
+.intro{font-size:14px;color:#4A5A7A;margin-bottom:32px;line-height:1.8;font-weight:500}
 .otp-section{background:#f7f8fc;border-left:4px solid #06B6D4;padding:24px;border-radius:4px;margin:32px 0;text-align:center}
 .otp-label{font-size:11px;color:#4A5A7A;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:12px;display:block}
 .otp-code{font-size:42px;font-weight:700;color:#1B1F3A;letter-spacing:6px;font-family:'Monaco',monospace;word-spacing:12px}
