@@ -83,15 +83,60 @@ export class TwilioEmailOTP {
           content: [
             {
               type: 'text/html',
-              value: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                  <h2 style="color: #06B6D4;">Audnix AI - Verification Code</h2>
-                  <p>Your verification code is:</p>
-                  <h1 style="color: #06B6D4; font-size: 48px; letter-spacing: 5px; margin: 20px 0;">${otp}</h1>
-                  <p style="color: #666;">This code expires in 10 minutes.</p>
-                  <p style="color: #999; font-size: 12px;">Never share this code with anyone.</p>
-                </div>
-              `,
+              value: `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f8fc;margin:0;padding:0}
+.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
+.header{background:linear-gradient(135deg,#1B1F3A 0%,#2D3548 100%);padding:30px 24px;text-align:center}
+.logo{width:100%;max-width:200px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+.logo img{width:100%;max-width:180px;height:auto}
+.logo-text{color:#fff;font-size:24px;font-weight:700;margin-top:12px}
+.tagline{color:#B4B8FF;font-size:13px;margin-top:4px;font-weight:500}
+.content{padding:40px 24px}
+.greeting{font-size:16px;color:#0E0E0E;margin-bottom:16px;font-weight:500}
+.intro{font-size:14px;color:#4A5A7A;margin-bottom:32px;line-height:1.8}
+.otp-section{background:#f7f8fc;border-left:4px solid #06B6D4;padding:24px;border-radius:4px;margin:32px 0;text-align:center}
+.otp-label{font-size:11px;color:#4A5A7A;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;margin-bottom:12px;display:block}
+.otp-code{font-size:42px;font-weight:700;color:#1B1F3A;letter-spacing:6px;font-family:'Monaco',monospace;word-spacing:12px}
+.expiration{font-size:12px;color:#7A8FA3;margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb}
+.security-note{background:#f0f4ff;padding:16px 24px;border-radius:4px;border-left:3px solid #06B6D4;margin:24px 0}
+.security-note p{font-size:13px;color:#4A5A7A;margin:0}
+.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7A8FA3}
+.footer p{margin:8px 0}
+.footer a{color:#06B6D4;text-decoration:none;font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<div class="header">
+<div class="logo">
+<img src="https://audnixai.com/logo.png" alt="Audnix AI" style="max-width:160px">
+</div>
+<div class="tagline">Your AI Sales Closer</div>
+</div>
+<div class="content">
+<p class="greeting">Verify your email</p>
+<p class="intro">Your 6-digit verification code is below. This code expires in 10 minutes.</p>
+<div class="otp-section">
+<span class="otp-label">Your Verification Code</span>
+<div class="otp-code">${otp}</div>
+<p class="expiration">Valid for 10 minutes</p>
+</div>
+<div class="security-note">
+<p><strong>🔒 Keep this code private.</strong> Audnix support will never ask for your verification code.</p>
+</div>
+</div>
+<div class="footer">
+<p><strong>Didn't request this?</strong> You can safely ignore this email.</p>
+<p>© 2025 Audnix AI — Automate Revenue</p>
+<p><a href="https://audnixai.com">audnixai.com</a></p>
+</div>
+</div>
+</body>
+</html>`,
             },
           ],
           reply_to: { email: this.emailFrom },
