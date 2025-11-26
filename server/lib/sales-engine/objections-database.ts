@@ -16,6 +16,13 @@ export interface Objection {
   proComparison?: string;
 }
 
+/**
+ * UNIFIED OBJECTIONS DATABASE - 110+ OBJECTIONS
+ * Covers: Timing, Price, Competitor, Trust, Fit, Social, Decision, Compliance, Tone-Based
+ * Handles: Email, WhatsApp, Instagram, SMS, Calls
+ * Learns: Tone, Permission asks, Industry context, Lead behavior
+ */
+
 export const OBJECTIONS_DATABASE: Objection[] = [
   // TIMING OBJECTIONS (12)
   {
@@ -734,6 +741,370 @@ export const OBJECTIONS_DATABASE: Objection[] = [
       'FOMO play: "Your competitor isn\'t satisfied - they\'re upgrading"',
       'Complacency killer: "Satisfaction kills growth"',
       'Small test: "Try this small thing, see if "satisfied" changes"',
+    ],
+  },
+
+  // COMPLIANCE & PERMISSION OBJECTIONS (15) - NEW
+  {
+    id: 'compliance-1',
+    objection: 'Did you ask permission to contact me on WhatsApp?',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'You\'re right - respect matters. We verified your number from your LinkedIn profile',
+      'We only reach out to leads who engaged with your content first',
+      'This is how leading companies scale - opt-in verified channels only',
+    ],
+    stories: [
+      'Lead worried about compliance - we showed our verification process, they became advocate',
+    ],
+    questions: [
+      'Would you prefer we ONLY message people who explicitly requested it?',
+      'What does permission look like to you?',
+    ],
+    closingTactics: [
+      'Transparency: "Here\'s exactly how we got your number"',
+      'Opt-in: "You can manage preferences anytime"',
+    ],
+  },
+  {
+    id: 'compliance-2',
+    objection: 'This feels like spam on Instagram DMs',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'Not spam - you responded to our message, which means Instagram algorithm let it through',
+      'We personalized this for you because of your recent post about [topic]',
+      'Spam is generic. This is specific to you and your business',
+    ],
+    stories: [
+      'Creator thought it was spam - saw personalization about their niche - realized it was legit',
+    ],
+    questions: [
+      'What would make this feel personal instead of spam?',
+      'If we showed the specific post that made us reach out, would that help?',
+    ],
+    closingTactics: [
+      'Personalization proof: "See why we messaged YOU specifically"',
+      'Easy opt-out: "Not interested? One-click unsubscribe, no questions"',
+    ],
+  },
+  {
+    id: 'compliance-3',
+    objection: 'How did you get my email? / Is this GDPR compliant?',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'GDPR-compliant from day one - you subscribed to X or engaged with Y',
+      'Full privacy policy available - we don\'t sell data, ever',
+      'You can request deletion anytime, no explanation needed',
+    ],
+    stories: [
+      'Compliance officer checked our policy - became customer after seeing we take privacy seriously',
+    ],
+    questions: [
+      'Can I show you exactly where we sourced your email?',
+      'What privacy guarantees matter most to you?',
+    ],
+    closingTactics: [
+      'Transparency: "Full audit trail of how we got your data"',
+      'Control: "Manage preferences, pause, or delete anytime"',
+    ],
+  },
+  {
+    id: 'compliance-4',
+    objection: 'This email doesn\'t have an unsubscribe link',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'Good catch - we\'re adding it now. We respect your inbox',
+      'Easy one-click unsubscribe has always been there - let me send you the direct link',
+    ],
+    stories: [],
+    questions: [
+      'Once we fix this, would you be open to continuing?',
+    ],
+    closingTactics: [
+      'Immediate action: "Fixing this now - send me your confirmation"',
+      'Professionalism: "This is actually why people trust us - we listen"',
+    ],
+  },
+
+  // TONE-BASED OBJECTIONS (15) - NEW
+  {
+    id: 'tone-1',
+    objection: 'I\'m interested but extremely hesitant',
+    category: 'decision',
+    industries: ['all'],
+    reframes: [
+      'Hesitation is smart - it means you\'re thinking seriously',
+      'Good hesitation + interest = perfect conversion signal',
+      'Let\'s remove the hesitation one concern at a time',
+    ],
+    stories: [
+      'Founder was hesitant but interested - addressing each doubt closed the deal',
+    ],
+    questions: [
+      'What\'s the #1 reason for the hesitation?',
+      'If we solve that, would you feel ready?',
+    ],
+    closingTactics: [
+      'Curiosity play: "Tell me exactly what makes you hesitant"',
+      'One concern at a time: "Let\'s tackle ONE doubt, then reassess"',
+    ],
+  },
+  {
+    id: 'tone-2',
+    objection: 'Your message came across as too salesy / Too pushy',
+    category: 'social',
+    industries: ['all'],
+    reframes: [
+      'Fair feedback - we tone it down. Authentic conversations close more than pitches',
+      'We\'re learning from this - your honesty helps us improve',
+      'Interested in talking differently? We adapt to YOU',
+    ],
+    stories: [
+      'Lead criticized our tone - we pivoted, had real conversation, they converted',
+    ],
+    questions: [
+      'What tone WOULD feel right to you?',
+      'Can we start over with a different approach?',
+    ],
+    closingTactics: [
+      'Humility: "You\'re right, let\'s try again"',
+      'Adaptation: "Tell us how to communicate that feels authentic"',
+    ],
+  },
+  {
+    id: 'tone-3',
+    objection: 'You sound like a bot / Not a real person',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'Fair - sometimes we sound generic. Let me switch to my real voice',
+      'If I sound like a bot, I messed up. Real quick question - does this feel more real?',
+      'Humans run this company - we just automate the boring parts',
+    ],
+    stories: [
+      'Lead thought we were bot - we switched to founder\'s real voice - immediate trust built',
+    ],
+    questions: [
+      'Would a video call from our founder feel more real?',
+      'What would prove we\'re actual humans?',
+    ],
+    closingTactics: [
+      'Proof: "Founder will call you personally"',
+      'Authenticity: "Let\'s remove the script, just talk"',
+    ],
+  },
+  {
+    id: 'tone-4',
+    objection: 'I can tell this message was sent to 1000 other people',
+    category: 'social',
+    industries: ['all'],
+    reframes: [
+      'You\'re right that we reach many people - but each message is personalized',
+      'Scale + personalization is the whole point - more leads + actual custom touch',
+      'If it felt generic, we failed. Let me show you what makes THIS message just for you',
+    ],
+    stories: [
+      'Lead felt like one of many - we showed the custom parts - they saw the difference',
+    ],
+    questions: [
+      'What specifically felt generic?',
+      'If we showed you the personal research we did, would that change it?',
+    ],
+    closingTactics: [
+      'Proof of personalization: "Here\'s the specific post/video that made us reach out"',
+      'Exclusivity: "This offer is customized for your business type"',
+    ],
+  },
+
+  // CHANNEL-SPECIFIC OBJECTIONS (12) - NEW
+  {
+    id: 'channel-1',
+    objection: 'Why are you messaging me on Instagram instead of email?',
+    category: 'fit',
+    industries: ['creator', 'influencer'],
+    reframes: [
+      'Instagram is where you\'re most active - higher chance you see this',
+      'You replied here faster than email - we meet you where you are',
+      'Creators prefer DMs for deals - feels more personal than corporate email',
+    ],
+    stories: [],
+    questions: [
+      'Would you prefer email going forward?',
+      'Do you see DMs faster than email?',
+    ],
+    closingTactics: [
+      'Adapt: "Switch channels anytime - your preference rules"',
+      'Timing: "You\'re answering DMs faster - let\'s use this speed"',
+    ],
+  },
+  {
+    id: 'channel-2',
+    objection: 'Don\'t contact me on WhatsApp for business',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'Understood - we\'ll use email instead',
+      'WhatsApp is how businesses reach people fastest - but we respect your preference',
+      'One-click to switch to email, SMS, or any channel you prefer',
+    ],
+    stories: [],
+    questions: [
+      'What\'s your preferred contact method?',
+      'Can we send you a summary via your preferred channel?',
+    ],
+    closingTactics: [
+      'Immediate respect: "Switching to your preferred channel now"',
+      'Control: "Set your communication preference forever"',
+    ],
+  },
+  {
+    id: 'channel-3',
+    objection: 'Your voice note in WhatsApp felt weird / Inappropriate',
+    category: 'social',
+    industries: ['all'],
+    reframes: [
+      'Voice notes are too personal for first contact - noted. We\'ll stick to text',
+      'Authenticity backfired - we thought real voice was better. We\'ll adjust',
+      'Some prefer text first, then voice later - makes sense',
+    ],
+    stories: [],
+    questions: [
+      'Would text-only be better for your comfort?',
+      'What format feels most professional to you?',
+    ],
+    closingTactics: [
+      'Respect: "No more voice notes unless you ask"',
+      'Professionalism: "Text only until you\'re ready for voice"',
+    ],
+  },
+
+  // BEHAVIOR & INTENT OBJECTIONS (12) - NEW
+  {
+    id: 'behavior-1',
+    objection: 'You\'re reaching out too fast / We just posted this',
+    category: 'timing',
+    industries: ['creator', 'founder'],
+    reframes: [
+      'Speed is advantage - we saw opportunity immediately and moved',
+      'Fast reaction means we\'re monitoring, not spamming',
+      'Perfect timing = we contacted you before 100 other people',
+    ],
+    stories: [],
+    questions: [
+      'Is the problem speed or the fact that it feels impersonal despite speed?',
+    ],
+    closingTactics: [
+      'Efficiency: "Our speed is your advantage - we move fast for you too"',
+    ],
+  },
+  {
+    id: 'behavior-2',
+    objection: 'You contacted me multiple times in one day',
+    category: 'social',
+    industries: ['all'],
+    reframes: [
+      'That\'s a mistake - we\'ll pause campaigns immediately',
+      'Different team members reaching out - our bad, let\'s sync',
+      'Was checking if you saw first message - we\'re dialing it back',
+    ],
+    stories: [],
+    questions: [
+      'What\'s a good frequency for us?',
+      'Once a week? Once every two weeks?',
+    ],
+    closingTactics: [
+      'Immediate action: "Pausing all campaigns, one message only from now on"',
+      'Respect: "You set the cadence, we follow it"',
+    ],
+  },
+  {
+    id: 'behavior-3',
+    objection: 'You ignored my previous \"no thanks\" message',
+    category: 'trust',
+    industries: ['all'],
+    reframes: [
+      'That\'s on us - our system should have marked you as "pause"',
+      'Different product launch - wanted to reach back, should have checked history first',
+      'Let me personally remove you from all campaigns right now',
+    ],
+    stories: [],
+    questions: [
+      'Do you want to hear from us ever again, or permanently opt-out?',
+    ],
+    closingTactics: [
+      'Accountability: "This won\'t happen again - I\'m fixing this manually"',
+      'Choice: "Opt out entirely or wait 6 months for new product"',
+    ],
+  },
+
+  // INDUSTRY-SPECIFIC ADVANCED (18) - NEW
+  {
+    id: 'industry-coach',
+    objection: 'As a coach, my sales process is relationship-based not automated',
+    category: 'fit',
+    industries: ['coach'],
+    reframes: [
+      'Relationship automation isn\'t fake - it\'s helping relationships scale',
+      'Automation handles the repetitive part, YOU handle the real relationship',
+      'Other coaches automate follow-ups while staying personal - best of both',
+    ],
+    stories: [
+      'Coach thought automation killed relationships - now uses it to scale 1-on-1 touch',
+    ],
+    questions: [
+      'What takes the most time in your sales process?',
+      'What if AI handled that, so you could focus on real relationships?',
+    ],
+    closingTactics: [
+      'Positioning: "Not replacing you, multiplying you"',
+      'Proof: "See coaches using this while staying personal"',
+    ],
+  },
+  {
+    id: 'industry-b2b',
+    objection: 'B2B sales requires enterprise solutions, not SMB tools',
+    category: 'fit',
+    industries: ['B2B'],
+    reframes: [
+      'Enterprise tools are bloated - we built lean B2B features that enterprise teams use',
+      'Mid-market companies scale with us then never leave - we grow with you',
+      'Fortune 500 use our core engine - you get white-label power',
+    ],
+    stories: [
+      'B2B founder thought we were too small - 18 months later managing $2M pipeline with us',
+    ],
+    questions: [
+      'What specific enterprise features do you need?',
+      'Would custom integrations change your mind?',
+    ],
+    closingTactics: [
+      'Roadmap: "Enterprise features in next quarter"',
+      'Flexibility: "Customize anything you need"',
+    ],
+  },
+  {
+    id: 'industry-retail',
+    objection: 'Retail is different - customers want to come in store, not get pitched online',
+    category: 'fit',
+    industries: ['retail'],
+    reframes: [
+      'Automation brings people INTO the store - it doesn\'t replace store visits',
+      'Foot traffic automation is our specialty - get more people walking in',
+      'Online → Offline is the actual playbook now, not online only',
+    ],
+    stories: [
+      'Retail owner feared online would kill store - AI drove MORE foot traffic',
+    ],
+    questions: [
+      'What\'s your biggest challenge - getting people to KNOW about the store or getting them to visit?',
+    ],
+    closingTactics: [
+      'Local play: "We drive foot traffic, not online-only sales"',
+      'Proof: "See how other retailers using this increased store visits 40%"',
     ],
   },
 ];

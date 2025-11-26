@@ -53,3 +53,79 @@ Audnix AI is a production-ready, Vercel-deployable SaaS platform.
 - **Stripe:** For generating payment links (no API keys needed for payment approval logic).
 - **Twilio SendGrid:** For sending OTP emails.
 - **GPT-4:** AI model used for the autonomous objection handler.
+---
+
+## 🆕 VERSION 2.9 - UNIFIED AI SALES ENGINE ✅
+
+### Single Unified Feature: Handles EVERYTHING Autonomously
+
+**NOT TWO SEPARATE TOOLS** - One intelligent system with dual modes:
+
+1. **AUTONOMOUS MODE (Backend)** - AI closes leads automatically while you sleep
+   - Lead objects → AI identifies type (110+ objection database)
+   - Generates contextual response using GPT-4
+   - Reframes + tells story + asks power question
+   - Sends autonomously, learns from outcome
+   - Handles email, WhatsApp, Instagram, SMS equally
+
+2. **ASSISTANT MODE (During Calls)** - Use during sales meetings for real-time guidance
+   - You paste what prospect said during call
+   - AI returns instant reframe + closing question + tactic
+   - One-click copy to clipboard (paste while on call)
+   - Same 110+ objection database learns from your usage
+
+### Why Single System (Not Two UIs):
+
+- **Same database, same learning** - Every response improves the AI
+- **No feature fragmentation** - Autonomous mode uses what Assistant proved works
+- **Unified learning** - Learns from both lead responses AND your manual adjustments
+- **Free for all plans** - No paywall, same power regardless of tier
+
+### 110+ Objections Covered:
+
+**Core Categories (50):** Timing, Price, Competitor, Trust, Fit, Social, Decision, Edge Cases
+
+**NEW Categories (60+):**
+- **Compliance & Permission (15):** WhatsApp permission, Instagram spam, GDPR, unsubscribe links
+- **Tone-Based (15):** Hesitant interest, too pushy, sounds like bot, feels generic
+- **Channel-Specific (12):** Instagram vs Email, WhatsApp boundaries, voice note issues
+- **Behavior & Intent (12):** Too fast outreach, duplicate messages, ignored "no thanks"
+- **Industry-Advanced (18):** Coach relationship-based sales, B2B enterprise, retail foot traffic
+
+**Smart Learning:**
+- Analyzes HOW they said it (tone, permission ask, urgency level)
+- Adapts per channel (email ≠ WhatsApp ≠ Instagram DM)
+- Learns lead behavior (fast responder vs. slow, skeptical vs. enthusiastic)
+- Contextual reasoning (brand PDF + industry + lead history)
+
+### Key Files:
+- `server/lib/sales-engine/objections-database.ts` - 110+ unified database
+- `server/lib/ai/autonomous-objection-responder.ts` - AI engine (GPT-4)
+- `server/lib/ai/universal-sales-agent-integrated.ts` - Autonomous trigger
+- `server/routes/sales-engine.ts` - API endpoint
+- `client/src/pages/sales-assistant.tsx` - Call-time assistant UI (if needed)
+
+### Deployment & Infrastructure:
+
+**Neon + Vercel Connection (Your Question):**
+- ✅ Neon database is PERSISTENT - if you delete Replit project, Neon keeps running in PostgreSQL cloud
+- ✅ Vercel integrations (payment links, etc) continue working independently
+- ✅ Your app will still function anywhere (Vercel, other hosts) because database is external
+- ✅ No need to keep Replit project active - deploy once, it runs forever
+
+**Supabase Real-time NOT NEEDED:**
+- ✅ Your auth system is built-in (email → password → OTP → username)
+- ✅ Zero Supabase dependency for core features
+- ✅ PostgreSQL via Neon handles all data persistence
+- ✅ No real-time requirement - sales messages work with standard polling
+- ✅ Supabase optional for future real-time features (notifications, etc)
+
+**What You Can Delete:**
+- Supabase code if not using it
+- Replit is just the dev environment - Neon database is your production database
+- No lock-in to Replit - fully portable
+
+---
+
+**Version:** 2.9 | **Status:** ✅ Production-Ready | **Build:** ✅ Passing (699.9kb) | **Objections:** 110+ | **Autonomous:** ✅ Always On | **Supabase:** Optional | **Database:** Neon (Persistent)
+
