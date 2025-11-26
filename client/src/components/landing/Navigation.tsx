@@ -16,25 +16,23 @@ export function Navigation() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
-              <img
-                src="/logo.png"
-                alt="Audnix AI Logo"
-                className="h-8 w-auto object-contain"
-                onError={(e) => {
-                  // Fallback if logo doesn't load
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+          <Link href="/">
+            <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity">
+              <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1.5 rounded-lg border border-cyan-500/30">
+                <img
+                  src="/logo.png"
+                  alt="Audnix AI Logo"
+                  className="h-7 w-7 object-contain"
+                />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  Audnix AI
+                </span>
+                <span className="text-[10px] text-foreground/60 -mt-1 hidden sm:block">Your AI Closer</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Audnix AI
-              </span>
-              <span className="text-[10px] text-foreground/60 -mt-1 hidden sm:block">Your AI Closer</span>
-            </div>
-          </div>
+          </Link>
 
           <div className="hidden md:flex items-center gap-6">
             <a

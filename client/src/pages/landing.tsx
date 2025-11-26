@@ -31,13 +31,13 @@ export default function Landing() {
             className="text-center mb-12"
           >
             <div className="inline-block px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
-              <span className="text-emerald-400 text-sm font-semibold">🚀 SMART OUTREACH</span>
+              <span className="text-emerald-400 text-sm font-semibold">🚀 AUTOMATED SALES NURTURING</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Humanized Lead Automation
+              AI Sales Automation That Nurtures Leads 24/7
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              AI-powered outreach that scales. Intelligent segmentation, personalized messaging, smart follow-ups. Convert leads systematically, not randomly.
+              Lead nurturing automation engineered for conversion. Intelligent lead segmentation, personalized follow-up sequences, AI objection handling. Your AI sales agent works while you sleep—follow-ups, email campaigns, WhatsApp outreach, Instagram automation. All automated.
             </p>
           </motion.div>
 
