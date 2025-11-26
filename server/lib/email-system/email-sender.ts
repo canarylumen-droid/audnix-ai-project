@@ -1,26 +1,20 @@
 /**
- * Audnix AI - Email Sender with Separate SendGrid API Keys
- * Prevents clashing between OTP and Reminder emails
+ * Audnix AI - Email Sender (Unified Twilio SendGrid)
+ * One API key for all emails: OTP, reminders, and billing
  */
 
 export enum EmailSenderType {
-  AUTH = 'auth',           // OTP - Uses TWILIO_SENDGRID_API_KEY
-  REMINDERS = 'reminders', // Promotions - Uses AUDNIX_SENDGRID_API_KEY
-  BILLING = 'billing',     // Transactions - Uses AUDNIX_SENDGRID_API_KEY
+  AUTH = 'auth',           // OTP
+  REMINDERS = 'reminders', // Day 1-3 nurture sequences
+  BILLING = 'billing',     // Payment confirmations & invoices
 }
 
 export class AudnixEmailSender {
   /**
-   * Get appropriate SendGrid API key based on email type
+   * Get SendGrid API key (unified - same for all email types)
    */
-  private static getApiKey(type: EmailSenderType): string {
-    if (type === EmailSenderType.AUTH) {
-      // OTP uses the main Twilio SendGrid key
-      return process.env.TWILIO_SENDGRID_API_KEY || '';
-    } else {
-      // Reminders and Billing use separate SendGrid account key
-      return process.env.AUDNIX_SENDGRID_API_KEY || '';
-    }
+  private static getApiKey(): string {
+    return process.env.TWILIO_SENDGRID_API_KEY || '';
   }
 
   /**
@@ -51,12 +45,12 @@ export class AudnixEmailSender {
     senderName?: string;
   }): Promise<{ success: boolean; error?: string }> {
     try {
-      const apiKey = this.getApiKey(options.senderType);
+      const apiKey = this.getApiKey();
       const senderEmail = this.getSenderEmail(options.senderType);
       const senderName = options.senderName || 'Audnix AI';
 
       if (!apiKey) {
-        throw new Error(`No API key configured for ${options.senderType} emails`);
+        throw new Error(`No TWILIO_SENDGRID_API_KEY configured - all emails need it (OTP, reminders, billing)`);
       }
 
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
