@@ -237,12 +237,6 @@ export default function Landing() {
               </ul>
             </AnimatedCard>
           </div>
-
-          <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 text-center">
-            <p className="text-lg text-white/90">
-              <span className="font-bold text-cyan-400">Get Started:</span> Free tier includes 500 leads/month and 1 preview insight. Upgrade to Pro for unlimited leads, full analytics, and advanced AI features anytime.
-            </p>
-          </div>
         </div>
       </section>
 
