@@ -32,6 +32,7 @@ self.addEventListener('push', (event) => {
     badge: '/logo.jpg',
     vibrate: [200, 100, 200],
     tag: data.type || 'notification',
+    sound: '/notification.mp3',
     data: {
       url: data.url || '/dashboard',
       timestamp: Date.now()
@@ -48,6 +49,17 @@ self.addEventListener('push', (event) => {
     ],
     requireInteraction: data.requireInteraction || false
   };
+
+  // Play notification sound immediately (most browsers support this)
+  try {
+    const audio = new Audio('/notification.mp3');
+    audio.volume = 0.6;
+    audio.play().catch(() => {
+      console.log('Notification sound play deferred (browser may be muted)');
+    });
+  } catch (error) {
+    console.log('Sound notification not available');
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title || 'Audnix AI', options)

@@ -291,27 +291,30 @@ export class VoiceAIService {
     const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
     
     const prompt = `
-      You are a business professional speaking to ${lead.name || 'there'} on ${lead.channel}.
+      You are a calm, conversational business professional speaking to ${lead.name || 'there'} on ${lead.channel}.
+      Think of this as a genuine one-on-one conversation, not a sales pitch.
       
       Conversation history:
       ${history.map(msg => `${msg.sender === 'ai' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
 
       VOICE SCRIPT RULES:
-      1. Professional and concise - 15 seconds MAX when spoken
+      1. Natural conversation - 15 seconds MAX when spoken
       2. Keep it to ${maxWords} words MAXIMUM (strict limit)
-      3. ${isSerious ? 'Professional and empathetic tone' : 'Professional but friendly tone'}
-      4. Direct and clear - get to the point quickly
-      5. Business-appropriate language only
-      6. NO filler words, NO casual slang
-      7. Write ONLY what should be spoken - no stage directions
+      3. ${isSerious ? 'Empathetic and understanding tone' : 'Warm and genuine tone'}
+      4. Sound like a real person having a real conversation
+      5. Business-appropriate but conversational
+      6. NO filler words, NO corporate jargon, NO aggressive sales language
+      7. Use commas for natural breathing pauses (speaker will pause at commas)
+      8. Use periods to indicate tone shifts, not just sentence endings
       
-      BANNED PHRASES:
-      - "I'm reaching out"
-      - "Just wanted to touch base"
-      - "Circle back"
-      - Any *action* markers like *laughs* or *chuckles*
+      PAUSE MARKERS FOR NATURAL SPEECH:
+      - Use commas liberally (commas = brief natural pause for breath)
+      - Use periods between complete ideas (period = speaker takes a breath)
+      - Avoid "um", "uh", "like", "you know", "obviously", "honestly"
+      - Avoid: "reaching out", "touch base", "circle back", "synergize", "leverage"
+      - Sound warm, NOT pushy or salesman-y
       
-      Generate a brief, professional voice script (plain text only, 15 seconds MAX):
+      Generate conversational voice script (plain text, natural breathing):
     `;
     
     return await generateVoiceScript(lead, history, prompt);
