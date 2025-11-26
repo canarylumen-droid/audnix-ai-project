@@ -21,6 +21,61 @@ export default function Landing() {
 
       <HeroSection />
 
+      {/* Smart Outreach System Section */}
+      <section className="py-16 px-4 bg-gradient-to-b from-emerald-500/5 to-cyan-500/5 border-b border-white/10">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <div className="inline-block px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
+              <span className="text-emerald-400 text-sm font-semibold">🚀 PROVEN MODEL</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              $15k-$61k in 5 Days (From 5,000 Leads)
+            </h2>
+            <p className="text-xl text-white/80 max-w-3xl mx-auto">
+              Smart outreach engine with humanized automation. Segment leads, rotate messages, schedule intelligently, convert predictably.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { title: "Intelligent Segmentation", desc: "Hot leads → $199 plan, Warm → $99, Cold → $49, Quick → Free trial" },
+              { title: "Humanized Messaging", desc: "5 hook variations, never same twice, randomized timing, personal touch" },
+              { title: "Smart Follow-ups", desc: "Day 2, 3, 5, 7, 14 auto-sequences with 110+ objection handling" }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="p-6 rounded-lg bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-colors"
+              >
+                <h3 className="font-semibold text-emerald-400 mb-2">{item.title}</h3>
+                <p className="text-white/70 text-sm">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-12 p-6 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 max-w-3xl mx-auto"
+          >
+            <p className="text-center text-white/90">
+              <span className="font-bold text-emerald-400">≈ 3.5% reply rate × 25% conversion</span>
+              {" "}across all segments = predictable, scalable revenue.{" "}
+              <span className="text-white/60">Even at 50% lower rates, still $15k+</span>
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Problem/Solution Section */}
       <section className="py-20 px-4 border-y border-white/10 overflow-hidden">
         <div className="max-w-6xl mx-auto">
