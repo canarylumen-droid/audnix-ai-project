@@ -15,9 +15,17 @@ let redisClient: ReturnType<typeof createClient> | null = null;
 if (process.env.REDIS_URL) {
   try {
     // Extract clean Redis URL (handle malformed URLs with "redis-cli -u" prefix)
-    let redisUrl = process.env.REDIS_URL;
-    if (redisUrl.includes('redis-cli -u')) {
-      redisUrl = redisUrl.match(/redis:\/\/[^\s]+/)?.[0] || redisUrl;
+    let redisUrl = process.env.REDIS_URL.trim();
+    
+    // Remove "redis-cli -u " prefix if present
+    if (redisUrl.includes('redis-cli')) {
+      redisUrl = redisUrl.replace(/^redis-cli\s+-u\s+/, '');
+    }
+    
+    // Extract first valid redis:// URL and remove duplicates or trailing garbage
+    const match = redisUrl.match(/redis:\/\/[^:]+:[^@]+@[^:]+:\d+/);
+    if (match) {
+      redisUrl = match[0];
     }
     
     console.log('📍 Connecting to Redis...');
