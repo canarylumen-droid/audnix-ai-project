@@ -31,21 +31,21 @@ export default function Landing() {
             className="text-center mb-12"
           >
             <div className="inline-block px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
-              <span className="text-emerald-400 text-sm font-semibold">🚀 PROVEN MODEL</span>
+              <span className="text-emerald-400 text-sm font-semibold">🚀 SMART OUTREACH</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              $15k-$61k in 5 Days (From 5,000 Leads)
+              Humanized Lead Automation
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Smart outreach engine with humanized automation. Segment leads, rotate messages, schedule intelligently, convert predictably.
+              AI-powered outreach that scales. Intelligent segmentation, personalized messaging, smart follow-ups. Convert leads systematically, not randomly.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { title: "Intelligent Segmentation", desc: "Hot leads → $199 plan, Warm → $99, Cold → $49, Quick → Free trial" },
-              { title: "Humanized Messaging", desc: "5 hook variations, never same twice, randomized timing, personal touch" },
-              { title: "Smart Follow-ups", desc: "Day 2, 3, 5, 7, 14 auto-sequences with 110+ objection handling" }
+              { title: "Intelligent Segmentation", desc: "Segment leads by quality. Target with precision. Route to right message at right time." },
+              { title: "Humanized Messaging", desc: "Never send the same message twice. Template rotation + randomized timing = personal touch at scale." },
+              { title: "Smart Follow-ups", desc: "Automatic follow-up sequences. Day 2, 3, 5, 7. AI handles objections intelligently." }
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -68,9 +68,7 @@ export default function Landing() {
             className="mt-12 p-6 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 max-w-3xl mx-auto"
           >
             <p className="text-center text-white/90">
-              <span className="font-bold text-emerald-400">≈ 3.5% reply rate × 25% conversion</span>
-              {" "}across all segments = predictable, scalable revenue.{" "}
-              <span className="text-white/60">Even at 50% lower rates, still $15k+</span>
+              No manual follow-ups. No missed opportunities. Just <span className="font-bold text-emerald-400">consistent, predictable lead management</span> that grows with you.
             </p>
           </motion.div>
         </div>
