@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Zap, MessageCircle } from 'lucide-react';
+import { Sparkles, Zap, MessageCircle, CheckCircle2 } from 'lucide-react';
 
 interface InstagramComingSoonModalProps {
   open: boolean;
@@ -21,14 +21,20 @@ export function InstagramComingSoonModal({
 }: InstagramComingSoonModalProps) {
   const [claimed, setClaimed] = useState(false);
 
+  // Check if already claimed on mount
+  useEffect(() => {
+    const isAlreadyClaimed = localStorage.getItem('instagram_early_access_claimed') === 'true';
+    if (isAlreadyClaimed) {
+      setClaimed(true);
+    }
+  }, [open]);
+
   const handleGetEarlyAccess = () => {
     setClaimed(true);
-    // Optional: Could store this in localStorage or send to backend
     localStorage.setItem('instagram_early_access_claimed', 'true');
     setTimeout(() => {
-      setClaimed(false);
       onOpenChange(false);
-    }, 2000);
+    }, 2500);
   };
 
   return (
@@ -99,7 +105,7 @@ export function InstagramComingSoonModal({
           </div>
 
           {/* Call to Action */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-3">
             {!claimed ? (
               <Button
                 onClick={handleGetEarlyAccess}
@@ -109,9 +115,20 @@ export function InstagramComingSoonModal({
                 Be Among First to Try It
               </Button>
             ) : (
-              <Button disabled className="w-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                ✓ You're on the list! We'll notify you.
-              </Button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-emerald-500/20 border border-emerald-500/30">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 animate-pulse" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-emerald-700 dark:text-emerald-300">You're all set!</p>
+                    <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">We'll notify you when ready</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 justify-center pt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                </div>
+              </div>
             )}
           </div>
 
