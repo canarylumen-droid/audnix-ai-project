@@ -47,6 +47,7 @@ import userAuth from "./routes/user-auth";
 import adminAuth from "./routes/admin-auth";
 import whatsappConnect from "./routes/whatsapp-connect";
 import dashboardRoutes from "./routes/dashboard-routes";
+import salesEngineRouter from "./routes/sales-engine";
 import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker";
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth";
@@ -2109,6 +2110,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register AI sales suggestion routes
   app.use("/api/ai", aiSalesSuggestionRouter);
+
+  // Register sales objections engine (autonomous handler)
+  app.use("/api/sales-engine", salesEngineRouter);
 
   // Register Stripe payment confirmation routes (works anywhere: Vercel, local, etc)
   app.use("/api/stripe", stripePaymentConfirmation);
