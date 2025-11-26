@@ -67,7 +67,7 @@ export const apiLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:api:'
     })
   })
@@ -86,7 +86,7 @@ export const authLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:auth:'
     })
   })
@@ -104,7 +104,7 @@ export const webhookLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:webhook:'
     })
   })
@@ -128,7 +128,7 @@ export const aiLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:ai:'
     })
   })
@@ -153,7 +153,7 @@ export const whatsappLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:whatsapp:'
     })
   })
@@ -173,7 +173,7 @@ export const viteLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore - RedisStore types don't match express-rate-limit
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:vite:'
     })
   })
@@ -200,7 +200,7 @@ export const smtpRateLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:smtp:'
     })
   })
@@ -226,7 +226,7 @@ export const emailImportLimiter = rateLimit({
   ...(redisClient && {
     store: new RedisStore({
       // @ts-ignore
-      client: redisClient,
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
       prefix: 'rl:import:'
     })
   })
