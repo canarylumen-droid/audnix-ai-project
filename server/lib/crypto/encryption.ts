@@ -79,12 +79,25 @@ export function encryptJSON(obj: any): string {
 
 /**
  * Decrypt JSON object
+ * SECURITY: Safely parses decrypted JSON with error handling
  * @param ciphertext - Encrypted JSON
  * @returns Decrypted object
  */
 export function decryptToJSON<T = any>(ciphertext: string): T {
-  const decrypted = decrypt(ciphertext);
-  return JSON.parse(decrypted);
+  try {
+    const decrypted = decrypt(ciphertext);
+    const parsed = JSON.parse(decrypted);
+    
+    // Basic validation to prevent injection
+    if (typeof parsed !== 'object' || parsed === null) {
+      throw new Error("Decrypted data must be a valid JSON object");
+    }
+    
+    return parsed as T;
+  } catch (error: any) {
+    console.error('[SECURITY] JSON deserialization failed:', error.message);
+    throw new Error('Failed to deserialize encrypted data - possible tampering detected');
+  }
 }
 
 /**
