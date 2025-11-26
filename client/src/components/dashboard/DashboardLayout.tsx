@@ -73,6 +73,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
     { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
     { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
+    { label: "Sales Assistant", icon: Phone, path: "/dashboard/sales-assistant" },
     { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
     { label: "Insights", icon: BarChart3, path: "/dashboard/insights" },
     { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
