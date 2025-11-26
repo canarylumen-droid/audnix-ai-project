@@ -31,21 +31,21 @@ export default function Landing() {
             className="text-center mb-12"
           >
             <div className="inline-block px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-6">
-              <span className="text-emerald-400 text-sm font-semibold">🚀 AUTOMATED SALES NURTURING</span>
+              <span className="text-emerald-400 text-sm font-semibold">🎯 AI SALES CLOSER</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              AI Sales Automation That Nurtures Leads 24/7
+              Your AI Sales Closer That Converts Leads 24/7
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Lead nurturing automation engineered for conversion. Intelligent lead segmentation, personalized follow-up sequences, AI objection handling. Your AI sales agent works while you sleep—follow-ups, email campaigns, WhatsApp outreach, Instagram automation. All automated.
+              An AI sales closer that never sleeps. Closes deals through intelligent lead segmentation, personalized follow-ups, objection handling, and auto-booking. Works like your best closer—except AI-powered and handling 1,000s of leads at once.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { title: "Intelligent Segmentation", desc: "Segment leads by quality. Target with precision. Route to right message at right time." },
-              { title: "Humanized Messaging", desc: "Never send the same message twice. Template rotation + randomized timing = personal touch at scale." },
-              { title: "Smart Follow-ups", desc: "Automatic follow-up sequences. Day 2, 3, 5, 7. AI handles objections intelligently." }
+              { title: "Close Hot Leads First", desc: "AI segments leads by buying intent. Hot prospects get premium treatment + faster closes. Maximize deal velocity." },
+              { title: "AI Objection Handling", desc: "Your AI closer handles 110+ objection types. Reframes, rebuts, and closes—just like your best sales rep." },
+              { title: "Multi-Channel Closing", desc: "Closes on WhatsApp, email, Instagram + auto-books calls. Meets leads where they are. Converts everywhere." }
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -68,7 +68,7 @@ export default function Landing() {
             className="mt-12 p-6 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 max-w-3xl mx-auto"
           >
             <p className="text-center text-white/90">
-              No manual follow-ups. No missed opportunities. Just <span className="font-bold text-emerald-400">consistent, predictable lead management</span> that grows with you.
+              Your AI closer works while you sleep. <span className="font-bold text-emerald-400">Converts leads systematically</span>. Closes deals at scale. No more missed opportunities.
             </p>
           </motion.div>
         </div>
@@ -131,10 +131,10 @@ export default function Landing() {
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                     <Zap className="w-6 h-6 text-emerald-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-emerald-400">Audnix Automation</h3>
+                  <h3 className="text-2xl font-bold text-emerald-400">Audnix AI Closer</h3>
                 </div>
                 <ul className="space-y-3">
-                  {["Instant replies 24/7", "Never forgets a follow-up", "Perfect timing every time", "Converts while you sleep"].map((item, i) => (
+                  {["Closes deals in minutes, not days", "Handles objections like a pro", "Books meetings automatically", "Converts leads while you sleep"].map((item, i) => (
                     <motion.li
                       key={i}
                       initial={{ opacity: 0, x: -10 }}

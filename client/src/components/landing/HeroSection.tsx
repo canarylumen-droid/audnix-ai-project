@@ -97,9 +97,9 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
         >
-          Your AI sales rep that follows up, handles objections,{" "}
+          Your AI sales closer that handles objections, closes deals,{" "}
           <br className="hidden md:block" />
-          and books meetings — while you sleep.
+          and converts leads — 24/7, while you sleep.
         </motion.p>
 
         <motion.p 
