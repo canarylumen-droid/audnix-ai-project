@@ -221,15 +221,9 @@ export default function AuthPage() {
         return;
       }
 
-      toast({
-        title: "Account Created! 🎉",
-        description: "Welcome to Audnix AI",
-      });
-
-      setSignupStep(4);
-      setTimeout(() => {
-        window.location.href = '/dashboard/onboarding';
-      }, 2000);
+      // Move to username creation step
+      setSignupStep(3);
+      setLoading(false);
     } catch (error: any) {
       console.error("Signup step 2 error:", error);
       toast({
@@ -241,8 +235,67 @@ export default function AuthPage() {
     }
   };
 
-  // NOTE: OTP is mandatory - removed skipOTP/step3
-  // All signups must verify via OTP from auth@audnixai.com
+  // SIGNUP STEP 3: Set Username
+  const handleSignupStep3 = async () => {
+    if (!username || username.length < 3) {
+      toast({
+        title: "Invalid Username",
+        description: "Username must be at least 3 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      toast({
+        title: "Invalid Username",
+        description: "Only letters, numbers, hyphens and underscores allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/set-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: "Failed",
+          description: data.error || 'Username already taken',
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      toast({
+        title: "Welcome! 🎉",
+        description: `Welcome @${username}!`,
+      });
+
+      // Redirect to dashboard - celebration will show automatically
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
+    } catch (error: any) {
+      console.error("Signup step 3 error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to set username",
+        variant: "destructive",
+      });
+      setLoading(false);
+    }
+  };
 
   const handleResendOTP = async () => {
     if (resendCountdown > 0) return;
