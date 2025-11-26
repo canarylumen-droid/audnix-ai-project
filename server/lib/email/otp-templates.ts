@@ -67,14 +67,6 @@ export function generateOTPEmail(options: OTPEmailOptions): string {
       text-align: center;
       margin-bottom: 40px;
     }
-    .logo {
-      height: 40px;
-      margin-bottom: 20px;
-    }
-    .logo img {
-      height: 100%;
-      width: auto;
-    }
     h1 {
       font-size: 28px;
       font-weight: 600;
@@ -188,7 +180,6 @@ export function generateOTPEmail(options: OTPEmailOptions): string {
   <div class="container">
     <div class="card">
       <div class="header">
-        ${logoUrl ? `<div class="logo"><img src="${logoUrl}" alt="${companyName}" /></div>` : ''}
         <h1>Verify Your Identity</h1>
         <p class="subtitle">Enter this code to sign in to ${companyName}</p>
       </div>
