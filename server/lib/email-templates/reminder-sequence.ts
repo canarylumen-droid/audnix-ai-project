@@ -1,6 +1,7 @@
 /**
- * Audnix AI - Reminder & Nurture Email Sequence (UPDATED)
- * New timing: +4hrs → +50-69hrs → +72hrs with activity-based triggers
+ * Audnix AI - Reminder & Nurture Email Sequence (V2.9.1)
+ * All emails with branded CTA buttons matching brand colors
+ * Electric Blue (#4A5BFF) for primary CTAs
  */
 
 interface ReminderEmailOptions {
@@ -8,6 +9,9 @@ interface ReminderEmailOptions {
   userEmail: string;
   leadsCount?: number;
 }
+
+const BRAND_PRIMARY = '#4A5BFF';    // Electric Blue
+const BRAND_DARK = '#1B1F3A';       // Dark Navy
 
 /**
  * +4 Hours: "It's Live" - Immediately push to import
@@ -22,13 +26,14 @@ export function generateItsLiveEmail(options: ReminderEmailOptions): { html: str
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
 .wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,#1B1F3A 0%,#2D3548 100%);padding:40px 24px;text-align:center}
+.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
 .header h1{color:#fff;font-size:24px;font-weight:700;margin:0}
 .content{padding:40px 24px}
-h2{color:#1b1f3a;font-size:18px;font-weight:600;margin:0 0 12px 0}
+h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
 p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.highlight{background:#f0f4ff;padding:24px;border-left:4px solid #4a5bff;border-radius:4px;margin:24px 0}
-.cta-button{display:inline-block;background:#4a5bff;color:white;padding:12px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;margin-top:24px}
+.highlight{background:#f0f4ff;padding:24px;border-left:4px solid ${BRAND_PRIMARY};border-radius:4px;margin:24px 0}
+.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer;transition:background 0.2s}
+.cta-button:hover{background:#3a4bee}
 .footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
 </style>
 </head>
@@ -51,7 +56,7 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 2. Import 10-20 of your hottest leads<br>
 3. Watch your AI start closing</p>
 
-<a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Leads Now</a>
+<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Leads Now →</a></td></tr></table>
 
 <p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your 3-day free trial is live. No credit card needed.</p>
 </div>
@@ -97,13 +102,14 @@ export function generateDay2CheckInEmail(options: ReminderEmailOptions): { html:
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
 .wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,#1B1F3A 0%,#2D3548 100%);padding:40px 24px;text-align:center}
+.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
 .header h1{color:#fff;font-size:20px;font-weight:700;margin:0}
 .content{padding:40px 24px}
-h2{color:#1b1f3a;font-size:18px;font-weight:600;margin:0 0 12px 0}
+h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
 p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.proof{background:#f0f4ff;padding:20px;border-left:4px solid #4a5bff;border-radius:4px;margin:20px 0;font-size:13px}
-.cta-button{display:inline-block;background:#4a5bff;color:white;padding:12px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;margin-top:24px}
+.proof{background:#f0f4ff;padding:20px;border-left:4px solid ${BRAND_PRIMARY};border-radius:4px;margin:20px 0;font-size:13px}
+.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+.cta-button:hover{background:#3a4bee}
 .footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
 </style>
 </head>
@@ -124,7 +130,7 @@ Your leads are receiving personalized messages. Your AI is analyzing responses a
 
 <p><strong>Haven't imported leads yet?</strong> Do it now. Your AI works best with real data.</p>
 
-<a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Your Leads</a>
+<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Your Leads →</a></td></tr></table>
 
 <p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your leads are getting warmed up. Let your AI do the heavy lifting.</p>
 </div>
@@ -175,7 +181,8 @@ h2{color:#d4462f;font-size:18px;font-weight:600;margin:0 0 12px 0}
 p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 .alert{background:#fef2f2;padding:20px;border-left:4px solid #d4462f;border-radius:4px;margin:20px 0}
 .alert p{color:#7a1f1f;margin:0}
-.cta-button{display:inline-block;background:#d4462f;color:white;padding:12px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;margin-top:24px}
+.cta-button{display:inline-block;background:#d4462f;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+.cta-button:hover{background:#c23e29}
 .footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
 </style>
 </head>
@@ -197,7 +204,7 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 
 <p><strong>Upgrade today to keep closing.</strong> First month is 50% off with code CLOSING50</p>
 
-<a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Now - Lock in Pro Pricing</a>
+<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Now - Lock in Pro Pricing →</a></td></tr></table>
 
 <p style="margin-top:24px;font-size:13px;color:#7a8fa3">Tomorrow night you'll either be closing deals or watching leads go cold. Your choice.</p>
 </div>
@@ -249,7 +256,8 @@ h2{color:#7c3f1f;font-size:18px;font-weight:600;margin:0 0 12px 0}
 p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 .final-alert{background:#faf4f0;padding:20px;border-left:4px solid #7c3f1f;border-radius:4px;margin:20px 0}
 .final-alert p{color:#6b3a1c;margin:0}
-.cta-button{display:inline-block;background:#7c3f1f;color:white;padding:12px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;margin-top:24px}
+.cta-button{display:inline-block;background:#7c3f1f;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+.cta-button:hover{background:#6b3a1c}
 .footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
 </style>
 </head>
@@ -271,7 +279,7 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 
 <p><strong>You have hours left.</strong> Upgrade now and keep your AI running 24/7. First month 50% off with code CLOSING50</p>
 
-<a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Before Midnight</a>
+<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Before Midnight →</a></td></tr></table>
 
 <p style="margin-top:24px;font-size:13px;color:#7a8fa3;font-weight:600">After tonight, it gets harder to re-engage cold leads. Don't lose what you've started.</p>
 </div>
@@ -316,12 +324,13 @@ export function generateNoActivityReminder(options: ReminderEmailOptions): { htm
 <style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
 .wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,#1B1F3A 0%,#2D3548 100%);padding:40px 24px;text-align:center}
+.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
 .header h1{color:#fff;font-size:18px;font-weight:700;margin:0}
 .content{padding:40px 24px}
-h2{color:#1b1f3a;font-size:18px;font-weight:600;margin:0 0 12px 0}
+h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
 p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.cta-button{display:inline-block;background:#4a5bff;color:white;padding:12px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:13px;margin-top:24px}
+.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+.cta-button:hover{background:#3a4bee}
 .footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
 </style>
 </head>
@@ -342,7 +351,7 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 2. Import your leads<br>
 3. Let your AI close</p>
 
-<a href="https://audnixai.com/dashboard" class="cta-button">Come Close Some Deals</a>
+<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard" class="cta-button">Come Close Some Deals →</a></td></tr></table>
 
 <p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your AI is waiting. Your leads are waiting. You deserve this win.</p>
 </div>

@@ -1,16 +1,27 @@
 /**
- * Unified Email Sender for Audnix AI
- * Routes emails to correct SendGrid sender based on email type
+ * Audnix AI - Email Sender with Separate SendGrid API Keys
+ * Prevents clashing between OTP and Reminder emails
  */
 
 export enum EmailSenderType {
-  AUTH = 'auth', // auth@audnixai.com - OTP codes
-  REMINDERS = 'reminders', // hello@audnixai.com - Welcome, Day 2, Day 3, Winback
-  BILLING = 'billing', // billing@audnixai.com - Payments, Invoices
+  AUTH = 'auth',           // OTP - Uses TWILIO_SENDGRID_API_KEY
+  REMINDERS = 'reminders', // Promotions - Uses AUDNIX_SENDGRID_API_KEY
+  BILLING = 'billing',     // Transactions - Uses AUDNIX_SENDGRID_API_KEY
 }
 
 export class AudnixEmailSender {
-  private static sendgridApiKey = process.env.TWILIO_SENDGRID_API_KEY || '';
+  /**
+   * Get appropriate SendGrid API key based on email type
+   */
+  private static getApiKey(type: EmailSenderType): string {
+    if (type === EmailSenderType.AUTH) {
+      // OTP uses the main Twilio SendGrid key
+      return process.env.TWILIO_SENDGRID_API_KEY || '';
+    } else {
+      // Reminders and Billing use separate SendGrid account key
+      return process.env.AUDNIX_SENDGRID_API_KEY || '';
+    }
+  }
 
   /**
    * Get sender email based on type
@@ -40,13 +51,18 @@ export class AudnixEmailSender {
     senderName?: string;
   }): Promise<{ success: boolean; error?: string }> {
     try {
+      const apiKey = this.getApiKey(options.senderType);
       const senderEmail = this.getSenderEmail(options.senderType);
       const senderName = options.senderName || 'Audnix AI';
+
+      if (!apiKey) {
+        throw new Error(`No API key configured for ${options.senderType} emails`);
+      }
 
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.sendgridApiKey}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -66,11 +82,11 @@ export class AudnixEmailSender {
 
       if (!response.ok) {
         const error = await response.json();
-        console.error(`❌ SendGrid error: ${error.errors?.[0]?.message || 'Unknown error'}`);
+        console.error(`❌ SendGrid error for ${options.senderType}: ${error.errors?.[0]?.message || 'Unknown error'}`);
         return { success: false, error: error.errors?.[0]?.message || 'SendGrid error' };
       }
 
-      console.log(`✅ Email sent to ${options.to} from ${senderEmail}`);
+      console.log(`✅ ${options.senderType} email sent to ${options.to} from ${senderEmail}`);
       return { success: true };
     } catch (error: any) {
       console.error(`❌ Email send failed: ${error.message}`);
