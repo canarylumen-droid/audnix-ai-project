@@ -37,15 +37,15 @@ export default function Landing() {
               Your AI Sales Closer That Converts Leads 24/7
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              An AI sales closer that never sleeps. Closes deals through intelligent lead segmentation, personalized follow-ups, objection handling, and auto-booking. Works like your best closer—except AI-powered and handling 1,000s of leads at once.
+              AI closer that never sleeps. Segments leads, handles objections, auto-books calls—all like your best rep, at 1,000x scale.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
-              { title: "Close Hot Leads First", desc: "AI segments leads by buying intent. Hot prospects get premium treatment + faster closes. Maximize deal velocity." },
-              { title: "AI Objection Handling", desc: "Your AI closer handles 110+ objection types. Reframes, rebuts, and closes—just like your best sales rep." },
-              { title: "Multi-Channel Closing", desc: "Closes on WhatsApp, email, Instagram + auto-books calls. Meets leads where they are. Converts everywhere." }
+              { title: "Close Hot Leads First", desc: "Segments by intent. Hot prospects first. Maximum velocity." },
+              { title: "110+ Objection Handling", desc: "Reframes, rebuts, and closes automatically." },
+              { title: "Multi-Channel Closing", desc: "Closes on WhatsApp, Email, Instagram. Auto-books calls." }
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -68,7 +68,7 @@ export default function Landing() {
             className="mt-12 p-6 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 max-w-3xl mx-auto"
           >
             <p className="text-center text-white/90">
-              Your AI closer works while you sleep. <span className="font-bold text-emerald-400">Converts leads systematically</span>. Closes deals at scale. No more missed opportunities.
+              Works while you sleep. <span className="font-bold text-emerald-400">Converts systematically</span>. Zero missed leads.
             </p>
           </motion.div>
         </div>
@@ -178,7 +178,7 @@ export default function Landing() {
               Upload Your Brand PDF → AI Learns Your Voice
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Stop writing emails. Upload your brand PDF once, and AI instantly understands your unique value proposition, testimonials, success metrics, and competitive positioning.
+              Upload your PDF. AI learns your value prop, testimonials, metrics, and positioning—then automates everything.
             </p>
           </motion.div>
 
@@ -218,7 +218,7 @@ export default function Landing() {
 
           <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-2xl p-8 text-center">
             <p className="text-lg text-white/90">
-              <span className="font-bold text-purple-400">Result:</span> Leads receive personalized, data-driven messages that sound like YOU—not a bot. Instant credibility + higher response rates.
+              <span className="font-bold text-purple-400">Result:</span> Personalized messages that sound like you, not a bot. Higher response rates.
             </p>
           </div>
         </div>
@@ -241,7 +241,7 @@ export default function Landing() {
               See What's Working. Immediately.
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Track lead engagement, response rates, and AI insights in real-time. Free tier gives you 1 insight preview. Pro tier unlocks unlimited analysis to scale.
+              Real-time tracking: engagement, response rates, AI insights. Free: 1 insight. Pro: unlimited.
             </p>
           </motion.div>
 
@@ -306,7 +306,7 @@ export default function Landing() {
               Automated Across Every Channel
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Day-aware sequences that escalate across Email → WhatsApp → Instagram. Not DMs-only. Not a chatbot. Real multi-channel automation.
+              Sequences escalate: Email → WhatsApp → Instagram. Multi-channel. Intelligent. Human-like.
             </p>
           </motion.div>
 
@@ -358,9 +358,9 @@ export default function Landing() {
           </div>
 
           <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-3 text-white">Not A Sequence Blaster</h3>
+            <h3 className="text-2xl font-bold mb-3 text-white">Smart, Not Blasting</h3>
             <p className="text-white/90 text-lg">
-              Audnix doesn't just send emails. It <strong>learns</strong> which channels work best for each lead. If a lead replies on WhatsApp, it stops emailing and focuses there. If they're a hot lead, it replies in 50 seconds. Cold lead? It waits 8 minutes to feel human.
+              Learns which channel works. Lead replies on WhatsApp? Stops email, focuses there. Hot lead? 50 sec reply. Cold? 8 min (human timing).
             </p>
           </div>
         </div>
@@ -388,19 +388,19 @@ export default function Landing() {
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
               <h3 className="text-lg font-bold text-white mb-3">✓ AI Disclaimers</h3>
               <p className="text-white/80 text-sm">
-                Auto-included in every AI message (not a popup that scares leads). Blends naturally. Legally protects you.
+                Auto-included in messages. Blends naturally. Legally protected.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-3">✓ Complete Audit Trail</h3>
+              <h3 className="text-lg font-bold text-white mb-3">✓ Audit Trail</h3>
               <p className="text-white/80 text-sm">
-                Every message timestamped. Proves disclaimers were included. Essential for disputes.
+                Every message timestamped. Dispute-proof.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
               <h3 className="text-lg font-bold text-white mb-3">✓ Lead Control</h3>
               <p className="text-white/80 text-sm">
-                Leads can opt-out anytime. Privacy + data security built in. Transparent, trustworthy.
+                Opt-out anytime. Privacy-first. Fully transparent.
               </p>
             </div>
           </div>
@@ -427,7 +427,7 @@ export default function Landing() {
               <span className="text-primary">That Actually Works</span>
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Unlike ManyChat's keyword triggers, Audnix uses real AI to understand intent, emotion, and context in every comment and DM.
+              Real AI intent detection. Understands emotion, context, intent—not just keywords.
             </p>
           </motion.div>
 
@@ -602,10 +602,7 @@ export default function Landing() {
             Numbers That Matter
           </h2>
           <p className="text-xl text-white/90 mb-4">
-            24/7 human-timed replies → more responses → more booked meetings
-          </p>
-          <p className="text-white/70">
-            No fake % claims — just throughput + consistency.
+            24/7 human-timed replies = more responses = more booked meetings
           </p>
         </div>
       </section>
