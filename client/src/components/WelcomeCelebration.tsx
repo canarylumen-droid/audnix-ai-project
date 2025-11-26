@@ -55,7 +55,7 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
         transition={{ duration: 0.4, type: "spring", stiffness: 200 }}
         className="text-center pointer-events-auto"
       >
-        <div className="text-6xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 min-h-16 flex items-center justify-center">
+        <div className="text-6xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-emerald-400 bg-clip-text text-transparent mb-4 min-h-16 flex items-center justify-center">
           {displayedText}
           {isTyping && (
             <motion.span

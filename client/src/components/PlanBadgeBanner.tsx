@@ -24,8 +24,8 @@ export function PlanBadgeBanner({ plan }: PlanBadgeBannerProps) {
         return {
           label: "Pro Plan",
           icon: Crown,
-          gradient: "from-purple-500 to-pink-500",
-          bgGradient: "from-purple-500/10 to-pink-500/10",
+          gradient: "from-purple-500 to-cyan-500",
+          bgGradient: "from-purple-500/10 to-cyan-500/10",
         };
       case "enterprise":
         return {

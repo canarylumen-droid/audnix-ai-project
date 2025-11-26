@@ -25,7 +25,7 @@ export function PrivacyModal() {
           transition={{ duration: 0.3 }}
         >
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-cyan-600/20 via-purple-600/20 to-pink-600/20 border-b border-cyan-500/20 p-6 flex items-center justify-between">
+          <div className="sticky top-0 bg-gradient-to-r from-cyan-600/20 via-purple-600/20 to-cyan-600/20 border-b border-cyan-500/20 p-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-white">Privacy Policy</h2>
             <button
               onClick={closeModal}

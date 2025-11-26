@@ -43,8 +43,8 @@ export function EmailFilterIntelligence({ onAcknowledge, isLoading }: EmailFilte
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-black border-cyan-500/30 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-600/20 via-purple-600/20 to-pink-600/20 border-b border-cyan-500/20 p-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <div className="bg-gradient-to-r from-cyan-600/20 via-purple-600/20 to-cyan-600/20 border-b border-cyan-500/20 p-6">
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
             ✨ Intelligent Email Filtering
           </h2>
           <p className="text-gray-400 mt-2">

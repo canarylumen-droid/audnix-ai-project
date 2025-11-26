@@ -130,7 +130,7 @@ export default function Landing() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
-            <AnimatedCard className="bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/30 p-8">
+            <AnimatedCard className="bg-gradient-to-br from-purple-500/10 to-cyan-500/5 border-purple-500/30 p-8">
               <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
                 <Brain className="w-6 h-6 text-purple-400" />
               </div>
@@ -146,9 +146,9 @@ export default function Landing() {
               </ul>
             </AnimatedCard>
 
-            <AnimatedCard className="bg-gradient-to-br from-pink-500/10 to-purple-500/5 border-pink-500/30 p-8">
-              <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center mb-4">
-                <Sparkles className="w-6 h-6 text-pink-400" />
+            <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30 p-8">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-emerald-400" />
               </div>
               <h3 className="text-xl font-bold mb-3 text-white">How AI Uses It</h3>
               <ul className="space-y-2 text-white/80 text-sm">
@@ -163,7 +163,7 @@ export default function Landing() {
             </AnimatedCard>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-2xl p-8 text-center">
+          <div className="bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/20 rounded-2xl p-8 text-center">
             <p className="text-lg text-white/90">
               <span className="font-bold text-purple-400">Result:</span> Leads receive personalized, data-driven messages that sound like YOU—not a bot. Instant credibility + higher response rates.
             </p>

@@ -223,7 +223,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
                       backgroundPosition: ['0% center', '100% center', '0% center']
                     }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500"
+                    className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500"
                   />
                 </div>
                 <p className="text-xs text-slate-400">Analyzing quality...</p>
@@ -308,7 +308,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
                     initial={{ width: 0 }}
                     animate={{ width: `${analysis.overall_score}%` }}
                     transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400"
+                    className="h-full bg-gradient-to-r from-cyan-400 via-purple-400 to-emerald-400"
                   />
                 </div>
               </motion.div>
