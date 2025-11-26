@@ -1,7 +1,7 @@
 /**
- * Audnix AI - Reminder & Nurture Email Sequence (V2.9.1)
- * All emails with branded CTA buttons matching brand colors
- * Electric Blue (#4A5BFF) for primary CTAs
+ * Audnix AI - Reminder & Nurture Email Sequence (V2.9.2)
+ * Clean, simple design matching landing page branding
+ * Navy headers, electric blue CTAs, professional spacing
  */
 
 interface ReminderEmailOptions {
@@ -9,9 +9,6 @@ interface ReminderEmailOptions {
   userEmail: string;
   leadsCount?: number;
 }
-
-const BRAND_PRIMARY = '#4A5BFF';    // Electric Blue
-const BRAND_DARK = '#1B1F3A';       // Dark Navy
 
 /**
  * +4 Hours: "It's Live" - Immediately push to import
@@ -24,41 +21,50 @@ export function generateItsLiveEmail(options: ReminderEmailOptions): { html: str
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
-.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
-.header h1{color:#fff;font-size:24px;font-weight:700;margin:0}
-.content{padding:40px 24px}
-h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
-p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.highlight{background:#f0f4ff;padding:24px;border-left:4px solid ${BRAND_PRIMARY};border-radius:4px;margin:24px 0}
-.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer;transition:background 0.2s}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;margin:0;padding:0;color:#1B1F3A}
+.container{max-width:600px;margin:0 auto;background:#ffffff}
+.header{background:#1B1F3A;padding:48px 24px;text-align:center}
+.header h1{color:#ffffff;font-size:28px;font-weight:700;margin:0;letter-spacing:-0.5px}
+.header p{color:#B4B8FF;font-size:14px;margin:8px 0 0 0}
+.content{padding:48px 24px}
+h2{color:#1B1F3A;font-size:20px;font-weight:700;margin:0 0 16px 0;line-height:1.3}
+p{margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#4a5a7a}
+strong{color:#1B1F3A;font-weight:600}
+.highlight{background:#f8f9ff;padding:24px;border-radius:8px;margin:24px 0}
+.highlight p{margin:0;font-size:15px;line-height:1.7}
+.steps{margin:20px 0;font-size:15px;line-height:1.8}
+.steps p{margin:0 0 12px 0}
+.cta-button{display:inline-block;background:#4A5BFF;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:28px;border:none;cursor:pointer}
 .cta-button:hover{background:#3a4bee}
-.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
+.footer{background:#f8f9ff;padding:32px 24px;text-align:center;border-top:none;font-size:12px;color:#7a8fa3}
+.footer p{margin:0;line-height:1.6}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
 <div class="header">
-<h1>🚀 It's Finally Live</h1>
+<h1>🚀 It's Live</h1>
+<p>Your AI Sales Closer is Ready</p>
 </div>
 <div class="content">
-<h2>${userName}, Your AI is Ready to Close Deals</h2>
+<h2>Hi ${userName},</h2>
 
-<p>Your Audnix AI sales rep is now live and monitoring your account. It's time to put it to work.</p>
+<p>Your Audnix AI is now live and monitoring your account. Time to put it to work.</p>
 
 <div class="highlight">
-<p><strong>The fastest way to your first win:</strong> Import leads right now. Your AI will contact them within 2-8 minutes.</p>
-</div>
-
-<p>In the next 3 minutes:</p>
+<p><strong>Next 3 minutes:</strong></p>
+<div class="steps">
 <p>1. Go to your dashboard<br>
 2. Import 10-20 of your hottest leads<br>
-3. Watch your AI start closing</p>
+3. Watch your AI start closing deals</p>
+</div>
+</div>
 
-<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Leads Now →</a></td></tr></table>
+<p>Your AI will contact them within 2-8 minutes. No setup. No manual follow-ups. Just results.</p>
 
-<p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your 3-day free trial is live. No credit card needed.</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Leads Now →</a></td></tr></table>
+
+<p style="margin-top:32px;font-size:13px;color:#7a8fa3">Your 3-day free trial is active.</p>
 </div>
 <div class="footer">
 <p>© 2025 Audnix AI. Your AI Sales Closer.</p>
@@ -67,22 +73,24 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 </body>
 </html>`;
 
-  const text = `🚀 It's Finally Live
+  const text = `🚀 It's Live
 
-${userName}, Your AI is Ready to Close Deals
+Your AI Sales Closer is Ready
 
-Your Audnix AI sales rep is now live and monitoring your account. It's time to put it to work.
+Hi ${userName},
 
-The fastest way to your first win: Import leads right now. Your AI will contact them within 2-8 minutes.
+Your Audnix AI is now live and monitoring your account. Time to put it to work.
 
-In the next 3 minutes:
+Next 3 minutes:
 1. Go to your dashboard
 2. Import 10-20 of your hottest leads
-3. Watch your AI start closing
+3. Watch your AI start closing deals
+
+Your AI will contact them within 2-8 minutes. No setup. No manual follow-ups. Just results.
 
 → Import Leads Now: https://audnixai.com/dashboard/lead-import
 
-Your 3-day free trial is live. No credit card needed.
+Your 3-day free trial is active.
 
 © 2025 Audnix AI. Your AI Sales Closer.`;
 
@@ -90,7 +98,7 @@ Your 3-day free trial is live. No credit card needed.
 }
 
 /**
- * +50-69 Hours: Day 2 - Just checking in with social proof
+ * +50-69 Hours: Day 2 - Just checking in
  */
 export function generateDay2CheckInEmail(options: ReminderEmailOptions): { html: string; text: string } {
   const { userName } = options;
@@ -100,39 +108,39 @@ export function generateDay2CheckInEmail(options: ReminderEmailOptions): { html:
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
-.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
-.header h1{color:#fff;font-size:20px;font-weight:700;margin:0}
-.content{padding:40px 24px}
-h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
-p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.proof{background:#f0f4ff;padding:20px;border-left:4px solid ${BRAND_PRIMARY};border-radius:4px;margin:20px 0;font-size:13px}
-.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;margin:0;padding:0;color:#1B1F3A}
+.container{max-width:600px;margin:0 auto;background:#ffffff}
+.header{background:#1B1F3A;padding:40px 24px;text-align:center}
+.header h1{color:#ffffff;font-size:24px;font-weight:700;margin:0}
+.content{padding:48px 24px}
+h2{color:#1B1F3A;font-size:20px;font-weight:700;margin:0 0 16px 0}
+p{margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#4a5a7a}
+.proof{background:#f8f9ff;padding:20px;border-radius:8px;margin:24px 0;border-left:4px solid #4A5BFF}
+.proof p{margin:0;font-size:15px}
+.cta-button{display:inline-block;background:#4A5BFF;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:28px;border:none;cursor:pointer}
 .cta-button:hover{background:#3a4bee}
-.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
+.footer{background:#f8f9ff;padding:32px 24px;text-align:center;border-top:none;font-size:12px;color:#7a8fa3}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
 <div class="header">
-<h1>Just Checking In, ${userName}</h1>
+<h1>Day 2 Check In</h1>
 </div>
 <div class="content">
-<p>Day 2 of your free trial — your AI is warming up leads right now.</p>
+<h2>Your Leads Are Warming Up</h2>
+
+<p>Hi ${userName}, your AI has been working behind the scenes.</p>
 
 <div class="proof">
-<p><strong>Here's what's happening:</strong><br>
-Your leads are receiving personalized messages. Your AI is analyzing responses and planning follow-ups. Smart objection handling is already in motion.</p>
+<p><strong>What's happening right now:</strong> Your leads are receiving personalized messages. Your AI is analyzing responses. Objection handling is in motion.</p>
 </div>
 
-<p>Every minute your AI runs, it learns more about what resonates with your audience. The longer you leave it running, the better it gets.</p>
+<p>Every hour your AI runs, it gets smarter. It learns what works. It adapts to your audience.</p>
 
-<p><strong>Haven't imported leads yet?</strong> Do it now. Your AI works best with real data.</p>
+<p><strong>Haven't imported leads yet?</strong> Do it now. Your AI performs best with real data.</p>
 
-<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Your Leads →</a></td></tr></table>
-
-<p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your leads are getting warmed up. Let your AI do the heavy lifting.</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Your Leads →</a></td></tr></table>
 </div>
 <div class="footer">
 <p>© 2025 Audnix AI. Automate Revenue.</p>
@@ -141,20 +149,19 @@ Your leads are receiving personalized messages. Your AI is analyzing responses a
 </body>
 </html>`;
 
-  const text = `Just Checking In, ${userName}
+  const text = `Day 2 Check In
 
-Day 2 of your free trial — your AI is warming up leads right now.
+Your Leads Are Warming Up
 
-Here's what's happening:
-Your leads are receiving personalized messages. Your AI is analyzing responses and planning follow-ups. Smart objection handling is already in motion.
+Hi ${userName}, your AI has been working behind the scenes.
 
-Every minute your AI runs, it learns more about what resonates with your audience. The longer you leave it running, the better it gets.
+What's happening right now: Your leads are receiving personalized messages. Your AI is analyzing responses. Objection handling is in motion.
 
-Haven't imported leads yet? Do it now. Your AI works best with real data.
+Every hour your AI runs, it gets smarter. It learns what works. It adapts to your audience.
+
+Haven't imported leads yet? Do it now. Your AI performs best with real data.
 
 → Import Your Leads: https://audnixai.com/dashboard/lead-import
-
-Your leads are getting warmed up. Let your AI do the heavy lifting.
 
 © 2025 Audnix AI. Automate Revenue.`;
 
@@ -162,7 +169,7 @@ Your leads are getting warmed up. Let your AI do the heavy lifting.
 }
 
 /**
- * +50-69 Hours (Evening): Reminder trial ends tomorrow
+ * +60-72 Hours: Trial ends tomorrow
  */
 export function generateTrialEndsThermorrow(options: ReminderEmailOptions): { html: string; text: string } {
   const { userName } = options;
@@ -172,41 +179,41 @@ export function generateTrialEndsThermorrow(options: ReminderEmailOptions): { ht
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
-.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,#d4462f 0%,#c23e29 100%);padding:40px 24px;text-align:center}
-.header h1{color:#fff;font-size:20px;font-weight:700;margin:0}
-.content{padding:40px 24px}
-h2{color:#d4462f;font-size:18px;font-weight:600;margin:0 0 12px 0}
-p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.alert{background:#fef2f2;padding:20px;border-left:4px solid #d4462f;border-radius:4px;margin:20px 0}
-.alert p{color:#7a1f1f;margin:0}
-.cta-button{display:inline-block;background:#d4462f;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
-.cta-button:hover{background:#c23e29}
-.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;margin:0;padding:0;color:#1B1F3A}
+.container{max-width:600px;margin:0 auto;background:#ffffff}
+.header{background:#1B1F3A;padding:40px 24px;text-align:center}
+.header h1{color:#ffffff;font-size:24px;font-weight:700;margin:0}
+.content{padding:48px 24px}
+h2{color:#1B1F3A;font-size:20px;font-weight:700;margin:0 0 16px 0}
+p{margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#4a5a7a}
+.alert{background:#fff5f5;padding:20px;border-radius:8px;margin:24px 0;border-left:4px solid #d4462f}
+.alert p{color:#7a1f1f;margin:0;font-weight:500}
+.cta-button{display:inline-block;background:#4A5BFF;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:28px;border:none;cursor:pointer}
+.cta-button:hover{background:#3a4bee}
+.footer{background:#f8f9ff;padding:32px 24px;text-align:center;border-top:none;font-size:12px;color:#7a8fa3}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
 <div class="header">
-<h1>⏰ Your Trial Ends Tomorrow</h1>
+<h1>⏰ Trial Ends Tomorrow</h1>
 </div>
 <div class="content">
-<h2>Don't Let Your Momentum Stop</h2>
+<h2>Your AI Goes Quiet at Midnight</h2>
 
-<p>You've got less than 24 hours left on your free trial. Tomorrow at midnight, your AI goes quiet.</p>
+<p>Less than 24 hours left on your free trial, ${userName}.</p>
 
 <div class="alert">
-<p><strong>Here's what stops:</strong> No more lead contacts. No more objection handling. No more automatic follow-ups. The deals you could close? Gone.</p>
+<p><strong>After midnight:</strong> No more lead contacts. No more closing. No more deals. Your momentum stops.</p>
 </div>
 
-<p>Your competitors don't take breaks. Their AI never stops. Neither should yours.</p>
+<p>Your competitors? Their AI never stops. Neither should yours.</p>
 
-<p><strong>Upgrade today to keep closing.</strong> First month is 50% off with code CLOSING50</p>
+<p><strong>Upgrade today.</strong> First month 50% off with code CLOSING50</p>
 
-<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Now - Lock in Pro Pricing →</a></td></tr></table>
+<table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Now →</a></td></tr></table>
 
-<p style="margin-top:24px;font-size:13px;color:#7a8fa3">Tomorrow night you'll either be closing deals or watching leads go cold. Your choice.</p>
+<p style="margin-top:28px;font-size:13px;color:#7a8fa3">Tonight you choose: Keep closing or watch leads go cold.</p>
 </div>
 <div class="footer">
 <p>© 2025 Audnix AI. Automate Revenue.</p>
@@ -215,21 +222,21 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 </body>
 </html>`;
 
-  const text = `⏰ Your Trial Ends Tomorrow
+  const text = `⏰ Trial Ends Tomorrow
 
-Don't Let Your Momentum Stop
+Your AI Goes Quiet at Midnight
 
-You've got less than 24 hours left on your free trial. Tomorrow at midnight, your AI goes quiet.
+Less than 24 hours left on your free trial, ${userName}.
 
-Here's what stops: No more lead contacts. No more objection handling. No more automatic follow-ups. The deals you could close? Gone.
+After midnight: No more lead contacts. No more closing. No more deals. Your momentum stops.
 
-Your competitors don't take breaks. Their AI never stops. Neither should yours.
+Your competitors? Their AI never stops. Neither should yours.
 
-Upgrade today to keep closing. First month is 50% off with code CLOSING50
+Upgrade today. First month 50% off with code CLOSING50
 
-→ Upgrade Now - Lock in Pro Pricing: https://audnixai.com/dashboard/pricing
+→ Upgrade Now: https://audnixai.com/dashboard/pricing
 
-Tomorrow night you'll either be closing deals or watching leads go cold. Your choice.
+Tonight you choose: Keep closing or watch leads go cold.
 
 © 2025 Audnix AI. Automate Revenue.`;
 
@@ -237,7 +244,7 @@ Tomorrow night you'll either be closing deals or watching leads go cold. Your ch
 }
 
 /**
- * +72 Hours: Trial ends today - Final urgency
+ * +72 Hours: Trial ends today - Final
  */
 export function generateTrialEndsToday(options: ReminderEmailOptions): { html: string; text: string } {
   const { userName } = options;
@@ -247,41 +254,41 @@ export function generateTrialEndsToday(options: ReminderEmailOptions): { html: s
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
-.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,#7c3f1f 0%,#6b3a1c 100%);padding:40px 24px;text-align:center}
-.header h1{color:#fff;font-size:20px;font-weight:700;margin:0}
-.content{padding:40px 24px}
-h2{color:#7c3f1f;font-size:18px;font-weight:600;margin:0 0 12px 0}
-p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.final-alert{background:#faf4f0;padding:20px;border-left:4px solid #7c3f1f;border-radius:4px;margin:20px 0}
-.final-alert p{color:#6b3a1c;margin:0}
-.cta-button{display:inline-block;background:#7c3f1f;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
-.cta-button:hover{background:#6b3a1c}
-.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;margin:0;padding:0;color:#1B1F3A}
+.container{max-width:600px;margin:0 auto;background:#ffffff}
+.header{background:#1B1F3A;padding:40px 24px;text-align:center}
+.header h1{color:#ffffff;font-size:24px;font-weight:700;margin:0}
+.content{padding:48px 24px}
+h2{color:#1B1F3A;font-size:20px;font-weight:700;margin:0 0 16px 0}
+p{margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#4a5a7a}
+.alert{background:#fff5f5;padding:20px;border-radius:8px;margin:24px 0;border-left:4px solid #d4462f}
+.alert p{color:#7a1f1f;margin:0;font-weight:500}
+.cta-button{display:inline-block;background:#4A5BFF;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:28px;border:none;cursor:pointer}
+.cta-button:hover{background:#3a4bee}
+.footer{background:#f8f9ff;padding:32px 24px;text-align:center;border-top:none;font-size:12px;color:#7a8fa3}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
 <div class="header">
-<h1>Your Free Trial Ends Today</h1>
+<h1>Your Trial Ends Today</h1>
 </div>
 <div class="content">
-<h2>The Clock is Ticking</h2>
+<h2>Last Chance, ${userName}</h2>
 
-<p>This is it, ${userName}. Your 3-day free trial expires tonight at midnight.</p>
+<p>Your free trial expires tonight at midnight. After that, you've exhausted your free access.</p>
 
-<div class="final-alert">
-<p><strong>After midnight:</strong> You've exhausted your free trial. Your AI turns off. Your leads go cold. Your momentum dies.</p>
+<div class="alert">
+<p><strong>What you'll lose:</strong> Your leads. Your momentum. Your early wins. Gone.</p>
 </div>
 
-<p>Everything you built over the last 3 days? It stops. The relationships with leads? Lost. The deals you could close? Gone to competitors.</p>
+<p>Everything you built over 3 days stops. Leads go cold. Competitors move in.</p>
 
-<p><strong>You have hours left.</strong> Upgrade now and keep your AI running 24/7. First month 50% off with code CLOSING50</p>
+<p><strong>Upgrade before midnight.</strong> Keep your AI running. First month 50% off with code CLOSING50</p>
 
-<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Before Midnight →</a></td></tr></table>
+<table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard/pricing" class="cta-button">Upgrade Before Midnight →</a></td></tr></table>
 
-<p style="margin-top:24px;font-size:13px;color:#7a8fa3;font-weight:600">After tonight, it gets harder to re-engage cold leads. Don't lose what you've started.</p>
+<p style="margin-top:28px;font-size:13px;color:#7a8fa3;font-weight:500">This is it. Your choice. Your future.</p>
 </div>
 <div class="footer">
 <p>© 2025 Audnix AI. Automate Revenue.</p>
@@ -290,21 +297,21 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 </body>
 </html>`;
 
-  const text = `Your Free Trial Ends Today
+  const text = `Your Trial Ends Today
 
-The Clock is Ticking
+Last Chance, ${userName}
 
-This is it, ${userName}. Your 3-day free trial expires tonight at midnight.
+Your free trial expires tonight at midnight. After that, you've exhausted your free access.
 
-After midnight: You've exhausted your free trial. Your AI turns off. Your leads go cold. Your momentum dies.
+What you'll lose: Your leads. Your momentum. Your early wins. Gone.
 
-Everything you built over the last 3 days? It stops. The relationships with leads? Lost. The deals you could close? Gone to competitors.
+Everything you built over 3 days stops. Leads go cold. Competitors move in.
 
-You have hours left. Upgrade now and keep your AI running 24/7. First month 50% off with code CLOSING50
+Upgrade before midnight. Keep your AI running. First month 50% off with code CLOSING50
 
 → Upgrade Before Midnight: https://audnixai.com/dashboard/pricing
 
-After tonight, it gets harder to re-engage cold leads. Don't lose what you've started.
+This is it. Your choice. Your future.
 
 © 2025 Audnix AI. Automate Revenue.`;
 
@@ -312,7 +319,7 @@ After tonight, it gets harder to re-engage cold leads. Don't lose what you've st
 }
 
 /**
- * No Activity Reminder: "Come back and close deals"
+ * No Activity Reminder
  */
 export function generateNoActivityReminder(options: ReminderEmailOptions): { html: string; text: string } {
   const { userName } = options;
@@ -322,38 +329,38 @@ export function generateNoActivityReminder(options: ReminderEmailOptions): { htm
 <head>
 <meta charset="UTF-8">
 <style>
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f7f8fc;margin:0;padding:0}
-.wrapper{max-width:600px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden}
-.header{background:linear-gradient(135deg,${BRAND_DARK} 0%,#2D3548 100%);padding:40px 24px;text-align:center}
-.header h1{color:#fff;font-size:18px;font-weight:700;margin:0}
-.content{padding:40px 24px}
-h2{color:${BRAND_DARK};font-size:18px;font-weight:600;margin:0 0 12px 0}
-p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
-.cta-button{display:inline-block;background:${BRAND_PRIMARY};color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:24px;border:none;cursor:pointer}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#ffffff;margin:0;padding:0;color:#1B1F3A}
+.container{max-width:600px;margin:0 auto;background:#ffffff}
+.header{background:#1B1F3A;padding:40px 24px;text-align:center}
+.header h1{color:#ffffff;font-size:24px;font-weight:700;margin:0}
+.content{padding:48px 24px}
+h2{color:#1B1F3A;font-size:20px;font-weight:700;margin:0 0 16px 0}
+p{margin:0 0 16px 0;font-size:15px;line-height:1.7;color:#4a5a7a}
+.cta-button{display:inline-block;background:#4A5BFF;color:white;padding:14px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;margin-top:28px;border:none;cursor:pointer}
 .cta-button:hover{background:#3a4bee}
-.footer{background:#fafbfc;padding:24px;text-align:center;border-top:1px solid #e5e7eb;font-size:12px;color:#7a8fa3}
+.footer{background:#f8f9ff;padding:32px 24px;text-align:center;border-top:none;font-size:12px;color:#7a8fa3}
 </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
 <div class="header">
-<h1>You Haven't Missed Anything</h1>
+<h1>We Miss You</h1>
 </div>
 <div class="content">
-<h2>But Your Leads Are Waiting</h2>
+<h2>Your Leads Are Waiting</h2>
 
-<p>Hi ${userName}, we noticed you haven't been using Audnix AI lately.</p>
+<p>Hi ${userName}, we noticed you haven't logged in lately.</p>
 
-<p>Your leads are still there. Your AI is ready to close them. But it needs you to start it.</p>
+<p>Your AI is ready to close deals. Your leads are still there. They're waiting for you.</p>
 
-<p><strong>3 steps to your first deal:</strong></p>
-<p>1. Log back in<br>
+<p><strong>3 steps back to winning:</strong></p>
+<p>1. Log in to your dashboard<br>
 2. Import your leads<br>
 3. Let your AI close</p>
 
-<table cellpadding="0" cellspacing="0" style="margin-top:24px"><tr><td><a href="https://audnixai.com/dashboard" class="cta-button">Come Close Some Deals →</a></td></tr></table>
+<table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard" class="cta-button">Get Back to Closing →</a></td></tr></table>
 
-<p style="margin-top:24px;font-size:13px;color:#7a8fa3">Your AI is waiting. Your leads are waiting. You deserve this win.</p>
+<p style="margin-top:28px;font-size:13px;color:#7a8fa3">Your AI doesn't take breaks. Neither should you.</p>
 </div>
 <div class="footer">
 <p>© 2025 Audnix AI. Automate Revenue.</p>
@@ -362,22 +369,22 @@ p{margin:0 0 16px 0;font-size:14px;line-height:1.8;color:#4a5a7a}
 </body>
 </html>`;
 
-  const text = `You Haven't Missed Anything
+  const text = `We Miss You
 
-But Your Leads Are Waiting
+Your Leads Are Waiting
 
-Hi ${userName}, we noticed you haven't been using Audnix AI lately.
+Hi ${userName}, we noticed you haven't logged in lately.
 
-Your leads are still there. Your AI is ready to close them. But it needs you to start it.
+Your AI is ready to close deals. Your leads are still there. They're waiting for you.
 
-3 steps to your first deal:
-1. Log back in
+3 steps back to winning:
+1. Log in to your dashboard
 2. Import your leads
 3. Let your AI close
 
-→ Come Close Some Deals: https://audnixai.com/dashboard
+→ Get Back to Closing: https://audnixai.com/dashboard
 
-Your AI is waiting. Your leads are waiting. You deserve this win.
+Your AI doesn't take breaks. Neither should you.
 
 © 2025 Audnix AI. Automate Revenue.`;
 
