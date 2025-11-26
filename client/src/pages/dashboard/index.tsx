@@ -9,6 +9,7 @@ import IntegrationsPage from "./integrations";
 import InsightsPage from "./insights";
 import PricingPage from "./pricing";
 import SettingsPage from "./settings";
+import SalesAssistant from "../sales-assistant";
 
 export default function DashboardRoutes() {
   return (
@@ -22,6 +23,7 @@ export default function DashboardRoutes() {
         <Route path="/dashboard/calendar" component={CalendarPage} />
         <Route path="/dashboard/integrations" component={IntegrationsPage} />
         <Route path="/dashboard/insights" component={InsightsPage} />
+        <Route path="/dashboard/sales-assistant" component={SalesAssistant} />
         <Route path="/dashboard/pricing" component={PricingPage} />
         <Route path="/dashboard/settings" component={SettingsPage} />
       </Switch>
