@@ -152,15 +152,16 @@ Audnix AI is a production-ready, Vercel-deployable SaaS platform.
 - OTP verification codes
 - Status: ✅ Already configured & working
 
-### Email Sequence Timing
+### Email Sequence Timing (UPDATED - V2.9.1)
 
 | Email | Trigger | Copy Focus |
 |-------|---------|-----------|
-| Welcome (Day 1) | User completes signup | Excitement + setup guide |
-| Day 2 Reminder | 24 hrs after signup | Action-oriented, show momentum |
-| Trial Expiring (Day 3) | 72 hrs (trial end) | FOMO, upgrade urgency |
-| Winback | 24 hrs post-trial if no upgrade | Value recap, leads cooling, recovery |
-| Payment Confirmation | Immediate after payment | Trust-building, feature unlock, success |
+| It's Live (+4hrs) | Signup complete | Immediate action to import |
+| Day 2 Check In (+50-69hrs) | Day 2 morning | Social proof + engagement |
+| Trial Ends Tomorrow (+60-72hrs) | Day 2 evening | First urgency warning |
+| Trial Ends Today (+72hrs) | Final day | Last-chance urgency |
+| No Activity (12+hrs) | No login detected | Re-engagement push |
+| Payment Confirmation | Immediate after payment | Trust-building, feature unlock |
 | Monthly Invoice | Recurring on renewal date | Clean, professional, administrative |
 
 ### Implementation Notes
@@ -192,3 +193,29 @@ AUDNIX_BILLING_EMAIL_FROM=billing@audnixai.com
 - AI voice assistant integration (ElevenLabs) for real-time call handling
 - Will revolutionize support industry when combined with autonomous email closing
 
+
+### Email API Configuration
+
+**Universal Email Router - Supports Both SendGrid & Custom API:**
+- Automatically detects which provider to use
+- Falls back gracefully if one fails
+- Single integration point for all emails
+
+**To Use SendGrid (Already Configured):**
+```
+TWILIO_SENDGRID_API_KEY=SG.xxxxx
+AUDNIX_REMINDER_EMAIL_FROM=hello@audnixai.com
+AUDNIX_BILLING_EMAIL_FROM=billing@audnixai.com
+```
+
+**To Use Custom Email API:**
+```
+REMINDER_EMAIL_API_KEY=your_api_key_here
+REMINDER_EMAIL_ENDPOINT=https://api.yourservice.com/send
+```
+
+**Activity-Based Reminders:**
+- Checks user activity automatically every 30 seconds
+- No login after 12 hours → sends "come back" email
+- Repeats every 48 hours until engagement
+- Stops once user upgrades or trial ends
