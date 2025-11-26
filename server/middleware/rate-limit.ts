@@ -13,18 +13,38 @@ if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
 let redisClient: ReturnType<typeof createClient> | null = null;
 
 if (process.env.REDIS_URL) {
-  redisClient = createClient({
-    url: process.env.REDIS_URL,
-    socket: {
-      reconnectStrategy: (retries) => Math.min(retries * 50, 1000)
+  try {
+    // Extract clean Redis URL (handle malformed URLs with "redis-cli -u" prefix)
+    let redisUrl = process.env.REDIS_URL;
+    if (redisUrl.includes('redis-cli -u')) {
+      redisUrl = redisUrl.match(/redis:\/\/[^\s]+/)?.[0] || redisUrl;
     }
-  });
-  
-  redisClient.on('error', (err) => {
-    console.error('Redis rate limit error:', err);
-  });
-  
-  redisClient.connect().catch(console.error);
+    
+    console.log('📍 Connecting to Redis...');
+    redisClient = createClient({
+      url: redisUrl,
+      socket: {
+        reconnectStrategy: (retries) => Math.min(retries * 50, 1000)
+      }
+    });
+    
+    redisClient.on('error', (err) => {
+      console.error('⚠️  Redis connection error:', err.message);
+      redisClient = null; // Fallback to memory storage
+    });
+    
+    redisClient.on('connect', () => {
+      console.log('✅ Redis connected for rate limiting');
+    });
+    
+    redisClient.connect().catch((err) => {
+      console.warn('⚠️  Redis failed, using memory-based rate limiting:', err.message);
+      redisClient = null;
+    });
+  } catch (err) {
+    console.error('❌ Redis initialization error:', err);
+    redisClient = null; // Fallback to memory
+  }
 }
 
 /**
