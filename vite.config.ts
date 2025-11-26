@@ -39,7 +39,7 @@ export default defineConfig({
     fs: {
       strict: false,
     },
-    allowedHosts: ['.picard.replit.dev', 'localhost'],
+    allowedHosts: 'all',
     middlewareMode: false,
   },
   preview: {
