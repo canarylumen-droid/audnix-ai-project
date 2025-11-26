@@ -1,305 +1,55 @@
 # Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
 
 ### Overview
-Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform designed for creators, coaches, agencies, and founders. It automates lead imports from WhatsApp, Email (custom SMTP), and CSV, then intelligently follows up with personalized campaigns across 24/7 workers. The platform emphasizes privacy by connecting directly to users' own business email, Calendly accounts, and WhatsApp.
+Audnix AI is a premium, zero-setup multi-channel sales automation SaaS platform. It automates lead imports from WhatsApp, Email (custom SMTP), and CSV, then intelligently follows up with personalized campaigns. The platform emphasizes privacy by connecting directly to users' own business email, Calendly accounts, and WhatsApp. Its core purpose is to automate sales and objection handling across multiple channels for creators, coaches, agencies, and founders, aiming to significantly improve conversion rates and streamline sales processes with an AI-driven autonomous objection handler.
 
-### Current Status: ✅ PRODUCTION-READY & VERCEL-DEPLOYABLE
+### User Preferences
+No specific user preferences were provided in the document.
 
-**Version:** 2.7.1 (OTP Email System + CRITICAL API ROUTING FIX)
-**Last Updated:** November 24, 2025, 10:09 AM
-**Build Status:** ✅ Passing (656.2KB, ZERO TypeScript errors)
-**Auth Status:** ✅ Fully Protected + Admin Secret URLs + OTP Email Working ✅
-**Payment Status:** ✅ Admin Auto-Approve System (No API Keys Needed)
-**OTP Status:** ✅ Real Twilio SendGrid Integration - ALL ENDPOINTS WORKING
-**API Status:** ✅ FIXED: Vite middleware no longer blocks `/api/` and `/webhook/` routes
-**Legal Status:** ✅ AI Disclaimers + Terms/Privacy Updated
-**Analytics:** ✅ FREE for all users
+### System Architecture
+Audnix AI is a production-ready, Vercel-deployable SaaS platform.
 
----
+**UI/UX Decisions:**
+- **Responsive Mobile UI:** The Admin dashboard features a hamburger menu for mobile/tablet, with a full sidebar for desktop.
+- **Landing Page:** Showcases real features across five sections: PDF Upload & Brand Learning, Real Analytics Dashboard, Multi-Channel Automation, Legal Compliance + Disclaimers, and Conversion Strategy.
 
-## 🆕 VERSION 2.7.1 - CRITICAL API ROUTING FIX ✅
+**Technical Implementations:**
+- **Authentication System:**
+    - User Flow: Email -> Password -> OTP -> Username -> Dashboard (7-day sessions).
+    - Admin Flow: Whitelist email + OTP (30-day sessions).
+    - Security: Device ban after 2 failed attempts (1-week ban), all `/dashboard/*` routes protected.
+    - OTP System: Fully operational with Twilio SendGrid integration, 10-minute OTP expiry, and database persistence.
+- **Payment System (API Key Free):**
+    - Database-driven payment tracking, eliminating the need for Stripe API keys for approval.
+    - Admin Dashboard for managing pending payments with a 5-second auto-approve feature.
+    - Payment verification and subscription IDs are stored in the database to prevent exploitation.
+- **Admin Dashboard:**
+    - Secret Admin Dashboard URL for enhanced security, accessible via a configurable environment variable (`VITE_ADMIN_SECRET_URL`).
+    - Requires admin role and whitelist email + OTP for access.
+    - Provides statistics on total users, trial users, paid users, pending approvals, and user distribution by plan.
+- **AI-powered Autonomous Objection Handler (Version 2.8):**
+    - Identifies and responds to 60+ types of sales objections (timing, price, competitor, trust, etc.).
+    - Generates context-aware closing responses using GPT-4, incorporating reframes, stories, and power questions.
+    - Learns from past interactions to improve effectiveness.
+    - Core logic implemented in `autonomous-objection-responder.ts` and integrated via `universal-sales-agent-integrated.ts`.
+- **Audit & Compliance:**
+    - Audit trail for all AI actions.
+    - Opt-out system for lead communication.
+    - PDF confidence tracking and alerts.
+    - Rate limiting for uploads.
+    - Auto-disclaimers on all messages and integrated legal policies (Terms of Service, Privacy Policy).
+- **Backend Infrastructure:**
+    - Utilizes PostgreSQL for database management.
+    - Session and encryption handled with `SESSION_SECRET` and `ENCRYPTION_KEY`.
+    - API routing fixed to correctly handle `/api/` and `/webhook/` routes, preventing conflicts with Vite middleware.
 
-### Critical Fix (Nov 24, 10:09 AM):
-**BUG:** Vite dev server middleware was catching ALL requests (including `/api/`) with catch-all `app.use("*", ...)`, returning HTML instead of JSON
-**ROOT CAUSE:** Middleware order + missing route check
-**FIX:** Added check in `server/vite.ts` line 50 to skip Vite for `/api/` and `/webhook/` routes, letting Express API handlers take over
-**RESULT:** ✅ All API endpoints now working correctly!
+**System Design Choices:**
+- **Role-based access control** for users and administrators.
+- **Comprehensive security measures** including AuthGuard, encryption, and secure secret management.
+- **Modular design** with clear separation of concerns (e.g., AI engine, sales engine, objection database).
 
-### OTP System - FULLY OPERATIONAL:
-- ✅ **POST /api/auth/email-otp/request** - Request OTP (returns JSON)
-- ✅ **POST /api/auth/email-otp/verify** - Verify OTP (returns JSON)
-- ✅ **POST /api/auth/email-otp/resend** - Resend OTP (returns JSON)
-- ✅ **Real Twilio SendGrid Integration** - OTP emails send from configured email
-- ✅ **Account SID:** Configured in Replit Secrets ✅ 
-- ✅ **Auth Token:** Configured securely in Replit Secrets ✅
-- ✅ **SendGrid API Key:** Configured in Replit Secrets ✅
-- ✅ **10-minute OTP expiry** - Automatic cleanup
-- ✅ **Database persistence** - OTP sessions in PostgreSQL
-
-### OTP Flow:
-```
-User signs up with email
-  ↓
-Backend validates credentials (Account SID starts with AC, etc.)
-  ↓
-Twilio SendGrid sends OTP email to user's inbox
-  ↓
-User enters 6-digit OTP from email
-  ↓
-OTP verified → Username creation → Dashboard access
-```
-
-### Admin Whitelist Status:
-- ⚠️ Set in Vercel: `ADMIN_WHITELIST_EMAILS` (comma-separated)
-- ⚠️ Local (Replit): Still loading as 0 emails (Replit secret sync pending)
-- **Deploy to Vercel to activate admin emails**
-
----
-
-## 🆕 VERSION 2.6 - PAYMENT SYSTEM REDESIGNED (API Key Free) ✅
-
-### What Changed:
-**Old System:** Used Stripe Secret Key + webhooks + polling
-**New System:** Database-driven payment tracking + NO API KEYS NEEDED
-
-### How It Works Now:
-
-**Step 1: User Initiates Payment**
-- User clicks "Upgrade to Pro"
-- Frontend creates payment link
-- Payment link sent to user (Stripe handles payment securely)
-
-**Step 2: Payment Received (NO API KEY NEEDED)**
-- Payment completes on Stripe
-- Frontend detects completion (from Stripe link callback)
-- Frontend calls: `POST /api/payment-approval/mark-pending`
-- Database stores: `paymentStatus: "pending"` + plan + amount
-
-**Step 3: Admin Approves (NO API KEY NEEDED)**
-- Admin dashboard shows pending payments
-- Admin clicks "Approve" or auto-approve button
-- 5-second countdown starts
-- **Auto-approve automatically clicks** within 5 seconds if admin doesn't click
-- Database updates: `paymentStatus: "approved"` + `plan` upgraded
-- User instantly gets access to Pro features
-
-**Step 4: Can't Cheat**
-- ✅ Payment verification stored in database
-- ✅ Subscription ID stored in database
-- ✅ Can't bookmark or refresh to exploit
-- ✅ Auto-approve only works once per payment
-- ✅ Status confirmed before approval button shows
-
-### Database Fields Added (No Migration Needed, Already Run):
-```sql
-paymentStatus: "pending" | "approved" | "rejected" | "none"
-pendingPaymentPlan: "starter" | "pro" | "enterprise"
-pendingPaymentAmount: number (cents)
-pendingPaymentDate: timestamp
-paymentApprovedAt: timestamp
-stripeSessionId: string (for reference)
-subscriptionId: string (stores actual Stripe subscription ID)
-```
-
-### Payment Flow Visualization:
-```
-User Payment Link → Stripe Payment → Frontend Detects ✅
-                                            ↓
-                            API: /mark-pending (no API key)
-                                            ↓
-                    Database: paymentStatus = "pending"
-                                            ↓
-                    Admin Dashboard: Shows pending payments
-                                            ↓
-                    Admin clicks Approve OR auto-approve waits 5 seconds
-                                            ↓
-                    API: /approve/:userId (no API key)
-                                            ↓
-                    Database: paymentStatus = "approved", plan updated
-                                            ↓
-                    User upgraded instantly ✅
-```
-
-### Admin Dashboard Features:
-- ✅ Pending payments list (refreshes every 5 seconds)
-- ✅ Shows subscription ID (proof of payment)
-- ✅ Manual approve button
-- ✅ Auto-approve button (5-second countdown)
-- ✅ Reject button
-- ✅ Stats: Total users, Trial users, Paid users, Pending approvals
-- ✅ User distribution breakdown (Starter/Pro/Enterprise)
-
----
-
-## 📋 VERSION 2.5 - CATASTROPHIC BUILD FIX ✅
-
-**Problem:** Build had 100+ TypeScript errors due to field name mismatches between schema and code
-**Root Cause:** Code was using field names that didn't exist in database (e.g., `message.content` vs schema's `message.body`)
-**Solution:** Fixed all field names to match actual database schema
-
-### Changes Made:
-- ✅ `message.content` → `message.body` (14 files)
-- ✅ `lead.company` → `lead.metadata?.company`
-- ✅ `lead.firstName` → `lead.name`
-- ✅ `lead.industry` → `lead.metadata?.industry`
-- ✅ `lead.companySize` → `lead.metadata?.companySize`
-- ✅ `user.firstName` → `user.name`
-- ✅ `lead.user_id` → `lead.userId`
-- ✅ `account_type` → `accountType`
-- ✅ `subscriptionTier` → `plan`
-
----
-
-## 📋 VERSION 2.4 - SECRET ADMIN + RESPONSIVE UI
-
-### 1. SECRET Admin Dashboard URL ✅
-- Access via: `VITE_ADMIN_SECRET_URL` env variable
-- Example: `/admin-secret-a1b2c3d4` (you choose any value)
-- Only accessible to whitelist emails with admin role
-- 30-day OTP sessions + device ban protection
-
-### 2. Responsive Mobile UI ✅
-- Admin dashboard has hamburger menu (mobile)
-- Desktop: Full sidebar visible
-- Tablet/Mobile: Sheet component slides from left
-
-### 3. Auth System ✅
-- Users: Email→Password→OTP→Username→Dashboard (7-day sessions)
-- Admins: Whitelist email + OTP (30-day sessions)
-- Device ban: 2 failed attempts = 1 week ban
-- All `/dashboard/*` routes protected
-
-### 4. Landing Page - Real Features ✅
-- Section 1: PDF Upload & Brand Learning
-- Section 2: Real Analytics Dashboard
-- Section 3: Multi-Channel Automation
-- Section 4: Legal Compliance + Disclaimers
-- Section 5: Conversion Strategy
-
----
-
-## 🚀 DEPLOYMENT CHECKLIST - READY NOW ✅
-
-**Before Vercel Deployment:**
-- ✅ Build passes (656.2KB, zero errors)
-- ✅ All 17 migrations passing
-- ✅ Type system aligned with schema
-- ✅ Auth fully working
-- ✅ Payment system operational (NO API keys needed for approval)
-- ✅ Workers running (follow-up, insights, video monitor, payments)
-- ✅ Admin payment approvals with auto-approve
-- ✅ Logo & favicon showing
-- ✅ Responsive UI (mobile + desktop)
-
-**Required Environment Variables:**
-```env
-# Database
-DATABASE_URL=postgresql://user:password@host:port/database
-
-# Session & Encryption
-SESSION_SECRET=<generate with: openssl rand -base64 32>
-ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
-
-# Stripe (for payment links only - no API key needed for approval)
-STRIPE_SECRET_KEY=sk_live_your_stripe_key
-
-# Twilio SendGrid Configuration
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_SENDGRID_API_KEY=your_sendgrid_api_key
-TWILIO_EMAIL_FROM=your-email@yourdomain.com
-
-# Admin Settings
-ADMIN_WHITELIST_EMAILS=admin1@example.com,admin2@example.com
-VITE_ADMIN_SECRET_URL=admin-secret-unique-value
-
-# Environment
-NODE_ENV=production
-```
-
----
-
-## ✅ FEATURES CHECKLIST
-
-### Core System (v2.0)
-- ✅ Signup: Email→Password→OTP/Skip→Username
-- ✅ Login: 7-day session auth
-- ✅ Admin: Whitelist OTP + 1-week device ban
-- ✅ Role-based access control
-
-### Audit & Compliance (v2.1)
-- ✅ Audit trail for all AI actions
-- ✅ Opt-out system (instant pause)
-- ✅ PDF confidence tracking + alerts
-- ✅ Rate limiting (10 uploads/hour)
-- ✅ Week-1 revenue sequences
-
-### Legal Protection (v2.2)
-- ✅ Auto-disclaimers on all messages
-- ✅ Terms of Service with AI liability
-- ✅ Privacy Policy with AI data processing
-- ✅ Disclaimers logged to audit trail
-
-### Marketing & Conversion (v2.3)
-- ✅ Landing page with 5 real feature sections
-- ✅ AI reasoning features showcased
-- ✅ Free analytics strategy
-- ✅ Limited free leads (500/month) + free analytics
-
-### Admin & Security (v2.4)
-- ✅ Secret admin URL (custom value)
-- ✅ Admin whitelist + OTP verification
-- ✅ Responsive mobile UI
-- ✅ Payment approval dashboard
-
-### Payment System (v2.6)
-- ✅ Admin auto-approval (5-second auto-click)
-- ✅ NO API keys needed for approval logic
-- ✅ Database-driven payment tracking
-- ✅ Subscription ID verification
-- ✅ Can't cheat with bookmarks/refresh
-- ✅ Stats dashboard (users by plan)
-
----
-
-## 🔐 SECURITY STATUS
-
-- ✅ All routes protected with AuthGuard
-- ✅ Admin routes require `role === 'admin'`
-- ✅ Device ban after 2 failed attempts
-- ✅ Payment status stored in database
-- ✅ Session secrets managed
-- ✅ No secrets exposed in code
-- ✅ Encryption key for sensitive data
-- ✅ Auto-approve prevents infinite clicking
-
----
-
-## 📞 NEXT STEPS
-
-1. **Deploy to Vercel:**
-   - Push to GitHub
-   - Connect Vercel
-   - Set environment variables
-   - Deploy
-
-2. **Post-Deploy Verification:**
-   - Test signup flow
-   - Test login/auth
-   - Test payment (Stripe test mode or live)
-   - Test admin payment approval
-   - Verify auto-approve works (5-second countdown)
-   - Verify can't cheat by bookmarking
-   - Test admin panel
-   - Verify mobile responsiveness
-
-3. **Production Setup:**
-   - Switch Stripe to live keys (if needed)
-   - Set production database
-   - Update `VITE_ADMIN_SECRET_URL` in Vercel Secrets
-   - Set custom domain
-   - Enable monitoring/logging
-
----
-
-**Version:** 2.7 | **Status:** ✅ Production-Ready | **Build:** ✅ Passing | **OTP:** ✅ SendGrid Active | **Payment System:** ✅ API Key Free | **Auto-Approve:** ✅ 5-second auto-click
+### External Dependencies
+- **PostgreSQL:** Primary database.
+- **Stripe:** For generating payment links (no API keys needed for payment approval logic).
+- **Twilio SendGrid:** For sending OTP emails.
+- **GPT-4:** AI model used for the autonomous objection handler.

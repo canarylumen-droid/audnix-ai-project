@@ -83,6 +83,7 @@ export async function generateContextAwareMessage(
       churnRisk: churnRisk.churnRiskLevel,
     },
     explanation: `Score: ${score}/100 | Intent: ${intent.intentLevel} | Deal: $${prediction.predictedAmount} | Risk: ${churnRisk.churnRiskLevel}`,
+    autonomousClosing: "Enabled - AI will autonomously respond to objections to close deals",
   };
 }
 
@@ -95,22 +96,48 @@ export async function handleLeadResponseWithLearning(
    * When lead responds:
    * 1. Detect if they're interested
    * 2. Detect any objections
-   * 3. Suggest smart reply
+   * 3. AUTONOMOUSLY RESPOND TO OBJECTIONS (turn them into closes)
    * 4. Learn for next time
    */
+
+  // Import autonomous responder
+  const { generateAutonomousObjectionResponse, recordObjectionLearning } = require("./autonomous-objection-responder");
 
   // Get intent immediately
   const intent = await detectLeadIntent(messages, lead);
 
-  // Get objection if not interested
-  let objection = null;
-  if (intent.intentLevel === "low" || intent.intentLevel === "not_interested") {
-    // Generate AI-powered objection response
-    const suggestions = await suggestSmartReply(theirMessage, lead, {}, messages);
-    objection = suggestions[0];
+  // AUTONOMOUS OBJECTION HANDLING: If they said "no", "maybe", or raised objection
+  let autonomousResponse = null;
+  if (intent.intentLevel === "low" || intent.intentLevel === "not_interested" || 
+      theirMessage.toLowerCase().includes("let me") || 
+      theirMessage.toLowerCase().includes("not sure") ||
+      theirMessage.toLowerCase().includes("no") ||
+      theirMessage.toLowerCase().includes("maybe") ||
+      theirMessage.toLowerCase().includes("think")) {
+    
+    // GENERATE AUTONOMOUS CLOSING RESPONSE
+    autonomousResponse = await generateAutonomousObjectionResponse(theirMessage, {
+      leadName: lead.name || "there",
+      leadCompany: lead.company,
+      leadIndustry: lead.metadata?.industry || "general",
+      previousMessages: messages.map((m: any) => ({ role: m.senderType, content: m.body })),
+      brandName: lead.brandName || "Our platform",
+      userIndustry: lead.userIndustry || "all",
+      pdfContext: lead.pdfContext,
+    });
+
+    // Record what we learned
+    await recordObjectionLearning({
+      leadId: lead.id,
+      industry: lead.metadata?.industry || "general",
+      objectionType: "identified",
+      responseUsed: autonomousResponse.response,
+      leadReply: theirMessage,
+      dealClosed: false, // Will update when they respond again
+    });
   }
 
-  // Get smart reply suggestions
+  // Get smart reply suggestions (backup)
   const smartReplies = await suggestSmartReply(theirMessage, lead, {}, messages);
 
   // Learn from this interaction
@@ -120,13 +147,16 @@ export async function handleLeadResponseWithLearning(
     leadResponse: intent.intentLevel === "high" ? "interested" : "objection",
     sentiment: theirMessage.includes("!") || theirMessage.includes("?") ? "positive" : "neutral",
     timestamp: new Date(),
-    whatWorked: objection ? "mentioned objection handler" : "interest increased",
+    whatWorked: autonomousResponse ? "autonomous objection closed" : autonomousResponse ? "interest increased" : smartReplies[0],
   });
 
   return {
     intent,
     suggestedReplies: smartReplies,
-    nextAction: intent.intentLevel === "high" ? "Schedule call" : "Send case study",
+    autonomousResponse: autonomousResponse || null,
+    nextAction: autonomousResponse 
+      ? "Send autonomous closing response - turn objection to YES" 
+      : intent.intentLevel === "high" ? "Schedule call" : "Send case study",
   };
 }
 
