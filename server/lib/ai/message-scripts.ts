@@ -112,23 +112,26 @@ export function getMessageScript(
   channel: 'email' | 'whatsapp' | 'instagram',
   campaignDay: number
 ) {
-  const channelScripts = messageScripts[channel as keyof typeof messageScripts];
+  const scripts = messageScripts;
   
   if (channel === 'email') {
-    if (campaignDay <= 1) return channelScripts.day1;
-    if (campaignDay === 2) return channelScripts.day2;
-    if (campaignDay <= 6) return channelScripts.day5;
-    return channelScripts.day7;
+    const emailScripts = scripts.email;
+    if (campaignDay <= 1) return emailScripts.day1;
+    if (campaignDay === 2) return emailScripts.day2;
+    if (campaignDay <= 6) return emailScripts.day5;
+    return emailScripts.day7;
   }
   
   if (channel === 'whatsapp') {
-    if (campaignDay <= 3) return channelScripts.day3;
-    return channelScripts.day6;
+    const whatsappScripts = scripts.whatsapp;
+    if (campaignDay <= 3) return whatsappScripts.day3;
+    return whatsappScripts.day6;
   }
   
   if (channel === 'instagram') {
-    if (campaignDay <= 5) return channelScripts.day5;
-    return channelScripts.day8;
+    const instagramScripts = scripts.instagram;
+    if (campaignDay <= 5) return instagramScripts.day5;
+    return instagramScripts.day8;
   }
 
   return null;
@@ -140,7 +143,7 @@ export function getMessageScript(
 export function personalizeScript(
   script: any,
   context: {
-    lead: { name: string; firstName: string; company?: string };
+    lead: { name: string; firstName: string; company?: string; metadata?: Record<string, any> };
     sender: { name: string; email?: string };
     observation?: string;
     question?: string;
@@ -152,8 +155,8 @@ export function personalizeScript(
 
   // Replace all template variables
   template = template.replace(/{{lead\.name}}/g, context.lead.name);
-  template = template.replace(/{{lead\.firstName}}/g, context.lead.name);
-  template = template.replace(/{{lead\.company}}/g, context.lead.metadata?.company || 'your work');
+  template = template.replace(/{{lead\.firstName}}/g, context.lead.firstName || context.lead.name.split(' ')[0]);
+  template = template.replace(/{{lead\.company}}/g, context.lead.company || context.lead.metadata?.company || 'your work');
   template = template.replace(/{{specific_observation}}/g, context.observation || 'something interesting');
   template = template.replace(/{{genuine_question}}/g, context.question || 'how are things going?');
   template = template.replace(/{{specific_value}}/g, context.value || 'something useful');

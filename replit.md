@@ -37,14 +37,25 @@ Email → Password → OTP (SendGrid) → Username → Dashboard
 - **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
 ### Recent Changes (November 27, 2025)
+- **User Schema Enhancements:** Added `subscriptionTier`, `whatsappConnected`, `pdfConfidenceThreshold` fields
+- **TypeScript Build Fixes:** Fixed OpenAI API calls (`message.content` vs `message.body`), schema property alignment
+- **Shared Types:** Created `shared/types.ts` for centralized PDFProcessingResult and common type definitions
+- **Storage Interface:** Added `getAllMessages` method to IStorage interface
+- **Follow-up Worker:** Fixed message property names (createdAt, direction) to match schema
+- **Message Scripts:** Fixed channel-specific day mapping for WhatsApp/Instagram
+- **Migration 021:** Applied user schema enhancements for subscription tracking
 - **Admin Direct Upgrade:** POST /api/admin/users/:id/upgrade - upgrade any user to any plan without payment
 - **AI Analytics:** Real-time data with smart messaging for limited data scenarios
 - **PDF Upload UX:** AI fallback messaging when brand data is incomplete
-- **Documentation Cleanup:** Removed 40+ obsolete markdown files
+- **TypeScript Config:** Updated target to ES2020 for modern regex flag support
 
 ### Key Files
 - `server/drizzle-storage.ts`: Main storage (Drizzle ORM)
 - `server/lib/auth/twilio-email-otp.ts`: OTP via SendGrid
 - `server/routes/admin-routes.ts`: Admin endpoints
+- `server/lib/ai/follow-up-worker.ts`: AI-powered follow-up automation
+- `server/lib/ai/message-scripts.ts`: Channel-specific message templates
+- `shared/types.ts`: Shared type definitions (PDFProcessingResult, etc.)
+- `shared/schema.ts`: Database schema with Drizzle ORM
 - `client/src/pages/dashboard/home.tsx`: Main dashboard
 - `client/src/pages/auth.tsx`: Authentication flow

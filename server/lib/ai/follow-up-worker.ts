@@ -25,11 +25,11 @@ interface FollowUpJob {
   retryCount: number;
 }
 
-interface Lead {
+interface LocalLead {
   id: string;
   name: string;
-  email?: string;
-  phone?: string;
+  email?: string | null;
+  phone?: string | null;
   channel: string;
   status: string;
   tags?: string[];
@@ -37,15 +37,22 @@ interface Lead {
   timezone?: string;
   metadata?: Record<string, any>;
   follow_up_count?: number;
-  externalId?: string;
-  lastMessageAt?: Date | null; // Added for best reply hour calculation
+  externalId?: string | null;
+  lastMessageAt?: Date | null;
+  warm?: boolean;
+  createdAt?: Date;
 }
 
-interface Message {
-  content: string;
-  role: 'user' | 'assistant';
-  created_at: string;
+interface LocalMessage {
+  body: string;
+  direction: 'inbound' | 'outbound';
+  createdAt: Date;
+  role?: 'user' | 'assistant';
+  created_at?: string;
 }
+
+type Lead = LocalLead;
+type Message = LocalMessage;
 
 export class FollowUpWorker {
   private isRunning: boolean = false;
@@ -289,7 +296,7 @@ export class FollowUpWorker {
     const dayAwareContext = {
       campaignDay,
       previousMessages: history.map(msg => ({
-        sentAt: new Date(msg.created_at),
+        sentAt: msg.createdAt,
         body: msg.body,
       })),
       leadEngagement: this.assessLeadTemperature(lead, history),
@@ -340,7 +347,7 @@ SCRIPT GUIDANCE (use as reference, not required):
     // Build conversation history string
     const historyStr = history
       .slice(-5) // Last 5 messages
-      .map(msg => `${msg.role === 'user' ? 'Lead' : 'You'}: ${msg.body}`)
+      .map(msg => `${msg.direction === 'inbound' ? 'Lead' : 'You'}: ${msg.body}`)
       .join('\n');
 
     // Determine follow-up number
@@ -419,21 +426,22 @@ Generate a natural follow-up message:`;
 
     const messageHistory = await db
       .select({
-        content: messages.body,
-        role: messages.direction,
-        created_at: messages.createdAt
+        body: messages.body,
+        direction: messages.direction,
+        createdAt: messages.createdAt
       })
       .from(messages)
       .where(eq(messages.leadId, leadId))
       .orderBy(asc(messages.createdAt))
-  // @ts-ignore - msg parameter type mismatch
       .limit(10);
 
     return messageHistory.map(msg => ({
-      content: msg.body,
-      role: msg.role === 'inbound' ? 'user' : 'assistant',
-      created_at: msg.created_at.toISOString()
-    })) as Message[];
+      body: msg.body,
+      direction: msg.direction as 'inbound' | 'outbound',
+      createdAt: msg.createdAt,
+      role: msg.direction === 'inbound' ? 'user' : 'assistant' as 'user' | 'assistant',
+      created_at: msg.createdAt.toISOString()
+    }));
   }
 
   /**
@@ -449,9 +457,9 @@ Generate a natural follow-up message:`;
       };
     }
 
-    // Get brand embeddings (assuming this table has color information)
+    // Get brand embeddings for brand knowledge
     const brandData = await db
-      .select({ snippet: brandEmbeddings.snippet, color: brandEmbeddings.color })
+      .select({ snippet: brandEmbeddings.snippet, metadata: brandEmbeddings.metadata })
       .from(brandEmbeddings)
       .where(eq(brandEmbeddings.userId, userId))
       .limit(5);
@@ -460,23 +468,22 @@ Generate a natural follow-up message:`;
     const [user] = await db
       .select({
         company: users.company,
-        replyTone: users.replyTone
+        replyTone: users.replyTone,
+        metadata: users.metadata
       })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    // Extract brand colors, prioritize specific colors if available, else use a default
-    const brandColors = brandData && brandData.length > 0 && brandData[0].color
-      ? brandData[0].color
-      : '#007bff'; // Default brand color
+    // Extract brand colors from user metadata, or use default
+    const userMetadata = user?.metadata as Record<string, any> | null;
+    const brandColors = userMetadata?.brandColors || '#007bff';
 
     return {
-  // @ts-ignore - d parameter type mismatch
       businessName: user?.company || 'Your Business',
       voiceRules: user?.replyTone ? `Be ${user.replyTone}` : 'Be professional',
       brandColors: brandColors,
-      brandSnippets: brandData?.map(d => d.snippet) || []
+      brandSnippets: brandData?.map((d: { snippet: string }) => d.snippet) || []
     };
   }
 
@@ -679,11 +686,11 @@ Generate a natural follow-up message:`;
   private assessLeadTemperature(lead: Lead, messages: Message[]): 'hot' | 'warm' | 'cold' {
     // Hot lead indicators
     const recentMessages = messages.filter(m => {
-      const hoursSince = (Date.now() - new Date(m.created_at).getTime()) / (1000 * 60 * 60);
+      const hoursSince = (Date.now() - new Date(m.createdAt).getTime()) / (1000 * 60 * 60);
       return hoursSince < 24;
     });
 
-    const inboundInLast24h = recentMessages.filter(m => m.role === 'user').length;
+    const inboundInLast24h = recentMessages.filter(m => m.direction === 'inbound').length;
     const hasEngagementScore = (lead.metadata as any)?.behavior_pattern?.engagementScore;
     const engagementScore = hasEngagementScore || 0;
 

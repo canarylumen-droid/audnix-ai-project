@@ -178,3 +178,47 @@ export function extractBrandPersonality(brand: BrandContext): {
     urgency,
   };
 }
+
+/**
+ * Build a personalized objection response using brand context
+ */
+export async function buildPersonalizedObjectionResponse(
+  objectionType: string,
+  leadMessage: string,
+  userId: string
+): Promise<string> {
+  const brand = await getBrandContext(userId);
+  
+  let response = '';
+  
+  // Check if brand has custom objection handling
+  if (brand.objections && brand.objections[objectionType]) {
+    response = brand.objections[objectionType];
+  } else {
+    // Build generic response with brand context
+    const personality = extractBrandPersonality(brand);
+    
+    switch (objectionType) {
+      case 'price':
+        response = personality.confidence === 'high'
+          ? `I understand investment is a consideration. With ${brand.companyName}, you're not just getting a service - you're getting ${brand.uniqueValue || 'exceptional results'}. Most of our clients see ROI within the first month.`
+          : `Let's talk about what you'd get for your investment. ${brand.uniqueValue || 'Our solution'} is designed to deliver real value.`;
+        break;
+      case 'timing':
+        response = `I totally get it - timing matters. But here's the thing: waiting often costs more than acting. ${brand.companyName} clients typically see results fast, so the sooner you start, the sooner you'll see the difference.`;
+        break;
+      case 'competitor':
+        response = `That's a fair point - there are options out there. What sets ${brand.companyName} apart is ${brand.uniqueValue || 'our personalized approach and dedicated support'}. Would you like to see how we compare?`;
+        break;
+      case 'trust':
+        response = brand.successStories && brand.successStories.length > 0
+          ? `I hear you - trust is earned. ${brand.successStories[0]}. We have a track record of delivering for clients like you.`
+          : `Trust is everything. We're confident in what we deliver, which is why we focus on transparent communication and measurable results.`;
+        break;
+      default:
+        response = `Thanks for sharing that. At ${brand.companyName}, we're here to help you succeed. Let me address your concern directly...`;
+    }
+  }
+  
+  return response;
+}

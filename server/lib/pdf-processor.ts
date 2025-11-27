@@ -1,49 +1,12 @@
-/* @ts-nocheck */
-
 import { supabaseAdmin } from './supabase-admin';
 import { storage } from '../storage';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker';
 import OpenAI from 'openai';
+import type { PDFProcessingResult } from '@shared/types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
 });
-
-interface PDFProcessingResult {
-  success: boolean;
-  leadsCreated: number;
-  text?: string;
-  confidence?: number | null;
-  missingFields?: string[];
-  offerExtracted?: {
-    productName: string;
-    description: string;
-    price?: string;
-    link?: string;
-    features: string[];
-    benefits: string[];
-    cta?: string;
-    supportEmail?: string;
-  };
-  brandExtracted?: {
-    colors: {
-      primary?: string;
-      secondary?: string;
-      accent?: string;
-    };
-    companyName?: string;
-    tagline?: string;
-    website?: string;
-  };
-  leads?: Array<{
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-    company?: string;
-  }>;
-  error?: string;
-}
 
 /**
  * Process PDF file and extract lead information + offer details with AI
@@ -118,11 +81,11 @@ export async function processPDF(
           name: leadData.name,
           email: leadData.email,
           phone: leadData.phone,
-          company: leadData.company,
           channel: leadChannel as 'email' | 'instagram' | 'whatsapp',
           status: 'new',
-          source: 'pdf_import',
           metadata: {
+            source: 'pdf_import',
+            company: leadData.company,
             pdf_extracted: true,
             has_email: !!leadData.email,
             has_phone: !!leadData.phone,

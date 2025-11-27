@@ -265,6 +265,30 @@ export class DrizzleStorage implements IStorage {
     return this.getMessagesByLeadId(leadId);
   }
 
+  async getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]> {
+    checkDatabase();
+    
+    // Build conditions array
+    const conditions = [eq(messages.userId, userId)];
+    
+    if (options?.channel) {
+      conditions.push(eq(messages.provider, options.channel as any));
+    }
+    
+    // Build query with combined conditions
+    let query = db
+      .select()
+      .from(messages)
+      .where(and(...conditions))
+      .orderBy(desc(messages.createdAt));
+    
+    if (options?.limit) {
+      return await query.limit(options.limit);
+    }
+    
+    return await query;
+  }
+
   async createMessage(
     message: Partial<InsertMessage> & {
       leadId: string;

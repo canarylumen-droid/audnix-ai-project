@@ -333,3 +333,67 @@ export function optimizeSalesLanguage(text: string, context?: any): string {
 
   return optimized;
 }
+
+/**
+ * Make a sales message more conversational and natural
+ */
+export function makeConversational(text: string): string {
+  if (!text) return text;
+  
+  let result = text;
+  
+  // Remove corporate jargon
+  result = result.replace(/at your earliest convenience/gi, 'when you can');
+  result = result.replace(/moving forward/gi, 'next');
+  result = result.replace(/circle back/gi, 'follow up');
+  result = result.replace(/reach out/gi, 'contact');
+  result = result.replace(/touch base/gi, 'connect');
+  result = result.replace(/synergy/gi, 'collaboration');
+  result = result.replace(/leverage/gi, 'use');
+  result = result.replace(/utilize/gi, 'use');
+  result = result.replace(/facilitate/gi, 'help');
+  result = result.replace(/regarding/gi, 'about');
+  
+  // Add contractions for natural flow
+  result = result.replace(/\bI am\b/g, "I'm");
+  result = result.replace(/\bYou are\b/g, "You're");
+  result = result.replace(/\bWe are\b/g, "We're");
+  result = result.replace(/\bThey are\b/g, "They're");
+  result = result.replace(/\bIt is\b/g, "It's");
+  result = result.replace(/\bDo not\b/g, "Don't");
+  result = result.replace(/\bWill not\b/g, "Won't");
+  result = result.replace(/\bCan not\b/g, "Can't");
+  result = result.replace(/\bShould not\b/g, "Shouldn't");
+  result = result.replace(/\bWould not\b/g, "Wouldn't");
+  
+  return result;
+}
+
+/**
+ * Handle objections with sales-optimized language
+ */
+export function handleObjectionWithSalesLanguage(
+  objection: string, 
+  response: string, 
+  context?: { industry?: string; positioning?: string }
+): string {
+  if (!response) return response;
+  
+  let optimized = response;
+  
+  // Apply word replacements
+  optimized = applyWordReplacements(optimized);
+  
+  // Apply tone engine
+  optimized = applyMillionaireCloserTone(optimized);
+  
+  // Industry-specific framing
+  if (context?.industry) {
+    optimized = injectBrandContext(optimized, context);
+  }
+  
+  // Enforce non-negotiable rules
+  optimized = enforceNonNegotiableRules(optimized);
+  
+  return optimized;
+}
