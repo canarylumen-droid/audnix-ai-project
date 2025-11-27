@@ -1,8 +1,8 @@
-/* @ts-nocheck */
 import { storage } from '../../storage';
 import { decrypt } from '../crypto/encryption';
 import { importCustomEmails } from '../channels/email';
 import { pagedEmailImport } from '../imports/paged-email-importer';
+import type { Integration, Lead } from '@shared/schema';
 
 /**
  * Email Sync Worker
@@ -22,6 +22,15 @@ interface SyncResult {
   ghostedDetected: number;
 }
 
+interface EmailData {
+  from?: string;
+  to?: string;
+  subject?: string;
+  text?: string;
+  html?: string;
+  date?: Date;
+}
+
 class EmailSyncWorker {
   private isRunning = false;
   private syncInterval: NodeJS.Timeout | null = null;
@@ -31,7 +40,7 @@ class EmailSyncWorker {
   /**
    * Start the email sync worker
    */
-  start() {
+  start(): void {
     if (this.isRunning) {
       console.log('Email sync worker already running');
       return;
@@ -54,7 +63,7 @@ class EmailSyncWorker {
   /**
    * Stop the worker
    */
-  stop() {
+  stop(): void {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
@@ -82,8 +91,9 @@ class EmailSyncWorker {
         
         try {
           await this.syncUserEmails(integration.userId, integration);
-        } catch (error: any) {
-          console.error(`Email sync failed for user ${integration.userId}:`, error.message);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Email sync failed for user ${integration.userId}:`, errorMessage);
         }
       }
     } catch (error) {
@@ -94,7 +104,7 @@ class EmailSyncWorker {
   /**
    * Sync emails for a specific user
    */
-  async syncUserEmails(userId: string, integration: any): Promise<SyncResult> {
+  async syncUserEmails(userId: string, integration: Integration): Promise<SyncResult> {
     const result: SyncResult = {
       userId,
       imported: 0,
@@ -106,17 +116,17 @@ class EmailSyncWorker {
     try {
       // Decrypt credentials
       const credentialsStr = await decrypt(integration.encryptedMeta);
-      const credentials = JSON.parse(credentialsStr);
+      const credentials = JSON.parse(credentialsStr) as Record<string, unknown>;
 
       // Import last 50 emails (recent ones only)
-      const emails = await importCustomEmails(credentials, 50);
+      const emails = await importCustomEmails(credentials as Parameters<typeof importCustomEmails>[0], 50);
 
       if (emails.length === 0) {
         return result;
       }
 
       // Process emails and create/update leads
-      const importResults = await pagedEmailImport(userId, emails.map((emailData: any) => ({
+      const importResults = await pagedEmailImport(userId, emails.map((emailData: EmailData) => ({
         from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
         subject: emailData.subject,
         text: emailData.text || emailData.html || '',
@@ -126,7 +136,7 @@ class EmailSyncWorker {
 
       result.imported = importResults.imported;
       result.skipped = importResults.skipped;
-      result.errors = importResults.errors;
+      result.errors = importResults.errors.length;
 
       // Detect ghosted leads
       result.ghostedDetected = await this.detectGhostedLeads(userId);
@@ -135,8 +145,9 @@ class EmailSyncWorker {
         console.log(`📬 User ${userId}: Imported ${result.imported} new emails, ${result.ghostedDetected} ghosted leads detected`);
       }
 
-    } catch (error: any) {
-      console.error(`Email sync error for user ${userId}:`, error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Email sync error for user ${userId}:`, errorMessage);
       result.errors++;
     }
 
@@ -148,7 +159,7 @@ class EmailSyncWorker {
    */
   async detectGhostedLeads(userId: string): Promise<number> {
     try {
-      const leads = await storage.getLeads({ userId });
+      const leads: Lead[] = await storage.getLeads({ userId });
       const now = new Date();
       const thresholdMs = this.GHOSTED_THRESHOLD_HOURS * 60 * 60 * 1000;
       let ghostedCount = 0;
@@ -168,7 +179,7 @@ class EmailSyncWorker {
             await storage.updateLead(lead.id, {
               status: 'cold',
               metadata: {
-                ...lead.metadata,
+                ...(lead.metadata as Record<string, unknown>),
                 ghostedDetectedAt: now.toISOString(),
                 ghostedReason: `No reply in ${this.GHOSTED_THRESHOLD_HOURS}+ hours`
               }
@@ -188,7 +199,7 @@ class EmailSyncWorker {
   /**
    * Get worker status
    */
-  getStatus() {
+  getStatus(): { isRunning: boolean; syncIntervalMs: number; ghostedThresholdHours: number } {
     return {
       isRunning: this.isRunning,
       syncIntervalMs: this.SYNC_INTERVAL_MS,

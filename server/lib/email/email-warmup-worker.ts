@@ -1,9 +1,7 @@
-/* @ts-nocheck */
 import { db } from '../../db';
-import { emailWarmupSchedules, users } from '@shared/schema';
-import { eq, and, lt, gte } from 'drizzle-orm';
+import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from '@shared/schema';
+import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage';
-import { smtpAbuseProtection } from './smtp-abuse-protection';
 
 /**
  * Email Warm-up System
@@ -43,7 +41,7 @@ class EmailWarmupWorker {
   /**
    * Start the email warm-up worker
    */
-  start() {
+  start(): void {
     if (this.isRunning) {
       console.log('Email warmup worker already running');
       return;
@@ -52,19 +50,17 @@ class EmailWarmupWorker {
     this.isRunning = true;
     console.log('🔥 Email warmup worker started');
 
-    // Check every hour if we need to update daily limits
     this.checkInterval = setInterval(() => {
       this.checkAndUpdateWarmupLimits();
-    }, 60 * 60 * 1000); // Every hour
+    }, 60 * 60 * 1000);
 
-    // Run immediately on start
     this.checkAndUpdateWarmupLimits();
   }
 
   /**
    * Stop the worker
    */
-  stop() {
+  stop(): void {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
@@ -76,12 +72,11 @@ class EmailWarmupWorker {
   /**
    * Check and update warm-up limits for all users
    */
-  private async checkAndUpdateWarmupLimits() {
+  private async checkAndUpdateWarmupLimits(): Promise<void> {
     if (!db) return;
 
     try {
-      // Get all active users
-      const activeUsers = await db
+      const activeUsers: User[] = await db
         .select()
         .from(users)
         .where(eq(users.plan, 'starter'));
@@ -97,15 +92,14 @@ class EmailWarmupWorker {
   /**
    * Update warm-up schedule for a user
    */
-  private async updateUserWarmupSchedule(userId: string) {
+  private async updateUserWarmupSchedule(userId: string): Promise<void> {
     if (!db) return;
 
     try {
       const now = new Date();
       const today = now.getDate();
 
-      // Get or create today's schedule
-      const [existingSchedule] = await db
+      const scheduleResults: EmailWarmupSchedule[] = await db
         .select()
         .from(emailWarmupSchedules)
         .where(
@@ -116,28 +110,27 @@ class EmailWarmupWorker {
         )
         .limit(1);
 
+      const existingSchedule = scheduleResults[0];
+
       if (existingSchedule) {
-        return; // Already scheduled for today
+        return;
       }
 
-      // Calculate which day of warm-up we're on
       const user = await storage.getUserById(userId);
       if (!user?.createdAt) return;
 
       const daysSinceCreated = Math.floor(
         (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
-      ) + 1; // +1 because day 1 is creation date
+      ) + 1;
 
-      // Cap at day 10 (maintenance phase)
       const warmupDay = Math.min(daysSinceCreated, 10);
       const schedule = WARMUP_SCHEDULE[warmupDay - 1] || WARMUP_SCHEDULE[9];
 
-      // Create schedule with random delay enabled
       await db.insert(emailWarmupSchedules).values({
         userId,
         day: today,
         dailyLimit: schedule.emailsToSend,
-        randomDelay: true // Enable 2-12s random delays
+        randomDelay: true
       });
 
       console.log(`🔥 Warmup schedule set for ${user.email}: Day ${warmupDay}, ${schedule.emailsToSend} emails`);
@@ -154,7 +147,7 @@ class EmailWarmupWorker {
 
     try {
       const today = new Date().getDate();
-      const [schedule] = await db
+      const scheduleResults: EmailWarmupSchedule[] = await db
         .select()
         .from(emailWarmupSchedules)
         .where(
@@ -165,6 +158,7 @@ class EmailWarmupWorker {
         )
         .limit(1);
 
+      const schedule = scheduleResults[0];
       return schedule?.dailyLimit || 0;
     } catch (error) {
       console.error('Error getting warmup limit:', error);
@@ -176,18 +170,21 @@ class EmailWarmupWorker {
    * Apply warm-up delay before sending
    */
   async applyWarmupDelay(userId: string): Promise<number> {
+    if (!db) return 0;
+
     try {
-      const [schedule] = await db
+      const scheduleResults: EmailWarmupSchedule[] = await db
         .select()
         .from(emailWarmupSchedules)
         .where(eq(emailWarmupSchedules.userId, userId))
         .limit(1);
 
+      const schedule = scheduleResults[0];
+
       if (!schedule?.randomDelay) {
-        return 0; // No delay needed
+        return 0;
       }
 
-      // Random delay between 2-12 seconds
       const delay = Math.floor(Math.random() * 10000) + 2000;
       return delay;
     } catch (error) {

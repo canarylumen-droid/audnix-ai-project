@@ -1,9 +1,9 @@
-/* @ts-nocheck */
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { embed as generateEmbedding } from "./ai/openai";
+import type { Request } from "express";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,25 +12,34 @@ const supabase = supabaseUrl && supabaseServiceKey
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
-// Configure multer for file uploads
 const uploadDir = path.join(process.cwd(), "uploads");
 
-// Ensure upload directory exists
 fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 
 const multerStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
+  destination: (
+    _req: Request,
+    _file: Express.Multer.File,
+    cb: (error: Error | null, destination: string) => void
+  ): void => {
     cb(null, uploadDir);
   },
-  filename: (_req, file, cb) => {
+  filename: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: (error: Error | null, filename: string) => void
+  ): void => {
     const crypto = require('crypto');
     const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
     cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });
 
-// File filter for voice files (mp3, wav, m4a)
-const voiceFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const voiceFileFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+): void => {
   const allowedMimes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
   const allowedExts = ['.mp3', '.wav', '.m4a'];
   
@@ -45,8 +54,11 @@ const voiceFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFi
   }
 };
 
-// File filter for PDF files
-const pdfFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const pdfFileFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+): void => {
   if (file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
@@ -54,12 +66,11 @@ const pdfFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilt
   }
 };
 
-// Multer middleware configurations
 export const uploadVoice = multer({
   storage: multerStorage,
   fileFilter: voiceFileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max for voice files
+    fileSize: 10 * 1024 * 1024,
   },
 });
 
@@ -67,12 +78,15 @@ export const uploadPDF = multer({
   storage: multerStorage,
   fileFilter: pdfFileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max for PDFs
+    fileSize: 50 * 1024 * 1024,
   },
 });
 
-// File filter for avatar images
-const avatarFileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const avatarFileFilter = (
+  _req: Request,
+  file: Express.Multer.File,
+  cb: multer.FileFilterCallback
+): void => {
   const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
@@ -86,13 +100,10 @@ export const uploadAvatar = multer({
   storage: multerStorage,
   fileFilter: avatarFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max for avatars
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
-/**
- * Upload file to Supabase Storage
- */
 export async function uploadToSupabase(
   bucket: string,
   filePath: string,
@@ -102,11 +113,9 @@ export async function uploadToSupabase(
     throw new Error("Supabase not configured");
   }
 
-  // Validate localPath to prevent path traversal attacks
   const resolvedPath = path.resolve(localPath);
   const uploadDirResolved = path.resolve(uploadDir);
   
-  // Use path.relative to ensure the file is truly within the upload directory
   const relativePath = path.relative(uploadDirResolved, resolvedPath);
   const isInsideUploadDir = relativePath && 
     !relativePath.startsWith('..') && 
@@ -118,7 +127,7 @@ export async function uploadToSupabase(
 
   const fileBuffer = await fs.readFile(resolvedPath);
   
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from(bucket)
     .upload(filePath, fileBuffer, {
       contentType: 'auto',
@@ -129,12 +138,10 @@ export async function uploadToSupabase(
     throw new Error(`Failed to upload to Supabase: ${error.message}`);
   }
 
-  // Get public URL
   const { data: { publicUrl } } = supabase.storage
     .from(bucket)
     .getPublicUrl(filePath);
 
-  // Clean up local file - validate path again before deletion
   const relativePathCheck = path.relative(uploadDirResolved, resolvedPath);
   const canDelete = relativePathCheck && 
     !relativePathCheck.startsWith('..') && 
@@ -147,9 +154,6 @@ export async function uploadToSupabase(
   return publicUrl;
 }
 
-/**
- * Process PDF and generate embeddings
- */
 export async function processPDFEmbeddings(
   userId: string,
   fileUrl: string,
@@ -161,7 +165,6 @@ export async function processPDFEmbeddings(
   }
 
   try {
-    // Create upload record
     const { error: insertError } = await supabase
       .from("uploads")
       .insert({
@@ -177,7 +180,6 @@ export async function processPDFEmbeddings(
       return;
     }
 
-    // Extract text from PDF
     let extractedText = '';
     if (localPath) {
       extractedText = await extractTextFromPDF(localPath);
@@ -185,7 +187,6 @@ export async function processPDFEmbeddings(
 
     if (!extractedText || extractedText.trim().length === 0) {
       console.warn(`No text extracted from PDF: ${fileName}`);
-      // Update status to failed
       await supabase
         .from("uploads")
         .update({ status: "failed" })
@@ -194,10 +195,8 @@ export async function processPDFEmbeddings(
       return;
     }
 
-    // Generate and store embeddings for extracted text
     await generateAndStoreEmbeddings(userId, extractedText, fileName, "pdf");
 
-    // Update status to completed
     await supabase
       .from("uploads")
       .update({ status: "completed" })
@@ -205,24 +204,24 @@ export async function processPDFEmbeddings(
       .eq("user_id", userId);
 
     console.log(`✅ PDF processed successfully: ${fileName} (${extractedText.length} chars extracted)`);
-  } catch (error: any) {
-    console.error(`Error processing PDF ${fileName}:`, error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Error processing PDF ${fileName}:`, errorMessage);
     
-    // Update status to failed
     if (supabase) {
-      await supabase
-        .from("uploads")
-        .update({ status: "failed" })
-        .eq("file_name", fileName)
-        .eq("user_id", userId)
-        .catch(console.error);
+      try {
+        await supabase
+          .from("uploads")
+          .update({ status: "failed" })
+          .eq("file_name", fileName)
+          .eq("user_id", userId);
+      } catch (updateError) {
+        console.error("Failed to update upload status:", updateError);
+      }
     }
   }
 }
 
-/**
- * Store voice sample for ElevenLabs voice cloning
- */
 export async function storeVoiceSample(
   userId: string,
   fileUrl: string,
@@ -232,7 +231,6 @@ export async function storeVoiceSample(
     throw new Error("Supabase not configured");
   }
 
-  // Store voice sample record
   const { error } = await supabase
     .from("uploads")
     .insert({
@@ -251,37 +249,34 @@ export async function storeVoiceSample(
   console.log(`Voice sample stored: ${fileName}`);
 }
 
-/**
- * Extract text from PDF using pdf-parse library
- */
+interface PDFParseResult {
+  text: string;
+  numpages: number;
+  numrender: number;
+  info: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  version: string;
+}
+
 async function extractTextFromPDF(filePath: string): Promise<string> {
   try {
-    const pdfParse = require('pdf-parse');
+    const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
     const fileBuffer = await fs.readFile(filePath);
     const pdfData = await pdfParse(fileBuffer);
     
-    // Extract text from all pages
     let fullText = '';
     if (pdfData.text) {
       fullText = pdfData.text;
     }
     
-    // If pdf-parse doesn't extract text well, try page-by-page
-    if (!fullText || fullText.trim().length < 50) {
-      fullText = pdfData.pages?.map((page: any) => page.getTextContent?.() || '').join('\n') || '';
-    }
-    
     return fullText || '';
-  } catch (error: any) {
-    console.error('Error extracting PDF text:', error.message);
-    // Return empty string instead of error to allow graceful degradation
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error extracting PDF text:', errorMessage);
     return '';
   }
 }
 
-/**
- * Generate and store embeddings for text chunks
- */
 export async function generateAndStoreEmbeddings(
   userId: string,
   text: string,
@@ -292,7 +287,6 @@ export async function generateAndStoreEmbeddings(
     throw new Error("Supabase not configured");
   }
 
-  // Chunk text into ~500 character pieces
   const chunks = chunkText(text, 500);
 
   for (const chunk of chunks) {
@@ -314,9 +308,6 @@ export async function generateAndStoreEmbeddings(
   }
 }
 
-/**
- * Chunk text into smaller pieces
- */
 function chunkText(text: string, maxChunkSize: number): string[] {
   const chunks: string[] = [];
   const sentences = text.split(/[.!?]+/);
@@ -344,9 +335,12 @@ function chunkText(text: string, maxChunkSize: number): string[] {
   return chunks;
 }
 
-/**
- * Search for relevant context using semantic search
- */
+interface BrandEmbeddingMatch {
+  id: string;
+  content: string;
+  similarity: number;
+}
+
 export async function semanticSearch(
   userId: string,
   query: string,
@@ -370,5 +364,5 @@ export async function semanticSearch(
     return [];
   }
 
-  return data.map((row: any) => row.content);
+  return (data as BrandEmbeddingMatch[]).map((row: BrandEmbeddingMatch) => row.content);
 }

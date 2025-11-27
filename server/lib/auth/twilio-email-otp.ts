@@ -1,7 +1,6 @@
-/* @ts-nocheck */
 import crypto from 'crypto';
-import { storage } from '../../storage';
 import { SendGridDiagnostic } from './sendgrid-diagnostic';
+import type { OTPVerificationResult } from '@shared/types';
 
 interface EmailOTPSession {
   email: string;
@@ -11,7 +10,26 @@ interface EmailOTPSession {
   attempts: number;
 }
 
+interface OTPSendResult {
+  success: boolean;
+  error?: string;
+}
+
+interface SendGridErrorResponse {
+  errors?: Array<{ message?: string }>;
+}
+
 const emailOTPSessions = new Map<string, EmailOTPSession>();
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  return 'An unknown error occurred';
+}
 
 export class TwilioEmailOTP {
   private accountSid: string;
@@ -27,10 +45,8 @@ export class TwilioEmailOTP {
   }
 
   isConfigured(): boolean {
-    // SendGrid API ONLY needs API key - Twilio Account SID/Token are NOT required for SendGrid
     const isFullyConfigured = !!this.sendgridApiKey;
     
-    // Debug log if missing
     if (!isFullyConfigured) {
       console.error(`❌ SendGrid OTP not configured. Missing: TWILIO_SENDGRID_API_KEY`);
     }
@@ -38,33 +54,25 @@ export class TwilioEmailOTP {
     return isFullyConfigured;
   }
 
-  /**
-   * Generate and send OTP via email using Twilio SendGrid
-   * Falls back to development mode if credentials are not configured
-   */
-  async sendEmailOTP(email: string): Promise<{ success: boolean; error?: string }> {
+  async sendEmailOTP(email: string): Promise<OTPSendResult> {
     try {
-      // Generate 6-digit OTP
       const otp = crypto.randomInt(100000, 999999).toString();
 
-      // Store session
       const sessionKey = email.toLowerCase();
       emailOTPSessions.set(sessionKey, {
         email,
         otp,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         verified: false,
         attempts: 0,
       });
 
-      // REQUIRED: SendGrid API key must be configured
       if (!this.isConfigured()) {
         const error = 'SendGrid API not configured. Required: TWILIO_SENDGRID_API_KEY';
         console.error(`❌ OTP ERROR: ${error}`);
         return { success: false, error };
       }
 
-      // Send via SendGrid API (NOT Twilio SDK, direct HTTP API)
       console.log(`📧 Sending OTP to: ${email} from: ${this.emailFrom}`);
       const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
         method: 'POST',
@@ -148,14 +156,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         const statusCode = response.status;
         console.error(`❌ SendGrid API Error [${statusCode}]: ${errorText}`);
         
-        // Parse error for better messaging
         let errorMsg = 'Failed to send OTP email';
         try {
-          const errorJson = JSON.parse(errorText);
+          const errorJson: SendGridErrorResponse = JSON.parse(errorText);
           if (errorJson.errors?.[0]?.message) {
             errorMsg = errorJson.errors[0].message;
           }
-        } catch (e) {
+        } catch {
           // Keep default error message
         }
         
@@ -164,16 +171,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
       console.log(`✅ OTP email sent to ${email}`);
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error sending email OTP:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
-  /**
-   * Verify OTP from email
-   */
-  async verifyEmailOTP(email: string, otp: string): Promise<{ success: boolean; error?: string; userId?: string }> {
+  async verifyEmailOTP(email: string, otp: string): Promise<OTPVerificationResult> {
     try {
       const sessionKey = email.toLowerCase();
       const session = emailOTPSessions.get(sessionKey);
@@ -188,39 +192,40 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       }
 
       session.attempts += 1;
-      if (session.attempts > 5) {
+      const maxAttempts = 5;
+      const remainingAttempts = maxAttempts - session.attempts;
+      
+      if (session.attempts > maxAttempts) {
         emailOTPSessions.delete(sessionKey);
-        return { success: false, error: 'Too many attempts. Request a new code.' };
+        return { success: false, error: 'Too many attempts. Request a new code.', remainingAttempts: 0 };
       }
 
       if (session.otp !== otp) {
-        return { success: false, error: 'Invalid OTP. Please try again.' };
+        return { 
+          success: false, 
+          error: 'Invalid OTP. Please try again.',
+          remainingAttempts,
+          expiresAt: session.expiresAt
+        };
       }
 
-      // Mark verified
       session.verified = true;
       emailOTPSessions.delete(sessionKey);
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error verifying email OTP:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
-  /**
-   * Check if OTP was verified (for login flow)
-   */
   isOTPVerified(email: string): boolean {
     const sessionKey = email.toLowerCase();
     const session = emailOTPSessions.get(sessionKey);
-    return session?.verified || false;
+    return session?.verified ?? false;
   }
 
-  /**
-   * Resend OTP
-   */
-  async resendEmailOTP(email: string): Promise<{ success: boolean; error?: string }> {
+  async resendEmailOTP(email: string): Promise<OTPSendResult> {
     const sessionKey = email.toLowerCase();
     emailOTPSessions.delete(sessionKey);
     return this.sendEmailOTP(email);
@@ -229,7 +234,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 export const twilioEmailOTP = new TwilioEmailOTP();
 
-// Run diagnostic on startup to help debug SendGrid issues
 if (process.env.NODE_ENV === 'development') {
   SendGridDiagnostic.diagnose().catch(console.error);
 }

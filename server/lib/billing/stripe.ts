@@ -1,16 +1,13 @@
-/* @ts-nocheck */
+import Stripe from 'stripe';
 import { getStripeClient } from '../stripe-client';
 import { storage } from '../../storage';
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
 
-// Initialize Stripe SDK (required for webhook verification and API calls)
-let stripe = null;
+let stripe: Stripe | null = null;
 
-// Initialize on module load (async)
 (async () => {
   stripe = await getStripeClient();
-  // Suppress Stripe initialization logs
 })();
 
 export { stripe };
@@ -416,8 +413,9 @@ export function verifyWebhookSignature(
     );
     console.log(`✅ Webhook signature verified: ${event.type}`);
     return event;
-  } catch (err: any) {
-    console.error(`❌ Webhook signature verification failed: ${err.message}`);
-    throw new Error(`Webhook signature verification failed: ${err.message}`);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`❌ Webhook signature verification failed: ${errorMessage}`);
+    throw new Error(`Webhook signature verification failed: ${errorMessage}`);
   }
 }

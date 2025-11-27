@@ -1,13 +1,22 @@
-/* @ts-nocheck */
 import Stripe from 'stripe';
 
 let cachedStripeClient: Stripe | null = null;
+
+interface ReplitConnectionItem {
+  settings?: {
+    secret?: string;
+  };
+}
+
+interface ReplitConnectionResponse {
+  items?: ReplitConnectionItem[];
+}
 
 /**
  * Fetch Stripe credentials from Replit connection ONLY
  * No env vars needed - uses Replit's secure connection
  */
-async function getStripeCredentials() {
+async function getStripeCredentials(): Promise<string | null> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -36,7 +45,7 @@ async function getStripeCredentials() {
       }
     });
 
-    const data = await response.json();
+    const data: ReplitConnectionResponse = await response.json();
     const connectionSettings = data.items?.[0];
 
     if (connectionSettings?.settings?.secret) {
@@ -44,7 +53,7 @@ async function getStripeCredentials() {
     }
 
     return null;
-  } catch (error) {
+  } catch (error: unknown) {
     return null;
   }
 }
@@ -65,7 +74,7 @@ export async function getStripeClient(): Promise<Stripe | null> {
   }
 
   cachedStripeClient = new Stripe(secretKey, {
-    apiVersion: '2025-08-27.basil',
+    apiVersion: '2025-10-29.clover',
   });
 
   return cachedStripeClient;
@@ -74,6 +83,6 @@ export async function getStripeClient(): Promise<Stripe | null> {
 /**
  * Reset cache (useful for testing)
  */
-export function resetStripeClient() {
+export function resetStripeClient(): void {
   cachedStripeClient = null;
 }

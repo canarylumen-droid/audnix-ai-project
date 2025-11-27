@@ -1,8 +1,25 @@
-/* @ts-nocheck */
 import { Request, Response } from 'express';
 import { supabaseAdmin } from '../supabase-admin';
-import { storage } from '../../storage';
 import crypto from 'crypto';
+
+interface CalendlyEventLocation {
+  type: string;
+  location?: string;
+}
+
+interface CalendlyInvitee {
+  email: string;
+  name: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+interface CalendlyScheduledEvent {
+  start_time: string;
+  end_time: string;
+  name?: string;
+  location?: string | CalendlyEventLocation;
+}
 
 interface CalendlyWebhookEvent {
   resource: {
@@ -13,12 +30,7 @@ interface CalendlyWebhookEvent {
   };
   payload: {
     event_type?: string;
-    invitee?: {
-      email: string;
-      name: string;
-      first_name?: string;
-      last_name?: string;
-    };
+    invitee?: CalendlyInvitee;
     event?: {
       start_time: string;
       end_time: string;
@@ -27,18 +39,14 @@ interface CalendlyWebhookEvent {
         duration?: number;
       };
       name?: string;
-      location?: {
-        type: string;
-        location?: string;
-      };
+      location?: CalendlyEventLocation;
     };
-    scheduled_event?: {
-      start_time: string;
-      end_time: string;
-      name?: string;
-      location?: string;
-    };
+    scheduled_event?: CalendlyScheduledEvent;
   };
+}
+
+interface IntegrationRecord {
+  user_id: string;
 }
 
 /**
@@ -53,10 +61,9 @@ export function verifyCalendlySignature(req: Request): boolean {
   const secret = process.env.CALENDLY_WEBHOOK_SECRET || '';
   if (!secret) {
     console.warn('⚠️ CALENDLY_WEBHOOK_SECRET not configured - webhook signature verification skipped');
-    return true; // Allow if secret not configured (for development)
+    return true;
   }
 
-  // Calendly uses HMAC-SHA256 with format: v1=<signature>
   const payload = `${timestamp}.${JSON.stringify(req.body)}`;
   const expectedSignature = crypto
     .createHmac('sha256', secret)
@@ -70,8 +77,7 @@ export function verifyCalendlySignature(req: Request): boolean {
 /**
  * Handle Calendly webhook verification (challenge)
  */
-export function handleCalendlyVerification(req: Request, res: Response) {
-  // Calendly sends a challenge request during webhook setup
+export function handleCalendlyVerification(req: Request, res: Response): void {
   if (req.body?.webhook_used_for_testing) {
     res.json({ ok: true });
   }
@@ -80,23 +86,23 @@ export function handleCalendlyVerification(req: Request, res: Response) {
 /**
  * Handle Calendly webhook events (meeting booked, cancelled, etc.)
  */
-export async function handleCalendlyWebhook(req: Request, res: Response) {
+export async function handleCalendlyWebhook(req: Request, res: Response): Promise<void> {
   try {
-    // Verify signature
     if (!verifyCalendlySignature(req)) {
       console.warn('Invalid Calendly webhook signature');
-      return res.status(403).json({ error: 'Invalid signature' });
+      res.status(403).json({ error: 'Invalid signature' });
+      return;
     }
 
     const event: CalendlyWebhookEvent = req.body;
 
     if (!event.resource || !event.payload) {
-      return res.status(400).json({ error: 'Invalid webhook payload' });
+      res.status(400).json({ error: 'Invalid webhook payload' });
+      return;
     }
 
     const eventType = event.resource.event_type || event.payload.event_type;
 
-    // Handle different event types
     switch (eventType) {
       case 'invitee.created':
         await handleMeetingBooked(event);
@@ -109,16 +115,25 @@ export async function handleCalendlyWebhook(req: Request, res: Response) {
     }
 
     res.json({ ok: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error handling Calendly webhook:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 }
 
 /**
+ * Extract location string from Calendly event location (handles both string and object formats)
+ */
+function extractLocationString(location: string | CalendlyEventLocation | undefined): string {
+  if (!location) return 'Virtual Meeting';
+  if (typeof location === 'string') return location;
+  return location.location || 'Virtual Meeting';
+}
+
+/**
  * Handle when a meeting is booked via Calendly
  */
-async function handleMeetingBooked(event: CalendlyWebhookEvent) {
+async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
   try {
     const payload = event.payload;
     const invitee = payload.invitee;
@@ -134,19 +149,12 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent) {
     const startTime = new Date(scheduledEvent.start_time);
     const endTime = new Date(scheduledEvent.end_time);
     const meetingName = scheduledEvent.name || 'Meeting';
-    const meetingLocation = typeof scheduledEvent.location === 'string' 
-      ? scheduledEvent.location 
-      : scheduledEvent.location?.location || 'Virtual Meeting';
+    const meetingLocation = extractLocationString(scheduledEvent.location);
 
     console.log(`📅 Meeting booked: ${leadName} (${leadEmail}) - ${meetingName} at ${startTime.toISOString()}`);
 
-    // Find user by Calendly integration (they own this meeting)
-    // This requires a way to map Calendly webhook to user - typically via webhook metadata or stored integration
-    // For now, we'll store meeting info for processing
-
     if (supabaseAdmin) {
-      // Create a calendar event record for tracking
-      await supabaseAdmin.from('calendar_events').insert({
+      const { error: insertError } = await supabaseAdmin.from('calendar_events').insert({
         source: 'calendly',
         lead_email: leadEmail,
         lead_name: leadName,
@@ -157,13 +165,12 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent) {
         status: 'booked',
         webhook_payload: event,
         created_at: new Date().toISOString()
-      }).catch(err => {
-        // Table might not exist in dev - that's okay
-        console.log('Note: calendar_events table not available, booking logged via webhook only');
       });
 
-      // Optional: Send notification to admins or relevant users
-      // Find users with this Calendly integration and send them a notification
+      if (insertError) {
+        console.log('Note: calendar_events table not available, booking logged via webhook only');
+      }
+
       const integrations = await supabaseAdmin
         .from('integrations')
         .select('user_id')
@@ -171,9 +178,8 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent) {
         .eq('is_active', true);
 
       if (integrations.data) {
-        for (const integration of integrations.data) {
-          // Create notification for user
-          await supabaseAdmin.from('notifications').insert({
+        for (const integration of integrations.data as IntegrationRecord[]) {
+          const { error: notifyError } = await supabaseAdmin.from('notifications').insert({
             user_id: integration.user_id,
             type: 'meeting_booked',
             title: `Meeting Booked: ${leadName}`,
@@ -186,11 +192,15 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent) {
               startTime: startTime.toISOString(),
               endTime: endTime.toISOString()
             }
-          }).catch(err => console.log('Notification creation skipped'));
+          });
+
+          if (notifyError) {
+            console.log('Notification creation skipped');
+          }
         }
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error processing meeting booking:', error);
   }
 }
@@ -198,7 +208,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent) {
 /**
  * Handle when a meeting is cancelled via Calendly
  */
-async function handleMeetingCancelled(event: CalendlyWebhookEvent) {
+async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void> {
   try {
     const payload = event.payload;
     const invitee = payload.invitee;
@@ -214,15 +224,16 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent) {
     console.log(`❌ Meeting cancelled: ${leadName} (${leadEmail})`);
 
     if (supabaseAdmin) {
-      // Mark any pending calendar events as cancelled
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from('calendar_events')
         .update({ status: 'cancelled' })
         .eq('lead_email', leadEmail)
-        .eq('status', 'booked')
-        .catch(err => console.log('Calendar event update skipped'));
+        .eq('status', 'booked');
 
-      // Find users with this Calendly integration
+      if (updateError) {
+        console.log('Calendar event update skipped');
+      }
+
       const integrations = await supabaseAdmin
         .from('integrations')
         .select('user_id')
@@ -230,20 +241,23 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent) {
         .eq('is_active', true);
 
       if (integrations.data) {
-        for (const integration of integrations.data) {
-          // Create cancellation notification
-          await supabaseAdmin.from('notifications').insert({
+        for (const integration of integrations.data as IntegrationRecord[]) {
+          const { error: notifyError } = await supabaseAdmin.from('notifications').insert({
             user_id: integration.user_id,
             type: 'meeting_cancelled',
             title: `Meeting Cancelled: ${leadName}`,
             message: `${leadName} (${leadEmail}) cancelled their meeting`,
             action_url: '/dashboard/calendar',
             metadata: { leadName, leadEmail }
-          }).catch(err => console.log('Notification creation skipped'));
+          });
+
+          if (notifyError) {
+            console.log('Notification creation skipped');
+          }
         }
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error processing meeting cancellation:', error);
   }
 }

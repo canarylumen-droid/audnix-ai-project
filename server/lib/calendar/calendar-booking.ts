@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 /**
  * Calendar Booking Integration
  * 
@@ -8,7 +7,8 @@
 
 import { storage } from '../../storage';
 import { createCalendarEvent, listUpcomingEvents } from './google-calendar';
-import { getCalendlySlots, createCalendlyEvent, validateCalendlyToken } from './calendly';
+import { getCalendlySlots, createCalendlyEvent } from './calendly';
+import type { ChannelType } from '@shared/types';
 
 interface BookingSlot {
   startTime: Date;
@@ -17,12 +17,50 @@ interface BookingSlot {
   timezone: string;
 }
 
-interface BookingRequest {
+interface CalendarBookingRequest {
   leadEmail: string;
   leadName: string;
   userId: string;
   campaignId: string;
-  duration?: number; // minutes
+  duration?: number;
+}
+
+interface SendBookingLinkResult {
+  success: boolean;
+  bookingLink?: string;
+  error?: string;
+}
+
+interface BookMeetingResult {
+  success: boolean;
+  eventId?: string;
+  meetingLink?: string;
+  provider?: string;
+  error?: string;
+}
+
+interface GoogleCalendarEvent {
+  id: string;
+  htmlLink: string;
+  start: {
+    dateTime?: string;
+    date?: string;
+  };
+  end: {
+    dateTime?: string;
+    date?: string;
+  };
+  conferenceData?: {
+    entryPoints?: Array<{
+      uri: string;
+      entryPointType: string;
+    }>;
+  };
+}
+
+interface CalendlySlotData {
+  time: string;
+  available: boolean;
 }
 
 /**
@@ -56,7 +94,7 @@ export async function getAvailableTimeSlots(
 
         if (calendlySlots.length > 0) {
           console.log(`✅ Using user's Calendly: ${calendlySlots.length} slots`);
-          return calendlySlots.map(slot => ({
+          return calendlySlots.map((slot: CalendlySlotData) => ({
             startTime: new Date(slot.time),
             endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
             available: slot.available,
@@ -103,9 +141,9 @@ export async function getAvailableTimeSlots(
           slotEnd.setMinutes(slotEnd.getMinutes() + slotDuration);
 
           // Check if slot conflicts with existing events
-          const hasConflict = events.some((event: any) => {
-            const eventStart = new Date(event.start.dateTime || event.start.date);
-            const eventEnd = new Date(event.end.dateTime || event.end.date);
+          const hasConflict = events.some((event: GoogleCalendarEvent) => {
+            const eventStart = new Date(event.start.dateTime || event.start.date || '');
+            const eventEnd = new Date(event.end.dateTime || event.end.date || '');
             return (
               (slotStart >= eventStart && slotStart < eventEnd) ||
               (slotEnd > eventStart && slotEnd <= eventEnd)
@@ -140,12 +178,8 @@ export async function getAvailableTimeSlots(
  * Create and send booking link to lead
  */
 export async function sendBookingLinkToLead(
-  request: BookingRequest
-): Promise<{
-  success: boolean;
-  bookingLink?: string;
-  error?: string;
-}> {
+  request: CalendarBookingRequest
+): Promise<SendBookingLinkResult> {
   try {
     const { leadEmail, leadName, userId, duration = 30 } = request;
 
@@ -190,14 +224,8 @@ export async function bookMeeting(
   leadName: string,
   slotStart: Date,
   slotEnd: Date,
-  duration: number = 30
-): Promise<{
-  success: boolean;
-  eventId?: string;
-  meetingLink?: string;
-  provider?: string;
-  error?: string;
-}> {
+  _duration: number = 30
+): Promise<BookMeetingResult> {
   try {
     const integrations = await storage.getIntegrations(userId);
     const decrypt = (await import('../crypto/encryption')).decrypt;
@@ -294,7 +322,7 @@ export async function bookMeeting(
 export function formatBookingMessage(
   leadName: string,
   bookingLink: string,
-  channel: 'email' | 'whatsapp' | 'instagram'
+  channel: ChannelType
 ): string {
   const templates = {
     email: `Hi ${leadName},

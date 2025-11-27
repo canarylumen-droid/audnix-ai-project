@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 import { supabaseAdmin } from '../supabase-admin';
 import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter';
 import { storage } from '../../storage';
@@ -17,6 +15,78 @@ interface EmailConfig {
   smtp_pass?: string;
   oauth_token?: string;
   provider?: 'gmail' | 'outlook' | 'smtp' | 'custom';
+}
+
+interface EmailCredentials {
+  accessToken: string;
+  email: string;
+}
+
+interface ImportedEmail {
+  from: string | undefined;
+  to: string | undefined;
+  subject: string | undefined;
+  text: string | undefined;
+  html: string | undefined;
+  date: Date | undefined;
+}
+
+interface GmailMessage {
+  id: string;
+  threadId: string;
+}
+
+interface OutlookMessage {
+  id: string;
+  subject: string;
+  receivedDateTime: string;
+  from?: {
+    emailAddress: {
+      name: string;
+      address: string;
+    };
+  };
+}
+
+interface GmailApiResponse {
+  messages?: GmailMessage[];
+  error?: {
+    message?: string;
+  };
+}
+
+interface OutlookApiResponse {
+  value?: OutlookMessage[];
+  error?: {
+    message?: string;
+  };
+}
+
+interface GmailSendResponse {
+  id?: string;
+  threadId?: string;
+  error?: {
+    message?: string;
+  };
+}
+
+interface OutlookSendResponse {
+  error?: {
+    message?: string;
+  };
+}
+
+interface ParsedEmailAddress {
+  text?: string;
+}
+
+interface ParsedEmail {
+  from?: ParsedEmailAddress;
+  to?: ParsedEmailAddress;
+  subject?: string;
+  text?: string;
+  html?: string;
+  date?: Date;
 }
 
 /**
@@ -55,11 +125,10 @@ async function sendCustomSMTP(
 export async function importCustomEmails(
   config: EmailConfig,
   limit: number = 50
-): Promise<any[]> {
+): Promise<ImportedEmail[]> {
   const Imap = require('imap');
   const { simpleParser } = require('mailparser');
   
-  // Use explicit IMAP settings if provided, otherwise try to derive from SMTP
   const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
   const imapPort = config.imap_port || 993;
   
@@ -77,10 +146,10 @@ export async function importCustomEmails(
       tlsOptions: { rejectUnauthorized: false }
     });
 
-    const emails: any[] = [];
+    const emails: ImportedEmail[] = [];
 
     imap.once('ready', () => {
-      imap.openBox('INBOX', true, (err: any) => {
+      imap.openBox('INBOX', true, (err: Error | null) => {
         if (err) {
           reject(err);
           return;
@@ -91,10 +160,10 @@ export async function importCustomEmails(
           struct: true
         });
 
-        fetch.on('message', (msg: any) => {
-          msg.on('body', (stream: any) => {
-            simpleParser(stream, (err: any, parsed: any) => {
-              if (!err) {
+        fetch.on('message', (msg: { on: (event: string, callback: (stream: NodeJS.ReadableStream) => void) => void }) => {
+          msg.on('body', (stream: NodeJS.ReadableStream) => {
+            simpleParser(stream, (parseErr: Error | null, parsed: ParsedEmail) => {
+              if (!parseErr) {
                 emails.push({
                   from: parsed.from?.text,
                   to: parsed.to?.text,
@@ -114,7 +183,7 @@ export async function importCustomEmails(
       });
     });
 
-    imap.once('error', (err: any) => {
+    imap.once('error', (err: Error) => {
       reject(err);
     });
 
@@ -131,8 +200,6 @@ export async function importCustomEmails(
  */
 async function getUserBrandColors(userId: string): Promise<BrandColors | undefined> {
   try {
-    // Brand colors will be fetched from integrations or settings table in the future
-    // For now, return undefined to use default colors
     return undefined;
   } catch (error) {
     console.error('Error fetching brand colors:', error);
@@ -160,23 +227,21 @@ export async function sendEmail(
   subject: string,
   options: EmailOptions = {}
 ): Promise<void> {
-  // First check for custom email integration (user's own SMTP)
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
   
   if (customEmailIntegration?.connected) {
-    // Use user's custom SMTP to send emails
     const { decrypt } = await import('../crypto/encryption');
-    const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta!);
-    const credentials = JSON.parse(credentialsStr);
+    if (!customEmailIntegration.encryptedMeta) {
+      throw new Error('Email credentials not configured');
+    }
+    const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta);
+    const credentials = JSON.parse(credentialsStr) as EmailConfig;
     
-    // Get brand colors
     const brandColors = options.brandColors || await getUserBrandColors(userId);
     
-    // Get user's business name
     const user = await storage.getUser(userId);
     const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
     
-    // Generate branded HTML email
     let emailBody = content;
     if (options.buttonUrl && options.buttonText) {
       if (options.isMeetingInvite) {
@@ -188,18 +253,15 @@ export async function sendEmail(
       emailBody = generateBrandedEmail(content, { text: 'View Details', url: '#' }, brandColors, businessName);
     }
     
-    // Send via user's custom SMTP
     await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
     console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
     return;
   }
   
-  // Fallback to Supabase Gmail/Outlook if no custom email
   if (!supabaseAdmin) {
     throw new Error('No email provider configured. Please connect your business email in Settings.');
   }
 
-  // Get email configuration for user
   const { data: integration } = await supabaseAdmin
     .from('integrations')
     .select('provider, credentials')
@@ -212,14 +274,11 @@ export async function sendEmail(
     throw new Error('Email not connected. Please connect your business email in Settings.');
   }
 
-  // Get brand colors from brand_embeddings
   const brandColors = options.brandColors || await getUserBrandColors(userId);
   
-  // Auto-generate subject if not provided
   const { generateEmailSubject } = await import('./email-subject-generator');
   const emailSubject = subject || await generateEmailSubject(userId, content);
 
-  // Get business name
   const { data: userData } = await supabaseAdmin
     .from('users')
     .select('business_name, company')
@@ -227,7 +286,6 @@ export async function sendEmail(
     .single();
   const businessName = options.businessName || userData?.business_name || userData?.company || 'Our Team';
 
-  // Generate HTML email if button is provided
   let emailBody = content;
   if (options.buttonUrl && options.buttonText) {
     if (options.isMeetingInvite) {
@@ -247,7 +305,6 @@ export async function sendEmail(
     }
     options.isHtml = true;
   } else {
-    // Always send as branded HTML for professional look
     emailBody = generateBrandedEmail(
       content,
       { text: 'View Details', url: '#' },
@@ -257,9 +314,14 @@ export async function sendEmail(
     options.isHtml = true;
   }
 
+  const credentials = integration.credentials as EmailCredentials | null;
+  if (!credentials || !credentials.accessToken || !credentials.email) {
+    throw new Error('Invalid email credentials');
+  }
+
   if (integration.provider === 'gmail') {
     await sendGmailMessage(
-      integration.credentials as any, 
+      credentials, 
       recipientEmail, 
       emailSubject, 
       emailBody,
@@ -267,7 +329,7 @@ export async function sendEmail(
     );
   } else if (integration.provider === 'outlook') {
     await sendOutlookMessage(
-      integration.credentials as any, 
+      credentials, 
       recipientEmail, 
       emailSubject, 
       emailBody,
@@ -282,7 +344,7 @@ export async function sendEmail(
  * Send email via Gmail API
  */
 async function sendGmailMessage(
-  credentials: { accessToken: string; email: string },
+  credentials: EmailCredentials,
   to: string,
   subject: string,
   body: string,
@@ -302,7 +364,7 @@ async function sendGmailMessage(
     })
   });
 
-  const data = await response.json();
+  const data = await response.json() as GmailSendResponse;
 
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to send Gmail');
@@ -313,7 +375,7 @@ async function sendGmailMessage(
  * Send email via Outlook/Microsoft Graph API
  */
 async function sendOutlookMessage(
-  credentials: { accessToken: string; email: string },
+  credentials: EmailCredentials,
   to: string,
   subject: string,
   body: string,
@@ -345,7 +407,7 @@ async function sendOutlookMessage(
   });
 
   if (!response.ok) {
-    const data = await response.json();
+    const data = await response.json() as OutlookSendResponse;
     throw new Error(data.error?.message || 'Failed to send Outlook email');
   }
 }
@@ -362,17 +424,11 @@ function createMimeMessage(
 ): string {
   const boundary = '----=_Part_' + Date.now();
   
-  // Helper function to safely strip HTML tags
   const stripHtml = (html: string): string => {
-    // Remove script tags and content safely
     let safe = html.replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
-    // Remove style tags and content safely
     safe = safe.replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, '');
-    // Remove iframe tags and content safely
     safe = safe.replace(/<iframe(?:\s[^>]*)?>[\s\S]*?<\/iframe>/gi, '');
-    // Remove all remaining HTML tags
     safe = safe.replace(/<[^>]+>/g, '');
-    // Decode HTML entities to readable text (no double encoding)
     safe = safe
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
@@ -420,7 +476,7 @@ function createMimeMessage(
 export async function getEmailInbox(
   userId: string,
   limit: number = 20
-): Promise<any[]> {
+): Promise<GmailMessage[] | OutlookMessage[]> {
   if (!supabaseAdmin) {
     throw new Error('Supabase admin not configured');
   }
@@ -437,10 +493,15 @@ export async function getEmailInbox(
     throw new Error('Email not connected');
   }
 
+  const credentials = integration.credentials as { accessToken: string } | null;
+  if (!credentials || !credentials.accessToken) {
+    throw new Error('Invalid email credentials');
+  }
+
   if (integration.provider === 'gmail') {
-    return await getGmailInbox(integration.credentials as any, limit);
+    return await getGmailInbox(credentials, limit);
   } else if (integration.provider === 'outlook') {
-    return await getOutlookInbox(integration.credentials as any, limit);
+    return await getOutlookInbox(credentials, limit);
   }
 
   return [];
@@ -449,14 +510,14 @@ export async function getEmailInbox(
 /**
  * Get Gmail inbox
  */
-async function getGmailInbox(credentials: { accessToken: string }, limit: number): Promise<any[]> {
+async function getGmailInbox(credentials: { accessToken: string }, limit: number): Promise<GmailMessage[]> {
   const response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${limit}`, {
     headers: {
       'Authorization': `Bearer ${credentials.accessToken}`
     }
   });
 
-  const data = await response.json();
+  const data = await response.json() as GmailApiResponse;
 
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to get Gmail inbox');
@@ -468,14 +529,14 @@ async function getGmailInbox(credentials: { accessToken: string }, limit: number
 /**
  * Get Outlook inbox
  */
-async function getOutlookInbox(credentials: { accessToken: string }, limit: number): Promise<any[]> {
+async function getOutlookInbox(credentials: { accessToken: string }, limit: number): Promise<OutlookMessage[]> {
   const response = await fetch(`https://graph.microsoft.com/v1.0/me/messages?$top=${limit}&$orderby=receivedDateTime desc`, {
     headers: {
       'Authorization': `Bearer ${credentials.accessToken}`
     }
   });
 
-  const data = await response.json();
+  const data = await response.json() as OutlookApiResponse;
 
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to get Outlook inbox');

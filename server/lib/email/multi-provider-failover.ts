@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 /**
  * Multi-Provider Email Failover System
  * 
@@ -12,8 +11,11 @@
  */
 
 import FormData from 'form-data';
-import fetch from 'node-fetch';
+import fetch, { RequestInit } from 'node-fetch';
+import nodemailer from 'nodemailer';
+import type { SentMessageInfo } from 'nodemailer';
 import { storage } from '../../storage';
+import type { ProviderResult } from '@shared/types';
 
 interface EmailPayload {
   to: string;
@@ -29,29 +31,47 @@ interface FailoverResult {
   error?: string;
 }
 
+interface SmtpConfig {
+  smtp_host: string;
+  smtp_port?: number;
+  smtp_user: string;
+  smtp_pass: string;
+}
+
+interface OAuthCredentials {
+  email?: string;
+  access_token: string;
+  refresh_token?: string;
+}
+
+interface MailgunErrorResponse {
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  error?: {
+    message?: string;
+  };
+}
+
 class MultiProviderEmailFailover {
   private mailgunKey: string | null = null;
   private mailgunDomain: string | null = null;
 
   constructor() {
-    // Initialize Mailgun if keys available
     if (process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN) {
       this.mailgunKey = process.env.MAILGUN_API_KEY;
       this.mailgunDomain = process.env.MAILGUN_DOMAIN;
     }
   }
 
-  /**
-   * Send email with automatic failover
-   */
   async send(
     email: EmailPayload,
     userId?: string,
-    customSmtpConfig?: any
+    customSmtpConfig?: SmtpConfig
   ): Promise<FailoverResult> {
     const providers: Array<{ name: string; fn: () => Promise<void> }> = [];
 
-    // 1. Try Mailgun (primary - bulletproof)
     if (this.mailgunKey && this.mailgunDomain) {
       providers.push({
         name: 'Mailgun',
@@ -59,7 +79,6 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 2. Try custom SMTP if configured
     if (customSmtpConfig || userId) {
       providers.push({
         name: 'Custom SMTP',
@@ -67,7 +86,6 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 3. Gmail fallback
     if (userId) {
       providers.push({
         name: 'Gmail',
@@ -75,7 +93,6 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // 4. Outlook fallback
     if (userId) {
       providers.push({
         name: 'Outlook',
@@ -83,19 +100,17 @@ class MultiProviderEmailFailover {
       });
     }
 
-    // Try each provider in order
     for (const provider of providers) {
       try {
         await provider.fn();
         console.log(`✅ Email sent via ${provider.name}: ${email.to}`);
         return { success: true, provider: provider.name };
-      } catch (error: any) {
-        console.warn(`⚠️ ${provider.name} failed: ${error.message}`);
-        // Continue to next provider
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`⚠️ ${provider.name} failed: ${errorMessage}`);
       }
     }
 
-    // All providers failed
     const lastError = providers[providers.length - 1];
     return {
       success: false,
@@ -104,9 +119,6 @@ class MultiProviderEmailFailover {
     };
   }
 
-  /**
-   * Send via Mailgun (industry standard)
-   */
   private async sendViaMailgun(email: EmailPayload): Promise<void> {
     if (!this.mailgunKey || !this.mailgunDomain) {
       throw new Error('Mailgun not configured');
@@ -121,38 +133,39 @@ class MultiProviderEmailFailover {
       form.append('h:Reply-To', email.replyTo);
     }
 
+    const authHeader = Buffer.from(`api:${this.mailgunKey}`).toString('base64');
+    
     const response = await fetch(
       `https://api.mailgun.net/v3/${this.mailgunDomain}/messages`,
       {
         method: 'POST',
-        auth: `api:${this.mailgunKey}`,
-        body: form as any
-      }
+        headers: {
+          'Authorization': `Basic ${authHeader}`,
+          ...form.getHeaders()
+        },
+        body: form
+      } as RequestInit
     );
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Mailgun error: ${error.message}`);
+      const errorData = await response.json() as MailgunErrorResponse;
+      throw new Error(`Mailgun error: ${errorData.message || 'Unknown error'}`);
     }
   }
 
-  /**
-   * Send via custom SMTP
-   */
   private async sendViaSMTP(
     email: EmailPayload,
-    config?: any,
+    config?: SmtpConfig,
     userId?: string
   ): Promise<void> {
-    let smtpConfig = config;
+    let smtpConfig: SmtpConfig | undefined = config;
 
-    // Get SMTP config from user's integration if not provided
     if (!smtpConfig && userId) {
       const integration = await storage.getIntegration(userId, 'custom_email');
       if (integration?.encryptedMeta) {
         const { decrypt } = await import('../crypto/encryption');
         const decrypted = await decrypt(integration.encryptedMeta);
-        smtpConfig = JSON.parse(decrypted);
+        smtpConfig = JSON.parse(decrypted) as SmtpConfig;
       }
     }
 
@@ -160,7 +173,6 @@ class MultiProviderEmailFailover {
       throw new Error('SMTP configuration not found');
     }
 
-    const nodemailer = require('nodemailer');
     const transporter = nodemailer.createTransport({
       host: smtpConfig.smtp_host,
       port: smtpConfig.smtp_port || 587,
@@ -171,7 +183,7 @@ class MultiProviderEmailFailover {
       }
     });
 
-    const result = await transporter.sendMail({
+    const result: SentMessageInfo = await transporter.sendMail({
       from: email.from || smtpConfig.smtp_user,
       to: email.to,
       subject: email.subject,
@@ -184,9 +196,6 @@ class MultiProviderEmailFailover {
     }
   }
 
-  /**
-   * Send via Gmail API
-   */
   private async sendViaGmail(email: EmailPayload, userId: string): Promise<void> {
     const integrations = await storage.getIntegrations(userId);
     const gmailIntegration = integrations.find(i => i.provider === 'gmail' && i.connected);
@@ -197,10 +206,10 @@ class MultiProviderEmailFailover {
 
     const { decrypt } = await import('../crypto/encryption');
     const decrypted = await decrypt(gmailIntegration.encryptedMeta);
-    const credentials = JSON.parse(decrypted);
+    const credentials = JSON.parse(decrypted) as OAuthCredentials;
 
     const message = this.createMimeMessage(
-      credentials.email,
+      credentials.email || '',
       email.to,
       email.subject,
       email.html
@@ -218,14 +227,11 @@ class MultiProviderEmailFailover {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Gmail API error');
+      const errorData = await response.json() as ApiErrorResponse;
+      throw new Error(errorData.error?.message || 'Gmail API error');
     }
   }
 
-  /**
-   * Send via Outlook API
-   */
   private async sendViaOutlook(email: EmailPayload, userId: string): Promise<void> {
     const integrations = await storage.getIntegrations(userId);
     const outlookIntegration = integrations.find(i => i.provider === 'outlook' && i.connected);
@@ -236,7 +242,7 @@ class MultiProviderEmailFailover {
 
     const { decrypt } = await import('../crypto/encryption');
     const decrypted = await decrypt(outlookIntegration.encryptedMeta);
-    const credentials = JSON.parse(decrypted);
+    const credentials = JSON.parse(decrypted) as OAuthCredentials;
 
     const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',
@@ -258,14 +264,11 @@ class MultiProviderEmailFailover {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Outlook API error');
+      const errorData = await response.json() as ApiErrorResponse;
+      throw new Error(errorData.error?.message || 'Outlook API error');
     }
   }
 
-  /**
-   * Create MIME message for Gmail
-   */
   private createMimeMessage(from: string, to: string, subject: string, html: string): string {
     const boundary = `----=_Part_${Date.now()}`;
 
@@ -288,19 +291,11 @@ ${html}
 --${boundary}--`;
   }
 
-  /**
-   * Strip HTML tags from string - use safe method
-   */
   private stripHtml(html: string): string {
-    // Create a temporary DOM element to safely parse HTML
     const text = html
-      // Remove script tags and content
       .replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '')
-      // Remove style tags and content
       .replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, '')
-      // Remove all remaining HTML tags
       .replace(/<[^>]+>/g, '')
-      // Decode HTML entities safely
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')

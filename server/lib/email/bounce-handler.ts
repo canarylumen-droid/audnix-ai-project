@@ -1,6 +1,5 @@
-/* @ts-nocheck */
 import { db } from '../../db';
-import { bounceTracker, leads } from '@shared/schema';
+import { bounceTracker, leads, Lead } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage';
 
@@ -13,7 +12,7 @@ import { storage } from '../../storage';
  * - Spam: Marked as spam/abuse (stop sending to this email)
  * 
  * Actions:
- * - Hard bounce: Mark lead as invalid, disable email channel
+ * - Hard bounce: Mark lead as cold, disable email channel
  * - Soft bounce: Retry after 3 days
  * - Spam: Mark as not interested, stop all sends
  */
@@ -77,17 +76,17 @@ class BounceHandler {
   /**
    * Handle hard bounce (permanent failure)
    */
-  private async handleHardBounce(lead: any): Promise<void> {
+  private async handleHardBounce(lead: Lead): Promise<void> {
     if (!db) return;
 
     try {
-      // Mark lead's email as invalid
+      // Mark lead's email as cold (invalid) - using 'cold' as the closest valid status
       await db
         .update(leads)
         .set({
-          status: 'invalid',
+          status: 'cold',
           metadata: {
-            ...lead.metadata,
+            ...(lead.metadata as Record<string, unknown>),
             hard_bounce: true,
             hard_bounce_date: new Date().toISOString(),
             invalid_reason: 'Email bounced permanently'
@@ -95,7 +94,7 @@ class BounceHandler {
         })
         .where(eq(leads.id, lead.id));
 
-      console.log(`🚫 Hard bounce: Lead ${lead.id} marked as invalid`);
+      console.log(`🚫 Hard bounce: Lead ${lead.id} marked as cold (invalid email)`);
     } catch (error) {
       console.error('Error handling hard bounce:', error);
     }
@@ -104,20 +103,23 @@ class BounceHandler {
   /**
    * Handle soft bounce (temporary failure - retry later)
    */
-  private async handleSoftBounce(lead: any): Promise<void> {
+  private async handleSoftBounce(lead: Lead): Promise<void> {
     if (!db) return;
 
     try {
-      const softBounceCount = ((lead.metadata as any)?.soft_bounce_count || 0) + 1;
+      const leadMetadata = lead.metadata as Record<string, unknown>;
+      const softBounceCount = (typeof leadMetadata?.soft_bounce_count === 'number' 
+        ? leadMetadata.soft_bounce_count 
+        : 0) + 1;
 
-      // After 3 soft bounces, mark as invalid
+      // After 3 soft bounces, mark as cold
       if (softBounceCount >= 3) {
         await db
           .update(leads)
           .set({
-            status: 'invalid',
+            status: 'cold',
             metadata: {
-              ...lead.metadata,
+              ...leadMetadata,
               soft_bounce_count: softBounceCount,
               too_many_soft_bounces: true,
               disabled_date: new Date().toISOString()
@@ -132,7 +134,7 @@ class BounceHandler {
           .update(leads)
           .set({
             metadata: {
-              ...lead.metadata,
+              ...leadMetadata,
               soft_bounce_count: softBounceCount,
               last_soft_bounce: new Date().toISOString()
             }
@@ -149,7 +151,7 @@ class BounceHandler {
   /**
    * Handle spam bounce (marked as spam)
    */
-  private async handleSpamBounce(lead: any): Promise<void> {
+  private async handleSpamBounce(lead: Lead): Promise<void> {
     if (!db) return;
 
     try {
@@ -159,7 +161,7 @@ class BounceHandler {
         .set({
           status: 'not_interested',
           metadata: {
-            ...lead.metadata,
+            ...(lead.metadata as Record<string, unknown>),
             marked_as_spam: true,
             marked_spam_date: new Date().toISOString(),
             do_not_contact: true
