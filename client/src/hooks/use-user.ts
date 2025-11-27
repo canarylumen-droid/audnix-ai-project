@@ -5,7 +5,12 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string;
+  plan?: string;
+  role?: string;
+  avatar?: string;
   supabaseId?: string;
+  metadata?: Record<string, any>;
 }
 
 async function fetchUser(): Promise<User | null> {

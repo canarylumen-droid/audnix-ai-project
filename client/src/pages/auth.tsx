@@ -162,27 +162,27 @@ export default function AuthPage() {
       if (!response.ok) {
         toast({
           title: "Failed",
-          description: data.error || data.details || 'Email service not configured',
+          description: data.error || data.reason || data.details || 'Could not send verification email',
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      // OTP is mandatory - show OTP verification step
-      toast({
-        title: "Check Your Email! 📧",
-        description: "We sent you a 6-digit OTP code from auth@audnixai.com",
-      });
-
+      // OTP sent successfully - immediately show OTP input step
       setSignupStep(2);
       setResendCountdown(60);
+      
+      toast({
+        title: "Check Your Email!",
+        description: `OTP sent to ${email}`,
+      });
+      
       setLoading(false);
     } catch (error: any) {
-      console.error("Signup step 1 error:", error);
       toast({
-        title: "Error",
-        description: "Failed to send OTP",
+        title: "Network Error",
+        description: "Could not reach server. Please check your connection.",
         variant: "destructive",
       });
       setLoading(false);

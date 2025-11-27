@@ -15,6 +15,7 @@ export interface IStorage {
 
   // Lead methods
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
+  getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined>;
@@ -194,8 +195,12 @@ export class MemStorage implements IStorage {
     return leads;
   }
 
-  async getLeadById(id: string): Promise<Lead | undefined> {
+  async getLead(id: string): Promise<Lead | undefined> {
     return this.leads.get(id);
+  }
+
+  async getLeadById(id: string): Promise<Lead | undefined> {
+    return this.getLead(id);
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {

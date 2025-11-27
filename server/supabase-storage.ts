@@ -265,7 +265,7 @@ export class SupabaseStorage implements IStorage {
     return data.map((row) => this.mapLeadFromDb(row));
   }
 
-  async getLeadById(id: string): Promise<Lead | undefined> {
+  async getLead(id: string): Promise<Lead | undefined> {
     const { data, error} = await this.client
       .from("leads")
       .select("*")
@@ -274,6 +274,10 @@ export class SupabaseStorage implements IStorage {
 
     if (error || !data) return undefined;
     return this.mapLeadFromDb(data);
+  }
+
+  async getLeadById(id: string): Promise<Lead | undefined> {
+    return this.getLead(id);
   }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {

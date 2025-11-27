@@ -186,10 +186,14 @@ export class DrizzleStorage implements IStorage {
     return await query;
   }
 
-  async getLeadById(id: string): Promise<Lead | undefined> {
+  async getLead(id: string): Promise<Lead | undefined> {
     checkDatabase();
     const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
     return result[0];
+  }
+
+  async getLeadById(id: string): Promise<Lead | undefined> {
+    return this.getLead(id);
   }
 
   async getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined> {
