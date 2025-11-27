@@ -38,9 +38,25 @@ Audnix AI is a production-ready, Vercel-deployable SaaS platform featuring a uni
 - **Modular design** with clear separation of concerns.
 - **Persistent external database (Neon PostgreSQL)** for deployment independence.
 
+### Recent Changes (November 2025)
+- **Password Persistence Fix:** Fixed critical bug where passwords weren't being saved to database during user creation. Both DrizzleStorage and SupabaseStorage now properly hash and store passwords.
+- **PostgreSQL Session Store:** Replaced in-memory session storage with `connect-pg-simple` for persistent sessions across server restarts. Supports up to 500 concurrent users.
+- **Custom Email Integration:** Redesigned email setup to require explicit IMAP host/port fields for reliable cross-provider compatibility (Gmail, Outlook, Yahoo, custom SMTP).
+- **Email Sync Worker:** New background worker syncs emails every 5 minutes from connected mailboxes, automatically importing up to 50 recent emails per sync and detecting ghosted leads (48+ hours without reply).
+- **Storage Interface Enhancement:** Added `getIntegrationsByProvider()` method across all storage implementations for efficient bulk queries.
+- **Redis Error Handling:** Graceful fallback to memory-based rate limiting when Redis is unavailable, preventing log spam.
+
 ### External Dependencies
 - **PostgreSQL (Neon):** Primary database.
 - **Stripe:** Used for generating payment links (not for payment approval logic).
 - **Twilio SendGrid:** For sending OTP and other emails.
 - **GPT-4:** AI model used for the autonomous objection handler and response generation.
 - **ElevenLabs:** For voice cloning (human-sounding AI).
+
+### Key Files
+- `server/drizzle-storage.ts`: Main storage implementation using Drizzle ORM
+- `server/supabase-storage.ts`: Alternative Supabase storage implementation
+- `server/lib/email/email-sync-worker.ts`: Background email sync worker
+- `server/routes/custom-email-routes.ts`: Custom email integration API endpoints
+- `server/routes/payment-approval.ts`: Admin payment approval workflow (no API keys needed)
+- `client/src/components/email-setup-ui.tsx`: Email integration UI component

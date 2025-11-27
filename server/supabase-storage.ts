@@ -400,6 +400,28 @@ export class SupabaseStorage implements IStorage {
     return data.map((row) => this.mapIntegrationFromDb(row));
   }
 
+  async getIntegration(userId: string, provider: string): Promise<Integration | undefined> {
+    const { data, error } = await this.client
+      .from("integrations")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("provider", provider)
+      .single();
+
+    if (error || !data) return undefined;
+    return this.mapIntegrationFromDb(data);
+  }
+
+  async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
+    const { data, error } = await this.client
+      .from("integrations")
+      .select("*")
+      .eq("provider", provider);
+
+    if (error || !data) return [];
+    return data.map((row) => this.mapIntegrationFromDb(row));
+  }
+
   async createIntegration(
     integration: Partial<InsertIntegration> & {
       userId: string;

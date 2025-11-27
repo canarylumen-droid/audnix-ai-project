@@ -16,16 +16,18 @@ const router = Router();
 router.post('/connect', requireAuth, async (req, res) => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { smtpHost, smtpPort, email, password } = req.body;
+    const { smtpHost, smtpPort, imapHost, imapPort, email, password } = req.body;
 
-    if (!smtpHost || !email || !password) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!smtpHost || !imapHost || !email || !password) {
+      return res.status(400).json({ error: 'Missing required fields (SMTP host, IMAP host, email, password)' });
     }
 
-    // Encrypt credentials
+    // Encrypt credentials with explicit IMAP settings
     const credentials = {
       smtp_host: smtpHost,
       smtp_port: parseInt(smtpPort) || 587,
+      imap_host: imapHost,
+      imap_port: parseInt(imapPort) || 993,
       smtp_user: email,
       smtp_pass: password,
       provider: 'custom'

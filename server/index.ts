@@ -8,6 +8,7 @@ import { followUpWorker } from "./lib/ai/follow-up-worker";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health";
 import { emailWarmupWorker } from "./lib/email/email-warmup-worker";
+import { emailSyncWorker } from "./lib/email/email-sync-worker";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit";
 import crypto from "crypto";
 import fs from "fs";
@@ -328,6 +329,10 @@ async function runMigrations() {
     // Start email warmup worker
     emailWarmupWorker.start();
     console.log('🔥 Email warmup worker active');
+
+    // Start email sync worker (syncs user's connected mailboxes)
+    emailSyncWorker.start();
+    console.log('📬 Email sync worker active');
   } else {
     if (!hasDatabase) {
       console.log('⏭️  Background workers disabled (no database configured)');

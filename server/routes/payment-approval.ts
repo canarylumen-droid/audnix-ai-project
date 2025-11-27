@@ -18,7 +18,7 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
     }
 
     // Query database for pending payments (no API key needed)
-    const users = await storage.getUsers();
+    const users = await storage.getAllUsers();
     const pending = users
       .filter((u: any) => u.paymentStatus === "pending")
       .map((u: any) => ({
@@ -52,7 +52,7 @@ router.get("/stats", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Admin only" });
     }
 
-    const users = await storage.getUsers();
+    const users = await storage.getAllUsers();
     const stats = {
       trial_users: users.filter((u: any) => u.plan === "trial").length,
       starter_users: users.filter((u: any) => u.plan === "starter").length,

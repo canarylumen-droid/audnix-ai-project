@@ -310,6 +310,14 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
+  async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(integrations)
+      .where(eq(integrations.provider, provider as any));
+  }
+
   async createIntegration(
     integration: Partial<InsertIntegration> & {
       userId: string;

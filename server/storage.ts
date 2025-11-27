@@ -31,6 +31,7 @@ export interface IStorage {
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
   getIntegration(userId: string, provider: string): Promise<Integration | undefined>;
+  getIntegrationsByProvider(provider: string): Promise<Integration[]>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
   disconnectIntegration(userId: string, provider: string): Promise<void>;
   deleteIntegration(userId: string, provider: string): Promise<void>;
@@ -298,6 +299,12 @@ export class MemStorage implements IStorage {
   async getIntegration(userId: string, provider: string): Promise<Integration | undefined> {
     return Array.from(this.integrations.values()).find(
       (integration) => integration.userId === userId && integration.provider === provider
+    );
+  }
+
+  async getIntegrationsByProvider(provider: string): Promise<Integration[]> {
+    return Array.from(this.integrations.values()).filter(
+      (integration) => integration.provider === provider
     );
   }
 

@@ -13,9 +13,11 @@ interface EmailStatus {
   provider: string;
 }
 
-interface SMTPConfig {
-  host: string;
-  port: number;
+interface EmailConfig {
+  smtpHost: string;
+  smtpPort: number;
+  imapHost: string;
+  imapPort: number;
   email: string;
   password: string;
 }
@@ -23,9 +25,11 @@ interface SMTPConfig {
 export function EmailSetupUI() {
   const [status, setStatus] = useState<EmailStatus | null>(null);
   const [loading, setLoading] = useState(true);
-  const [config, setConfig] = useState<SMTPConfig>({
-    host: '',
-    port: 587,
+  const [config, setConfig] = useState<EmailConfig>({
+    smtpHost: '',
+    smtpPort: 587,
+    imapHost: '',
+    imapPort: 993,
     email: '',
     password: ''
   });
@@ -60,8 +64,8 @@ export function EmailSetupUI() {
   };
 
   const handleShowFilterInfo = () => {
-    if (!config.host || !config.email || !config.password) {
-      toast({ title: 'Error', description: 'Please fill all fields', variant: 'destructive' });
+    if (!config.smtpHost || !config.imapHost || !config.email || !config.password) {
+      toast({ title: 'Error', description: 'Please fill all required fields', variant: 'destructive' });
       return;
     }
     setShowFilterInfo(true);
@@ -78,8 +82,10 @@ export function EmailSetupUI() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          smtpHost: config.host,
-          smtpPort: config.port,
+          smtpHost: config.smtpHost,
+          smtpPort: config.smtpPort,
+          imapHost: config.imapHost,
+          imapPort: config.imapPort,
           email: config.email,
           password: config.password
         })
@@ -106,7 +112,7 @@ export function EmailSetupUI() {
           description: `Email connected! ${data.leadsImported} contacts imported.`
         });
 
-        setConfig({ host: '', port: 587, email: '', password: '' });
+        setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '' });
         setShowFilterInfo(false);
         setShowSetup(false);
         await fetchStatus();
@@ -193,66 +199,45 @@ export function EmailSetupUI() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Common SMTP Presets */}
+            {/* Common Email Server Settings */}
             <div className="bg-blue-500/5 border border-blue-500/20 rounded p-3">
               <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
-                💡 Common SMTP Servers:
+                💡 Common Email Server Settings:
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <strong>Gmail:</strong>
                   <br />
-                  Host: smtp.gmail.com
+                  SMTP: smtp.gmail.com:587
                   <br />
-                  Port: 587
+                  IMAP: imap.gmail.com:993
                 </div>
                 <div>
                   <strong>Outlook:</strong>
                   <br />
-                  Host: smtp.outlook.com
+                  SMTP: smtp.outlook.com:587
                   <br />
-                  Port: 587
+                  IMAP: outlook.office365.com:993
                 </div>
                 <div>
-                  <strong>AWS SES:</strong>
+                  <strong>Yahoo:</strong>
                   <br />
-                  Host: email-smtp.[region].amazonaws.com
+                  SMTP: smtp.mail.yahoo.com:587
                   <br />
-                  Port: 587
+                  IMAP: imap.mail.yahoo.com:993
                 </div>
                 <div>
-                  <strong>SendGrid:</strong>
+                  <strong>Zoho:</strong>
                   <br />
-                  Host: smtp.sendgrid.net
+                  SMTP: smtp.zoho.com:587
                   <br />
-                  Port: 587
+                  IMAP: imap.zoho.com:993
                 </div>
               </div>
             </div>
 
             {/* Form Inputs */}
             <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">SMTP Host</label>
-                <Input
-                  placeholder="smtp.gmail.com"
-                  value={config.host}
-                  onChange={(e) => setConfig({ ...config, host: e.target.value })}
-                  className="font-mono text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">SMTP Port</label>
-                <Input
-                  type="number"
-                  placeholder="587"
-                  value={config.port}
-                  onChange={(e) => setConfig({ ...config, port: parseInt(e.target.value) })}
-                  className="font-mono text-sm"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Email Address</label>
                 <Input
@@ -265,14 +250,58 @@ export function EmailSetupUI() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">SMTP Password / API Key</label>
+                <label className="block text-sm font-medium mb-1">Password / App Password</label>
                 <Input
                   type="password"
-                  placeholder="Your SMTP password or API key"
+                  placeholder="Your email password or app-specific password"
                   value={config.password}
                   onChange={(e) => setConfig({ ...config, password: e.target.value })}
                   className="font-mono text-sm"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">SMTP Host (Sending)</label>
+                  <Input
+                    placeholder="smtp.gmail.com"
+                    value={config.smtpHost}
+                    onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">SMTP Port</label>
+                  <Input
+                    type="number"
+                    placeholder="587"
+                    value={config.smtpPort}
+                    onChange={(e) => setConfig({ ...config, smtpPort: parseInt(e.target.value) || 587 })}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">IMAP Host (Reading)</label>
+                  <Input
+                    placeholder="imap.gmail.com"
+                    value={config.imapHost}
+                    onChange={(e) => setConfig({ ...config, imapHost: e.target.value })}
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">IMAP Port</label>
+                  <Input
+                    type="number"
+                    placeholder="993"
+                    value={config.imapPort}
+                    onChange={(e) => setConfig({ ...config, imapPort: parseInt(e.target.value) || 993 })}
+                    className="font-mono text-sm"
+                  />
+                </div>
               </div>
             </div>
 
@@ -339,7 +368,7 @@ export function EmailSetupUI() {
                   variant="outline"
                   onClick={() => {
                     setShowSetup(false);
-                    setConfig({ host: '', port: 587, email: '', password: '' });
+                    setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '' });
                   }}
                 >
                   Cancel

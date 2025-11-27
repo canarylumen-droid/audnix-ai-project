@@ -11,6 +11,8 @@ import { storage } from '../../storage';
 interface EmailConfig {
   smtp_host?: string;
   smtp_port?: number;
+  imap_host?: string;
+  imap_port?: number;
   smtp_user?: string;
   smtp_pass?: string;
   oauth_token?: string;
@@ -57,12 +59,20 @@ export async function importCustomEmails(
   const Imap = require('imap');
   const { simpleParser } = require('mailparser');
   
+  // Use explicit IMAP settings if provided, otherwise try to derive from SMTP
+  const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+  const imapPort = config.imap_port || 993;
+  
+  if (!imapHost) {
+    throw new Error('IMAP host not configured. Please provide explicit IMAP settings.');
+  }
+  
   return new Promise((resolve, reject) => {
     const imap = new Imap({
       user: config.smtp_user,
       password: config.smtp_pass,
-      host: config.smtp_host?.replace('smtp', 'imap') || '',
-      port: 993,
+      host: imapHost,
+      port: imapPort,
       tls: true,
       tlsOptions: { rejectUnauthorized: false }
     });
@@ -141,6 +151,7 @@ interface EmailOptions {
 
 /**
  * Send email using appropriate provider with optional branding
+ * Priority: custom_email (user's SMTP) > gmail > outlook
  */
 export async function sendEmail(
   userId: string,
@@ -149,8 +160,43 @@ export async function sendEmail(
   subject: string,
   options: EmailOptions = {}
 ): Promise<void> {
+  // First check for custom email integration (user's own SMTP)
+  const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
+  
+  if (customEmailIntegration?.connected) {
+    // Use user's custom SMTP to send emails
+    const { decrypt } = await import('../crypto/encryption');
+    const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta!);
+    const credentials = JSON.parse(credentialsStr);
+    
+    // Get brand colors
+    const brandColors = options.brandColors || await getUserBrandColors(userId);
+    
+    // Get user's business name
+    const user = await storage.getUser(userId);
+    const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
+    
+    // Generate branded HTML email
+    let emailBody = content;
+    if (options.buttonUrl && options.buttonText) {
+      if (options.isMeetingInvite) {
+        emailBody = generateMeetingEmail(content, options.buttonUrl, brandColors, businessName);
+      } else {
+        emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
+      }
+    } else {
+      emailBody = generateBrandedEmail(content, { text: 'View Details', url: '#' }, brandColors, businessName);
+    }
+    
+    // Send via user's custom SMTP
+    await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
+    console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
+    return;
+  }
+  
+  // Fallback to Supabase Gmail/Outlook if no custom email
   if (!supabaseAdmin) {
-    throw new Error('Supabase admin not configured');
+    throw new Error('No email provider configured. Please connect your business email in Settings.');
   }
 
   // Get email configuration for user
@@ -163,7 +209,7 @@ export async function sendEmail(
     .single();
 
   if (!integration) {
-    throw new Error('Email not connected');
+    throw new Error('Email not connected. Please connect your business email in Settings.');
   }
 
   // Get brand colors from brand_embeddings
