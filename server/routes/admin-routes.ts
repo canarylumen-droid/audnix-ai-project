@@ -646,6 +646,106 @@ router.get("/leads", async (req: Request, res: Response) => {
 
 // ============ ADMIN WHITELIST MANAGEMENT ============
 
+// ============ DIRECT USER MANAGEMENT ============
+
+// Direct upgrade user to any plan (no payment required)
+// Used for: whitelisted team members, promotions, testing
+router.post("/users/:userId/upgrade", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { plan } = req.body;
+    const adminId = (req as any).user?.id;
+
+    // Validate plan
+    const validPlans = ['free', 'trial', 'starter', 'pro', 'enterprise'];
+    if (!plan || !validPlans.includes(plan)) {
+      return res.status(400).json({ 
+        error: "Invalid plan",
+        validPlans 
+      });
+    }
+
+    // Get target user
+    const targetUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!targetUser.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const oldPlan = targetUser[0].plan;
+
+    // Update user plan directly (no payment required)
+    await db
+      .update(users)
+      .set({
+        plan,
+        paymentStatus: 'approved',
+        paymentApprovedAt: new Date(),
+        pendingPaymentPlan: null,
+        pendingPaymentAmount: null,
+        pendingPaymentDate: null,
+      })
+      .where(eq(users.id, userId));
+
+    console.log(`✅ Admin ${adminId} upgraded user ${targetUser[0].email}: ${oldPlan} → ${plan}`);
+
+    res.json({
+      success: true,
+      message: `User upgraded to ${plan} plan`,
+      user: {
+        id: userId,
+        email: targetUser[0].email,
+        oldPlan,
+        newPlan: plan,
+      },
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error upgrading user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get user by email (for admin lookup)
+router.get("/users/lookup", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.query;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: "Email query parameter required" });
+    }
+
+    const user = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        username: users.username,
+        plan: users.plan,
+        paymentStatus: users.paymentStatus,
+        createdAt: users.createdAt,
+        lastLogin: users.lastLogin,
+      })
+      .from(users)
+      .where(eq(users.email, email.toLowerCase()))
+      .limit(1);
+
+    if (!user.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json({ user: user[0] });
+  } catch (error) {
+    console.error("[ADMIN] Error looking up user:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ============ ADMIN WHITELIST ============
+
 // Get admin whitelist
 router.get("/whitelist", async (req: Request, res: Response) => {
   try {

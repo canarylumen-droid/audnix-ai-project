@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,8 +19,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Eye, Mail, Calendar, CreditCard } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Eye, Mail, Calendar, CreditCard, Crown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 interface User {
   id: string;
@@ -47,6 +55,9 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState<string>("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ["/api/admin/users", { search, page }],
@@ -55,6 +66,38 @@ export default function AdminUsers() {
   const { data: userDetails } = useQuery<UserDetails>({
     queryKey: [`/api/admin/users/${selectedUser}`],
     enabled: !!selectedUser,
+  });
+
+  const upgradeMutation = useMutation({
+    mutationFn: async ({ userId, plan }: { userId: string; plan: string }) => {
+      const res = await fetch(`/api/admin/users/${userId}/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to upgrade user');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "User Upgraded!",
+        description: `${data.user.email} is now on ${data.user.newPlan} plan`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${selectedUser}`] });
+      setUpgradePlan("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upgrade Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const getPlanBadgeColor = (plan: string) => {
@@ -245,6 +288,44 @@ export default function AdminUsers() {
                       </div>
                     </CardContent>
                   </Card>
+                </div>
+
+                {/* Direct Plan Upgrade */}
+                <div className="border-2 border-dashed border-primary/30 rounded-lg p-4 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Crown className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">Direct Plan Upgrade</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Upgrade this user to any plan without payment (for team members, promotions, testing)
+                  </p>
+                  <div className="flex gap-3">
+                    <Select value={upgradePlan} onValueChange={setUpgradePlan}>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select plan..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="trial">Trial</SelectItem>
+                        <SelectItem value="starter">Starter ($49.99)</SelectItem>
+                        <SelectItem value="pro">Pro ($99.99)</SelectItem>
+                        <SelectItem value="enterprise">Enterprise ($199.99)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => {
+                        if (selectedUser && upgradePlan) {
+                          upgradeMutation.mutate({ userId: selectedUser, plan: upgradePlan });
+                        }
+                      }}
+                      disabled={!upgradePlan || upgradeMutation.isPending}
+                    >
+                      {upgradeMutation.isPending ? "Upgrading..." : "Upgrade Now"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Current plan: <Badge variant="outline" className={getPlanBadgeColor(userDetails.user.plan)}>{userDetails.user.plan}</Badge>
+                  </p>
                 </div>
 
                 {/* Integrations */}
