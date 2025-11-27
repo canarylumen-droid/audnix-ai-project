@@ -17,6 +17,7 @@ import {
 } from "./lib/billing/stripe";
 import { generateInsights } from "./lib/ai/openai";
 import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload";
+import { scheduleInitialFollowUp } from "./lib/ai/follow-up-worker";
 import { processPDF } from "./lib/pdf-processor";
 import { encrypt } from "./lib/crypto/encryption";
 import oauthRoutes from "./routes/oauth";
@@ -926,12 +927,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 continue;
               }
 
+              const leadChannel = (lead.email ? 'email' : lead.phone ? 'whatsapp' : 'instagram') as 'email' | 'instagram' | 'whatsapp';
               const leadData = await storage.createLead({
                 userId,
                 name: lead.name,
                 email: lead.email || null,
                 phone: lead.phone || null,
-                channel: (lead.email ? 'email' : lead.phone ? 'whatsapp' : 'instagram') as 'email' | 'instagram' | 'whatsapp',
+                channel: leadChannel,
                 status: 'new',
                 tags: lead.tags ? lead.tags.split(',').map((t: string) => t.trim()) : ['csv-import'],
                 metadata: {
@@ -942,6 +944,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
 
               imported++;
+
+              // Auto-schedule initial follow-up for imported leads
+              try {
+                await scheduleInitialFollowUp(userId, leadData.id, leadChannel);
+              } catch (followUpError) {
+                console.warn(`Failed to schedule follow-up for ${lead.name}:`, followUpError);
+              }
 
               if (lead.phone && hasWhatsApp) {
                 try {
@@ -2136,8 +2145,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register admin routes
   const adminRoutes = await import("./routes/admin-routes");
   app.use("/api/admin", adminRoutes.default);
-  app.use("/api/admin", adminPdfRoutes);
   app.use("/api/admin", adminPdfRoutesV2);
+  app.use("/api/brand-pdf", adminPdfRoutes);
 
   const httpServer = createServer(app);
 

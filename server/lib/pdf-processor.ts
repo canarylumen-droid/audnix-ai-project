@@ -2,6 +2,7 @@
 
 import { supabaseAdmin } from './supabase-admin';
 import { storage } from '../storage';
+import { scheduleInitialFollowUp } from './ai/follow-up-worker';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -108,13 +109,14 @@ export async function processPDF(
     const createdLeads = [];
     for (const leadData of parsedLeads) {
       try {
+        const leadChannel = leadData.email ? 'email' : leadData.phone ? 'whatsapp' : 'instagram';
         const lead = await storage.createLead({
           userId,
           name: leadData.name,
           email: leadData.email,
           phone: leadData.phone,
           company: leadData.company,
-          channel: 'manual',
+          channel: leadChannel as 'email' | 'instagram' | 'whatsapp',
           status: 'new',
           source: 'pdf_import',
           metadata: {
@@ -131,6 +133,13 @@ export async function processPDF(
           phone: lead.phone || undefined,
           company: lead.metadata?.company || undefined
         });
+
+        // Auto-schedule initial follow-up for imported leads
+        try {
+          await scheduleInitialFollowUp(userId, lead.id, leadChannel as 'email' | 'whatsapp' | 'instagram' | 'manual');
+        } catch (followUpError) {
+          console.warn(`Failed to schedule follow-up for ${lead.name}:`, followUpError);
+        }
 
         // Auto-reach out if enabled and offer data exists
         if (options?.autoReachOut && offerData && (leadData.email || leadData.phone)) {

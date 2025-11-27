@@ -769,3 +769,48 @@ Generate a natural follow-up message:`;
 
 // Create singleton instance
 export const followUpWorker = new FollowUpWorker();
+
+/**
+ * Schedule initial follow-up for newly imported leads
+ * This is called from CSV/PDF import to ensure all leads get systematic outreach
+ */
+export async function scheduleInitialFollowUp(
+  userId: string,
+  leadId: string,
+  channel: 'email' | 'whatsapp' | 'instagram' | 'manual'
+): Promise<boolean> {
+  if (!db) {
+    console.warn('Database not available for follow-up scheduling');
+    return false;
+  }
+
+  try {
+    // Map channel to proper follow-up channel
+    const followUpChannel = channel === 'manual' ? 'email' : channel;
+    
+    // Schedule first follow-up in 2-4 hours (gives time for immediate manual review)
+    const initialDelay = (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
+    const scheduledTime = new Date(Date.now() + initialDelay);
+
+    await db.insert(followUpQueue).values({
+      userId,
+      leadId,
+      channel: followUpChannel,
+      scheduledAt: scheduledTime,
+      context: {
+        follow_up_number: 1,
+        source: 'import',
+        temperature: 'warm', // Default to warm for imported leads
+        campaign_day: 0,
+        sequence_number: 1,
+        initial_outreach: true
+      }
+    });
+
+    console.log(`📅 Scheduled initial follow-up for imported lead ${leadId} at ${scheduledTime.toISOString()}`);
+    return true;
+  } catch (error) {
+    console.error('Error scheduling initial follow-up:', error);
+    return false;
+  }
+}
