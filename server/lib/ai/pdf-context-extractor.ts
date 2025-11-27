@@ -79,10 +79,10 @@ Be thorough and precise.`;
 
     let extracted: Partial<ExtractedPDFContent> = {};
     try {
-      extracted = JSON.parse(extractionResponse.choices[0].message.body || "{}");
+      extracted = JSON.parse(extractionResponse.choices[0].message.content || "{}");
     } catch (e) {
       // If JSON parse fails, try to extract from text
-      const text = extractionResponse.choices[0].message.body || "";
+      const text = extractionResponse.choices[0].message.content || "";
       extracted = {
         company_name: text.match(/company_name["\s:]*([^,\n}]*)/)?.[1] || "Unknown",
         industry: text.match(/industry["\s:]*([^,\n}]*)/)?.[1] || "B2B",
@@ -164,7 +164,7 @@ Format concisely and actionably.`,
       max_tokens: 400,
     });
 
-    return response.choices[0].message.body || "Standard positioning in market";
+    return response.choices[0].message.content || "Standard positioning in market";
   } catch (error) {
     console.error("Error researching competitive position:", error);
     return "Competitive offering in market";
@@ -207,7 +207,7 @@ Format as numbered list.`,
       max_tokens: 500,
     });
 
-    const text = response.choices[0].message.body || "";
+    const text = response.choices[0].message.content || "";
     return text
       .split("\n")
       .filter((line) => line.trim().match(/^\d/))
@@ -264,7 +264,7 @@ Format as JSON.`,
       max_tokens: 800,
     });
 
-    const text = response.choices[0].message.body || "{}";
+    const text = response.choices[0].message.content || "{}";
     try {
       return JSON.parse(text);
     } catch {

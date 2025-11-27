@@ -70,7 +70,7 @@ For each, include 2-line reasoning why it works.`;
       max_tokens: 800,
     });
 
-    const suggestions = response.choices[0].message.body || "";
+    const suggestions = response.choices[0].message.content || "";
 
     res.json({
       success: true,
@@ -119,7 +119,7 @@ Response:`;
       max_tokens: 100,
     });
 
-    const instantReply = response.choices[0].message.body || "";
+    const instantReply = response.choices[0].message.content || "";
 
     res.json({
       success: true,

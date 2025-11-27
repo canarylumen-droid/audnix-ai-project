@@ -434,7 +434,7 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       max_tokens: platform === 'email' ? 300 : 150,
     });
 
-    const responseText = completion.choices[0].message.body || "";
+    const responseText = completion.choices[0].message.content || "";
 
     return {
       text: optimizeSalesLanguage(responseText),
@@ -509,7 +509,7 @@ Script:`;
       max_tokens: 120,
     });
 
-    return completion.choices[0].message.body || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
+    return completion.choices[0].message.content || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
   } catch (error) {
     console.error("Voice script generation error:", error);
     return "Hey! Quick voice note - would love to connect and discuss how we can help. Let me know when you're free!";

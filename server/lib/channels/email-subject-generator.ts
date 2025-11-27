@@ -6,8 +6,8 @@ const openai = new OpenAI({
 
 export async function generateEmailSubject(userId: string, content: string): Promise<string> {
   try {
-    const message = await openai.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       max_tokens: 100,
       messages: [
         {
@@ -17,7 +17,7 @@ export async function generateEmailSubject(userId: string, content: string): Pro
       ]
     });
 
-    const subject = message.body[0].type === 'text' ? message.body[0].text.trim() : 'Hello';
+    const subject = response.choices[0].message.content?.trim() || 'Hello';
     return subject.replace(/^["']|["']$/g, ''); // Remove quotes if any
   } catch (error) {
     console.warn('Failed to generate email subject with AI, using default:', error);

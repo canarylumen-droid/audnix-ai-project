@@ -231,7 +231,7 @@ Be specific and actionable.`,
       max_tokens: 500,
     });
 
-    const text = response.choices[0].message.body || "";
+    const text = response.choices[0].message.content || "";
 
     // Parse response
     const competitors = text.match(/COMPETITORS:(.+?)(?=GAPS:|$)/s)?.[1]?.split("\n").filter(Boolean) || [];
@@ -294,7 +294,7 @@ Make it compelling and specific to their business.`,
       max_tokens: 400,
     });
 
-    const text = response.choices[0].message.body || "";
+    const text = response.choices[0].message.content || "";
 
     return {
       uvp: text.split("\n")[0],
@@ -499,7 +499,7 @@ Message:`;
       max_tokens: 300,
     });
 
-    return response.choices[0].message.body || "";
+    return response.choices[0].message.content || "";
   } catch (error) {
     console.error("Error generating message:", error);
     return `Hi ${leadProfile.firstName}, quick question about ${leadProfile.companyName} — are you open to a 5-minute conversation?`;

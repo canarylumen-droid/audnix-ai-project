@@ -59,7 +59,7 @@ Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }
       temperature: 0.3
     });
 
-    const analysis = JSON.parse(response.choices[0].message.body || '{}');
+    const analysis = JSON.parse(response.choices[0].message.content || '{}');
     
     return {
       wantsDM: analysis.wantsDM || false,
@@ -123,7 +123,7 @@ Generate the DM:`;
       temperature: 0.8
     });
 
-    return response.choices[0].message.body || `Hey ${leadName}! Thanks for reaching out. Here's the info you requested.`;
+    return response.choices[0].message.content || `Hey ${leadName}! Thanks for reaching out. Here's the info you requested.`;
   } catch (error) {
     console.error('Initial DM generation error:', error);
     return `Hey ${leadName}! Thanks for your interest. Let me share what you asked for.`;
@@ -180,7 +180,7 @@ Generate the follow-up:`;
       temperature: 0.8
     });
 
-    return response.choices[0].message.body || `Hey ${leadName}, did you get a chance to check out what I sent earlier?`;
+    return response.choices[0].message.content || `Hey ${leadName}, did you get a chance to check out what I sent earlier?`;
   } catch (error) {
     console.error('Follow-up DM generation error:', error);
     return `Hey ${leadName}, just following up on the ${originalIntent} I shared. Still interested?`;

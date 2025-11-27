@@ -12,6 +12,9 @@ const openai = new OpenAI({
 interface PDFProcessingResult {
   success: boolean;
   leadsCreated: number;
+  text?: string;
+  confidence?: number | null;
+  missingFields?: string[];
   offerExtracted?: {
     productName: string;
     description: string;
@@ -288,7 +291,7 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
       max_completion_tokens: 1200
     });
     
-    const result = JSON.parse(response.choices[0].message.body || '{}');
+    const result = JSON.parse(response.choices[0].message.content || '{}');
     
     // Merge AI-extracted colors with regex-extracted colors for maximum coverage
     const aiColors = result.brand?.colors || {};
@@ -464,7 +467,7 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
       max_completion_tokens: 1000
     });
     
-    const result = JSON.parse(response.choices[0].message.body || '{}');
+    const result = JSON.parse(response.choices[0].message.content || '{}');
     return result.leads || [];
   } catch (error) {
     console.error('AI lead extraction failed:', error);

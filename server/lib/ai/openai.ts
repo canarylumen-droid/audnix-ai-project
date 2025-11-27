@@ -99,7 +99,7 @@ export async function generateReply(
     });
 
     return {
-      text: response.choices[0].message.body || "",
+      text: response.choices[0].message.content || "",
       tokensUsed: response.usage?.total_tokens || 0
     };
   } catch (error: any) {
@@ -138,7 +138,7 @@ export async function classify(
       max_completion_tokens: 100,
     });
 
-    const result = JSON.parse(response.choices[0].message.body || "{}");
+    const result = JSON.parse(response.choices[0].message.content || "{}");
     
     return {
       category: result.category || "unknown",
@@ -171,7 +171,7 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
       max_completion_tokens: 300,
     });
 
-    return response.choices[0].message.body || "";
+    return response.choices[0].message.content || "";
   } catch (error: any) {
     console.error("OpenAI insights error:", error.message);
     throw new Error(`Failed to generate insights: ${error.message}`);
