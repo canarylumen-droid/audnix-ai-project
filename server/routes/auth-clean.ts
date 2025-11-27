@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { twilioEmailOTP } from '../lib/auth/twilio-email-otp';
@@ -7,39 +6,37 @@ import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
-// Rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: 'Too many auth attempts',
 });
 
-/**
- * POST /api/auth/signup/request-otp
- * Step 1: User requests OTP for signup
- */
-router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response) => {
+router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body;
+    const { email } = req.body as { email?: string };
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Valid email required' });
+      res.status(400).json({ error: 'Valid email required' });
+      return;
     }
 
-    // Check if user already exists
     const existing = await storage.getUserByEmail(email);
     if (existing) {
-      return res.status(400).json({ error: 'Email already registered. Use login instead.' });
+      res.status(400).json({ error: 'Email already registered. Use login instead.' });
+      return;
     }
 
     if (!twilioEmailOTP.isConfigured()) {
-      return res.status(503).json({ error: 'Email service not configured' });
+      res.status(503).json({ error: 'Email service not configured' });
+      return;
     }
 
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error || 'Failed to send OTP' });
+      res.status(400).json({ error: result.error || 'Failed to send OTP' });
+      return;
     }
 
     res.json({
@@ -47,48 +44,52 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       message: 'OTP sent to your email',
       expiresIn: '10 minutes',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup OTP error:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
 });
 
-/**
- * POST /api/auth/signup/verify-otp
- * Step 2: User verifies OTP and sets password
- */
-router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Response) => {
+interface SignupVerifyBody {
+  email?: string;
+  otp?: string;
+  password?: string;
+  username?: string;
+}
+
+router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, otp, password, username } = req.body;
+    const { email, otp, password, username } = req.body as SignupVerifyBody;
 
     if (!email || !otp || !password || !username) {
-      return res.status(400).json({ error: 'Email, OTP, password, and username required' });
+      res.status(400).json({ error: 'Email, OTP, password, and username required' });
+      return;
     }
 
     if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return;
     }
 
     if (username.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+      res.status(400).json({ error: 'Username must be at least 3 characters' });
+      return;
     }
 
-    // Verify OTP
     const verifyResult = await twilioEmailOTP.verifyEmailOTP(email, otp);
     if (!verifyResult.success) {
-      return res.status(400).json({ error: verifyResult.error });
+      res.status(400).json({ error: verifyResult.error });
+      return;
     }
 
-    // Check username availability
     const existingUsername = await storage.getUserByUsername(username);
     if (existingUsername) {
-      return res.status(400).json({ error: 'Username already taken' });
+      res.status(400).json({ error: 'Username already taken' });
+      return;
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await storage.createUser({
       email,
       username,
@@ -96,10 +97,9 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       plan: 'trial',
     });
 
-    // Set session (7-day expiry)
-    (req as any).session.userId = user.id;
-    (req as any).session.email = email;
-    (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    req.session.userId = user.id;
+    req.session.email = email;
+    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
 
     res.json({
       success: true,
@@ -114,43 +114,43 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     });
 
     console.log(`✅ New user signed up: ${email}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Signup verification error:', error);
     res.status(500).json({ error: 'Signup failed' });
   }
 });
 
-/**
- * POST /api/auth/login
- * User logs in with email + password
- * Session lasts 7 days
- */
-router.post('/login', authLimiter, async (req: Request, res: Response) => {
+interface LoginBody {
+  email?: string;
+  password?: string;
+}
+
+router.post('/login', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body as LoginBody;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password required' });
+      res.status(400).json({ error: 'Email and password required' });
+      return;
     }
 
-    // Get user
     const user = await storage.getUserByEmail(email);
 
     if (!user || !user.password) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
     }
 
-    // Verify password
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      res.status(401).json({ error: 'Invalid email or password' });
+      return;
     }
 
-    // Set session (7-day expiry)
-    (req as any).session.userId = user.id;
-    (req as any).session.email = email;
-    (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    req.session.userId = user.id;
+    req.session.email = email;
+    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
 
     res.json({
       success: true,
@@ -165,65 +165,57 @@ router.post('/login', authLimiter, async (req: Request, res: Response) => {
     });
 
     console.log(`✅ User logged in: ${email}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 });
 
-/**
- * POST /api/auth/refresh-session
- * Extend session by 7 more days
- */
-router.post('/refresh-session', async (req: Request, res: Response) => {
+router.post('/refresh-session', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
+    const userId = req.session?.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
     }
 
-    // Extend session
-    (req as any).session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
 
     res.json({
       success: true,
       message: 'Session extended',
       sessionExpiresIn: '7 days',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to refresh session' });
   }
 });
 
-/**
- * POST /api/auth/logout
- */
-router.post('/logout', (req: Request, res: Response) => {
-  (req as any).session.destroy((err: any) => {
+router.post('/logout', (req: Request, res: Response): void => {
+  req.session.destroy((err: Error | undefined) => {
     if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
+      res.status(500).json({ error: 'Logout failed' });
+      return;
     }
     res.json({ success: true, message: 'Logged out successfully' });
   });
 });
 
-/**
- * GET /api/auth/me
- * Get current user
- */
-router.get('/me', async (req: Request, res: Response) => {
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
+    const userId = req.session?.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
     }
 
     const user = await storage.getUserById(userId);
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     res.json({
@@ -235,7 +227,7 @@ router.get('/me', async (req: Request, res: Response) => {
         plan: user.plan,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });

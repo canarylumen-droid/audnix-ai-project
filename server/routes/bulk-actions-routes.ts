@@ -1,31 +1,61 @@
-/* @ts-nocheck */
-import { Router, type Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
-import { generateAIReply, scheduleFollowUp } from '../lib/ai/conversation-ai';
+import { generateAIReply } from '../lib/ai/conversation-ai';
 import { calculateLeadScore } from '../lib/ai/lead-scoring';
+import type { ChannelType, ProviderType, LeadStatus } from '@shared/types';
 
 const router = Router();
+
+interface BulkResult {
+  leadId: string;
+  success: boolean;
+  messageId?: string;
+  tags?: string[];
+  score?: number;
+  temperature?: string;
+}
+
+interface BulkError {
+  leadId: string;
+  error: string;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
+function channelToProvider(channel: ChannelType): ProviderType {
+  if (channel === 'instagram') return 'instagram';
+  if (channel === 'whatsapp') return 'whatsapp';
+  return 'email';
+}
 
 /**
  * Bulk update lead status
  * POST /api/bulk/update-status
  */
-router.post('/update-status', requireAuth, async (req: Request, res: Response) => {
+router.post('/update-status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadIds, status } = req.body;
+    const { leadIds, status } = req.body as { leadIds: string[]; status: LeadStatus };
     const userId = getCurrentUserId(req)!;
 
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
     }
 
-    if (!['new', 'open', 'replied', 'converted', 'not_interested', 'cold'].includes(status)) {
-      return res.status(400).json({ error: 'Invalid status' });
+    const validStatuses: LeadStatus[] = ['new', 'open', 'replied', 'converted', 'not_interested', 'cold'];
+    if (!validStatuses.includes(status)) {
+      res.status(400).json({ error: 'Invalid status' });
+      return;
     }
 
-    const results = [];
-    const errors = [];
+    const results: BulkResult[] = [];
+    const errors: BulkError[] = [];
 
     for (const leadId of leadIds) {
       try {
@@ -37,8 +67,8 @@ router.post('/update-status', requireAuth, async (req: Request, res: Response) =
 
         await storage.updateLead(leadId, { status });
         results.push({ leadId, success: true });
-      } catch (error: any) {
-        errors.push({ leadId, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
 
@@ -49,9 +79,9 @@ router.post('/update-status', requireAuth, async (req: Request, res: Response) =
       results,
       errors
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk status update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -59,21 +89,23 @@ router.post('/update-status', requireAuth, async (req: Request, res: Response) =
  * Bulk add tags
  * POST /api/bulk/add-tags
  */
-router.post('/add-tags', requireAuth, async (req: Request, res: Response) => {
+router.post('/add-tags', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadIds, tags } = req.body;
+    const { leadIds, tags } = req.body as { leadIds: string[]; tags: string[] };
     const userId = getCurrentUserId(req)!;
 
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
     }
 
     if (!Array.isArray(tags) || tags.length === 0) {
-      return res.status(400).json({ error: 'tags must be a non-empty array' });
+      res.status(400).json({ error: 'tags must be a non-empty array' });
+      return;
     }
 
-    const results = [];
-    const errors = [];
+    const results: BulkResult[] = [];
+    const errors: BulkError[] = [];
 
     for (const leadId of leadIds) {
       try {
@@ -88,8 +120,8 @@ router.post('/add-tags', requireAuth, async (req: Request, res: Response) => {
 
         await storage.updateLead(leadId, { tags: newTags });
         results.push({ leadId, success: true, tags: newTags });
-      } catch (error: any) {
-        errors.push({ leadId, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
 
@@ -100,9 +132,9 @@ router.post('/add-tags', requireAuth, async (req: Request, res: Response) => {
       results,
       errors
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk tag update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -110,17 +142,18 @@ router.post('/add-tags', requireAuth, async (req: Request, res: Response) => {
  * Bulk send AI message
  * POST /api/bulk/send-message
  */
-router.post('/send-message', requireAuth, async (req: Request, res: Response) => {
+router.post('/send-message', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadIds, message } = req.body;
+    const { leadIds, message } = req.body as { leadIds: string[]; message?: string };
     const userId = getCurrentUserId(req)!;
 
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
     }
 
-    const results = [];
-    const errors = [];
+    const results: BulkResult[] = [];
+    const errors: BulkError[] = [];
 
     for (const leadId of leadIds) {
       try {
@@ -130,16 +163,17 @@ router.post('/send-message', requireAuth, async (req: Request, res: Response) =>
           continue;
         }
 
+        const channel = lead.channel as ChannelType;
         const messageBody = message || (await generateAIReply(
           lead,
           await storage.getMessagesByLeadId(leadId),
-          lead.channel as any
+          channel
         )).text;
 
         const msg = await storage.createMessage({
           leadId,
           userId,
-          provider: lead.channel as any,
+          provider: channelToProvider(channel),
           direction: 'outbound',
           body: messageBody,
           metadata: { bulk_action: true }
@@ -147,8 +181,8 @@ router.post('/send-message', requireAuth, async (req: Request, res: Response) =>
 
         await storage.updateLead(leadId, { lastMessageAt: new Date() });
         results.push({ leadId, success: true, messageId: msg.id });
-      } catch (error: any) {
-        errors.push({ leadId, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
 
@@ -159,9 +193,9 @@ router.post('/send-message', requireAuth, async (req: Request, res: Response) =>
       results,
       errors
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk message send error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -169,17 +203,18 @@ router.post('/send-message', requireAuth, async (req: Request, res: Response) =>
  * Bulk score leads
  * POST /api/bulk/score-leads
  */
-router.post('/score-leads', requireAuth, async (req: Request, res: Response) => {
+router.post('/score-leads', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadIds } = req.body;
+    const { leadIds } = req.body as { leadIds: string[] };
     const userId = getCurrentUserId(req)!;
 
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
     }
 
-    const results = [];
-    const errors = [];
+    const results: BulkResult[] = [];
+    const errors: BulkError[] = [];
 
     for (const leadId of leadIds) {
       try {
@@ -208,8 +243,8 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response) => 
           score: scoreData.score,
           temperature: scoreData.temperature
         });
-      } catch (error: any) {
-        errors.push({ leadId, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
 
@@ -220,9 +255,9 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response) => 
       results,
       errors
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk scoring error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -230,17 +265,18 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response) => 
  * Bulk delete leads
  * POST /api/bulk/delete
  */
-router.post('/delete', requireAuth, async (req: Request, res: Response) => {
+router.post('/delete', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadIds } = req.body;
+    const { leadIds } = req.body as { leadIds: string[] };
     const userId = getCurrentUserId(req)!;
 
     if (!Array.isArray(leadIds) || leadIds.length === 0) {
-      return res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
     }
 
-    const results = [];
-    const errors = [];
+    const results: BulkResult[] = [];
+    const errors: BulkError[] = [];
 
     for (const leadId of leadIds) {
       try {
@@ -250,16 +286,14 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
           continue;
         }
 
-        // Note: Actual deletion would require a delete method in storage
-        // For now, we'll mark as cold/archived
         await storage.updateLead(leadId, { 
           status: 'cold',
           tags: [...(lead.tags || []), 'archived']
         });
         
         results.push({ leadId, success: true });
-      } catch (error: any) {
-        errors.push({ leadId, error: error.message });
+      } catch (error: unknown) {
+        errors.push({ leadId, error: getErrorMessage(error) });
       }
     }
 
@@ -270,9 +304,9 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
       results,
       errors
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk delete error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 

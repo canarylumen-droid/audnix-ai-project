@@ -1,41 +1,51 @@
-/* @ts-nocheck */
+import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { voiceAI } from '../lib/ai/voice-ai-service';
 import { uploadVoice } from '../lib/file-upload';
-import multer from 'multer';
+import type { User } from '@shared/schema';
+import type { PlanType } from '@shared/types';
 
 const router = Router();
+
+const planLimits: Record<PlanType, number> = {
+  trial: 0,
+  starter: 100,
+  pro: 400,
+  enterprise: 1000
+};
 
 /**
  * Upload voice samples and clone user's voice
  * POST /api/voice/clone
  */
-router.post('/clone', requireAuth, uploadVoice.array('voice_samples', 3), async (req: Request, res: Response) => {
+router.post('/clone', requireAuth, uploadVoice.array('voice_samples', 3), async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
+    const user = req.user as User;
+    const userId = user.id;
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No voice samples uploaded. Please upload 1-3 audio files.' });
+      res.status(400).json({ error: 'No voice samples uploaded. Please upload 1-3 audio files.' });
+      return;
     }
 
-    // Convert files to buffers
     const audioBuffers = files.map(file => file.buffer);
 
-    // Clone voice with ElevenLabs
     const result = await voiceAI.cloneUserVoice(userId, audioBuffers);
 
     if (!result.success) {
-      return res.status(500).json({ error: result.error || 'Failed to clone voice' });
+      res.status(500).json({ error: result.error || 'Failed to clone voice' });
+      return;
     }
 
     res.json({
       message: 'Voice cloned successfully! Your AI will now use your voice for voice notes.',
       voiceId: result.voiceId
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Voice clone upload error:', error);
-    res.status(500).json({ error: error.message || 'Failed to upload and clone voice' });
+    const message = error instanceof Error ? error.message : 'Failed to upload and clone voice';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -43,15 +53,17 @@ router.post('/clone', requireAuth, uploadVoice.array('voice_samples', 3), async 
  * Generate and send voice note to a specific lead
  * POST /api/voice/send/:leadId
  */
-router.post('/send/:leadId', requireAuth, async (req: Request, res: Response) => {
+router.post('/send/:leadId', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
+    const user = req.user as User;
+    const userId = user.id;
     const { leadId } = req.params;
 
     const result = await voiceAI.generateAndSendVoiceNote(userId, leadId);
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error || 'Failed to send voice note' });
+      res.status(400).json({ error: result.error || 'Failed to send voice note' });
+      return;
     }
 
     res.json({
@@ -59,9 +71,10 @@ router.post('/send/:leadId', requireAuth, async (req: Request, res: Response) =>
       audioUrl: result.audioUrl,
       secondsUsed: result.secondsUsed
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Voice send error:', error);
-    res.status(500).json({ error: error.message || 'Failed to send voice note' });
+    const message = error instanceof Error ? error.message : 'Failed to send voice note';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -69,9 +82,10 @@ router.post('/send/:leadId', requireAuth, async (req: Request, res: Response) =>
  * Batch send voice notes to all warm leads
  * POST /api/voice/send-to-warm-leads
  */
-router.post('/send-to-warm-leads', requireAuth, async (req: Request, res: Response) => {
+router.post('/send-to-warm-leads', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user.id;
+    const user = req.user as User;
+    const userId = user.id;
 
     const results = await voiceAI.sendVoiceNotesToWarmLeads(userId);
 
@@ -79,9 +93,10 @@ router.post('/send-to-warm-leads', requireAuth, async (req: Request, res: Respon
       message: `Processed ${results.processed} leads, sent ${results.sent} voice notes`,
       results
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Batch voice send error:', error);
-    res.status(500).json({ error: error.message || 'Failed to send voice notes' });
+    const message = error instanceof Error ? error.message : 'Failed to send voice notes';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -89,18 +104,12 @@ router.post('/send-to-warm-leads', requireAuth, async (req: Request, res: Respon
  * Check voice usage and limits (in minutes)
  * GET /api/voice/usage
  */
-router.get('/usage', requireAuth, async (req: Request, res: Response) => {
+router.get('/usage', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = (req as any).user;
+    const user = req.user as User;
 
-    const planLimits = {
-      trial: 0,
-      starter: 100,
-      pro: 400,
-      enterprise: 1000
-    };
-
-    const planMinutes = planLimits[user.plan as keyof typeof planLimits] || 0;
+    const userPlan = (user.plan || 'trial') as PlanType;
+    const planMinutes = planLimits[userPlan] || 0;
     const topupMinutes = user.voiceMinutesTopup || 0;
     const usedMinutes = user.voiceMinutesUsed || 0;
     const totalBalance = planMinutes + topupMinutes - usedMinutes;
@@ -119,7 +128,7 @@ router.get('/usage', requireAuth, async (req: Request, res: Response) => {
       locked: remaining <= 0,
       message: remaining === 0 ? 'All voice minutes used. Top up to continue sending voice notes.' : undefined
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Voice usage check error:', error);
     res.status(500).json({ error: 'Failed to check voice usage' });
   }

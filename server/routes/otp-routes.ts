@@ -1,38 +1,48 @@
-/* @ts-nocheck */
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { db } from '../db';
 import { otpCodes } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { multiProviderEmailFailover } from '../lib/email/multi-provider-failover';
-import { generateOTPEmail, generateOTPPlaintext, generateOTPMinimal } from '../lib/email/otp-templates';
-import crypto from 'crypto';
+import { generateOTPEmail } from '../lib/email/otp-templates';
 
 const router = Router();
+
+interface SendOTPBody {
+  email: string;
+}
+
+interface VerifyOTPBody {
+  code: string;
+  email: string;
+}
+
+interface ResendOTPBody {
+  email: string;
+}
 
 /**
  * Generate and send OTP code
  */
-router.post('/send', requireAuth, async (req, res) => {
+router.post('/send', requireAuth, async (req: Request<Record<string, string>, unknown, SendOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { email } = req.body;
 
     if (!email || !email.includes('@')) {
-      return res.status(400).json({ error: 'Valid email required' });
+      res.status(400).json({ error: 'Valid email required' });
+      return;
     }
 
-    // Get user details
     const user = await storage.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP in database (expires in 10 minutes)
     await storage.createOtpCode({
       email,
       code: otp,
@@ -41,17 +51,15 @@ router.post('/send', requireAuth, async (req, res) => {
       verified: false
     });
 
-    // Generate branded HTML email
     const htmlContent = generateOTPEmail({
       code: otp,
       companyName: user.company || 'Audnix AI',
       userEmail: email,
       expiryMinutes: 10,
-      logoUrl: user.metadata?.logoUrl,
-      brandColor: user.metadata?.brandColor || '#00D9FF'
+      logoUrl: user.metadata?.logoUrl as string | undefined,
+      brandColor: (user.metadata?.brandColor as string) || '#00D9FF'
     });
 
-    // Send with multi-provider failover
     const result = await multiProviderEmailFailover.send({
       to: email,
       subject: '🔐 Your Audnix AI Verification Code',
@@ -61,10 +69,11 @@ router.post('/send', requireAuth, async (req, res) => {
 
     if (!result.success) {
       console.error('OTP send failed:', result.error);
-      return res.status(500).json({
+      res.status(500).json({
         error: 'Failed to send OTP',
         details: result.error
       });
+      return;
     }
 
     res.json({
@@ -72,10 +81,9 @@ router.post('/send', requireAuth, async (req, res) => {
       message: 'OTP sent successfully',
       provider: result.provider,
       expiresIn: '10 minutes',
-      // Don't return the actual OTP code for security
       codeLength: otp.length
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending OTP:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
@@ -84,20 +92,21 @@ router.post('/send', requireAuth, async (req, res) => {
 /**
  * Verify OTP code
  */
-router.post('/verify', requireAuth, async (req, res) => {
+router.post('/verify', requireAuth, async (req: Request<Record<string, string>, unknown, VerifyOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { code, email } = req.body;
 
     if (!code || !email) {
-      return res.status(400).json({ error: 'Code and email required' });
+      res.status(400).json({ error: 'Code and email required' });
+      return;
     }
 
     if (!/^\d{6}$/.test(code)) {
-      return res.status(400).json({ error: 'Invalid code format' });
+      res.status(400).json({ error: 'Invalid code format' });
+      return;
     }
 
-    // Query OTP codes table to find matching code
     const otpRecords = await db.select().from(otpCodes).where(
       and(
         eq(otpCodes.email, email),
@@ -108,33 +117,33 @@ router.post('/verify', requireAuth, async (req, res) => {
 
     if (!otpRecords || otpRecords.length === 0) {
       console.log(`❌ OTP verification failed for ${email}: Code not found or already used`);
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Invalid or expired code'
       });
+      return;
     }
 
     const otpRecord = otpRecords[0];
     
-    // Check if OTP has expired
     if (new Date() > new Date(otpRecord.expiresAt)) {
       console.log(`❌ OTP expired for ${email}`);
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Code has expired'
       });
+      return;
     }
 
-    // Check attempts - max 5 wrong attempts
     if (otpRecord.attempts >= 5) {
       console.log(`❌ Max attempts exceeded for ${email}`);
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Too many failed attempts. Please request a new code.'
       });
+      return;
     }
 
-    // Mark OTP as verified
     await db.update(otpCodes)
       .set({ verified: true, attempts: otpRecord.attempts + 1 })
       .where(eq(otpCodes.id, otpRecord.id));
@@ -146,7 +155,7 @@ router.post('/verify', requireAuth, async (req, res) => {
       message: 'Code verified successfully',
       email: email
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error verifying OTP:', error);
     res.status(500).json({ error: 'Failed to verify OTP' });
   }
@@ -155,26 +164,24 @@ router.post('/verify', requireAuth, async (req, res) => {
 /**
  * Resend OTP (rate-limited)
  */
-router.post('/resend', requireAuth, async (req, res) => {
+router.post('/resend', requireAuth, async (req: Request<Record<string, string>, unknown, ResendOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email required' });
+      res.status(400).json({ error: 'Email required' });
+      return;
     }
 
-    // Check rate limit - max 3 resends per 15 minutes
     const user = await storage.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
-    // Would check rate limit here - for now just allow
-    // Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP
     await storage.createOtpCode({
       email,
       code: otp,
@@ -183,14 +190,13 @@ router.post('/resend', requireAuth, async (req, res) => {
       verified: false
     });
 
-    // Send OTP
     const htmlContent = generateOTPEmail({
       code: otp,
       companyName: user.company || 'Audnix AI',
       userEmail: email,
       expiryMinutes: 10,
-      logoUrl: user.metadata?.logoUrl,
-      brandColor: user.metadata?.brandColor || '#00D9FF'
+      logoUrl: user.metadata?.logoUrl as string | undefined,
+      brandColor: (user.metadata?.brandColor as string) || '#00D9FF'
     });
 
     const result = await multiProviderEmailFailover.send({
@@ -201,7 +207,8 @@ router.post('/resend', requireAuth, async (req, res) => {
     }, userId);
 
     if (!result.success) {
-      return res.status(500).json({ error: 'Failed to resend OTP' });
+      res.status(500).json({ error: 'Failed to resend OTP' });
+      return;
     }
 
     res.json({
@@ -209,7 +216,7 @@ router.post('/resend', requireAuth, async (req, res) => {
       message: 'OTP resent successfully',
       provider: result.provider
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error resending OTP:', error);
     res.status(500).json({ error: 'Failed to resend OTP' });
   }

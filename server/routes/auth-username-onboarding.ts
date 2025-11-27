@@ -1,31 +1,44 @@
-/* @ts-nocheck */
-import { Router, Request, Response } from 'express';
+import { Router } from 'express';
+import type { Request, Response } from 'express';
 import { storage } from '../storage';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
+interface SetUsernameBody {
+  username: string;
+}
+
+interface CompleteOnboardingBody {
+  companyName?: string;
+  businessDescription?: string;
+  industry?: string;
+}
+
 /**
  * POST /api/auth/set-username
  * After OTP verified → User selects username → Saved to DB
  */
-router.post('/set-username', requireAuth, async (req: Request, res: Response) => {
+router.post('/set-username', requireAuth, async (req: Request<object, object, SetUsernameBody>, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
+    const userId = req.session?.userId;
     const { username } = req.body;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (!username || username.length < 3 || username.length > 30) {
-      return res.status(400).json({ error: 'Username must be 3-30 characters' });
+      res.status(400).json({ error: 'Username must be 3-30 characters' });
+      return;
     }
 
     // Check if username taken
     const existing = await storage.getUserByUsername(username);
     if (existing && existing.id !== userId) {
-      return res.status(400).json({ error: 'Username already taken' });
+      res.status(400).json({ error: 'Username already taken' });
+      return;
     }
 
     // Update user
@@ -39,9 +52,9 @@ router.post('/set-username', requireAuth, async (req: Request, res: Response) =>
         email: user.email,
         username: user.username,
       },
-      nextStep: '/onboarding', // Redirect to onboarding
+      nextStep: '/onboarding',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error setting username:', error);
     res.status(500).json({ error: 'Failed to set username' });
   }
@@ -51,13 +64,14 @@ router.post('/set-username', requireAuth, async (req: Request, res: Response) =>
  * POST /api/auth/complete-onboarding
  * After onboarding → User goes to dashboard
  */
-router.post('/complete-onboarding', requireAuth, async (req: Request, res: Response) => {
+router.post('/complete-onboarding', requireAuth, async (req: Request<object, object, CompleteOnboardingBody>, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
+    const userId = req.session?.userId;
     const { companyName, businessDescription, industry } = req.body;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     // Update onboarding data
@@ -79,9 +93,9 @@ router.post('/complete-onboarding', requireAuth, async (req: Request, res: Respo
         username: user.username,
         businessName: user.businessName,
       },
-      nextStep: '/dashboard', // Redirect to dashboard
+      nextStep: '/dashboard',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error completing onboarding:', error);
     res.status(500).json({ error: 'Failed to complete onboarding' });
   }
@@ -91,18 +105,20 @@ router.post('/complete-onboarding', requireAuth, async (req: Request, res: Respo
  * GET /api/auth/me
  * Get current user (for dashboard)
  */
-router.get('/me', requireAuth, async (req: Request, res: Response) => {
+router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
+    const userId = req.session?.userId;
 
     if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
     }
 
     const user = await storage.getUserById(userId);
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     res.json({
@@ -116,7 +132,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
         createdAt: user.createdAt,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });

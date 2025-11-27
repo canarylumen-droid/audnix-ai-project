@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { bounceHandler } from '../lib/email/bounce-handler';
@@ -10,7 +9,7 @@ const router = Router();
 /**
  * Get email bounce statistics
  */
-router.get('/bounces/stats', requireAuth, async (req, res) => {
+router.get('/bounces/stats', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const stats = await bounceHandler.getBounceStats(userId);
@@ -25,7 +24,7 @@ router.get('/bounces/stats', requireAuth, async (req, res) => {
         bounceRate: `${stats.bounceRate}%`
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting bounce stats:', error);
     res.status(500).json({ error: 'Failed to get bounce statistics' });
   }
@@ -34,7 +33,7 @@ router.get('/bounces/stats', requireAuth, async (req, res) => {
 /**
  * Get SMTP rate limit status
  */
-router.get('/sending/limits', requireAuth, async (req, res) => {
+router.get('/sending/limits', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const stats = await smtpAbuseProtection.getStats(userId);
@@ -53,7 +52,7 @@ router.get('/sending/limits', requireAuth, async (req, res) => {
         retryAfter: canSend.delay
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting sending limits:', error);
     res.status(500).json({ error: 'Failed to get sending limits' });
   }
@@ -62,7 +61,7 @@ router.get('/sending/limits', requireAuth, async (req, res) => {
 /**
  * Get email warm-up schedule
  */
-router.get('/warmup/status', requireAuth, async (req, res) => {
+router.get('/warmup/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const todayLimit = await emailWarmupWorker.getTodaysSendLimit(userId);
@@ -77,7 +76,7 @@ router.get('/warmup/status', requireAuth, async (req, res) => {
           : 'Warmup schedule not yet initialized'
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting warmup status:', error);
     res.status(500).json({ error: 'Failed to get warmup status' });
   }

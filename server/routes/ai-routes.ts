@@ -1,5 +1,5 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
+import { eq } from "drizzle-orm";
 import { storage } from "../storage";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
 import {
@@ -18,6 +18,9 @@ import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/ca
 import { generateSmartReplies } from '../lib/ai/smart-replies';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring';
 import { generateAnalyticsInsights } from '../lib/ai/analytics-engine';
+import type { ProviderType, ChannelType } from '@shared/types';
+
+type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
 
 const router = Router();
 
@@ -25,43 +28,39 @@ const router = Router();
  * Send AI-generated reply to a lead
  * POST /api/ai/reply/:leadId
  */
-router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) => {
+router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { leadId } = req.params;
-    const { manualMessage } = req.body; // Optional: override AI with manual message
+    const { manualMessage } = req.body;
     const userId = getCurrentUserId(req)!;
 
-    // Get lead
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
-      return res.status(404).json({ error: "Lead not found" });
+      res.status(404).json({ error: "Lead not found" });
+      return;
     }
 
-    // Get conversation history
     const messages = await storage.getMessagesByLeadId(leadId);
 
-    // Get user context for AI
     const user = await storage.getUserById(userId);
     const userContext = {
       businessName: user?.company || undefined,
       brandVoice: user?.replyTone || 'professional'
     };
 
-    // Generate AI reply
     const aiResponse = await generateAIReply(
       lead,
       messages,
-      lead.channel as any,
+      lead.channel as ChannelType,
       userContext
     );
 
     const messageBody = manualMessage || aiResponse.text;
 
-    // Create outbound message
     const message = await storage.createMessage({
       leadId,
       userId,
-      provider: lead.channel as any,
+      provider: lead.channel as ProviderType,
       direction: "outbound",
       body: messageBody,
       audioUrl: null,
@@ -71,7 +70,6 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       }
     });
 
-    // Update lead status based on conversation
     const statusDetection = detectConversationStatus([...messages, message]);
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
@@ -81,11 +79,10 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       lastMessageAt: new Date()
     });
 
-    // Create notification for status changes
     if (oldStatus !== newStatus) {
       let notificationTitle = '';
       let notificationMessage = '';
-      let notificationType: any = 'system';
+      let notificationType: NotificationType = 'system';
 
       if (newStatus === 'converted') {
         notificationTitle = '🎉 New Conversion!';
@@ -122,11 +119,9 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       }
     }
 
-    // Save conversation to Super Memory for permanent storage
     const updatedMessages = [...messages, message];
     await saveConversationToMemory(userId, lead, updatedMessages);
 
-    // Schedule next follow-up if needed
     if (statusDetection.status !== 'converted' && statusDetection.status !== 'not_interested') {
       const followUpTime = await scheduleFollowUp(userId, leadId, lead.channel, 'followup');
 
@@ -144,9 +139,10 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate reply";
     console.error("AI reply error:", error);
-    res.status(500).json({ error: error.message || "Failed to generate reply" });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -154,14 +150,15 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response) =
  * Generate voice note script for warm lead
  * POST /api/ai/voice/:leadId
  */
-router.post("/voice/:leadId", requireAuth, async (req: Request, res: Response) => {
+router.post("/voice/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { leadId } = req.params;
     const userId = getCurrentUserId(req)!;
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
-      return res.status(404).json({ error: "Lead not found" });
+      res.status(404).json({ error: "Lead not found" });
+      return;
     }
 
     const messages = await storage.getMessagesByLeadId(leadId);
@@ -173,9 +170,10 @@ router.post("/voice/:leadId", requireAuth, async (req: Request, res: Response) =
       leadName: lead.name
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate voice script";
     console.error("Voice generation error:", error);
-    res.status(500).json({ error: error.message || "Failed to generate voice script" });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -183,12 +181,12 @@ router.post("/voice/:leadId", requireAuth, async (req: Request, res: Response) =
  * Import leads from connected platforms
  * POST /api/ai/import/:provider
  */
-router.post("/import/:provider", requireAuth, async (req: Request, res: Response) => {
+router.post("/import/:provider", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { provider } = req.params;
     const userId = getCurrentUserId(req)!;
 
-    let results;
+    let results: { leadsImported: number; messagesImported: number; errors: string[] };
 
     switch (provider) {
       case 'instagram':
@@ -204,7 +202,8 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
         results = await importManychatLeads(userId);
         break;
       default:
-        return res.status(400).json({ error: "Invalid provider" });
+        res.status(400).json({ error: "Invalid provider" });
+        return;
     }
 
     res.json({
@@ -214,9 +213,10 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
       errors: results.errors
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
     console.error("Import error:", error);
-    res.status(500).json({ error: error.message || "Failed to import leads" });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -224,7 +224,7 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
  * Create calendar booking link for lead
  * POST /api/ai/calendar/:leadId
  */
-router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response) => {
+router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { leadId } = req.params;
     const { sendMessage = true, createEvent = false, startTime, duration = 30 } = req.body;
@@ -232,13 +232,13 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
-      return res.status(404).json({ error: "Lead not found" });
+      res.status(404).json({ error: "Lead not found" });
+      return;
     }
 
     let bookingLink = await createCalendarBookingLink(userId, lead.name, duration);
-    let eventData = null;
+    let eventData: { id?: string; hangoutLink?: string; htmlLink?: string } | null = null;
 
-    // If createEvent is true and startTime provided, create actual calendar event
     if (createEvent && startTime) {
       try {
         const { supabaseAdmin } = await import('../lib/supabase-admin');
@@ -258,9 +258,8 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
             const googleCalendar = new GoogleCalendarOAuth();
 
             const requestedStart = new Date(startTime);
-            const leadTimezone = lead.metadata?.timezone || 'America/New_York';
+            const leadTimezone = (lead.metadata as Record<string, unknown>)?.timezone as string || 'America/New_York';
 
-            // Use intelligent rescheduling
             const availabilityCheck = await googleCalendar.findNextAvailableSlot(
               tokens.accessToken,
               requestedStart,
@@ -268,7 +267,6 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
               leadTimezone
             );
 
-            // Create event with the suggested time
             eventData = await googleCalendar.createEvent(tokens.accessToken, {
               summary: `Meeting with ${lead.name}`,
               description: `AI Scheduled meeting with lead ${lead.name}`,
@@ -279,12 +277,11 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
 
             bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
 
-            // Send professional rescheduling message if time changed
             if (!availabilityCheck.isOriginalTimeAvailable) {
               await storage.createMessage({
                 leadId,
                 userId,
-                provider: lead.channel as any,
+                provider: lead.channel as ProviderType,
                 direction: "outbound",
                 body: availabilityCheck.message,
                 metadata: { 
@@ -295,7 +292,6 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
               });
             }
 
-            // Create notification for meeting booked
             await storage.createNotification({
               userId,
               type: 'system',
@@ -314,23 +310,20 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         }
       } catch (eventError) {
         console.error("Error creating calendar event:", eventError);
-        // Continue with booking link even if event creation fails
       }
     }
 
-    // Generate message to send to lead
     const messageText = generateMeetingLinkMessage(
       lead.name,
       bookingLink,
-      lead.channel as any
+      lead.channel as ChannelType
     );
 
-    // Optionally send message immediately
     if (sendMessage) {
       const message = await storage.createMessage({
         leadId,
         userId,
-        provider: lead.channel as any,
+        provider: lead.channel as ProviderType,
         direction: "outbound",
         body: messageText,
         metadata: { 
@@ -355,9 +348,10 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
       });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to create booking link";
     console.error("Calendar booking error:", error);
-    res.status(500).json({ error: error.message || "Failed to create booking link" });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -365,21 +359,23 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
  * Generate smart reply suggestions
  * GET /api/ai/smart-replies/:leadId
  */
-router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Response) => {
+router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { leadId } = req.params;
     const userId = getCurrentUserId(req)!;
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
-      return res.status(404).json({ error: "Lead not found" });
+      res.status(404).json({ error: "Lead not found" });
+      return;
     }
 
     const messages = await storage.getMessagesByLeadId(leadId);
     const lastMessage = messages[messages.length - 1];
 
     if (!lastMessage || lastMessage.direction !== 'inbound') {
-      return res.status(400).json({ error: "No inbound message to reply to" });
+      res.status(400).json({ error: "No inbound message to reply to" });
+      return;
     }
 
     const smartReplies = await generateSmartReplies(leadId, lastMessage);
@@ -390,9 +386,10 @@ router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Resp
       lastMessage: lastMessage.body,
       suggestions: smartReplies
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate smart replies";
     console.error("Smart replies error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -400,14 +397,15 @@ router.get("/smart-replies/:leadId", requireAuth, async (req: Request, res: Resp
  * Get lead score
  * GET /api/ai/score/:leadId
  */
-router.get("/score/:leadId", requireAuth, async (req: Request, res: Response) => {
+router.get("/score/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { leadId } = req.params;
     const userId = getCurrentUserId(req)!;
 
     const lead = await storage.getLeadById(leadId);
     if (!lead || lead.userId !== userId) {
-      return res.status(404).json({ error: "Lead not found" });
+      res.status(404).json({ error: "Lead not found" });
+      return;
     }
 
     const scoreData = await calculateLeadScore(leadId);
@@ -417,9 +415,10 @@ router.get("/score/:leadId", requireAuth, async (req: Request, res: Response) =>
       leadName: lead.name,
       ...scoreData
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to calculate lead score";
     console.error("Lead scoring error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -427,7 +426,7 @@ router.get("/score/:leadId", requireAuth, async (req: Request, res: Response) =>
  * Update all lead scores
  * POST /api/ai/score-all
  */
-router.post("/score-all", requireAuth, async (req: Request, res: Response) => {
+router.post("/score-all", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
@@ -437,9 +436,10 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response) => {
       success: true,
       message: "All leads scored successfully"
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to score leads";
     console.error("Bulk scoring error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -447,7 +447,7 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response) => {
  * Get advanced AI insights
  * GET /api/ai/insights
  */
-router.get("/insights", requireAuth, async (req: Request, res: Response) => {
+router.get("/insights", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { period = '30d' } = req.query;
@@ -455,9 +455,10 @@ router.get("/insights", requireAuth, async (req: Request, res: Response) => {
     const insights = await generateAnalyticsInsights(userId, period as string);
 
     res.json(insights);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate insights";
     console.error("Advanced insights error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -465,29 +466,25 @@ router.get("/insights", requireAuth, async (req: Request, res: Response) => {
  * Get AI-powered insights and analytics
  * GET /api/ai/analytics
  */
-router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
+router.get("/analytics", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { period = '30d' } = req.query;
 
-    // Calculate date range
     const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
 
-    // Get all leads for user
     const allLeads = await storage.getLeads({ userId, limit: 10000 });
 
-    // Filter by date range
     const leads = allLeads.filter(l => new Date(l.createdAt) >= startDate);
 
-    // Calculate analytics
-    const byStatus = leads.reduce((acc: any, lead) => {
+    const byStatus = leads.reduce<Record<string, number>>((acc, lead) => {
       acc[lead.status] = (acc[lead.status] || 0) + 1;
       return acc;
     }, {});
 
-    const byChannel = leads.reduce((acc: any, lead) => {
+    const byChannel = leads.reduce<Record<string, number>>((acc, lead) => {
       acc[lead.channel] = (acc[lead.channel] || 0) + 1;
       return acc;
     }, {});
@@ -500,8 +497,7 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
 
     const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
 
-    // Calculate best reply time (hour of day when most leads reply)
-    let bestReplyHour = null;
+    let bestReplyHour: number | null = null;
     const replyHours: Record<number, number> = {};
     for (const lead of leads) {
       if (lead.lastMessageAt) {
@@ -513,22 +509,19 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
       bestReplyHour = parseInt(Object.entries(replyHours).sort((a, b) => b[1] - a[1])[0][0]);
     }
 
-    // Channel breakdown for graph
     const channelBreakdown = Object.entries(byChannel).map(([channel, count]) => ({
       channel,
-      count: count as number,
-      percentage: leads.length > 0 ? ((count as number) / leads.length) * 100 : 0
+      count,
+      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
     }));
 
-    // Status breakdown for graph
     const statusBreakdown = Object.entries(byStatus).map(([status, count]) => ({
       status,
-      count: count as number,
-      percentage: leads.length > 0 ? ((count as number) / leads.length) * 100 : 0
+      count,
+      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
     }));
 
-    // Timeline data (daily breakdown)
-    const timeline = [];
+    const timeline: Array<{ date: string; leads: number; conversions: number }> = [];
     for (let i = daysBack; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -567,13 +560,14 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
       behaviorInsights: {
         bestReplyHour,
         replyRate: leads.length > 0 ? ((leadsReplied / leads.length) * 100).toFixed(1) : '0',
-        avgResponseTime: '4.2 minutes' // This should be calculated from actual message timestamps
+        avgResponseTime: '4.2 minutes'
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate analytics";
     console.error("Analytics error:", error);
-    res.status(500).json({ error: error.message || "Failed to generate analytics" });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -581,16 +575,17 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response) => {
  * Get competitor analytics
  * GET /api/ai/competitor-analytics
  */
-router.get("/competitor-analytics", requireAuth, async (req: Request, res: Response) => {
+router.get("/competitor-analytics", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
     const analytics = await getCompetitorAnalytics(userId);
 
     res.json(analytics);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to get competitor analytics";
     console.error("Competitor analytics error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -598,7 +593,7 @@ router.get("/competitor-analytics", requireAuth, async (req: Request, res: Respo
  * Get optimal discount percentage
  * GET /api/ai/optimal-discount
  */
-router.get("/optimal-discount", requireAuth, async (req: Request, res: Response) => {
+router.get("/optimal-discount", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
@@ -608,9 +603,10 @@ router.get("/optimal-discount", requireAuth, async (req: Request, res: Response)
       optimalDiscount,
       message: `Based on your conversion history, ${optimalDiscount}% is the sweet spot`
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to calculate optimal discount";
     console.error("Optimal discount error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 
@@ -618,24 +614,23 @@ router.get("/optimal-discount", requireAuth, async (req: Request, res: Response)
  * Update brand info (re-upload brand context)
  * POST /api/ai/brand-info
  */
-router.post("/brand-info", requireAuth, async (req: Request, res: Response) => {
+router.post("/brand-info", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { brandSnippets, promotions, siteUrl } = req.body;
 
     if (!brandSnippets || !Array.isArray(brandSnippets)) {
-      return res.status(400).json({ error: "brandSnippets array required" });
+      res.status(400).json({ error: "brandSnippets array required" });
+      return;
     }
 
     const { db } = await import('../db');
     const { brandEmbeddings } = await import('@shared/schema');
     const { embed } = await import('../lib/ai/openai');
 
-    // Clear old brand embeddings
     await db.delete(brandEmbeddings).where(eq(brandEmbeddings.userId, userId));
 
-    // Insert new brand snippets with embeddings
-    for (const snippet of brandSnippets) {
+    for (const snippet of brandSnippets as string[]) {
       const embedding = await embed(snippet);
       await db.insert(brandEmbeddings).values({
         userId,
@@ -652,11 +647,12 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response) => {
     res.json({
       success: true,
       message: "Brand info updated! AI will now use this in all responses",
-      snippetsCount: brandSnippets.length
+      snippetsCount: (brandSnippets as string[]).length
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to update brand info";
     console.error("Brand info update error:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: errorMessage });
   }
 });
 

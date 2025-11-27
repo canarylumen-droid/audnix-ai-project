@@ -1,9 +1,21 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { detectBuyingIntent, generateSalesmanDM } from '../lib/ai/video-comment-monitor';
 import { InstagramProvider } from '../lib/providers/instagram';
+
+interface InstagramMediaItem {
+  id: string;
+  media_type: 'VIDEO' | 'IMAGE' | 'CAROUSEL_ALBUM';
+  media_url?: string;
+  caption?: string;
+  timestamp: string;
+  permalink: string;
+}
+
+interface InstagramMediaResponse {
+  data: InstagramMediaItem[];
+}
 
 const router = Router();
 
@@ -11,7 +23,7 @@ const router = Router();
  * Get user's Instagram videos for selection
  * GET /api/video-automation/videos
  */
-router.get('/videos', requireAuth, async (req: Request, res: Response) => {
+router.get('/videos', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
@@ -20,12 +32,13 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
 
     if (!igIntegration) {
-      return res.status(400).json({ error: 'Instagram not connected' });
+      res.status(400).json({ error: 'Instagram not connected' });
+      return;
     }
 
     // Fetch user's recent videos from Instagram Graph API
     const { decrypt } = await import('../lib/crypto/encryption');
-    const meta = JSON.parse(decrypt(igIntegration.encryptedMeta));
+    const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
 
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,caption,timestamp,permalink&limit=20`,
@@ -35,13 +48,14 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
     );
 
     if (!response.ok) {
-      return res.status(500).json({ error: 'Failed to fetch Instagram videos' });
+      res.status(500).json({ error: 'Failed to fetch Instagram videos' });
+      return;
     }
 
-    const data = await response.json();
+    const data = await response.json() as InstagramMediaResponse;
     const videos = data.data
-      .filter((item: any) => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM')
-      .map((item: any) => ({
+      .filter((item: InstagramMediaItem) => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM')
+      .map((item: InstagramMediaItem) => ({
         id: item.id,
         url: item.permalink,
         mediaUrl: item.media_url,
@@ -50,9 +64,10 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
       }));
 
     res.json({ videos });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching videos:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch videos' });
+    const message = error instanceof Error ? error.message : 'Failed to fetch videos';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -60,23 +75,31 @@ router.get('/videos', requireAuth, async (req: Request, res: Response) => {
  * Create new video monitor configuration
  * POST /api/video-automation/monitors
  */
-router.post('/monitors', requireAuth, async (req: Request, res: Response) => {
+router.post('/monitors', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { videoId, videoUrl, productLink, ctaText, metadata } = req.body;
+    const { videoId, videoUrl, productLink, ctaText, metadata } = req.body as {
+      videoId: string;
+      videoUrl?: string;
+      productLink: string;
+      ctaText: string;
+      metadata?: Record<string, unknown>;
+    };
 
     if (!videoId || !productLink || !ctaText) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Missing required fields: videoId, productLink, ctaText' 
       });
+      return;
     }
 
     // Check if user has paid plan
     const user = await storage.getUserById(userId);
     if (!user || user.plan === 'trial') {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
       });
+      return;
     }
 
     const monitor = await storage.createVideoMonitor({
@@ -95,9 +118,10 @@ router.post('/monitors', requireAuth, async (req: Request, res: Response) => {
       monitor,
       message: 'AI is now monitoring comments on this video 24/7'
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating video monitor:', error);
-    res.status(500).json({ error: error.message || 'Failed to create monitor' });
+    const message = error instanceof Error ? error.message : 'Failed to create monitor';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -105,14 +129,15 @@ router.post('/monitors', requireAuth, async (req: Request, res: Response) => {
  * Get all video monitors for user
  * GET /api/video-automation/monitors
  */
-router.get('/monitors', requireAuth, async (req: Request, res: Response) => {
+router.get('/monitors', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const monitors = await storage.getVideoMonitors(userId);
     res.json({ monitors });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching monitors:', error);
-    res.status(500).json({ error: error.message || 'Failed to fetch monitors' });
+    const message = error instanceof Error ? error.message : 'Failed to fetch monitors';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -120,38 +145,42 @@ router.get('/monitors', requireAuth, async (req: Request, res: Response) => {
  * Update video monitor
  * PATCH /api/video-automation/monitors/:id
  */
-router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response) => {
+router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = getCurrentUserId(req)!;
-    const updates = req.body;
+    const updates = req.body as Record<string, unknown>;
 
     // Check if user has paid plan
     const user = await storage.getUserById(userId);
     if (!user || user.plan === 'trial') {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
       });
+      return;
     }
 
     // Validate productLink if provided
     if (updates.productLink && typeof updates.productLink === 'string') {
       const urlPattern = /^https?:\/\/.+/;
       if (!urlPattern.test(updates.productLink)) {
-        return res.status(400).json({ error: 'Invalid URL format for productLink' });
+        res.status(400).json({ error: 'Invalid URL format for productLink' });
+        return;
       }
     }
 
     const monitor = await storage.updateVideoMonitor(id, userId, updates);
 
     if (!monitor) {
-      return res.status(404).json({ error: 'Monitor not found' });
+      res.status(404).json({ error: 'Monitor not found' });
+      return;
     }
 
     res.json({ success: true, monitor });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating monitor:', error);
-    res.status(500).json({ error: error.message || 'Failed to update monitor' });
+    const message = error instanceof Error ? error.message : 'Failed to update monitor';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -159,7 +188,7 @@ router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response) =
  * Delete video monitor
  * DELETE /api/video-automation/monitors/:id
  */
-router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response) => {
+router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = getCurrentUserId(req)!;
@@ -167,16 +196,18 @@ router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response) 
     // Check if user has paid plan
     const user = await storage.getUserById(userId);
     if (!user || user.plan === 'trial') {
-      return res.status(403).json({ 
+      res.status(403).json({ 
         error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
       });
+      return;
     }
 
     await storage.deleteVideoMonitor(id, userId);
     res.json({ success: true, message: 'Monitor deleted' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting monitor:', error);
-    res.status(500).json({ error: error.message || 'Failed to delete monitor' });
+    const message = error instanceof Error ? error.message : 'Failed to delete monitor';
+    res.status(500).json({ error: message });
   }
 });
 
@@ -184,12 +215,13 @@ router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response) 
  * Test comment intent detection
  * POST /api/video-automation/test-intent
  */
-router.post('/test-intent', requireAuth, async (req: Request, res: Response) => {
+router.post('/test-intent', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { comment, videoContext } = req.body;
+    const { comment, videoContext } = req.body as { comment?: string; videoContext?: string };
 
     if (!comment) {
-      return res.status(400).json({ error: 'Comment text required' });
+      res.status(400).json({ error: 'Comment text required' });
+      return;
     }
 
     const intent = await detectBuyingIntent(comment, videoContext || '');
@@ -200,9 +232,10 @@ router.post('/test-intent', requireAuth, async (req: Request, res: Response) => 
         ? `AI will DM this lead with personalized sales message`
         : `No action needed - ${intent.intentType}`
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Intent test error:', error);
-    res.status(500).json({ error: error.message || 'Intent detection failed' });
+    const message = error instanceof Error ? error.message : 'Intent detection failed';
+    res.status(500).json({ error: message });
   }
 });
 

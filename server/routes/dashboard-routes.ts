@@ -1,7 +1,7 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
 import { requireAuth } from '../middleware/auth';
+import type { Lead, Message } from '@shared/schema';
 
 const router = Router();
 
@@ -9,23 +9,31 @@ const router = Router();
  * GET /api/dashboard/stats
  * Get current period stats for dashboard
  */
-router.get('/stats', requireAuth, async (req: Request, res: Response) => {
+router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
     const user = await storage.getUserById(userId);
-    const leads = await storage.getLeads({ userId, limit: 10000 });
-    const messages = await storage.getMessages(leads.map(l => l.id).slice(0, 100));
+    const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
+    
+    const leadIds = leads.map(l => l.id).slice(0, 100);
+    const allMessages: Message[] = [];
+    for (const leadId of leadIds) {
+      const msgs = await storage.getMessages(leadId);
+      allMessages.push(...msgs);
+    }
 
-    // Get current period stats (last 7 days)
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const newLeads = leads.filter(l => new Date(l.createdAt) > sevenDaysAgo).length;
-    const activeLeads = leads.filter(l => l.status === 'active').length;
+    const activeLeads = leads.filter(l => l.status === 'open').length;
     const convertedLeads = leads.filter(l => l.status === 'converted').length;
-    const totalMessages = messages?.length || 0;
+    const totalMessages = allMessages.length;
 
     res.json({
       totalLeads: leads.length,
@@ -34,14 +42,14 @@ router.get('/stats', requireAuth, async (req: Request, res: Response) => {
       convertedLeads,
       conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : 0,
       totalMessages,
-      averageResponseTime: '2.5h', // Placeholder
+      averageResponseTime: '2.5h',
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
       whatsappThisMonth: leads.filter(l => l.channel === 'whatsapp').length,
       instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
       plan: user?.plan || 'trial',
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
   }
@@ -51,14 +59,16 @@ router.get('/stats', requireAuth, async (req: Request, res: Response) => {
  * GET /api/dashboard/stats/previous
  * Get previous period stats for comparison
  */
-router.get('/stats/previous', requireAuth, async (req: Request, res: Response) => {
+router.get('/stats/previous', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
-    const leads = await storage.getLeads({ userId, limit: 10000 });
+    const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
 
-    // Get previous period stats (7-14 days ago)
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -71,10 +81,10 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response) =
     res.json({
       totalLeads: previousLeads,
       newLeads: previousLeads,
-      activeLeads: leads.filter(l => l.status === 'active').length,
+      activeLeads: leads.filter(l => l.status === 'open').length,
       convertedLeads: leads.filter(l => l.status === 'converted').length,
     });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch previous stats' });
   }
 });
@@ -83,12 +93,15 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response) =
  * GET /api/dashboard/activity
  * Get recent activity feed for dashboard
  */
-router.get('/activity', requireAuth, async (req: Request, res: Response) => {
+router.get('/activity', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
-    const leads = await storage.getLeads({ userId, limit: 100 });
+    const leads: Lead[] = await storage.getLeads({ userId, limit: 100 });
     const activities = leads
       .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
       .slice(0, 10)
@@ -103,7 +116,7 @@ router.get('/activity', requireAuth, async (req: Request, res: Response) => {
       }));
 
     res.json({ activities });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch activity' });
   }
 });
@@ -112,25 +125,34 @@ router.get('/activity', requireAuth, async (req: Request, res: Response) => {
  * GET /api/user/profile
  * Get current user profile (alias for /api/auth/me)
  */
-router.get('/user/profile', requireAuth, async (req: Request, res: Response) => {
+router.get('/user/profile', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
     const user = await storage.getUserById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const metadata = user.metadata as Record<string, unknown> | null;
+    const voiceNotesEnabled = metadata?.voiceNotesEnabled !== false;
 
     res.json({
       id: user.id,
       email: user.email,
       username: user.username,
-      role: user.role || 'user',
+      role: user.role || 'member',
       plan: user.plan,
       businessName: user.businessName,
       trialExpiresAt: user.trialExpiresAt,
-      voiceNotesEnabled: user.voiceNotesEnabled !== false,
+      voiceNotesEnabled,
     });
-  } catch (error: any) {
+  } catch (error) {
     res.status(500).json({ error: 'Failed to fetch profile' });
   }
 });
@@ -139,22 +161,35 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response) => 
  * PUT /api/user/voice-settings
  * Update voice notes settings
  */
-router.put('/user/voice-settings', requireAuth, async (req: Request, res: Response) => {
+router.put('/user/voice-settings', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
 
-    const { voiceNotesEnabled } = req.body;
+    const { voiceNotesEnabled } = req.body as { voiceNotesEnabled?: boolean };
 
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const existingMetadata = (user.metadata as Record<string, unknown>) || {};
     await storage.updateUser(userId, {
-      voiceNotesEnabled: voiceNotesEnabled === true,
+      metadata: {
+        ...existingMetadata,
+        voiceNotesEnabled: voiceNotesEnabled === true,
+      },
     });
 
     res.json({ 
       success: true, 
       voiceNotesEnabled: voiceNotesEnabled === true 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Voice settings error:', error);
     res.status(500).json({ error: 'Failed to update voice settings' });
   }

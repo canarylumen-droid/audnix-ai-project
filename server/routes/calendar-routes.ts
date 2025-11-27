@@ -1,5 +1,4 @@
-/* @ts-nocheck */
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import {
   getAvailableTimeSlots,
@@ -9,21 +8,23 @@ import {
 } from '../lib/calendar/calendar-booking';
 import { validateCalendlyToken } from '../lib/calendar/calendly';
 import { storage } from '../storage';
+import type { ChannelType } from '@shared/types';
 
 const router = Router();
 
 /**
  * Get available time slots for booking
  */
-router.get('/slots', requireAuth, async (req, res) => {
+router.get('/slots', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { daysAhead = 7, duration = 30 } = req.query;
+    const daysAhead = req.query.daysAhead as string | undefined;
+    const duration = req.query.duration as string | undefined;
 
     const slots = await getAvailableTimeSlots(
       userId,
-      parseInt(daysAhead as string),
-      parseInt(duration as string)
+      daysAhead ? parseInt(daysAhead, 10) : 7,
+      duration ? parseInt(duration, 10) : 30
     );
 
     res.json({
@@ -36,8 +37,9 @@ router.get('/slots', requireAuth, async (req, res) => {
         timezone: slot.timezone
       }))
     });
-  } catch (error: any) {
-    console.error('Error getting time slots:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error getting time slots:', errorMessage);
     res.status(500).json({ error: 'Failed to get available slots' });
   }
 });
@@ -45,25 +47,32 @@ router.get('/slots', requireAuth, async (req, res) => {
 /**
  * Send booking link to lead
  */
-router.post('/send-link', requireAuth, async (req, res) => {
+router.post('/send-link', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leadEmail, leadName, campaignId, duration } = req.body;
+    const { leadEmail, leadName, campaignId, duration } = req.body as {
+      leadEmail?: string;
+      leadName?: string;
+      campaignId?: string;
+      duration?: number;
+    };
 
     if (!leadEmail || !leadName) {
-      return res.status(400).json({ error: 'Lead email and name required' });
+      res.status(400).json({ error: 'Lead email and name required' });
+      return;
     }
 
     const result = await sendBookingLinkToLead({
       leadEmail,
       leadName,
       userId,
-      campaignId,
+      campaignId: campaignId || '',
       duration: duration || 30
     });
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      res.status(400).json({ error: result.error });
+      return;
     }
 
     res.json({
@@ -71,8 +80,9 @@ router.post('/send-link', requireAuth, async (req, res) => {
       bookingLink: result.bookingLink,
       message: `Booking link ready to send to ${leadName}`
     });
-  } catch (error: any) {
-    console.error('Error sending booking link:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error sending booking link:', errorMessage);
     res.status(500).json({ error: 'Failed to send booking link' });
   }
 });
@@ -80,38 +90,47 @@ router.post('/send-link', requireAuth, async (req, res) => {
 /**
  * Book meeting when lead accepts
  */
-router.post('/book', requireAuth, async (req, res) => {
+router.post('/book', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leadEmail, leadName, startTime, endTime, duration } = req.body;
+    const { leadEmail, leadName, startTime, endTime, duration } = req.body as {
+      leadEmail?: string;
+      leadName?: string;
+      startTime?: string;
+      endTime?: string;
+      duration?: number;
+    };
 
     if (!leadEmail || !startTime) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Lead email and start time required'
       });
+      return;
     }
 
     const result = await bookMeeting(
       userId,
       leadEmail,
-      leadName,
+      leadName || 'Guest',
       new Date(startTime),
-      new Date(endTime),
+      new Date(endTime || startTime),
       duration || 30
     );
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      res.status(400).json({ error: result.error });
+      return;
     }
 
     res.json({
       success: true,
       eventId: result.eventId,
       meetingLink: result.meetingLink,
-      message: `Meeting booked with ${leadName}`
+      message: `Meeting booked with ${leadName || 'Guest'}`
     });
-  } catch (error: any) {
-    console.error('Error booking meeting:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error booking meeting:', errorMessage);
     res.status(500).json({ error: 'Failed to book meeting' });
   }
 });
@@ -119,31 +138,38 @@ router.post('/book', requireAuth, async (req, res) => {
 /**
  * Get formatted message for sending booking link
  */
-router.post('/format-message', requireAuth, async (req, res) => {
+router.post('/format-message', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { leadName, bookingLink, channel } = req.body;
+    const { leadName, bookingLink, channel } = req.body as {
+      leadName?: string;
+      bookingLink?: string;
+      channel?: string;
+    };
 
     if (!leadName || !bookingLink || !channel) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Lead name, booking link, and channel required'
       });
+      return;
     }
 
     if (!['email', 'whatsapp', 'instagram'].includes(channel)) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Channel must be email, whatsapp, or instagram'
       });
+      return;
     }
 
-    const message = formatBookingMessage(leadName, bookingLink, channel);
+    const message = formatBookingMessage(leadName, bookingLink, channel as ChannelType);
 
     res.json({
       success: true,
       message,
       channel
     });
-  } catch (error: any) {
-    console.error('Error formatting message:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error formatting message:', errorMessage);
     res.status(500).json({ error: 'Failed to format message' });
   }
 });
@@ -151,34 +177,34 @@ router.post('/format-message', requireAuth, async (req, res) => {
 /**
  * Connect Calendly integration
  */
-router.post('/connect-calendly', requireAuth, async (req, res) => {
+router.post('/connect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { apiToken } = req.body;
+    const { apiToken } = req.body as { apiToken?: string };
 
     if (!apiToken || !apiToken.trim()) {
-      return res.status(400).json({ error: 'Calendly API token required' });
+      res.status(400).json({ error: 'Calendly API token required' });
+      return;
     }
 
-    // Validate token
     const validation = await validateCalendlyToken(apiToken);
     if (!validation.valid) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Invalid Calendly API token',
         details: validation.error
       });
+      return;
     }
 
-    // Encrypt and save
     const { encrypt } = await import('../lib/crypto/encryption');
     const encrypted = await encrypt(JSON.stringify({ api_token: apiToken }));
 
-    // Save to integrations
-    await storage.saveIntegration(userId, 'calendly', {
+    await storage.createIntegration({
+      userId,
       provider: 'calendly',
       connected: true,
       encryptedMeta: encrypted,
-      account_type: `Calendly (${validation.userName})`
+      accountType: 'personal'
     });
 
     res.json({
@@ -186,8 +212,9 @@ router.post('/connect-calendly', requireAuth, async (req, res) => {
       message: `Calendly connected! Ready to book meetings.`,
       userName: validation.userName
     });
-  } catch (error: any) {
-    console.error('Error connecting Calendly:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error connecting Calendly:', errorMessage);
     res.status(500).json({ error: 'Failed to connect Calendly' });
   }
 });
@@ -195,27 +222,27 @@ router.post('/connect-calendly', requireAuth, async (req, res) => {
 /**
  * Disconnect Calendly
  */
-router.post('/disconnect-calendly', requireAuth, async (req, res) => {
+router.post('/disconnect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
-    // Remove integration
     const integrations = await storage.getIntegrations(userId);
     const calendlyIntegration = integrations.find(i => i.provider === 'calendly');
 
     if (!calendlyIntegration) {
-      return res.status(400).json({ error: 'Calendly not connected' });
+      res.status(400).json({ error: 'Calendly not connected' });
+      return;
     }
 
-    // Disconnect (mark as not connected or delete)
     await storage.disconnectIntegration(userId, 'calendly');
 
     res.json({
       success: true,
       message: 'Calendly disconnected'
     });
-  } catch (error: any) {
-    console.error('Error disconnecting Calendly:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error disconnecting Calendly:', errorMessage);
     res.status(500).json({ error: 'Failed to disconnect Calendly' });
   }
 });
@@ -223,7 +250,7 @@ router.post('/disconnect-calendly', requireAuth, async (req, res) => {
 /**
  * Get calendar status (which provider is connected)
  */
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const integrations = await storage.getIntegrations(userId);
@@ -250,8 +277,9 @@ router.get('/status', requireAuth, async (req, res) => {
         ? 'Using Google Calendar for booking'
         : 'No calendar connected. Connect Calendly or Google Calendar to enable booking.'
     });
-  } catch (error: any) {
-    console.error('Error getting calendar status:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error getting calendar status:', errorMessage);
     res.status(500).json({ error: 'Failed to get calendar status' });
   }
 });
@@ -259,14 +287,16 @@ router.get('/status', requireAuth, async (req, res) => {
 /**
  * Public booking page for leads (no auth required)
  */
-router.get('/public/:userId', async (req, res) => {
+router.get('/public/:userId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
-    const { leadEmail, leadName } = req.query;
+    const leadEmail = req.query.leadEmail as string | undefined;
+    const leadName = req.query.leadName as string | undefined;
 
     const user = await storage.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found' });
+      return;
     }
 
     const slots = await getAvailableTimeSlots(userId, 14, 30);
@@ -282,8 +312,9 @@ router.get('/public/:userId', async (req, res) => {
         end: s.endTime.toISOString()
       }))
     });
-  } catch (error: any) {
-    console.error('Error loading public booking page:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error loading public booking page:', errorMessage);
     res.status(500).json({ error: 'Failed to load booking page' });
   }
 });

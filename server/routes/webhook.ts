@@ -1,77 +1,114 @@
-/* @ts-nocheck */
 import { Request, Response, Router } from 'express';
+import Stripe from 'stripe';
+import crypto from 'crypto';
 import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { storage } from '../storage';
 import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook';
+import type { PlanType } from '@shared/types';
 
 const router = Router();
+
+interface LemonSqueezyWebhookMeta {
+  event_name: string;
+  custom_data?: Record<string, unknown>;
+}
+
+interface LemonSqueezyOrderAttributes {
+  user_email: string;
+  user_name?: string;
+  product_id: string;
+  variant_id: string;
+  total: number;
+  currency: string;
+  status?: string;
+}
+
+interface LemonSqueezySubscriptionAttributes {
+  user_email: string;
+  status: string;
+  product_id: string;
+  variant_id: string;
+}
+
+interface LemonSqueezyWebhookData {
+  id: string;
+  attributes: LemonSqueezyOrderAttributes | LemonSqueezySubscriptionAttributes;
+}
+
+interface LemonSqueezyWebhookPayload {
+  meta: LemonSqueezyWebhookMeta;
+  data: LemonSqueezyWebhookData;
+}
+
+interface CheckoutSessionMetadata {
+  userId?: string;
+  planKey?: string;
+  topupType?: string;
+  topupAmount?: string;
+}
 
 /**
  * Calendly webhook handler
  */
-router.post('/webhook/calendly', async (req: Request, res: Response) => {
-  // Check if this is a verification challenge
+router.post('/webhook/calendly', async (req: Request, res: Response): Promise<void> => {
   if (req.body?.webhook_used_for_testing) {
     handleCalendlyVerification(req, res);
     return;
   }
 
-  // Handle actual webhook events
   await handleCalendlyWebhook(req, res);
 });
 
 /**
  * Stripe webhook handler
  */
-router.post('/webhook/stripe', async (req: Request, res: Response) => {
+router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void> => {
   try {
     const sig = req.headers['stripe-signature'] as string;
     
     if (!sig) {
-      return res.status(400).json({ error: 'Missing signature' });
+      res.status(400).json({ error: 'Missing signature' });
+      return;
     }
 
-    // Verify webhook signature (req.body is raw buffer from express.raw())
-    // This will throw an error if verification fails, which will be caught by catch block
     const event = verifyWebhookSignature(
-      req.body,
+      req.body as string | Buffer,
       sig
     );
 
-    // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object as any;
-        const { userId, planKey, topupType } = session.metadata || {};
+        const session = event.data.object as Stripe.Checkout.Session;
+        const metadata = (session.metadata || {}) as CheckoutSessionMetadata;
+        const { userId, planKey, topupType } = metadata;
 
         if (!userId) {
           console.error('No userId in session metadata');
-          return res.status(400).json({ error: 'Missing userId' });
+          res.status(400).json({ error: 'Missing userId' });
+          return;
         }
 
         if (topupType) {
-          // Handle topup purchase
-          await processTopupSuccess(userId, topupType, parseInt(session.metadata.topupAmount || '0'));
+          const topupAmount = metadata.topupAmount;
+          await processTopupSuccess(userId, topupType, parseInt(topupAmount || '0'));
         } else if (planKey) {
-          // Handle subscription creation - unlock features immediately
           const plan = PLANS[planKey as keyof typeof PLANS];
           if (!plan) {
             console.error('Invalid planKey:', planKey);
-            return res.status(400).json({ error: 'Invalid plan' });
+            res.status(400).json({ error: 'Invalid plan' });
+            return;
           }
 
-          // Update user with new plan - features unlock immediately in real-time
           await storage.updateUser(userId, {
-            plan: planKey as any,
-            stripeCustomerId: session.customer as string,
-            stripeSubscriptionId: session.subscription as string,
-            trialExpiresAt: null, // Clear trial expiration
+            plan: planKey as PlanType,
+            stripeCustomerId: session.customer ?? undefined,
+            stripeSubscriptionId: session.subscription ?? undefined,
+            trialExpiresAt: null,
           });
 
           console.log(`✓ User ${userId} upgraded to ${planKey} plan - features unlocked`);
 
-          // Create upgrade notification
           const planNames: Record<string, string> = {
             starter: 'Starter ($49)',
             pro: 'Pro ($99)',
@@ -79,12 +116,11 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
           };
 
           if (supabaseAdmin) {
-            // Log payment
             await supabaseAdmin
               .from('payments')
               .insert({
                 user_id: userId,
-                stripe_payment_id: session.payment_intent as string,
+                stripe_payment_id: session.payment_intent ?? undefined,
                 amount: session.amount_total,
                 currency: session.currency,
                 status: 'completed',
@@ -93,7 +129,6 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
                 webhook_payload: event,
               });
 
-            // Create upgrade success notification
             await supabaseAdmin
               .from('notifications')
               .insert({
@@ -110,65 +145,72 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
       }
 
       case 'customer.subscription.updated': {
-        const subscription = event.data.object as any;
-        const userId = await getUserIdFromStripeCustomer(subscription.customer);
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = typeof subscription.customer === 'string' 
+          ? subscription.customer 
+          : (subscription.customer as Stripe.Customer).id;
+        const userId = await getUserIdFromStripeCustomer(customerId);
         
         if (userId) {
-          // Update subscription status
           const status = subscription.status;
-          const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
-          
-          // Determine plan from subscription
           const planId = getPlanFromSubscription(subscription);
           
           await storage.updateUser(userId, {
-            plan: status === 'active' ? planId : 'trial',
+            plan: status === 'active' ? planId as PlanType : 'trial',
           });
         }
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as any;
-        const userId = await getUserIdFromStripeCustomer(subscription.customer);
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = typeof subscription.customer === 'string' 
+          ? subscription.customer 
+          : (subscription.customer as Stripe.Customer).id;
+        const userId = await getUserIdFromStripeCustomer(customerId);
         
         if (userId) {
-          // Downgrade to trial
           await storage.updateUser(userId, {
             plan: 'trial',
             stripeSubscriptionId: null,
-            trialExpiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 day grace period
+            trialExpiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
           });
         }
         break;
       }
 
       case 'invoice.payment_failed': {
-        const invoice = event.data.object as any;
-        const userId = await getUserIdFromStripeCustomer(invoice.customer);
+        const invoice = event.data.object as Stripe.Invoice;
+        const customerId = typeof invoice.customer === 'string' 
+          ? invoice.customer 
+          : (invoice.customer as Stripe.Customer)?.id;
         
-        if (userId && supabaseAdmin) {
-          // Create notification for failed payment
-          await supabaseAdmin
-            .from('notifications')
-            .insert({
-              user_id: userId,
-              type: 'billing_issue',
-              title: 'Payment Failed',
-              message: 'Your payment failed. Please update your payment method to continue using premium features.',
-              action_url: '/dashboard/pricing',
-            });
+        if (customerId) {
+          const userId = await getUserIdFromStripeCustomer(customerId);
+          
+          if (userId && supabaseAdmin) {
+            await supabaseAdmin
+              .from('notifications')
+              .insert({
+                user_id: userId,
+                type: 'billing_issue',
+                title: 'Payment Failed',
+                message: 'Your payment failed. Please update your payment method to continue using premium features.',
+                action_url: '/dashboard/pricing',
+              });
+          }
         }
         break;
       }
     }
 
     res.json({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Webhook error:', error);
-    // Differentiate between signature verification failures (400) and processing errors (500)
-    if (error.message?.includes('signature') || error.message?.includes('STRIPE_WEBHOOK_SECRET')) {
-      return res.status(400).json({ error: 'Webhook signature verification failed' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('signature') || errorMessage.includes('STRIPE_WEBHOOK_SECRET')) {
+      res.status(400).json({ error: 'Webhook signature verification failed' });
+      return;
     }
     res.status(500).json({ error: 'Webhook processing failed' });
   }
@@ -177,58 +219,57 @@ router.post('/webhook/stripe', async (req: Request, res: Response) => {
 /**
  * Lemon Squeezy webhook handler
  */
-router.post('/webhook/lemonsqueezy', async (req: Request, res: Response) => {
+router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promise<void> => {
   try {
     const signature = req.headers['x-signature'] as string;
     const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET;
 
     if (!signature || !secret) {
-      return res.status(400).json({ error: 'Missing signature or secret' });
+      res.status(400).json({ error: 'Missing signature or secret' });
+      return;
     }
 
-    // Verify signature (simplified - in production use proper crypto)
-    const crypto = require('crypto');
     const hash = crypto
       .createHmac('sha256', secret)
       .update(JSON.stringify(req.body))
       .digest('hex');
 
     if (hash !== signature) {
-      return res.status(400).json({ error: 'Invalid signature' });
+      res.status(400).json({ error: 'Invalid signature' });
+      return;
     }
 
-    const { meta, data } = req.body;
+    const payload = req.body as LemonSqueezyWebhookPayload;
+    const { meta, data } = payload;
     const eventName = meta.event_name;
 
     switch (eventName) {
       case 'order_created': {
-        const { user_email, user_name, product_id, variant_id } = data.attributes;
+        const attributes = data.attributes as LemonSqueezyOrderAttributes;
+        const { user_email, product_id, variant_id } = attributes;
         
-        // Find user by email
         const user = await storage.getUserByEmail(user_email);
         if (!user) {
           console.error('User not found:', user_email);
-          return res.status(404).json({ error: 'User not found' });
+          res.status(404).json({ error: 'User not found' });
+          return;
         }
 
-        // Map Lemon Squeezy product/variant to plan
         const plan = mapLemonSqueezyToPlan(product_id, variant_id);
         
-        // Update user plan
         await storage.updateUser(user.id, {
-          plan: plan as any,
+          plan: plan as PlanType,
           trialExpiresAt: null,
         });
 
-        // Log payment
         if (supabaseAdmin) {
           await supabaseAdmin
             .from('payments')
             .insert({
               user_id: user.id,
-              stripe_payment_id: data.id, // Use Lemon Squeezy order ID
-              amount: data.attributes.total,
-              currency: data.attributes.currency,
+              stripe_payment_id: data.id,
+              amount: attributes.total,
+              currency: attributes.currency,
               status: 'completed',
               plan: plan,
               webhook_payload: req.body,
@@ -239,7 +280,8 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response) => {
 
       case 'subscription_created':
       case 'subscription_updated': {
-        const { user_email, status, product_id, variant_id } = data.attributes;
+        const attributes = data.attributes as LemonSqueezySubscriptionAttributes;
+        const { user_email, status, product_id, variant_id } = attributes;
         
         const user = await storage.getUserByEmail(user_email);
         if (!user) break;
@@ -247,13 +289,14 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response) => {
         const plan = mapLemonSqueezyToPlan(product_id, variant_id);
         
         await storage.updateUser(user.id, {
-          plan: status === 'active' ? plan as any : 'trial',
+          plan: status === 'active' ? plan as PlanType : 'trial',
         });
         break;
       }
 
       case 'subscription_cancelled': {
-        const { user_email } = data.attributes;
+        const attributes = data.attributes as LemonSqueezySubscriptionAttributes;
+        const { user_email } = attributes;
         
         const user = await storage.getUserByEmail(user_email);
         if (!user) break;
@@ -267,7 +310,7 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response) => {
     }
 
     res.json({ received: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Lemon Squeezy webhook error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
@@ -276,41 +319,38 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response) => {
 /**
  * Generic payment webhook (for custom integrations)
  */
-router.post('/webhook/payment', async (req: Request, res: Response) => {
+router.post('/webhook/payment', async (req: Request, res: Response): Promise<void> => {
   try {
     const { provider } = req.query;
 
     if (provider === 'stripe') {
-      // Redirect to Stripe webhook handler
       req.url = '/webhook/stripe';
       return;
     } else if (provider === 'lemonsqueezy') {
-      // Redirect to Lemon Squeezy webhook handler
       req.url = '/webhook/lemonsqueezy';
       return;
     } else {
-      return res.status(400).json({ error: 'Unknown payment provider' });
+      res.status(400).json({ error: 'Unknown payment provider' });
+      return;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Payment webhook error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
-// Helper functions
 async function getUserIdFromStripeCustomer(customerId: string): Promise<string | null> {
   try {
     const users = await storage.getAllUsers();
     const user = users.find(u => u.stripeCustomerId === customerId);
     return user?.id || null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error finding user by Stripe customer ID:', error);
     return null;
   }
 }
 
-function getPlanFromSubscription(subscription: any): string {
-  // Map Stripe price IDs to plans
+function getPlanFromSubscription(subscription: Stripe.Subscription): string {
   const priceId = subscription.items.data[0]?.price.id;
   const priceToPlan: Record<string, string> = {
     [process.env.STRIPE_STARTER_PRICE_ID || '']: 'starter',
@@ -322,8 +362,6 @@ function getPlanFromSubscription(subscription: any): string {
 }
 
 function mapLemonSqueezyToPlan(productId: string, variantId: string): string {
-  // Map Lemon Squeezy products/variants to plans
-  // This mapping would be configured based on your Lemon Squeezy products
   const mapping: Record<string, string> = {
     '12345_starter': 'starter',
     '12345_pro': 'pro',

@@ -1,6 +1,4 @@
-/* @ts-nocheck */
-
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { storage } from '../storage';
 import { encrypt } from '../lib/crypto/encryption';
@@ -10,20 +8,57 @@ import { bounceHandler } from '../lib/email/bounce-handler';
 
 const router = Router();
 
+interface EmailConfig {
+  smtp_host?: string;
+  smtp_port?: number;
+  imap_host?: string;
+  imap_port?: number;
+  smtp_user?: string;
+  smtp_pass?: string;
+  oauth_token?: string;
+  provider?: 'gmail' | 'outlook' | 'smtp' | 'custom';
+}
+
+interface ImportedEmailData {
+  from?: string;
+  to?: string;
+  subject?: string;
+  text?: string;
+  html?: string;
+  date?: Date;
+}
+
+interface EmailForImport {
+  from: string;
+  subject: string | undefined;
+  text: string;
+  date: Date | undefined;
+  html: string | undefined;
+}
+
+interface ConnectRequestBody {
+  smtpHost: string;
+  smtpPort: string;
+  imapHost: string;
+  imapPort: string;
+  email: string;
+  password: string;
+}
+
 /**
  * Connect custom email domain
  */
-router.post('/connect', requireAuth, async (req, res) => {
+router.post('/connect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { smtpHost, smtpPort, imapHost, imapPort, email, password } = req.body;
+    const { smtpHost, smtpPort, imapHost, imapPort, email, password } = req.body as ConnectRequestBody;
 
     if (!smtpHost || !imapHost || !email || !password) {
-      return res.status(400).json({ error: 'Missing required fields (SMTP host, IMAP host, email, password)' });
+      res.status(400).json({ error: 'Missing required fields (SMTP host, IMAP host, email, password)' });
+      return;
     }
 
-    // Encrypt credentials with explicit IMAP settings
-    const credentials = {
+    const credentials: EmailConfig = {
       smtp_host: smtpHost,
       smtp_port: parseInt(smtpPort) || 587,
       imap_host: imapHost,
@@ -35,28 +70,26 @@ router.post('/connect', requireAuth, async (req, res) => {
 
     const encryptedMeta = await encrypt(JSON.stringify(credentials));
 
-    // Save integration
     await storage.createIntegration({
       userId,
       provider: 'custom_email',
       encryptedMeta,
       connected: true,
-      accountType: email,
     });
 
-    // Auto-import emails after connection using paged importer with abuse protection
     try {
       const { importCustomEmails } = await import('../lib/channels/email');
-      const emails = await importCustomEmails(credentials, 100); // Fetch 100 at a time
+      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
 
-      // Use paged importer to process in batches
-      const importResults = await pagedEmailImport(userId, emails.map((emailData: any) => ({
-        from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
+      const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
+        from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
         subject: emailData.subject,
         text: emailData.text || emailData.html || '',
         date: emailData.date,
         html: emailData.html
-      })), (progress) => {
+      }));
+
+      const importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
         console.log(`📧 Email import progress: ${progress}%`);
       });
 
@@ -67,16 +100,16 @@ router.post('/connect', requireAuth, async (req, res) => {
         leadsSkipped: importResults.skipped,
         errors: importResults.errors
       });
-    } catch (importError: any) {
+    } catch (importError: unknown) {
+      const errorMessage = importError instanceof Error ? importError.message : 'Unknown error';
       console.error('Auto-import failed:', importError);
-      // Still return success for connection, but note import failed
       res.json({
         success: true,
         message: 'Custom email connected, but initial import failed. You can manually import later.',
-        importError: importError.message
+        importError: errorMessage
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error connecting custom email:', error);
     res.status(500).json({ error: 'Failed to connect custom email' });
   }
@@ -85,52 +118,49 @@ router.post('/connect', requireAuth, async (req, res) => {
 /**
  * Import emails from custom domain (paged + abuse protection)
  */
-router.post('/import', requireAuth, async (req, res) => {
+router.post('/import', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     
-    // Check SMTP abuse protection first
     const abuseCheck = await smtpAbuseProtection.canSendEmail(userId);
     if (!abuseCheck.allowed) {
-      return res.status(429).json({
+      res.status(429).json({
         error: abuseCheck.reason,
         retryAfter: abuseCheck.delay
       });
+      return;
     }
 
-    // Get custom email integration
     const integration = await storage.getIntegration(userId, 'custom_email');
     
     if (!integration) {
-      return res.status(400).json({ error: 'Custom email not connected' });
+      res.status(400).json({ error: 'Custom email not connected' });
+      return;
     }
 
-    // Decrypt credentials
     const { decrypt } = await import('../lib/crypto/encryption');
     const credentialsStr = await decrypt(integration.encryptedMeta!);
-    const credentials = JSON.parse(credentialsStr);
+    const credentials: EmailConfig = JSON.parse(credentialsStr);
 
-    // Import emails
     const { importCustomEmails } = await import('../lib/channels/email');
-    const emails = await importCustomEmails(credentials, 100); // Fetch in batches of 100
+    const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
 
-    // Use paged importer for smart processing
-    const importResults = await pagedEmailImport(userId, emails.map((emailData: any) => ({
-      from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
+    const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
+      from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
       subject: emailData.subject,
       text: emailData.text || emailData.html || '',
       date: emailData.date,
       html: emailData.html
-    })), (progress) => {
+    }));
+
+    const importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
       console.log(`📧 Email import progress: ${progress}%`);
     });
 
-    // Record sends in abuse protection
     for (let i = 0; i < importResults.imported; i++) {
       smtpAbuseProtection.recordSend(userId);
     }
 
-    // Get bounce stats
     const bounceStats = await bounceHandler.getBounceStats(userId);
 
     res.json({
@@ -141,7 +171,7 @@ router.post('/import', requireAuth, async (req, res) => {
       bounceRate: bounceStats.bounceRate,
       message: `Import completed: ${importResults.imported} leads imported, ${importResults.skipped} skipped`
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error importing custom emails:', error);
     res.status(500).json({ error: 'Failed to import emails' });
   }
@@ -150,7 +180,7 @@ router.post('/import', requireAuth, async (req, res) => {
 /**
  * Disconnect custom email
  */
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     
@@ -160,18 +190,16 @@ router.post('/disconnect', requireAuth, async (req, res) => {
       success: true,
       message: 'Custom email disconnected'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error disconnecting custom email:', error);
     res.status(500).json({ error: 'Failed to disconnect custom email' });
   }
 });
 
-export default router;
-
 /**
  * Get custom email status
  */
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const integration = await storage.getIntegration(userId, 'custom_email');
@@ -182,8 +210,10 @@ router.get('/status', requireAuth, async (req, res) => {
       email: integration?.accountType || null,
       provider: 'custom_smtp'
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting email status:', error);
     res.status(500).json({ error: 'Failed to get email status' });
   }
 });
+
+export default router;

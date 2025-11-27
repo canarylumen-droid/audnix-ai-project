@@ -1,41 +1,92 @@
-/* @ts-nocheck */
 import { Request, Response, Router } from 'express';
 import { InstagramOAuth } from '../lib/oauth/instagram';
 import { WhatsAppOAuth } from '../lib/oauth/whatsapp';
 import { GmailOAuth } from '../lib/oauth/gmail';
-// import { OutlookOAuth } from '../lib/oauth/outlook'; // Removed - use Gmail + custom SMTP
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly';
 import { supabaseAdmin } from '../lib/supabase-admin';
 import { encrypt } from '../lib/crypto/encryption';
-// ⚠️ CRITICAL: OTPs are sent via email from configured TWILIO_EMAIL_FROM address (auth@audnixai.com)
-// Using Twilio SendGrid for all email delivery - Resend removed
+
+interface AuthenticatedRequest extends Request {
+  session: Request['session'] & {
+    userId?: string;
+  };
+}
+
+interface WhatsAppConnectBody {
+  user_id?: string;
+  accountSid: string;
+  authToken: string;
+  fromNumber: string;
+}
+
+interface CalendarEventBody {
+  user_id?: string;
+  summary: string;
+  description?: string;
+  startTime: string;
+  endTime: string;
+  attendeeEmail?: string;
+  location?: string;
+  leadId?: string;
+}
+
+interface DisconnectBody {
+  user_id?: string;
+}
+
+interface CalendarEventData {
+  id: string;
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+  attendees?: Array<{ displayName?: string; email?: string }>;
+  hangoutLink?: string;
+  conferenceData?: { entryPoints?: Array<{ uri?: string }> };
+  description?: string;
+  location?: string;
+  htmlLink?: string;
+}
+
+interface CalendlyStateData {
+  userId: string;
+  type: string;
+}
+
+interface StoredTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt: string;
+  email?: string;
+}
+
+function getUserId(req: AuthenticatedRequest, fromBody = false): string | undefined {
+  if (fromBody) {
+    const body = req.body as DisconnectBody;
+    return req.session?.userId || body.user_id;
+  }
+  return req.session?.userId || (req.query.user_id as string | undefined);
+}
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();
 const whatsappOAuth = new WhatsAppOAuth();
 const gmailOAuth = new GmailOAuth();
-// const outlookOAuth = new OutlookOAuth(); // Removed - use Gmail + custom SMTP
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 const calendlyOAuth = new CalendlyOAuth();
 
 // ==================== INSTAGRAM OAUTH ====================
 
-/**
- * Initialize OAuth flow for Instagram
- */
-router.get('/connect/instagram', async (req: Request, res: Response) => {
+router.get('/connect/instagram', async (req: Request, res: Response): Promise<void> => {
   try {
-    // Get user ID from session or query params
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
-    // Generate OAuth URL
     const authUrl = instagramOAuth.getAuthorizationUrl(userId);
-
     res.json({ authUrl });
   } catch (error) {
     console.error('Error initiating Instagram OAuth:', error);
@@ -43,58 +94,54 @@ router.get('/connect/instagram', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Handle OAuth callback from Instagram
- */
-router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
+router.get('/oauth/instagram/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error_reason } = req.query;
 
-    // Handle user denial
     if (error_reason === 'user_denied') {
-      return res.redirect('/dashboard/integrations?error=denied');
+      res.redirect('/dashboard/integrations?error=denied');
+      return;
     }
 
     if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
+      res.redirect('/dashboard/integrations?error=invalid_request');
+      return;
     }
 
-    // Verify state parameter
     const stateData = instagramOAuth.verifyState(state as string);
     if (!stateData || !stateData.userId) {
       console.error('Invalid or missing state data:', { state, stateData });
-      return res.redirect('/dashboard/integrations?error=invalid_state');
+      res.redirect('/dashboard/integrations?error=invalid_state');
+      return;
     }
 
-    // Exchange code for token with null safety
     const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);
     if (!tokenData || !tokenData.access_token) {
       console.error('Failed to exchange code for token');
-      return res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      return;
     }
 
-    // Exchange for long-lived token
     const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
     if (!longLivedToken || !longLivedToken.access_token) {
       console.error('Failed to get long-lived token');
-      return res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      return;
     }
 
-    // Get user profile
     const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
     if (!profile || !profile.id) {
       console.error('Failed to get user profile');
-      return res.redirect('/dashboard/integrations?error=profile_fetch_failed');
+      res.redirect('/dashboard/integrations?error=profile_fetch_failed');
+      return;
     }
 
-    // Save token and update user
     await instagramOAuth.saveToken(stateData.userId, {
       access_token: longLivedToken.access_token,
       user_id: profile.id,
       permissions: ['instagram_basic', 'instagram_manage_messages']
     }, longLivedToken.expires_in);
 
-    // Update user with Instagram profile info
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('users')
@@ -103,57 +150,54 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response) => {
         })
         .eq('id', stateData.userId);
 
-      // Create integration record
       await supabaseAdmin
         .from('integrations')
         .upsert({
-        user_id: stateData.userId,
-        provider: 'instagram',
-        account_type: profile.username,
-        credentials: { username: profile.username },
-        is_active: true,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,provider'
-      });
+          user_id: stateData.userId,
+          provider: 'instagram',
+          account_type: profile.username,
+          credentials: { username: profile.username },
+          is_active: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,provider'
+        });
     }
 
     res.redirect('/dashboard/integrations?success=instagram_connected');
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string; statusCode?: number };
     console.error('OAuth callback error:', error);
     console.error('OAuth error details:', {
-      message: error?.message,
-      stack: error?.stack,
-      code: error?.code,
-      statusCode: error?.statusCode
+      message: err?.message,
+      stack: err?.stack,
+      code: err?.code,
+      statusCode: err?.statusCode
     });
     res.redirect('/dashboard/integrations?error=oauth_failed');
   }
 });
 
-/**
- * Disconnect Instagram
- */
-router.post('/oauth/instagram/disconnect', async (req: Request, res: Response) => {
+router.post('/oauth/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const userId = getUserId(req as AuthenticatedRequest, true);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     await instagramOAuth.revokeToken(userId);
 
-    // Update integration status
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('integrations')
         .update({
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId)
-      .eq('provider', 'instagram');
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('provider', 'instagram');
     }
 
     res.json({ success: true });
@@ -163,21 +207,18 @@ router.post('/oauth/instagram/disconnect', async (req: Request, res: Response) =
   }
 });
 
-/**
- * Check Instagram token status
- */
-router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
+router.get('/oauth/instagram/status', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const token = await instagramOAuth.getValidToken(userId);
 
     if (token) {
-      // Try to get profile to verify token is working
       try {
         const profile = await instagramOAuth.getUserProfile(token);
         res.json({ 
@@ -185,7 +226,7 @@ router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
           username: profile.username,
           userId: profile.id 
         });
-      } catch (error) {
+      } catch {
         res.json({ connected: false, error: 'Token expired or invalid' });
       }
     } else {
@@ -199,31 +240,30 @@ router.get('/oauth/instagram/status', async (req: Request, res: Response) => {
 
 // ==================== WHATSAPP OAUTH (TWILIO) ====================
 
-/**
- * Connect WhatsApp via Twilio
- * Users provide their Twilio credentials directly
- */
-router.post('/oauth/whatsapp/connect', async (req: Request, res: Response) => {
+router.post('/oauth/whatsapp/connect', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const authReq = req as AuthenticatedRequest;
+    const body = req.body as WhatsAppConnectBody;
+    const userId = authReq.session?.userId || body.user_id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
-    const { accountSid, authToken, fromNumber } = req.body;
+    const { accountSid, authToken, fromNumber } = body;
 
     if (!accountSid || !authToken || !fromNumber) {
-      return res.status(400).json({ error: 'Missing required Twilio credentials' });
+      res.status(400).json({ error: 'Missing required Twilio credentials' });
+      return;
     }
 
-    // Validate credentials first
     const isValid = await whatsappOAuth.validateCredentials({ accountSid, authToken });
     if (!isValid) {
-      return res.status(400).json({ error: 'Invalid Twilio credentials' });
+      res.status(400).json({ error: 'Invalid Twilio credentials' });
+      return;
     }
 
-    // Save credentials
     await whatsappOAuth.saveCredentials(userId, {
       accountSid,
       authToken,
@@ -240,19 +280,16 @@ router.post('/oauth/whatsapp/connect', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Disconnect WhatsApp
- */
-router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) => {
+router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const userId = getUserId(req as AuthenticatedRequest, true);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     await whatsappOAuth.revokeCredentials(userId);
-
     res.json({ success: true });
   } catch (error) {
     console.error('Error disconnecting WhatsApp:', error);
@@ -260,15 +297,13 @@ router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response) =>
   }
 });
 
-/**
- * Check WhatsApp connection status
- */
-router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
+router.get('/oauth/whatsapp/status', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const credentials = await whatsappOAuth.getCredentials(userId);
@@ -289,15 +324,13 @@ router.get('/oauth/whatsapp/status', async (req: Request, res: Response) => {
 
 // ==================== GMAIL OAUTH ====================
 
-/**
- * Initialize OAuth flow for Gmail
- */
-router.get('/connect/gmail', async (req: Request, res: Response) => {
+router.get('/connect/gmail', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const authUrl = gmailOAuth.getAuthorizationUrl(userId);
@@ -308,41 +341,35 @@ router.get('/connect/gmail', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Handle OAuth callback from Gmail
- */
-router.get('/oauth/gmail/callback', async (req: Request, res: Response) => {
+router.get('/oauth/gmail/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
     if (error) {
-      return res.redirect('/dashboard/integrations?error=gmail_denied');
+      res.redirect('/dashboard/integrations?error=gmail_denied');
+      return;
     }
 
     if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
+      res.redirect('/dashboard/integrations?error=invalid_request');
+      return;
     }
 
-    // Verify state
     const stateData = gmailOAuth.verifyState(state as string);
     if (!stateData) {
-      return res.redirect('/dashboard/integrations?error=invalid_state');
+      res.redirect('/dashboard/integrations?error=invalid_state');
+      return;
     }
 
-    // Exchange code for tokens
     const tokens = await gmailOAuth.exchangeCodeForToken(code as string);
-
-    // Get user profile
     const userProfile = await gmailOAuth.getUserProfile(tokens.access_token);
     const gmailProfile = await gmailOAuth.getGmailProfile(tokens.access_token);
 
-    // Save tokens
     await gmailOAuth.saveToken(stateData.userId, tokens, {
       ...userProfile,
       ...gmailProfile
     });
 
-    // Create integration record
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('integrations')
@@ -368,15 +395,13 @@ router.get('/oauth/gmail/callback', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Disconnect Gmail
- */
-router.post('/oauth/gmail/disconnect', async (req: Request, res: Response) => {
+router.post('/oauth/gmail/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const userId = getUserId(req as AuthenticatedRequest, true);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     await gmailOAuth.revokeToken(userId);
@@ -399,15 +424,13 @@ router.post('/oauth/gmail/disconnect', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Check Gmail token status
- */
-router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
+router.get('/oauth/gmail/status', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const token = await gmailOAuth.getValidToken(userId);
@@ -419,7 +442,7 @@ router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
           connected: true,
           email: profile.emailAddress
         });
-      } catch (error) {
+      } catch {
         res.json({ connected: false, error: 'Token expired or invalid' });
       }
     } else {
@@ -431,23 +454,15 @@ router.get('/oauth/gmail/status', async (req: Request, res: Response) => {
   }
 });
 
-// ==================== OUTLOOK OAUTH (REMOVED) ====================
-// Outlook integration has been removed in favor of Gmail + custom SMTP
-// which provides better coverage with simpler setup.
-// Gmail handles most email use cases, and custom SMTP allows users
-// to configure any business email provider directly.
-
 // ==================== GOOGLE CALENDAR OAUTH ====================
 
-/**
- * Initialize OAuth flow for Google Calendar
- */
-router.get('/connect/google-calendar', async (req: Request, res: Response) => {
+router.get('/connect/google-calendar', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     const authUrl = googleCalendarOAuth.getAuthUrl(userId);
@@ -458,27 +473,23 @@ router.get('/connect/google-calendar', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Handle OAuth callback from Google Calendar
- */
-router.get('/oauth/google-calendar/callback', async (req: Request, res: Response) => {
+router.get('/oauth/google-calendar/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
     if (error === 'access_denied') {
-      return res.redirect('/dashboard/integrations?error=denied');
+      res.redirect('/dashboard/integrations?error=denied');
+      return;
     }
 
     if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
+      res.redirect('/dashboard/integrations?error=invalid_request');
+      return;
     }
 
     const userId = state as string;
-
-    // Exchange code for tokens
     const tokenData = await googleCalendarOAuth.exchangeCodeForTokens(code as string);
 
-    // Encrypt and store tokens
     const encryptedTokens = encrypt(JSON.stringify({
       accessToken: tokenData.accessToken,
       refreshToken: tokenData.refreshToken,
@@ -486,9 +497,7 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
       email: tokenData.email,
     }));
 
-    // Save to database using storage layer
     try {
-      // Import storage at top of file if not already
       const { storage } = await import('../storage');
 
       await storage.createIntegration({
@@ -496,13 +505,12 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
         provider: 'google_calendar',
         encryptedMeta: encryptedTokens,
         connected: true,
-        accountType: tokenData.email,
         lastSync: new Date(),
       });
 
       res.redirect('/dashboard/integrations?success=google_calendar_connected');
-    } catch (error) {
-      console.error('Failed to save Google Calendar integration:', error);
+    } catch (saveError) {
+      console.error('Failed to save Google Calendar integration:', saveError);
       res.redirect('/dashboard/integrations?error=save_failed');
     }
   } catch (error) {
@@ -511,15 +519,13 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
   }
 });
 
-/**
- * Disconnect Google Calendar
- */
-router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Response) => {
+router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const userId = getUserId(req as AuthenticatedRequest, true);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
     if (supabaseAdmin) {
@@ -540,25 +546,27 @@ router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Respo
   }
 });
 
-/**
- * Create a calendar event
- */
-router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
+router.post('/oauth/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.body.user_id;
+    const authReq = req as AuthenticatedRequest;
+    const body = req.body as CalendarEventBody;
+    const userId = authReq.session?.userId || body.user_id;
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
-    const { summary, description, startTime, endTime, attendeeEmail, leadId } = req.body;
+    const { summary, description, startTime, endTime, attendeeEmail, leadId, location } = body;
 
     if (!summary || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      res.status(400).json({ error: 'Missing required fields' });
+      return;
     }
 
     if (!supabaseAdmin) {
-      return res.status(500).json({ error: 'Database not configured' });
+      res.status(500).json({ error: 'Database not configured' });
+      return;
     }
 
     const { data: integration } = await supabaseAdmin
@@ -570,10 +578,11 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
       .single();
 
     if (!integration) {
-      return res.status(404).json({ error: 'Google Calendar not connected' });
+      res.status(404).json({ error: 'Google Calendar not connected' });
+      return;
     }
 
-    const tokens = JSON.parse(integration.encrypted_meta);
+    const tokens: StoredTokens = JSON.parse(integration.encrypted_meta);
     const expiresAt = new Date(tokens.expiresAt);
     let accessToken = tokens.accessToken;
 
@@ -582,15 +591,15 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
       accessToken = refreshedTokens.accessToken;
     }
 
-    const event = await googleCalendarOAuth.createEvent(accessToken, {
+    const event: CalendarEventData = await googleCalendarOAuth.createEvent(accessToken, {
       summary,
       description,
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       attendeeEmail,
+      location,
     });
 
-    // If leadId provided, store event association
     if (leadId) {
       const { storage } = await import('../storage');
       await storage.createMessage({
@@ -614,20 +623,18 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
   }
 });
 
-/**
- * List upcoming events from Google Calendar
- */
-router.get('/oauth/google-calendar/events', async (req: Request, res: Response) => {
+router.get('/oauth/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
-    // Get stored tokens from database
     if (!supabaseAdmin) {
-      return res.status(500).json({ error: 'Database not configured' });
+      res.status(500).json({ error: 'Database not configured' });
+      return;
     }
 
     const { data: integration } = await supabaseAdmin
@@ -639,13 +646,11 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
       .single();
 
     if (!integration) {
-      return res.status(404).json({ error: 'Google Calendar not connected' });
+      res.status(404).json({ error: 'Google Calendar not connected' });
+      return;
     }
 
-    // Decrypt tokens
-    const tokens = JSON.parse(integration.encrypted_meta);
-
-    // Check if token needs refresh
+    const tokens: StoredTokens = JSON.parse(integration.encrypted_meta);
     const expiresAt = new Date(tokens.expiresAt);
     let accessToken = tokens.accessToken;
 
@@ -653,7 +658,6 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
       const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
       accessToken = refreshedTokens.accessToken;
 
-      // Update stored tokens
       const updatedTokens = {
         ...tokens,
         accessToken: refreshedTokens.accessToken,
@@ -670,11 +674,9 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
         .eq('provider', 'google_calendar');
     }
 
-    // Get upcoming events
-    const rawEvents = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+    const rawEvents: CalendarEventData[] = await googleCalendarOAuth.listUpcomingEvents(accessToken);
 
-    // Transform events to match frontend expectations
-    const events = rawEvents.map((event: any) => ({
+    const events = rawEvents.map((event: CalendarEventData) => ({
       id: event.id,
       title: event.summary || 'Untitled Event',
       startTime: event.start?.dateTime || event.start?.date,
@@ -695,20 +697,16 @@ router.get('/oauth/google-calendar/events', async (req: Request, res: Response) 
 
 // ==================== CALENDLY OAUTH ====================
 
-/**
- * Initialize Calendly OAuth flow
- */
-router.get('/connect/calendly', async (req: Request, res: Response) => {
+router.get('/connect/calendly', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).session?.userId || req.query.user_id as string;
+    const userId = getUserId(req as AuthenticatedRequest);
 
     if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      res.status(401).json({ error: 'User not authenticated' });
+      return;
     }
 
-    // Generate state for CSRF protection
     const state = Buffer.from(JSON.stringify({ userId, type: 'calendly' })).toString('base64');
-    
     const authUrl = calendlyOAuth.getAuthUrl(state);
     res.json({ authUrl });
   } catch (error) {
@@ -717,45 +715,42 @@ router.get('/connect/calendly', async (req: Request, res: Response) => {
   }
 });
 
-/**
- * Handle Calendly OAuth callback
- */
-router.get('/oauth/calendly/callback', async (req: Request, res: Response) => {
+router.get('/oauth/calendly/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
     if (error) {
-      return res.redirect('/dashboard/integrations?error=calendly_denied');
+      res.redirect('/dashboard/integrations?error=calendly_denied');
+      return;
     }
 
     if (!code || !state) {
-      return res.redirect('/dashboard/integrations?error=invalid_request');
+      res.redirect('/dashboard/integrations?error=invalid_request');
+      return;
     }
 
-    // Verify state
-    let stateData: any;
+    let stateData: CalendlyStateData;
     try {
       stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
-    } catch (e) {
-      return res.redirect('/dashboard/integrations?error=invalid_state');
+    } catch {
+      res.redirect('/dashboard/integrations?error=invalid_state');
+      return;
     }
 
     const userId = stateData.userId;
     if (!userId) {
-      return res.redirect('/dashboard/integrations?error=invalid_state');
+      res.redirect('/dashboard/integrations?error=invalid_state');
+      return;
     }
 
-    // Exchange code for token
     const tokenData = await calendlyOAuth.exchangeCodeForToken(code as string);
 
-    // Encrypt and save
     const encryptedMeta = await encrypt(JSON.stringify({
       access_token: tokenData.accessToken,
       refresh_token: tokenData.refreshToken,
       expiresAt: tokenData.expiresAt.toISOString()
     }));
 
-    // Save to database
     if (supabaseAdmin) {
       await supabaseAdmin
         .from('integrations')
@@ -771,79 +766,16 @@ router.get('/oauth/calendly/callback', async (req: Request, res: Response) => {
         });
     }
 
-    // Register webhooks for real-time meeting notifications
     try {
       await registerCalendlyWebhook(userId, tokenData.accessToken);
     } catch (err) {
       console.warn('⚠️ Webhook registration failed but OAuth connection successful:', err);
-      // Don't fail OAuth if webhook registration fails
     }
 
     res.redirect('/dashboard/integrations?success=calendly_connected');
-  } catch (error: any) {
+  } catch (error) {
     console.error('Calendly OAuth callback error:', error);
     res.redirect('/dashboard/integrations?error=oauth_failed');
-  }
-});
-
-/**
- * Create a calendar event
- */
-router.post('/oauth/google-calendar/events', async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).session?.userId || req.body.user_id;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
-    }
-
-    const { summary, description, startTime, endTime, attendeeEmail, location } = req.body;
-
-    if (!summary || !startTime || !endTime) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Get stored tokens
-    if (!supabaseAdmin) {
-      return res.status(500).json({ error: 'Database not configured' });
-    }
-
-    const { data: integration } = await supabaseAdmin
-      .from('integrations')
-      .select('encrypted_meta')
-      .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
-      .eq('connected', true)
-      .single();
-
-    if (!integration) {
-      return res.status(404).json({ error: 'Google Calendar not connected' });
-    }
-
-    const tokens = JSON.parse(integration.encrypted_meta);
-    let accessToken = tokens.accessToken;
-
-    // Refresh if expired
-    const expiresAt = new Date(tokens.expiresAt);
-    if (expiresAt < new Date() && tokens.refreshToken) {
-      const refreshedTokens = await googleCalendarOAuth.refreshAccessToken(tokens.refreshToken);
-      accessToken = refreshedTokens.accessToken;
-    }
-
-    // Create event
-    const event = await googleCalendarOAuth.createEvent(accessToken, {
-      summary,
-      description,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
-      attendeeEmail,
-      location,
-    });
-
-    res.json({ event });
-  } catch (error) {
-    console.error('Error creating calendar event:', error);
-    res.status(500).json({ error: 'Failed to create event' });
   }
 });
 

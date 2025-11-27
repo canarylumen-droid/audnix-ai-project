@@ -1,11 +1,51 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
 import { requireAdmin } from "../middleware/auth";
 import { db } from "../db";
 import { users, leads, messages, integrations } from "../../shared/schema";
-import { eq, desc, sql, and, gte, count, sum } from "drizzle-orm";
+import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 
 const router = Router();
+
+interface PlanPrices {
+  [key: string]: number;
+}
+
+interface UserWithPlan {
+  plan: string | null;
+}
+
+interface RecentUser {
+  id: string;
+  name: string | null;
+  email: string;
+  plan: string;
+  createdAt: Date;
+}
+
+interface SubscriptionRow {
+  date: string;
+  plan: string;
+  subscriptions: string;
+}
+
+interface RevenueDataItem {
+  date: string;
+  revenue: number;
+}
+
+interface OnboardingStatRow {
+  user_role?: string;
+  source?: string;
+  business_size?: string;
+  count: string | number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: Date;
+}
 
 // All routes require admin authentication
 router.use(requireAdmin);
@@ -13,10 +53,8 @@ router.use(requireAdmin);
 // ============ ANALYTICS ENDPOINTS ============
 
 // Get admin metrics (for admin dashboard)
-router.get("/metrics", async (req: Request, res: Response) => {
+router.get("/metrics", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
-    
     // Get total users
     const totalUsersResult = await db.select({ count: count() }).from(users);
     const totalUsers = Number(totalUsersResult[0]?.count || 0);
@@ -49,7 +87,7 @@ router.get("/metrics", async (req: Request, res: Response) => {
     const paidUsers = Number(paidUsersResult[0]?.count || 0);
 
     // Calculate MRR
-    const planPrices: Record<string, number> = {
+    const planPrices: PlanPrices = {
       starter: 49,
       pro: 199,
       enterprise: 499,
@@ -63,8 +101,8 @@ router.get("/metrics", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsersWithPlans.reduce((total: number, user: any) => {
-      return total + (planPrices[user.plan] || 0);
+    const mrr = paidUsersWithPlans.reduce((total: number, user: UserWithPlan) => {
+      return total + (planPrices[user.plan || ''] || 0);
     }, 0);
 
     // API burn - count of messages sent today (rough estimate of API usage)
@@ -111,7 +149,7 @@ router.get("/metrics", async (req: Request, res: Response) => {
         failedJobs,
         storageUsed,
       },
-      recentUsers: recentUsers.map((u: any) => ({
+      recentUsers: recentUsers.map((u: RecentUser) => ({
         ...u,
         createdAt: u.createdAt.toISOString(),
       })),
@@ -123,10 +161,8 @@ router.get("/metrics", async (req: Request, res: Response) => {
 });
 
 // Get previous period overview for comparison
-router.get("/overview/previous", async (req: Request, res: Response) => {
+router.get("/overview/previous", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
-    
     // Calculate previous 30-day period (30-60 days ago)
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
@@ -154,7 +190,7 @@ router.get("/overview/previous", async (req: Request, res: Response) => {
     const activeUsers = Number(previousActiveResult[0]?.count || 0);
 
     // Calculate previous MRR (simplified - same logic as current)
-    const planPrices: Record<string, number> = {
+    const planPrices: PlanPrices = {
       starter: 49,
       pro: 199,
       enterprise: 499,
@@ -170,8 +206,8 @@ router.get("/overview/previous", async (req: Request, res: Response) => {
         sql`${users.createdAt} < ${thirtyDaysAgo}`
       ));
 
-    const mrr = previousPaidUsers.reduce((total: number, user: any) => {
-      return total + (planPrices[user.plan] || 0);
+    const mrr = previousPaidUsers.reduce((total: number, user: UserWithPlan) => {
+      return total + (planPrices[user.plan || ''] || 0);
     }, 0);
 
     // Get previous leads
@@ -209,13 +245,11 @@ router.get("/overview/previous", async (req: Request, res: Response) => {
 });
 
 // Get dashboard overview
-router.get("/overview", async (req: Request, res: Response) => {
+router.get("/overview", async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
-    
     // Get total users
     const totalUsersResult = await db.select({ count: count() }).from(users);
-    const totalUsers = totalUsersResult[0]?.count || 0;
+    const totalUsers = Number(totalUsersResult[0]?.count || 0);
 
     // Get active users (logged in last 30 days)
     const thirtyDaysAgo = new Date();
@@ -225,17 +259,17 @@ router.get("/overview", async (req: Request, res: Response) => {
       .select({ count: count() })
       .from(users)
       .where(gte(users.lastLogin, thirtyDaysAgo));
-    const activeUsers = activeUsersResult[0]?.count || 0;
+    const activeUsers = Number(activeUsersResult[0]?.count || 0);
 
     // Get new users (last 30 days)
     const newUsersResult = await db
       .select({ count: count() })
       .from(users)
       .where(gte(users.createdAt, thirtyDaysAgo));
-    const newUsers = newUsersResult[0]?.count || 0;
+    const newUsers = Number(newUsersResult[0]?.count || 0);
 
     // Calculate MRR
-    const planPrices: Record<string, number> = {
+    const planPrices: PlanPrices = {
       starter: 49,
       pro: 199,
       enterprise: 499,
@@ -249,17 +283,17 @@ router.get("/overview", async (req: Request, res: Response) => {
         sql`${users.plan} != 'trial'`
       ));
 
-    const mrr = paidUsers.reduce((total: number, user: any) => {
-      return total + (planPrices[user.plan] || 0);
+    const mrr = paidUsers.reduce((total: number, user: UserWithPlan) => {
+      return total + (planPrices[user.plan || ''] || 0);
     }, 0);
 
     // Get total leads
     const totalLeadsResult = await db.select({ count: count() }).from(leads);
-    const totalLeads = totalLeadsResult[0]?.count || 0;
+    const totalLeads = Number(totalLeadsResult[0]?.count || 0);
 
     // Get total messages
     const totalMessagesResult = await db.select({ count: count() }).from(messages);
-    const totalMessages = totalMessagesResult[0]?.count || 0;
+    const totalMessages = Number(totalMessagesResult[0]?.count || 0);
 
     res.json({
       totalUsers,
@@ -277,7 +311,7 @@ router.get("/overview", async (req: Request, res: Response) => {
 });
 
 // Get user growth data
-router.get("/analytics/user-growth", async (req: Request, res: Response) => {
+router.get("/analytics/user-growth", async (req: Request, res: Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
     
@@ -301,12 +335,12 @@ router.get("/analytics/user-growth", async (req: Request, res: Response) => {
 });
 
 // Get revenue analytics
-router.get("/analytics/revenue", async (req: Request, res: Response) => {
+router.get("/analytics/revenue", async (req: Request, res: Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
     
     // Calculate daily revenue based on subscriptions
-    const planPrices: Record<string, number> = {
+    const planPrices: PlanPrices = {
       starter: 49,
       pro: 199,
       enterprise: 499,
@@ -326,7 +360,7 @@ router.get("/analytics/revenue", async (req: Request, res: Response) => {
     `);
 
     // Calculate revenue per day
-    const revenueData = (subscriptionsByDate.rows as any[]).reduce((acc: any[], row: any) => {
+    const revenueData = (subscriptionsByDate.rows as SubscriptionRow[]).reduce((acc: RevenueDataItem[], row: SubscriptionRow) => {
       const existingDay = acc.find(d => d.date === row.date);
       const revenue = (planPrices[row.plan] || 0) * parseInt(row.subscriptions);
       
@@ -346,7 +380,7 @@ router.get("/analytics/revenue", async (req: Request, res: Response) => {
 });
 
 // Get channel performance
-router.get("/analytics/channels", async (req: Request, res: Response) => {
+router.get("/analytics/channels", async (req: Request, res: Response): Promise<void> => {
   try {
     const channelStats = await db.execute(sql`
       SELECT 
@@ -367,7 +401,7 @@ router.get("/analytics/channels", async (req: Request, res: Response) => {
 });
 
 // Get onboarding statistics
-router.get("/analytics/onboarding", async (req: Request, res: Response) => {
+router.get("/analytics/onboarding", async (req: Request, res: Response): Promise<void> => {
   try {
     const { onboardingProfiles } = await import("@shared/schema");
     
@@ -409,17 +443,17 @@ router.get("/analytics/onboarding", async (req: Request, res: Response) => {
     const totalOnboarded = Number(totalResult[0]?.count || 0);
 
     // Transform snake_case to camelCase for frontend
-    const roles = (roleStats.rows as any[]).map(row => ({
+    const roles = (roleStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       userRole: row.user_role,
       count: Number(row.count)
     }));
 
-    const sources = (sourceStats.rows as any[]).map(row => ({
+    const sources = (sourceStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       source: row.source,
       count: Number(row.count)
     }));
 
-    const businessSizes = (sizeStats.rows as any[]).map(row => ({
+    const businessSizes = (sizeStats.rows as OnboardingStatRow[]).map((row: OnboardingStatRow) => ({
       businessSize: row.business_size,
       count: Number(row.count)
     }));
@@ -439,7 +473,7 @@ router.get("/analytics/onboarding", async (req: Request, res: Response) => {
 // ============ USER MANAGEMENT ENDPOINTS ============
 
 // Search and list users
-router.get("/users", async (req: Request, res: Response) => {
+router.get("/users", async (req: Request, res: Response): Promise<void> => {
   try {
     const search = req.query.search as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -453,14 +487,14 @@ router.get("/users", async (req: Request, res: Response) => {
         sql`${users.email} ILIKE ${'%' + search + '%'} 
             OR ${users.name} ILIKE ${'%' + search + '%'}
             OR ${users.username} ILIKE ${'%' + search + '%'}`
-      ) as any;
+      ) as typeof query;
     }
 
     const usersList = await query;
 
     // Get total count
     const totalResult = await db.select({ count: count() }).from(users);
-    const total = totalResult[0]?.count || 0;
+    const total = Number(totalResult[0]?.count || 0);
 
     res.json({
       users: usersList,
@@ -478,7 +512,7 @@ router.get("/users", async (req: Request, res: Response) => {
 });
 
 // Get specific user details
-router.get("/users/:userId", async (req: Request, res: Response) => {
+router.get("/users/:userId", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
 
@@ -488,7 +522,8 @@ router.get("/users/:userId", async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     // Get user's leads
@@ -547,7 +582,7 @@ router.get("/users/:userId", async (req: Request, res: Response) => {
 });
 
 // Get user activity timeline
-router.get("/users/:userId/activity", async (req: Request, res: Response) => {
+router.get("/users/:userId/activity", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit as string) || 50;
@@ -579,8 +614,8 @@ router.get("/users/:userId/activity", async (req: Request, res: Response) => {
       .limit(limit);
 
     // Combine and sort by timestamp
-    const activity = [...recentLeads, ...recentMessages]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    const activity = ([...recentLeads, ...recentMessages] as ActivityItem[])
+      .sort((a: ActivityItem, b: ActivityItem) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, limit);
 
     res.json({ activity });
@@ -593,7 +628,7 @@ router.get("/users/:userId/activity", async (req: Request, res: Response) => {
 // ============ LEAD MANAGEMENT ============
 
 // Get all leads (read-only view)
-router.get("/leads", async (req: Request, res: Response) => {
+router.get("/leads", async (req: Request, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -616,18 +651,18 @@ router.get("/leads", async (req: Request, res: Response) => {
       .orderBy(desc(leads.createdAt));
 
     const conditions = [];
-    if (status) conditions.push(eq(leads.status, status as any));
-    if (channel) conditions.push(eq(leads.channel, channel as any));
+    if (status) conditions.push(eq(leads.status, status as "new" | "open" | "replied" | "converted" | "not_interested" | "cold"));
+    if (channel) conditions.push(eq(leads.channel, channel as "instagram" | "whatsapp" | "email"));
 
     if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
+      query = query.where(and(...conditions)) as typeof query;
     }
 
     const leadsList = await query;
 
     // Get total count
     const totalResult = await db.select({ count: count() }).from(leads);
-    const total = totalResult[0]?.count || 0;
+    const total = Number(totalResult[0]?.count || 0);
 
     res.json({
       leads: leadsList,
@@ -650,19 +685,20 @@ router.get("/leads", async (req: Request, res: Response) => {
 
 // Direct upgrade user to any plan (no payment required)
 // Used for: whitelisted team members, promotions, testing
-router.post("/users/:userId/upgrade", async (req: Request, res: Response) => {
+router.post("/users/:userId/upgrade", async (req: Request, res: Response): Promise<void> => {
   try {
     const { userId } = req.params;
     const { plan } = req.body;
-    const adminId = (req as any).user?.id;
+    const adminId = req.user?.id;
 
     // Validate plan
     const validPlans = ['free', 'trial', 'starter', 'pro', 'enterprise'];
     if (!plan || !validPlans.includes(plan)) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: "Invalid plan",
         validPlans 
       });
+      return;
     }
 
     // Get target user
@@ -673,7 +709,8 @@ router.post("/users/:userId/upgrade", async (req: Request, res: Response) => {
       .limit(1);
 
     if (!targetUser.length) {
-      return res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     const oldPlan = targetUser[0].plan;
@@ -710,12 +747,13 @@ router.post("/users/:userId/upgrade", async (req: Request, res: Response) => {
 });
 
 // Get user by email (for admin lookup)
-router.get("/users/lookup", async (req: Request, res: Response) => {
+router.get("/users/lookup", async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.query;
 
     if (!email || typeof email !== 'string') {
-      return res.status(400).json({ error: "Email query parameter required" });
+      res.status(400).json({ error: "Email query parameter required" });
+      return;
     }
 
     const user = await db
@@ -734,7 +772,8 @@ router.get("/users/lookup", async (req: Request, res: Response) => {
       .limit(1);
 
     if (!user.length) {
-      return res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     res.json({ user: user[0] });
@@ -747,7 +786,7 @@ router.get("/users/lookup", async (req: Request, res: Response) => {
 // ============ ADMIN WHITELIST ============
 
 // Get admin whitelist
-router.get("/whitelist", async (req: Request, res: Response) => {
+router.get("/whitelist", async (req: Request, res: Response): Promise<void> => {
   try {
     const whitelist = await db.execute(sql`
       SELECT * FROM admin_whitelist 
@@ -762,13 +801,14 @@ router.get("/whitelist", async (req: Request, res: Response) => {
 });
 
 // Add email to whitelist
-router.post("/whitelist", async (req: Request, res: Response) => {
+router.post("/whitelist", async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
-    const adminId = (req as any).user?.id;
+    const adminId = req.user?.id;
 
     if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "Valid email is required" });
+      res.status(400).json({ error: "Valid email is required" });
+      return;
     }
 
     const result = await db.execute(sql`
@@ -786,7 +826,7 @@ router.post("/whitelist", async (req: Request, res: Response) => {
 });
 
 // Remove email from whitelist
-router.delete("/whitelist/:email", async (req: Request, res: Response) => {
+router.delete("/whitelist/:email", async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.params;
 

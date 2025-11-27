@@ -1,8 +1,13 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
 import { requireAuth, requireAdmin } from "../middleware/auth";
 import multer from "multer";
-import { storage } from "../storage";
+
+interface PDFCheckItem {
+  name: string;
+  present: boolean;
+  required: boolean;
+  weight: number;
+}
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -46,7 +51,7 @@ router.post(
       }
 
       // ============ ANALYSIS CHECKLIST ============
-      const checks = [
+      const checks: PDFCheckItem[] = [
         {
           name: "Company Overview",
           present: /company|business|about|overview|who we are|what we do/.test(pdfContent),
@@ -233,7 +238,7 @@ router.post(
 );
 
 // ============ HELPER: Build Instant Summary ============
-function buildSummary(checks: any[], fileName: string): string {
+function buildSummary(checks: PDFCheckItem[], _fileName: string): string {
   const present = checks.filter((c) => c.present).map((c) => c.name);
 
   if (present.length === 0) {

@@ -1,5 +1,4 @@
-/* @ts-nocheck */
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { requireAuth } from "../middleware/auth";
 import OpenAI from "openai";
 
@@ -8,20 +7,53 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",
 });
 
+interface LeadProfileInput {
+  firstName: string;
+  company?: string;
+  industry?: string;
+  painPoint?: string;
+}
+
+interface BrandContextInput {
+  companyName: string;
+  businessDescription: string;
+  targetAudience?: string;
+  tone?: string;
+  offer?: string;
+}
+
+interface AnalysisDataInput {
+  overall_score?: number;
+}
+
+interface SuggestBestRequestBody {
+  leadProfile: LeadProfileInput;
+  brandContext: BrandContextInput;
+  analysisData?: AnalysisDataInput;
+  messageType?: string;
+}
+
+interface SuggestFollowUpRequestBody {
+  lastMessage: string;
+  leadProfile: LeadProfileInput;
+  brandContext: BrandContextInput;
+  conversationHistory?: unknown[];
+}
+
 /**
  * POST /api/ai/suggest-best
  * INSTANT: Generate best sales-ready copy based on context
  * (No waiting for 7 days - works RIGHT NOW)
  */
-router.post("/suggest-best", requireAuth, async (req, res) => {
+router.post("/suggest-best", requireAuth, async (req: Request<unknown, unknown, SuggestBestRequestBody>, res: Response): Promise<void> => {
   try {
     const { leadProfile, brandContext, analysisData, messageType } = req.body;
 
     if (!leadProfile || !brandContext) {
-      return res.status(400).json({ error: "Missing lead or brand context" });
+      res.status(400).json({ error: "Missing lead or brand context" });
+      return;
     }
 
-    // Build context for AI
     const prompt = `You are a world-class sales closer. Generate the BEST sales-ready message RIGHT NOW.
 
 LEAD:
@@ -89,12 +121,13 @@ For each, include 2-line reasoning why it works.`;
  * POST /api/ai/suggest-instant-follow-up
  * Generate instant follow-up based on lead response
  */
-router.post("/suggest-instant-follow-up", requireAuth, async (req, res) => {
+router.post("/suggest-instant-follow-up", requireAuth, async (req: Request<unknown, unknown, SuggestFollowUpRequestBody>, res: Response): Promise<void> => {
   try {
-    const { lastMessage, leadProfile, brandContext, conversationHistory } = req.body;
+    const { lastMessage, leadProfile, brandContext } = req.body;
 
     if (!lastMessage || !leadProfile) {
-      return res.status(400).json({ error: "Missing message or lead" });
+      res.status(400).json({ error: "Missing message or lead" });
+      return;
     }
 
     const prompt = `Lead just said: "${lastMessage}"

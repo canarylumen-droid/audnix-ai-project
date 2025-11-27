@@ -1,11 +1,23 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
+import { db } from "../db";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
-import { createStripeCustomer } from "../lib/billing/stripe";
 import { sql } from "drizzle-orm";
 
 const router = Router();
+
+interface PaymentSessionRow {
+  id: number;
+  user_id: string;
+  stripe_session_id: string;
+  plan: string;
+  amount: number;
+  expires_at: string;
+  subscription_id: string;
+  status: string;
+  verified_at?: string | null;
+  created_at?: string;
+}
 
 const PLAN_AMOUNTS: Record<string, number> = {
   starter: 4900, // $49
@@ -18,19 +30,21 @@ const PLAN_AMOUNTS: Record<string, number> = {
  * Create Stripe checkout session for user
  * SECURITY: Uses parameterized queries to prevent SQL injection
  */
-router.post("/checkout-session", requireAuth, async (req: Request, res: Response) => {
+router.post("/checkout-session", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { plan } = req.body;
+    const { plan } = req.body as { plan: unknown };
 
     // Validate plan
     if (!plan || typeof plan !== 'string' || !PLAN_AMOUNTS[plan]) {
-      return res.status(400).json({ error: "Invalid plan" });
+      res.status(400).json({ error: "Invalid plan" });
+      return;
     }
 
     const user = await storage.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     // For development: return a simulated session ID
@@ -41,7 +55,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
     // Create payment session in database using parameterized query
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     
-    await storage.db.execute(sql`
+    await db.execute(sql`
       INSERT INTO payment_sessions 
       (user_id, stripe_session_id, plan, amount, expires_at, subscription_id, status)
       VALUES (${userId}, ${sessionId}, ${plan}, ${PLAN_AMOUNTS[plan] / 100}, ${expiresAt.toISOString()}, ${subscriptionId}, 'pending')
@@ -49,7 +63,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
 
     console.log(`💳 Payment session created: ${sessionId} for ${user.email} (${plan})`);
 
-    return res.json({
+    res.json({
       success: true,
       sessionId,
       subscriptionId,
@@ -57,7 +71,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
       amount: PLAN_AMOUNTS[plan] / 100,
       checkoutUrl: `https://checkout.stripe.com/pay/${sessionId}`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating checkout session:", error);
     res.status(500).json({ error: "Failed to create checkout session" });
   }
@@ -68,40 +82,43 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
  * Verify payment session and mark user as pending approval
  * SECURITY: Uses parameterized queries to prevent SQL injection
  */
-router.post("/verify-session", requireAuth, async (req: Request, res: Response) => {
+router.post("/verify-session", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { sessionId } = req.body;
+    const { sessionId } = req.body as { sessionId: unknown };
 
     // Validate input
     if (!sessionId || typeof sessionId !== 'string' || sessionId.length === 0) {
-      return res.status(400).json({ error: "Session ID required" });
+      res.status(400).json({ error: "Session ID required" });
+      return;
     }
 
     // Fetch session from database using parameterized query
-    const result = await storage.db.execute(sql`
+    const result = await db.execute(sql`
       SELECT * FROM payment_sessions 
       WHERE stripe_session_id = ${sessionId} AND user_id = ${userId} AND status = 'pending'
       LIMIT 1
     `);
 
     if (!result || result.rows.length === 0) {
-      return res.status(404).json({ error: "Session not found or already verified" });
+      res.status(404).json({ error: "Session not found or already verified" });
+      return;
     }
 
-    const session = result.rows[0];
+    const session = result.rows[0] as PaymentSessionRow;
 
     // Check if expired
     if (new Date(session.expires_at) < new Date()) {
-      await storage.db.execute(sql`
+      await db.execute(sql`
         UPDATE payment_sessions SET status = 'expired' 
         WHERE stripe_session_id = ${sessionId}
       `);
-      return res.status(400).json({ error: "Payment session expired" });
+      res.status(400).json({ error: "Payment session expired" });
+      return;
     }
 
     // Mark session as completed using parameterized query
-    await storage.db.execute(sql`
+    await db.execute(sql`
       UPDATE payment_sessions 
       SET status = 'completed', verified_at = NOW() 
       WHERE stripe_session_id = ${sessionId}
@@ -109,7 +126,8 @@ router.post("/verify-session", requireAuth, async (req: Request, res: Response) 
 
     const user = await storage.getUserById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: "User not found" });
+      return;
     }
 
     // Mark user as pending approval
@@ -122,14 +140,14 @@ router.post("/verify-session", requireAuth, async (req: Request, res: Response) 
 
     console.log(`✅ Payment verified: ${user.email} (${session.plan} - $${session.amount}) - Subscription ID: ${session.subscription_id}`);
 
-    return res.json({
+    res.json({
       success: true,
       message: "Payment verified. Pending admin approval.",
       subscriptionId: session.subscription_id,
       plan: session.plan,
       amount: session.amount,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error verifying payment:", error);
     res.status(500).json({ error: "Failed to verify payment" });
   }

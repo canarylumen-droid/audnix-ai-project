@@ -1,50 +1,44 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 
 const router = Router();
 
-// Only initialize Stripe if API key is provided
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
   apiVersion: '2023-10-16',
 }) : null;
 
-/**
- * POST /api/stripe/confirm-payment
- * Real-time payment confirmation (no Replit dependency)
- * Works anywhere: Vercel, local, any server
- */
-router.post('/confirm-payment', async (req: Request, res: Response) => {
+router.post('/confirm-payment', async (req: Request, res: Response): Promise<void> => {
   try {
     if (!stripe) {
-      return res.status(503).json({ error: 'Stripe not configured' });
+      res.status(503).json({ error: 'Stripe not configured' });
+      return;
     }
 
-    const { sessionId, subscriptionId } = req.body;
+    const { sessionId } = req.body as { sessionId?: string; subscriptionId?: string };
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'Session ID required' });
+      res.status(400).json({ error: 'Session ID required' });
+      return;
     }
 
-    // Retrieve checkout session
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      res.status(404).json({ error: 'Session not found' });
+      return;
     }
 
-    // Check payment status
     if (session.payment_status !== 'paid') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Payment not completed',
         status: session.payment_status,
       });
+      return;
     }
 
-    // Get subscription details
-    let subscription = null;
+    let subscription: Stripe.Subscription | null = null;
     if (session.subscription) {
       subscription = await stripe.subscriptions.retrieve(session.subscription as string);
     }
@@ -56,7 +50,7 @@ router.post('/confirm-payment', async (req: Request, res: Response) => {
         id: subscription.id,
         status: subscription.status,
         currentPeriodEnd: subscription.current_period_end,
-        items: subscription.items.data.map(item => ({
+        items: subscription.items.data.map((item: Stripe.SubscriptionItem) => ({
           priceId: item.price.id,
           product: item.price.product,
           amount: item.price.unit_amount,
@@ -65,25 +59,28 @@ router.post('/confirm-payment', async (req: Request, res: Response) => {
       } : null,
       customerEmail: session.customer_details?.email,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Confirmation failed';
     console.error('Payment confirmation error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Confirmation failed',
+      error: errorMessage,
     });
   }
 });
 
-/**
- * POST /api/stripe/verify-subscription
- * Verify user subscription status
- */
-router.post('/verify-subscription', async (req: Request, res: Response) => {
+router.post('/verify-subscription', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { subscriptionId } = req.body;
+    if (!stripe) {
+      res.status(503).json({ error: 'Stripe not configured' });
+      return;
+    }
+
+    const { subscriptionId } = req.body as { subscriptionId?: string };
 
     if (!subscriptionId) {
-      return res.status(400).json({ error: 'Subscription ID required' });
+      res.status(400).json({ error: 'Subscription ID required' });
+      return;
     }
 
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -95,34 +92,34 @@ router.post('/verify-subscription', async (req: Request, res: Response) => {
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
       plan: subscription.items.data[0]?.price?.nickname,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Verification failed';
     console.error('Subscription verification error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: errorMessage,
     });
   }
 });
 
-/**
- * POST /api/stripe/admin/bypass-check
- * Admin dashboard: Check if payment bypass attempted
- * Returns: payment was legitimate or fraudulent
- */
-router.post('/admin/bypass-check', async (req: Request, res: Response) => {
+router.post('/admin/bypass-check', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { sessionId, expectedAmount } = req.body;
+    if (!stripe) {
+      res.status(503).json({ error: 'Stripe not configured' });
+      return;
+    }
+
+    const { sessionId, expectedAmount } = req.body as { sessionId?: string; expectedAmount?: number };
 
     if (!sessionId) {
-      return res.status(400).json({ error: 'Session ID required' });
+      res.status(400).json({ error: 'Session ID required' });
+      return;
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // Verify amount matches expected
     const amountMismatch = expectedAmount && session.amount_total !== expectedAmount * 100;
 
-    // Check for fraud indicators
     const fraudIndicators = {
       paymentStatusNotPaid: session.payment_status !== 'paid',
       amountMismatch,
@@ -130,7 +127,7 @@ router.post('/admin/bypass-check', async (req: Request, res: Response) => {
       sessionExpired: new Date(session.created * 1000).getTime() < Date.now() - 24 * 60 * 60 * 1000,
     };
 
-    const isFraudulent = Object.values(fraudIndicators).some(v => v);
+    const isFraudulent = Object.values(fraudIndicators).some((v): boolean => Boolean(v));
 
     res.json({
       success: true,
@@ -139,15 +136,16 @@ router.post('/admin/bypass-check', async (req: Request, res: Response) => {
       sessionDetails: {
         id: session.id,
         paymentStatus: session.payment_status,
-        amount: session.amount_total / 100,
+        amount: (session.amount_total ?? 0) / 100,
         currency: session.currency,
         customer: session.customer_details?.email,
         createdAt: new Date(session.created * 1000),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Bypass check failed';
     console.error('Bypass check error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: errorMessage });
   }
 });
 

@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from 'express';
 import { twilioEmailOTP } from '../lib/auth/twilio-email-otp';
 import { storage } from '../storage';
@@ -6,10 +5,22 @@ import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
-// Rate limiting for OTP requests
+interface RequestOTPBody {
+  email: string;
+}
+
+interface VerifyOTPBody {
+  email: string;
+  otp: string;
+}
+
+interface ResendOTPBody {
+  email: string;
+}
+
 const otpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // 3 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 3,
   message: 'Too many OTP requests. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -19,15 +30,15 @@ const otpLimiter = rateLimit({
  * POST /api/auth/email-otp/request
  * Request OTP for email
  */
-router.post('/email-otp/request', otpLimiter, async (req: Request, res: Response) => {
+router.post('/email-otp/request', otpLimiter, async (req: Request<Record<string, string>, unknown, RequestOTPBody>, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Valid email required' });
+      res.status(400).json({ error: 'Valid email required' });
+      return;
     }
 
-    // Debug: Log env vars loaded
     const hasSendgridKey = !!process.env.TWILIO_SENDGRID_API_KEY;
     const emailFrom = process.env.TWILIO_EMAIL_FROM || 'auth@audnixai.com';
     
@@ -37,14 +48,16 @@ router.post('/email-otp/request', otpLimiter, async (req: Request, res: Response
 
     if (!twilioEmailOTP.isConfigured()) {
       console.error('❌ OTP Service Not Configured');
-      return res.status(503).json({ error: 'Email OTP service not configured' });
+      res.status(503).json({ error: 'Email OTP service not configured' });
+      return;
     }
 
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
       console.error(`❌ OTP Send Failed: ${result.error}`);
-      return res.status(400).json({ error: result.error || 'Failed to send OTP' });
+      res.status(400).json({ error: result.error || 'Failed to send OTP' });
+      return;
     }
 
     console.log(`✅ OTP Sent Successfully to ${email}`);
@@ -53,7 +66,7 @@ router.post('/email-otp/request', otpLimiter, async (req: Request, res: Response
       message: 'OTP sent to your email',
       expiresIn: '10 minutes',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error requesting email OTP:', error);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
@@ -63,24 +76,24 @@ router.post('/email-otp/request', otpLimiter, async (req: Request, res: Response
  * POST /api/auth/email-otp/verify
  * Verify OTP and login
  */
-router.post('/email-otp/verify', otpLimiter, async (req: Request, res: Response) => {
+router.post('/email-otp/verify', otpLimiter, async (req: Request<Record<string, string>, unknown, VerifyOTPBody>, res: Response): Promise<void> => {
   try {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP required' });
+      res.status(400).json({ error: 'Email and OTP required' });
+      return;
     }
 
     const verifyResult = await twilioEmailOTP.verifyEmailOTP(email, otp);
 
     if (!verifyResult.success) {
-      return res.status(400).json({ error: verifyResult.error });
+      res.status(400).json({ error: verifyResult.error });
+      return;
     }
 
-    // Check if user exists
     let user = await storage.getUserByEmail(email);
 
-    // Create user if doesn't exist (signup)
     if (!user) {
       user = await storage.createUser({
         email,
@@ -89,9 +102,8 @@ router.post('/email-otp/verify', otpLimiter, async (req: Request, res: Response)
       });
     }
 
-    // Set session
-    (req as any).session.userId = user.id;
-    (req as any).session.email = email;
+    req.session.userId = user.id;
+    req.session.email = email;
 
     res.json({
       success: true,
@@ -103,7 +115,7 @@ router.post('/email-otp/verify', otpLimiter, async (req: Request, res: Response)
         plan: user.plan,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error verifying email OTP:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
@@ -113,25 +125,27 @@ router.post('/email-otp/verify', otpLimiter, async (req: Request, res: Response)
  * POST /api/auth/email-otp/resend
  * Resend OTP
  */
-router.post('/email-otp/resend', otpLimiter, async (req: Request, res: Response) => {
+router.post('/email-otp/resend', otpLimiter, async (req: Request<Record<string, string>, unknown, ResendOTPBody>, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email required' });
+      res.status(400).json({ error: 'Email required' });
+      return;
     }
 
     const result = await twilioEmailOTP.resendEmailOTP(email);
 
     if (!result.success) {
-      return res.status(400).json({ error: result.error });
+      res.status(400).json({ error: result.error });
+      return;
     }
 
     res.json({
       success: true,
       message: 'New OTP sent to your email',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error resending OTP:', error);
     res.status(500).json({ error: 'Failed to resend OTP' });
   }

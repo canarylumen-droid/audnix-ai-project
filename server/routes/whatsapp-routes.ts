@@ -1,5 +1,4 @@
-/* @ts-nocheck */
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { whatsAppService } from '../lib/integrations/whatsapp-web';
 import { requireAuth, getCurrentUserId } from '../middleware/auth';
 import { whatsappLimiter } from '../middleware/rate-limit';
@@ -7,10 +6,7 @@ import { storage } from '../storage';
 
 const router = Router();
 
-// WhatsApp Web.js - QR CODE AUTHENTICATION ONLY
-// NO OTP support - users must scan QR code with their phone
-// This is how WhatsApp Web works - it's the only method available
-router.post('/connect', requireAuth, async (req, res) => {
+router.post('/connect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     await whatsAppService.initializeClient(userId);
@@ -28,17 +24,18 @@ router.post('/connect', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/qr', requireAuth, async (req, res) => {
+router.get('/qr', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const qrCode = whatsAppService.getQRCode(userId);
     const status = whatsAppService.getStatus(userId);
 
     if (!qrCode && status !== 'ready' && status !== 'authenticated') {
-      return res.status(404).json({
+      res.status(404).json({
         error: 'No QR code available. Please initiate connection first.',
         status,
       });
+      return;
     }
 
     res.json({
@@ -54,7 +51,7 @@ router.get('/qr', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const status = whatsAppService.getStatus(userId);
@@ -73,7 +70,7 @@ router.get('/status', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
@@ -86,7 +83,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
           ...(user.metadata ?? {}),
           whatsapp_connected: false,
           whatsapp_disconnected_at: new Date().toISOString(),
-        } as any,
+        } as Record<string, unknown>,
       });
     }
 
@@ -102,21 +99,29 @@ router.post('/disconnect', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
+interface SendMessageBody {
+  phoneNumber: string;
+  message: string;
+  leadId?: string;
+}
+
+router.post('/send', requireAuth, whatsappLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { phoneNumber, message, leadId } = req.body;
+    const { phoneNumber, message, leadId } = req.body as SendMessageBody;
 
     if (!phoneNumber || !message) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Phone number and message are required',
       });
+      return;
     }
 
     if (!whatsAppService.isReady(userId)) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'WhatsApp not connected. Please connect first.',
       });
+      return;
     }
 
     const result = await whatsAppService.sendMessage(userId, phoneNumber, message);
@@ -140,10 +145,11 @@ router.post('/send', requireAuth, whatsappLimiter, async (req, res) => {
       message: 'Message sent successfully',
       messageId: result.messageId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending WhatsApp message:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
     res.status(500).json({
-      error: error.message || 'Failed to send message',
+      error: errorMessage,
     });
   }
 });

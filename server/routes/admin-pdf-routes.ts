@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import { Router, Request, Response } from "express";
 import { requireAuth, getCurrentUserId } from "../middleware/auth";
 import multer from "multer";
@@ -29,11 +28,14 @@ interface BrandExtraction {
   };
 }
 
+type DeepMergeValue = string | number | boolean | null | undefined | DeepMergeValue[] | { [key: string]: DeepMergeValue };
+type DeepMergeObject = Record<string, DeepMergeValue>;
+
 /**
  * Deep merge two objects, properly handling nested objects and arrays
  */
-function deepMerge(target: any, source: any): any {
-  const result = { ...target };
+function deepMerge(target: DeepMergeObject, source: DeepMergeObject): DeepMergeObject {
+  const result: DeepMergeObject = { ...target };
   
   for (const key in source) {
     if (source[key] === null || source[key] === undefined) {
@@ -41,15 +43,34 @@ function deepMerge(target: any, source: any): any {
     }
     
     if (Array.isArray(source[key])) {
-      result[key] = [...(result[key] || []), ...source[key]];
+      const targetArray = result[key];
+      const sourceArray = source[key] as DeepMergeValue[];
+      result[key] = [...(Array.isArray(targetArray) ? targetArray : []), ...sourceArray];
     } else if (typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      result[key] = deepMerge(result[key] || {}, source[key]);
+      const targetObj = result[key];
+      const sourceObj = source[key] as DeepMergeObject;
+      result[key] = deepMerge(
+        (typeof targetObj === 'object' && targetObj !== null && !Array.isArray(targetObj)) 
+          ? targetObj as DeepMergeObject 
+          : {}, 
+        sourceObj
+      );
     } else {
       result[key] = source[key];
     }
   }
   
   return result;
+}
+
+/**
+ * Helper function to safely get error message
+ */
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 /**
@@ -61,10 +82,11 @@ router.post(
   "/analyze",
   requireAuth,
   upload.single("pdf"),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No PDF provided" });
+        res.status(400).json({ error: "No PDF provided" });
+        return;
       }
 
       const pdfParse = require("pdf-parse");
@@ -91,7 +113,7 @@ router.post(
         .filter((c) => c.required && !c.present)
         .map((c) => c.name);
 
-      return res.json({
+      res.json({
         overall_score: score,
         items: checks,
         missing_critical: missingCritical,
@@ -108,9 +130,9 @@ router.post(
             : null,
         ].filter(Boolean),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error analyzing PDF:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   }
 );
@@ -124,32 +146,36 @@ router.post(
   "/upload",
   requireAuth,
   upload.single("pdf"),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = getCurrentUserId(req);
       if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        res.status(401).json({ error: "Not authenticated" });
+        return;
       }
 
       if (!req.file) {
-        return res.status(400).json({ error: "No PDF provided" });
+        res.status(400).json({ error: "No PDF provided" });
+        return;
       }
 
       const user = await storage.getUserById(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        res.status(404).json({ error: "User not found" });
+        return;
       }
 
       // Parse PDF
       const pdfParse = require("pdf-parse");
       const data = await pdfParse(req.file.buffer);
-      const pdfText = data.text;
+      const pdfText: string = data.text;
 
       if (!pdfText || pdfText.length < 50) {
-        return res.status(400).json({ 
+        res.status(400).json({ 
           error: "PDF appears to be empty or too short",
           message: "Please upload a PDF with your brand information (at least 50 characters)"
         });
+        return;
       }
 
       // Extract brand context using AI
@@ -190,9 +216,9 @@ Only include fields you can confidently extract. Return valid JSON only.`
 
           const response = completion.choices[0].message.content;
           if (response) {
-            brandContext = JSON.parse(response);
+            brandContext = JSON.parse(response) as BrandExtraction;
           }
-        } catch (aiError) {
+        } catch (aiError: unknown) {
           console.warn("AI extraction failed, using regex fallback:", aiError);
         }
       }
@@ -200,12 +226,12 @@ Only include fields you can confidently extract. Return valid JSON only.`
       // Fallback: Extract basic info with regex
       if (!brandContext.companyName) {
         const companyMatch = pdfText.match(/(?:company|brand|business)\s*(?:name)?[:\s]+([A-Z][a-zA-Z\s]+)/i);
-        brandContext.companyName = companyMatch?.[1]?.trim() || user.businessName || user.name;
+        brandContext.companyName = companyMatch?.[1]?.trim() || user.businessName || user.name || undefined;
       }
 
       // Deep merge with existing metadata to preserve nested objects
-      const existingMetadata = user.metadata || {};
-      const brandMetadata = {
+      const existingMetadata = (user.metadata || {}) as DeepMergeObject;
+      const brandMetadata: DeepMergeObject = {
         companyName: brandContext.companyName,
         businessDescription: brandContext.businessDescription,
         industry: brandContext.industry,
@@ -233,7 +259,7 @@ Only include fields you can confidently extract. Return valid JSON only.`
 
       console.log(`✅ Brand PDF uploaded and processed for user ${userId}`);
 
-      return res.json({
+      res.json({
         success: true,
         message: "Brand PDF uploaded and processed successfully",
         extracted: {
@@ -245,9 +271,9 @@ Only include fields you can confidently extract. Return valid JSON only.`
           hasObjections: Object.keys(brandContext.objections || {}).length > 0,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error uploading brand PDF:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   }
 );
@@ -259,21 +285,23 @@ Only include fields you can confidently extract. Return valid JSON only.`
 router.get(
   "/context",
   requireAuth,
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = getCurrentUserId(req);
       if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        res.status(401).json({ error: "Not authenticated" });
+        return;
       }
 
       const user = await storage.getUserById(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        res.status(404).json({ error: "User not found" });
+        return;
       }
 
-      const metadata = user.metadata || {};
+      const metadata = (user.metadata || {}) as Record<string, unknown>;
 
-      return res.json({
+      res.json({
         hasBrandPdf: !!metadata.brandPdfUploadedAt,
         brandContext: {
           companyName: metadata.companyName || user.businessName,
@@ -291,9 +319,9 @@ router.get(
         uploadedAt: metadata.brandPdfUploadedAt,
         fileName: metadata.brandPdfFileName,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error fetching brand context:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   }
 );
@@ -305,39 +333,41 @@ router.get(
 router.patch(
   "/context",
   requireAuth,
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = getCurrentUserId(req);
       if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        res.status(401).json({ error: "Not authenticated" });
+        return;
       }
 
       const user = await storage.getUserById(userId);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        res.status(404).json({ error: "User not found" });
+        return;
       }
 
-      const updates = req.body;
-      const existingMetadata = user.metadata || {};
+      const updates = req.body as Record<string, unknown>;
+      const existingMetadata = (user.metadata || {}) as DeepMergeObject;
 
       // Deep merge updates with existing metadata
       const updatedMetadata = deepMerge(existingMetadata, {
         ...updates,
         brandContextUpdatedAt: new Date().toISOString(),
-      });
+      } as DeepMergeObject);
 
       await storage.updateUser(userId, {
         metadata: updatedMetadata,
-        businessName: updates.companyName || user.businessName,
+        businessName: (updates.companyName as string | undefined) || user.businessName,
       });
 
-      return res.json({
+      res.json({
         success: true,
         message: "Brand context updated",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating brand context:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   }
 );
