@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * INTEGRATION LAYER
  * Connects Universal Sales Agent with TIER 1 & TIER 4 Features
@@ -11,16 +9,141 @@
  * - Smart objection handling
  */
 
-import { generateOptimizedMessage, universalSalesAI } from "./universal-sales-agent";
+import type { ConversationMessage, BrandContext, LeadProfile } from "@shared/types";
+import type { Lead } from "@shared/schema";
+import { 
+  generateOptimizedMessage, 
+  universalSalesAI,
+  type SalesLeadProfile,
+  type SalesBrandContext,
+  type Testimonial,
+  type OptimizedMessageResult
+} from "./universal-sales-agent";
 import { calculateLeadScore } from "./lead-management";
-import { detectLeadIntent, suggestSmartReply, predictDealAmount, assessChurnRisk } from "./lead-intelligence";
+import { 
+  detectLeadIntent, 
+  suggestSmartReply, 
+  predictDealAmount, 
+  assessChurnRisk,
+  type IntentDetectionResult,
+  type ChurnRiskAssessment,
+  type SmartReplyOption
+} from "./lead-intelligence";
+import { 
+  generateAutonomousObjectionResponse, 
+  recordObjectionLearning 
+} from "./autonomous-objection-responder";
+
+interface LeadWithProfile extends SalesLeadProfile {
+  id: string;
+  name?: string;
+  brandName?: string;
+  userIndustry?: string;
+  pdfContext?: string;
+}
+
+interface ScoringMessage {
+  direction: "inbound" | "outbound";
+  createdAt: Date | string;
+  opened?: boolean;
+  clicked?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+interface ContextAwareMessageResult {
+  message: string;
+  quality: OptimizedMessageResult["quality"];
+  intelligence: {
+    score: number;
+    intent: IntentDetectionResult["intentLevel"];
+    dealValue: number;
+    churnRisk: ChurnRiskAssessment["churnRiskLevel"];
+  };
+  explanation: string;
+  autonomousClosing: string;
+}
+
+interface AutoObjectionResponse {
+  response: string;
+  strategy: string;
+  confidence: number;
+  nextAction: string;
+}
+
+interface LeadResponseResult {
+  intent: IntentDetectionResult;
+  suggestedReplies: SmartReplyOption[];
+  autonomousResponse: AutoObjectionResponse | null;
+  nextAction: string;
+}
+
+interface FollowUpResult {
+  action: "skip" | "wait" | "send_followup";
+  reason?: string;
+  days_until_next_followup?: number;
+  message?: string;
+  type?: string;
+  reasoning?: string;
+}
+
+function convertToSchemaLead(lead: LeadWithProfile): Lead {
+  return {
+    id: lead.id,
+    userId: lead.id,
+    externalId: null,
+    name: lead.name || lead.firstName || "Lead",
+    email: lead.email || null,
+    phone: lead.phone || null,
+    channel: "email" as const,
+    status: "new" as const,
+    score: 0,
+    warm: false,
+    lastMessageAt: null,
+    aiPaused: false,
+    pdfConfidence: null,
+    tags: [],
+    metadata: lead.metadata || {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+}
+
+function convertToLeadProfile(lead: LeadWithProfile): LeadProfile {
+  return {
+    id: lead.id,
+    userId: lead.id,
+    name: lead.name || lead.firstName || "Lead",
+    firstName: lead.firstName,
+    email: lead.email,
+    phone: lead.phone,
+    channel: "email" as const,
+    status: "new" as const,
+    score: 0,
+    warm: false,
+    tags: [],
+    metadata: lead.metadata || {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    aiPaused: false,
+  };
+}
+
+function convertToScoringMessages(messages: ConversationMessage[]): ScoringMessage[] {
+  return messages.map(m => ({
+    direction: m.direction,
+    createdAt: m.createdAt,
+    opened: false,
+    clicked: false,
+    metadata: m.metadata
+  }));
+}
 
 export async function generateContextAwareMessage(
-  lead: any,
-  brandContext: any,
-  testimonials: any[],
-  messages: any[] = []
-) {
+  lead: LeadWithProfile,
+  brandContext: SalesBrandContext | BrandContext,
+  testimonials: Testimonial[],
+  messages: ConversationMessage[] = []
+): Promise<ContextAwareMessageResult> {
   /**
    * Generate message that considers:
    * 1. Lead score (warm/hot/cold)
@@ -29,16 +152,20 @@ export async function generateContextAwareMessage(
    * 4. Churn risk (are they slipping?)
    */
 
+  const schemaLead = convertToSchemaLead(lead);
+  const leadProfile = convertToLeadProfile(lead);
+  const scoringMessages = convertToScoringMessages(messages);
+
   // Get all insights in parallel
   const [score, intent, prediction, churnRisk] = await Promise.all([
-    calculateLeadScore(lead, messages),
-    detectLeadIntent(messages, lead),
-    predictDealAmount(lead, messages),
-    assessChurnRisk(lead, messages),
+    calculateLeadScore(schemaLead, scoringMessages),
+    detectLeadIntent(messages, leadProfile),
+    predictDealAmount(leadProfile, messages),
+    assessChurnRisk(leadProfile, messages),
   ]);
 
   // Determine message stage based on intelligence
-  let stage = "cold";
+  let stage: "cold" | "follow_up" | "objection" | "closing" = "cold";
   if (score >= 80 && intent.intentLevel === "high") stage = "closing";
   else if (score >= 60 && intent.buyerStage === "decision") stage = "objection";
   else if (score >= 50) stage = "follow_up";
@@ -64,11 +191,19 @@ export async function generateContextAwareMessage(
     enhancedMessage = enhancedMessage.replace(/\?$/, "? (Perfect timing - let's move forward)");
   }
 
+  // Map stage to messageType for learning
+  const messageTypeMap: Record<string, "cold_outreach" | "follow_up" | "objection_response" | "closing"> = {
+    cold: "cold_outreach",
+    follow_up: "follow_up",
+    objection: "objection_response",
+    closing: "closing"
+  };
+
   // Learn from this generation
   await universalSalesAI.learnFromInteraction({
     leadId: lead.id,
-    messageType: stage,
-    leadResponse: "sent", // will be updated when lead responds
+    messageType: messageTypeMap[stage],
+    leadResponse: "no_response",
     sentiment: "neutral",
     timestamp: new Date(),
   });
@@ -88,10 +223,10 @@ export async function generateContextAwareMessage(
 }
 
 export async function handleLeadResponseWithLearning(
-  lead: any,
+  lead: LeadWithProfile,
   theirMessage: string,
-  messages: any[]
-) {
+  messages: ConversationMessage[]
+): Promise<LeadResponseResult> {
   /**
    * When lead responds:
    * 1. Detect if they're interested
@@ -100,27 +235,38 @@ export async function handleLeadResponseWithLearning(
    * 4. Learn for next time
    */
 
-  // Import autonomous responder
-  const { generateAutonomousObjectionResponse, recordObjectionLearning } = require("./autonomous-objection-responder");
+  const leadProfile = convertToLeadProfile(lead);
+
+  const brandContext: BrandContext = {
+    businessName: lead.brandName || "Our platform",
+    productInfo: {
+      name: lead.brandName || "Our solution",
+    }
+  };
 
   // Get intent immediately
-  const intent = await detectLeadIntent(messages, lead);
+  const intent = await detectLeadIntent(messages, leadProfile);
 
   // AUTONOMOUS OBJECTION HANDLING: If they said "no", "maybe", or raised objection
-  let autonomousResponse = null;
+  let autonomousResponse: AutoObjectionResponse | null = null;
+
+  const lowerMessage = theirMessage.toLowerCase();
   if (intent.intentLevel === "low" || intent.intentLevel === "not_interested" || 
-      theirMessage.toLowerCase().includes("let me") || 
-      theirMessage.toLowerCase().includes("not sure") ||
-      theirMessage.toLowerCase().includes("no") ||
-      theirMessage.toLowerCase().includes("maybe") ||
-      theirMessage.toLowerCase().includes("think")) {
+      lowerMessage.includes("let me") || 
+      lowerMessage.includes("not sure") ||
+      lowerMessage.includes("no") ||
+      lowerMessage.includes("maybe") ||
+      lowerMessage.includes("think")) {
     
     // GENERATE AUTONOMOUS CLOSING RESPONSE
     autonomousResponse = await generateAutonomousObjectionResponse(theirMessage, {
-      leadName: lead.name || "there",
-      leadCompany: lead.company,
-      leadIndustry: lead.metadata?.industry || "general",
-      previousMessages: messages.map((m: any) => ({ role: m.senderType, content: m.body })),
+      leadName: lead.name || lead.firstName || "there",
+      leadCompany: lead.company || lead.companyName,
+      leadIndustry: (lead.metadata?.industry as string) || "general",
+      previousMessages: messages.map((m) => ({ 
+        role: m.direction === "inbound" ? "user" : "assistant", 
+        content: m.body 
+      })),
       brandName: lead.brandName || "Our platform",
       userIndustry: lead.userIndustry || "all",
       pdfContext: lead.pdfContext,
@@ -129,16 +275,16 @@ export async function handleLeadResponseWithLearning(
     // Record what we learned
     await recordObjectionLearning({
       leadId: lead.id,
-      industry: lead.metadata?.industry || "general",
+      industry: (lead.metadata?.industry as string) || "general",
       objectionType: "identified",
       responseUsed: autonomousResponse.response,
       leadReply: theirMessage,
-      dealClosed: false, // Will update when they respond again
+      dealClosed: false,
     });
   }
 
   // Get smart reply suggestions (backup)
-  const smartReplies = await suggestSmartReply(theirMessage, lead, {}, messages);
+  const smartReplies = await suggestSmartReply(theirMessage, leadProfile, brandContext, messages);
 
   // Learn from this interaction
   await universalSalesAI.learnFromInteraction({
@@ -147,20 +293,24 @@ export async function handleLeadResponseWithLearning(
     leadResponse: intent.intentLevel === "high" ? "interested" : "objection",
     sentiment: theirMessage.includes("!") || theirMessage.includes("?") ? "positive" : "neutral",
     timestamp: new Date(),
-    whatWorked: autonomousResponse ? "autonomous objection closed" : autonomousResponse ? "interest increased" : smartReplies[0],
+    whatWorked: autonomousResponse ? "autonomous objection closed" : smartReplies[0]?.reply,
   });
 
   return {
     intent,
     suggestedReplies: smartReplies,
-    autonomousResponse: autonomousResponse || null,
+    autonomousResponse,
     nextAction: autonomousResponse 
       ? "Send autonomous closing response - turn objection to YES" 
       : intent.intentLevel === "high" ? "Schedule call" : "Send case study",
   };
 }
 
-export async function autoGenerateFollowUp(lead: any, messages: any[], daysSinceLastContact: number) {
+export async function autoGenerateFollowUp(
+  lead: LeadWithProfile, 
+  messages: ConversationMessage[], 
+  daysSinceLastContact: number
+): Promise<FollowUpResult> {
   /**
    * Automatically generate best follow-up based on:
    * - Lead score
@@ -169,11 +319,15 @@ export async function autoGenerateFollowUp(lead: any, messages: any[], daysSince
    * - Deal value
    */
 
-  const score = await calculateLeadScore(lead, messages);
-  const intent = await detectLeadIntent(messages, lead);
+  const schemaLead = convertToSchemaLead(lead);
+  const leadProfile = convertToLeadProfile(lead);
+  const scoringMessages = convertToScoringMessages(messages);
+
+  const score = await calculateLeadScore(schemaLead, scoringMessages);
+  const intent = await detectLeadIntent(messages, leadProfile);
 
   // Skip if too hot (already in conversation)
-  if (messages[messages.length - 1] && daysSinceLastContact < 1) {
+  if (messages.length > 0 && messages[messages.length - 1] && daysSinceLastContact < 1) {
     return { action: "skip", reason: "Lead responded recently" };
   }
 
@@ -201,13 +355,16 @@ export async function autoGenerateFollowUp(lead: any, messages: any[], daysSince
 
   // Generate contextual follow-up
   let followUpMessage = "";
+  const industry = (lead.metadata?.industry as string) || "your industry";
+  const company = lead.company || lead.companyName || "your company";
+  const firstName = lead.firstName || "there";
 
   if (followUpType === "urgency") {
-    followUpMessage = `Quick update: We've helped ${lead.metadata?.industry} companies like yours see results in 30 days. Timeline working for you?`;
+    followUpMessage = `Quick update: We've helped ${industry} companies like yours see results in 30 days. Timeline working for you?`;
   } else if (followUpType === "value") {
-    followUpMessage = `Sarah, wanted to share a case study that might be relevant to ${lead.metadata?.company}. Similar company: 40% faster results. Worth a 5-min chat?`;
+    followUpMessage = `${firstName}, wanted to share a case study that might be relevant to ${company}. Similar company: 40% faster results. Worth a 5-min chat?`;
   } else {
-    followUpMessage = `Different angle on ${lead.metadata?.company}: Most of your competitors are missing one key thing. Can I show you?`;
+    followUpMessage = `Different angle on ${company}: Most of your competitors are missing one key thing. Can I show you?`;
   }
 
   return {

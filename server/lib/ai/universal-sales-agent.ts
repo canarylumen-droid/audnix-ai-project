@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * UNIVERSAL AI SALES AGENT v4
  * ================================
@@ -21,10 +19,74 @@
  */
 
 import OpenAI from "openai";
+import type { BrandContext } from "@shared/types";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",
 });
+
+export interface SalesLeadProfile {
+  id?: string;
+  firstName: string;
+  lastName?: string;
+  companyName?: string;
+  company?: string;
+  industry?: string;
+  painPoint?: string;
+  companySize?: string;
+  email?: string;
+  phone?: string;
+  stage?: "awareness" | "consideration" | "decision";
+  temperature?: "hot" | "warm" | "cold";
+  tags?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface SalesBrandContext {
+  businessName?: string;
+  companyName?: string;
+  industry?: string;
+  niche?: string;
+  offer?: string;
+  positioning?: "premium" | "mid" | "volume";
+  voiceRules?: string;
+  brandColors?: string;
+  brandSnippets?: string[];
+  senderName?: string;
+  productInfo?: {
+    name?: string;
+    description?: string;
+    price?: string;
+    features?: string[];
+    benefits?: string[];
+  };
+}
+
+export interface MessageQualityResult {
+  isGood: boolean;
+  issues: string[];
+  score: number;
+  suggestions: string[];
+}
+
+export interface CompetitorIntelligence {
+  competitors: string[];
+  gaps: string[];
+  opportunities: string[];
+}
+
+export interface UVPResult {
+  uvp: string;
+  positioning: "premium" | "mid" | "volume";
+  differentiators: string[];
+  whyYouWin: string;
+}
+
+export interface OptimizedMessageResult {
+  message: string;
+  quality: MessageQualityResult;
+  reasoning: string;
+}
 
 // ============ UNIVERSAL WORD REPLACEMENTS (Works for ANY business) ============
 export const UNIVERSAL_WORD_REPLACEMENTS: Record<string, string> = {
@@ -97,11 +159,14 @@ export interface Testimonial {
   effectiveness_score: number; // 0-100, based on lead response
 }
 
+export interface TestimonialSelectionProfile {
+  industry?: string;
+  companySzie?: string;
+  painPoint?: string;
+  stage?: string;
+}
+
 export async function extractTestimonialsfromPDF(pdfContent: string): Promise<Testimonial[]> {
-  /**
-   * Extract testimonials from brand PDF
-   * Also find URLs to testimonial pages
-   */
   const testimonials: Testimonial[] = [];
 
   // Pattern 1: Direct testimonials ("They increased revenue by...")
@@ -146,21 +211,8 @@ export async function extractTestimonialsfromPDF(pdfContent: string): Promise<Te
 
 export async function smartSelectTestimonial(
   testimonials: Testimonial[],
-  leadProfile: {
-    industry?: string;
-    companySzie?: string;
-    painPoint?: string;
-    stage?: string; // "awareness", "consideration", "decision"
-  }
+  leadProfile: TestimonialSelectionProfile
 ): Promise<Testimonial | null> {
-  /**
-   * Select the BEST testimonial for THIS lead at THIS stage
-   * 
-   * Stage 1 (Awareness): Show quick wins / social proof
-   * Stage 2 (Consideration): Show industry-specific results
-   * Stage 3 (Decision): Show biggest transformations
-   */
-
   if (!testimonials || testimonials.length === 0) return null;
 
   // Sort by effectiveness score
@@ -192,16 +244,7 @@ export async function gatherCompetitorIntelligence(
   userIndustry: string,
   userNiche: string,
   leadCompany?: string
-): Promise<{
-  competitors: string[];
-  gaps: string[]; // What competitors DON'T have
-  opportunities: string[]; // Unique angles
-}> {
-  /**
-   * Use OpenAI to brainstorm what competitors in this space do
-   * Then identify gaps = UNIQUE VALUE PROPOSITION
-   */
-
+): Promise<CompetitorIntelligence> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -231,7 +274,7 @@ Be specific and actionable.`,
       max_tokens: 500,
     });
 
-    const text = response.choices[0].message.content || "";
+    const text = response.choices[0]?.message?.content || "";
 
     // Parse response
     const competitors = text.match(/COMPETITORS:(.+?)(?=GAPS:|$)/s)?.[1]?.split("\n").filter(Boolean) || [];
@@ -239,9 +282,9 @@ Be specific and actionable.`,
     const opportunities = text.match(/OPPORTUNITIES:(.+?)$/s)?.[1]?.split("\n").filter(Boolean) || [];
 
     return {
-      competitors: competitors.map((c) => c.trim()),
-      gaps: gaps.map((g) => g.trim()),
-      opportunities: opportunities.map((o) => o.trim()),
+      competitors: competitors.map((c: string) => c.trim()),
+      gaps: gaps.map((g: string) => g.trim()),
+      opportunities: opportunities.map((o: string) => o.trim()),
     };
   } catch (error) {
     console.error("Error gathering competitive intelligence:", error);
@@ -250,21 +293,14 @@ Be specific and actionable.`,
 }
 
 // ============ ENGINE 4: UVP DETECTION & POSITIONING ============
-export async function detectUVP(brandContext: any): Promise<{
-  uvp: string;
-  positioning: "premium" | "mid" | "volume";
-  differentiators: string[];
-  whyYouWin: string;
-}> {
-  /**
-   * Analyze brand PDF + competitive landscape
-   * Return: What makes THEM uniquely better
-   */
-
+export async function detectUVP(brandContext: SalesBrandContext | BrandContext): Promise<UVPResult> {
   try {
+    const industry = (brandContext as SalesBrandContext).industry || "B2B";
+    const niche = (brandContext as SalesBrandContext).niche || "Sales";
+    
     const competitive = await gatherCompetitorIntelligence(
-      brandContext.industry || "B2B",
-      brandContext.niche || "Sales",
+      industry,
+      niche,
       undefined
     );
 
@@ -294,18 +330,20 @@ Make it compelling and specific to their business.`,
       max_tokens: 400,
     });
 
-    const text = response.choices[0].message.content || "";
+    const text = response.choices[0]?.message?.content || "";
+    const positioning = (brandContext as SalesBrandContext).positioning || "mid";
 
     return {
-      uvp: text.split("\n")[0],
-      positioning: brandContext.positioning || "mid",
+      uvp: text.split("\n")[0] || "",
+      positioning: positioning,
       differentiators: competitive.gaps.slice(0, 3),
       whyYouWin: text.split("\n").slice(1).join("\n"),
     };
   } catch (error) {
     console.error("Error detecting UVP:", error);
+    const offer = (brandContext as SalesBrandContext).offer || "Help your clients succeed";
     return {
-      uvp: brandContext.offer || "Help your clients succeed",
+      uvp: offer,
       positioning: "mid",
       differentiators: [],
       whyYouWin: "",
@@ -327,10 +365,6 @@ export class UniversalSalesAI {
   private learnData: SalesLearnData[] = [];
   private successPatterns: Record<string, number> = {}; // Track what works
 
-  /**
-   * Learn from each interaction
-   * Over time, improve messaging based on what converts
-   */
   async learnFromInteraction(data: SalesLearnData): Promise<void> {
     this.learnData.push(data);
 
@@ -340,21 +374,15 @@ export class UniversalSalesAI {
       this.successPatterns[key] = (this.successPatterns[key] || 0) + 1;
     }
 
-    console.log(`📚 Learned: ${data.messageType} + ${data.leadResponse} (pattern strength: ${this.successPatterns})`);
+    console.log(`📚 Learned: ${data.messageType} + ${data.leadResponse} (pattern strength: ${JSON.stringify(this.successPatterns)})`);
   }
 
-  /**
-   * Get best-performing message type based on learning
-   */
   getTopPerformingStrategy(): string {
     const sorted = Object.entries(this.successPatterns).sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || "cold_outreach_positive";
   }
 
-  /**
-   * Adapt message tone based on what's been working
-   */
-  async adaptMessageBasedOnLearning(baseMessage: string, leadProfile: any): Promise<string> {
+  async adaptMessageBasedOnLearning(baseMessage: string, _leadProfile: SalesLeadProfile): Promise<string> {
     const topStrategy = this.getTopPerformingStrategy();
 
     if (topStrategy.includes("positive")) {
@@ -372,32 +400,22 @@ export class UniversalSalesAI {
 // ============ ENGINE 6: PRE-SEND VERIFICATION ============
 export async function verifyMessageQuality(
   message: string,
-  leadProfile: any,
-  brandContext: any
-): Promise<{
-  isGood: boolean;
-  issues: string[];
-  score: number; // 0-100
-  suggestions: string[];
-}> {
-  /**
-   * Before sending ANY message:
-   * - Is it on-brand?
-   * - Does it address THEIR pain?
-   * - Does it include a clear next step?
-   * - Is tone appropriate?
-   * - Does it avoid defensive language?
-   */
-
+  leadProfile: SalesLeadProfile,
+  _brandContext: SalesBrandContext | BrandContext
+): Promise<MessageQualityResult> {
   const issues: string[] = [];
   const suggestions: string[] = [];
   let score = 100;
 
+  const companyName = leadProfile.companyName || leadProfile.company || "";
+  const firstName = leadProfile.firstName || "";
+  const industry = leadProfile.industry || "";
+
   // Check 1: Personalization
   if (
-    !message.includes(leadProfile.companyName) &&
-    !message.includes(leadProfile.firstName) &&
-    !message.includes(leadProfile.industry)
+    !message.includes(companyName) &&
+    !message.includes(firstName) &&
+    !message.includes(industry)
   ) {
     issues.push("Not personalized enough");
     suggestions.push(`Add their company name or industry`);
@@ -443,39 +461,46 @@ export async function verifyMessageQuality(
 
 // ============ ENGINE 7: DYNAMIC MESSAGE GENERATION ============
 export async function generateSmartMessage(
-  leadProfile: any,
-  brandContext: any,
+  leadProfile: SalesLeadProfile,
+  brandContext: SalesBrandContext | BrandContext,
   stage: "cold" | "follow_up" | "objection" | "closing",
-  additionalContext?: any
+  _additionalContext?: Record<string, unknown>
 ): Promise<string> {
-  /**
-   * Generate message using ALL the engines:
-   * - Brand + Lead data
-   * - Competitive intelligence
-   * - Testimonials
-   * - Learning patterns
-   * - UVP positioning
-   */
-
   const uvp = await detectUVP(brandContext);
+  const industry = leadProfile.industry || "General";
+  const niche = (brandContext as SalesBrandContext).niche || "General";
+  const companyName = leadProfile.companyName || leadProfile.company || "";
+  
   const competitive = await gatherCompetitorIntelligence(
-    leadProfile.industry,
-    brandContext.niche || "General",
-    leadProfile.companyName
+    industry,
+    niche,
+    companyName
   );
 
-  let prompt = `You are a world-class sales closer who closes million-dollar deals.
-Your goal: Make ${leadProfile.companyName} their first $1,000 close TODAY.
+  const brandCompanyName = (brandContext as SalesBrandContext).companyName || brandContext.businessName || "This Business";
+  const firstName = leadProfile.firstName || "";
+  const painPoint = leadProfile.painPoint || "Unknown - find out";
 
-BRAND: ${brandContext.companyName || "This Business"}
+  const stageText = stage === "cold" 
+    ? "First touch - grab attention" 
+    : stage === "follow_up" 
+      ? "They're interested - push momentum" 
+      : stage === "objection" 
+        ? "Handle objection - lead frame" 
+        : "Close them - make it easy to say yes";
+
+  const prompt = `You are a world-class sales closer who closes million-dollar deals.
+Your goal: Make ${companyName} their first $1,000 close TODAY.
+
+BRAND: ${brandCompanyName}
 UVP: ${uvp.uvp}
 DIFFERENTIATORS: ${uvp.differentiators.join(", ")}
 
-LEAD: ${leadProfile.firstName} at ${leadProfile.companyName}
-INDUSTRY: ${leadProfile.industry}
-PAIN: ${leadProfile.painPoint || "Unknown - find out"}
+LEAD: ${firstName} at ${companyName}
+INDUSTRY: ${industry}
+PAIN: ${painPoint}
 
-STAGE: ${stage === "cold" ? "First touch - grab attention" : stage === "follow_up" ? "They're interested - push momentum" : stage === "objection" ? "Handle objection - lead frame" : "Close them - make it easy to say yes"}
+STAGE: ${stageText}
 
 WHAT COMPETITORS DON'T HAVE: ${competitive.gaps.join(", ")}
 
@@ -499,10 +524,10 @@ Message:`;
       max_tokens: 300,
     });
 
-    return response.choices[0].message.content || "";
+    return response.choices[0]?.message?.content || "";
   } catch (error) {
     console.error("Error generating message:", error);
-    return `Hi ${leadProfile.firstName}, quick question about ${leadProfile.companyName} — are you open to a 5-minute conversation?`;
+    return `Hi ${firstName}, quick question about ${companyName} — are you open to a 5-minute conversation?`;
   }
 }
 
@@ -510,13 +535,8 @@ Message:`;
 export async function buildMessageWithTestimonial(
   baseMessage: string,
   testimonials: Testimonial[],
-  leadProfile: any
+  leadProfile: SalesLeadProfile
 ): Promise<string> {
-  /**
-   * If we have testimonials that match their situation,
-   * weave them in NATURALLY (not forced)
-   */
-
   const selectedTestimonial = await smartSelectTestimonial(testimonials, {
     industry: leadProfile.industry,
     companySzie: leadProfile.companySize,
@@ -540,28 +560,11 @@ export async function buildMessageWithTestimonial(
 
 // ============ COMPLETE UNIVERSAL FLOW ============
 export async function generateOptimizedMessage(
-  leadProfile: any,
-  brandContext: any,
+  leadProfile: SalesLeadProfile,
+  brandContext: SalesBrandContext | BrandContext,
   testimonials: Testimonial[],
   stage: "cold" | "follow_up" | "objection" | "closing" = "cold"
-): Promise<{
-  message: string;
-  quality: {
-    isGood: boolean;
-    score: number;
-    issues: string[];
-    suggestions: string[];
-  };
-  reasoning: string;
-}> {
-  /**
-   * The complete Universal Sales AI flow:
-   * 1. Generate smart message (using all data)
-   * 2. Verify quality
-   * 3. Add testimonials if available
-   * 4. Return with reasoning
-   */
-
+): Promise<OptimizedMessageResult> {
   let message = await generateSmartMessage(leadProfile, brandContext, stage);
 
   if (testimonials.length > 0) {
@@ -575,10 +578,14 @@ export async function generateOptimizedMessage(
     message = message + `\n\n💡 Better version: ` + quality.suggestions[0];
   }
 
+  const companyName = leadProfile.companyName || leadProfile.company || "";
+  const firstName = leadProfile.firstName || "";
+  const industry = leadProfile.industry || "";
+
   return {
     message,
     quality,
-    reasoning: `Generated for ${leadProfile.firstName} at ${leadProfile.companyName} (${leadProfile.industry}) - Stage: ${stage}`,
+    reasoning: `Generated for ${firstName} at ${companyName} (${industry}) - Stage: ${stage}`,
   };
 }
 

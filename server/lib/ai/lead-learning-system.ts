@@ -1,35 +1,61 @@
-/* @ts-nocheck */
-
 import { supabaseAdmin } from '../supabase-admin';
-import type { Lead, Message } from '@shared/schema';
+
+interface SupabaseMessage {
+  id: string;
+  lead_id: string;
+  user_id: string;
+  provider: 'instagram' | 'whatsapp' | 'gmail' | 'email' | 'system';
+  direction: 'inbound' | 'outbound';
+  body: string;
+  audio_url: string | null;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+interface SupabaseLead {
+  id: string;
+  user_id: string;
+  external_id: string | null;
+  name: string;
+  channel: 'instagram' | 'whatsapp' | 'email';
+  email: string | null;
+  phone: string | null;
+  status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
+  score: number;
+  warm: boolean;
+  last_message_at: string | null;
+  ai_paused: boolean;
+  pdf_confidence: number | null;
+  tags: string[];
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
 
 interface LeadBehaviorPattern {
   userId: string;
   leadId: string;
-  responseTime: number; // average in minutes
-  messageLength: number; // average characters
-  preferredTime: string; // "morning" | "afternoon" | "evening" | "night"
+  responseTime: number;
+  messageLength: number;
+  preferredTime: string;
   sentimentTrend: 'positive' | 'neutral' | 'negative';
-  engagementScore: number; // 0-100
+  engagementScore: number;
+  temperature: 'hot' | 'warm' | 'cold';
   conversionSignals: string[];
   objectionPatterns: string[];
   lastUpdated: string;
 }
 
-/**
- * Real-time lead learning system
- * Analyzes conversation patterns and learns lead behavior
- */
+interface SemanticMemoryRecord {
+  content: string;
+}
+
 export class LeadLearningSystem {
   
-  /**
-   * Analyze and update lead behavior patterns in real-time
-   */
-  async analyzeAndLearn(leadId: string, newMessage: Message): Promise<void> {
+  async analyzeAndLearn(leadId: string, _newMessage?: unknown): Promise<void> {
     if (!supabaseAdmin) return;
 
     try {
-      // Get all messages for this lead
       const { data: messages } = await supabaseAdmin
         .from('messages')
         .select('*')
@@ -38,7 +64,6 @@ export class LeadLearningSystem {
 
       if (!messages || messages.length === 0) return;
 
-      // Get lead info
       const { data: lead } = await supabaseAdmin
         .from('leads')
         .select('*')
@@ -47,14 +72,15 @@ export class LeadLearningSystem {
 
       if (!lead) return;
 
-      // Calculate behavior patterns
-      const pattern = this.calculateBehaviorPattern(messages as Message[], lead);
+      const typedMessages = messages as SupabaseMessage[];
+      const typedLead = lead as SupabaseLead;
 
-      // Save to semantic memory for AI context
+      const pattern = this.calculateBehaviorPattern(typedMessages, typedLead);
+
       await supabaseAdmin
         .from('semantic_memory')
         .upsert({
-          user_id: lead.userId,
+          user_id: typedLead.user_id,
           lead_id: leadId,
           content: JSON.stringify(pattern),
           metadata: {
@@ -63,13 +89,12 @@ export class LeadLearningSystem {
           }
         });
 
-      // Update lead engagement score
       await supabaseAdmin
         .from('leads')
         .update({
           engagement_score: pattern.engagementScore,
           metadata: {
-            ...lead.metadata,
+            ...typedLead.metadata,
             behavior_pattern: pattern
           }
         })
@@ -81,110 +106,91 @@ export class LeadLearningSystem {
     }
   }
 
-  /**
-   * Calculate comprehensive behavior pattern from messages
-   */
-  private calculateBehaviorPattern(messages: Message[], lead: Lead): LeadBehaviorPattern {
-    const userMessages = messages.filter(m => m.direction === 'inbound');
+  private calculateBehaviorPattern(messages: SupabaseMessage[], lead: SupabaseLead): LeadBehaviorPattern {
+    const userMessages = messages.filter((m: SupabaseMessage) => m.direction === 'inbound');
     
-    // Calculate average response time
     let totalResponseTime = 0;
     let responseCount = 0;
     for (let i = 1; i < messages.length; i++) {
       if (messages[i].direction === 'inbound' && messages[i - 1].direction === 'outbound') {
-        const diff = new Date(messages[i].createdAt).getTime() - new Date(messages[i - 1].createdAt).getTime();
-        totalResponseTime += diff / (1000 * 60); // convert to minutes
+        const diff = new Date(messages[i].created_at).getTime() - new Date(messages[i - 1].created_at).getTime();
+        totalResponseTime += diff / (1000 * 60);
         responseCount++;
       }
     }
     const avgResponseTime = responseCount > 0 ? totalResponseTime / responseCount : 0;
 
-    // Calculate average message length
-    const avgMessageLength = userMessages.reduce((sum, m) => sum + m.content.length, 0) / (userMessages.length || 1);
+    const avgMessageLength = userMessages.reduce((sum: number, m: SupabaseMessage) => sum + m.body.length, 0) / (userMessages.length || 1);
 
-    // Determine preferred time (analyze message timestamps)
-    const timeSlots = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-    userMessages.forEach(m => {
-      const hour = new Date(m.createdAt).getHours();
+    const timeSlots: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+    userMessages.forEach((m: SupabaseMessage) => {
+      const hour = new Date(m.created_at).getHours();
       if (hour >= 6 && hour < 12) timeSlots.morning++;
       else if (hour >= 12 && hour < 17) timeSlots.afternoon++;
       else if (hour >= 17 && hour < 22) timeSlots.evening++;
       else timeSlots.night++;
     });
-    const preferredTime = Object.entries(timeSlots).reduce((a, b) => a[1] > b[1] ? a : b)[0] as string;
+    const preferredTime = Object.entries(timeSlots).reduce((a, b) => a[1] > b[1] ? a : b)[0];
 
-    // Analyze sentiment trend
     const recentMessages = userMessages.slice(-5);
     const positiveWords = ['yes', 'great', 'thanks', 'perfect', 'interested', 'good', 'awesome'];
     const negativeWords = ['no', 'not', "don't", 'busy', 'later', 'expensive', 'stop'];
     
     let positiveCount = 0;
     let negativeCount = 0;
-    recentMessages.forEach(m => {
-      const lower = m.content.toLowerCase();
-      positiveWords.forEach(word => { if (lower.includes(word)) positiveCount++; });
-      negativeWords.forEach(word => { if (lower.includes(word)) negativeCount++; });
+    recentMessages.forEach((m: SupabaseMessage) => {
+      const lower = m.body.toLowerCase();
+      positiveWords.forEach((word: string) => { if (lower.includes(word)) positiveCount++; });
+      negativeWords.forEach((word: string) => { if (lower.includes(word)) negativeCount++; });
     });
     
-    const sentimentTrend = positiveCount > negativeCount ? 'positive' : 
+    const sentimentTrend: 'positive' | 'neutral' | 'negative' = positiveCount > negativeCount ? 'positive' : 
                           negativeCount > positiveCount ? 'negative' : 'neutral';
 
-    // Detect conversion signals
     const conversionSignals: string[] = [];
     const conversionPhrases = ['how much', 'price', 'buy', 'purchase', 'pay', 'link', 'checkout', 'demo', 'schedule'];
-    userMessages.forEach(m => {
-      const lower = m.content.toLowerCase();
-      conversionPhrases.forEach(phrase => {
+    userMessages.forEach((m: SupabaseMessage) => {
+      const lower = m.body.toLowerCase();
+      conversionPhrases.forEach((phrase: string) => {
         if (lower.includes(phrase) && !conversionSignals.includes(phrase)) {
           conversionSignals.push(phrase);
         }
       });
     });
 
-    // Detect objection patterns
     const objectionPatterns: string[] = [];
     const objectionPhrases = ['too expensive', 'not sure', 'need to think', 'maybe later', 'not now', 'not interested'];
-    userMessages.forEach(m => {
-      const lower = m.content.toLowerCase();
-      objectionPhrases.forEach(phrase => {
+    userMessages.forEach((m: SupabaseMessage) => {
+      const lower = m.body.toLowerCase();
+      objectionPhrases.forEach((phrase: string) => {
         if (lower.includes(phrase) && !objectionPatterns.includes(phrase)) {
           objectionPatterns.push(phrase);
         }
       });
     });
 
-    // Calculate engagement score (0-100)
-    let engagementScore = 50; // base score
+    let engagementScore = 50;
     
-    // Fast responder = engaged
     if (avgResponseTime < 5) engagementScore += 20;
     else if (avgResponseTime < 30) engagementScore += 10;
     else if (avgResponseTime > 120) engagementScore -= 20;
     
-    // Longer messages = more engaged
     if (avgMessageLength > 100) engagementScore += 15;
     else if (avgMessageLength < 20) engagementScore -= 10;
     
-    // Positive sentiment = engaged
     if (sentimentTrend === 'positive') engagementScore += 15;
     else if (sentimentTrend === 'negative') engagementScore -= 15;
     
-    // Conversion signals = highly engaged
     engagementScore += conversionSignals.length * 10;
-    
-    // Objections = less engaged
     engagementScore -= objectionPatterns.length * 5;
-    
-    // Clamp between 0-100
     engagementScore = Math.max(0, Math.min(100, engagementScore));
 
-    // Determine lead temperature based on engagement
     const temperature: 'hot' | 'warm' | 'cold' = 
       engagementScore > 70 ? 'hot' :
       engagementScore > 40 ? 'warm' : 'cold';
 
     return {
-      userId: lead.userId,
+      userId: lead.user_id,
       leadId: lead.id,
       responseTime: Math.round(avgResponseTime),
       messageLength: Math.round(avgMessageLength),
@@ -198,9 +204,6 @@ export class LeadLearningSystem {
     };
   }
 
-  /**
-   * Get learned insights for a lead
-   */
   async getLeadInsights(leadId: string): Promise<LeadBehaviorPattern | null> {
     if (!supabaseAdmin) return null;
 
@@ -216,7 +219,8 @@ export class LeadLearningSystem {
 
       if (!data) return null;
 
-      return JSON.parse(data.content as string);
+      const record = data as SemanticMemoryRecord;
+      return JSON.parse(record.content) as LeadBehaviorPattern;
     } catch (error) {
       console.error('Error getting lead insights:', error);
       return null;

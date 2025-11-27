@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 /**
  * Brand Personalization System
  * 
@@ -11,8 +10,9 @@
  */
 
 import { storage } from '../../storage';
+import type { ChannelType } from '@shared/types';
 
-interface BrandContext {
+interface BrandPersonalizationContext {
   senderName: string;
   senderEmail?: string;
   companyName: string;
@@ -25,7 +25,7 @@ interface BrandContext {
 /**
  * Get complete brand context for a user
  */
-export async function getBrandPersonalization(userId: string): Promise<BrandContext> {
+export async function getBrandPersonalization(userId: string): Promise<BrandPersonalizationContext> {
   try {
     const user = await storage.getUserById(userId);
     
@@ -33,12 +33,17 @@ export async function getBrandPersonalization(userId: string): Promise<BrandCont
       return getDefaultContext();
     }
 
+    const metadata = user.metadata as Record<string, unknown> | undefined;
+    const closingLine = typeof metadata?.closingLine === 'string' 
+      ? metadata.closingLine 
+      : `All the best,\n{{senderName}}`;
+
     return {
-      senderName: user.name || user.email?.split('@')[0] || 'Team',
+      senderName: user.name ?? user.email.split('@')[0] ?? 'Team',
       senderEmail: user.email,
-      companyName: user.company || 'Our Team',
-      voiceTone: user.replyTone || 'professional and friendly',
-      closingLine: user.metadata?.closingLine || `All the best,\n{{senderName}}`,
+      companyName: user.company ?? 'Our Team',
+      voiceTone: user.replyTone ?? 'professional and friendly',
+      closingLine,
       timezone: user.timezone
     };
   } catch (error) {
@@ -50,7 +55,7 @@ export async function getBrandPersonalization(userId: string): Promise<BrandCont
 /**
  * Default context for fallback
  */
-function getDefaultContext(): BrandContext {
+function getDefaultContext(): BrandPersonalizationContext {
   return {
     senderName: 'Team',
     companyName: 'Our Company',
@@ -64,15 +69,13 @@ function getDefaultContext(): BrandContext {
  */
 export function personalizeBrandContext(
   message: string,
-  context: BrandContext
+  context: BrandPersonalizationContext
 ): string {
   let personalized = message;
 
-  // Replace sender name
   personalized = personalized.replace(/{{sender\.name}}/g, context.senderName);
   personalized = personalized.replace(/{{senderName}}/g, context.senderName);
   
-  // Replace company name
   personalized = personalized.replace(/{{company\.name}}/g, context.companyName);
   personalized = personalized.replace(/{{companyName}}/g, context.companyName);
 
@@ -82,15 +85,18 @@ export function personalizeBrandContext(
 /**
  * Build email signature with brand personalization
  */
-export function buildEmailSignature(context: BrandContext): string {
-  const signatureLine = context.closingLine || `Best regards,\n${context.senderName}`;
+export function buildEmailSignature(context: BrandPersonalizationContext): string {
+  const signatureLine = context.closingLine ?? `Best regards,\n${context.senderName}`;
+  
+  const emailLine = context.senderEmail ? `${context.senderEmail}` : '';
+  const companyLine = context.companyName ? `${context.companyName}` : '';
   
   return `
 ---
 ${signatureLine}
 
-${context.senderEmail ? `${context.senderEmail}` : ''}
-${context.companyName ? `${context.companyName}` : ''}
+${emailLine}
+${companyLine}
 `.trim();
 }
 
@@ -108,7 +114,7 @@ export function getVoiceToneGuidelines(tone: string): string {
     'casual': 'Use conversational language, relatable examples, natural flow'
   };
 
-  return guidelines[tone] || guidelines['professional and friendly'];
+  return guidelines[tone] ?? guidelines['professional and friendly'] ?? '';
 }
 
 /**
@@ -116,14 +122,13 @@ export function getVoiceToneGuidelines(tone: string): string {
  */
 export async function formatChannelMessage(
   message: string,
-  channel: 'email' | 'whatsapp' | 'instagram',
+  channel: ChannelType,
   userId: string,
   includeSignature: boolean = true
 ): Promise<string> {
   const context = await getBrandPersonalization(userId);
   let formatted = personalizeBrandContext(message, context);
 
-  // Add channel-specific formatting
   switch (channel) {
     case 'email':
       if (includeSignature) {
@@ -132,14 +137,12 @@ export async function formatChannelMessage(
       break;
 
     case 'whatsapp':
-      // WhatsApp: Keep signature light
       if (includeSignature && context.senderName !== 'Team') {
         formatted += `\n\n- ${context.senderName}`;
       }
       break;
 
     case 'instagram':
-      // Instagram: Minimal signature
       formatted = formatted.trim();
       break;
   }
@@ -150,7 +153,7 @@ export async function formatChannelMessage(
 /**
  * Get context-aware system prompt for message generation
  */
-export function getContextAwareSystemPrompt(context: BrandContext, channel: string): string {
+export function getContextAwareSystemPrompt(context: BrandPersonalizationContext, channel: string): string {
   const voiceGuidelines = getVoiceToneGuidelines(context.voiceTone);
 
   return `You are writing on behalf of ${context.senderName} from ${context.companyName}.

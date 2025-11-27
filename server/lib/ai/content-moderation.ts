@@ -1,7 +1,3 @@
-/* @ts-nocheck */
-
-import type { Message } from '@shared/schema';
-
 interface ModerationResult {
   isAppropriate: boolean;
   confidence: number;
@@ -10,19 +6,54 @@ interface ModerationResult {
   shouldBlock: boolean;
 }
 
+interface OpenAIModerationCategories {
+  sexual: boolean;
+  hate: boolean;
+  harassment: boolean;
+  'self-harm': boolean;
+  'sexual/minors': boolean;
+  'hate/threatening': boolean;
+  'violence/graphic': boolean;
+  violence: boolean;
+  'harassment/threatening': boolean;
+}
+
+interface OpenAIModerationCategoryScores {
+  sexual: number;
+  hate: number;
+  harassment: number;
+  'self-harm': number;
+  'sexual/minors': number;
+  'hate/threatening': number;
+  'violence/graphic': number;
+  violence: number;
+  'harassment/threatening': number;
+}
+
+interface OpenAIModerationResult {
+  flagged: boolean;
+  categories: OpenAIModerationCategories;
+  category_scores: OpenAIModerationCategoryScores;
+}
+
+interface OpenAIModerationResponse {
+  id: string;
+  model: string;
+  results: OpenAIModerationResult[];
+}
+
 /**
  * Content moderation system
  * Detects inappropriate, spam, or offensive content
  */
 export class ContentModerationService {
   
-  // Keyword-based detection (can be enhanced with OpenAI Moderation API)
-  private readonly offensiveKeywords = [
+  private readonly offensiveKeywords: readonly string[] = [
     'fuck', 'shit', 'bitch', 'asshole', 'damn', 'hell',
     'idiot', 'stupid', 'dumb', 'scam', 'fraud'
-  ];
+  ] as const;
 
-  private readonly spamPatterns = [
+  private readonly spamPatterns: readonly RegExp[] = [
     /click here/i,
     /free money/i,
     /win \$\d+/i,
@@ -31,28 +62,27 @@ export class ContentModerationService {
     /guaranteed/i,
     /earn \$\d+ per day/i,
     /work from home/i
-  ];
+  ] as const;
 
-  private readonly sexualKeywords = [
+  private readonly sexualKeywords: readonly string[] = [
     'sex', 'sexy', 'nude', 'porn', 'xxx', 'adult',
     'explicit', 'nsfw', 'hookup'
-  ];
+  ] as const;
 
-  private readonly violentKeywords = [
+  private readonly violentKeywords: readonly string[] = [
     'kill', 'murder', 'die', 'death', 'hurt', 'attack',
     'weapon', 'bomb', 'threat'
-  ];
+  ] as const;
 
   /**
    * Moderate message content
    */
-  async moderateContent(content: string): Promise<ModerationResult> {
+  public async moderateContent(content: string): Promise<ModerationResult> {
     const lower = content.toLowerCase();
     const flags: string[] = [];
     let category: ModerationResult['category'] = 'safe';
     let shouldBlock = false;
 
-    // Check for offensive language
     const offensiveCount = this.offensiveKeywords.filter(word => 
       lower.includes(word)
     ).length;
@@ -62,7 +92,6 @@ export class ContentModerationService {
       if (offensiveCount >= 3) shouldBlock = true;
     }
 
-    // Check for spam patterns
     const spamMatches = this.spamPatterns.filter(pattern => 
       pattern.test(content)
     ).length;
@@ -72,7 +101,6 @@ export class ContentModerationService {
       if (spamMatches >= 2) shouldBlock = true;
     }
 
-    // Check for sexual content
     const sexualCount = this.sexualKeywords.filter(word => 
       lower.includes(word)
     ).length;
@@ -82,7 +110,6 @@ export class ContentModerationService {
       if (sexualCount >= 2) shouldBlock = true;
     }
 
-    // Check for violent content
     const violentCount = this.violentKeywords.filter(word => 
       lower.includes(word)
     ).length;
@@ -92,20 +119,18 @@ export class ContentModerationService {
       if (violentCount >= 2) shouldBlock = true;
     }
 
-    // Check for excessive caps (shouting/aggressive)
-    const capsRatio = (content.match(/[A-Z]/g) || []).length / content.length;
+    const capsMatch = content.match(/[A-Z]/g);
+    const capsRatio = capsMatch ? capsMatch.length / content.length : 0;
     if (capsRatio > 0.7 && content.length > 10) {
       flags.push('excessive_caps');
       if (category === 'safe') category = 'offensive';
     }
 
-    // Check for repeated characters (spam indicator)
     if (/(.)\1{4,}/.test(content)) {
       flags.push('repeated_characters');
       if (category === 'safe') category = 'spam';
     }
 
-    // Calculate confidence
     const confidence = Math.min(
       0.5 + (flags.length * 0.15),
       0.95
@@ -125,9 +150,8 @@ export class ContentModerationService {
   /**
    * Enhanced moderation using OpenAI (if available)
    */
-  async moderateWithAI(content: string): Promise<ModerationResult> {
+  public async moderateWithAI(content: string): Promise<ModerationResult> {
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
-      // Fallback to keyword-based
       return this.moderateContent(content);
     }
 
@@ -145,8 +169,12 @@ export class ContentModerationService {
         throw new Error('OpenAI moderation failed');
       }
 
-      const data = await response.json();
-      const result = data.results[0];
+      const data = await response.json() as OpenAIModerationResponse;
+      
+      const result = data.results?.[0];
+      if (!result) {
+        throw new Error('No moderation result returned');
+      }
 
       const flags: string[] = [];
       let category: ModerationResult['category'] = 'safe';
@@ -168,9 +196,23 @@ export class ContentModerationService {
         category = 'violence';
       }
 
+      const scores = result.category_scores;
+      const scoreValues: number[] = [
+        scores.sexual,
+        scores.hate,
+        scores.harassment,
+        scores['self-harm'],
+        scores['sexual/minors'],
+        scores['hate/threatening'],
+        scores['violence/graphic'],
+        scores.violence,
+        scores['harassment/threatening']
+      ];
+      const maxScore = Math.max(...scoreValues);
+
       return {
         isAppropriate: !result.flagged,
-        confidence: Math.max(...Object.values(result.category_scores)) as number,
+        confidence: maxScore,
         flags,
         category,
         shouldBlock: result.flagged
@@ -184,7 +226,7 @@ export class ContentModerationService {
   /**
    * Log moderation event for review
    */
-  async logModerationEvent(
+  public async logModerationEvent(
     userId: string,
     leadId: string,
     content: string,
@@ -203,3 +245,5 @@ export class ContentModerationService {
 }
 
 export const contentModerationService = new ContentModerationService();
+
+export type { ModerationResult };

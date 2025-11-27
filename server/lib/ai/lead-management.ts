@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * TIER 1: LEAD MANAGEMENT SERVICE
  * 
@@ -12,12 +10,64 @@
  * - Activity Timeline
  */
 
-import { storage } from "../storage";
-import type { Lead } from "@shared/schema";
+import type { Lead, Message } from "@shared/schema";
+import type { MessageDirection } from "@shared/types";
+
+interface ScoringMessage {
+  direction: MessageDirection;
+  createdAt: Date | string;
+  opened?: boolean;
+  clicked?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+interface SegmentCriteria {
+  scoreMin?: number;
+  scoreMax?: number;
+  tags?: string[];
+  industries?: string[];
+  companySize?: string[];
+  status?: string[];
+}
+
+interface LeadSegment {
+  userId: string;
+  segmentName: string;
+  criteria: SegmentCriteria;
+  createdAt: Date;
+}
+
+interface TimelineEvent {
+  leadId: string;
+  actionType: string;
+  actionData: Record<string, unknown>;
+  actorId?: string;
+  timestamp: Date;
+}
+
+interface BantQualification {
+  budget: "has_budget" | "no_budget" | "unknown";
+  authority: "decision_maker" | "influencer" | "not_involved" | "unknown";
+  need: "has_need" | "no_need" | "unknown";
+  timeline: "immediate" | "this_quarter" | "this_year" | "no_timeline" | "unknown";
+  qualification_score: number;
+}
+
+interface CompanyEnrichment {
+  company_name: string;
+  company_size: string;
+  industry: string;
+  revenue_estimate: string;
+  employee_count: number;
+  website: string;
+  linkedin_url: string;
+  tech_stack: string[];
+  competitors: string[];
+}
 
 // ============ LEAD SCORING (1-100) ============
 
-export async function calculateLeadScore(lead: Lead, messages: any[] = []): Promise<number> {
+export async function calculateLeadScore(lead: Lead, messages: ScoringMessage[] = []): Promise<number> {
   /**
    * Calculate lead score based on:
    * 1. Engagement (replies, opens) = 30%
@@ -52,20 +102,20 @@ export async function calculateLeadScore(lead: Lead, messages: any[] = []): Prom
   return Math.min(100, Math.round(score));
 }
 
-function calculateEngagementScore(messages: any[]): number {
+function calculateEngagementScore(messages: ScoringMessage[]): number {
   if (!messages || messages.length === 0) return 0;
 
   // Count inbound messages (lead engagement)
-  const inboundCount = messages.filter((m) => m.direction === "inbound").length;
+  const inboundCount = messages.filter((m: ScoringMessage) => m.direction === "inbound").length;
 
   // Email opens (if tracked)
-  const openCount = messages.filter((m) => m.opened).length;
+  const openCount = messages.filter((m: ScoringMessage) => m.opened).length;
 
   // Clicks (if tracked)
-  const clickCount = messages.filter((m) => m.clicked).length;
+  const clickCount = messages.filter((m: ScoringMessage) => m.clicked).length;
 
   // Quick reply (within 2 hours) = high engagement
-  const hasQuickReply = messages.some((m, i) => {
+  const hasQuickReply = messages.some((m: ScoringMessage, i: number) => {
     if (i === 0 || m.direction !== "inbound") return false;
     const prevMessage = messages[i - 1];
     const timeDiff = (new Date(m.createdAt).getTime() - new Date(prevMessage.createdAt).getTime()) / (1000 * 60 * 60);
@@ -78,6 +128,10 @@ function calculateEngagementScore(messages: any[]): number {
 function calculateCompanyScore(lead: Lead): number {
   let score = 0;
 
+  const metadata = lead.metadata as Record<string, unknown> | null;
+  const companySize = typeof metadata?.companySize === 'string' ? metadata.companySize : '';
+  const companyWebsite = metadata?.companyWebsite;
+
   // Company size (larger = higher score)
   const sizeMap: Record<string, number> = {
     "1-10": 20,
@@ -86,10 +140,10 @@ function calculateCompanyScore(lead: Lead): number {
     "201-500": 75,
     "500+": 100,
   };
-  score += sizeMap[lead.metadata?.companySize || ""] || 30;
+  score += sizeMap[companySize] || 30;
 
   // Company has website / LinkedIn = established company
-  if (lead.metadata?.companyWebsite) score += 15;
+  if (companyWebsite) score += 15;
 
   return Math.min(100, score);
 }
@@ -110,14 +164,17 @@ function calculateIndustryScore(lead: Lead): number {
     "consulting",
   ];
 
-  if (highValueIndustries.some((ind) => lead.metadata?.industry?.toLowerCase().includes(ind))) {
+  const metadata = lead.metadata as Record<string, unknown> | null;
+  const industry = typeof metadata?.industry === 'string' ? metadata.industry.toLowerCase() : '';
+
+  if (highValueIndustries.some((ind: string) => industry.includes(ind))) {
     return 80;
   }
 
   return 50;
 }
 
-function calculateVelocityScore(messages: any[]): number {
+function calculateVelocityScore(messages: ScoringMessage[]): number {
   /**
    * Fast repliers = higher engagement
    * Measure: average time between message and reply
@@ -181,6 +238,18 @@ export async function findDuplicateLeads(
 
   const duplicates: Array<{ lead: Lead; matchScore: number; matchFields: string[] }> = [];
 
+  // Helper to extract first name from full name
+  const getFirstName = (name: string | null): string => {
+    if (!name) return '';
+    return name.split(' ')[0].toLowerCase();
+  };
+
+  // Helper to get company from metadata
+  const getCompany = (leadItem: Lead): string => {
+    const metadata = leadItem.metadata as Record<string, unknown> | null;
+    return typeof metadata?.company === 'string' ? metadata.company.toLowerCase() : '';
+  };
+
   for (const otherLead of userLeads) {
     if (lead.id === otherLead.id) continue;
 
@@ -204,21 +273,20 @@ export async function findDuplicateLeads(
       const leadDomain = lead.email.split("@")[1];
       const otherDomain = otherLead.email.split("@")[1];
 
-      if (leadDomain === otherDomain && lead.name?.toLowerCase() === otherLead.firstName?.toLowerCase()) {
+      if (leadDomain === otherDomain && getFirstName(lead.name) === getFirstName(otherLead.name)) {
         matchScore = Math.max(matchScore, 80);
         matchFields.push("email_domain", "first_name");
       }
     }
 
     // Company + email domain match
-    if (lead.metadata?.company && lead.email && otherLead.company && otherLead.email) {
+    const leadCompany = getCompany(lead);
+    const otherCompany = getCompany(otherLead);
+    if (leadCompany && lead.email && otherCompany && otherLead.email) {
       const leadDomain = lead.email.split("@")[1];
       const otherDomain = otherLead.email.split("@")[1];
 
-      if (
-        leadDomain === otherDomain &&
-        lead.metadata?.company.toLowerCase() === otherLead.company.toLowerCase()
-      ) {
+      if (leadDomain === otherDomain && leadCompany === otherCompany) {
         matchScore = Math.max(matchScore, 75);
         matchFields.push("company", "email_domain");
       }
@@ -229,7 +297,7 @@ export async function findDuplicateLeads(
     }
   }
 
-  return duplicates.sort((a, b) => b.matchScore - a.matchScore);
+  return duplicates.sort((a: { matchScore: number }, b: { matchScore: number }) => b.matchScore - a.matchScore);
 }
 
 // ============ LEAD SEGMENTATION ============
@@ -237,15 +305,8 @@ export async function findDuplicateLeads(
 export async function createLeadSegment(
   userId: string,
   segmentName: string,
-  criteria: {
-    scoreMin?: number;
-    scoreMax?: number;
-    tags?: string[];
-    industries?: string[];
-    companySize?: string[];
-    status?: string[];
-  }
-): Promise<any> {
+  criteria: SegmentCriteria
+): Promise<LeadSegment> {
   /**
    * Create dynamic segment based on criteria
    * Segments auto-update as leads change
@@ -256,32 +317,35 @@ export async function createLeadSegment(
     segmentName,
     criteria,
     createdAt: new Date(),
-    // In production: save to DB and recalculate segment membership
   };
 }
 
 export async function getLeadsInSegment(
-  userId: string,
-  segmentCriteria: any,
+  _userId: string,
+  segmentCriteria: SegmentCriteria,
   allLeads: Lead[]
 ): Promise<Lead[]> {
   /**
    * Filter leads matching segment criteria
    */
 
-  return allLeads.filter((lead) => {
+  return allLeads.filter((lead: Lead) => {
     // Score filter
     if (segmentCriteria.scoreMin && (lead.score || 0) < segmentCriteria.scoreMin) return false;
     if (segmentCriteria.scoreMax && (lead.score || 0) > segmentCriteria.scoreMax) return false;
 
+    const metadata = lead.metadata as Record<string, unknown> | null;
+    const leadIndustry = typeof metadata?.industry === 'string' ? metadata.industry : '';
+    const leadCompanySize = typeof metadata?.companySize === 'string' ? metadata.companySize : '';
+
     // Industry filter
     if (segmentCriteria.industries && segmentCriteria.industries.length > 0) {
-      if (!segmentCriteria.industries.some((ind) => lead.metadata?.industry?.includes(ind))) return false;
+      if (!segmentCriteria.industries.some((ind: string) => leadIndustry.includes(ind))) return false;
     }
 
     // Company size filter
     if (segmentCriteria.companySize && segmentCriteria.companySize.length > 0) {
-      if (!segmentCriteria.companySize.includes(lead.metadata?.companySize)) return false;
+      if (!segmentCriteria.companySize.includes(leadCompanySize)) return false;
     }
 
     return true;
@@ -290,26 +354,17 @@ export async function getLeadsInSegment(
 
 // ============ BANT QUALIFICATION ============
 
-export async function completeBantQualification(lead: Lead): Promise<{
-  budget: "has_budget" | "no_budget" | "unknown";
-  authority: "decision_maker" | "influencer" | "not_involved";
-  need: "has_need" | "no_need" | "unknown";
-  timeline: "immediate" | "this_quarter" | "this_year" | "no_timeline";
-  qualification_score: number;
-}> {
+export async function completeBantQualification(_lead: Lead): Promise<BantQualification> {
   /**
    * BANT = Budget, Authority, Need, Timeline
    * Score 0-100 (all yes = 100)
    */
 
   // In production: analyze conversation to determine BANT
-  // For now: return template
-
-  let score = 0;
-  const responses: any = {};
+  // For now: return template with default values
 
   // Placeholder: in real app, AI analyzes lead messages to determine BANT
-  score = 50; // Default
+  const score = 50; // Default
 
   return {
     budget: "unknown",
@@ -322,32 +377,26 @@ export async function completeBantQualification(lead: Lead): Promise<{
 
 // ============ LEAD COMPANY ENRICHMENT ============
 
-export async function enrichLeadCompany(lead: Lead): Promise<{
-  company_name: string;
-  company_size: string;
-  industry: string;
-  revenue_estimate: string;
-  employee_count: number;
-  website: string;
-  linkedin_url: string;
-  tech_stack: string[];
-  competitors: string[];
-}> {
+export async function enrichLeadCompany(lead: Lead): Promise<CompanyEnrichment> {
   /**
    * Enrich lead with company data
    * In production: integrate with Clearbit, Hunter, etc.
    */
 
   // Extract domain from email
-  const emailDomain = lead.email?.split("@")[1];
+  const emailDomain = lead.email?.split("@")[1] || '';
+  const metadata = lead.metadata as Record<string, unknown> | null;
+  const company = typeof metadata?.company === 'string' ? metadata.company : '';
+  const companySize = typeof metadata?.companySize === 'string' ? metadata.companySize : 'unknown';
+  const industry = typeof metadata?.industry === 'string' ? metadata.industry : 'unknown';
 
   return {
-    company_name: lead.metadata?.company || "",
-    company_size: lead.metadata?.companySize || "unknown",
-    industry: lead.metadata?.industry || "unknown",
+    company_name: company,
+    company_size: companySize,
+    industry: industry,
     revenue_estimate: "unknown",
     employee_count: 0,
-    website: `https://${emailDomain}` || "",
+    website: emailDomain ? `https://${emailDomain}` : "",
     linkedin_url: "",
     tech_stack: [],
     competitors: [],
@@ -359,7 +408,7 @@ export async function enrichLeadCompany(lead: Lead): Promise<{
 export async function addTimelineEvent(
   leadId: string,
   actionType: string,
-  actionData: any,
+  actionData: Record<string, unknown>,
   actorId?: string
 ): Promise<void> {
   /**
@@ -367,11 +416,14 @@ export async function addTimelineEvent(
    */
 
   console.log(`📝 Timeline: Lead ${leadId} - ${actionType}`, actionData);
+  
+  // Suppress unused variable warning - actorId used for audit trail in production
+  void actorId;
 
   // In production: save to lead_timeline table
 }
 
-export async function getLeadTimeline(leadId: string): Promise<any[]> {
+export async function getLeadTimeline(_leadId: string): Promise<TimelineEvent[]> {
   /**
    * Get complete audit trail for lead
    */
@@ -387,7 +439,7 @@ export async function addLeadTag(leadId: string, tagName: string): Promise<void>
   // In production: insert into lead_tag_mapping
 }
 
-export async function setCustomFieldValue(leadId: string, fieldName: string, value: any): Promise<void> {
+export async function setCustomFieldValue(leadId: string, fieldName: string, value: unknown): Promise<void> {
   console.log(`📋 Custom field: Lead ${leadId} - ${fieldName} = ${value}`);
   // In production: insert into lead_custom_field_values
 }

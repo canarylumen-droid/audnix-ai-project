@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * MILLIONAIRE CLOSER SALES LANGUAGE ENGINE v3
  * 40+ Word Replacements + 10 Dominant Frame Engines
@@ -10,6 +8,21 @@
  * 3. Identity-based persuasion
  * 4. Every message advances the close
  */
+
+export type LeadTone = "casual" | "formal" | "blunt" | "warm";
+
+export interface SalesOptimizationContext {
+  companyName?: string;
+  industry?: string;
+  offer?: string;
+  leadTone?: LeadTone;
+  positioning?: string;
+}
+
+export interface ObjectionHandlerContext {
+  industry?: string;
+  positioning?: string;
+}
 
 // ============ ENGINE 1: WORD REPLACEMENT ENGINE ============
 export const WORD_REPLACEMENTS: Record<string, string> = {
@@ -86,7 +99,7 @@ export function applyWordReplacements(text: string): string {
 
   for (const [weak, dominant] of sortedReplacements) {
     const regex = new RegExp(`\\b${weak}\\b`, "gi");
-    result = result.replace(regex, (match) => {
+    result = result.replace(regex, (match: string) => {
       if (match[0] === match[0].toUpperCase()) {
         return dominant.charAt(0).toUpperCase() + dominant.slice(1);
       }
@@ -133,8 +146,9 @@ export const INDUSTRY_PATTERNS: Record<string, string> = {
   saas: "churn,expansion revenue,product adoption,user engagement",
 };
 
-export function getIndustryFraming(industry: string): string {
-  return INDUSTRY_PATTERNS[industry?.toLowerCase()] || INDUSTRY_PATTERNS.b2b;
+export function getIndustryFraming(industry: string | undefined | null): string {
+  if (!industry) return INDUSTRY_PATTERNS.b2b;
+  return INDUSTRY_PATTERNS[industry.toLowerCase()] || INDUSTRY_PATTERNS.b2b;
 }
 
 // ============ ENGINE 4: OBJECTION CRUSHING ENGINE ============
@@ -157,7 +171,7 @@ export const OBJECTION_RESPONSES: Record<string, string> = {
 };
 
 // ============ ENGINE 5: RE-ENGAGEMENT ENGINE ============
-export const REENGAGEMENT_PATTERNS = [
+export const REENGAGEMENT_PATTERNS: string[] = [
   "Just reconnecting — based on others in your [INDUSTRY], this is usually the point where they see the biggest jump in conversions.",
 
   "Circling back — the window is still open to activate this and start recovering the leads dropping off right now.",
@@ -170,7 +184,7 @@ export const REENGAGEMENT_PATTERNS = [
 ];
 
 // ============ ENGINE 6: BRAND CONTEXT ENGINE ============
-export function injectBrandContext(text: string, context: any): string {
+export function injectBrandContext(text: string, context: SalesOptimizationContext | null | undefined): string {
   if (!context) return text;
 
   let result = text;
@@ -192,7 +206,7 @@ export function injectBrandContext(text: string, context: any): string {
 }
 
 // ============ ENGINE 7: URGENCY ENGINE ============
-export function generateUrgencyFrame(industry: string, daysSinceContact: number): string {
+export function generateUrgencyFrame(industry: string | undefined | null, daysSinceContact: number): string {
   const urgencyMaps: Record<string, Record<number, string>> = {
     realEstate: {
       1: "Most of the lift happens in the first 48 hours once activation starts.",
@@ -206,12 +220,14 @@ export function generateUrgencyFrame(industry: string, daysSinceContact: number)
     },
   };
 
-  const map = urgencyMaps[industry?.toLowerCase()] || urgencyMaps.agency;
-  return map[daysSinceContact > 7 ? 7 : daysSinceContact] || map[1];
+  const industryKey = industry?.toLowerCase() || 'agency';
+  const map = urgencyMaps[industryKey] || urgencyMaps.agency;
+  const dayKey = daysSinceContact > 7 ? 7 : daysSinceContact;
+  return map[dayKey] || map[1];
 }
 
 // ============ ENGINE 8: CONVERSION ENGINE ============
-export const CLOSE_VARIATIONS = [
+export const CLOSE_VARIATIONS: string[] = [
   "Ready to activate and get this running for [COMPANY] today?",
   "If everything makes sense, I can prepare your activation now.",
   "So let's get this agreement in motion — you good to activate this week?",
@@ -220,7 +236,9 @@ export const CLOSE_VARIATIONS = [
 ];
 
 // ============ ENGINE 9: PERSONALITY ADAPTATION ENGINE ============
-export function detectLeadTone(messages: string[]): "casual" | "formal" | "blunt" | "warm" {
+export function detectLeadTone(messages: string[]): LeadTone {
+  if (!messages || messages.length === 0) return "warm";
+  
   const combined = messages.join(" ").toLowerCase();
 
   const formalWords = ["regarding", "furthermore", "proposed", "hereby"];
@@ -237,7 +255,9 @@ export function detectLeadTone(messages: string[]): "casual" | "formal" | "blunt
   return "warm";
 }
 
-export function adjustToneForLead(text: string, leadTone: "casual" | "formal" | "blunt" | "warm"): string {
+export function adjustToneForLead(text: string, leadTone: LeadTone): string {
+  if (!text) return text;
+  
   switch (leadTone) {
     case "casual":
       return text.replace(/\./g, "").toLowerCase() + ".";
@@ -252,12 +272,11 @@ export function adjustToneForLead(text: string, leadTone: "casual" | "formal" | 
 }
 
 // ============ ENGINE 10: MEMORY ENGINE ============
-export function injectMemoryCallbacks(text: string, conversationHistory: string[]): string {
+export function injectMemoryCallbacks(text: string, conversationHistory: string[] | null | undefined): string {
   if (!conversationHistory || conversationHistory.length === 0) return text;
 
   let result = text;
 
-  // Find key points from history
   const lastMessage = conversationHistory[conversationHistory.length - 1] || "";
 
   if (lastMessage.includes("timing") && !result.includes("timing")) {
@@ -273,10 +292,12 @@ export function injectMemoryCallbacks(text: string, conversationHistory: string[
 
 // ============ NON-NEGOTIABLE RULES ENFORCEMENT ============
 export function enforceNonNegotiableRules(text: string): string {
+  if (!text) return text;
+  
   let result = text;
 
   // Rule 1: NEVER DEFENSIVE
-  const defensivePatterns = [
+  const defensivePatterns: RegExp[] = [
     /I understand your concern/gi,
     /I know the price seems high/gi,
     /apologize/gi,
@@ -307,7 +328,7 @@ export function enforceNonNegotiableRules(text: string): string {
 }
 
 // ============ COMPLETE OPTIMIZATION PIPELINE ============
-export function optimizeSalesLanguage(text: string, context?: any): string {
+export function optimizeSalesLanguage(text: string, context?: SalesOptimizationContext | null): string {
   if (!text) return text;
 
   let optimized = text;
@@ -375,7 +396,7 @@ export function makeConversational(text: string): string {
 export function handleObjectionWithSalesLanguage(
   objection: string, 
   response: string, 
-  context?: { industry?: string; positioning?: string }
+  context?: ObjectionHandlerContext | null
 ): string {
   if (!response) return response;
   

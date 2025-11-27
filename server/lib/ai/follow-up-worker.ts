@@ -1,7 +1,6 @@
-/* @ts-nocheck */
 import { supabaseAdmin } from '../supabase-admin';
 import { db } from '../../db';
-import { followUpQueue, leads, messages, users, brandEmbeddings } from '@shared/schema';
+import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '@shared/schema';
 import { eq, and, lte, asc } from 'drizzle-orm';
 import { generateReply } from './openai';
 import { InstagramOAuth } from '../oauth/instagram';
@@ -15,13 +14,21 @@ import DayAwareSequence from './day-aware-sequence';
 import { getMessageScript, personalizeScript } from './message-scripts';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization';
 import { multiProviderEmailFailover } from '../email/multi-provider-failover';
+import { decrypt } from '../crypto/encryption';
+import type { 
+  BrandContext, 
+  ChannelType, 
+  LeadStatus,
+  MessageDirection,
+  ProviderType 
+} from '@shared/types';
 
 interface FollowUpJob {
   id: string;
   userId: string;
   leadId: string;
   channel: string;
-  context: any;
+  context: Record<string, unknown>;
   retryCount: number;
 }
 
@@ -35,20 +42,45 @@ interface LocalLead {
   tags?: string[];
   preferred_name?: string;
   timezone?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   follow_up_count?: number;
   externalId?: string | null;
   lastMessageAt?: Date | null;
   warm?: boolean;
   createdAt?: Date;
+  aiPaused?: boolean;
+  updatedAt?: Date;
 }
 
 interface LocalMessage {
   body: string;
-  direction: 'inbound' | 'outbound';
+  direction: MessageDirection;
   createdAt: Date;
   role?: 'user' | 'assistant';
   created_at?: string;
+}
+
+interface DatabaseMessage {
+  body: string;
+  direction: string;
+  createdAt: Date;
+}
+
+interface BrandSnippetData {
+  snippet: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface UserBrandData {
+  company: string | null;
+  replyTone: string | null;
+  metadata: Record<string, unknown>;
+}
+
+interface FollowUpSchedule {
+  channel: ChannelType;
+  sequenceNumber: number;
+  scheduledFor: Date;
 }
 
 type Lead = LocalLead;
@@ -66,7 +98,7 @@ export class FollowUpWorker {
   /**
    * Start the worker to process follow-up queue
    */
-  start() {
+  start(): void {
     if (this.isRunning) {
       console.log('Follow-up worker is already running');
       return;
@@ -87,7 +119,7 @@ export class FollowUpWorker {
   /**
    * Stop the worker
    */
-  stop() {
+  stop(): void {
     if (this.processingInterval) {
       clearInterval(this.processingInterval);
       this.processingInterval = null;
@@ -99,7 +131,7 @@ export class FollowUpWorker {
   /**
    * Process pending jobs in the queue
    */
-  private async processQueue() {
+  private async processQueue(): Promise<void> {
     try {
       // Execute comment automation follow-ups first
       await executeCommentFollowUps();
@@ -128,9 +160,18 @@ export class FollowUpWorker {
 
       console.log(`Processing ${jobs.length} follow-up jobs...`);
 
-  // @ts-ignore - job parameter type mismatch
-      // Process jobs in parallel
-      await Promise.all(jobs.map(job => this.processJob(job as any)));
+      // Process jobs in parallel with proper typing
+      await Promise.all(jobs.map((job) => {
+        const typedJob: FollowUpJob = {
+          id: job.id,
+          userId: job.userId,
+          leadId: job.leadId,
+          channel: job.channel,
+          context: job.context as Record<string, unknown>,
+          retryCount: (job.context as Record<string, unknown>)?.retryCount as number || 0
+        };
+        return this.processJob(typedJob);
+      }));
     } catch (error) {
       console.error('Queue processing error:', error);
     }
@@ -139,7 +180,7 @@ export class FollowUpWorker {
   /**
    * Process a single follow-up job
    */
-  private async processJob(job: FollowUpJob) {
+  private async processJob(job: FollowUpJob): Promise<void> {
     try {
       if (!db) {
         throw new Error('Database not configured');
@@ -152,15 +193,34 @@ export class FollowUpWorker {
         .where(eq(followUpQueue.id, job.id));
 
       // Get lead details
-      const [lead] = await db
+      const leadResults = await db
         .select()
         .from(leads)
         .where(eq(leads.id, job.leadId))
         .limit(1);
 
-      if (!lead) {
+      const dbLead = leadResults[0];
+      if (!dbLead) {
         throw new Error('Lead not found');
       }
+
+      // Convert database lead to local type
+      const lead: Lead = {
+        id: dbLead.id,
+        name: dbLead.name,
+        email: dbLead.email,
+        phone: dbLead.phone,
+        channel: dbLead.channel,
+        status: dbLead.status,
+        tags: dbLead.tags as string[],
+        metadata: dbLead.metadata as Record<string, unknown>,
+        externalId: dbLead.externalId,
+        lastMessageAt: dbLead.lastMessageAt,
+        warm: dbLead.warm,
+        createdAt: dbLead.createdAt,
+        aiPaused: dbLead.aiPaused,
+        updatedAt: dbLead.updatedAt
+      };
 
       // CHECK: User has opted out of AI messages
       if (lead.aiPaused) {
@@ -196,7 +256,7 @@ export class FollowUpWorker {
         const { messageWithDisclaimer } = prependDisclaimerToMessage(
           aiReply,
           job.channel as 'email' | 'whatsapp' | 'sms' | 'voice',
-          brandContext?.companyName || 'Audnix'
+          brandContext?.businessName || 'Audnix'
         );
         aiReply = messageWithDisclaimer;
       } catch (disclaimerError) {
@@ -220,7 +280,7 @@ export class FollowUpWorker {
             savedMessage?.id || '',
             job.channel,
             aiReply,
-            ((lead.metadata as any)?.follow_up_count || 0) + 1
+            ((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) + 1
           );
         } catch (auditError) {
           console.error('Failed to log audit trail:', auditError);
@@ -232,8 +292,8 @@ export class FollowUpWorker {
           .set({
             status: 'replied',
             metadata: {
-              ...lead.metadata,
-              follow_up_count: ((lead.metadata as any)?.follow_up_count || 0) + 1
+              ...(lead.metadata || {}),
+              follow_up_count: ((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) + 1
             },
             lastMessageAt: new Date() // Update last message time
           })
@@ -256,6 +316,7 @@ export class FollowUpWorker {
         throw new Error('Failed to send message');
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Error processing job ${job.id}:`, error);
 
       // Update job with error
@@ -264,7 +325,7 @@ export class FollowUpWorker {
           .update(followUpQueue)
           .set({
             status: job.retryCount >= 3 ? 'failed' : 'pending',
-            errorMessage: (error as Error).message,
+            errorMessage: errorMessage,
             scheduledAt: new Date(Date.now() + 5 * 60 * 1000)
           })
           .where(eq(followUpQueue.id, job.id));
@@ -278,7 +339,7 @@ export class FollowUpWorker {
   private async generateFollowUp(
     lead: Lead, 
     history: Message[], 
-    brandContext: any,
+    brandContext: BrandContext,
     campaignDay: number = 0,
     campaignDayCreated: Date = new Date(),
     userId?: string
@@ -295,7 +356,7 @@ export class FollowUpWorker {
     // Use day-aware sequence for context-aware prompt
     const dayAwareContext = {
       campaignDay,
-      previousMessages: history.map(msg => ({
+      previousMessages: history.map((msg: Message) => ({
         sentAt: msg.createdAt,
         body: msg.body,
       })),
@@ -331,7 +392,7 @@ export class FollowUpWorker {
   /**
    * Build follow-up prompt with context and message script
    */
-  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: any, script?: any): string {
+  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }): string {
     const firstName = lead.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
     
@@ -340,18 +401,18 @@ export class FollowUpWorker {
     if (script) {
       scriptGuidance = `
 SCRIPT GUIDANCE (use as reference, not required):
-- Tone: ${script.tone}
-- Structure: ${script.structure}`;
+- Tone: ${script.tone || 'professional'}
+- Structure: ${script.structure || 'conversational'}`;
     }
 
     // Build conversation history string
     const historyStr = history
       .slice(-5) // Last 5 messages
-      .map(msg => `${msg.direction === 'inbound' ? 'Lead' : 'You'}: ${msg.body}`)
+      .map((msg: Message) => `${msg.direction === 'inbound' ? 'Lead' : 'You'}: ${msg.body}`)
       .join('\n');
 
     // Determine follow-up number
-    const followUpNumber = ((lead.metadata as any)?.follow_up_count || 0) + 1;
+    const followUpNumber = ((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) + 1;
 
     // Determine email subject for email channel
     let emailSubject = '';
@@ -435,11 +496,11 @@ Generate a natural follow-up message:`;
       .orderBy(asc(messages.createdAt))
       .limit(10);
 
-    return messageHistory.map(msg => ({
+    return messageHistory.map((msg: DatabaseMessage): Message => ({
       body: msg.body,
-      direction: msg.direction as 'inbound' | 'outbound',
+      direction: msg.direction as MessageDirection,
       createdAt: msg.createdAt,
-      role: msg.direction === 'inbound' ? 'user' : 'assistant' as 'user' | 'assistant',
+      role: msg.direction === 'inbound' ? 'user' : 'assistant',
       created_at: msg.createdAt.toISOString()
     }));
   }
@@ -447,12 +508,12 @@ Generate a natural follow-up message:`;
   /**
    * Get brand context for a user
    */
-  private async getBrandContext(userId: string): Promise<any> {
+  private async getBrandContext(userId: string): Promise<BrandContext> {
     if (!db) {
       return {
         businessName: 'Your Business',
         voiceRules: 'Be friendly and professional',
-        brandColors: '#007bff', // Default fallback color
+        brandColors: '#007bff',
         brandSnippets: []
       };
     }
@@ -465,7 +526,7 @@ Generate a natural follow-up message:`;
       .limit(5);
 
     // Get user settings
-    const [user] = await db
+    const userResults = await db
       .select({
         company: users.company,
         replyTone: users.replyTone,
@@ -475,15 +536,17 @@ Generate a natural follow-up message:`;
       .where(eq(users.id, userId))
       .limit(1);
 
+    const user = userResults[0] as UserBrandData | undefined;
+
     // Extract brand colors from user metadata, or use default
-    const userMetadata = user?.metadata as Record<string, any> | null;
-    const brandColors = userMetadata?.brandColors || '#007bff';
+    const userMetadata = user?.metadata as Record<string, unknown> | null;
+    const brandColors = (userMetadata?.brandColors as string) || '#007bff';
 
     return {
       businessName: user?.company || 'Your Business',
       voiceRules: user?.replyTone ? `Be ${user.replyTone}` : 'Be professional',
       brandColors: brandColors,
-      brandSnippets: brandData?.map((d: { snippet: string }) => d.snippet) || []
+      brandSnippets: brandData?.map((d: BrandSnippetData) => d.snippet) || []
     };
   }
 
@@ -503,10 +566,13 @@ Generate a natural follow-up message:`;
         switch (channel) {
           case 'instagram':
             if (lead.externalId) {
-              const token = await this.instagramOAuth.getValidToken(userId);
-              if (token) {
-                await sendInstagramMessage(token, lead.externalId, content);
-                return true;
+              const tokenData = await this.instagramOAuth.getValidToken(userId);
+              if (tokenData) {
+                const instagramAccountId = await this.getInstagramAccountId(userId);
+                if (instagramAccountId) {
+                  await sendInstagramMessage(tokenData, instagramAccountId, lead.externalId, content);
+                  return true;
+                }
               }
             }
             break;
@@ -518,23 +584,26 @@ Generate a natural follow-up message:`;
                 await sendWhatsAppMessage(userId, lead.phone, content);
                 console.log(`✅ WhatsApp message sent to ${lead.name} (${lead.phone})`);
                 return true;
-              } catch (error: any) {
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
                 // Handle specific messaging window errors
-                if (error.message.includes('24 hours') || error.message.includes('not messaged you')) {
-                  console.warn(`⚠️ WhatsApp follow-up blocked for ${lead.name}: ${error.message}`);
+                if (errorMessage.includes('24 hours') || errorMessage.includes('not messaged you')) {
+                  console.warn(`⚠️ WhatsApp follow-up blocked for ${lead.name}: ${errorMessage}`);
                   
                   // Update lead metadata
-                  await db
-                    .update(leads)
-                    .set({
-                      metadata: {
-                        ...(lead.metadata || {}),
-                        last_follow_up_failed: new Date().toISOString(),
-                        follow_up_failure_reason: 'messaging_window_restriction',
-                        needs_manual_outreach: true
-                      } as any
-                    })
-                    .where(eq(leads.id, lead.id));
+                  if (db) {
+                    await db
+                      .update(leads)
+                      .set({
+                        metadata: {
+                          ...(lead.metadata || {}),
+                          last_follow_up_failed: new Date().toISOString(),
+                          follow_up_failure_reason: 'messaging_window_restriction',
+                          needs_manual_outreach: true
+                        }
+                      })
+                      .where(eq(leads.id, lead.id));
+                  }
                   
                   // Try next channel instead of failing
                   continue;
@@ -554,23 +623,26 @@ Generate a natural follow-up message:`;
             }
             break;
         }
-      } catch (error: any) {
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to send via ${channel}:`, error);
         // WhatsApp specific error handling for 24-hour window
-        if (channel === 'whatsapp' && error.message && error.message.includes('24 hours')) {
-          console.warn(`⚠️ WhatsApp API error for ${lead.name} (${lead.phone}): ${error.message}`);
+        if (channel === 'whatsapp' && errorMessage.includes('24 hours')) {
+          console.warn(`⚠️ WhatsApp API error for ${lead.name} (${lead.phone}): ${errorMessage}`);
           // Update lead metadata to indicate the need for a template message
-          await db
-            .update(leads)
-            .set({
-              metadata: {
-                ...(lead.metadata || {}),
-                last_follow_up_failed: new Date().toISOString(),
-                follow_up_failure_reason: '24_hour_window_expired',
-                needs_template_message: true
-              } as any
-            })
-            .where(eq(leads.id, lead.id));
+          if (db) {
+            await db
+              .update(leads)
+              .set({
+                metadata: {
+                  ...(lead.metadata || {}),
+                  last_follow_up_failed: new Date().toISOString(),
+                  follow_up_failure_reason: '24_hour_window_expired',
+                  needs_template_message: true
+                }
+              })
+              .where(eq(leads.id, lead.id));
+          }
           // Continue to the next channel if available, or this job will eventually fail
           continue;
         }
@@ -597,6 +669,37 @@ Generate a natural follow-up message:`;
   }
 
   /**
+   * Get Instagram business account ID for a user
+   */
+  private async getInstagramAccountId(userId: string): Promise<string | null> {
+    if (!db) return null;
+    
+    try {
+      const userIntegrations = await db
+        .select()
+        .from(integrations)
+        .where(and(
+          eq(integrations.userId, userId),
+          eq(integrations.provider, 'instagram'),
+          eq(integrations.connected, true)
+        ))
+        .limit(1);
+      
+      const integration = userIntegrations[0];
+      if (!integration || !integration.encryptedMeta) {
+        return null;
+      }
+      
+      const decrypted = decrypt(integration.encryptedMeta);
+      const meta = JSON.parse(decrypted) as { instagramBusinessAccountId?: string; pageId?: string };
+      return meta.instagramBusinessAccountId || meta.pageId || null;
+    } catch (error) {
+      console.error('Error fetching Instagram account ID:', error);
+      return null;
+    }
+  }
+
+  /**
    * Save message to database
    */
   private async saveMessage(
@@ -604,18 +707,20 @@ Generate a natural follow-up message:`;
     leadId: string,
     content: string,
     role: 'user' | 'assistant'
-  ) {
-    if (!db) return;
+  ): Promise<{ id: string } | undefined> {
+    if (!db) return undefined;
 
-    await db.insert(messages).values({
+    const result = await db.insert(messages).values({
       userId,
       leadId,
       body: content,
       direction: role === 'user' ? 'inbound' : 'outbound',
-      provider: 'automated', // Generic provider for AI messages
+      provider: 'system',
       metadata: {},
       createdAt: new Date()
-    });
+    }).returning({ id: messages.id });
+
+    return result[0];
   }
 
   /**
@@ -634,7 +739,7 @@ Generate a natural follow-up message:`;
     if (!db) return;
 
     // Don't schedule if already followed up 5+ times
-    if (((lead.metadata as any)?.follow_up_count || 0) >= 5) {
+    if (((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) >= 5) {
       return;
     }
 
@@ -644,17 +749,17 @@ Generate a natural follow-up message:`;
     }
 
     // Get conversation history to assess lead temperature
-    const messages = await this.getConversationHistory(leadId);
-    const leadTemperature = this.assessLeadTemperature(lead, messages);
+    const messageHistory = await this.getConversationHistory(leadId);
+    const leadTemperature = this.assessLeadTemperature(lead, messageHistory);
 
     // Use multi-channel orchestrator to get next follow-ups with proper timing
     const campaignCreatedAt = lead.createdAt || new Date();
-    const schedules = MultiChannelOrchestrator.calculateNextSchedule(leadId, campaignCreatedAt, lead.channel);
+    const schedules = MultiChannelOrchestrator.calculateNextSchedule(leadId, campaignCreatedAt, lead.channel) as FollowUpSchedule[];
 
     // Schedule the next follow-up from the orchestrator
     if (schedules.length > 0) {
       const nextSchedule = schedules[0]; // Get the first pending schedule
-      const followUpCount = ((lead.metadata as any)?.follow_up_count || 0) + 1;
+      const followUpCount = ((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) + 1;
 
       console.log(`📅 Scheduling ${leadTemperature} lead - Channel: ${nextSchedule.channel}, Sequence: ${nextSchedule.sequenceNumber}, Time: ${nextSchedule.scheduledFor.toISOString()}`);
 
@@ -683,16 +788,17 @@ Generate a natural follow-up message:`;
   /**
    * Assess lead temperature based on engagement patterns
    */
-  private assessLeadTemperature(lead: Lead, messages: Message[]): 'hot' | 'warm' | 'cold' {
+  private assessLeadTemperature(lead: Lead, messageHistory: Message[]): 'hot' | 'warm' | 'cold' {
     // Hot lead indicators
-    const recentMessages = messages.filter(m => {
+    const recentMessages = messageHistory.filter((m: Message) => {
       const hoursSince = (Date.now() - new Date(m.createdAt).getTime()) / (1000 * 60 * 60);
       return hoursSince < 24;
     });
 
-    const inboundInLast24h = recentMessages.filter(m => m.direction === 'inbound').length;
-    const hasEngagementScore = (lead.metadata as any)?.behavior_pattern?.engagementScore;
-    const engagementScore = hasEngagementScore || 0;
+    const inboundInLast24h = recentMessages.filter((m: Message) => m.direction === 'inbound').length;
+    const metadata = lead.metadata as Record<string, unknown> | undefined;
+    const behaviorPattern = metadata?.behavior_pattern as Record<string, unknown> | undefined;
+    const engagementScore = (behaviorPattern?.engagementScore as number) || 0;
 
     // HOT: Recent activity + high engagement
     if (inboundInLast24h >= 2 || engagementScore > 70) {
@@ -722,37 +828,37 @@ Generate a natural follow-up message:`;
   private getFollowUpDelay(followUpCount: number, temperature: 'hot' | 'warm' | 'cold'): number {
     // Hot leads - respond quickly but HUMAN (not desperate)
     if (temperature === 'hot') {
-      const hotDelays = {
+      const hotDelays: Record<number, number> = {
         0: 24 * 60 * 60 * 1000,    // 24 hours (Day 1 - initial follow-up)
         1: 48 * 60 * 60 * 1000,    // 48 hours (Day 2 - second follow-up)
         2: 120 * 60 * 60 * 1000,   // 5 days (Day 5 - re-engagement)
         3: 168 * 60 * 60 * 1000,   // 7 days (Day 7 - final touch)
         4: 336 * 60 * 60 * 1000    // 14 days (archive if no response)
       };
-      return hotDelays[followUpCount as keyof typeof hotDelays] || 24 * 60 * 60 * 1000;
+      return hotDelays[followUpCount] || 24 * 60 * 60 * 1000;
     }
 
     // Warm leads - moderate timing
     if (temperature === 'warm') {
-      const warmDelays = {
+      const warmDelays: Record<number, number> = {
         0: 2 * 60 * 60 * 1000,      // 2 hours
         1: 6 * 60 * 60 * 1000,      // 6 hours
         2: 24 * 60 * 60 * 1000,     // 1 day
         3: 2 * 24 * 60 * 60 * 1000, // 2 days
         4: 3 * 24 * 60 * 60 * 1000  // 3 days
       };
-      return warmDelays[followUpCount as keyof typeof warmDelays] || 3 * 24 * 60 * 60 * 1000;
+      return warmDelays[followUpCount] || 3 * 24 * 60 * 60 * 1000;
     }
 
     // Cold leads - slower, more spaced out
-    const coldDelays = {
+    const coldDelays: Record<number, number> = {
       0: 4 * 60 * 60 * 1000,      // 4 hours
       1: 24 * 60 * 60 * 1000,     // 1 day
       2: 3 * 24 * 60 * 60 * 1000, // 3 days
       3: 5 * 24 * 60 * 60 * 1000, // 5 days
       4: 7 * 24 * 60 * 60 * 1000  // 1 week
     };
-    return coldDelays[followUpCount as keyof typeof coldDelays] || 7 * 24 * 60 * 60 * 1000;
+    return coldDelays[followUpCount] || 7 * 24 * 60 * 60 * 1000;
   }
 
   /**

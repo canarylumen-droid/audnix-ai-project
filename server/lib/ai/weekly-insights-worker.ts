@@ -1,12 +1,17 @@
-/* @ts-nocheck */
 import { storage } from "../../storage";
 import { generateInsights } from "./openai";
+import type { User, Lead, Message } from "@shared/schema";
+import type { WeeklyInsight, LeadInsights } from "@shared/types";
+
+interface DatabaseError extends Error {
+  code?: string;
+}
 
 export class WeeklyInsightsWorker {
   private isRunning = false;
   private checkInterval: NodeJS.Timeout | null = null;
 
-  start() {
+  start(): void {
     if (this.isRunning) {
       console.log("Weekly insights worker is already running");
       return;
@@ -18,7 +23,7 @@ export class WeeklyInsightsWorker {
     // Check every 6 hours for users who need weekly insights
     this.checkInterval = setInterval(
       () => {
-        this.processWeeklyInsights().catch((error) => {
+        this.processWeeklyInsights().catch((error: unknown) => {
           console.error("Error in weekly insights worker:", error);
         });
       },
@@ -26,12 +31,12 @@ export class WeeklyInsightsWorker {
     );
 
     // Run immediately on start
-    this.processWeeklyInsights().catch((error) => {
+    this.processWeeklyInsights().catch((error: unknown) => {
       console.error("Error in initial weekly insights run:", error);
     });
   }
 
-  stop() {
+  stop(): void {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
@@ -40,15 +45,16 @@ export class WeeklyInsightsWorker {
     console.log("Weekly insights worker stopped");
   }
 
-  private async processWeeklyInsights() {
+  private async processWeeklyInsights(): Promise<void> {
     try {
       // Check if database is ready by attempting to get users
-      let users;
+      let users: User[];
       try {
         users = await storage.getAllUsers();
-      } catch (dbError: any) {
+      } catch (dbError: unknown) {
+        const error = dbError as DatabaseError;
         // Database not ready (migrations not run, or connection issue)
-        if (dbError.code === '42P01' || dbError.code === 'ECONNREFUSED') {
+        if (error.code === '42P01' || error.code === 'ECONNREFUSED') {
           console.log('Weekly insights worker: Database not ready, skipping this run');
           return;
         }
@@ -60,7 +66,7 @@ export class WeeklyInsightsWorker {
       for (const user of users) {
         try {
           // Check if user needs weekly insights (7 days since last generation)
-          const lastInsightDate = user.lastInsightGeneratedAt || user.createdAt;
+          const lastInsightDate: Date = user.lastInsightGeneratedAt || user.createdAt;
           const daysSinceLastInsight = Math.floor(
             (now.getTime() - new Date(lastInsightDate).getTime()) / (1000 * 60 * 60 * 24)
           );
@@ -69,23 +75,38 @@ export class WeeklyInsightsWorker {
             console.log(`Generating weekly insights for user ${user.id}...`);
 
             // Get user's leads from the past week
-            const leads = await storage.getLeads({
+            const leads: Lead[] = await storage.getLeads({
               userId: user.id,
               limit: 1000,
             });
 
             // Get messages from the past week
             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            const recentMessages = await storage.getAllMessages(user.id);
+            const recentMessages: Message[] = await storage.getAllMessages(user.id);
             const weekMessages = recentMessages.filter(
-              (msg) => new Date(msg.createdAt) >= weekAgo
+              (msg: Message) => new Date(msg.createdAt) >= weekAgo
             );
 
-            // Generate insights using AI
-            const insights = await generateInsights({
+            // Prepare data for insights generation
+            const insightsData = {
               userId: user.id,
-              timeframe: "week",
-            });
+              leadsCount: leads.length,
+              messagesCount: weekMessages.length,
+              convertedLeads: leads.filter((lead: Lead) => lead.status === 'converted').length,
+              newLeads: leads.filter((lead: Lead) => lead.status === 'new').length,
+              channelBreakdown: {
+                email: leads.filter((lead: Lead) => lead.channel === 'email').length,
+                whatsapp: leads.filter((lead: Lead) => lead.channel === 'whatsapp').length,
+                instagram: leads.filter((lead: Lead) => lead.channel === 'instagram').length,
+              },
+            };
+
+            // Generate insights using AI
+            const insightsPrompt = `Generate a brief weekly performance summary for a sales user. 
+            Highlight key metrics, trends, and actionable recommendations.
+            Focus on lead conversion, response times, and channel effectiveness.`;
+            
+            const insights: string = await generateInsights(insightsData, insightsPrompt);
 
             // Create notification for the user
             await storage.createNotification({
@@ -93,7 +114,7 @@ export class WeeklyInsightsWorker {
               title: "🎯 Your Weekly Insights Are Ready!",
               message: `We've analyzed your performance from the past week. ${leads.length} leads tracked, ${weekMessages.length} messages sent. View your personalized insights now!`,
               type: "insight",
-              read: false,
+              isRead: false,
               metadata: {
                 insightsData: insights,
                 generatedAt: now.toISOString(),
@@ -109,14 +130,15 @@ export class WeeklyInsightsWorker {
 
             console.log(`Weekly insights generated and notification sent to user ${user.id}`);
           }
-        } catch (userError) {
+        } catch (userError: unknown) {
           console.error(`Error processing insights for user ${user.id}:`, userError);
           // Continue with next user
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const dbError = error as DatabaseError;
       // Only log non-database initialization errors
-      if (error.code !== '42P01' && error.code !== 'ECONNREFUSED') {
+      if (dbError.code !== '42P01' && dbError.code !== 'ECONNREFUSED') {
         console.error("Error in processWeeklyInsights:", error);
       }
     }
@@ -128,8 +150,9 @@ async function isDatabaseReady(): Promise<boolean> {
   try {
     await storage.getUserCount();
     return true;
-  } catch (error: any) {
-    if (error.code === '42P01' || error.code === 'ECONNREFUSED') {
+  } catch (error: unknown) {
+    const dbError = error as DatabaseError;
+    if (dbError.code === '42P01' || dbError.code === 'ECONNREFUSED') {
       return false;
     }
     return true; // Other errors don't mean DB isn't ready

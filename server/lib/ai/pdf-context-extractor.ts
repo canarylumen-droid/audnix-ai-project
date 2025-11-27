@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * INTELLIGENT PDF CONTEXT EXTRACTOR
  * 
@@ -35,19 +33,20 @@ export interface ExtractedPDFContent {
   case_studies: Array<{ title: string; results: string }>;
   pricing_options: string[];
   tone_examples: string[];
-  success_metrics: string[]; // e.g., "40% faster", "$100k revenue increase"
+  success_metrics: string[];
   website_urls: string[];
   competitor_positioning: string;
 }
 
-export async function extractComprehensiveContext(pdfText: string): Promise<ExtractedPDFContent> {
-  /**
-   * Use GPT-4 to intelligently extract business context
-   * Then research competitive landscape
-   */
+interface IndustryGuidance {
+  urgencyDrivers: string[];
+  objectionHandling: Record<string, string>;
+  sendingStrategy: string;
+  closePatterns: string[];
+}
 
+export async function extractComprehensiveContext(pdfText: string): Promise<ExtractedPDFContent> {
   try {
-    // Step 1: Extract from PDF
     const extractionPrompt = `Analyze this brand PDF and extract EVERYTHING about their business:
 
 ${pdfText.substring(0, 5000)} 
@@ -77,41 +76,42 @@ Be thorough and precise.`;
       max_tokens: 1500,
     });
 
+    const messageContent: string = extractionResponse.choices[0]?.message?.content ?? "{}";
+    
     let extracted: Partial<ExtractedPDFContent> = {};
     try {
-      extracted = JSON.parse(extractionResponse.choices[0].message.content || "{}");
-    } catch (e) {
-      // If JSON parse fails, try to extract from text
-      const text = extractionResponse.choices[0].message.content || "";
+      extracted = JSON.parse(messageContent) as Partial<ExtractedPDFContent>;
+    } catch {
+      const text = messageContent;
       extracted = {
-        company_name: text.match(/company_name["\s:]*([^,\n}]*)/)?.[1] || "Unknown",
-        industry: text.match(/industry["\s:]*([^,\n}]*)/)?.[1] || "B2B",
+        company_name: text.match(/company_name["\s:]*([^,\n}]*)/)?.[1] ?? "Unknown",
+        industry: text.match(/industry["\s:]*([^,\n}]*)/)?.[1] ?? "B2B",
       };
     }
 
-    // Step 2: Research competitive landscape
     const competitiveResearch = await researchCompetitivePosition(
-      extracted.company_name || "Unknown",
-      extracted.industry || "B2B",
-      extracted.target_audience || "Businesses"
+      extracted.company_name ?? "Unknown",
+      extracted.industry ?? "B2B",
+      extracted.target_audience ?? "Businesses"
     );
 
     return {
-      company_name: extracted.company_name || "Unknown",
-      industry: extracted.industry || "B2B",
-      target_audience: extracted.target_audience || "General",
-      main_offer: extracted.main_offer || "Services",
-      unique_value: extracted.unique_value || [],
-      testimonials: extracted.testimonials || [],
-      case_studies: extracted.case_studies || [],
-      pricing_options: extracted.pricing_options || [],
-      tone_examples: extracted.tone_examples || [],
-      success_metrics: extracted.success_metrics || [],
-      website_urls: extracted.website_urls || [],
-      competitor_positioning: competitiveResearch || "Competitive",
+      company_name: extracted.company_name ?? "Unknown",
+      industry: extracted.industry ?? "B2B",
+      target_audience: extracted.target_audience ?? "General",
+      main_offer: extracted.main_offer ?? "Services",
+      unique_value: extracted.unique_value ?? [],
+      testimonials: extracted.testimonials ?? [],
+      case_studies: extracted.case_studies ?? [],
+      pricing_options: extracted.pricing_options ?? [],
+      tone_examples: extracted.tone_examples ?? [],
+      success_metrics: extracted.success_metrics ?? [],
+      website_urls: extracted.website_urls ?? [],
+      competitor_positioning: competitiveResearch ?? "Competitive",
     };
-  } catch (error) {
-    console.error("Error extracting PDF context:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error extracting PDF context:", errorMessage);
     return {
       company_name: "Unknown",
       industry: "B2B",
@@ -134,11 +134,6 @@ export async function researchCompetitivePosition(
   industry: string,
   targetAudience: string
 ): Promise<string> {
-  /**
-   * Use AI to research what competitors in this space do
-   * Return positioning recommendations
-   */
-
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -164,9 +159,10 @@ Format concisely and actionably.`,
       max_tokens: 400,
     });
 
-    return response.choices[0].message.content || "Standard positioning in market";
-  } catch (error) {
-    console.error("Error researching competitive position:", error);
+    return response.choices[0]?.message?.content ?? "Standard positioning in market";
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error researching competitive position:", errorMessage);
     return "Competitive offering in market";
   }
 }
@@ -174,11 +170,6 @@ Format concisely and actionably.`,
 export async function brainstormMessageAngles(
   extractedContent: ExtractedPDFContent
 ): Promise<string[]> {
-  /**
-   * Based on extracted PDF content,
-   * brainstorm the BEST messaging angles for sales outreach
-   */
-
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -207,34 +198,21 @@ Format as numbered list.`,
       max_tokens: 500,
     });
 
-    const text = response.choices[0].message.content || "";
+    const text: string = response.choices[0]?.message?.content ?? "";
     return text
       .split("\n")
-      .filter((line) => line.trim().match(/^\d/))
+      .filter((line: string) => line.trim().match(/^\d/))
       .slice(0, 5);
-  } catch (error) {
-    console.error("Error brainstorming angles:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error brainstorming angles:", errorMessage);
     return [];
   }
 }
 
 export async function generateIndustrySpecificGuidance(
   extractedContent: ExtractedPDFContent
-): Promise<{
-  urgencyDrivers: string[];
-  objectionHandling: Record<string, string>;
-  sendingStrategy: string;
-  closePatterns: string[];
-}> {
-  /**
-   * For THIS specific industry/niche,
-   * return guidance on:
-   * - What creates urgency
-   * - How to handle common objections
-   * - When/how often to reach out
-   * - How million-dollar closers close in this industry
-   */
-
+): Promise<IndustryGuidance> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -246,7 +224,7 @@ export async function generateIndustrySpecificGuidance(
 Context:
 - Company: ${extractedContent.company_name}
 - They help: ${extractedContent.target_audience}
-- Success metric: ${extractedContent.success_metrics[0] || "ROI"}
+- Success metric: ${extractedContent.success_metrics[0] ?? "ROI"}
 - Competitive edge: ${extractedContent.competitor_positioning}
 
 Provide industry-specific sales guidance:
@@ -264,9 +242,9 @@ Format as JSON.`,
       max_tokens: 800,
     });
 
-    const text = response.choices[0].message.content || "{}";
+    const text: string = response.choices[0]?.message?.content ?? "{}";
     try {
-      return JSON.parse(text);
+      return JSON.parse(text) as IndustryGuidance;
     } catch {
       return {
         urgencyDrivers: ["ROI", "Time to value", "Competitive pressure"],
@@ -283,8 +261,9 @@ Format as JSON.`,
         ],
       };
     }
-  } catch (error) {
-    console.error("Error generating guidance:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error generating guidance:", errorMessage);
     return {
       urgencyDrivers: [],
       objectionHandling: {},

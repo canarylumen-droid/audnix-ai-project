@@ -415,6 +415,10 @@ export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;
 export type InsertEmailWarmupSchedule = typeof emailWarmupSchedules.$inferInsert;
 export type BounceTracker = typeof bounceTracker.$inferSelect;
 export type InsertBounceTracker = typeof bounceTracker.$inferInsert;
+export type VideoMonitor = typeof videoMonitors.$inferSelect;
+export type InsertVideoMonitor = typeof videoMonitors.$inferInsert;
+export type ProcessedComment = typeof processedComments.$inferSelect;
+export type InsertProcessedComment = typeof processedComments.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({

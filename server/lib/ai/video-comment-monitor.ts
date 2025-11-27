@@ -1,10 +1,9 @@
-/* @ts-nocheck */
 import OpenAI from 'openai';
 import { storage } from '../../storage';
 import { InstagramProvider } from '../providers/instagram';
-import { decrypt } from '../crypto/encryption';
 import { formatDMWithButton } from './dm-formatter';
 import { workerHealthMonitor } from '../monitoring/worker-health';
+import type { User, Lead, Integration, VideoMonitor } from '@shared/schema';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
@@ -12,38 +11,49 @@ const openai = new OpenAI({
 
 const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key';
 
-interface VideoMonitorConfig {
-  id: string;
-  userId: string;
-  videoId: string;
-  videoUrl: string;
-  productLink: string;
-  ctaText: string;
-  isActive: boolean;
-  autoReplyEnabled: boolean;
-  metadata: {
-    videoCaption?: string;
-    productName?: string;
-    pricePoint?: string;
-    pdfContext?: string; // Added for PDF context
-    replyToComments?: boolean; // Added to control comment replies
-    askForFollow?: boolean; // Added to control asking for follow
-    instagramHandle?: string; // Added for Instagram handle
-  };
+interface VideoMonitorMetadata {
+  videoCaption?: string;
+  productName?: string;
+  pricePoint?: string;
+  pdfContext?: string;
+  replyToComments?: boolean;
+  askForFollow?: boolean;
+  instagramHandle?: string;
 }
 
-/**
- * Detect ANY interest from Instagram comment - no keywords required
- * AI analyzes context, tone, and user behavior to determine if they should get a DM
- */
-export async function detectBuyingIntent(comment: string, videoContext: string): Promise<{
+interface BuyingIntentResult {
   hasBuyingIntent: boolean;
   intentType: 'high_interest' | 'curious' | 'price_objection' | 'inappropriate' | 'neutral';
   confidence: number;
   shouldDM: boolean;
   suggestedResponse?: string;
   detectedInterest?: string;
-}> {
+}
+
+interface SalesmanDMResult {
+  message: string;
+  linkButton: { text: string; url: string };
+  askFollow?: boolean;
+}
+
+interface InstagramComment {
+  id: string;
+  text: string;
+  username: string;
+  userId: string;
+  timestamp: string;
+}
+
+interface ModerationResult {
+  shouldBlock: boolean;
+  category?: string;
+}
+
+/**
+ * Detect ANY interest from Instagram comment - no keywords required
+ * AI analyzes context, tone, and user behavior to determine if they should get a DM
+ */
+export async function detectBuyingIntent(comment: string, videoContext: string): Promise<BuyingIntentResult> {
   if (isDemoMode) {
     const lowerComment = comment.toLowerCase();
     const hasBuyingIntent = /\b(link|interested|price|buy|want|need|how much)\b/.test(lowerComment);
@@ -108,7 +118,7 @@ Return JSON:
       temperature: 0.5
     });
 
-    return JSON.parse(response.choices[0].message.content || '{}');
+    return JSON.parse(response.choices[0].message.content || '{}') as BuyingIntentResult;
   } catch (error) {
     console.error('Buying intent detection error:', error);
     return {
@@ -133,7 +143,7 @@ export async function generateSalesmanDM(
   videoContext: string,
   brandKnowledge?: string,
   detectedInterest?: string
-): Promise<{ message: string; linkButton: { text: string; url: string }; askFollow?: boolean }> {
+): Promise<SalesmanDMResult> {
   if (isDemoMode) {
     return {
       message: `Hey ${leadName}, I noticed you showed interest in my video. Based on your comment, I think this is exactly what you're looking for`,
@@ -190,7 +200,7 @@ REMEMBER: Use their REAL username (${leadName}), reference their actual comment,
       temperature: 0.9
     });
 
-    const result = JSON.parse(response.choices[0].message.content || '{}');
+    const result = JSON.parse(response.choices[0].message.content || '{}') as SalesmanDMResult;
     return result;
   } catch (error) {
     console.error('Salesman DM generation error:', error);
@@ -266,21 +276,18 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
   try {
     const { storage } = await import('../../storage');
 
-    // Check if user has paid plan
-    const user = await storage.getUserById(userId);
+    const user: User | undefined = await storage.getUserById(userId);
     if (!user || user.plan === 'trial') {
       console.log(`🔒 Video comment monitoring blocked: User ${userId} is on trial plan`);
       return;
     }
 
-    // Get video monitor config
-    const monitors = await storage.getVideoMonitors(userId);
-    const monitor = monitors.find(m => m.id === videoMonitorId);
+    const monitors: VideoMonitor[] = await storage.getVideoMonitors(userId);
+    const monitor: VideoMonitor | undefined = monitors.find((m: VideoMonitor) => m.id === videoMonitorId);
     if (!monitor) return;
 
-    // Get Instagram integration
-    const integrations = await storage.getIntegrations(userId);
-    const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
+    const integrations: Integration[] = await storage.getIntegrations(userId);
+    const igIntegration: Integration | undefined = integrations.find((i: Integration) => i.provider === 'instagram' && i.connected);
 
     if (!igIntegration) {
       console.log('Instagram not connected for user', userId);
@@ -292,26 +299,24 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
     if (!monitor.isActive) return;
 
     try {
-      // Fetch recent comments on this video
-      const comments = await fetchVideoComments(provider, monitor.videoId);
+      const comments: InstagramComment[] = await fetchVideoComments(provider, monitor.videoId);
+
+      const metadata = monitor.metadata as VideoMonitorMetadata | null;
 
       for (const comment of comments) {
-        // Check if we already processed this comment
-        const alreadyProcessed = await storage.isCommentProcessed(comment.id);
+        const alreadyProcessed: boolean = await storage.isCommentProcessed(comment.id);
         if (alreadyProcessed) continue;
 
-        // Detect buying intent with context from PDF if provided
-        const videoContext = monitor.metadata?.pdfContext || monitor.metadata.videoCaption || 'Product video';
-        const intent = await detectBuyingIntent(comment.text, videoContext);
+        const videoContext: string = metadata?.pdfContext || metadata?.videoCaption || 'Product video';
+        const intent: BuyingIntentResult = await detectBuyingIntent(comment.text, videoContext);
 
         if (!intent.shouldDM) {
           await storage.markCommentProcessed(comment.id, 'ignored', intent.intentType);
           continue;
         }
 
-        // FILTER: Check for inappropriate content before processing
         const { contentModerationService } = await import('./content-moderation');
-        const moderationResult = await contentModerationService.moderateWithAI(comment.text);
+        const moderationResult: ModerationResult = await contentModerationService.moderateWithAI(comment.text);
 
         if (moderationResult.shouldBlock) {
           console.log(`🚫 Blocked inappropriate comment from ${comment.username}: ${moderationResult.category}`);
@@ -319,8 +324,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           continue;
         }
 
-        // Get or create lead
-        let lead = await storage.getLeadByUsername(comment.username, 'instagram');
+        let lead: Lead | undefined = await storage.getLeadByUsername(comment.username, 'instagram');
 
         if (!lead) {
           lead = await storage.createLead({
@@ -340,67 +344,62 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           });
         }
 
-        // STEP 1: Reply to comment FIRST with emoji + "check DM"
-        // This happens BEFORE sending DM (human-like flow)
         let commentReplied = false;
-        if (monitor.metadata?.replyToComments !== false) {
+        if (metadata?.replyToComments !== false) {
           try {
-            const commentReply = await generateCommentReply(
+            const commentReply: string = await generateCommentReply(
               comment.text,
               intent.detectedInterest || 'the offer',
               videoContext,
-              monitor.metadata?.askForFollow || false,
-              monitor.metadata?.instagramHandle
+              metadata?.askForFollow || false,
+              metadata?.instagramHandle
             );
 
             await provider.replyToComment(comment.id, commentReply);
             commentReplied = true;
             console.log(`✅ [1/3] Replied to comment: "${commentReply}"`);
-          } catch (error: any) {
-            console.error(`❌ Failed to reply to comment from ${comment.username}:`, error.message);
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`❌ Failed to reply to comment from ${comment.username}:`, errorMessage);
             console.log(`⚠️  Will still attempt DM, but comment reply failed`);
-            // Continue to DM even if comment reply fails
           }
         } else {
           console.log(`ℹ️  Comment reply disabled for this monitor`);
         }
 
-        // STEP 2: Wait 2-8 minutes AFTER replying (human-like timing)
-        const existingLead = lead || { status: 'new' };
-        const baseDelay = {
+        const existingLead: { status: string } = lead || { status: 'new' };
+        const delayMap: Record<string, number> = {
           'hot': 2 * 60 * 1000,
           'warm': 3.5 * 60 * 1000,
           'new': 5 * 60 * 1000,
           'cold': 7 * 60 * 1000,
           'replied': 4 * 60 * 1000
-        }[existingLead.status] || 5 * 60 * 1000;
+        };
+        const baseDelay: number = delayMap[existingLead.status] || 5 * 60 * 1000;
 
-        const jitter = (Math.random() * 0.4 - 0.2) * baseDelay;
-        const replyDelay = baseDelay + jitter;
+        const jitter: number = (Math.random() * 0.4 - 0.2) * baseDelay;
+        const replyDelay: number = baseDelay + jitter;
 
         console.log(`⏰ [2/3] Waiting ${Math.round(replyDelay / 60000)} minutes before sending DM to ${comment.username} (status: ${existingLead.status})`);
-        await new Promise(resolve => setTimeout(resolve, replyDelay));
+        await new Promise<void>(resolve => setTimeout(resolve, replyDelay));
 
-
-        // STEP 3: Generate and send DM
-        const dm = await generateSalesmanDM(
+        const brandKnowledge: string = await storage.getBrandKnowledge(userId);
+        const dm: SalesmanDMResult = await generateSalesmanDM(
           comment.username,
           comment.text,
           intent.intentType,
           monitor.productLink,
           monitor.ctaText,
-          monitor.metadata.videoCaption || '',
-          await storage.getBrandKnowledge(userId), // Fetch brand knowledge here
+          metadata?.videoCaption || '',
+          brandKnowledge,
           intent.detectedInterest
         );
 
-        // Send DM with link in message
-        const fullMessage = formatDMWithButton(dm.message, dm.linkButton.text, dm.linkButton.url);
+        const fullMessage: string = formatDMWithButton(dm.message, dm.linkButton);
 
         await provider.sendMessage(comment.userId, fullMessage);
         console.log(`✅ [3/3] DM sent to ${comment.username} with product link`);
 
-        // Save message
         await storage.createMessage({
           leadId: lead.id,
           userId,
@@ -415,14 +414,12 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
             link_button: dm.linkButton,
             comment_id: comment.id,
             comment_replied: commentReplied,
-            comment_reply_enabled: monitor.metadata?.replyToComments !== false
+            comment_reply_enabled: metadata?.replyToComments !== false
           }
         });
 
-        // Mark comment as processed
         await storage.markCommentProcessed(comment.id, 'dm_sent', intent.intentType);
 
-        // Update lead status
         await storage.updateLead(lead.id, {
           status: 'replied',
           lastMessageAt: new Date()
@@ -430,48 +427,33 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
 
         console.log(`✓ Video comment automation complete for ${comment.username} (${intent.intentType})`);
       }
-    } catch (error: any) {
-      // Check if this is an Instagram auth error (HTML response means invalid token)
-      if (error.message?.includes('<!DOCTYPE html>') || error.message?.includes('<html')) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage?.includes('<!DOCTYPE html>') || errorMessage?.includes('<html')) {
         console.warn(`⚠️  Instagram access token expired for user ${userId} - attempting refresh`);
 
-        // Try to refresh the token
         try {
-          const { InstagramOAuth } = await import('../oauth/instagram');
-          const instagramOAuth = new InstagramOAuth();
-          const newToken = await instagramOAuth.refreshToken(userId);
+          console.log(`❌ Instagram token expired for user ${userId} - user needs to reconnect`);
 
-          if (newToken) {
-            console.log(`✅ Instagram token refreshed for user ${userId}`);
-            // Retry the monitoring with new token
-            return monitorVideoComments(userId, videoMonitorId);
-          }
-        } catch (refreshError: any) {
-          console.error(`❌ Failed to refresh Instagram token for user ${userId}:`, refreshError.message);
+          await storage.disconnectIntegration(userId, 'instagram');
 
-          // Mark integration as disconnected
-          await storage.updateIntegration(userId, 'instagram', {
-            connected: false,
-            metadata: {
-              error: 'Token expired - please reconnect',
-              lastError: new Date().toISOString()
-            }
-          });
-
-          // Create notification for user
           await storage.createNotification({
             userId,
             title: '🔒 Instagram Connection Lost',
             message: 'Your Instagram connection has expired. Please reconnect to continue automation.',
-            type: 'warning',
-            read: false
+            type: 'webhook_error',
+            isRead: false
           });
+        } catch (disconnectError: unknown) {
+          const disconnectErrorMessage = disconnectError instanceof Error ? disconnectError.message : 'Unknown error';
+          console.error(`❌ Failed to disconnect Instagram for user ${userId}:`, disconnectErrorMessage);
         }
 
         workerHealthMonitor.recordError('video-comment-monitor', 'Instagram token expired');
       } else {
         console.error('Error fetching queue jobs:', error);
-        workerHealthMonitor.recordError('video-comment-monitor', error.message);
+        workerHealthMonitor.recordError('video-comment-monitor', errorMessage);
       }
     }
   } catch (error) {
@@ -482,12 +464,11 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
 /**
  * Fetch comments from Instagram video
  */
-async function fetchVideoComments(provider: InstagramProvider, videoId: string): Promise<any[]> {
+async function fetchVideoComments(provider: InstagramProvider, videoId: string): Promise<InstagramComment[]> {
   try {
-    // Use Instagram Graph API to fetch comments
     const comments = await provider.getMediaComments(videoId);
 
-    return comments.map((comment: any) => ({
+    return comments.map((comment: { id: string; text: string; username: string; from?: { id: string }; timestamp: string }) => ({
       id: comment.id,
       text: comment.text,
       username: comment.username,
@@ -503,34 +484,34 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
 /**
  * Start comment monitoring worker (runs every 30 seconds)
  */
-export function startVideoCommentMonitoring() {
+export function startVideoCommentMonitoring(): void {
   console.log('🎥 Starting video comment monitoring worker...');
   console.log('📊 Comment sync: Every 30 seconds');
   console.log('⏰ Reply timing: 2-8 minutes (human-like, based on lead status)');
 
   setInterval(async () => {
     try {
-      const users = await storage.getAllUsers();
+      const users: User[] = await storage.getAllUsers();
 
       for (const user of users) {
         try {
-          // Fetch all active video monitors for the user
-          const activeMonitors = await (storage as any).getActiveVideoMonitors?.(user.id) || [];
+          const storageWithActiveMonitors = storage as typeof storage & { getActiveVideoMonitors?: (userId: string) => Promise<VideoMonitor[]> };
+          const activeMonitors: VideoMonitor[] = await storageWithActiveMonitors.getActiveVideoMonitors?.(user.id) || [];
           for (const monitor of activeMonitors) {
             await monitorVideoComments(user.id, monitor.id);
           }
-        } catch (monitorError: any) {
-          // Skip if table doesn't exist yet
-          if (!monitorError.message?.includes('does not exist')) {
-            console.error(`Error monitoring for user ${user.id}:`, monitorError.message);
+        } catch (monitorError: unknown) {
+          const errorMessage = monitorError instanceof Error ? monitorError.message : 'Unknown error';
+          if (!errorMessage?.includes('does not exist')) {
+            console.error(`Error monitoring for user ${user.id}:`, errorMessage);
           }
         }
       }
-    } catch (error: any) {
-      // Only log real errors, not missing table errors
-      if (!error.message?.includes('does not exist')) {
-        console.error('Comment monitoring error:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (!errorMessage?.includes('does not exist')) {
+        console.error('Comment monitoring error:', errorMessage);
       }
     }
-  }, 30000); // Check every 30 seconds
+  }, 30000);
 }

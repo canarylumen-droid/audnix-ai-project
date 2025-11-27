@@ -1,13 +1,61 @@
-/* @ts-nocheck */
-/**
- * Campaign Message Scripts
- * 
- * Pre-defined message templates for each stage of the campaign
- * These are used as fallback/guidance for AI when generating messages
- * AI can deviate but should follow the structure and tone
- */
+import type { ChannelType } from '@shared/types';
 
-export const messageScripts = {
+export interface EmailMessageScript {
+  subject: string;
+  tone: string;
+  structure: string;
+  example: string;
+}
+
+export interface SocialMessageScript {
+  tone: string;
+  structure: string;
+  example: string;
+}
+
+export type MessageScript = EmailMessageScript | SocialMessageScript;
+
+export interface EmailScripts {
+  day1: EmailMessageScript;
+  day2: EmailMessageScript;
+  day5: EmailMessageScript;
+  day7: EmailMessageScript;
+}
+
+export interface WhatsAppScripts {
+  day3: SocialMessageScript;
+  day6: SocialMessageScript;
+}
+
+export interface InstagramScripts {
+  day5: SocialMessageScript;
+  day8: SocialMessageScript;
+}
+
+export interface ChannelScripts {
+  email: EmailScripts;
+  whatsapp: WhatsAppScripts;
+  instagram: InstagramScripts;
+}
+
+export interface PersonalizeScriptContext {
+  lead: { 
+    name: string; 
+    firstName: string; 
+    company?: string; 
+    metadata?: Record<string, unknown>; 
+  };
+  sender: { 
+    name: string; 
+    email?: string; 
+  };
+  observation?: string;
+  question?: string;
+  value?: string;
+  resource?: string;
+}
+
+export const messageScripts: ChannelScripts = {
   email: {
     day1: {
       subject: 'Quick question about {{lead.name}}',
@@ -105,17 +153,12 @@ Anytime you want to chat about {{topic}}, I'm around! 🤙`
   }
 };
 
-/**
- * Get script for a specific campaign stage
- */
 export function getMessageScript(
-  channel: 'email' | 'whatsapp' | 'instagram',
+  channel: ChannelType,
   campaignDay: number
-) {
-  const scripts = messageScripts;
-  
+): MessageScript | null {
   if (channel === 'email') {
-    const emailScripts = scripts.email;
+    const emailScripts = messageScripts.email;
     if (campaignDay <= 1) return emailScripts.day1;
     if (campaignDay === 2) return emailScripts.day2;
     if (campaignDay <= 6) return emailScripts.day5;
@@ -123,13 +166,13 @@ export function getMessageScript(
   }
   
   if (channel === 'whatsapp') {
-    const whatsappScripts = scripts.whatsapp;
+    const whatsappScripts = messageScripts.whatsapp;
     if (campaignDay <= 3) return whatsappScripts.day3;
     return whatsappScripts.day6;
   }
   
   if (channel === 'instagram') {
-    const instagramScripts = scripts.instagram;
+    const instagramScripts = messageScripts.instagram;
     if (campaignDay <= 5) return instagramScripts.day5;
     return instagramScripts.day8;
   }
@@ -137,26 +180,15 @@ export function getMessageScript(
   return null;
 }
 
-/**
- * Build personalized message from script template
- */
 export function personalizeScript(
-  script: any,
-  context: {
-    lead: { name: string; firstName: string; company?: string; metadata?: Record<string, any> };
-    sender: { name: string; email?: string };
-    observation?: string;
-    question?: string;
-    value?: string;
-    resource?: string;
-  }
+  script: MessageScript,
+  context: PersonalizeScriptContext
 ): string {
-  let template = script.example || '';
+  let template: string = script.example || '';
 
-  // Replace all template variables
   template = template.replace(/{{lead\.name}}/g, context.lead.name);
   template = template.replace(/{{lead\.firstName}}/g, context.lead.firstName || context.lead.name.split(' ')[0]);
-  template = template.replace(/{{lead\.company}}/g, context.lead.company || context.lead.metadata?.company || 'your work');
+  template = template.replace(/{{lead\.company}}/g, context.lead.company || String(context.lead.metadata?.company) || 'your work');
   template = template.replace(/{{specific_observation}}/g, context.observation || 'something interesting');
   template = template.replace(/{{genuine_question}}/g, context.question || 'how are things going?');
   template = template.replace(/{{specific_value}}/g, context.value || 'something useful');
