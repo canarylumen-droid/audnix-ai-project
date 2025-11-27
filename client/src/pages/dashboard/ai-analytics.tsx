@@ -4,13 +4,34 @@ import { Brain, TrendingUp, MessageCircle, ThumbsUp, Clock, Sparkles, AlertCircl
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 
+interface DashboardStats {
+  totalLeads: number;
+  newLeads: number;
+  activeLeads: number;
+  convertedLeads: number;
+  conversionRate: string | number;
+  totalMessages: number;
+  averageResponseTime: string;
+  emailsThisMonth: number;
+  whatsappThisMonth: number;
+  instagramThisMonth: number;
+  plan: string;
+  trialDaysLeft: number;
+}
+
+interface AIStats {
+  responseAccuracy: number;
+  avgResponseTime: string;
+  satisfaction: number;
+}
+
 export default function AIAnalyticsPage() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     refetchInterval: 10000,
   });
 
-  const { data: aiStats } = useQuery({
+  const { data: aiStats } = useQuery<AIStats>({
     queryKey: ["/api/ai/stats"],
     refetchInterval: 15000,
     retry: false,

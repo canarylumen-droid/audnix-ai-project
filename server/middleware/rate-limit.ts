@@ -1,19 +1,29 @@
+import rateLimit, { type Options } from 'express-rate-limit';
+import RedisStore, { type SendCommandFn } from 'rate-limit-redis';
+import { createClient, type RedisClientType } from 'redis';
+import type { Request } from 'express';
 
-import rateLimit from 'express-rate-limit';
-import RedisStore from 'rate-limit-redis';
-import { createClient } from 'redis';
+interface RateLimitSessionData {
+  userId?: string;
+}
 
-// Log if Redis isn't configured for production
+interface RedisStoreConfig {
+  store: RedisStore;
+}
+
+function getSessionUserId(req: Request): string | undefined {
+  const session = req.session as RateLimitSessionData | undefined;
+  return session?.userId;
+}
+
 if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
   console.warn('⚠️  REDIS_URL not set - rate limiting will use memory (not recommended for production)');
   console.warn('💡 Add Redis from Replit to prevent rate limit bypass across restarts');
 }
 
-// Redis client for distributed rate limiting (optional)
-// NOTE: Redis is optional - app works fine without it using memory-based rate limiting
-let redisClient: ReturnType<typeof createClient> | null = null;
+let redisClient: RedisClientType | null = null;
 
-async function initRedis() {
+async function initRedis(): Promise<void> {
   if (!process.env.REDIS_URL) {
     console.log('ℹ️  Redis not configured - using memory-based rate limiting');
     return;
@@ -22,12 +32,10 @@ async function initRedis() {
   try {
     let redisUrl = process.env.REDIS_URL.trim();
     
-    // Remove "redis-cli -u " prefix if present
     if (redisUrl.includes('redis-cli')) {
       redisUrl = redisUrl.replace(/^redis-cli\s+-u\s+/, '');
     }
     
-    // Extract first valid redis:// URL
     const match = redisUrl.match(/redis:\/\/[^:]+:[^@]+@[^:]+:\d+/);
     if (match) {
       redisUrl = match[0];
@@ -38,201 +46,170 @@ async function initRedis() {
       url: redisUrl,
       socket: {
         connectTimeout: 5000,
-        reconnectStrategy: false // Don't auto-reconnect - just use memory fallback
+        reconnectStrategy: false
       }
     });
     
-    client.on('error', () => {
-      // Silently ignore errors after initial connection - already using memory fallback
-    });
+    client.on('error', () => {});
     
     await client.connect();
     console.log('✅ Redis connected for rate limiting');
-    redisClient = client;
-  } catch (err: any) {
+    redisClient = client as RedisClientType;
+  } catch (err: unknown) {
     console.warn('⚠️  Redis unavailable, using memory-based rate limiting');
     redisClient = null;
   }
 }
 
-// Initialize Redis asynchronously (non-blocking)
-initRedis().catch(() => {
-  // Error already logged, using memory fallback
-});
+initRedis().catch(() => {});
 
-/**
- * General API rate limiter - 100 requests per 15 minutes
- */
-export const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later',
-  standardHeaders: true,
-  legacyHeaders: false,
-  ...(redisClient && {
+function createRedisStoreConfig(prefix: string): RedisStoreConfig | undefined {
+  if (!redisClient) {
+    return undefined;
+  }
+  const client = redisClient;
+  const sendCommand: SendCommandFn = (async (...args: string[]) => {
+    return client.sendCommand(args);
+  }) as SendCommandFn;
+  return {
     store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:api:'
+      sendCommand,
+      prefix
     })
-  })
-});
+  };
+}
 
-/**
- * Strict limiter for auth endpoints - 5 requests per 15 minutes
- */
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: 'Too many authentication attempts, please try again later',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:auth:'
-    })
-  })
-});
+function createUserKeyGenerator(keyPrefix: string): (req: Request) => string {
+  return (req: Request): string => {
+    const userId = getSessionUserId(req);
+    if (userId) return `${keyPrefix}:${userId}`;
+    return `ip:${req.ip || 'unknown'}`;
+  };
+}
 
-/**
- * Webhook limiter - 1000 requests per minute (for high-volume webhooks)
- */
-export const webhookLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 1000,
-  message: 'Webhook rate limit exceeded',
-  standardHeaders: true,
-  legacyHeaders: false,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:webhook:'
-    })
-  })
-});
+function createRateLimiterOptions(baseOptions: Partial<Options>, prefix: string): Partial<Options> {
+  const redisConfig = createRedisStoreConfig(prefix);
+  return {
+    ...baseOptions,
+    ...(redisConfig || {})
+  };
+}
 
-/**
- * AI generation limiter - 20 requests per minute per user
- */
-export const aiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  message: 'AI generation rate limit exceeded',
-  keyGenerator: (req) => {
-    const userId = (req.session as any)?.userId;
-    if (userId) return `user:${userId}`;
-    return `ip:${req.ip}`;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false, // Disable IPv6 validation warnings
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:ai:'
-    })
-  })
-});
+export const apiLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      message: 'Too many requests from this IP, please try again later',
+      standardHeaders: true,
+      legacyHeaders: false
+    },
+    'rl:api:'
+  )
+);
 
-/**
- * WhatsApp message limiter - 20 messages per minute per user
- * Prevents abuse and ensures compliance with WhatsApp limits
- */
-export const whatsappLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  message: 'WhatsApp message rate limit exceeded. Please wait before sending more messages.',
-  keyGenerator: (req) => {
-    const userId = (req.session as any)?.userId;
-    if (userId) return `user:${userId}`;
-    return `ip:${req.ip}`;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:whatsapp:'
-    })
-  })
-});
+export const authLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 15 * 60 * 1000,
+      max: 5,
+      message: 'Too many authentication attempts, please try again later',
+      standardHeaders: true,
+      legacyHeaders: false,
+      skipSuccessfulRequests: true
+    },
+    'rl:auth:'
+  )
+);
 
-/**
- * Vite dev server limiter - Higher limit for development, stricter for production
- * Protects development server from abuse while allowing HMR
- */
-export const viteLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 5000 : 500,
-  message: 'Too many requests to development server',
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore - RedisStore types don't match express-rate-limit
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:vite:'
-    })
-  })
-});
+export const webhookLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 60 * 1000,
+      max: 1000,
+      message: 'Webhook rate limit exceeded',
+      standardHeaders: true,
+      legacyHeaders: false
+    },
+    'rl:webhook:'
+  )
+);
 
-/**
- * SMTP email rate limiter - 150-300 emails per hour per user
- * Prevents deliverability issues and domain blacklisting
- * Random delays between 2-12 seconds per email
- * Max 5k per day unless manually overridden by admin
- */
-export const smtpRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 300, // 150-300 emails per hour (adjustable via user plan)
-  message: 'Email sending rate limit exceeded. Please wait before sending more emails.',
-  keyGenerator: (req) => {
-    const userId = (req.session as any)?.userId;
-    if (userId) return `smtp:${userId}`;
-    return req.ip || 'unknown';
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:smtp:'
-    })
-  })
-});
+export const aiLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 60 * 1000,
+      max: 20,
+      message: 'AI generation rate limit exceeded',
+      keyGenerator: createUserKeyGenerator('user'),
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: false
+    },
+    'rl:ai:'
+  )
+);
 
-/**
- * Email import limiter - prevent import flooding
- * Max 1000 emails per day
- */
-export const emailImportLimiter = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1000,
-  message: 'Daily email import limit exceeded',
-  keyGenerator: (req) => {
-    const userId = (req.session as any)?.userId;
-    if (userId) return `import:${userId}`;
-    // Use ipv6KeyGenerator for IPv6 support
-    return req.ip?.includes(':') ? `ip:${req.ip}` : `ip:${req.ip || 'unknown'}`;
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: false,
-  ...(redisClient && {
-    store: new RedisStore({
-      // @ts-ignore
-      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-      prefix: 'rl:import:'
-    })
-  })
-});
+export const whatsappLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 60 * 1000,
+      max: 20,
+      message: 'WhatsApp message rate limit exceeded. Please wait before sending more messages.',
+      keyGenerator: createUserKeyGenerator('user'),
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: false
+    },
+    'rl:whatsapp:'
+  )
+);
+
+export const viteLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 60 * 1000,
+      max: process.env.NODE_ENV === 'development' ? 5000 : 500,
+      message: 'Too many requests to development server',
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: false
+    },
+    'rl:vite:'
+  )
+);
+
+export const smtpRateLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 60 * 60 * 1000,
+      max: 300,
+      message: 'Email sending rate limit exceeded. Please wait before sending more emails.',
+      keyGenerator: createUserKeyGenerator('smtp'),
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: false
+    },
+    'rl:smtp:'
+  )
+);
+
+export const emailImportLimiter = rateLimit(
+  createRateLimiterOptions(
+    {
+      windowMs: 24 * 60 * 60 * 1000,
+      max: 1000,
+      message: 'Daily email import limit exceeded',
+      keyGenerator: (req: Request): string => {
+        const userId = getSessionUserId(req);
+        if (userId) return `import:${userId}`;
+        const ip = req.ip || 'unknown';
+        return ip.includes(':') ? `ip:${ip}` : `ip:${ip}`;
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      validate: false
+    },
+    'rl:import:'
+  )
+);

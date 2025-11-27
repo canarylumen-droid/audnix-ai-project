@@ -22,13 +22,48 @@ import {
 } from "@/components/ui/table";
 import { Search, Filter } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import type { LeadStatus, ChannelType } from "@shared/types";
+
+interface AdminLead {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  channel: ChannelType;
+  status: LeadStatus;
+  score: number;
+  createdAt: string;
+  lastMessageAt: string | null;
+}
+
+interface AdminUser {
+  name: string | null;
+  email: string | null;
+}
+
+interface AdminLeadItem {
+  lead: AdminLead;
+  user: AdminUser | null;
+}
+
+interface AdminLeadsPagination {
+  total: number;
+  totalPages: number;
+  page: number;
+  limit: number;
+}
+
+interface AdminLeadsResponse {
+  leads: AdminLeadItem[];
+  pagination: AdminLeadsPagination;
+}
 
 export default function AdminLeads() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
 
-  const { data: leadsData, isLoading } = useQuery({
+  const { data: leadsData, isLoading } = useQuery<AdminLeadsResponse>({
     queryKey: ["/api/admin/leads", { page, status, channel }],
   });
 
@@ -134,7 +169,7 @@ export default function AdminLeads() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leadsData?.leads?.map((item: any) => (
+                    {leadsData?.leads?.map((item: AdminLeadItem) => (
                       <TableRow key={item.lead.id}>
                         <TableCell>
                           <div>

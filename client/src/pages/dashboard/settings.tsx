@@ -12,10 +12,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, MicOff } from "lucide-react";
+import { User, Loader2, Upload, Mic, MicOff, FileText } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+interface BrandColors {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+}
+
+interface ExtractedBrand {
+  companyName?: string;
+  tagline?: string;
+  website?: string;
+  colors?: BrandColors;
+}
+
+interface UserMetadata {
+  extracted_brand?: ExtractedBrand;
+  brand_colors?: BrandColors;
+  extraction_updated_at?: string;
+  [key: string]: unknown;
+}
+
+interface UserProfile {
+  id: string;
+  email: string;
+  username?: string;
+  name?: string;
+  avatar?: string;
+  company?: string;
+  timezone?: string;
+  plan?: string;
+  role?: string;
+  voiceNotesEnabled?: boolean;
+  businessName?: string;
+  voiceCloneId?: string;
+  voiceMinutesUsed?: number;
+  voiceMinutesTopup?: number;
+  metadata?: UserMetadata;
+  createdAt?: string;
+  lastLogin?: string;
+}
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -33,7 +73,7 @@ export default function SettingsPage() {
   });
 
   // Fetch real user profile
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
@@ -54,10 +94,7 @@ export default function SettingsPage() {
   // Save profile mutation with auto-save on field change
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      return apiRequest("/api/user/profile", {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PUT", "/api/user/profile", data);
     },
     onSuccess: () => {
       setHasChanges(false);
@@ -484,10 +521,7 @@ export default function SettingsPage() {
               onCheckedChange={async (checked) => {
                 setVoiceNotesEnabled(checked);
                 try {
-                  await apiRequest("/api/user/voice-settings", {
-                    method: "PUT",
-                    body: JSON.stringify({ voiceNotesEnabled: checked }),
-                  });
+                  await apiRequest("PUT", "/api/user/voice-settings", { voiceNotesEnabled: checked });
                   queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
                   toast({
                     title: checked ? "Voice Notes Enabled" : "Voice Notes Disabled",

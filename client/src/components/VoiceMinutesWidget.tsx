@@ -8,10 +8,18 @@ import { Mic, Lock, Zap, TrendingUp, AlertTriangle } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 
+interface VoiceBalanceData {
+  balance: number;
+  total: number;
+  used: number;
+  percentage: number;
+  locked: boolean;
+}
+
 export function VoiceMinutesWidget() {
-  const { data: voiceBalance, isLoading } = useQuery({
+  const { data: voiceBalance, isLoading } = useQuery<VoiceBalanceData>({
     queryKey: ["/api/voice/balance"],
-    refetchInterval: 10000, // Refresh every 10 seconds for real-time updates
+    refetchInterval: 10000,
   });
 
   if (isLoading) {

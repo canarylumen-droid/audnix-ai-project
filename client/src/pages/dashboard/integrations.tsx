@@ -27,14 +27,47 @@ import {
   Loader2,
   FileText,
   Sparkles,
-  Lock, // Import Lock icon
-  CheckCircle2, // Import CheckCircle2 icon
+  Lock,
+  CheckCircle2,
 } from "lucide-react";
 import { SiWhatsapp, SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+interface Integration {
+  provider: string;
+  connected: boolean;
+  lastSync?: string;
+  accountInfo?: {
+    email?: string;
+    username?: string;
+  };
+}
+
+interface IntegrationsResponse {
+  integrations: Integration[];
+}
+
+interface UserData {
+  user: {
+    id: string;
+    email: string;
+    subscriptionTier?: string;
+    totalLeads?: number;
+  };
+}
+
+interface VoiceBalance {
+  locked: boolean;
+  balance?: number;
+  used?: number;
+}
+
+interface ImportResult {
+  leadsImported: number;
+  messagesImported: number;
+}
 
 const channelIcons = {
   instagram: Instagram,
@@ -66,12 +99,12 @@ export default function IntegrationsPage() {
   const { canAccess: canAccessInstagram } = useCanAccessInstagramDM();
 
   // Fetch user data to check plan
-  const { data: userData } = useQuery({
+  const { data: userData } = useQuery<UserData | null>({
     queryKey: ["/api/user"],
   });
 
   // Fetch integrations from backend
-  const { data: integrationsData, isLoading } = useQuery({
+  const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({
     queryKey: ["/api/integrations"],
   });
 
@@ -87,7 +120,7 @@ export default function IntegrationsPage() {
   const isAtLimit = currentLeadCount >= leadsLimit;
 
   // Fetch voice balance to check if locked
-  const { data: voiceBalance } = useQuery({
+  const { data: voiceBalance } = useQuery<VoiceBalance>({
     queryKey: ["/api/voice/balance"],
     refetchInterval: 30000,
   });
@@ -168,11 +201,9 @@ export default function IntegrationsPage() {
 
   // Connect provider mutation
   const connectProviderMutation = useMutation({
-    mutationFn: async ({ provider, credentials }: { provider: string; credentials: any }) => {
-      return await apiRequest(`/api/integrations/${provider}/connect`, {
-        method: "POST",
-        body: JSON.stringify(credentials),
-      });
+    mutationFn: async ({ provider, credentials }: { provider: string; credentials: Record<string, unknown> }) => {
+      const response = await apiRequest("POST", `/api/integrations/${provider}/connect`, credentials);
+      return response.json();
     },
     onSuccess: (_, variables) => {
       toast({
@@ -193,9 +224,8 @@ export default function IntegrationsPage() {
   // Disconnect provider mutation
   const disconnectProviderMutation = useMutation({
     mutationFn: async (provider: string) => {
-      return await apiRequest(`/api/integrations/${provider}/disconnect`, {
-        method: "POST",
-      });
+      const response = await apiRequest("POST", `/api/integrations/${provider}/disconnect`);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -209,10 +239,8 @@ export default function IntegrationsPage() {
   // Connect custom email mutation
   const connectCustomEmailMutation = useMutation({
     mutationFn: async (config: typeof customEmailConfig) => {
-      return await apiRequest('/api/custom-email/connect', {
-        method: 'POST',
-        body: JSON.stringify(config),
-      });
+      const response = await apiRequest("POST", "/api/custom-email/connect", config);
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -232,11 +260,10 @@ export default function IntegrationsPage() {
   });
 
   // Import leads mutation
-  const importLeadsMutation = useMutation({
+  const importLeadsMutation = useMutation<ImportResult, Error, string>({
     mutationFn: async (provider: string) => {
-      return await apiRequest(`/api/ai/import/${provider}`, {
-        method: "POST",
-      });
+      const response = await apiRequest("POST", `/api/ai/import/${provider}`);
+      return response.json();
     },
     onSuccess: (data, provider) => {
       const channelMap: Record<string, string> = {
@@ -268,7 +295,7 @@ export default function IntegrationsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
-    onError: (error: Error, provider) => {
+    onError: (error: Error) => {
       setImportingChannel(null);
       toast({
         title: "Import Failed",
@@ -446,7 +473,7 @@ export default function IntegrationsPage() {
     };
 
     // Check if the channel is actually connected
-    const integration = integrations.find((i: any) => i.provider === provider);
+    const integration = integrations.find((i) => i.provider === provider);
     if (!integration || !integration.connected) {
       toast({
         title: "Channel Not Connected",
@@ -462,7 +489,7 @@ export default function IntegrationsPage() {
   };
 
   // Check if voice sample has been uploaded
-  const hasVoiceSample = integrations.some((i: any) =>
+  const hasVoiceSample = integrations.some((i) =>
     i.provider === "voice" || uploadVoiceMutation.isSuccess
   );
 
@@ -571,7 +598,7 @@ export default function IntegrationsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {["instagram", "whatsapp", "gmail"].map((providerId, index) => {
-              const integration = integrations.find((i: any) => i.provider === providerId);
+              const integration = integrations.find((i) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
 

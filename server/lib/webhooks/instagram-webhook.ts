@@ -1,40 +1,67 @@
+import { Request, Response } from 'express';
 import { supabaseAdmin } from '../supabase-admin';
-import { analyzeLeadIntent } from '../ai/intent-analyzer';
+import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer';
 import { followUpWorker } from '../ai/follow-up-worker';
 import { saveConversationToMemory } from '../ai/conversation-ai';
 import { storage } from '../../storage';
 import crypto from 'crypto';
 
+interface InstagramMessage {
+  sender: { id: string };
+  recipient: { id: string };
+  timestamp: number;
+  message?: {
+    mid: string;
+    text: string;
+  };
+  postback?: {
+    payload: string;
+    title: string;
+  };
+}
+
+interface InstagramCommentValue {
+  from: { id: string; username: string };
+  media: { id: string };
+  text: string;
+  id: string;
+}
+
 interface InstagramWebhookEntry {
   id: string;
   time: number;
-  messaging?: Array<{
-    sender: { id: string };
-    recipient: { id: string };
-    timestamp: number;
-    message?: {
-      mid: string;
-      text: string;
-    };
-    postback?: {
-      payload: string;
-      title: string;
-    };
-  }>;
+  messaging?: InstagramMessage[];
   changes?: Array<{
     field: string;
-    value: {
-      from: { id: string; username: string };
-      media: { id: string };
-      text: string;
-      id: string;
-    };
+    value: InstagramCommentValue;
   }>;
 }
 
-/**
- * Verify Instagram webhook signature
- */
+interface InstagramProfile {
+  name?: string;
+  username?: string;
+}
+
+interface LeadRecord {
+  id: string;
+  user_id: string;
+  external_id: string;
+  name: string;
+  channel: string;
+  status: string;
+  tags: string[];
+  last_message_at: string;
+  lead_score?: number;
+  message_count?: number;
+  follow_up_count?: number;
+  preferred_name?: string;
+  intent_analysis?: IntentAnalysis;
+}
+
+interface IntegrationRecord {
+  user_id: string;
+}
+
 function verifySignature(req: Request): boolean {
   const signature = req.headers['x-hub-signature-256'] as string;
   if (!signature) return false;
@@ -47,107 +74,108 @@ function verifySignature(req: Request): boolean {
   return signature === `sha256=${expectedSignature}`;
 }
 
-/**
- * Handle Instagram webhook verification
- */
-export function handleInstagramVerification(req: Request, res: Response) {
+export function handleInstagramVerification(req: Request, res: Response): void {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  // Sanitize challenge parameter to prevent XSS
   const sanitizedChallenge = typeof challenge === 'string' 
     ? challenge.replace(/[<>]/g, '') 
     : '';
 
   if (mode === 'subscribe' && token === process.env.INSTAGRAM_WEBHOOK_TOKEN) {
     console.log('Instagram webhook verified');
-    // Send plain text to prevent any script injection
     res.status(200).type('text/plain').send(sanitizedChallenge);
   } else {
     res.sendStatus(403);
   }
 }
 
-/**
- * Handle Instagram webhook events
- */
-export async function handleInstagramWebhook(req: Request, res: Response) {
-  // Verify signature
-  if (!verifySignature(req)) {
-    return res.sendStatus(403);
-  }
-
-  const { object, entry } = req.body;
-
-  if (object !== 'instagram') {
-    return res.sendStatus(404);
-  }
-
-  // Process each entry
-  for (const item of entry as InstagramWebhookEntry[]) {
-    // Handle direct messages
-    if (item.messaging) {
-      for (const message of item.messaging) {
-        await processInstagramMessage(message);
-      }
+export async function handleInstagramWebhook(req: Request, res: Response): Promise<void> {
+  try {
+    if (!verifySignature(req)) {
+      res.sendStatus(403);
+      return;
     }
 
-    // Handle comments
-    if (item.changes) {
-      for (const change of item.changes) {
-        if (change.field === 'comments') {
-          await processInstagramComment(change.value);
+    const { object, entry } = req.body as { object: string; entry: InstagramWebhookEntry[] };
+
+    if (object !== 'instagram') {
+      res.sendStatus(404);
+      return;
+    }
+
+    for (const item of entry) {
+      if (item.messaging) {
+        for (const message of item.messaging) {
+          await processInstagramMessage(message);
+        }
+      }
+
+      if (item.changes) {
+        for (const change of item.changes) {
+          if (change.field === 'comments') {
+            await processInstagramComment(change.value);
+          }
         }
       }
     }
-  }
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error handling Instagram webhook:', error);
+    res.sendStatus(500);
+  }
 }
 
-/**
- * Process incoming Instagram message
- */
-async function processInstagramMessage(message: any) {
+async function processInstagramMessage(message: InstagramMessage): Promise<void> {
   try {
     const senderId = message.sender.id;
     const messageText = message.message?.text;
     
     if (!messageText) return;
 
-    // Find user by Instagram page ID
     if (!supabaseAdmin) {
       console.error('Supabase admin not configured');
       return;
     }
 
-    const { data: integration } = await supabaseAdmin
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('integrations')
       .select('user_id')
       .eq('provider', 'instagram')
       .eq('is_active', true)
       .single();
 
-    if (!integration) return;
+    if (integrationError || !integration) {
+      if (integrationError) {
+        console.error('Error fetching integration:', integrationError);
+      }
+      return;
+    }
 
-    // Check if lead exists
-    let { data: lead } = await supabaseAdmin
+    const typedIntegration = integration as IntegrationRecord;
+
+    const { data: existingLead, error: leadError } = await supabaseAdmin
       .from('leads')
       .select('*')
-      .eq('user_id', integration.user_id)
+      .eq('user_id', typedIntegration.user_id)
       .eq('external_id', senderId)
       .single();
 
-    // Create new lead if doesn't exist
+    if (leadError && leadError.code !== 'PGRST116') {
+      console.error('Error fetching lead:', leadError);
+    }
+
+    let lead: LeadRecord | null = existingLead as LeadRecord | null;
+
     if (!lead) {
-      // Get sender profile
-      const senderProfile = await fetchInstagramProfile(senderId, integration.user_id);
+      const senderProfile = await fetchInstagramProfile(senderId, typedIntegration.user_id);
       
-      const { data: newLead, error } = await supabaseAdmin
+      const { data: newLead, error: createError } = await supabaseAdmin
         .from('leads')
         .insert({
-          user_id: integration.user_id,
+          user_id: typedIntegration.user_id,
           external_id: senderId,
           name: senderProfile.name || senderProfile.username || 'Instagram User',
           channel: 'instagram',
@@ -159,40 +187,44 @@ async function processInstagramMessage(message: any) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating lead:', error);
+      if (createError) {
+        console.error('Error creating lead:', createError);
         return;
       }
 
-      lead = newLead;
+      lead = newLead as LeadRecord;
 
-      // Notify via realtime
-      await supabaseAdmin
+      const { error: realtimeError } = await supabaseAdmin
         .from('realtime_events')
         .insert({
-          user_id: integration.user_id,
+          user_id: typedIntegration.user_id,
           event_type: 'new_lead',
           payload: { lead: newLead }
         });
+
+      if (realtimeError) {
+        console.error('Error inserting realtime event:', realtimeError);
+      }
     }
 
-    // Save message
-    await supabaseAdmin
+    const { error: messageError } = await supabaseAdmin
       .from('messages')
       .insert({
-        user_id: integration.user_id,
+        user_id: typedIntegration.user_id,
         lead_id: lead.id,
         content: messageText,
         role: 'user',
         channel: 'instagram',
-        external_id: message.message.mid,
+        external_id: message.message?.mid,
         created_at: new Date().toISOString()
       });
 
-    // Analyze intent and update lead status
+    if (messageError) {
+      console.error('Error saving message:', messageError);
+    }
+
     const intent = await analyzeLeadIntent(messageText, lead);
     
-    // Auto-tag based on intent
     let newStatus = lead.status;
     let newTags = [...(lead.tags || [])];
     
@@ -200,13 +232,11 @@ async function processInstagramMessage(message: any) {
       newStatus = 'interested';
       newTags.push('hot-lead');
       
-      // If very interested, mark as converting
       if (intent.wantsToSchedule || intent.readyToBuy) {
         newStatus = 'converting';
         newTags.push('ready-to-buy');
         
-        // Schedule calendar invite
-        await scheduleCalendarMeeting(lead, integration.user_id);
+        await scheduleCalendarMeeting(lead, typedIntegration.user_id);
       }
     } else if (intent.isNegative && intent.confidence > 0.7) {
       newStatus = 'not_interested';
@@ -216,8 +246,7 @@ async function processInstagramMessage(message: any) {
       newTags.push('needs-info');
     }
 
-    // Update lead with new status and activity
-    await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('leads')
       .update({
         status: newStatus,
@@ -228,12 +257,15 @@ async function processInstagramMessage(message: any) {
       })
       .eq('id', lead.id);
 
-    // Add to follow-up queue if needed
+    if (updateError) {
+      console.error('Error updating lead:', updateError);
+    }
+
     if (newStatus !== 'not_interested' && newStatus !== 'converted') {
-      await supabaseAdmin
+      const { error: queueError } = await supabaseAdmin
         .from('follow_up_queue')
         .insert({
-          user_id: integration.user_id,
+          user_id: typedIntegration.user_id,
           lead_id: lead.id,
           channel: 'instagram',
           status: 'pending',
@@ -244,13 +276,16 @@ async function processInstagramMessage(message: any) {
             message_count: (lead.message_count || 0) + 1
           }
         });
+
+      if (queueError) {
+        console.error('Error adding to follow-up queue:', queueError);
+      }
     }
 
-    // Update recent activity
-    await supabaseAdmin
+    const { error: activityError } = await supabaseAdmin
       .from('recent_activities')
       .insert({
-        user_id: integration.user_id,
+        user_id: typedIntegration.user_id,
         lead_id: lead.id,
         activity_type: 'message_received',
         channel: 'instagram',
@@ -259,17 +294,19 @@ async function processInstagramMessage(message: any) {
         created_at: new Date().toISOString()
       });
 
-    // Save conversation to Super Memory for permanent storage
+    if (activityError) {
+      console.error('Error recording activity:', activityError);
+    }
+
     try {
       const messages = await storage.getMessagesByLeadId(lead.id);
       const leadData = await storage.getLeadById(lead.id);
       
       if (messages.length > 0 && leadData) {
-        await saveConversationToMemory(integration.user_id, leadData, messages);
+        await saveConversationToMemory(typedIntegration.user_id, leadData, messages);
       }
     } catch (memoryError) {
       console.error('Failed to save conversation to memory:', memoryError);
-      // Continue execution - memory save is not critical
     }
 
   } catch (error) {
@@ -277,41 +314,49 @@ async function processInstagramMessage(message: any) {
   }
 }
 
-/**
- * Process Instagram comment
- */
-async function processInstagramComment(comment: any) {
+async function processInstagramComment(comment: InstagramCommentValue): Promise<void> {
   try {
     const { from, text, media } = comment;
     
-    // Find user by Instagram account
     if (!supabaseAdmin) {
       console.error('Supabase admin not configured');
       return;
     }
 
-    const { data: integration } = await supabaseAdmin
+    const { data: integration, error: integrationError } = await supabaseAdmin
       .from('integrations')
       .select('user_id')
       .eq('provider', 'instagram')
       .eq('is_active', true)
       .single();
 
-    if (!integration) return;
+    if (integrationError || !integration) {
+      if (integrationError) {
+        console.error('Error fetching integration:', integrationError);
+      }
+      return;
+    }
 
-    // Create or update lead
-    let { data: lead } = await supabaseAdmin
+    const typedIntegration = integration as IntegrationRecord;
+
+    const { data: existingLead, error: leadError } = await supabaseAdmin
       .from('leads')
       .select('*')
-      .eq('user_id', integration.user_id)
+      .eq('user_id', typedIntegration.user_id)
       .eq('external_id', from.id)
       .single();
 
+    if (leadError && leadError.code !== 'PGRST116') {
+      console.error('Error fetching lead:', leadError);
+    }
+
+    let lead: LeadRecord | null = existingLead as LeadRecord | null;
+
     if (!lead) {
-      const { data: newLead } = await supabaseAdmin
+      const { data: newLead, error: createError } = await supabaseAdmin
         .from('leads')
         .insert({
-          user_id: integration.user_id,
+          user_id: typedIntegration.user_id,
           external_id: from.id,
           name: from.username,
           channel: 'instagram',
@@ -322,15 +367,19 @@ async function processInstagramComment(comment: any) {
         .select()
         .single();
       
-      lead = newLead;
+      if (createError) {
+        console.error('Error creating lead:', createError);
+        return;
+      }
+
+      lead = newLead as LeadRecord;
     }
 
-    // Save as message
-    await supabaseAdmin
+    const { error: messageError } = await supabaseAdmin
       .from('messages')
       .insert({
-        user_id: integration.user_id,
-        lead_id: lead!.id,
+        user_id: typedIntegration.user_id,
+        lead_id: lead.id,
         content: text,
         role: 'user',
         channel: 'instagram-comment',
@@ -338,25 +387,31 @@ async function processInstagramComment(comment: any) {
         created_at: new Date().toISOString()
       });
 
-    // Analyze and respond
-    const intent = await analyzeLeadIntent(text, lead!);
+    if (messageError) {
+      console.error('Error saving message:', messageError);
+    }
+
+    const intent = await analyzeLeadIntent(text, lead);
     
     if (intent.isInterested || intent.hasQuestion) {
-      // Add to high-priority follow-up
-      await supabaseAdmin
+      const { error: queueError } = await supabaseAdmin
         .from('follow_up_queue')
         .insert({
-          user_id: integration.user_id,
-          lead_id: lead!.id,
+          user_id: typedIntegration.user_id,
+          lead_id: lead.id,
           channel: 'instagram',
           status: 'pending',
-          scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
+          scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           context: { 
             comment_text: text,
             media_id: media.id,
             priority: 'high'
           }
         });
+
+      if (queueError) {
+        console.error('Error adding to follow-up queue:', queueError);
+      }
     }
 
   } catch (error) {
@@ -364,46 +419,49 @@ async function processInstagramComment(comment: any) {
   }
 }
 
-/**
- * Fetch Instagram user profile
- */
-async function fetchInstagramProfile(userId: string, appUserId: string): Promise<any> {
+async function fetchInstagramProfile(userId: string, appUserId: string): Promise<InstagramProfile> {
   try {
-    // Get access token
     if (!supabaseAdmin) {
       console.error('Supabase admin not configured');
       return { username: 'Instagram User' };
     }
 
-    const { data: tokenData } = await supabaseAdmin
+    const { data: tokenData, error: tokenError } = await supabaseAdmin
       .from('oauth_tokens')
       .select('access_token')
       .eq('user_id', appUserId)
       .eq('provider', 'instagram')
       .single();
 
-    if (!tokenData) return { username: 'Instagram User' };
+    if (tokenError || !tokenData) {
+      if (tokenError) {
+        console.error('Error fetching token:', tokenError);
+      }
+      return { username: 'Instagram User' };
+    }
 
-    // Validate userId to prevent SSRF - only allow numeric Instagram IDs
     if (!/^\d+$/.test(userId)) {
       console.error('Invalid Instagram user ID format');
       return { username: 'Instagram User' };
     }
 
-    // Only allow requests to Instagram Graph API
     const allowedHost = 'graph.instagram.com';
     const url = new URL(`https://${allowedHost}/${userId}`);
     url.searchParams.set('fields', 'name,username');
     url.searchParams.set('access_token', tokenData.access_token);
     
-    // Double-check the host to prevent DNS rebinding attacks
     if (url.hostname !== allowedHost) {
       return { username: 'Instagram User' };
     }
     
     const response = await fetch(url.toString());
     
-    const profile = await response.json();
+    if (!response.ok) {
+      console.error('Instagram API error:', response.status, response.statusText);
+      return { username: 'Instagram User' };
+    }
+    
+    const profile = await response.json() as InstagramProfile;
     return profile;
   } catch (error) {
     console.error('Error fetching Instagram profile:', error);
@@ -411,25 +469,19 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
   }
 }
 
-/**
- * Calculate lead score based on intent and behavior
- */
-function calculateLeadScore(intent: any, lead: any): number {
+function calculateLeadScore(intent: IntentAnalysis, lead: LeadRecord): number {
   let score = lead.lead_score || 50;
   
-  // Adjust based on intent
   if (intent.isInterested) score += 20;
   if (intent.wantsToSchedule) score += 30;
   if (intent.readyToBuy) score = Math.max(score, 90);
   if (intent.isNegative) score -= 30;
   if (intent.hasObjection) score -= 10;
   
-  // Adjust based on engagement
   const messageCount = lead.message_count || 1;
   if (messageCount > 5) score += 10;
   if (messageCount > 10) score += 10;
   
-  // Time-based decay
   const lastMessageDays = (Date.now() - new Date(lead.last_message_at).getTime()) / (1000 * 60 * 60 * 24);
   if (lastMessageDays > 7) score -= 10;
   if (lastMessageDays > 30) score -= 20;
@@ -437,49 +489,37 @@ function calculateLeadScore(intent: any, lead: any): number {
   return Math.max(0, Math.min(100, score));
 }
 
-/**
- * Get smart schedule time based on intent and lead history
- */
-function getSmartScheduleTime(intent: any, lead: any): string {
+function getSmartScheduleTime(intent: IntentAnalysis, lead: LeadRecord): string {
   const now = Date.now();
   let delayMs: number;
   
   if (intent.wantsToSchedule || intent.readyToBuy) {
-    // Respond within 2-5 minutes for hot leads
     delayMs = (2 + Math.random() * 3) * 60 * 1000;
   } else if (intent.isInterested) {
-    // Respond within 15-30 minutes for interested leads
     delayMs = (15 + Math.random() * 15) * 60 * 1000;
   } else if (intent.hasQuestion) {
-    // Respond within 10-20 minutes for questions
     delayMs = (10 + Math.random() * 10) * 60 * 1000;
   } else {
-    // Standard follow-up timing
     const followUpCount = lead.follow_up_count || 0;
     if (followUpCount === 0) {
-      delayMs = (60 + Math.random() * 60) * 60 * 1000; // 1-2 hours
+      delayMs = (60 + Math.random() * 60) * 60 * 1000;
     } else if (followUpCount < 3) {
-      delayMs = 24 * 60 * 60 * 1000; // 1 day
+      delayMs = 24 * 60 * 60 * 1000;
     } else {
-      delayMs = 3 * 24 * 60 * 60 * 1000; // 3 days
+      delayMs = 3 * 24 * 60 * 60 * 1000;
     }
   }
   
   return new Date(now + delayMs).toISOString();
 }
 
-/**
- * Schedule calendar meeting for converting lead
- */
-async function scheduleCalendarMeeting(lead: any, userId: string) {
-  // This will be implemented with Google Calendar API
-  // For now, we'll create a calendar event record
+async function scheduleCalendarMeeting(lead: LeadRecord, userId: string): Promise<void> {
   if (!supabaseAdmin) {
     console.error('Supabase admin not configured');
     return;
   }
 
-  await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from('calendar_events')
     .insert({
       user_id: userId,
@@ -491,10 +531,13 @@ async function scheduleCalendarMeeting(lead: any, userId: string) {
       meeting_link: generateMeetingLink(),
       created_at: new Date().toISOString()
     });
+
+  if (error) {
+    console.error('Error scheduling calendar meeting:', error);
+  }
 }
 
-function getNextAvailableSlot(userId: string): string {
-  // For now, schedule 2 days from now at 2 PM
+function getNextAvailableSlot(_userId: string): string {
   const date = new Date();
   date.setDate(date.getDate() + 2);
   date.setHours(14, 0, 0, 0);

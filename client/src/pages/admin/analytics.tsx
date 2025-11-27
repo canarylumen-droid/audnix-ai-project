@@ -13,20 +13,50 @@ import {
 import { TrendingUp, DollarSign, Users, Target } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
+interface UserGrowthDataPoint {
+  date: string;
+  new_users: number;
+  total_users: number;
+}
+
+interface UserGrowthResponse {
+  growth: UserGrowthDataPoint[];
+}
+
+interface RevenueDataPoint {
+  date: string;
+  revenue: number;
+}
+
+interface RevenueResponse {
+  revenue: RevenueDataPoint[];
+}
+
+interface ChannelDataPoint {
+  channel: string;
+  total_leads: number;
+  conversions: number;
+  conversion_rate: number;
+}
+
+interface ChannelsResponse {
+  channels: ChannelDataPoint[];
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function AdminAnalytics() {
   const [days, setDays] = useState("30");
 
-  const { data: userGrowth } = useQuery({
+  const { data: userGrowth } = useQuery<UserGrowthResponse>({
     queryKey: [`/api/admin/analytics/user-growth`, { days }],
   });
 
-  const { data: revenue } = useQuery({
+  const { data: revenue } = useQuery<RevenueResponse>({
     queryKey: [`/api/admin/analytics/revenue`, { days }],
   });
 
-  const { data: channels } = useQuery({
+  const { data: channels } = useQuery<ChannelsResponse>({
     queryKey: [`/api/admin/analytics/channels`],
   });
 
@@ -117,7 +147,7 @@ export default function AdminAnalytics() {
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))' 
                   }}
-                  formatter={(value: any) => `$${value}`}
+                  formatter={(value: number | string) => `$${value}`}
                 />
                 <Legend />
                 <Bar 
@@ -149,9 +179,9 @@ export default function AdminAnalytics() {
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
-                    label={(entry) => `${entry.channel}: ${entry.total_leads}`}
+                    label={(entry: ChannelDataPoint) => `${entry.channel}: ${entry.total_leads}`}
                   >
-                    {(channels?.channels || []).map((entry: any, index: number) => (
+                    {(channels?.channels || []).map((entry: ChannelDataPoint, index: number) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -177,7 +207,7 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {channels?.channels?.map((channel: any, index: number) => (
+                {channels?.channels?.map((channel: ChannelDataPoint, index: number) => (
                   <div key={channel.channel} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium capitalize">{channel.channel}</span>

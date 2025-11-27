@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,35 @@ interface OverviewData {
   mrr: number;
   totalLeads: number;
   totalMessages: number;
+}
+
+interface PreviousPeriodData {
+  totalUsers: number;
+  activeUsers: number;
+  mrr: number;
+  totalLeads: number;
+  totalMessages: number;
+  period: string;
+}
+
+interface MetricsData {
+  metrics: {
+    totalUsers: number;
+    activeUsers: number;
+    trialUsers: number;
+    paidUsers: number;
+    mrr: number;
+    apiBurn: number;
+    failedJobs: number;
+    storageUsed: number;
+  };
+  recentUsers: Array<{
+    id: string;
+    name: string | null;
+    email: string;
+    plan: string | null;
+    createdAt: string;
+  }>;
 }
 
 interface OnboardingStats {
@@ -49,13 +77,13 @@ export default function AdminDashboard() {
     refetchInterval: 5000, // Real-time updates
   });
 
-  const { data: metrics } = useQuery({
+  const { data: metrics } = useQuery<MetricsData>({
     queryKey: ["/api/admin/metrics"],
     refetchInterval: 5000,
   });
 
   // Fetch previous period data for real-time percentages
-  const { data: previousPeriod } = useQuery({
+  const { data: previousPeriod } = useQuery<PreviousPeriodData>({
     queryKey: ["/api/admin/overview/previous"],
     refetchInterval: 10000,
   });

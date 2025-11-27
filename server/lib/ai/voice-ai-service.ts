@@ -1,10 +1,69 @@
 import { InstagramProvider } from '../providers/instagram';
 import { WhatsAppProvider } from '../providers/whatsapp';
+import { ElevenLabsProvider } from '../providers/elevenlabs';
 import { storage } from '../../storage';
 import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai';
 import { uploadToSupabase } from '../file-upload';
 import { decrypt } from '../crypto/encryption';
 import type { Lead, Message, User } from '@shared/schema';
+import type { ProviderType } from '@shared/types';
+
+/**
+ * Voice AI Service Interfaces
+ */
+interface VoiceLimitCheck {
+  allowed: boolean;
+  remaining: number;
+}
+
+interface VoiceDecision {
+  shouldSend: boolean;
+  reason: string;
+}
+
+interface VoiceNoteResult {
+  success: boolean;
+  audioUrl?: string;
+  secondsUsed?: number;
+  error?: string;
+}
+
+interface VoiceCloneResult {
+  success: boolean;
+  voiceId?: string;
+  error?: string;
+}
+
+interface BatchVoiceResult {
+  processed: number;
+  sent: number;
+  skipped: number;
+  errors: string[];
+}
+
+interface DecryptedInstagramMeta {
+  tokens?: {
+    access_token?: string;
+    page_id?: string;
+  };
+  accessToken?: string;
+  pageId?: string;
+}
+
+interface DecryptedWhatsAppMeta {
+  accountSid?: string;
+  authToken?: string;
+  fromNumber?: string;
+}
+
+type PlanWithVoice = 'trial' | 'starter' | 'pro' | 'enterprise';
+
+const PLAN_VOICE_LIMITS: Record<PlanWithVoice, number> = {
+  trial: 0,
+  starter: 100,
+  pro: 400,
+  enterprise: 1000
+};
 
 /**
  * Voice AI Service
@@ -21,23 +80,15 @@ export class VoiceAIService {
   /**
    * Check if user has enough voice minutes remaining
    */
-  private async checkVoiceLimit(userId: string, estimatedSeconds: number): Promise<{ allowed: boolean; remaining: number }> {
+  private async checkVoiceLimit(userId: string, estimatedSeconds: number): Promise<VoiceLimitCheck> {
     const user = await storage.getUserById(userId);
 
     if (!user) {
       return { allowed: false, remaining: 0 };
     }
 
-    // Get plan limits in minutes
-    const planLimits = {
-      trial: 0, // No voice for trial
-      starter: 100, // 100 minutes (~1.5 hours)
-      pro: 400, // 400 minutes (~6.5 hours)
-      enterprise: 1000 // 1000 minutes (~16+ hours)
-    };
-
     // Calculate total balance: plan minutes + topup minutes - used minutes
-    const planMinutes = planLimits[user.plan as keyof typeof planLimits] || 0;
+    const planMinutes = PLAN_VOICE_LIMITS[user.plan as PlanWithVoice] || 0;
     const topupMinutes = user.voiceMinutesTopup || 0;
     const usedMinutes = user.voiceMinutesUsed || 0;
     const totalBalance = planMinutes + topupMinutes - usedMinutes;
@@ -77,7 +128,7 @@ export class VoiceAIService {
   async shouldSendVoiceNote(
     lead: Lead,
     messages: Message[]
-  ): Promise<{ shouldSend: boolean; reason: string }> {
+  ): Promise<VoiceDecision> {
     // Only Instagram and WhatsApp support voice
     if (lead.channel !== 'instagram' && lead.channel !== 'whatsapp') {
       return { shouldSend: false, reason: 'Channel does not support voice messages' };
@@ -110,12 +161,7 @@ export class VoiceAIService {
     userId: string,
     leadId: string,
     maxDuration: number = 15
-  ): Promise<{
-    success: boolean;
-    audioUrl?: string;
-    secondsUsed?: number;
-    error?: string;
-  }> {
+  ): Promise<VoiceNoteResult> {
     try {
       // Check if user has voice notes enabled
       const user = await storage.getUserById(userId);
@@ -140,7 +186,7 @@ export class VoiceAIService {
       // Generate AI text response with character limit for ~15 seconds
       // Average speaking rate: 150 words/min = 2.5 words/sec = ~37 words for 15 seconds
       const maxWords = Math.floor((maxDuration / 60) * 150);
-      const aiResponse = await this.generateVoiceScript(lead, messages, maxWords);
+      const aiResponse = await this.generateVoiceScriptInternal(lead, messages, maxWords);
 
       // Estimate duration from word count (average 2.5 words per second for natural speech)
       const wordCount = aiResponse.split(/\s+/).length;
@@ -186,7 +232,7 @@ export class VoiceAIService {
 
         // Decrypt credentials from integration
         const decryptedMetaJson = decrypt(igIntegration.encryptedMeta);
-        const decryptedMeta = JSON.parse(decryptedMetaJson);
+        const decryptedMeta: DecryptedInstagramMeta = JSON.parse(decryptedMetaJson);
         const accessToken = decryptedMeta.tokens?.access_token || decryptedMeta.accessToken;
         const pageId = decryptedMeta.tokens?.page_id || decryptedMeta.pageId;
 
@@ -212,7 +258,7 @@ export class VoiceAIService {
 
         // Decrypt credentials from integration
         const decryptedMetaJson = decrypt(waIntegration.encryptedMeta);
-        const decryptedMeta = JSON.parse(decryptedMetaJson);
+        const decryptedMeta: DecryptedWhatsAppMeta = JSON.parse(decryptedMetaJson);
         const accountSid = decryptedMeta.accountSid;
         const authToken = decryptedMeta.authToken;
         const fromNumber = decryptedMeta.fromNumber;
@@ -231,11 +277,19 @@ export class VoiceAIService {
         messageId = result.messageId;
       }
 
+      // Map channel to provider type
+      const providerMap: Record<string, ProviderType> = {
+        'instagram': 'instagram',
+        'whatsapp': 'whatsapp',
+        'email': 'email'
+      };
+      const provider = providerMap[lead.channel] || 'system';
+
       // Save message to database
       await storage.createMessage({
         leadId: lead.id,
         userId,
-        provider: lead.channel as any,
+        provider,
         direction: 'outbound',
         body: `[Voice Note] ${aiResponse}`,
         audioUrl,
@@ -277,11 +331,12 @@ export class VoiceAIService {
         secondsUsed: voiceData.duration 
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate and send voice note';
       console.error('Voice AI Service error:', error);
       return { 
         success: false, 
-        error: error.message || 'Failed to generate and send voice note' 
+        error: errorMessage
       };
     }
   }
@@ -290,7 +345,7 @@ export class VoiceAIService {
    * Generate voice script with natural human speech patterns
    * 15 seconds max for professional brevity
    */
-  private async generateVoiceScript(lead: any, history: any[], maxWords: number = 37): Promise<string> {
+  private async generateVoiceScriptInternal(lead: Lead, history: Message[], maxWords: number = 37): Promise<string> {
     // Analyze conversation mood
     const recentMessages = history.slice(-3).map(m => m.body.toLowerCase()).join(' ');
     const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
@@ -300,7 +355,7 @@ export class VoiceAIService {
       Think of this as a genuine one-on-one conversation, not a sales pitch.
       
       Conversation history:
-      ${history.map(msg => `${msg.sender === 'ai' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
+      ${history.map(msg => `${msg.direction === 'outbound' ? 'You' : lead.name}: ${msg.body}`).join('\n')}
 
       VOICE SCRIPT RULES:
       1. Natural conversation - 15 seconds MAX when spoken
@@ -322,7 +377,7 @@ export class VoiceAIService {
       Generate conversational voice script (plain text, natural breathing):
     `;
     
-    return await generateVoiceScript(lead, history, prompt);
+    return await generateVoiceScript(lead, history);
   }
 
   /**
@@ -331,7 +386,7 @@ export class VoiceAIService {
   async cloneUserVoice(
     userId: string, 
     audioBuffers: Buffer[]
-  ): Promise<{ success: boolean; voiceId?: string; error?: string }> {
+  ): Promise<VoiceCloneResult> {
     try {
       const user = await storage.getUserById(userId);
       if (!user) {
@@ -352,26 +407,22 @@ export class VoiceAIService {
       console.log(`🎤 Voice cloned successfully for user ${userId}: ${result.voiceId}`);
 
       return { success: true, voiceId: result.voiceId };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to clone voice';
       console.error('Voice cloning error:', error);
-      return { success: false, error: error.message || 'Failed to clone voice' };
+      return { success: false, error: errorMessage };
     }
   }
 
   /**
    * Batch process: Send voice notes to all eligible warm leads
    */
-  async sendVoiceNotesToWarmLeads(userId: string): Promise<{
-    processed: number;
-    sent: number;
-    skipped: number;
-    errors: string[];
-  }> {
-    const results = {
+  async sendVoiceNotesToWarmLeads(userId: string): Promise<BatchVoiceResult> {
+    const results: BatchVoiceResult = {
       processed: 0,
       sent: 0,
       skipped: 0,
-      errors: [] as string[]
+      errors: []
     };
 
     try {
@@ -404,7 +455,13 @@ export class VoiceAIService {
           // Check lead status again to ensure they haven't opted out
           const updatedLead = await storage.getLeadById(lead.id);
           const updatedMessages = await storage.getMessages(lead.id);
-          const secondDecision = await this.shouldSendVoiceNote(updatedLead!, updatedMessages);
+          
+          if (!updatedLead) {
+            results.skipped++;
+            continue;
+          }
+
+          const secondDecision = await this.shouldSendVoiceNote(updatedLead, updatedMessages);
 
           if (secondDecision.shouldSend) {
             const result2 = await this.generateAndSendVoiceNote(userId, lead.id, 15);
@@ -413,12 +470,12 @@ export class VoiceAIService {
             } else {
               results.skipped++;
               if (result2.error) {
-                results.errors.push(`${updatedLead!.name}: Second voice note failed - ${result2.error}`);
+                results.errors.push(`${updatedLead.name}: Second voice note failed - ${result2.error}`);
               }
             }
           } else {
             results.skipped++;
-            results.errors.push(`${updatedLead!.name}: Skipped second voice note due to status change - ${secondDecision.reason}`);
+            results.errors.push(`${updatedLead.name}: Skipped second voice note due to status change - ${secondDecision.reason}`);
           }
         } else {
           results.skipped++;
@@ -428,9 +485,10 @@ export class VoiceAIService {
         }
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown batch error';
       console.error('Batch voice sending error:', error);
-      results.errors.push(`Batch error: ${error.message}`);
+      results.errors.push(`Batch error: ${errorMessage}`);
     }
 
     return results;

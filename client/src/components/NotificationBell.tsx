@@ -3,12 +3,23 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
+interface NotificationResponse {
+  unreadCount: number;
+  notifications?: Array<{
+    id: string;
+    title: string;
+    message: string;
+    read: boolean;
+    createdAt: string;
+  }>;
+}
+
 export function NotificationBell() {
-  const [count, setCount] = useState(0);
-  const [newNotification, setNewNotification] = useState(false);
+  const [count, setCount] = useState<number>(0);
+  const [newNotification, setNewNotification] = useState<boolean>(false);
 
   // Fetch notifications count
-  const { data: notifications } = useQuery({
+  const { data: notifications } = useQuery<NotificationResponse>({
     queryKey: ["/api/notifications"],
     refetchInterval: 5000, // Check every 5 seconds
   });

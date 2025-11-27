@@ -1,31 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
   Instagram,
   Mail,
   Send,
   Sparkles,
-  Paperclip,
-  Mic,
   MoreVertical,
   Clock,
   Loader2,
@@ -37,6 +23,44 @@ import { SiWhatsapp } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+interface Lead {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  channel: string;
+  status: string;
+  score?: number;
+  tags?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "lead";
+  timestamp: string;
+  channel?: string;
+}
+
+interface LeadResponse {
+  lead?: Lead;
+  id?: string;
+  name?: string;
+  email?: string | null;
+  phone?: string | null;
+  channel?: string;
+  status?: string;
+  score?: number;
+  tags?: string[];
+  createdAt?: string;
+}
+
+interface MessagesResponse {
+  messages: Message[];
+}
 
 const channelIcons = {
   instagram: Instagram,
@@ -56,14 +80,14 @@ export default function ConversationsPage() {
   const [selectedLead, setSelectedLead] = useState<any>(null); // State to manage selected lead for mobile view
 
   // Fetch lead details
-  const { data: lead, isLoading: leadLoading } = useQuery({
+  const { data: lead, isLoading: leadLoading } = useQuery<LeadResponse>({
     queryKey: ["/api/leads", leadId],
     enabled: !!leadId,
     retry: false,
   });
 
   // Fetch messages for this lead with aggressive real-time updates
-  const { data: messagesData, isLoading: messagesLoading } = useQuery({
+  const { data: messagesData, isLoading: messagesLoading } = useQuery<MessagesResponse>({
     queryKey: ["/api/messages", leadId],
     refetchInterval: 3000, // Refresh every 3 seconds for instant feel
     refetchOnWindowFocus: true,
@@ -76,10 +100,7 @@ export default function ConversationsPage() {
   // Send message mutation
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest(`/api/messages/${leadId}`, {
-        method: "POST",
-        body: JSON.stringify({ content, channel: selectedChannel }),
-      });
+      return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: selectedChannel });
     },
     onSuccess: () => {
       setMessage("");
@@ -132,15 +153,12 @@ export default function ConversationsPage() {
 
   const bookCallMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/ai/calendar/${leadId}`, {
-        method: "POST",
-        body: JSON.stringify({ sendMessage: true }),
-      });
+      return apiRequest("POST", `/api/ai/calendar/${leadId}`, { sendMessage: true });
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Booking link sent!",
-        description: `Calendar invite sent to ${lead?.lead?.name}`,
+        description: `Calendar invite sent to ${lead?.name || lead?.lead?.name}`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
     },
@@ -295,7 +313,7 @@ export default function ConversationsPage() {
                     </p>
                   </div>
                 ) : (
-                  messages.map((msg: any, index: number) => (
+                  messages.map((msg, index) => (
                     <motion.div
                       key={msg.id || index}
                       initial={{ opacity: 0, y: 10 }}

@@ -45,6 +45,53 @@ import {
   ArrowRight
 } from "lucide-react";
 
+interface VideoMonitorStats {
+  commentsChecked: number;
+  dmsSent: number;
+  conversions: number;
+  followRequests: number;
+  hotLeads: number;
+  warmLeads: number;
+  replied: number;
+}
+
+interface VideoMonitor {
+  id: string;
+  userId: string;
+  videoId: string;
+  videoUrl: string;
+  productLink: string | null;
+  ctaText: string;
+  isActive: boolean;
+  autoReplyEnabled: boolean;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  lastSync?: string | null;
+  stats?: VideoMonitorStats;
+}
+
+interface IntentAnalysisResult {
+  intent: {
+    intentType: string;
+    confidence: number;
+    shouldDM: boolean;
+    hasBuyingIntent: boolean;
+    detectedInterest?: string;
+  } | null;
+  recommendation: string;
+}
+
+interface CreateMonitorPayload {
+  videoUrl: string;
+  ctaLink: string;
+  customMessage?: string;
+  followUpConfig: {
+    askFollowOnConvert: boolean;
+    askFollowOnDecline: boolean;
+  };
+}
+
 // Countdown timer hook
 function useCountdown(targetDate: Date | null) {
   const [timeLeft, setTimeLeft] = useState<{
@@ -83,7 +130,7 @@ function useCountdown(targetDate: Date | null) {
 function IntentDetectionDemo() {
   const [testComment, setTestComment] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<IntentAnalysisResult | null>(null);
   const { toast } = useToast();
 
   const demoComments = [
@@ -323,7 +370,7 @@ function IntentDetectionDemo() {
 
 // Monitor Card Component
 function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDeleting }: {
-  monitor: any;
+  monitor: VideoMonitor;
   nextSync: Date | null;
   onToggle: () => void;
   onDelete: () => void;
@@ -523,12 +570,12 @@ export default function VideoAutomationPage() {
   const [askFollowOnConvert, setAskFollowOnConvert] = useState(true);
   const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
 
-  const { data: monitors, isLoading } = useQuery({
+  const { data: monitors, isLoading } = useQuery<VideoMonitor[]>({
     queryKey: ["/api/video-monitors"],
   });
 
   const createMonitor = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: CreateMonitorPayload) => {
       return apiRequest("/api/video-monitors", {
         method: "POST",
         body: JSON.stringify(data),
@@ -754,7 +801,7 @@ export default function VideoAutomationPage() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {monitors?.map((monitor: any) => {
+            {monitors?.map((monitor) => {
               const nextSync = monitor.lastSync
                 ? new Date(new Date(monitor.lastSync).getTime() + 30000)
                 : null;

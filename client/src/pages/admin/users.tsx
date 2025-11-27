@@ -41,10 +41,34 @@ interface User {
   stripeCustomerId: string | null;
 }
 
+interface UserLead {
+  id: string;
+  name: string;
+  channel: string;
+  status: string;
+}
+
+interface UserIntegration {
+  id: string;
+  provider: string;
+  connected: boolean;
+  lastSync: string | null;
+}
+
+interface UsersListResponse {
+  users: User[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 interface UserDetails {
   user: User;
-  leads: any[];
-  integrations: any[];
+  leads: UserLead[];
+  integrations: UserIntegration[];
   stats: {
     leads: { total: number; converted: number; new: number; open: number };
     messages: { total: number; received: number; sent: number };
@@ -59,7 +83,7 @@ export default function AdminUsers() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: usersData, isLoading } = useQuery({
+  const { data: usersData, isLoading } = useQuery<UsersListResponse>({
     queryKey: ["/api/admin/users", { search, page }],
   });
 
@@ -155,7 +179,7 @@ export default function AdminUsers() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersData?.users?.map((user: User) => (
+                    {usersData?.users?.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
@@ -332,7 +356,7 @@ export default function AdminUsers() {
                 <div>
                   <h3 className="font-semibold mb-3">Integrations</h3>
                   <div className="space-y-2">
-                    {userDetails.integrations.map((integration: any) => (
+                    {userDetails.integrations.map((integration) => (
                       <div key={integration.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium capitalize">{integration.provider}</p>
@@ -359,7 +383,7 @@ export default function AdminUsers() {
                 <div>
                   <h3 className="font-semibold mb-3">Recent Leads</h3>
                   <div className="space-y-2">
-                    {userDetails.leads.slice(0, 5).map((lead: any) => (
+                    {userDetails.leads.slice(0, 5).map((lead) => (
                       <div key={lead.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <p className="font-medium">{lead.name}</p>

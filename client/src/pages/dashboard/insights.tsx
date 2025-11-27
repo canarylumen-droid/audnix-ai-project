@@ -40,13 +40,45 @@ import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-ac
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import { useUser } from "@/hooks/use-user";
 
+interface ChannelData {
+  channel: string;
+  count: number;
+  percentage: number;
+}
+
+interface FunnelStage {
+  stage: string;
+  count: number;
+  percentage: number;
+}
+
+interface TimeSeriesData {
+  date: string;
+  leads: number;
+}
+
+interface InsightsMetrics {
+  avgResponseTime: string;
+  conversionRate: string;
+  engagementScore: string;
+}
+
+interface InsightsApiResponse {
+  summary: string | null;
+  channels: ChannelData[];
+  funnel: FunnelStage[];
+  hasData: boolean;
+  timeSeries: TimeSeriesData[];
+  metrics?: InsightsMetrics;
+}
+
 export default function InsightsPage() {
   const { canAccess: canAccessAnalytics } = useCanAccessAnalytics();
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
-  const { user } = useUser();
-  const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery({
+  const { data: user } = useUser();
+  const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
     queryKey: ["/api/insights"],
-    refetchInterval: 10000, // Update every 10 seconds
+    refetchInterval: 10000,
     refetchOnWindowFocus: true,
     retry: false,
   });
@@ -349,7 +381,7 @@ export default function InsightsPage() {
                     <CardContent>
                       <div className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
                         <AnimatedNumber 
-                          value={parseFloat(insightsData?.metrics?.conversionRate) || 0} 
+                          value={parseFloat(insightsData?.metrics?.conversionRate ?? '0') || 0} 
                           decimals={1}
                           suffix="%"
                           duration={1200}
@@ -374,7 +406,7 @@ export default function InsightsPage() {
                     <CardContent>
                       <div className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                         <AnimatedNumber 
-                          value={parseFloat(insightsData?.metrics?.engagementScore) || 0} 
+                          value={parseFloat(insightsData?.metrics?.engagementScore ?? '0') || 0} 
                           decimals={1}
                           suffix="%"
                           duration={1200}
@@ -413,7 +445,7 @@ export default function InsightsPage() {
                             outerRadius={80}
                             label={(entry) => `${entry.channel}: ${entry.percentage}%`}
                           >
-                            {channelData.map((entry: any, index: number) => (
+                            {channelData.map((entry: ChannelData, index: number) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
@@ -454,7 +486,7 @@ export default function InsightsPage() {
                             dataKey="count"
                             radius={[8, 8, 0, 0]}
                           >
-                            {channelData.map((entry: any, index: number) => (
+                            {channelData.map((entry: ChannelData, index: number) => (
                               <Cell
                                 key={`cell-${index}`}
                                 fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
@@ -521,7 +553,7 @@ export default function InsightsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {conversionFunnel.map((stage: any, index: number) => (
+                    {conversionFunnel.map((stage: FunnelStage, index: number) => (
                       <div key={stage.stage} data-testid={`funnel-stage-${index}`}>
                         <div className="flex items-center justify-between mb-2">
                           <span className="font-medium">{stage.stage}</span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -27,7 +27,8 @@ import {
   ChevronLeft,
   LogOut,
   Video,
-  Upload, // Import Upload icon
+  Upload,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,9 +46,38 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavItem {
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   path: string;
   adminOnly?: boolean;
+}
+
+interface UserProfile {
+  id: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  role?: 'admin' | 'member';
+  plan?: string;
+  trialExpiresAt?: string;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string | Date;
+  read: boolean;
+  metadata?: {
+    activityType?: string;
+    oldStatus?: string;
+    newStatus?: string;
+    reason?: string;
+  };
+}
+
+interface NotificationsData {
+  notifications: Notification[];
+  unreadCount: number;
 }
 
 // NOTE: navItems moved inside component so we can use adminSecretPath
@@ -84,7 +114,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   ];
 
   // Calculate trial days left
-  const getTrialDaysLeft = (user: any) => {
+  const getTrialDaysLeft = (user: UserProfile | null | undefined): number => {
     if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
     const now = new Date();
     const expiryDate = new Date(user.trialExpiresAt);
@@ -93,13 +123,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   };
 
   // Fetch real user profile
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
     refetchInterval: 60000, // Refetch every minute to keep data fresh
   });
 
   // Fetch real-time notifications
-  const { data: notificationsData } = useQuery({
+  const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
     refetchInterval: 30000, // Poll every 30 seconds for real-time updates
   });
@@ -110,9 +140,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Mark notification as read mutation
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      return await apiRequest(`/api/user/notifications/${notificationId}/read`, {
-        method: 'POST',
-      });
+      return await apiRequest('POST', `/api/user/notifications/${notificationId}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
@@ -126,9 +154,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Sign out mutation
   const signOutMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/auth/signout', {
-        method: 'POST',
-      });
+      return await apiRequest('POST', '/api/auth/signout');
     },
     onSuccess: () => {
       // Clear all react-query caches to remove stale user data
@@ -421,7 +447,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <DropdownMenuSeparator />
                 <div className="max-h-96 overflow-y-auto">
                   {notifications.length > 0 ? (
-                    notifications.map((notification: any, index: number) => {
+                    notifications.map((notification: Notification, index: number) => {
                       const getRelativeTime = (timestamp: string | Date): string => {
                         const now = Date.now();
                         const then = new Date(timestamp).getTime();

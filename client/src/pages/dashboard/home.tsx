@@ -26,6 +26,59 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect } from "react";
 
+interface UserProfile {
+  id: string;
+  email: string;
+  username?: string;
+  name?: string;
+  role: string;
+  plan: string;
+  businessName?: string;
+  trialExpiresAt?: string;
+  voiceNotesEnabled?: boolean;
+  metadata?: {
+    onboardingCompleted?: boolean;
+    [key: string]: unknown;
+  };
+}
+
+interface DashboardStats {
+  leads: number;
+  messages: number;
+  aiReplies: number;
+  conversionRate: number | string;
+  conversions: number;
+  totalLeads?: number;
+  newLeads?: number;
+  activeLeads?: number;
+  convertedLeads?: number;
+  totalMessages?: number;
+}
+
+interface PreviousDashboardStats {
+  leads: number;
+  messages: number;
+  aiReplies: number;
+  conversions: number;
+  totalLeads?: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  time: string | Date;
+  channel: string;
+  title?: string;
+  description?: string;
+  timestamp?: string | Date;
+  leadId?: string;
+}
+
+interface DashboardActivityResponse {
+  activities: ActivityItem[];
+}
+
 const channelIcons = {
   instagram: Instagram,
   whatsapp: SiWhatsapp,
@@ -38,7 +91,7 @@ export default function DashboardHome() {
   const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
 
   // Fetch real user profile
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<UserProfile>({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
@@ -65,7 +118,7 @@ export default function DashboardHome() {
   };
 
   // Fetch real dashboard stats with aggressive real-time updates
-  const { data: stats, isLoading: statsLoading } = useQuery({
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     refetchInterval: 5000, // Refresh every 5 seconds for real-time feel
     refetchOnWindowFocus: true,
@@ -73,14 +126,14 @@ export default function DashboardHome() {
   });
 
   // Fetch previous period stats for real-time percentage calculations
-  const { data: previousStats } = useQuery({
+  const { data: previousStats } = useQuery<PreviousDashboardStats>({
     queryKey: ["/api/dashboard/stats/previous"],
     refetchInterval: 10000,
     retry: false,
   });
 
   // Fetch real activity feed with real-time updates
-  const { data: activityData, isLoading: activityLoading } = useQuery({
+  const { data: activityData, isLoading: activityLoading } = useQuery<DashboardActivityResponse>({
     queryKey: ["/api/dashboard/activity"],
     refetchInterval: 5000, // Refresh every 5 seconds
     refetchOnWindowFocus: true,
@@ -396,7 +449,7 @@ export default function DashboardHome() {
                   </div>
                 ) : activities.length > 0 ? (
                   <div className="space-y-0 divide-y divide-border/20 max-h-[400px] overflow-y-auto">
-                    {activities.map((activity: any, index) => {
+                    {activities.map((activity: ActivityItem, index: number) => {
                       const ChannelIcon = channelIcons[activity.channel as keyof typeof channelIcons] || AlertCircle;
                       const getActivityColor = (type: string) => {
                         switch(type) {

@@ -18,9 +18,40 @@ import {
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
-const channelIcons = {
+interface Deal {
+  id: string;
+  leadId: string;
+  userId: string;
+  brand: string;
+  channel: "instagram" | "whatsapp" | "email" | "gmail" | "manual";
+  value: number;
+  status: "open" | "closed_won" | "closed_lost" | "pending" | "converted";
+  notes?: string | null;
+  convertedAt?: string | null;
+  meetingScheduled?: boolean;
+  meetingUrl?: string | null;
+  createdAt: string;
+  leadName?: string;
+}
+
+interface DealsApiResponse {
+  deals: Deal[];
+}
+
+interface TimelineDataPoint {
+  date: string;
+  revenue: number;
+}
+
+interface RevenueAnalyticsResponse {
+  previousWeekRevenue?: number;
+  previousMonthRevenue?: number;
+  timeline?: TimelineDataPoint[];
+}
+
+const channelIcons: Record<string, typeof Instagram | typeof Mail | typeof SiWhatsapp> = {
   instagram: Instagram,
   whatsapp: SiWhatsapp,
   email: Mail,
@@ -28,23 +59,23 @@ const channelIcons = {
 
 export default function DealsPage() {
   // Fetch real deals from backend
-  const { data: dealsData, isLoading, error } = useQuery({
+  const { data: dealsData, isLoading, error } = useQuery<DealsApiResponse>({
     queryKey: ["/api/deals"],
     refetchInterval: 5000, // Real-time updates every 5s
     retry: false,
   });
 
   // Fetch revenue analytics
-  const { data: revenueAnalytics } = useQuery({
+  const { data: revenueAnalytics } = useQuery<RevenueAnalyticsResponse>({
     queryKey: ["/api/deals/analytics"],
     refetchInterval: 5000,
     retry: false,
   });
 
-  const deals = dealsData?.deals || [];
-  const totalValue = deals.reduce((sum: number, deal: any) => sum + (deal.value || 0), 0);
-  const convertedDeals = deals.filter((d: any) => d.status === "converted");
-  const pendingDeals = deals.filter((d: any) => d.status === "pending");
+  const deals: Deal[] = dealsData?.deals || [];
+  const totalValue = deals.reduce((sum: number, deal: Deal) => sum + (deal.value || 0), 0);
+  const convertedDeals = deals.filter((d: Deal) => d.status === "converted");
+  const pendingDeals = deals.filter((d: Deal) => d.status === "pending");
   const avgDealValue = deals.length > 0 ? Math.round(totalValue / deals.length) : 0;
 
   // Calculate time-based metrics
@@ -55,13 +86,13 @@ export default function DealsPage() {
   const startOfMonth = new Date(today);
   startOfMonth.setDate(startOfMonth.getDate() - 30);
 
-  const todayDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfToday);
-  const weekDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfWeek);
-  const monthDeals = convertedDeals.filter((d: any) => new Date(d.convertedAt) >= startOfMonth);
+  const todayDeals = convertedDeals.filter((d: Deal) => d.convertedAt && new Date(d.convertedAt) >= startOfToday);
+  const weekDeals = convertedDeals.filter((d: Deal) => d.convertedAt && new Date(d.convertedAt) >= startOfWeek);
+  const monthDeals = convertedDeals.filter((d: Deal) => d.convertedAt && new Date(d.convertedAt) >= startOfMonth);
 
-  const todayRevenue = todayDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
-  const weekRevenue = weekDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
-  const monthRevenue = monthDeals.reduce((sum: number, d: any) => sum + (d.value || 0), 0);
+  const todayRevenue = todayDeals.reduce((sum: number, d: Deal) => sum + (d.value || 0), 0);
+  const weekRevenue = weekDeals.reduce((sum: number, d: Deal) => sum + (d.value || 0), 0);
+  const monthRevenue = monthDeals.reduce((sum: number, d: Deal) => sum + (d.value || 0), 0);
 
   // Calculate growth percentages (real-time, not hardcoded)
   const previousWeekRevenue = revenueAnalytics?.previousWeekRevenue || 0;
@@ -224,7 +255,7 @@ export default function DealsPage() {
                     backgroundColor: 'hsl(var(--card))', 
                     border: '1px solid hsl(var(--border))' 
                   }}
-                  formatter={(value: any) => `$${value}`}
+                  formatter={(value: number) => `$${value}`}
                 />
                 <Legend />
                 <Line 
@@ -314,8 +345,8 @@ export default function DealsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {deals.map((deal: any, index: number) => {
-            const ChannelIcon = channelIcons[deal.channel as keyof typeof channelIcons] || Mail;
+          {deals.map((deal: Deal, index: number) => {
+            const ChannelIcon = channelIcons[deal.channel] || Mail;
             return (
               <motion.div
                 key={deal.id}
