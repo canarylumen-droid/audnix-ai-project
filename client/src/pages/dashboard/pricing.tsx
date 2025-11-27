@@ -217,7 +217,7 @@ export default function PricingPage() {
                         Loading...
                       </>
                     ) : (
-                      plan.id === 'enterprise' ? 'Talk to Sales →' : 'Upgrade →'
+                      `Get ${plan.name} →`
                     )}
                   </Button>
                 </motion.div>

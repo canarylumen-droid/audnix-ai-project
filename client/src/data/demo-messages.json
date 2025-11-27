@@ -73,7 +73,7 @@
       "leadId": "lead-2",
       "channel": "whatsapp",
       "direction": "outbound",
-      "content": "Great question! We have three plans: Starter ($49/mo), Pro ($99/mo), and Enterprise ($199+/mo). All include a 3-day free trial. Which features are most important to you?",
+      "content": "Great question! We have three plans: Starter ($49.99/mo), Pro ($99.99/mo), and Enterprise ($199.99/mo). All include a 3-day free trial. Which features are most important to you?",
       "isAiGenerated": true,
       "hasVoiceNote": false,
       "status": "read",
