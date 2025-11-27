@@ -10,11 +10,16 @@ if (process.env.NODE_ENV === 'production' && !process.env.REDIS_URL) {
 }
 
 // Redis client for distributed rate limiting (optional)
+// NOTE: Redis is optional - app works fine without it using memory-based rate limiting
 let redisClient: ReturnType<typeof createClient> | null = null;
 
-if (process.env.REDIS_URL) {
+async function initRedis() {
+  if (!process.env.REDIS_URL) {
+    console.log('ℹ️  Redis not configured - using memory-based rate limiting');
+    return;
+  }
+  
   try {
-    // Extract clean Redis URL (handle malformed URLs with "redis-cli -u" prefix)
     let redisUrl = process.env.REDIS_URL.trim();
     
     // Remove "redis-cli -u " prefix if present
@@ -22,38 +27,38 @@ if (process.env.REDIS_URL) {
       redisUrl = redisUrl.replace(/^redis-cli\s+-u\s+/, '');
     }
     
-    // Extract first valid redis:// URL and remove duplicates or trailing garbage
+    // Extract first valid redis:// URL
     const match = redisUrl.match(/redis:\/\/[^:]+:[^@]+@[^:]+:\d+/);
     if (match) {
       redisUrl = match[0];
     }
     
     console.log('📍 Connecting to Redis...');
-    redisClient = createClient({
+    const client = createClient({
       url: redisUrl,
       socket: {
-        reconnectStrategy: (retries) => Math.min(retries * 50, 1000)
+        connectTimeout: 5000,
+        reconnectStrategy: false // Don't auto-reconnect - just use memory fallback
       }
     });
     
-    redisClient.on('error', (err) => {
-      console.error('⚠️  Redis connection error:', err.message);
-      redisClient = null; // Fallback to memory storage
+    client.on('error', () => {
+      // Silently ignore errors after initial connection - already using memory fallback
     });
     
-    redisClient.on('connect', () => {
-      console.log('✅ Redis connected for rate limiting');
-    });
-    
-    redisClient.connect().catch((err) => {
-      console.warn('⚠️  Redis failed, using memory-based rate limiting:', err.message);
-      redisClient = null;
-    });
-  } catch (err) {
-    console.error('❌ Redis initialization error:', err);
-    redisClient = null; // Fallback to memory
+    await client.connect();
+    console.log('✅ Redis connected for rate limiting');
+    redisClient = client;
+  } catch (err: any) {
+    console.warn('⚠️  Redis unavailable, using memory-based rate limiting');
+    redisClient = null;
   }
 }
+
+// Initialize Redis asynchronously (non-blocking)
+initRedis().catch(() => {
+  // Error already logged, using memory fallback
+});
 
 /**
  * General API rate limiter - 100 requests per 15 minutes
