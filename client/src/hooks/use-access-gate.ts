@@ -78,3 +78,15 @@ export function useCanAccessVoiceNotes(): AccessGate {
 export function useCanAccessAnalytics(): AccessGate {
   return useAccessGate('analytics');
 }
+
+export function useCanAccessFullAnalytics(): AccessGate {
+  return useAccessGate('fullAnalytics');
+}
+
+export function useCanAccessVideoAutomation(): AccessGate {
+  return useAccessGate('videoAutomation');
+}
+
+export function useCanAccessInstagramDM(): AccessGate {
+  return useAccessGate('instagramDM');
+}

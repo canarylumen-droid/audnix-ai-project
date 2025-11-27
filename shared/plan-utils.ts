@@ -39,24 +39,30 @@ export function getPlanCapabilities(planId: string) {
     voiceMinutes: tier.voiceMinutes,
     hasVoiceNotes,
     hasAnalytics: true, // FREE for all users - show preview for trial/free, full features for paid
+    hasFullAnalytics: isPaid, // Full analytics only for paid plans
     hasAutoBooking: isPaid,
     hasObjectionHandling: isPaid,
     hasAdvancedSequencing: isProOrAbove,
     hasTeamWorkflows: isEnterprise,
     hasAPIAccess: isEnterprise,
-    hasPrioritySupport: isProOrAbove
+    hasPrioritySupport: isProOrAbove,
+    hasVideoAutomation: isPaid, // Video automation only for paid plans
+    hasInstagramDM: isPaid // Instagram DM automation for paid plans (coming soon for trial)
   };
 }
 
 export type FeatureKey = 
   | 'voiceNotes'
   | 'analytics'
+  | 'fullAnalytics'
   | 'autoBooking'
   | 'objectionHandling'
   | 'advancedSequencing'
   | 'teamWorkflows'
   | 'apiAccess'
-  | 'prioritySupport';
+  | 'prioritySupport'
+  | 'videoAutomation'
+  | 'instagramDM';
 
 export function canAccessFeature(featureKey: FeatureKey, planId: string): boolean {
   const capabilities = getPlanCapabilities(planId);
@@ -64,12 +70,15 @@ export function canAccessFeature(featureKey: FeatureKey, planId: string): boolea
   const featureMap: Record<FeatureKey, boolean> = {
     voiceNotes: capabilities.hasVoiceNotes,
     analytics: capabilities.hasAnalytics,
+    fullAnalytics: capabilities.hasFullAnalytics,
     autoBooking: capabilities.hasAutoBooking,
     objectionHandling: capabilities.hasObjectionHandling,
     advancedSequencing: capabilities.hasAdvancedSequencing,
     teamWorkflows: capabilities.hasTeamWorkflows,
     apiAccess: capabilities.hasAPIAccess,
-    prioritySupport: capabilities.hasPrioritySupport
+    prioritySupport: capabilities.hasPrioritySupport,
+    videoAutomation: capabilities.hasVideoAutomation,
+    instagramDM: capabilities.hasInstagramDM
   };
   
   return featureMap[featureKey] || false;

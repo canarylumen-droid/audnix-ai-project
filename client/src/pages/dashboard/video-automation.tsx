@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useCanAccessVideoAutomation } from "@/hooks/use-access-gate";
+import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import {
   Video,
   MessageSquare,
@@ -514,6 +516,7 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
 
 export default function VideoAutomationPage() {
   const { toast } = useToast();
+  const { canAccess: canAccessVideo } = useCanAccessVideoAutomation();
   const [videoUrl, setVideoUrl] = useState("");
   const [ctaLink, setCtaLink] = useState("");
   const [customMessage, setCustomMessage] = useState("");
@@ -590,6 +593,34 @@ export default function VideoAutomationPage() {
       },
     });
   };
+
+  if (!canAccessVideo) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
+        <div>
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+            Instagram Video Automation
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            AI-powered sales engine that converts comments into booked meetings
+          </p>
+        </div>
+        <FeatureLock
+          featureName="Video Automation"
+          description="Automatically detect buying intent in video comments and convert them into leads. Upgrade to unlock this powerful feature."
+          requiredPlan="Starter"
+          variant="card"
+        >
+          <div className="h-64 flex items-center justify-center">
+            <div className="text-center">
+              <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Video automation preview</p>
+            </div>
+          </div>
+        </FeatureLock>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">

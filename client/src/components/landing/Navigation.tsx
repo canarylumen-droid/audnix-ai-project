@@ -57,10 +57,10 @@ export function Navigation() {
               Pricing
             </a>
             <a
-              href="#resources"
+              href="#features"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById('resources')?.scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
               }}
               className="text-foreground/80 hover:text-foreground transition-colors cursor-pointer text-sm"
             >
@@ -129,11 +129,11 @@ export function Navigation() {
                 Pricing
               </a>
               <a
-                href="#resources"
+                href="#features"
                 onClick={(e) => {
                   e.preventDefault();
                   setMobileMenuOpen(false);
-                  document.getElementById('resources')?.scrollIntoView({ behavior: 'smooth' });
+                  document.getElementById('instagram')?.scrollIntoView({ behavior: 'smooth' });
                 }}
                 className="text-foreground/80 hover:text-foreground transition-colors px-4 py-2 cursor-pointer"
               >

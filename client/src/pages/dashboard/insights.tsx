@@ -35,12 +35,13 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
-import { useCanAccessAnalytics } from "@/hooks/use-access-gate";
+import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-access-gate";
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import { useUser } from "@/hooks/use-user";
 
 export default function InsightsPage() {
   const { canAccess: canAccessAnalytics } = useCanAccessAnalytics();
+  const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
   const { user } = useUser();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["/api/insights"],
@@ -259,7 +260,7 @@ export default function InsightsPage() {
                         <CardDescription className="text-xs">Live analysis of your campaigns</CardDescription>
                       </div>
                     </div>
-                    {!canAccessAnalytics && (
+                    {!canAccessFullAnalytics && (
                       <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
                         FREE Preview
                       </Badge>
@@ -277,7 +278,7 @@ export default function InsightsPage() {
                     {insights}
                   </motion.p>
                   
-                  {!canAccessAnalytics && (
+                  {!canAccessFullAnalytics && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -310,7 +311,7 @@ export default function InsightsPage() {
           )}
 
           {/* Wrap analytics in FeatureLock for free/trial users */}
-          {canAccessAnalytics ? (
+          {canAccessFullAnalytics ? (
             <>
               {/* Metrics Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

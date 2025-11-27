@@ -224,7 +224,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Real Analytics - What You Actually See */}
+      {/* AI Insights - Deep Learning That Improves Your Sales */}
       <section className="py-20 px-4 border-b border-cyan-500/20">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -234,61 +234,47 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <div className="flex items-center justify-center gap-3 mb-4">
-              <BarChart3 className="w-8 h-8 text-cyan-400" />
-              <span className="text-cyan-400 font-semibold">REAL-TIME INSIGHTS</span>
+              <Brain className="w-8 h-8 text-cyan-400" />
+              <span className="text-cyan-400 font-semibold">AI THAT LEARNS YOUR LEADS</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              See What's Working. Immediately.
+              Know Why Leads Go Cold
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Real-time tracking: engagement, response rates, AI insights. Free: 1 insight. Pro: unlimited.
+              AI studies your lead patterns, finds drop-off points, and tells you exactly what's working.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            <AnimatedCard className="bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/30 p-8">
-              <h3 className="text-xl font-bold text-white mb-4">Dashboard Tracks</h3>
-              <ul className="space-y-3 text-white/80 text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
-                  <span><strong>Channel breakdown:</strong> Email vs WhatsApp vs Instagram performance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
-                  <span><strong>Conversion funnel:</strong> New → Replied → Converted</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
-                  <span><strong>Lead scoring:</strong> AI ranks leads by buying intent (0-100)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold mt-0.5">→</span>
-                  <span><strong>Response rates:</strong> Message-by-message engagement</span>
-                </li>
-              </ul>
-            </AnimatedCard>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto mb-10">
+            {[
+              { title: "Drop-off Detection", desc: "Spots where leads lose interest in your funnel" },
+              { title: "Channel Intelligence", desc: "Learns which channel works best for YOUR leads" },
+              { title: "Adaptive Strategy", desc: "Adjusts recommendations based on what converts" },
+              { title: "Cold Lead Analysis", desc: "Explains why leads went cold with actionable fixes" }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="p-5 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20"
+              >
+                <h3 className="font-semibold text-cyan-400 mb-2 text-sm">{item.title}</h3>
+                <p className="text-white/70 text-xs">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
 
-            <AnimatedCard className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border-blue-500/30 p-8">
-              <h3 className="text-xl font-bold text-white mb-4">AI Insights</h3>
-              <ul className="space-y-3 text-white/80 text-sm">
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400 font-bold mt-0.5">→</span>
-                  <span><strong>Free tier:</strong> 1 preview insight + upgrade prompts</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400 font-bold mt-0.5">→</span>
-                  <span><strong>Pro tier:</strong> Unlimited AI-generated insights & recommendations</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400 font-bold mt-0.5">→</span>
-                  <span><strong>Real-time charts:</strong> 7-day trends for all channels</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400 font-bold mt-0.5">→</span>
-                  <span><strong>Lead intelligence:</strong> Buyer stage detection & churn risk alerts</span>
-                </li>
-              </ul>
-            </AnimatedCard>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="p-6 rounded-lg bg-white/5 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3">Free Trial</h3>
+              <p className="text-white/70 text-sm">1 AI insight preview to see how it works</p>
+            </div>
+            <div className="p-6 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30">
+              <h3 className="text-lg font-bold text-cyan-400 mb-3">Pro & Enterprise</h3>
+              <p className="text-white/70 text-sm">Unlimited insights, full analytics, real-time recommendations</p>
+            </div>
           </div>
         </div>
       </section>
@@ -586,17 +572,6 @@ export default function Landing() {
 
           <p className="text-xl text-white/90">
             Perfect for: Instagram DMs • WhatsApp leads • Email follow-ups • ghosted prospects
-          </p>
-        </div>
-      </section>
-
-      <section className="py-20 px-4 bg-white/5">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Numbers That Matter
-          </h2>
-          <p className="text-xl text-white/90 mb-4">
-            24/7 human-timed replies = more responses = more booked meetings
           </p>
         </div>
       </section>
