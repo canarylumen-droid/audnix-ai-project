@@ -1,5 +1,3 @@
-/* @ts-nocheck */
-
 /**
  * TIER 4: AI INTELLIGENCE SERVICE
  * 
@@ -13,31 +11,68 @@
  */
 
 import OpenAI from "openai";
-import type { Message, Lead } from "@shared/schema";
+import type { ConversationMessage, LeadProfile, BrandContext } from "@shared/types";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",
 });
 
-// ============ ENGINE 1: LEAD INTENT DETECTION ============
-
-export async function detectLeadIntent(
-  messages: Message[],
-  lead: Lead
-): Promise<{
+export interface IntentDetectionResult {
   intentLevel: "high" | "medium" | "low" | "not_interested";
   intentScore: number;
   buyerStage: "awareness" | "consideration" | "decision";
   signals: string[];
   reasoning: string;
-}> {
-  /**
-   * Analyze conversation to determine:
-   * - Are they ready to buy?
-   * - What stage are they in?
-   * - What signals show intent?
-   */
+}
 
+export interface SmartReplyOption {
+  reply: string;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface ObjectionDetectionResult {
+  objectType: string;
+  confidence: number;
+  category: "price" | "timeline" | "already_using" | "not_convinced" | "other";
+  suggestedResponse: string;
+}
+
+export interface DealPrediction {
+  predictedAmount: number;
+  confidence: number;
+  factors: Record<string, number>;
+  expectedCloseDate: Date;
+}
+
+export interface ChurnRiskAssessment {
+  churnRiskLevel: "high" | "medium" | "low";
+  riskScore: number;
+  indicators: string[];
+  recommendedAction: string;
+}
+
+export interface CompetitorMentionResult {
+  mentionFound: boolean;
+  competitors: string[];
+  context: string;
+  actionSuggested: string;
+}
+
+export interface LeadIntelligenceDashboard {
+  intent: IntentDetectionResult;
+  predictions: DealPrediction;
+  churnRisk: ChurnRiskAssessment;
+  suggestedActions: string[];
+  nextBestAction: string;
+}
+
+// ============ ENGINE 1: LEAD INTENT DETECTION ============
+
+export async function detectLeadIntent(
+  messages: ConversationMessage[],
+  lead: LeadProfile
+): Promise<IntentDetectionResult> {
   if (!messages || messages.length === 0) {
     return {
       intentLevel: "low",
@@ -49,7 +84,12 @@ export async function detectLeadIntent(
   }
 
   try {
-    const conversationText = messages.map((m) => `${m.direction === "inbound" ? "LEAD" : "YOU"}: ${m.content}`).join("\n");
+    const conversationText = messages
+      .map((m) => `${m.direction === "inbound" ? "LEAD" : "YOU"}: ${m.body}`)
+      .join("\n");
+
+    const company = lead.metadata?.company as string | undefined;
+    const industry = lead.metadata?.industry as string | undefined;
 
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -62,8 +102,8 @@ CONVERSATION:
 ${conversationText}
 
 LEAD PROFILE:
-Company: ${lead.metadata?.company}
-Industry: ${lead.metadata?.industry}
+Company: ${company || "Unknown"}
+Industry: ${industry || "Unknown"}
 
 Determine:
 1. Intent Level (high/medium/low/not_interested)
@@ -85,16 +125,29 @@ Format as JSON:
       max_tokens: 400,
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const messageContent = response.choices[0]?.message?.content;
+    if (!messageContent) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const result = JSON.parse(messageContent) as {
+      intentLevel?: string;
+      intentScore?: number;
+      buyerStage?: string;
+      signals?: string[];
+      reasoning?: string;
+    };
+
     return {
-      intentLevel: result.intentLevel || "low",
+      intentLevel: (result.intentLevel as IntentDetectionResult["intentLevel"]) || "low",
       intentScore: result.intentScore || 20,
-      buyerStage: result.buyerStage || "awareness",
+      buyerStage: (result.buyerStage as IntentDetectionResult["buyerStage"]) || "awareness",
       signals: result.signals || [],
       reasoning: result.reasoning || "",
     };
   } catch (error) {
-    console.error("Error detecting intent:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error detecting intent:", errorMessage);
     return {
       intentLevel: "medium",
       intentScore: 50,
@@ -109,16 +162,15 @@ Format as JSON:
 
 export async function suggestSmartReply(
   lastMessageFromLead: string,
-  leadProfile: Lead,
-  brandContext: any,
-  conversationHistory: Message[] = []
-): Promise<Array<{ reply: string; confidence: number; reasoning: string }>> {
-  /**
-   * AI suggests 3 best replies to lead's last message
-   * User can 1-click send
-   */
-
+  leadProfile: LeadProfile,
+  brandContext: BrandContext,
+  conversationHistory: ConversationMessage[] = []
+): Promise<SmartReplyOption[]> {
   try {
+    const firstName = leadProfile.name?.split(" ")[0] || "there";
+    const company = leadProfile.metadata?.company as string | undefined;
+    const industry = leadProfile.metadata?.industry as string | undefined;
+
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -128,8 +180,8 @@ export async function suggestSmartReply(
 
 "${lastMessageFromLead}"
 
-Lead: ${leadProfile.firstName} at ${leadProfile.company} (${leadProfile.industry})
-Your Offer: ${brandContext.offer || "Your solution"}
+Lead: ${firstName} at ${company || "their company"} (${industry || "their industry"})
+Your Offer: ${brandContext.productInfo?.name || "Your solution"}
 
 Generate 3 different reply options:
 1. Most direct/confident
@@ -152,10 +204,16 @@ Keep replies under 100 words each.`,
       max_tokens: 600,
     });
 
-    const replies = JSON.parse(response.choices[0].message.content || "[]");
+    const messageContent = response.choices[0]?.message?.content;
+    if (!messageContent) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const replies = JSON.parse(messageContent) as SmartReplyOption[];
     return replies.slice(0, 3);
   } catch (error) {
-    console.error("Error suggesting reply:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error suggesting reply:", errorMessage);
     return [
       {
         reply: "Thanks for reaching out. When would be a good time to chat about this?",
@@ -170,17 +228,7 @@ Keep replies under 100 words each.`,
 
 export async function detectObjection(
   messageFromLead: string
-): Promise<{
-  objectType: string;
-  confidence: number;
-  category: "price" | "timeline" | "already_using" | "not_convinced" | "other";
-  suggestedResponse: string;
-}> {
-  /**
-   * Detect what objection the lead has
-   * Return AI-powered response to overcome it
-   */
-
+): Promise<ObjectionDetectionResult> {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4",
@@ -210,15 +258,27 @@ Format as JSON:
       max_tokens: 400,
     });
 
-    const objection = JSON.parse(response.choices[0].message.content || "{}");
+    const messageContent = response.choices[0]?.message?.content;
+    if (!messageContent) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    const objection = JSON.parse(messageContent) as {
+      objectType?: string;
+      confidence?: number;
+      category?: string;
+      suggestedResponse?: string;
+    };
+
     return {
       objectType: objection.objectType || "unknown",
       confidence: objection.confidence || 50,
-      category: objection.category || "other",
+      category: (objection.category as ObjectionDetectionResult["category"]) || "other",
       suggestedResponse: objection.suggestedResponse || "Can we discuss this further?",
     };
   } catch (error) {
-    console.error("Error detecting objection:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error detecting objection:", errorMessage);
     return {
       objectType: "unknown",
       confidence: 0,
@@ -235,37 +295,15 @@ export async function trackObjectionPattern(
   leadResponse: string,
   converted: boolean
 ): Promise<void> {
-  /**
-   * Track which objections + responses work best
-   * AI learns over time
-   */
-
   console.log(`📊 Objection Pattern: ${objectionType} - ${converted ? "✅ CONVERTED" : "❌ NO CONVERT"}`);
-
-  // In production: save to objection_patterns table
-  // Calculate effectiveness score
 }
 
 // ============ ENGINE 4: DEAL AMOUNT PREDICTION ============
 
 export async function predictDealAmount(
-  lead: Lead,
-  messages: Message[] = []
-): Promise<{
-  predictedAmount: number;
-  confidence: number;
-  factors: Record<string, number>;
-  expectedCloseDate: Date;
-}> {
-  /**
-   * Predict deal value based on:
-   * - Company size (40%)
-   * - Industry (25%)
-   * - Engagement level (20%)
-   * - Timeline signals (15%)
-   */
-
-  // Company size multiplier
+  lead: LeadProfile,
+  messages: ConversationMessage[] = []
+): Promise<DealPrediction> {
   const sizeMultiplier: Record<string, number> = {
     "1-10": 1000,
     "11-50": 5000,
@@ -274,7 +312,6 @@ export async function predictDealAmount(
     "500+": 100000,
   };
 
-  // Industry multiplier
   const industryMultiplier: Record<string, number> = {
     technology: 1.5,
     finance: 1.8,
@@ -283,11 +320,13 @@ export async function predictDealAmount(
     "e-commerce": 1.2,
   };
 
-  let baseAmount = sizeMultiplier[lead.metadata?.companySize || ""] || 5000;
+  const companySize = (lead.metadata?.companySize as string) || "";
+  const industry = (lead.metadata?.industry as string) || "";
+
+  let baseAmount = sizeMultiplier[companySize] || 5000;
   let confidence = 40;
 
-  // Apply industry multiplier
-  const industryKey = (lead.metadata?.industry || "").toLowerCase();
+  const industryKey = industry.toLowerCase();
   for (const [ind, mult] of Object.entries(industryMultiplier)) {
     if (industryKey.includes(ind)) {
       baseAmount *= mult;
@@ -296,14 +335,12 @@ export async function predictDealAmount(
     }
   }
 
-  // Engagement boost
   const inboundCount = messages.filter((m) => m.direction === "inbound").length;
   if (inboundCount >= 3) {
     baseAmount *= 1.5;
     confidence += 20;
   }
 
-  // Calculate expected close date (30-90 days)
   const daysToClose = 30 + Math.random() * 60;
   const expectedCloseDate = new Date();
   expectedCloseDate.setDate(expectedCloseDate.getDate() + daysToClose);
@@ -324,24 +361,13 @@ export async function predictDealAmount(
 // ============ ENGINE 5: CHURN RISK SCORING ============
 
 export async function assessChurnRisk(
-  lead: Lead,
-  messages: Message[] = [],
+  lead: LeadProfile,
+  messages: ConversationMessage[] = [],
   daysAsCustomer: number = 0
-): Promise<{
-  churnRiskLevel: "high" | "medium" | "low";
-  riskScore: number;
-  indicators: string[];
-  recommendedAction: string;
-}> {
-  /**
-   * Predict if customer is at risk of leaving
-   * Based on engagement, sentiment, tenure
-   */
-
+): Promise<ChurnRiskAssessment> {
   let riskScore = 50;
   const indicators: string[] = [];
 
-  // If no recent engagement
   const lastMessageDate = messages[messages.length - 1]?.createdAt;
   if (lastMessageDate) {
     const daysSinceLastMessage = (Date.now() - new Date(lastMessageDate).getTime()) / (1000 * 60 * 60 * 24);
@@ -351,28 +377,25 @@ export async function assessChurnRisk(
     }
   }
 
-  // If low engagement overall
   const inboundCount = messages.filter((m) => m.direction === "inbound").length;
   if (inboundCount === 0 && messages.length > 5) {
     riskScore += 20;
     indicators.push("No replies despite outreach");
   }
 
-  // If early-stage customer (first 7 days)
   if (daysAsCustomer < 7) {
-    riskScore -= 20; // Low risk in first week
+    riskScore -= 20;
     indicators.push("New customer (first week)");
   }
 
-  // If long-term customer (> 90 days)
   if (daysAsCustomer > 90) {
-    riskScore -= 10; // Slightly lower risk
+    riskScore -= 10;
     indicators.push("Long-term customer");
   }
 
   riskScore = Math.max(0, Math.min(100, riskScore));
 
-  let churnRiskLevel: "high" | "medium" | "low";
+  let churnRiskLevel: ChurnRiskAssessment["churnRiskLevel"];
   if (riskScore >= 70) churnRiskLevel = "high";
   else if (riskScore >= 40) churnRiskLevel = "medium";
   else churnRiskLevel = "low";
@@ -396,17 +419,9 @@ export async function assessChurnRisk(
 
 // ============ ENGINE 6: COMPETITOR MENTION ALERTS ============
 
-export async function detectCompetitorMention(messageText: string): Promise<{
-  mentionFound: boolean;
-  competitors: string[];
-  context: string;
-  actionSuggested: string;
-}> {
-  /**
-   * If lead mentions competitor, it's a SELLING MOMENT
-   * Alert user to act immediately
-   */
-
+export async function detectCompetitorMention(
+  messageText: string
+): Promise<CompetitorMentionResult> {
   const commonCompetitors = [
     "hubspot",
     "salesforce",
@@ -442,20 +457,9 @@ export async function detectCompetitorMention(messageText: string): Promise<{
 // ============ UNIFIED AI INTELLIGENCE ENGINE ============
 
 export async function generateLeadIntelligenceDashboard(
-  lead: Lead,
-  messages: Message[] = []
-): Promise<{
-  intent: any;
-  predictions: any;
-  churnRisk: any;
-  suggestedActions: string[];
-  nextBestAction: string;
-}> {
-  /**
-   * Generate complete AI intelligence dashboard for a lead
-   * Shows everything you need to close them
-   */
-
+  lead: LeadProfile,
+  messages: ConversationMessage[] = []
+): Promise<LeadIntelligenceDashboard> {
   const [intent, predictions, churnRisk] = await Promise.all([
     detectLeadIntent(messages, lead),
     predictDealAmount(lead, messages),
@@ -464,7 +468,6 @@ export async function generateLeadIntelligenceDashboard(
 
   const suggestedActions: string[] = [];
 
-  // Action 1: Based on intent
   if (intent.intentLevel === "high") {
     suggestedActions.push("🔥 HIGH INTENT: Move to next call immediately");
   } else if (intent.intentLevel === "medium") {
@@ -473,10 +476,8 @@ export async function generateLeadIntelligenceDashboard(
     suggestedActions.push("❄️ LOW INTENT: Re-engage with educational content");
   }
 
-  // Action 2: Based on churn risk
   suggestedActions.push(churnRisk.recommendedAction);
 
-  // Action 3: Based on predicted deal
   if (predictions.predictedAmount > 50000) {
     suggestedActions.push("💰 LARGE DEAL ($50k+): Escalate to senior sales");
   } else if (predictions.predictedAmount > 10000) {

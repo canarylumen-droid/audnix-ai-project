@@ -1,4 +1,3 @@
-/* @ts-nocheck */
 import OpenAI from "openai";
 import { storage } from "../../storage";
 import type { Message, Lead } from "@shared/schema";
@@ -6,14 +5,72 @@ import { storeConversationMemory, retrieveConversationMemory } from "./super-mem
 import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector';
 import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation';
 import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection';
-import { optimizeSalesLanguage, makeConversational, handleObjectionWithSalesLanguage } from './sales-language-optimizer';
-import { getBrandContext, formatBrandContextForPrompt, buildPersonalizedObjectionResponse } from './brand-context';
+import { optimizeSalesLanguage } from './sales-language-optimizer';
+import { getBrandContext, formatBrandContextForPrompt } from './brand-context';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
 });
 
 const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "mock-key";
+
+type LeadStatus = 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
+
+interface ConversationStatusResult {
+  status: LeadStatus;
+  confidence: number;
+  reason?: string;
+  shouldUseVoice?: boolean;
+}
+
+interface AIReplyResult {
+  text: string;
+  useVoice: boolean;
+  detections?: {
+    priceObjection?: PriceObjectionResult;
+    competitorMention?: CompetitorMentionResult;
+    language?: LanguageDetection;
+  };
+}
+
+interface PriceObjectionResult {
+  detected: boolean;
+  severity?: 'low' | 'medium' | 'high';
+  suggestedDiscount?: number;
+}
+
+interface CompetitorMentionResult {
+  detected: boolean;
+  competitor: string;
+  context: 'positive' | 'negative' | 'neutral' | 'comparison';
+  response: string;
+  sentiment: number;
+}
+
+interface LanguageDetection {
+  language: string;
+  confidence: number;
+  code: string;
+}
+
+interface MemoryMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: string;
+}
+
+interface MemoryConversation {
+  content?: {
+    messages?: MemoryMessage[];
+    channel?: string;
+  };
+}
+
+interface MemoryRetrievalResult {
+  success: boolean;
+  conversations?: MemoryConversation[];
+  context?: string;
+}
 
 /**
  * Detect if lead is actively engaged (replying immediately)
@@ -25,14 +82,13 @@ export function isLeadActivelyReplying(messages: Message[]): boolean {
   const lastMessage = lastTwoMessages[1];
   const previousMessage = lastTwoMessages[0];
 
-  // Check if last message is from lead (inbound)
+  if (!lastMessage || !previousMessage) return false;
+
   if (lastMessage.direction !== 'inbound') return false;
 
-  // Calculate time between previous message and last message
   const timeDiff = new Date(lastMessage.createdAt).getTime() - new Date(previousMessage.createdAt).getTime();
   const minutesDiff = timeDiff / (1000 * 60);
 
-  // If lead replied within 5 minutes, they're actively engaged
   return minutesDiff < 5;
 }
 
@@ -50,22 +106,16 @@ export function calculateReplyDelay(
   channel?: string
 ): number {
   if (messageType === 'followup') {
-    // 6-12 hours in milliseconds with random minutes
-    const baseHours = 6 + Math.random() * 6; // 6-12 hours
-    const randomMinutes = Math.random() * 60; // 0-60 minutes
+    const baseHours = 6 + Math.random() * 6;
+    const randomMinutes = Math.random() * 60;
     return (baseHours * 60 * 60 + randomMinutes * 60) * 1000;
   }
 
-  // Check if lead is actively replying
   const isActive = isLeadActivelyReplying(messages);
-
-  // Instagram has 20 DMs/hour limit = minimum 3 minutes between DMs
   const minDelayForInstagram = channel === 'instagram' ? 3 * 60 * 1000 : 0;
 
   if (isActive) {
-    // Lead is hot - reply within 50s-1min to keep momentum
-    // BUT respect Instagram rate limits
-    const baseSeconds = 50 + Math.random() * 10; // 50-60 seconds
+    const baseSeconds = 50 + Math.random() * 10;
     const delay = baseSeconds * 1000;
 
     if (channel === 'instagram' && delay < minDelayForInstagram) {
@@ -76,9 +126,8 @@ export function calculateReplyDelay(
     console.log(`🔥 Lead is actively engaged - replying in ${Math.round(baseSeconds)}s`);
     return delay;
   } else {
-    // Normal reply timing: 3-8 minutes to appear human AND respect Instagram limits
-    const baseMinutes = Math.max(3, 2 + Math.random() * 6); // 3-8 minutes
-    const randomSeconds = Math.random() * 60; // 0-60 seconds
+    const baseMinutes = Math.max(3, 2 + Math.random() * 6);
+    const randomSeconds = Math.random() * 60;
     return (baseMinutes * 60 + randomSeconds) * 1000;
   }
 }
@@ -89,14 +138,13 @@ export function calculateReplyDelay(
 export function assessLeadWarmth(messages: Message[], lead: Lead): boolean {
   if (messages.length < 3) return false;
 
-  // Count inbound messages (lead engagement)
   const inboundCount = messages.filter(m => m.direction === 'inbound').length;
 
-  // Check if they've replied multiple times
   if (inboundCount >= 2) return true;
 
-  // Check if last message was recent (within 24 hours)
   const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) return false;
+  
   const hoursSinceLastMessage = (Date.now() - new Date(lastMessage.createdAt).getTime()) / (1000 * 60 * 60);
 
   if (hoursSinceLastMessage < 24 && inboundCount >= 1) return true;
@@ -113,7 +161,6 @@ export async function autoUpdateLeadStatus(
 ): Promise<void> {
   const statusDetection = detectConversationStatus(messages);
 
-  // Only auto-update if confidence is high enough
   if (statusDetection.confidence < 0.7) {
     console.log(`⚠️ Low confidence (${statusDetection.confidence}) - skipping auto-update for lead ${leadId}`);
     return;
@@ -126,17 +173,15 @@ export async function autoUpdateLeadStatus(
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
 
-    // Don't downgrade converted leads
     if (oldStatus === 'converted' && newStatus !== 'converted') {
       return;
     }
 
-    // Update if status changed
     if (oldStatus !== newStatus) {
       await storage.updateLead(leadId, {
         status: newStatus,
         metadata: {
-          ...lead.metadata,
+          ...(lead.metadata as Record<string, unknown> || {}),
           statusAutoUpdated: true,
           statusUpdateReason: statusDetection.reason,
           statusUpdateConfidence: statusDetection.confidence,
@@ -147,37 +192,29 @@ export async function autoUpdateLeadStatus(
 
       console.log(`✅ Auto-updated lead ${leadId} status: ${oldStatus} → ${newStatus} (${statusDetection.reason})`);
     }
-  } catch (error: any) {
-    console.error('Failed to auto-update lead status:', error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to auto-update lead status:', errorMessage);
   }
 }
 
 /**
  * Detect conversation intent and update lead status automatically
  */
-export function detectConversationStatus(messages: Message[]): {
-  status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
-  confidence: number;
-  reason?: string;
-  shouldUseVoice?: boolean;
-} {
+export function detectConversationStatus(messages: Message[]): ConversationStatusResult {
   if (messages.length === 0) {
     return { status: 'new', confidence: 1.0 };
   }
 
-  const lastMessage = messages[messages.length - 1];
   const recentMessages = messages.slice(-5);
   const allText = recentMessages.map(m => m.body.toLowerCase()).join(' ');
 
-  // Check for conversion signals
   const conversionKeywords = ['yes', 'book', 'schedule', 'ready', 'let\'s do it', 'sign me up', 'interested', 'when can we'];
   const hasConversionSignal = conversionKeywords.some(keyword => allText.includes(keyword));
 
-  // Check for rejection signals
   const rejectionKeywords = ['not interested', 'no thanks', 'remove me', 'stop', 'unsubscribe', 'leave me alone'];
   const hasRejection = rejectionKeywords.some(keyword => allText.includes(keyword));
 
-  // Check for engagement
   const hasEngagement = messages.filter(m => m.direction === 'inbound').length >= 2;
   const recentEngagement = messages.filter(m => {
     const hoursSince = (Date.now() - new Date(m.createdAt).getTime()) / (1000 * 60 * 60);
@@ -200,7 +237,6 @@ export function detectConversationStatus(messages: Message[]): {
     return { status: 'open', confidence: 0.7, reason: 'Lead engaged in conversation', shouldUseVoice: false };
   }
 
-  // Check for cold leads (no response in 3+ days)
   const lastInbound = messages.filter(m => m.direction === 'inbound').pop();
   if (lastInbound) {
     const daysSince = (Date.now() - new Date(lastInbound.createdAt).getTime()) / (1000 * 60 * 60 * 24);
@@ -221,9 +257,8 @@ export async function generateAIReply(
   conversationHistory: Message[],
   platform: 'instagram' | 'whatsapp' | 'email',
   userContext?: { businessName?: string; brandVoice?: string }
-): Promise<{ text: string; useVoice: boolean; detections?: any }> {
+): Promise<AIReplyResult> {
   
-  // Fetch brand context for personalization
   const brandContext = await getBrandContext(lead.userId);
   const brandPromptSection = formatBrandContextForPrompt(brandContext);
 
@@ -240,28 +275,23 @@ export async function generateAIReply(
     };
   }
 
-  // Assess if lead is warm and should get voice note
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
 
-  // Retrieve additional context from Super Memory for better continuity
-  const memoryResult = await retrieveConversationMemory(lead.userId, lead.id);
+  const memoryResult: MemoryRetrievalResult = await retrieveConversationMemory(lead.userId, lead.id);
   const memoryMessages = await getConversationContext(lead.userId, lead.id);
   const allMessages = [...memoryMessages, ...conversationHistory];
 
-  // Build conversation context from combined history
-  const messageContext = allMessages.slice(-10).map(m => ({
-    role: m.direction === 'inbound' ? 'user' : 'assistant',
+  const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = allMessages.slice(-10).map(m => ({
+    role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
     content: m.body
   }));
 
-  // Add enriched context to system prompt if available
   const enrichedContext = memoryResult.context
     ? `\n\nCONVERSATION INSIGHTS:\n${memoryResult.context}`
     : '';
 
-  // Platform-specific tone adjustments
-  const platformTone = {
+  const platformTone: Record<string, string> = {
     instagram: 'casual, friendly, and conversational with emojis',
     whatsapp: 'warm, personal, and direct',
     email: 'professional yet approachable, well-structured'
@@ -371,19 +401,16 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     return { text: optimizeSalesLanguage("Thanks for reaching out! How can I help you?"), useVoice: false };
   }
 
-  // Detect language
-  const languageDetection = detectLanguage(lastMessage.body);
+  const languageDetection: LanguageDetection = detectLanguage(lastMessage.body);
   if (languageDetection.confidence > 0.6 && languageDetection.code !== 'en') {
     await updateLeadLanguage(lead.id, languageDetection);
   }
 
-  // Detect price objections
-  const priceObjection = await detectPriceObjection(lastMessage.body);
+  const priceObjection: PriceObjectionResult = await detectPriceObjection(lastMessage.body);
   if (priceObjection.detected) {
-    const response = await generateNegotiationResponse(priceObjection.severity, lead.id);
-    await saveNegotiationAttempt(lead.id, priceObjection.suggestedDiscount, false);
+    const response = await generateNegotiationResponse(priceObjection.severity || 'medium', lead.id);
+    await saveNegotiationAttempt(lead.id, priceObjection.suggestedDiscount || 0, false);
 
-    // Translate if needed
     const localizedResponse = await getLocalizedResponse(
       response,
       languageDetection,
@@ -392,14 +419,13 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
 
     return {
       text: optimizeSalesLanguage(localizedResponse),
-      useVoice: false as boolean,
+      useVoice: false,
       detections: { priceObjection, language: languageDetection }
     };
   }
 
-  // Detect competitor mentions
-  const competitorMention = detectCompetitorMention(lastMessage.body);
-  if (competitorMention.detected) {
+  const competitorMention: CompetitorMentionResult = detectCompetitorMention(lastMessage.body);
+  if (competitorMention.detected && competitorMention.response) {
     await trackCompetitorMention(
       lead.userId,
       lead.id,
@@ -408,7 +434,6 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       competitorMention.sentiment
     );
 
-    // Translate if needed
     const localizedResponse = await getLocalizedResponse(
       competitorMention.response,
       languageDetection,
@@ -428,20 +453,21 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        ...messageContext as any
+        ...messageContext
       ],
       temperature: 0.8,
       max_tokens: platform === 'email' ? 300 : 150,
     });
 
-    const responseText = completion.choices[0].message.content || "";
+    const responseText = completion.choices[0]?.message?.content || "";
 
     return {
       text: optimizeSalesLanguage(responseText),
-      useVoice: detectionResult.shouldUseVoice && isWarm
+      useVoice: detectionResult.shouldUseVoice === true && isWarm
     };
-  } catch (error: any) {
-    console.error("AI reply generation error:", error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error("AI reply generation error:", errorMessage);
     return {
       text: optimizeSalesLanguage("Thanks for your message! Let me get back to you shortly with more details."),
       useVoice: false
@@ -465,7 +491,6 @@ export async function generateVoiceScript(
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');
   const isWarm = assessLeadWarmth(conversationHistory, lead);
 
-  // Determine if this is first voice note to the lead
   const voiceMessages = conversationHistory.filter(m =>
     m.direction === 'outbound' && m.body.toLowerCase().includes('voice note')
   );
@@ -509,7 +534,7 @@ Script:`;
       max_tokens: 120,
     });
 
-    return completion.choices[0].message.content || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
+    return completion.choices[0]?.message?.content || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
   } catch (error) {
     console.error("Voice script generation error:", error);
     return "Hey! Quick voice note - would love to connect and discuss how we can help. Let me know when you're free!";
@@ -531,8 +556,6 @@ export async function scheduleFollowUp(
 
   const delaySeconds = Math.round(delay / 1000);
   console.log(`📅 Scheduled ${messageType} for lead ${leadId} in ${delaySeconds}s at ${scheduledTime.toISOString()}`);
-
-  // TODO: Store in follow_up_queue table when Supabase is connected
 
   return scheduledTime;
 }
@@ -569,8 +592,9 @@ export async function saveConversationToMemory(
     if (result.success) {
       console.log(`✓ Conversation with ${lead.name} stored in permanent memory`);
     }
-  } catch (error: any) {
-    console.error('Failed to save conversation to memory:', error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to save conversation to memory:', errorMessage);
   }
 }
 
@@ -582,7 +606,7 @@ export async function getConversationContext(
   leadId: string
 ): Promise<Message[]> {
   try {
-    const result = await retrieveConversationMemory(userId, leadId);
+    const result: MemoryRetrievalResult = await retrieveConversationMemory(userId, leadId);
 
     if (!result.success || !result.conversations) {
       console.log(`⚠️ Super Memory: No context retrieved for lead ${leadId}`);
@@ -593,7 +617,6 @@ export async function getConversationContext(
       return [];
     }
 
-    // Safely extract messages with defensive guards
     const memories: Message[] = [];
 
     for (const conv of result.conversations) {
@@ -603,15 +626,15 @@ export async function getConversationContext(
       }
 
       for (const msg of conv.content.messages) {
-        if (!msg || !msg.role || !msg.body) continue;
+        if (!msg || !msg.role || !msg.content) continue;
 
         memories.push({
           id: `memory-${Date.now()}-${Math.random()}`,
           leadId,
           userId,
-          provider: conv.content.channel || 'instagram',
+          provider: (conv.content.channel as 'instagram' | 'whatsapp' | 'gmail' | 'email' | 'system') || 'instagram',
           direction: msg.role === 'user' ? 'inbound' : 'outbound',
-          body: msg.body,
+          body: msg.content,
           audioUrl: null,
           metadata: {},
           createdAt: new Date(msg.timestamp || Date.now()),
@@ -624,8 +647,9 @@ export async function getConversationContext(
     }
 
     return memories;
-  } catch (error: any) {
-    console.error('Failed to retrieve conversation context:', error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to retrieve conversation context:', errorMessage);
     return [];
   }
 }

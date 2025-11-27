@@ -1,6 +1,4 @@
-/* @ts-nocheck */
 import { storage } from "../../storage";
-import { getIndustryFraming, detectLeadTone } from "./sales-language-optimizer";
 
 export interface BrandContext {
   companyName: string;
@@ -70,10 +68,10 @@ function getDefaultContext(): BrandContext {
  * Build industry-specific system prompt injection
  */
 export function buildIndustryPrompt(brand: BrandContext): string {
-  const industryFraming = getIndustryFraming(brand.industry);
+  const industryKey = brand.industry?.toLowerCase() ?? "b2b";
 
   const industryGuides: Record<string, string> = {
-    realEstate:
+    realestate:
       "Focus on urgency, timing windows, scarcity, and fast response. Emphasize market timing and deal windows.",
     agency:
       "Lead with ROI, bottleneck removal, predictable throughput. Talk about efficiency gains and capacity.",
@@ -89,7 +87,7 @@ export function buildIndustryPrompt(brand: BrandContext): string {
       "Focus on churn reduction, expansion revenue, product adoption, and user engagement metrics.",
   };
 
-  return industryGuides[brand.industry?.toLowerCase()] || industryGuides.b2b;
+  return industryGuides[industryKey] ?? industryGuides.b2b;
 }
 
 /**
@@ -165,15 +163,13 @@ export function extractBrandPersonality(brand: BrandContext): {
     confidence = "high";
   }
 
-  if (
-    brand.industry === "realEstate" ||
-    brand.industry === "sales"
-  ) {
+  const industryLower = brand.industry?.toLowerCase();
+  if (industryLower === "realestate" || industryLower === "sales") {
     urgency = "high";
   }
 
   return {
-    tone: brand.tone || "warm",
+    tone: brand.tone ?? "warm",
     confidence,
     urgency,
   };
