@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Mail, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { getSortedPricingTiers } from "@shared/plan-utils";
+import { SiWhatsapp } from "react-icons/si";
 
 export function PricingSection() {
   const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial');
@@ -27,6 +28,49 @@ export function PricingSection() {
           <p className="text-xl text-white/70 max-w-2xl mx-auto">
             Start free → upgrade when you're closing deals
           </p>
+        </motion.div>
+
+        {/* Channel Access by Plan */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-10 max-w-4xl mx-auto"
+        >
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Mail className="w-5 h-5 text-blue-400" />
+                <h3 className="font-semibold text-white">Free Trial</h3>
+              </div>
+              <p className="text-white/70 text-sm mb-3">Email automation included</p>
+              <div className="flex items-center gap-2 text-sm">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span className="text-white/80">Business Email Channel</span>
+              </div>
+            </div>
+            <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/30">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-5 h-5 text-emerald-400" />
+                <h3 className="font-semibold text-white">Paid Plans</h3>
+              </div>
+              <p className="text-white/70 text-sm mb-3">All 3 channels unlocked</p>
+              <div className="flex flex-wrap gap-3 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/80">Email</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <SiWhatsapp className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/80">WhatsApp</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/80">Instagram</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

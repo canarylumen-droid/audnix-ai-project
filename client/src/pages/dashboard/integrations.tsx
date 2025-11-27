@@ -808,7 +808,7 @@ export default function IntegrationsPage() {
                     </Card>
                   )}
                   
-                  {/* Gmail - Available to all users */}
+                  {/* Email - Available to all users */}
                   {providerId === "gmail" && (
                     <Card
                       className={`hover-elevate ${isConnected ? "border-emerald-500/50" : ""}`}
@@ -822,10 +822,10 @@ export default function IntegrationsPage() {
                             </div>
                             <div className="flex-1">
                               <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                Email
+                                Business Email
                               </CardTitle>
                               <CardDescription className="text-sm">
-                                Connect Gmail or custom SMTP for email automation
+                                Connect your business email for automated follow-ups
                               </CardDescription>
                             </div>
                           </div>

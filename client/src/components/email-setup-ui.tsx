@@ -202,36 +202,36 @@ export function EmailSetupUI() {
             {/* Common Email Server Settings */}
             <div className="bg-blue-500/5 border border-blue-500/20 rounded p-3">
               <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
-                💡 Common Email Server Settings:
+                💡 Common Business Email Server Settings:
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <strong>Gmail:</strong>
+                  <strong>Google Workspace:</strong>
                   <br />
                   SMTP: smtp.gmail.com:587
                   <br />
                   IMAP: imap.gmail.com:993
                 </div>
                 <div>
-                  <strong>Outlook:</strong>
+                  <strong>Microsoft 365:</strong>
                   <br />
-                  SMTP: smtp.outlook.com:587
+                  SMTP: smtp.office365.com:587
                   <br />
                   IMAP: outlook.office365.com:993
                 </div>
                 <div>
-                  <strong>Yahoo:</strong>
-                  <br />
-                  SMTP: smtp.mail.yahoo.com:587
-                  <br />
-                  IMAP: imap.mail.yahoo.com:993
-                </div>
-                <div>
-                  <strong>Zoho:</strong>
+                  <strong>Zoho Mail:</strong>
                   <br />
                   SMTP: smtp.zoho.com:587
                   <br />
                   IMAP: imap.zoho.com:993
+                </div>
+                <div>
+                  <strong>Custom Domain:</strong>
+                  <br />
+                  Contact your email provider
+                  <br />
+                  for SMTP/IMAP settings
                 </div>
               </div>
             </div>
@@ -382,8 +382,8 @@ export function EmailSetupUI() {
       {/* Info Banner */}
       <div className="bg-blue-500/5 border border-blue-500/30 rounded p-3 text-sm text-blue-700 dark:text-blue-400">
         <p>
-          💡 <strong>Available to all users:</strong> Connect your business email immediately after signup.
-          No limits, no paid plan required. Your contacts will be auto-imported and campaigns start right away.
+          💡 <strong>Available to all users:</strong> Connect your business email (work@yourcompany.com) immediately after signup.
+          No limits on email channel, no paid plan required. Your contacts will be auto-imported and campaigns start right away.
         </p>
       </div>
 

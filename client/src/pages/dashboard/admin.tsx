@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users,
   DollarSign,
@@ -10,15 +15,97 @@ import {
   Activity,
   Loader2,
   Shield,
+  Search,
+  Gift,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
+  const [foundUser, setFoundUser] = useState<any>(null);
+  const [searchError, setSearchError] = useState<string>("");
+  const [isSearching, setIsSearching] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   // Fetch real admin metrics from backend
   const { data: metricsData, isLoading, error } = useQuery({
     queryKey: ["/api/admin/metrics"],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false,
+  });
+
+  // Search for user by email or username
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchError("Please enter an email or username");
+      return;
+    }
+
+    setIsSearching(true);
+    setFoundUser(null);
+    setSearchError("");
+
+    try {
+      const response = await fetch(`/api/admin/users?search=${encodeURIComponent(searchQuery.trim())}`, {
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+
+      const data = await response.json();
+      
+      if (data.users && data.users.length > 0) {
+        setFoundUser(data.users[0]);
+        setSelectedPlan(data.users[0].plan || "free");
+      } else {
+        setSearchError("No user found with that email or username. Please check the spelling and try again.");
+      }
+    } catch (err) {
+      setSearchError("An error occurred while searching. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Award plan mutation
+  const awardPlanMutation = useMutation({
+    mutationFn: async ({ userId, plan }: { userId: string; plan: string }) => {
+      const response = await fetch(`/api/admin/users/${userId}/upgrade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ plan }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to award plan");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Plan Awarded Successfully",
+        description: `${foundUser.email} has been upgraded to ${selectedPlan.toUpperCase()} plan`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/metrics"] });
+      setFoundUser({ ...foundUser, plan: selectedPlan });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Award Plan",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const metrics = metricsData?.metrics || {
@@ -195,6 +282,124 @@ export default function AdminPage() {
           </Card>
         </motion.div>
       </div>
+
+      {/* User Search & Plan Awarding */}
+      <Card data-testid="card-award-plan" className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-5 w-5 text-primary" />
+            Award Plan to User
+          </CardTitle>
+          <CardDescription>
+            Search for a user by email or username, then select a plan to grant them full access without payment
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Search Input */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Input
+                placeholder="Enter email or username..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                className="w-full"
+              />
+            </div>
+            <Button 
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-6"
+            >
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Search Error */}
+          {searchError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300"
+            >
+              <XCircle className="h-4 w-4 flex-shrink-0" />
+              <p className="text-sm">{searchError}</p>
+            </motion.div>
+          )}
+
+          {/* Found User Card */}
+          {foundUser && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-lg bg-muted/50 border space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="font-semibold text-primary">
+                      {foundUser.email?.charAt(0).toUpperCase() || "U"}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{foundUser.name || foundUser.username || "No name"}</p>
+                    <p className="text-sm text-muted-foreground">{foundUser.email}</p>
+                  </div>
+                </div>
+                <Badge variant={foundUser.plan === 'enterprise' ? 'default' : foundUser.plan === 'pro' ? 'secondary' : 'outline'}>
+                  Current: {foundUser.plan || 'free'}
+                </Badge>
+              </div>
+
+              <div className="flex items-end gap-3">
+                <div className="flex-1 space-y-2">
+                  <Label>Select Plan to Award</Label>
+                  <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Free (Limited)</SelectItem>
+                      <SelectItem value="trial">Trial (3 days)</SelectItem>
+                      <SelectItem value="starter">Starter ($49.99/mo value)</SelectItem>
+                      <SelectItem value="pro">Pro ($99.99/mo value)</SelectItem>
+                      <SelectItem value="enterprise">Enterprise ($199.99/mo value)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  onClick={() => awardPlanMutation.mutate({ userId: foundUser.id, plan: selectedPlan })}
+                  disabled={awardPlanMutation.isPending || selectedPlan === foundUser.plan}
+                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+                >
+                  {awardPlanMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Gift className="h-4 w-4 mr-2" />
+                  )}
+                  Award Plan
+                </Button>
+              </div>
+
+              {selectedPlan !== foundUser.plan && (
+                <p className="text-xs text-muted-foreground">
+                  This will grant {foundUser.email} full access to the <strong>{selectedPlan.toUpperCase()}</strong> plan without requiring payment.
+                </p>
+              )}
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Additional Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

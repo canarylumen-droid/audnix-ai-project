@@ -11,7 +11,7 @@ const features = [
     icon: Phone,
     details: [
       "WhatsApp Business API integration",
-      "Email inbox sync (Gmail, Outlook)",
+      "Business email sync (any provider)",
       "Instagram DM automation",
       "Bulk CSV upload with auto-mapping",
       "Real-time contact deduplication"
@@ -59,7 +59,7 @@ const features = [
     desc: "Seamlessly schedules calls when leads show buying intent",
     icon: Calendar,
     details: [
-      "Calendar integration (Google, Outlook)",
+      "Calendar integration (Google, Microsoft 365)",
       "Timezone detection and conversion",
       "Buffer time and availability rules",
       "Confirmation + reminder sequences"
