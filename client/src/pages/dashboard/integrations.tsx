@@ -14,6 +14,7 @@ import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
 import { WhatsAppConnect } from "@/components/integrations/whatsapp-connect";
 import { InstagramComingSoonModal } from "@/components/instagram-coming-soon-modal";
+import { useCanAccessWhatsApp, useCanAccessInstagramDM } from "@/hooks/use-access-gate";
 import {
   Instagram,
   Mail,
@@ -59,6 +60,10 @@ export default function IntegrationsPage() {
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Access control hooks
+  const { canAccess: canAccessWhatsApp } = useCanAccessWhatsApp();
+  const { canAccess: canAccessInstagram } = useCanAccessInstagramDM();
 
   // Fetch user data to check plan
   const { data: userData } = useQuery({
@@ -577,50 +582,98 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  {providerId === "instagram" && (
+                  {/* Instagram - Locked for free/trial users */}
+                  {providerId === "instagram" && !canAccessInstagram && (
                     <Card
-                      className="hover-elevate border-emerald-500/30 bg-emerald-500/5 opacity-60 blur-sm cursor-pointer transition-all hover:opacity-75 hover:blur-sm"
+                      className="relative hover-elevate border-gray-500/30 bg-gray-500/5"
+                      data-testid={`card-integration-${providerId}`}
+                    >
+                      {/* Blur overlay */}
+                      <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
+                        <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mx-auto mb-3">
+                            <Lock className="h-6 w-6 text-white" />
+                          </div>
+                          <h3 className="font-semibold text-lg mb-2">Instagram Automation</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Upgrade to any paid plan to connect Instagram DMs and automate lead follow-ups
+                          </p>
+                          <Button 
+                            size="sm" 
+                            onClick={() => window.location.href = '/dashboard/pricing'}
+                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                          >
+                            Upgrade to Unlock
+                          </Button>
+                        </div>
+                      </div>
+                      <CardHeader className="opacity-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-pink-500/10">
+                              <Instagram className="h-6 w-6 text-pink-500" />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-base">Instagram</CardTitle>
+                              <CardDescription className="text-sm">
+                                DM automation with Meta API integration
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="opacity-50 space-y-3">
+                        <Button className="w-full" disabled>
+                          Connect Instagram
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Instagram - Coming soon for paid users */}
+                  {providerId === "instagram" && canAccessInstagram && (
+                    <Card
+                      className="hover-elevate border-pink-500/30 bg-pink-500/5 cursor-pointer transition-all"
                       data-testid={`card-integration-${providerId}`}
                       onClick={() => setShowInstagramComingSoon(true)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-emerald-500/10">
-                              <Instagram className="h-6 w-6 text-emerald-500" data-testid={`icon-${providerId}`} />
+                            <div className="p-2 rounded-lg bg-pink-500/10">
+                              <Instagram className="h-6 w-6 text-pink-500" data-testid={`icon-${providerId}`} />
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
                                   Instagram
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-emerald-500/10 text-emerald-600">CSV Import Ready</Badge>
+                                <Badge variant="secondary" className="text-xs bg-pink-500/10 text-pink-600">Coming Q4 2025</Badge>
                               </div>
                               <CardDescription className="text-sm">
-                                Import your Instagram leads manually while OAuth is in setup
+                                Meta API verification in progress • CSV import available now
                               </CardDescription>
                             </div>
                           </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                        <div className="p-4 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-800 rounded-lg">
                           <div className="flex items-start gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-4 w-4 text-pink-600 dark:text-pink-400 flex-shrink-0 mt-0.5" />
                             <div className="text-xs space-y-1">
-                              <p className="font-semibold text-emerald-800 dark:text-emerald-300">✅ Week 1 Strategy: CSV Import</p>
-                              <p className="text-emerald-700 dark:text-emerald-400">Perfect for launch while Meta API credentials are processed:</p>
+                              <p className="font-semibold text-pink-800 dark:text-pink-300">Available Now: CSV Import</p>
+                              <p className="text-pink-700 dark:text-pink-400">Start automating while OAuth is in setup:</p>
                               <ul className="list-disc list-inside space-y-0.5 ml-2">
                                 <li><strong>Export Instagram DMs</strong> from your phone/desktop</li>
                                 <li><strong>Upload CSV</strong> with name, username, last message</li>
-                                <li><strong>AI starts working immediately</strong> - no OAuth needed</li>
-                                <li>OAuth auto-enables when credentials arrive (no user action)</li>
+                                <li><strong>AI starts working immediately</strong></li>
                               </ul>
                             </div>
                           </div>
                         </div>
                         <Button
-                          className="w-full bg-emerald-500 hover:bg-emerald-600"
+                          className="w-full bg-pink-500 hover:bg-pink-600"
                           onClick={(e) => {
                             e.stopPropagation();
                             window.location.href = '/dashboard/lead-import';
@@ -633,110 +686,215 @@ export default function IntegrationsPage() {
                       </CardContent>
                     </Card>
                   )}
-                  {providerId !== "instagram" && (
-                    <motion.div
-                      key={providerId}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                  {/* WhatsApp - Locked for free/trial users */}
+                  {providerId === "whatsapp" && !canAccessWhatsApp && (
+                    <Card
+                      className="relative hover-elevate border-gray-500/30 bg-gray-500/5"
+                      data-testid={`card-integration-${providerId}`}
                     >
-                      <Card
-                        className={`hover-elevate ${
-                          isConnected ? "border-emerald-500/50" : ""
-                        }`}
-                        data-testid={`card-integration-${providerId}`}
-                      >
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10">
-                                <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                    {providerId}
-                                  </CardTitle>
-                                  {providerId === "instagram" && (
-                                    <span className="text-xs text-muted-foreground">🔒 Credentials discarded instantly</span>
-                                  )}
-                                </div>
-                                <CardDescription className="text-sm">
-                                  {providerId === "instagram" && "Confirm in Instagram app • End-to-end encrypted"}
-                                  {providerId === "whatsapp" && "OTP sent by WhatsApp • No credentials stored"}
-                                  {providerId === "gmail" && "Connect Gmail or custom SMTP for email automation"}
-                                </CardDescription>
-                              </div>
-                            </div>
-                            {isConnected && (
-                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                                <Check className="h-3 w-3 mr-1" />
-                                Connected
-                              </Badge>
-                            )}
+                      {/* Blur overlay */}
+                      <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
+                        <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-3">
+                            <Lock className="h-6 w-6 text-white" />
                           </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          {isConnected ? (
-                            <>
-                              <div className="text-sm space-y-2">
-                                <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  <span className="font-medium">Connected • Importing leads...</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {providerId === "instagram" && "Your Instagram DMs are being securely imported with end-to-end encryption"}
-                                  {providerId === "whatsapp" && "WhatsApp conversations are encrypted and being imported"}
-                                  {providerId === "gmail" && "Email conversations are being securely synced"}
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleDisconnect(providerId)}
-                                  disabled={disconnectProviderMutation.isPending}
-                                  data-testid={`button-disconnect-${providerId}`}
-                                >
-                                  {disconnectProviderMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    "Disconnect"
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleSyncNow(providerId)}
-                                  disabled={importLeadsMutation.isPending}
-                                  data-testid={`button-sync-${providerId}`}
-                                >
-                                  {importLeadsMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    "Sync Now"
-                                  )}
-                                </Button>
-                              </div>
-                            </>
-                          ) : (
-                            <Button
-                              className="w-full"
-                              onClick={() => handleConnect(providerId)}
-                              disabled={connectProviderMutation.isPending}
-                              data-testid={`button-connect-${providerId}`}
-                            >
-                              {connectProviderMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : null}
-                              Connect {providerId}
-                            </Button>
+                          <h3 className="font-semibold text-lg mb-2">WhatsApp Automation</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Upgrade to any paid plan to connect WhatsApp and automate lead follow-ups
+                          </p>
+                          <Button 
+                            size="sm" 
+                            onClick={() => window.location.href = '/dashboard/pricing'}
+                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                          >
+                            Upgrade to Unlock
+                          </Button>
+                        </div>
+                      </div>
+                      <CardHeader className="opacity-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-green-500/10">
+                              <SiWhatsapp className="h-6 w-6 text-green-500" />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-base">WhatsApp</CardTitle>
+                              <CardDescription className="text-sm">
+                                OTP sent by WhatsApp • No credentials stored
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="opacity-50 space-y-3">
+                        <Button className="w-full" disabled>
+                          Connect WhatsApp
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* WhatsApp - Unlocked for paid users */}
+                  {providerId === "whatsapp" && canAccessWhatsApp && (
+                    <Card
+                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : ""}`}
+                      data-testid={`card-integration-${providerId}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-green-500/10">
+                              <SiWhatsapp className="h-6 w-6 text-green-500" />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-base">WhatsApp</CardTitle>
+                              <CardDescription className="text-sm">
+                                OTP sent by WhatsApp • No credentials stored
+                              </CardDescription>
+                            </div>
+                          </div>
+                          {isConnected && (
+                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                              <Check className="h-3 w-3 mr-1" />
+                              Connected
+                            </Badge>
                           )}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {isConnected ? (
+                          <>
+                            <div className="text-sm space-y-2">
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="font-medium">Connected • Importing leads...</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                WhatsApp conversations are encrypted and being imported
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleDisconnect(providerId)}
+                                disabled={disconnectProviderMutation.isPending}
+                              >
+                                Disconnect
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleSyncNow(providerId)}
+                                disabled={importLeadsMutation.isPending}
+                              >
+                                Sync Now
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button
+                            className="w-full bg-green-500 hover:bg-green-600"
+                            onClick={() => handleConnect(providerId)}
+                            disabled={connectProviderMutation.isPending}
+                          >
+                            {connectProviderMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                            Connect WhatsApp
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Gmail - Available to all users */}
+                  {providerId === "gmail" && (
+                    <Card
+                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : ""}`}
+                      data-testid={`card-integration-${providerId}`}
+                    >
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
+                                Email
+                              </CardTitle>
+                              <CardDescription className="text-sm">
+                                Connect Gmail or custom SMTP for email automation
+                              </CardDescription>
+                            </div>
+                          </div>
+                          {isConnected && (
+                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                              <Check className="h-3 w-3 mr-1" />
+                              Connected
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {isConnected ? (
+                          <>
+                            <div className="text-sm space-y-2">
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="font-medium">Connected • Importing leads...</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Email conversations are being securely synced
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleDisconnect(providerId)}
+                                disabled={disconnectProviderMutation.isPending}
+                                data-testid={`button-disconnect-${providerId}`}
+                              >
+                                {disconnectProviderMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Disconnect"
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleSyncNow(providerId)}
+                                disabled={importLeadsMutation.isPending}
+                                data-testid={`button-sync-${providerId}`}
+                              >
+                                {importLeadsMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Sync Now"
+                                )}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <Button
+                            className="w-full"
+                            onClick={() => handleConnect(providerId)}
+                            disabled={connectProviderMutation.isPending}
+                            data-testid={`button-connect-${providerId}`}
+                          >
+                            {connectProviderMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            Connect Email
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   )}
                 </motion.div>
               );

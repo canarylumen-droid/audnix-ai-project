@@ -90,3 +90,11 @@ export function useCanAccessVideoAutomation(): AccessGate {
 export function useCanAccessInstagramDM(): AccessGate {
   return useAccessGate('instagramDM');
 }
+
+export function useCanAccessWhatsApp(): AccessGate {
+  return useAccessGate('whatsApp');
+}
+
+export function useCanAccessEmail(): AccessGate {
+  return useAccessGate('email');
+}

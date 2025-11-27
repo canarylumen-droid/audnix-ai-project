@@ -47,7 +47,9 @@ export function getPlanCapabilities(planId: string) {
     hasAPIAccess: isEnterprise,
     hasPrioritySupport: isProOrAbove,
     hasVideoAutomation: isPaid, // Video automation only for paid plans
-    hasInstagramDM: isPaid // Instagram DM automation for paid plans (coming soon for trial)
+    hasInstagramDM: isPaid, // Instagram DM automation for paid plans only
+    hasWhatsApp: isPaid, // WhatsApp only for paid plans
+    hasEmail: true // Email available to ALL users including free/trial
   };
 }
 
@@ -62,7 +64,9 @@ export type FeatureKey =
   | 'apiAccess'
   | 'prioritySupport'
   | 'videoAutomation'
-  | 'instagramDM';
+  | 'instagramDM'
+  | 'whatsApp'
+  | 'email';
 
 export function canAccessFeature(featureKey: FeatureKey, planId: string): boolean {
   const capabilities = getPlanCapabilities(planId);
@@ -78,7 +82,9 @@ export function canAccessFeature(featureKey: FeatureKey, planId: string): boolea
     apiAccess: capabilities.hasAPIAccess,
     prioritySupport: capabilities.hasPrioritySupport,
     videoAutomation: capabilities.hasVideoAutomation,
-    instagramDM: capabilities.hasInstagramDM
+    instagramDM: capabilities.hasInstagramDM,
+    whatsApp: capabilities.hasWhatsApp,
+    email: capabilities.hasEmail
   };
   
   return featureMap[featureKey] || false;

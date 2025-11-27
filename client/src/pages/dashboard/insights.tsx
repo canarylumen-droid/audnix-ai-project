@@ -15,6 +15,7 @@ import {
 import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { AnimatedNumber } from "@/hooks/use-count-up";
 import {
   ChartContainer,
   ChartTooltip,
@@ -313,47 +314,77 @@ export default function InsightsPage() {
           {/* Wrap analytics in FeatureLock for free/trial users */}
           {canAccessFullAnalytics ? (
             <>
-              {/* Metrics Grid */}
+              {/* Metrics Grid with Animations */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            <Card data-testid="card-metric-response">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Avg Response Time
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.avgResponseTime || "—"}
-                </div>
-              </CardContent>
-            </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.1 }}
+                >
+                  <Card data-testid="card-metric-response" className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Avg Response Time
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
+                        {insightsData?.metrics?.avgResponseTime || "—"}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <Card data-testid="card-metric-conversion">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Conversion Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.conversionRate || "0"}%
-                </div>
-              </CardContent>
-            </Card>
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
+                  <Card data-testid="card-metric-conversion" className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Conversion Rate
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                        <AnimatedNumber 
+                          value={parseFloat(insightsData?.metrics?.conversionRate) || 0} 
+                          decimals={1}
+                          suffix="%"
+                          duration={1200}
+                          delay={300}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
 
-            <Card data-testid="card-metric-engagement">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Engagement Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {insightsData?.metrics?.engagementScore || "0"}%
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
+                >
+                  <Card data-testid="card-metric-engagement" className="overflow-hidden">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        Engagement Score
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                        <AnimatedNumber 
+                          value={parseFloat(insightsData?.metrics?.engagementScore) || 0} 
+                          decimals={1}
+                          suffix="%"
+                          duration={1200}
+                          delay={400}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {channelData.length > 0 && (
