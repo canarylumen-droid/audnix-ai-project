@@ -50,57 +50,21 @@ export default function PricingPage() {
   const plans = getSortedPricingTiers().filter(tier => tier.id !== 'free');
 
   const handleUpgrade = async (planId: string) => {
-    setLoadingPlan(planId);
-    try {
-      const response = await apiRequest<{ url: string }>('/api/billing/payment-link', {
-        method: 'POST',
-        body: JSON.stringify({ planKey: planId }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        throw new Error('No payment link returned');
-      }
-    } catch (error) {
-      console.error('Error getting payment link:', error);
-      toast({
-        title: "Error",
-        description: "Failed to get payment link. Please try again.",
-        variant: "destructive",
-      });
-      setLoadingPlan(null);
-    }
+    // Stripe integration temporarily disabled - contact support to enable payments
+    toast({
+      title: "Payments Coming Soon",
+      description: "Payment processing is being set up. Please contact support to upgrade.",
+      variant: "default",
+    });
   };
 
   const handleTopup = async (topupKey: string) => {
-    setLoadingPlan(topupKey);
-    try {
-      const response = await apiRequest<{ url: string }>('/api/billing/topup-link', {
-        method: 'POST',
-        body: JSON.stringify({ topupKey }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.url) {
-        window.location.href = response.url;
-      } else {
-        throw new Error('No payment link returned');
-      }
-    } catch (error) {
-      console.error('Error getting topup link:', error);
-      toast({
-        title: "Error",
-        description: "Failed to get payment link. Please try again.",
-        variant: "destructive",
-      });
-      setLoadingPlan(null);
-    }
+    // Stripe integration temporarily disabled - contact support to enable payments
+    toast({
+      title: "Payments Coming Soon",
+      description: "Payment processing is being set up. Please contact support for topups.",
+      variant: "default",
+    });
   };
 
   return (
