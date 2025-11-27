@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -11,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload } from "lucide-react";
+import { User, Loader2, Upload, Mic, MicOff } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(true);
   
   // Local state for form fields
   const [formData, setFormData] = useState({
@@ -45,6 +47,7 @@ export default function SettingsPage() {
         company: user.company || "",
         timezone: user.timezone || "America/New_York",
       });
+      setVoiceNotesEnabled(user.voiceNotesEnabled !== false);
     }
   }, [user]);
 
@@ -446,6 +449,82 @@ export default function SettingsPage() {
               ℹ️ Max 10MB • Supports: Brand guides, pitch decks, product sheets, sales PDFs
             </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Voice Notes Settings */}
+      <Card data-testid="card-voice-settings">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {voiceNotesEnabled ? (
+              <Mic className="h-5 w-5 text-primary" />
+            ) : (
+              <MicOff className="h-5 w-5 text-muted-foreground" />
+            )}
+            Voice Notes Settings
+          </CardTitle>
+          <CardDescription>
+            Control how AI voice notes are sent to leads on Instagram and WhatsApp
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+            <div className="space-y-1">
+              <Label htmlFor="voice-toggle" className="text-base font-medium">
+                Enable AI Voice Notes
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, AI can send voice messages to warm leads on Instagram and WhatsApp
+              </p>
+            </div>
+            <Switch
+              id="voice-toggle"
+              checked={voiceNotesEnabled}
+              onCheckedChange={async (checked) => {
+                setVoiceNotesEnabled(checked);
+                try {
+                  await apiRequest("/api/user/voice-settings", {
+                    method: "PUT",
+                    body: JSON.stringify({ voiceNotesEnabled: checked }),
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+                  toast({
+                    title: checked ? "Voice Notes Enabled" : "Voice Notes Disabled",
+                    description: checked 
+                      ? "AI can now send voice messages to your leads" 
+                      : "Voice messages are paused for all channels",
+                  });
+                } catch (error) {
+                  setVoiceNotesEnabled(!checked);
+                  toast({
+                    title: "Error",
+                    description: "Failed to update voice settings",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              data-testid="switch-voice-notes"
+            />
+          </div>
+
+          {!voiceNotesEnabled && (
+            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                Voice notes are currently paused. No voice messages will be sent to leads on any channel.
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">How voice notes work:</p>
+            <ul className="space-y-1 ml-4">
+              <li>• AI detects warm, engaged leads automatically</li>
+              <li>• Voice notes are sent on Instagram DMs and WhatsApp only</li>
+              <li>• Each note is 15 seconds max for professional brevity</li>
+              <li>• Uses your cloned voice (upload in Integrations)</li>
+              <li>• Voice minutes are deducted from your plan balance</li>
+            </ul>
           </div>
         </CardContent>
       </Card>

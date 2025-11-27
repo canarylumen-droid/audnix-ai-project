@@ -380,34 +380,28 @@ export default function Landing() {
               <span className="text-purple-400 font-semibold">LEGALLY PROTECTED</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              AI Disclaimers + Audit Trail + User Control
+              Audit Trail + User Control + Privacy First
             </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
-              <h3 className="text-lg font-bold text-white mb-3">✓ AI Disclaimers</h3>
-              <p className="text-white/80 text-sm">
-                Auto-included in messages. Blends naturally. Legally protected.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
               <h3 className="text-lg font-bold text-white mb-3">✓ Audit Trail</h3>
               <p className="text-white/80 text-sm">
-                Every message timestamped. Dispute-proof.
+                Every message timestamped. Full conversation history. Dispute-proof.
               </p>
             </div>
             <div className="p-6 rounded-lg bg-white/5 border border-purple-500/20">
               <h3 className="text-lg font-bold text-white mb-3">✓ Lead Control</h3>
               <p className="text-white/80 text-sm">
-                Opt-out anytime. Privacy-first. Fully transparent.
+                Opt-out anytime. Privacy-first. Fully transparent communication.
               </p>
             </div>
           </div>
 
           <div className="mt-8 p-6 rounded-lg bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-center">
             <p className="text-white/90 text-sm">
-              Full details: <Link href="/terms-of-service"><a className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</a></Link> (Section 13: AI Communications) and <Link href="/privacy-policy"><a className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</a></Link>
+              Full details: <Link href="/terms-of-service"><a className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</a></Link> and <Link href="/privacy-policy"><a className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</a></Link>
             </p>
           </div>
         </div>

@@ -128,9 +128,35 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response) => 
       plan: user.plan,
       businessName: user.businessName,
       trialExpiresAt: user.trialExpiresAt,
+      voiceNotesEnabled: user.voiceNotesEnabled !== false,
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+/**
+ * PUT /api/user/voice-settings
+ * Update voice notes settings
+ */
+router.put('/user/voice-settings', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { voiceNotesEnabled } = req.body;
+
+    await storage.updateUser(userId, {
+      voiceNotesEnabled: voiceNotesEnabled === true,
+    });
+
+    res.json({ 
+      success: true, 
+      voiceNotesEnabled: voiceNotesEnabled === true 
+    });
+  } catch (error: any) {
+    console.error('Voice settings error:', error);
+    res.status(500).json({ error: 'Failed to update voice settings' });
   }
 });
 

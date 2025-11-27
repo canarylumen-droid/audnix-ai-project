@@ -1107,6 +1107,156 @@ export const OBJECTIONS_DATABASE: Objection[] = [
       'Proof: "See how other retailers using this increased store visits 40%"',
     ],
   },
+  // PRICE NEGOTIATION OBJECTIONS (8) - NEW
+  {
+    id: 'price-9',
+    objection: 'Can you lower the price? / Will you reduce the cost?',
+    category: 'price',
+    industries: ['all'],
+    reframes: [
+      'The price reflects the value - one closed deal pays for months of this',
+      'Lowering the price means lowering the result - and you want the BEST result',
+      'Would you ask your doctor for a discount? This is expertise, not a commodity',
+    ],
+    stories: [
+      'Client asked for discount, I held firm - they signed anyway, made 10x ROI in month 1',
+      'Founder tried to negotiate down - I showed results instead - they paid full price gladly',
+    ],
+    questions: [
+      'What would make this price feel worth it to you?',
+      'If I could guarantee you 3x ROI, would the price matter?',
+      'What specific result would justify this investment for you?',
+    ],
+    closingTactics: [
+      'Value anchor: "One deal pays for this all year - that\'s the real ROI math"',
+      'Confidence: "I don\'t discount because I know the value is there"',
+      'Alternative: "Instead of lowering price, let me add more value for you"',
+    ],
+  },
+  {
+    id: 'price-10',
+    objection: 'Give me a discount / Any deals available?',
+    category: 'price',
+    industries: ['all'],
+    reframes: [
+      'I don\'t do discounts - but I do guarantee results. Worth more than 10% off',
+      'Discounts attract price-shoppers, results attract winners - which one are you?',
+      'My best clients never asked for discounts - they asked "how fast can I start?"',
+    ],
+    stories: [
+      'Prospect wanted 20% off - I said no - they started anyway, made 500% ROI',
+      'Founder who asked for discount switched to cheaper tool - came back 6 months later paying full price',
+    ],
+    questions: [
+      'If I gave you a discount but it took 2 weeks longer to set up, would you take it?',
+      'What would you rather have - $50 off, or $5,000 in closed deals?',
+    ],
+    closingTactics: [
+      'Reframe: "Instead of discount, how about I throw in an extra onboarding call?"',
+      'Confidence hold: "My price is my price - but my results speak for themselves"',
+      'Scarcity: "I have 3 spots this month at this rate - after that, price goes up"',
+    ],
+  },
+  {
+    id: 'price-11',
+    objection: 'That\'s quite a lot / Out of my capacity right now',
+    category: 'price',
+    industries: ['all'],
+    reframes: [
+      'Capacity is exactly why you need this - it CREATES capacity by automating the grind',
+      'You can\'t afford NOT to automate - you\'re losing deals every day you wait',
+      'If your capacity is stretched, manual follow-ups are the first thing to automate',
+    ],
+    stories: [
+      'Overwhelmed founder said "can\'t take on more" - automation freed 15 hours/week instantly',
+      'Coach at capacity used our system - doubled clients without hiring anyone',
+    ],
+    questions: [
+      'What\'s taking up most of your capacity right now?',
+      'If you could free up 10 hours/week, what would you do with that time?',
+      'What if this CREATED capacity instead of adding to your load?',
+    ],
+    closingTactics: [
+      'Capacity flip: "This doesn\'t add to your plate - it clears it"',
+      'Time ROI: "10 mins to set up, saves 10 hours/week"',
+      'Start small: "Begin with just your hottest 10 leads - 5 mins, see results"',
+    ],
+  },
+  {
+    id: 'price-12',
+    objection: 'Nah bro, that\'s too much / Way over budget',
+    category: 'price',
+    industries: ['all'],
+    reframes: [
+      'I hear you - but let me ask: what\'s your budget for LOST deals? Because that\'s what you\'re paying now',
+      'Over budget today means behind competitors tomorrow',
+      'The question isn\'t "is it in budget?" - it\'s "will it MAKE me money?"',
+    ],
+    stories: [
+      'Startup founder said "way over budget" - borrowed to start - made back 10x in 60 days',
+      'Agency thought too expensive - started with base plan - upgraded within 2 weeks after seeing results',
+    ],
+    questions: [
+      'What IS your budget for sales automation?',
+      'If you knew this would 3x your revenue, would it still feel "too much"?',
+      'What would need to happen for this to feel like a no-brainer?',
+    ],
+    closingTactics: [
+      'Reality check: "Your current cost is lost leads - that\'s MORE than this"',
+      'Entry tier: "Start with Starter plan, upgrade when ROI proves it"',
+      'Payment split: "What if we did monthly instead of annual?"',
+    ],
+  },
+  {
+    id: 'spouse-1',
+    objection: 'I need to ask my husband/wife first',
+    category: 'timing',
+    industries: ['all'],
+    reframes: [
+      'Smart move - let\'s get them on a quick call so they see exactly what this does',
+      'What specifically would they want to know?',
+      'If they saw the ROI numbers, would they support this?',
+    ],
+    stories: [
+      'Spouse was skeptical until they saw the dashboard - now they remind the founder to use it more',
+      'Wife said no initially - after seeing first $5k deal close, she asked "why didn\'t you start sooner?"',
+    ],
+    questions: [
+      'Is your spouse involved in business decisions?',
+      'What concerns do you think they\'d have?',
+      'Would a 5-minute video showing results help convince them?',
+    ],
+    closingTactics: [
+      'Include: "Let\'s schedule a 10-min call with both of you"',
+      'Results first: "Start free, show them results, THEN get their blessing"',
+      'Testimonial: "Here\'s a couple who started together - see their story"',
+    ],
+  },
+  {
+    id: 'spouse-2',
+    objection: 'My partner handles finances / They make these decisions',
+    category: 'timing',
+    industries: ['all'],
+    reframes: [
+      'Let\'s bring them in - I\'ll show them exactly how this pays for itself',
+      'Financial decision-makers love ROI - let me give them the numbers',
+      'The best financial decision they can make is investing in automation',
+    ],
+    stories: [
+      'Partner who "handles finances" saw the ROI dashboard - approved immediately',
+      'CFO spouse reviewed our case studies - gave green light same day',
+    ],
+    questions: [
+      'What metrics would convince your partner?',
+      'Do they respond better to testimonials or ROI projections?',
+      'Can I prepare a one-pager for them?',
+    ],
+    closingTactics: [
+      'CFO deck: "Let me send a financial breakdown they can review"',
+      'Joint call: "15 mins together, I\'ll answer all their questions"',
+      'Proof: "Here\'s what similar businesses made - hard numbers"',
+    ],
+  },
 ];
 
 export const getObjectionsByIndustry = (industry: string): Objection[] => {

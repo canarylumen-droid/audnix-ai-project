@@ -117,6 +117,12 @@ export class VoiceAIService {
     error?: string;
   }> {
     try {
+      // Check if user has voice notes enabled
+      const user = await storage.getUserById(userId);
+      if (user?.voiceNotesEnabled === false) {
+        return { success: false, error: 'Voice notes disabled in settings' };
+      }
+
       // Get lead and messages
       const lead = await storage.getLeadById(leadId);
       if (!lead) {
@@ -149,8 +155,7 @@ export class VoiceAIService {
         };
       }
 
-      // Get user's cloned voice ID or use default
-      const user = await storage.getUserById(userId);
+      // Get user's cloned voice ID or use default (user already fetched at start of function)
       const voiceId = user?.voiceCloneId || undefined;
 
       // Generate voice with ElevenLabs
