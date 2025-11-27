@@ -10,22 +10,26 @@ const router = Router();
  */
 router.post('/analyze-objection', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { objection, industry = 'all' } = req.body;
+    const { objection, prospectMessage, industry = 'all' } = req.body;
+    const objectionText = objection || prospectMessage;
 
-    if (!objection || typeof objection !== 'string') {
+    if (!objectionText || typeof objectionText !== 'string') {
       return res.status(400).json({ error: 'Objection text required' });
     }
 
     const analysis = ObjectionHandler.analyzeObjection(
-      objection,
+      objectionText,
       industry,
       'your brand'
     );
 
     return res.json({
-      objection,
+      objection: objectionText,
       category: analysis.matchedObjection?.category || 'general',
       reframes: analysis.reframes,
+      powerQuestion: analysis.questions[0] || 'What would make this a yes for you?',
+      closingTactic: analysis.closingTactics[0] || 'Would you like to move forward today?',
+      story: analysis.stories?.[0] || '',
       questions: analysis.questions,
       closingTactics: analysis.closingTactics,
       nextStep: analysis.nextStep,
