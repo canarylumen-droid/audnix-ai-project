@@ -197,6 +197,17 @@ router.post(
         recommendations.push("Add your preferred language and phrases to use");
       }
 
+      const aiAssistanceMessage = overallScore < 60 
+        ? "Don't worry — our AI will research your industry and fill in the gaps. You can upload now and we'll handle the rest."
+        : overallScore < 80 
+        ? "Good foundation! Our AI will enhance any missing details using industry research."
+        : "Excellent! Your brand profile is comprehensive — AI will perform at its best.";
+
+      const canProceedAnyway = true;
+      const proceedMessage = overallScore < 50 
+        ? "You can still proceed. Our AI will use deep research to find relevant data about your industry, competitors, and target audience to fill gaps."
+        : "Ready to proceed. AI has enough context to generate high-quality responses.";
+
       return res.json({
         overall_score: overallScore,
         clarity_score: clarityScore,
@@ -210,6 +221,9 @@ router.post(
         output_quality_level: outputQualityLevel,
         suggested_additions: suggestedAdditions.slice(0, 6),
         summary,
+        ai_assistance_message: aiAssistanceMessage,
+        can_proceed_anyway: canProceedAnyway,
+        proceed_message: proceedMessage,
       });
     } catch (error: any) {
       console.error("Error analyzing PDF:", error);

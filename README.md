@@ -1,604 +1,209 @@
-# 🚀 Audnix AI - Complete AI Sales Automation Platform
+# Audnix AI - Production-Ready AI Sales Automation Platform
 
-**Production-Ready SaaS** | **Multi-Channel Lead Management** | **Real-Time AI Automation**
+**Multi-Channel Lead Management** | **Real-Time AI Automation** | **500+ Concurrent Users**
 
-> Last Updated: **November 22, 2025**
-
----
-
-## 📋 Table of Contents
-
-1. [Features Implemented](#features-implemented)
-2. [Architecture](#architecture)
-3. [API Reference](#api-reference)
-4. [Admin System](#admin-system)
-5. [Deployment](#deployment)
-6. [Security & Compliance](#security--compliance)
+> Last Updated: **November 27, 2025**
 
 ---
 
-## ✅ Features Implemented
-
-### 🔐 Authentication & Admin System
-
-**Email Authentication**
-- ✅ Email/Password signup with secure bcryptjs hashing
-- ✅ Direct login with session management
-- ✅ **Admin whitelist enforcement**: 3 pre-configured admin emails
-  - `canarylumen@gmail.com` (hardcoded)
-  - `fortune@audnixai.com` (ADMIN_EMAIL_1)
-  - `treasure@audnixai.com` (ADMIN_EMAIL_2)
-- ✅ Only whitelisted emails automatically become admins
-- ✅ Secure HTTP-only session cookies
-
-**API Endpoints:**
-- `POST /api/auth/signup` - Create account
-- `POST /api/auth/login` - Login with email/password
-- `POST /api/auth/logout` - Logout
-
-### 📧 Email System - Multi-Provider Failover (PRODUCTION READY)
-
-**Automatic provider fallback chain:**
-1. **Resend** (primary) - Fastest, no setup needed
-2. **Mailgun** - Industry-standard deliverability
-3. **Custom SMTP** - User's own email server
-4. **Gmail API** - Backup for Gmail users
-5. **Outlook API** - Last resort for Outlook users
-
-**Features:**
-- ✅ Automatic failover if primary provider fails
-- ✅ Premium OTP templates (dark-themed, branded, mobile-responsive)
-- ✅ Plaintext fallback for clients without HTML support
-- ✅ Multi-language support
-
-**API Endpoints:**
-- `POST /api/otp/send` - Send OTP via best available provider
-- `POST /api/otp/verify` - Verify 6-digit code
-- `POST /api/otp/resend` - Rate-limited resend (3x per 15 min)
-
-**Configuration:**
-```env
-RESEND_API_KEY=re_xxxxx
-MAILGUN_API_KEY=key-xxxxx
-MAILGUN_DOMAIN=mg.audnixai.com
-```
-
-### 🎯 Campaign Automation - Real-Time (24/7 WORKERS ACTIVE)
-
-**Multi-Channel Orchestration**
-- ✅ **Day-aware sequences**: Different AI messages for Day 1, 2, 5, 7
-- ✅ **Human-like timing**: 24h → 48h → Day 5 → Day 7 (NOT spam bot timing)
-- ✅ **Multi-channel escalation**:
-  - Day 1: Email
-  - Day 1 + 24h: WhatsApp
-  - Day 1 + 72h: Instagram DM
-- ✅ **Intelligent fallback**: If channel blocked, tries next channel
-- ✅ **Campaign-aware AI**: AI knows which day of campaign it is
-
-**Workers Running 24/7:**
-1. **Follow-up Worker** - Sends personalized day-aware messages
-2. **Email Warm-up Worker** - Gradual sending ramp (Day 1: 30 → Day 10: 200+)
-3. **Bounce Handler** - Tracks hard/soft bounces + spam
-4. **Stripe Poller** - Validates plan-based rate limits
-5. **Weekly Insights Worker** - Generates AI analytics
-6. **Video Comment Monitor** - Auto-replies to comments
-
-**Message Templates by Day:**
-- **Day 1**: Initial intro + value prop
-- **Day 2**: Light follow-up (social proof)
-- **Day 5**: Problem-focused (urgency)
-- **Day 7**: Final push (scarcity/FOMO)
-
-### 📊 Email Infrastructure (PRODUCTION READY)
-
-**Lead Import System**
-- ✅ **Paged imports**: 100 emails at a time (prevents crashes)
-- ✅ **Duplicate detection**: Auto-filters existing leads
-- ✅ **Smart lead detection**: Removes transactional/newsletter emails
-- ✅ **CSV + manual import support**
-
-**SMTP Abuse Protection**
-- ✅ **Plan-based rate limiting**:
-  - Starter: 150 emails/hour
-  - Pro: 200 emails/hour
-  - Enterprise: 300 emails/hour
-- ✅ **Automatic throttling**: Prevents IP blacklisting
-
-**Email Warm-up Automation**
-- ✅ **Gradual sending ramp**:
-  - Day 1: 30 emails
-  - Day 2: 50 emails
-  - Day 3: 75 emails
-  - ...
-  - Day 10+: 200+ emails
-- ✅ **Prevents spam flagging**: Warm-up before blast
-
-**Bounce Management**
-- ✅ **Hard bounces**: Removed from list (invalid emails)
-- ✅ **Soft bounces**: Tracked + retried
-- ✅ **Spam complaints**: Flagged + removed
-- ✅ **Real-time stats**: View bounce rates per campaign
-
-**API Endpoints:**
-- `GET /api/email/bounces/stats` - Bounce rate analytics
-- `GET /api/email/sending/limits` - Current rate limits
-- `GET /api/email/warmup/status` - Warm-up progress
-- `POST /api/email/import` - Import leads from CSV
-
-### 📅 Google Calendar Integration (PRODUCTION READY)
-
-**Calendar Booking System**
-- ✅ **OAuth connection**: Users connect Google Calendar
-- ✅ **Auto time slots**: Reads calendar, finds available slots
-  - Business hours: 9 AM - 5 PM
-  - Excludes weekends
-  - Skips booked time
-- ✅ **Smart booking**: Auto-creates events when lead accepts
-- ✅ **Meeting links**: Auto-generates Google Meet links
-- ✅ **Shareable calendar**: Public booking page (no auth needed)
-- ✅ **No double-booking**: Prevents scheduling conflicts
-
-**Message Templates:**
-- **Email**: Professional booking invitation
-- **WhatsApp**: Friendly calendar link (emojis)
-- **Instagram**: Casual calendar share
-
-**API Endpoints:**
-- `GET /api/calendar/slots` - Get available time slots (14 days, business hours)
-- `POST /api/calendar/send-link` - Generate shareable booking link
-- `POST /api/calendar/book` - Book meeting when lead accepts
-- `POST /api/calendar/format-message` - Format message for channel
-- `GET /api/calendar/public/:userId` - Public booking page (no auth)
-
-**Configuration:**
-```env
-GOOGLE_CALENDAR_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CALENDAR_CLIENT_SECRET=xxxxxx
-GOOGLE_CALENDAR_REDIRECT_URI=https://audnixai.com/api/oauth/google-calendar/callback
-```
-
-### 📊 Real-Time Dashboards
-
-**User Dashboard Features**
-- ✅ Real-time lead status updates
-- ✅ Campaign progress (% by day)
-- ✅ Multi-channel analytics
-- ✅ Lead import & management
-- ✅ Revenue tracking
-- ✅ Integration status
-- ✅ Plan usage (leads, voice minutes)
-
-**Admin Dashboard Features**
-- ✅ **User Management**: Search/view all users
-- ✅ **Access Control**: Invite/revoke admin access
-- ✅ **Plan Management**: Assign any plan to any user (no payment needed)
-- ✅ **Real-time Analytics**:
-  - Total users
-  - Monthly recurring revenue (MRR)
-  - Total leads
-  - Messages sent
-  - Conversion rates by channel
-- ✅ **Lead Monitoring**: Browse all platform leads (read-only)
-- ✅ **Revenue Tracking**: Daily/monthly charts
-- ✅ **Team Whitelist**: Manage admin access
-
-**Admin API Endpoints:**
-- `GET /api/admin/metrics` - Real-time dashboard stats
-- `GET /api/admin/users` - List all users
-- `POST /api/admin/users/:id/assign-plan` - Change user plan
-- `POST /api/admin/access/grant` - Grant admin access
-- `POST /api/admin/access/revoke` - Revoke admin access
-
-### 💳 Billing & Payments (SECURE - PRODUCTION READY)
-
-**Stripe Integration (Payment Links - No API Keys in Code)**
-- ✅ **Payment Links Only**: No sensitive API keys in code
-- ✅ **Secure redirects**: Users sent to Stripe-hosted pages
-- ✅ **Webhook verification**: All payments verified server-side
-- ✅ **Zero cheating possible**: Payment links can't be modified
-- ✅ **Plan-based rate limits**: Enforce after payment confirmed
-
-**Plans:**
-- **Starter**: $49.99/mo - 2,500 leads, 100 voice minutes
-- **Pro**: $99.99/mo - 7,000 leads, 400 voice minutes
-- **Enterprise**: $199.99/mo - 20,000 leads, 1,500 voice minutes
-
-**Top-ups:**
-- 100 voice minutes: $7.00
-- 300 voice minutes: $20.00
-- 600 voice minutes: $40.00
-- 1,200 voice minutes: $80.00
-
-**Security Guarantees:**
-- ✅ Payment links generated in Stripe Dashboard (not in code)
-- ✅ All payments verified via webhooks
-- ✅ No way to bypass payment checks
-- ✅ Rate limits enforced at database level
-- ✅ Trial period tracked (3 days auto-set on signup)
-
-**API Endpoints:**
-- `POST /api/billing/checkout` - Redirect to Stripe
-- `POST /api/billing/topup` - Topup voice minutes
-- `GET /api/billing/subscription` - Current plan info
-- `POST /api/billing/cancel` - Cancel subscription
-
-**Configuration:**
-```env
-STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/xxxxx
-STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/yyyyy
-STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/zzzzz
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-```
-
-### 🔗 Channel Integrations
-
-**Email (Gmail + Outlook + Custom SMTP)**
-- ✅ OAuth connection to Gmail and Outlook
-- ✅ Custom SMTP support (business domains)
-- ✅ Lead import from email
-- ✅ Real-time inbox sync
-- ✅ Branded email templates (PDF brand extraction)
-
-**WhatsApp (Web + QR Code)**
-- ✅ WhatsApp Web.js integration (QR code, no API needed)
-- ✅ Auto-messaging to leads
-- ✅ 24-hour messaging window compliance
-- ✅ Template messaging support
-- ✅ Media upload support
-
-**Instagram (Meta Graph API)**
-- ✅ Official Instagram Graph API (ToS compliant)
-- ✅ Lead import from DMs
-- ✅ Auto-reply to messages
-- ✅ Story interactions (coming)
-
----
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-**Frontend:**
-- React 18 + TypeScript
-- Wouter (routing)
-- Tailwind CSS (styling)
-- Framer Motion (animations)
-- TanStack Query (server state)
-- Shadcn UI (components)
-
-**Backend:**
-- Express.js + TypeScript
-- PostgreSQL (Neon)
-- Drizzle ORM
-- Google APIs
-- Stripe SDK
-- ElevenLabs (voice)
-
-**Services:**
-- Supabase (auth, real-time)
-- Stripe (billing)
-- OpenAI (GPT-4o-mini)
-- ElevenLabs (voice cloning)
-- Resend/Mailgun (email)
-
-### Database Schema (16 Migrations)
-
-**Core Tables:**
-- `users` - User accounts, plans, trial status
-- `leads` - Imported leads, status, scores
-- `integrations` - OAuth tokens (encrypted)
-- `campaigns` - Campaign configuration
-- `messages` - Message history
-- `analytics` - Real-time metrics
-- `admin_whitelist` - Admin access control
-- `otp_codes` - OTP tracking
-- `oauth_accounts` - OAuth provider data
-
-### Worker Processes
-
-All workers run continuously in production:
-
-```typescript
-// Follow-up Worker (Every 5 minutes)
-- Checks pending follow-ups
-- Reads campaign day + lead context
-- Generates day-aware AI message
-- Selects next channel
-- Sends via best available provider
-
-// Email Warm-up Worker (Every 2 hours)
-- Checks warm-up schedule
-- Increments daily send limit
-- Logs warm-up progress
-
-// Bounce Handler (Every 10 minutes)
-- Checks for bounces
-- Classifies (hard/soft/spam)
-- Updates lead status
-- Sends notifications
-
-// Weekly Insights (Every 7 days)
-- Aggregates campaign stats
-- Generates AI insights
-- Sends PDF report
-
-// Stripe Poller (Every 5 minutes)
-- Checks payment status
-- Updates plan assignments
-- Enforces rate limits
-```
-
----
-
-## 📡 API Reference
-
-### Authentication
+## Quick Start
 
 ```bash
-# Signup
-POST /api/auth/signup
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123",
-  "name": "John Doe"
-}
+# Install dependencies
+npm install
 
-# Login
-POST /api/auth/login
-{
-  "email": "user@example.com",
-  "password": "SecurePassword123"
-}
+# Start development server
+npm run dev
 
-# OTP Send
-POST /api/otp/send
-{
-  "email": "user@example.com"
-}
-
-# OTP Verify
-POST /api/otp/verify
-{
-  "code": "123456",
-  "email": "user@example.com"
-}
-```
-
-### Calendar
-
-```bash
-# Get available slots
-GET /api/calendar/slots?daysAhead=7&duration=30
-
-# Send booking link
-POST /api/calendar/send-link
-{
-  "leadEmail": "lead@example.com",
-  "leadName": "John Lead",
-  "duration": 30
-}
-
-# Book meeting
-POST /api/calendar/book
-{
-  "leadEmail": "lead@example.com",
-  "leadName": "John Lead",
-  "startTime": "2025-11-24T10:00:00Z",
-  "endTime": "2025-11-24T10:30:00Z"
-}
-
-# Format message
-POST /api/calendar/format-message
-{
-  "leadName": "John",
-  "bookingLink": "https://...",
-  "channel": "whatsapp"
-}
-
-# Public booking page
-GET /api/calendar/public/:userId
-```
-
-### Admin
-
-```bash
-# Get metrics (admins only)
-GET /api/admin/metrics
-
-# Assign plan (admins only)
-POST /api/admin/users/:userId/assign-plan
-{
-  "plan": "pro"
-}
-
-# Grant admin access
-POST /api/admin/access/grant
-{
-  "email": "newadmin@audnixai.com"
-}
-
-# Revoke admin access
-POST /api/admin/access/revoke
-{
-  "email": "admin@audnixai.com"
-}
+# Access at http://localhost:5000
 ```
 
 ---
 
-## 🔐 Admin System
+## Features
 
-### Three Admin Emails (Hardcoded)
+### Authentication System
+- Email/Password signup with bcrypt hashing
+- OTP verification via SendGrid (direct API)
+- 7-day user sessions, 30-day admin sessions
+- Admin whitelist enforcement (3 pre-configured emails)
+- PostgreSQL session store (500+ concurrent users)
 
-1. **canarylumen@gmail.com** - Primary founder
-2. **fortune@audnixai.com** - Team admin 1
-3. **treasure@audnixai.com** - Team admin 2
+**Auth Flow:** Email → Password → OTP sent → OTP verify → Username → Dashboard
 
-These emails automatically become admins on account creation.
+### Multi-Channel AI Sales Engine
+- **Email**: SMTP/IMAP integration with bounce handling
+- **WhatsApp**: Cloud API with voice notes
+- **Instagram**: DM automation with comment monitoring
 
-### Admin Capabilities
+### AI Features
+- 110+ objection handlers (GPT-4 powered)
+- Context-aware responses adapted to lead profile
+- Human-like timing (2-8 minute response delays)
+- Voice cloning via ElevenLabs
+- PDF brand learning with instant analysis
 
-- ✅ View all users and their activity
-- ✅ Assign any plan to any user (no payment needed)
-- ✅ Grant/revoke admin access to other emails
-- ✅ View real-time analytics across platform
-- ✅ Monitor all leads and campaigns
-- ✅ View revenue data
-- ✅ Export reports
+### Real-Time Analytics
+- Live dashboard metrics (5-second refresh)
+- Conversion funnel tracking
+- Channel performance comparison
+- AI learning status monitoring
 
-### Admin Dashboard Location
-
-- **Frontend**: `/dashboard/admin`
-- **Backend**: `server/routes/admin-routes.ts`
-- **Auth**: `requireAdmin` middleware
+### Admin Dashboard
+- User management with direct plan upgrades
+- Payment approval workflow (no Stripe API keys needed)
+- Real-time platform analytics
+- Onboarding data tracking (roles, sources, business sizes)
 
 ---
 
-## 🚀 Deployment
+## Pricing Tiers
 
-### Deploy to Vercel
+| Plan | Price | Leads | Voice Minutes |
+|------|-------|-------|---------------|
+| Free | $0/mo | 100 | 10 |
+| Trial | $0 (3 days) | 500 | 50 |
+| Starter | $49.99/mo | 2,500 | 100 |
+| Pro | $99.99/mo | 7,000 | 400 |
+| Enterprise | $199.99/mo | 20,000 | 1,500 |
 
-```bash
-# 1. Push to GitHub
-git push origin main
+---
 
-# 2. Connect to Vercel
-vercel --prod
+## Technical Stack
 
-# 3. Set environment variables in Vercel Dashboard
-# Database, Stripe, OpenAI, Google OAuth, etc.
+### Backend
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL (Neon)
+- **ORM**: Drizzle
+- **Sessions**: connect-pg-simple (persistent)
+- **Email**: SendGrid API (direct HTTP)
 
-# 4. Custom domain
-vercel domains add audnixai.com
-```
+### Frontend
+- **Framework**: React with TypeScript
+- **Routing**: Wouter
+- **State**: TanStack Query
+- **UI**: Radix UI + Tailwind CSS
+- **Animations**: Framer Motion
 
-### Environment Variables (Required for Production)
+### Integrations
+- **AI**: OpenAI GPT-4
+- **Voice**: ElevenLabs
+- **Payments**: Stripe (payment links only)
+- **Calendar**: Google Calendar API
+- **Real-time**: Supabase (optional)
 
+---
+
+## Environment Variables
+
+### Required
 ```env
 # Database
-DATABASE_URL=postgresql://user:pass@neon.tech/db
+DATABASE_URL=postgres://...
 
-# Stripe
-STRIPE_SECRET_KEY=sk_live_xxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/...
-STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/...
-STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/...
+# Authentication
+SESSION_SECRET=your-secret-key
+ENCRYPTION_KEY=your-encryption-key
 
-# OpenAI
+# Email (OTP)
+TWILIO_SENDGRID_API_KEY=SG.xxxxx
+TWILIO_EMAIL_FROM=auth@audnixai.com
+
+# AI
 OPENAI_API_KEY=sk-xxxxx
-OPENAI_MODEL=gpt-4o-mini
+```
 
-# Email
-RESEND_API_KEY=re_xxxxx
-MAILGUN_API_KEY=key-xxxxx
-MAILGUN_DOMAIN=mg.audnixai.com
+### Optional
+```env
+# Voice
+ELEVENLABS_API_KEY=xxxxx
 
-# Google OAuth
-GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
+# Calendar
+GOOGLE_CLIENT_ID=xxxxx
 GOOGLE_CLIENT_SECRET=xxxxx
-GOOGLE_CALENDAR_CLIENT_ID=xxxxx.apps.googleusercontent.com
-GOOGLE_CALENDAR_CLIENT_SECRET=xxxxx
 
-# ElevenLabs
-ELEVENLABS_API_KEY=sk_xxxxx
+# Payments
+STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/xxxxx
+STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/xxxxx
+STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/xxxxx
 
 # Admin
-ADMIN_EMAIL_1=fortune@audnixai.com
-ADMIN_EMAIL_2=treasure@audnixai.com
+ADMIN_WHITELIST_EMAILS=email1@domain.com,email2@domain.com
+VITE_ADMIN_SECRET_URL=/admin-secret-path
 ```
 
 ---
 
-## 🔒 Security & Compliance
+## API Endpoints
 
-### Encryption
+### Authentication
+- `POST /api/auth/register` - Start signup (email)
+- `POST /api/auth/register/password` - Set password
+- `POST /api/auth/register/otp/send` - Send OTP
+- `POST /api/auth/register/otp/verify` - Verify OTP
+- `POST /api/auth/register/username` - Set username
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
 
-- ✅ All OAuth tokens encrypted at rest (AES-256)
-- ✅ Session secrets generated securely
-- ✅ Passwords hashed with bcryptjs (10 rounds)
-- ✅ CSRF protection on all state-changing endpoints
+### Dashboard
+- `GET /api/dashboard/stats` - Real-time metrics
+- `GET /api/dashboard/activity` - Recent activity feed
+- `GET /api/insights` - AI-generated analytics
 
-### Payment Security
+### Leads
+- `GET /api/leads` - List leads
+- `POST /api/leads` - Create lead
+- `POST /api/leads/import` - Bulk CSV import
+- `PUT /api/leads/:id` - Update lead
 
-- ✅ **Zero payment keys in code** - Uses Stripe Payment Links
-- ✅ **Webhook verification** - All payments server-verified
-- ✅ **No cheating possible** - Links immutable once generated
-- ✅ **Rate limit enforcement** - Database-level limits
-- ✅ **Trial tracking** - Automatic 3-day trial on signup
-
-### Data Privacy
-
-- ✅ GDPR-compliant data handling
-- ✅ User data encrypted in transit (HTTPS)
-- ✅ Regular security audits
-- ✅ No sensitive data in logs
-- ✅ Admin access logged
-
-### Compliance
-
-- ✅ **Instagram**: Official Graph API (ToS compliant)
-- ✅ **WhatsApp**: 24-hour window enforcement
-- ✅ **Email**: SPF/DKIM/DMARC support
-- ✅ **GDPR**: User data deletion support
-- ✅ **CCPA**: Privacy policy compliance
+### Admin
+- `GET /api/admin/metrics` - Platform stats
+- `GET /api/admin/users` - List users
+- `POST /api/admin/users/:id/upgrade` - Direct plan upgrade
 
 ---
 
-## 📞 Support & Documentation
+## Workers (24/7 Active)
 
-- **API Docs**: See `/docs` endpoint
-- **Admin Guide**: See `ADMIN_DASHBOARD.md`
-- **Deployment**: See `RAILWAY_DEPLOYMENT_GUIDE.md`
-- **Security**: See `SECURITY_IMPROVEMENTS.md`
-
----
-
-## 🚀 VERSION 3.0 - BULLETPROOF HUMANIZED OUTREACH ENGINE
-
-### Smart Outreach System: $15k-$61k Revenue in 5 Days
-
-**Complete Outreach Infrastructure:**
-1. **Outreach Strategy** - Segments 5k leads by quality (Hot→$199, Warm→$99, Cold→$49, Quick→$0 trial), projects $37k-$61k revenue
-2. **Message Rotator** - 5 hook variations, value pitches, social proofs, urgency frames, follow-ups (prevents spam)
-3. **Batch Scheduler** - Randomized timing (10-180 min intervals), variable batch sizes (75-200 leads), 1-5 day spreads
-4. **Outreach Engine** - Orchestrates segmentation, personalization, follow-ups (12h-7d by tier), safety guardrails
-5. **API Integration** - `/api/outreach/campaign/create` endpoint with pre-flight safety validation
-
-**Humanized Automation:**
-- ✅ Randomized send times (not 9 AM every day like a bot)
-- ✅ Template rotation (5 hook variations, never same twice)
-- ✅ Staggered batches (50 every 15 min, not 1k at once)
-- ✅ Personalization at scale (name + company + their recent work)
-- ✅ Intelligent follow-ups (replies handled in minutes, follow-ups auto-sent at Day 2, 3, 5, 7, 14)
-- ✅ Bounce rate protection (<2%, auto-pauses if >5%)
-
-**Revenue Math (Proven):**
-- Free Trial (500 leads): 8% conversion × $65 avg = $2.6k (Day 1)
-- Starter (2,500 leads): 15% conversion × $49.99 = $18.7k (Days 1-3)
-- Pro (1,500 leads): 20% conversion × $99.99 = $30k (Days 2-5)
-- Enterprise (200 leads): 25% conversion × $199.99 = $10k (Days 3-5)
-- **Total 5-day:** $61k (conservative scenario: $45k+)
-
-**Key Documentation:**
-- `OUTREACH_STRATEGY_GUIDE.md` - Complete 5-day send calendar
-- `OUTREACH_VIABILITY_PROOF.md` - Why this model works (psychology + data)
-- `EMAIL_DELIVERABILITY_GUIDE.md` - Bounce rate + humanization explained
+1. **Follow-up Worker** - Automated lead follow-ups
+2. **Email Sync Worker** - 5-minute mailbox sync
+3. **Email Warmup Worker** - Gradual sending ramp
+4. **Video Comment Monitor** - Instagram/YouTube replies
+5. **Weekly Insights Worker** - AI analytics generation
+6. **OAuth Token Refresh** - Keep integrations alive
 
 ---
 
-## 🎯 What's Next?
+## Deployment
 
-- [ ] Calendly integration (alternative to Google Calendar - instant API, no verification)
-- [ ] SMS automation (Twilio)
-- [ ] LinkedIn message automation
-- [ ] Advanced lead scoring
-- [ ] A/B testing for messages
-- [ ] Team collaboration features
-- [ ] Custom workflow builder
+### Replit (Recommended)
+1. Click "Publish" in Replit
+2. All secrets auto-transfer
+3. Choose Autoscale or Reserved VM
+
+### Vercel
+1. Import repository
+2. Add all environment variables manually
+3. Deploy
 
 ---
 
-**Last Updated**: November 26, 2025  
-**Status**: ✅ Production Ready | ✅ Outreach Engine Live  
-**All Systems**: ✅ Operational | ✅ Real-Time Active
+## Security
+
+- bcrypt password hashing
+- HTTP-only session cookies
+- CSRF protection via helmet
+- Rate limiting (memory or Redis)
+- Input sanitization
+- No API keys in client code
+
+---
+
+## Support
+
+For issues or questions, contact the development team.
+
+---
+
+Built with precision for creators, coaches, agencies, and founders.

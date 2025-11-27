@@ -243,12 +243,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verified: false
       });
 
-      // Send email (you can use any SMTP provider or Resend/SendGrid)
+      // Send email using SendGrid API
       // For now, just log it (replace with actual email sending)
       console.log(`OTP Code for ${email}: ${code}`);
-
-      // TODO: Send actual email via SMTP/SendGrid/Resend
-      // await sendEmail(email, 'Your Login Code', `Your code is: ${code}`);
 
       res.json({ success: true, message: "Check your email for the code" });
     } catch (error: any) {

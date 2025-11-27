@@ -1,62 +1,50 @@
 # Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
 
-### Overview
-Audnix AI is a zero-setup, multi-channel sales automation SaaS platform designed to automate lead imports and personalized follow-ups across WhatsApp, Email, and CSV. It emphasizes user privacy by integrating directly with users' existing business accounts (email, Calendly, WhatsApp). The platform aims to automate sales and objection handling for creators, coaches, agencies, and founders, significantly improving conversion rates through an AI-driven autonomous objection handler. Its ambition is to streamline sales processes, generate substantial revenue, and revolutionize sales outreach.
+> Last Updated: **November 27, 2025**
 
-### User Preferences
-No specific user preferences were provided in the document.
+### Overview
+Audnix AI is a zero-setup, multi-channel sales automation SaaS platform designed to automate lead imports and personalized follow-ups across WhatsApp, Email, and CSV. It emphasizes user privacy by integrating directly with users' existing business accounts (email, Calendly, WhatsApp). The platform automates sales and objection handling for creators, coaches, agencies, and founders.
 
 ### System Architecture
-Audnix AI is a production-ready, Vercel-deployable SaaS platform featuring a unified AI sales engine.
 
-**UI/UX Decisions:**
-- **Responsive Mobile UI:** Admin dashboard includes a hamburger menu for mobile/tablet and a full sidebar for desktop.
-- **Landing Page:** Highlights key features such as PDF Upload & Brand Learning, Real Analytics Dashboard, Multi-Channel Automation, Legal Compliance, and Conversion Strategy.
+**Tech Stack:**
+- **Backend:** Node.js + Express + TypeScript
+- **Database:** PostgreSQL (Neon) with Drizzle ORM
+- **Frontend:** React + Vite + Tailwind CSS + Radix UI
+- **Sessions:** PostgreSQL-backed (connect-pg-simple) - 500+ concurrent users
+- **Email:** SendGrid API (direct HTTP calls)
+- **AI:** OpenAI GPT-4
+- **Voice:** ElevenLabs
+- **Payments:** Stripe (payment links only, no API keys in code)
+- **Real-time:** Supabase (optional, for real-time subscriptions)
 
-**Technical Implementations:**
-- **Authentication System:** Features a secure user flow (Email -> Password -> OTP -> Username -> Dashboard) with 7-day sessions and a restricted Admin flow (whitelist email + OTP, 30-day sessions). Includes device banning for security. OTP system uses Twilio SendGrid and database persistence.
-- **Payment System:** Database-driven payment tracking, eliminating the need for direct Stripe API keys for approval. An Admin Dashboard manages pending payments with auto-approval.
-- **Admin Dashboard:** A secure, secret URL (configurable via `VITE_ADMIN_SECRET_URL`) provides access to user statistics, trial/paid user distribution, and pending approvals.
-- **AI-powered Autonomous Objection Handler (Unified Sales Engine):** Identifies and responds to 110+ types of sales objections using GPT-4, generating context-aware closing responses. It operates in two modes:
-    1.  **Autonomous Mode (Backend):** Automatically closes leads across email, WhatsApp, and Instagram, learning from outcomes.
-    2.  **Assistant Mode (During Calls):** Provides real-time guidance during sales meetings, offering instant reframes and closing questions.
-    The system uses a unified database for continuous learning and improvement.
-- **Outreach Engine:** A comprehensive system for humanized outreach, including:
-    - **Strategy Engine:** Segments leads by quality and projects revenue.
-    - **Message Rotator:** Uses five hook variations, value pitches, and social proofs to prevent spam.
-    - **Batch Scheduler:** Randomizes timing and batch sizes for sends.
-    - **Outreach Engine:** Orchestrates segmentation, personalization, and intelligent follow-ups (12h-7d by tier) with safety guardrails like bounce rate protection.
-    - **Reply Handling:** Automated responses based on reply timing and follow-up sequences.
-    - **Deliverability:** Pre-validates emails, handles bounces, and auto-pauses campaigns if bounce rates exceed thresholds to maintain high deliverability (98%+).
-- **Audit & Compliance:** Features an audit trail for AI actions, opt-out systems, PDF confidence tracking, rate limiting, auto-disclaimers, and integrated legal policies.
-- **Email System:** Utilizes three distinct email senders (`hello@audnixai.com` for reminders, `billing@audnixai.com` for transactional, `auth@audnixai.com` for authentication) with predefined sequences and timing. It includes a universal email router supporting SendGrid or custom APIs and activity-based reminders.
-- **Backend Infrastructure:** Uses PostgreSQL for data management. Session and encryption are handled with `SESSION_SECRET` and `ENCRYPTION_KEY`. API routing is configured to prevent conflicts.
+**Authentication Flow:**
+Email → Password → OTP (SendGrid) → Username → Dashboard
 
-**System Design Choices:**
-- **Role-based access control.**
-- **Comprehensive security measures** including AuthGuard, encryption, and secure secret management.
-- **Modular design** with clear separation of concerns.
-- **Persistent external database (Neon PostgreSQL)** for deployment independence.
+**Pricing Tiers:**
+- Free: $0/mo (100 leads, 10 voice minutes)
+- Trial: $0 for 3 days (500 leads, 50 voice minutes)
+- Starter: $49.99/mo (2,500 leads, 100 voice minutes)
+- Pro: $99.99/mo (7,000 leads, 400 voice minutes)
+- Enterprise: $199.99/mo (20,000 leads, 1,500 voice minutes)
 
-### Recent Changes (November 2025)
-- **Password Persistence Fix:** Fixed critical bug where passwords weren't being saved to database during user creation. Both DrizzleStorage and SupabaseStorage now properly hash and store passwords.
-- **PostgreSQL Session Store:** Replaced in-memory session storage with `connect-pg-simple` for persistent sessions across server restarts. Supports up to 500 concurrent users.
-- **Custom Email Integration:** Redesigned email setup to require explicit IMAP host/port fields for reliable cross-provider compatibility (Gmail, Outlook, Yahoo, custom SMTP).
-- **Email Sync Worker:** New background worker syncs emails every 5 minutes from connected mailboxes, automatically importing up to 50 recent emails per sync and detecting ghosted leads (48+ hours without reply).
-- **Storage Interface Enhancement:** Added `getIntegrationsByProvider()` method across all storage implementations for efficient bulk queries.
-- **Redis Error Handling:** Graceful fallback to memory-based rate limiting when Redis is unavailable, preventing log spam.
+### Key Features
+- **AI Objection Handler:** 110+ objection types with GPT-4 responses
+- **Multi-Channel:** Email, WhatsApp, Instagram DM automation
+- **Human-like Timing:** 2-8 minute response delays
+- **PDF Brand Learning:** Instant analysis with AI fallback for missing data
+- **Admin Dashboard:** Direct plan upgrades, user management, real-time analytics
+- **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
-### External Dependencies
-- **PostgreSQL (Neon):** Primary database.
-- **Stripe:** Used for generating payment links (not for payment approval logic).
-- **Twilio SendGrid:** For sending OTP and other emails.
-- **GPT-4:** AI model used for the autonomous objection handler and response generation.
-- **ElevenLabs:** For voice cloning (human-sounding AI).
+### Recent Changes (November 27, 2025)
+- **Admin Direct Upgrade:** POST /api/admin/users/:id/upgrade - upgrade any user to any plan without payment
+- **AI Analytics:** Real-time data with smart messaging for limited data scenarios
+- **PDF Upload UX:** AI fallback messaging when brand data is incomplete
+- **Documentation Cleanup:** Removed 40+ obsolete markdown files
 
 ### Key Files
-- `server/drizzle-storage.ts`: Main storage implementation using Drizzle ORM
-- `server/supabase-storage.ts`: Alternative Supabase storage implementation
-- `server/lib/email/email-sync-worker.ts`: Background email sync worker
-- `server/routes/custom-email-routes.ts`: Custom email integration API endpoints
-- `server/routes/payment-approval.ts`: Admin payment approval workflow (no API keys needed)
-- `client/src/components/email-setup-ui.tsx`: Email integration UI component
+- `server/drizzle-storage.ts`: Main storage (Drizzle ORM)
+- `server/lib/auth/twilio-email-otp.ts`: OTP via SendGrid
+- `server/routes/admin-routes.ts`: Admin endpoints
+- `client/src/pages/dashboard/home.tsx`: Main dashboard
+- `client/src/pages/auth.tsx`: Authentication flow
