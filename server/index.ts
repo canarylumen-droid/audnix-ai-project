@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin";
@@ -70,6 +71,23 @@ if (sessionSecret === 'temporary-dev-secret-change-in-production' && process.env
   throw new Error('SESSION_SECRET environment variable must be set in production');
 }
 
+// Create PostgreSQL session store if DATABASE_URL is available
+const PgSession = connectPgSimple(session);
+let sessionStore: session.Store | undefined;
+
+if (process.env.DATABASE_URL) {
+  sessionStore = new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 mins
+  });
+  console.log('✅ Using PostgreSQL session store (persistent across restarts)');
+} else {
+  console.warn('⚠️  Using memory session store - sessions will be lost on restart');
+  console.warn('💡 Configure DATABASE_URL for persistent sessions');
+}
+
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
   resave: false,
@@ -80,14 +98,8 @@ const sessionConfig: session.SessionOptions = {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
   },
-  // Use database for sessions in production
-  store: process.env.DATABASE_URL ? undefined : undefined // PostgreSQL store configured via connect-pg-simple
+  store: sessionStore
 };
-
-if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
-  console.warn('⚠️  Using memory session store - sessions will be lost on restart');
-  console.warn('💡 Configure DATABASE_URL in Replit Secrets for persistent sessions');
-}
 
 app.use(session(sessionConfig));
 

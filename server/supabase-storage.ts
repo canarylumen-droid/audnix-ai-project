@@ -154,6 +154,7 @@ export class SupabaseStorage implements IStorage {
       .insert({
         supabase_id: insertUser.supabaseId || null,
         email: insertUser.email,
+        password: insertUser.password || null,
         name: insertUser.name || null,
         username: insertUser.username || null,
         avatar: insertUser.avatar || null,

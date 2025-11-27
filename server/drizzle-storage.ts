@@ -77,6 +77,7 @@ export class DrizzleStorage implements IStorage {
       .insert(users)
       .values({
         email: insertUser.email,
+        password: insertUser.password || null,
         name: insertUser.name || null,
         username: insertUser.username || null,
         avatar: insertUser.avatar || null,
