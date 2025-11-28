@@ -54,19 +54,11 @@ export function PricingSection() {
                 <Zap className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-white">Paid Plans</h3>
               </div>
-              <p className="text-white/70 text-sm mb-3">All 3 channels unlocked</p>
+              <p className="text-white/70 text-sm mb-3">Email automation unlocked</p>
               <div className="flex flex-wrap gap-3 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-emerald-400" />
                   <span className="text-white/80">Email</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <SiWhatsapp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">WhatsApp</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">Instagram</span>
                 </div>
               </div>
             </div>
