@@ -18,7 +18,7 @@ import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/ca
 import { generateSmartReplies } from '../lib/ai/smart-replies.js';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
 import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
-import type { ProviderType, ChannelType } from '@shared/types';
+import type { ProviderType, ChannelType } from '../../shared/types.js';
 
 type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
 
@@ -625,7 +625,7 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
     }
 
     const { db } = await import('../db');
-    const { brandEmbeddings } = await import('@shared/schema');
+    const { brandEmbeddings } = await import('../../shared/schema.js');
     const { embed } = await import('../lib/ai/openai');
 
     await db.delete(brandEmbeddings).where(eq(brandEmbeddings.userId, userId));

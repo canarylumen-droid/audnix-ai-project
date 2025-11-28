@@ -8,7 +8,7 @@ import {
 } from '../lib/calendar/calendar-booking.js';
 import { validateCalendlyToken } from '../lib/calendar/calendly.js';
 import { storage } from '../storage.js';
-import type { ChannelType } from '@shared/types';
+import type { ChannelType } from '../../shared/types.js';
 
 const router = Router();
 

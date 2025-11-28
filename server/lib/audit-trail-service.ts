@@ -4,7 +4,7 @@
  */
 
 import { db } from "../db";
-import { auditTrail, pdfAnalytics } from "@shared/schema";
+import { auditTrail, pdfAnalytics } from "../../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 
 export type AuditActionType = "ai_message_sent" | "opt_out_toggled" | "pdf_processed" | "upload_rate_limited";

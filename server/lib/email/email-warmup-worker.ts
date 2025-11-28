@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from '@shared/schema';
+import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 

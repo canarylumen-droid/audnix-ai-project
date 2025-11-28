@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';
-import { otpCodes } from '@shared/schema';
+import { otpCodes } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { multiProviderEmailFailover } from '../lib/email/multi-provider-failover.js';
 import { generateOTPEmail } from '../lib/email/otp-templates.js';

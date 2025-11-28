@@ -9,8 +9,8 @@
  * - Smart objection handling
  */
 
-import type { ConversationMessage, BrandContext, LeadProfile } from "@shared/types";
-import type { Lead } from "@shared/schema";
+import type { ConversationMessage, BrandContext, LeadProfile } from "../../../shared/types.js";
+import type { Lead } from "../../../shared/schema.js";
 import { 
   generateOptimizedMessage, 
   universalSalesAI,

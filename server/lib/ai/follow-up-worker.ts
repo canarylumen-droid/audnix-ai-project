@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '@shared/schema';
+import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '../../../shared/schema.js';
 import { eq, and, lte, asc } from 'drizzle-orm';
 import { generateReply } from './openai.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
@@ -20,7 +20,7 @@ import type {
   LeadStatus,
   MessageDirection,
   ProviderType 
-} from '@shared/types';
+} from '../../../shared/types.js';
 
 interface FollowUpJob {
   id: string;

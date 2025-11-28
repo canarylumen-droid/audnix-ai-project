@@ -15,7 +15,7 @@ import fetch, { RequestInit } from 'node-fetch';
 import nodemailer from 'nodemailer';
 import type { SentMessageInfo } from 'nodemailer';
 import { storage } from '../../storage.js';
-import type { ProviderResult } from '@shared/types';
+import type { ProviderResult } from '../../../shared/types.js';
 
 interface EmailPayload {
   to: string;

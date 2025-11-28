@@ -10,8 +10,8 @@
  * - Activity Timeline
  */
 
-import type { Lead, Message } from "@shared/schema";
-import type { MessageDirection } from "@shared/types";
+import type { Lead, Message } from "../../../shared/schema.js";
+import type { MessageDirection } from "../../../shared/types.js";
 
 interface ScoringMessage {
   direction: MessageDirection;

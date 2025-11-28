@@ -5,7 +5,7 @@ import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../l
 import { supabaseAdmin } from '../lib/supabase-admin.js';
 import { storage } from '../storage.js';
 import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook.js';
-import type { PlanType } from '@shared/types';
+import type { PlanType } from '../../shared/types.js';
 
 const router = Router();
 

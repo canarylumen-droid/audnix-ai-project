@@ -1,5 +1,11 @@
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { BrandColors } from '@/lib/types'; // Assuming BrandColors is defined in types
+import { supabaseAdmin } from '../lib/supabase-admin.js';
+
+// Brand colors type definition
+interface BrandColors {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+}
 
 /**
  * Get brand colors from user's brand_embeddings metadata

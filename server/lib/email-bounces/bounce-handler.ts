@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { bounceTracker, leads as leadsTable } from '@shared/schema';
+import { bounceTracker, leads as leadsTable } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 /**

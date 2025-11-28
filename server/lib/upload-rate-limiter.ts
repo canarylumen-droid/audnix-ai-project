@@ -4,7 +4,7 @@
  */
 
 import { db } from "../db";
-import { uploadRateLimit } from "@shared/schema";
+import { uploadRateLimit } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export interface RateLimitConfig {

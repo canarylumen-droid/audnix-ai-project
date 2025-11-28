@@ -8,7 +8,7 @@ import type {
   InsertMessage,
   Integration,
   InsertIntegration,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import type { IStorage } from "./storage";
 
 // Initialize Supabase client with service role key for server-side operations

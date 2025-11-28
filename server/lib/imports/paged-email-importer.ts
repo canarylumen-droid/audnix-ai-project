@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { leads as leadsTable } from '@shared/schema';
+import { leads as leadsTable } from '../../../shared/schema.js';
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 

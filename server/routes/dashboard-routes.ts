@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage.js';
 import { requireAuth } from '../middleware/auth.js';
-import type { Lead, Message } from '@shared/schema';
+import type { Lead, Message } from '../../shared/schema.js';
 
 const router = Router();
 

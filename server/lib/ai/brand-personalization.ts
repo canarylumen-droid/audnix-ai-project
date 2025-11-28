@@ -10,7 +10,7 @@
  */
 
 import { storage } from '../../storage.js';
-import type { ChannelType } from '@shared/types';
+import type { ChannelType } from '../../../shared/types.js';
 
 interface BrandPersonalizationContext {
   senderName: string;

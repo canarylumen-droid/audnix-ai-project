@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { bounceTracker, leads, Lead } from '@shared/schema';
+import { bounceTracker, leads, Lead } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 

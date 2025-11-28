@@ -2,7 +2,7 @@ import { storage } from '../../storage.js';
 import { decrypt } from '../crypto/encryption.js';
 import { importCustomEmails } from '../channels/email.js';
 import { pagedEmailImport } from '../imports/paged-email-importer.js';
-import type { Integration, Lead } from '@shared/schema';
+import type { Integration, Lead } from '../../../shared/schema.js';
 
 /**
  * Email Sync Worker

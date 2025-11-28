@@ -403,7 +403,7 @@ router.get("/analytics/channels", async (req: Request, res: Response): Promise<v
 // Get onboarding statistics
 router.get("/analytics/onboarding", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { onboardingProfiles } = await import("@shared/schema");
+    const { onboardingProfiles } = await import("../../shared/schema.js");
     
     // Get user role breakdown
     const roleStats = await db.execute(sql`

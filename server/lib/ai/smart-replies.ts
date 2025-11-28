@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { storage } from '../../storage.js';
-import type { Lead, Message } from '@shared/schema';
+import type { Lead, Message } from '../../../shared/schema.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key'

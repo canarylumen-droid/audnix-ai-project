@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { voiceAI } from '../lib/ai/voice-ai-service.js';
 import { uploadVoice } from '../lib/file-upload.js';
-import type { User } from '@shared/schema';
-import type { PlanType } from '@shared/types';
+import type { User } from '../../shared/schema.js';
+import type { PlanType } from '../../shared/types.js';
 
 const router = Router();
 

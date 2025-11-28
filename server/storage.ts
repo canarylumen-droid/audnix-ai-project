@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration } from "@shared/schema";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { SendGridDiagnostic } from './sendgrid-diagnostic.js';
-import type { OTPVerificationResult } from '@shared/types';
+import type { OTPVerificationResult } from '../../../shared/types.js';
 
 interface EmailOTPSession {
   email: string;

@@ -19,7 +19,7 @@
  */
 
 import OpenAI from "openai";
-import type { BrandContext } from "@shared/types";
+import type { BrandContext } from "../../../shared/types.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",

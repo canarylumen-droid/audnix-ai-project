@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { followUpWorker } from '../lib/ai/follow-up-worker.js';
 import { db } from '../db.js';
-import { followUpQueue, leads } from '@shared/schema';
+import { followUpQueue, leads } from '../../shared/schema.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 
 const router = Router();

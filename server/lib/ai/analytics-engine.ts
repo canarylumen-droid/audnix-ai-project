@@ -1,5 +1,5 @@
 import { storage } from '../../storage.js';
-import type { Lead, Message } from '@shared/schema';
+import type { Lead, Message } from '../../../shared/schema.js';
 
 export interface AnalyticsInsights {
   period: string;

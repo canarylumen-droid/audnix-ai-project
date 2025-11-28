@@ -8,7 +8,7 @@
 import { storage } from '../../storage.js';
 import { createCalendarEvent, listUpcomingEvents } from './google-calendar.js';
 import { getCalendlySlots, createCalendlyEvent } from './calendly.js';
-import type { ChannelType } from '@shared/types';
+import type { ChannelType } from '../../../shared/types.js';
 
 interface BookingSlot {
   startTime: Date;

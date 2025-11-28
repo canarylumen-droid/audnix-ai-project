@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "@shared/schema";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "@shared/schema";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 

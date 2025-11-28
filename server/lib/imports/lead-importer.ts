@@ -1,9 +1,9 @@
 import { storage } from '../../storage.js';
 import { db } from '../../db.js';
-import { followUpQueue } from '@shared/schema';
+import { followUpQueue } from '../../../shared/schema.js';
 import { InstagramOAuth } from "../oauth/instagram";
 import { decrypt } from "../crypto/encryption";
-import type { Lead, Message } from "@shared/schema";
+import type { Lead, Message } from "../../../shared/schema.js";
 
 /**
  * Import leads and conversation history from Instagram

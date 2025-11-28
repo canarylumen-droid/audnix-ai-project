@@ -1,7 +1,7 @@
 import { storage } from "../../storage.js";
 import { generateInsights } from "./openai.js";
-import type { User, Lead, Message } from "@shared/schema";
-import type { WeeklyInsight, LeadInsights } from "@shared/types";
+import type { User, Lead, Message } from "../../../shared/schema.js";
+import type { WeeklyInsight, LeadInsights } from "../../../shared/types.js";
 
 interface DatabaseError extends Error {
   code?: string;

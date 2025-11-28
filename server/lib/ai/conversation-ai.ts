@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { storage } from "../../storage.js";
-import type { Message, Lead } from "@shared/schema";
+import type { Message, Lead } from "../../../shared/schema.js";
 import { storeConversationMemory, retrieveConversationMemory } from "./super-memory.js";
 import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector.js';
 import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation.js';

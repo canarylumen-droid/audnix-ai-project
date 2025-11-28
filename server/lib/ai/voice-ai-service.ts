@@ -5,8 +5,8 @@ import { storage } from '../../storage.js';
 import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai.js';
 import { uploadToSupabase } from '../file-upload.js';
 import { decrypt } from '../crypto/encryption.js';
-import type { Lead, Message, User } from '@shared/schema';
-import type { ProviderType } from '@shared/types';
+import type { Lead, Message, User } from '../../../shared/schema.js';
+import type { ProviderType } from '../../../shared/types.js';
 
 /**
  * Voice AI Service Interfaces

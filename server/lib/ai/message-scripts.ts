@@ -1,4 +1,4 @@
-import type { ChannelType } from '@shared/types';
+import type { ChannelType } from '../../../shared/types.js';
 
 export interface EmailMessageScript {
   subject: string;

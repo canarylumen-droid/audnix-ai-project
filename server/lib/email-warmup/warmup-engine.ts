@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { emailWarmupSchedules } from '@shared/schema';
+import { emailWarmupSchedules } from '../../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 /**

@@ -1,5 +1,5 @@
 import { storage } from '../../storage.js';
-import type { Message } from '@shared/schema';
+import type { Message } from '../../../shared/schema.js';
 
 interface LanguageDetection {
   language: string;

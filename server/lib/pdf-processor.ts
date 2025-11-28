@@ -2,7 +2,7 @@ import { supabaseAdmin } from './supabase-admin.js';
 import { storage } from '../storage.js';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
-import type { PDFProcessingResult } from '@shared/types';
+import type { PDFProcessingResult } from '../../shared/types.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
