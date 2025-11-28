@@ -117,76 +117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase auth callback - Handles OAuth (Google, GitHub) and Email Magic Link
+  // ⚠️ DEPRECATED: Supabase auth callback disabled - using password + OTP auth instead
+  // All authentication now handled via:
+  // 1. POST /api/user/auth/signup/request-otp (SendGrid OTP)
+  // 2. POST /api/user/auth/login (password auth)
+  // 3. Session stored in PostgreSQL (Neon)
   app.get("/api/auth/callback", async (req, res) => {
-    const { code, token_hash, type } = req.query;
-
-    if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
-      console.warn("Supabase not configured, redirecting to dashboard");
-      return res.redirect("/dashboard");
-    }
-
-    try {
-      let user;
-      let session;
-
-      // Handle Email Magic Link verification
-      if (token_hash && type === 'email') {
-        const { data, error } = await supabaseAdmin.auth.verifyOtp({
-          token_hash: String(token_hash),
-          type: 'email',
-        });
-
-        if (error || !data.user) {
-          console.error("Email verification error:", error);
-          return res.redirect("/auth?error=verification_failed");
-        }
-
-        user = data.user;
-        session = data.session;
-      }
-      // Handle OAuth callback (Google, GitHub, etc.)
-      else if (code) {
-        const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(String(code));
-
-        if (error || !data.user) {
-          console.error("OAuth callback error:", error);
-          return res.redirect("/auth?error=auth_failed");
-        }
-
-        user = data.user;
-        session = data.session;
-      } else {
-        console.log("No code or token_hash, redirecting to auth");
-        return res.redirect("/auth");
-      }
-
-      if (!user || !session) {
-        return res.redirect("/auth?error=auth_failed");
-      }
-
-      // Extract user info
-      const userMetadata = user.user_metadata || {};
-      const email = user.email || '';
-      const fullName = userMetadata.full_name || userMetadata.name || '';
-      const avatar = userMetadata.avatar_url || userMetadata.picture || null;
-      const username = email.split('@')[0];
-
-      // Check if user exists in our database
-      let dbUser = await storage.getUserBySupabaseId(user.id);
-
-      if (!dbUser) {
-        dbUser = await storage.createUser({
-          supabaseId: user.id,
-          email: email,
-          name: fullName || username,
-          username: username,
-          avatar: avatar,
-          plan: "trial",
-        });
-      } else {
-        dbUser = await storage.updateUser(dbUser.id, {
-          name: fullName || dbUser.name,
+    console.warn("❌ Supabase OAuth callback disabled - use email/password auth instead");
+    return res.redirect("/auth?error=oauth_disabled");
           avatar: avatar || dbUser.avatar,
           lastLogin: new Date(),
         });
@@ -537,15 +475,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Sign out endpoint
+  // Sign out endpoint - using PostgreSQL sessions only (no Supabase auth)
   app.post("/api/auth/signout", async (req, res) => {
     try {
-      // If using Supabase, sign out there too
-      if (isSupabaseAdminConfigured() && supabaseAdmin) {
-        await supabaseAdmin.auth.signOut();
-      }
-
-      // Properly destroy the session
+      // Destroy session (stored in PostgreSQL)
       if (req.session) {
         req.session.destroy((err) => {
           if (err) {
@@ -564,7 +497,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.status(200).json({ success: true, message: "Signed out successfully" });
         });
       } else {
-        // No session to destroy, just return success
         res.status(200).json({ success: true, message: "Signed out successfully" });
       }
     } catch (error) {

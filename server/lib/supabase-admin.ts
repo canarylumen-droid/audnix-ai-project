@@ -25,22 +25,6 @@ if (isSupabaseAdminConfigured()) {
 
 export const supabaseAdmin = adminClient;
 
-// Helper function to sync user from Supabase to our database
-export async function syncUserFromSupabase(supabaseUserId: string) {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase admin not configured');
-  }
-
-  const { data: { user }, error } = await supabaseAdmin.auth.admin.getUserById(supabaseUserId);
-
-  if (error || !user) {
-    throw new Error('Failed to fetch user from Supabase');
-  }
-
-  return {
-    supabaseId: user.id,
-    email: user.email || '',
-    name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-    username: user.user_metadata?.user_name || null,
-  };
-}
+// DEPRECATED: syncUserFromSupabase - no longer used
+// All user data is stored in Neon PostgreSQL database via Drizzle ORM
+// Authentication is handled via password + SendGrid OTP, not Supabase auth
