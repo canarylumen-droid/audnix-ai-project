@@ -265,17 +265,6 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            <div className="p-6 border border-cyan-500/20 rounded-lg">
-              <h3 className="font-semibold text-white mb-2">Free Trial</h3>
-              <p className="text-white/70 text-sm">1 AI insight preview to see how it works</p>
-            </div>
-            <div className="p-6 border border-cyan-500/30 rounded-lg">
-              <h3 className="font-semibold text-cyan-400 mb-2">Pro & Enterprise</h3>
-              <p className="text-white/70 text-sm">Unlimited insights, full analytics, real-time recommendations</p>
-            </div>
-          </div>
         </div>
       </section>
 
