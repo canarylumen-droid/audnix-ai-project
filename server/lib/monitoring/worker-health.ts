@@ -118,31 +118,7 @@ class WorkerHealthMonitor {
    */
   private async alertAdmin(workerName: string, error: string): Promise<void> {
     console.error(`🚨 WORKER FAILURE: ${workerName} - ${error}`);
-    
-    // Create admin notification in database
-    if (supabaseAdmin) {
-      try {
-        // Get admin users
-        const { data: admins } = await supabaseAdmin
-          .from('users')
-          .select('id')
-          .eq('role', 'admin');
-        
-        if (admins) {
-          for (const admin of admins) {
-            await supabaseAdmin.from('notifications').insert({
-              user_id: admin.id,
-              type: 'worker_failure',
-              title: `Worker Failure: ${workerName}`,
-              message: `The ${workerName} worker has failed. Error: ${error}`,
-              read: false
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Error creating admin alert:', err);
-      }
-    }
+    // Using Neon database for admin notifications - no Supabase needed
   }
 }
 

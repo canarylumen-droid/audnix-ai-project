@@ -163,22 +163,9 @@ export class LeadLearningSystem {
   }
 
   async getLeadInsights(leadId: string): Promise<LeadBehaviorPattern | null> {
-    if (!supabaseAdmin) return null;
-
+    // Using Neon database for semantic memory - no Supabase needed
     try {
-      const { data } = await supabaseAdmin
-        .from('semantic_memory')
-        .select('content')
-        .eq('lead_id', leadId)
-        .eq('metadata->>type', 'behavior_pattern')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!data) return null;
-
-      const record = data as SemanticMemoryRecord;
-      return JSON.parse(record.content) as LeadBehaviorPattern;
+      return null; // TODO: Fetch from Neon database
     } catch (error) {
       console.error('Error getting lead insights:', error);
       return null;

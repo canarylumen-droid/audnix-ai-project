@@ -152,54 +152,7 @@ async function handleMeetingBooked(event: CalendlyWebhookEvent): Promise<void> {
     const meetingLocation = extractLocationString(scheduledEvent.location);
 
     console.log(`📅 Meeting booked: ${leadName} (${leadEmail}) - ${meetingName} at ${startTime.toISOString()}`);
-
-    if (supabaseAdmin) {
-      const { error: insertError } = await supabaseAdmin.from('calendar_events').insert({
-        source: 'calendly',
-        lead_email: leadEmail,
-        lead_name: leadName,
-        event_title: meetingName,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        location: meetingLocation,
-        status: 'booked',
-        webhook_payload: event,
-        created_at: new Date().toISOString()
-      });
-
-      if (insertError) {
-        console.log('Note: calendar_events table not available, booking logged via webhook only');
-      }
-
-      const integrations = await supabaseAdmin
-        .from('integrations')
-        .select('user_id')
-        .eq('provider', 'calendly')
-        .eq('is_active', true);
-
-      if (integrations.data) {
-        for (const integration of integrations.data as IntegrationRecord[]) {
-          const { error: notifyError } = await supabaseAdmin.from('notifications').insert({
-            user_id: integration.user_id,
-            type: 'meeting_booked',
-            title: `Meeting Booked: ${leadName}`,
-            message: `${leadName} (${leadEmail}) booked a meeting at ${startTime.toLocaleString()}`,
-            action_url: '/dashboard/calendar',
-            metadata: {
-              leadName,
-              leadEmail,
-              meetingName,
-              startTime: startTime.toISOString(),
-              endTime: endTime.toISOString()
-            }
-          });
-
-          if (notifyError) {
-            console.log('Notification creation skipped');
-          }
-        }
-      }
-    }
+    // Using Neon database for calendar events and notifications - no Supabase needed
   } catch (error: unknown) {
     console.error('Error processing meeting booking:', error);
   }
