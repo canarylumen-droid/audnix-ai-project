@@ -266,9 +266,15 @@ export default function Landing() {
             ))}
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-4 text-center">
-            <p className="text-white/80 text-lg"><span className="font-semibold">Free Trial:</span> 1 AI insight preview to see how it works</p>
-            <p className="text-white/80 text-lg"><span className="font-semibold text-cyan-400">Pro & Enterprise:</span> Unlimited insights, full analytics, real-time recommendations</p>
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <div className="p-6 border border-cyan-500/20 rounded-lg">
+              <h3 className="font-semibold text-white mb-2">Free Trial</h3>
+              <p className="text-white/70 text-sm">1 AI insight preview to see how it works</p>
+            </div>
+            <div className="p-6 border border-cyan-500/30 rounded-lg">
+              <h3 className="font-semibold text-cyan-400 mb-2">Pro & Enterprise</h3>
+              <p className="text-white/70 text-sm">Unlimited insights, full analytics, real-time recommendations</p>
+            </div>
           </div>
         </div>
       </section>
@@ -379,9 +385,9 @@ export default function Landing() {
             </div>
           </div>
 
-          <div className="mt-8 p-6 rounded-lg bg-gradient-to-r from-purple-500/10 to-indigo-500/10 border border-purple-500/20 text-center">
+          <div className="mt-8 p-6 rounded-lg border border-purple-500/20 text-center">
             <p className="text-white/90 text-sm">
-              Full details: <Link href="/terms-of-service"><a className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</a></Link> and <Link href="/privacy-policy"><a className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</a></Link>
+              Full details: <Link href="/terms-of-service" className="text-purple-400 hover:text-purple-300 font-semibold">Terms of Service</Link> and <Link href="/privacy-policy" className="text-purple-400 hover:text-purple-300 font-semibold">Privacy Policy</Link>
             </p>
           </div>
         </div>
