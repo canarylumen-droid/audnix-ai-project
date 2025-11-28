@@ -162,13 +162,14 @@ export class FollowUpWorker {
 
       // Process jobs in parallel with proper typing
       await Promise.all(jobs.map((job) => {
+        const ctx = job.context as Record<string, unknown>;
         const typedJob: FollowUpJob = {
           id: job.id,
           userId: job.userId,
           leadId: job.leadId,
           channel: job.channel,
-          context: job.context as Record<string, unknown>,
-          retryCount: (job.context as Record<string, unknown>)?.retryCount as number || 0
+          context: ctx,
+          retryCount: typeof ctx?.retryCount === 'number' ? ctx.retryCount : 0
         };
         return this.processJob(typedJob);
       }));
