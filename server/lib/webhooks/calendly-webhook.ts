@@ -175,41 +175,7 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
     const leadName = invitee.name || '';
 
     console.log(`❌ Meeting cancelled: ${leadName} (${leadEmail})`);
-
-    if (supabaseAdmin) {
-      const { error: updateError } = await supabaseAdmin
-        .from('calendar_events')
-        .update({ status: 'cancelled' })
-        .eq('lead_email', leadEmail)
-        .eq('status', 'booked');
-
-      if (updateError) {
-        console.log('Calendar event update skipped');
-      }
-
-      const integrations = await supabaseAdmin
-        .from('integrations')
-        .select('user_id')
-        .eq('provider', 'calendly')
-        .eq('is_active', true);
-
-      if (integrations.data) {
-        for (const integration of integrations.data as IntegrationRecord[]) {
-          const { error: notifyError } = await supabaseAdmin.from('notifications').insert({
-            user_id: integration.user_id,
-            type: 'meeting_cancelled',
-            title: `Meeting Cancelled: ${leadName}`,
-            message: `${leadName} (${leadEmail}) cancelled their meeting`,
-            action_url: '/dashboard/calendar',
-            metadata: { leadName, leadEmail }
-          });
-
-          if (notifyError) {
-            console.log('Notification creation skipped');
-          }
-        }
-      }
-    }
+    // Using Neon database for calendar events and notifications - no Supabase needed
   } catch (error: unknown) {
     console.error('Error processing meeting cancellation:', error);
   }

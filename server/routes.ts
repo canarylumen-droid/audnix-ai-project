@@ -125,38 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/callback", async (req, res) => {
     console.warn("❌ Supabase OAuth callback disabled - use email/password auth instead");
     return res.redirect("/auth?error=oauth_disabled");
-          avatar: avatar || dbUser.avatar,
-          lastLogin: new Date(),
-        });
-      }
-
-      // Store session
-      req.session.regenerate((regErr) => {
-        if (regErr) {
-          console.error("Error regenerating session:", regErr);
-          return res.redirect("/auth?error=session_error");
-        }
-
-        (req.session as any).userId = dbUser!.id;
-        (req.session as any).userEmail = dbUser!.email;
-        (req.session as any).supabaseId = dbUser!.supabaseId;
-        (req.session as any).accessToken = session!.access_token;
-        (req.session as any).refreshToken = session!.refresh_token;
-        (req.session as any).expiresAt = session!.expires_at;
-
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session:", err);
-            return res.redirect("/auth?error=session_error");
-          }
-
-          res.redirect("/dashboard");
-        });
-      });
-    } catch (error) {
-      console.error("Error in auth callback:", error);
-      res.redirect("/auth?error=server_error");
-    }
   });
 
   // Custom email OTP - Send code (independent of Supabase)
