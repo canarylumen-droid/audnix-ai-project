@@ -1,5 +1,3 @@
-import { supabaseAdmin } from '../supabase-admin';
-
 export interface IntentAnalysis {
   isInterested: boolean;
   isNegative: boolean;
@@ -26,19 +24,8 @@ export async function analyzeLeadIntent(
   lead: any
 ): Promise<IntentAnalysis> {
   try {
-    // Get conversation history for context
-    const { data: history } = supabaseAdmin ? 
-      await supabaseAdmin
-        .from('messages')
-        .select('content, role')
-        .eq('lead_id', lead.id)
-        .order('created_at', { ascending: false })
-        .limit(5) :
-      { data: null };
-
-    const conversationContext = history?.map(m => 
-      `${m.role === 'user' ? 'Lead' : 'Agent'}: ${m.content}`
-    ).reverse().join('\n');
+    // Get conversation history for context - using database storage only (no Supabase)
+    const conversationContext = '';
 
     const prompt = `Analyze this lead message for sales intent and sentiment.
 
