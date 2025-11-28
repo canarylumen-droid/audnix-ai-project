@@ -82,13 +82,23 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // Only serve static files (JS, CSS, images, etc), NOT index.html for everything
+  app.use(express.static(distPath, { 
+    extensions: ['js', 'css', 'png', 'jpg', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'eot'],
+    index: false // Disable automatic index.html serving
+  }));
 
-  // fall through to index.html if the file doesn't exist
-  // IMPORTANT: Skip API and webhook routes - let Express handlers handle them
-  app.use("*", (req, res, next) => {
+  // EXPLICIT route handlers - API/webhook routes are NOT caught here
+  // Only serve index.html for actual page requests (not API calls)
+  app.get('/', (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+
+  // Catch-all for React Router - serves index.html for all other non-API routes
+  app.get('*', (req, res) => {
+    // CRITICAL: Never serve index.html for API routes
     if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
-      return next();
+      return res.status(404).json({ error: "Not found" });
     }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
