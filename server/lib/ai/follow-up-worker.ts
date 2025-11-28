@@ -1,4 +1,3 @@
-import { supabaseAdmin } from '../supabase-admin';
 import { db } from '../../db';
 import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '@shared/schema';
 import { eq, and, lte, asc } from 'drizzle-orm';

@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import { followUpWorker } from '../lib/ai/follow-up-worker';
-import { supabaseAdmin } from '../lib/supabase-admin';
 import { db } from '../db';
 import { followUpQueue, leads } from '@shared/schema';
 import { eq, and, gte, sql } from 'drizzle-orm';

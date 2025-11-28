@@ -116,6 +116,11 @@ app.use((req, res, next) => {
     return next();
   }
 
+  // Skip CSRF check for auth endpoints (they use rate limiting + OTP verification)
+  if (req.path.startsWith('/api/user/auth/') || req.path.startsWith('/api/auth/')) {
+    return next();
+  }
+
   // Verify origin header matches allowed domains
   const allowedOrigins = [
     process.env.NEXT_PUBLIC_APP_URL,
