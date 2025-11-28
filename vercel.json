@@ -2,10 +2,10 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/index.ts",
+      "src": "dist/server/index.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["server/**", "shared/**"]
+        "includeFiles": ["dist/server/**", "shared/**", "migrations/**"]
       }
     },
     {
@@ -23,7 +23,11 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "server/index.ts"
+      "dest": "dist/server/index.js"
+    },
+    {
+      "src": "/webhook/(.*)",
+      "dest": "dist/server/index.js"
     },
     {
       "src": "/(.*)",
