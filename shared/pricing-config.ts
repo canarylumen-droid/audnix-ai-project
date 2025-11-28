@@ -26,7 +26,7 @@ export const PRICING_TIERS: PricingTier[] = [
     features: [
       '100 leads (3-day trial)',
       '10 voice minutes',
-      'All features unlocked',
+      'Limited features access',
       'No credit card required',
     ],
   },
