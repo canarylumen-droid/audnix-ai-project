@@ -142,28 +142,7 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response): Pro
       permissions: ['instagram_basic', 'instagram_manage_messages']
     }, longLivedToken.expires_in);
 
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('users')
-        .update({
-          instagram_username: profile.username
-        })
-        .eq('id', stateData.userId);
-
-      await supabaseAdmin
-        .from('integrations')
-        .upsert({
-          user_id: stateData.userId,
-          provider: 'instagram',
-          account_type: profile.username,
-          credentials: { username: profile.username },
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
-    }
-
+    // Using Neon database for integration storage - no Supabase needed
     res.redirect('/dashboard/integrations?success=instagram_connected');
   } catch (error: unknown) {
     const err = error as Error & { code?: string; statusCode?: number };
@@ -188,18 +167,7 @@ router.post('/oauth/instagram/disconnect', async (req: Request, res: Response): 
     }
 
     await instagramOAuth.revokeToken(userId);
-
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'instagram');
-    }
-
+    // Using Neon database for integration storage - no Supabase needed
     res.json({ success: true });
   } catch (error) {
     console.error('Error disconnecting Instagram:', error);
