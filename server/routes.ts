@@ -1936,7 +1936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limits: { fileSize: 10 * 1024 * 1024 } // 10MB
       });
 
-      upload.single('pdf')(req, res, async (err) => {
+      upload.single('pdf')(req, res, async (err: unknown) => {
         if (err) {
           return res.status(400).json({ error: 'File upload failed' });
         }

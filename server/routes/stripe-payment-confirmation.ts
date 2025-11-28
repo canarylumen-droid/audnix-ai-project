@@ -5,7 +5,7 @@ const router = Router();
 
 const stripeApiKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeApiKey ? new Stripe(stripeApiKey, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2024-06-20' as Stripe.LatestApiVersion,
 }) : null;
 
 router.post('/confirm-payment', async (req: Request, res: Response): Promise<void> => {
@@ -49,7 +49,7 @@ router.post('/confirm-payment', async (req: Request, res: Response): Promise<voi
       subscription: subscription ? {
         id: subscription.id,
         status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end,
+        currentPeriodEnd: (subscription as any).current_period_end ?? null,
         items: subscription.items.data.map((item: Stripe.SubscriptionItem) => ({
           priceId: item.price.id,
           product: item.price.product,
@@ -89,7 +89,7 @@ router.post('/verify-subscription', async (req: Request, res: Response): Promise
       success: true,
       id: subscription.id,
       status: subscription.status,
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      currentPeriodEnd: new Date(((subscription as any).current_period_end ?? 0) * 1000),
       plan: subscription.items.data[0]?.price?.nickname,
     });
   } catch (error: unknown) {

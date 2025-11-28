@@ -100,10 +100,17 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
             return;
           }
 
+          const stripeCustomerId = typeof session.customer === 'string' 
+            ? session.customer 
+            : (session.customer as Stripe.Customer | Stripe.DeletedCustomer | null)?.id ?? undefined;
+          const stripeSubscriptionId = typeof session.subscription === 'string' 
+            ? session.subscription 
+            : (session.subscription as Stripe.Subscription | null)?.id ?? undefined;
+          
           await storage.updateUser(userId, {
             plan: planKey as PlanType,
-            stripeCustomerId: session.customer ?? undefined,
-            stripeSubscriptionId: session.subscription ?? undefined,
+            stripeCustomerId,
+            stripeSubscriptionId,
             trialExpiresAt: null,
           });
 

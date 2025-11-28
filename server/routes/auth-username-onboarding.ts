@@ -44,6 +44,11 @@ router.post('/set-username', requireAuth, async (req: Request<object, object, Se
     // Update user
     const user = await storage.updateUser(userId, { username });
 
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
     res.json({
       success: true,
       message: 'Username set successfully',
@@ -83,6 +88,11 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
         onboardedAt: new Date().toISOString(),
       },
     });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
 
     res.json({
       success: true,

@@ -39,7 +39,7 @@ export default defineConfig({
     fs: {
       strict: false,
     },
-    allowedHosts: 'all',
+    allowedHosts: true,
     middlewareMode: false,
   },
   preview: {

@@ -372,7 +372,7 @@ export class FollowUpWorker {
       systemPrompt = getContextAwareSystemPrompt(personalizationContext, lead.channel);
     }
 
-    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script);
+    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script ?? undefined);
 
     const result = await generateReply(systemPrompt, userPrompt, {
       temperature: 0.7,

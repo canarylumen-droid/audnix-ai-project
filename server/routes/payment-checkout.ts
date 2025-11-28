@@ -132,11 +132,11 @@ router.post("/verify-session", requireAuth, async (req: Request, res: Response):
 
     // Mark user as pending approval
     await storage.updateUser(userId, {
-      payment_status: "pending",
-      pending_payment_amount: session.amount,
-      pending_payment_plan: session.plan,
-      pending_payment_date: new Date(),
-    });
+      paymentStatus: "pending",
+      pendingPaymentAmount: session.amount,
+      pendingPaymentPlan: session.plan,
+      pendingPaymentDate: new Date(),
+    } as any);
 
     console.log(`✅ Payment verified: ${user.email} (${session.plan} - $${session.amount}) - Subscription ID: ${session.subscription_id}`);
 

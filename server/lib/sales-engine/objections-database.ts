@@ -623,7 +623,6 @@ export const OBJECTIONS_DATABASE: Objection[] = [
     id: 'fit-3',
     objection: 'My industry is different / Sales doesn\'t work that way',
     category: 'fit',
-    industries: ['all'],
     industries: ['B2B', 'healthcare', 'legal', 'manufacturing'],
     reframes: [
       'Every industry thought this till one company in your space tried it',

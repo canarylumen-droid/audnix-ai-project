@@ -236,9 +236,9 @@ class BounceHandler {
         .from(bounceTracker)
         .where(eq(bounceTracker.userId, userId));
 
-      const hardBounces = bounces.filter(b => b.bounceType === 'hard').length;
-      const softBounces = bounces.filter(b => b.bounceType === 'soft').length;
-      const spamBounces = bounces.filter(b => b.bounceType === 'spam').length;
+      const hardBounces = bounces.filter((b: { bounceType: string }) => b.bounceType === 'hard').length;
+      const softBounces = bounces.filter((b: { bounceType: string }) => b.bounceType === 'soft').length;
+      const spamBounces = bounces.filter((b: { bounceType: string }) => b.bounceType === 'spam').length;
       const totalBounces = bounces.length;
 
       // Get total leads to calculate bounce rate
