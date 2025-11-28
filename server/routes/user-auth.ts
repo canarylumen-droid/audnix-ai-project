@@ -22,20 +22,32 @@ router.get('/otp-configured', async (_req: Request, res: Response): Promise<void
 
 router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('🔍 [OTP Request] Received request to /api/user/auth/signup/request-otp');
+    console.log('🔍 [OTP Request] Origin:', req.get('origin'));
+    console.log('🔍 [OTP Request] Headers:', {
+      'content-type': req.get('content-type'),
+      'user-agent': req.get('user-agent'),
+      'referer': req.get('referer')
+    });
+    
     const { email, password } = req.body as { email?: string; password?: string };
+    console.log('🔍 [OTP Request] Body - Email:', email ? '✓' : '✗', 'Password:', password ? '✓' : '✗');
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      console.error('❌ [OTP] Invalid email format');
       res.status(400).json({ error: 'Valid email required' });
       return;
     }
 
     if (!password || password.length < 8) {
+      console.error('❌ [OTP] Weak password');
       res.status(400).json({ error: 'Password must be at least 8 characters' });
       return;
     }
 
     const existing = await storage.getUserByEmail(email);
     if (existing) {
+      console.error(`❌ [OTP] Email already registered: ${email}`);
       res.status(400).json({ error: 'Email already registered. Use login instead.' });
       return;
     }
@@ -47,7 +59,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 
     if (!twilioEmailOTP.isConfigured()) {
       tempPasswords.delete(email.toLowerCase());
-      console.error(`❌ OTP FAILED: SendGrid not configured. Missing env var: TWILIO_SENDGRID_API_KEY`);
+      console.error(`❌ [OTP] SendGrid NOT configured. Missing: TWILIO_SENDGRID_API_KEY`);
       res.status(503).json({ 
         error: 'Email service not configured',
         details: 'Missing required SendGrid API key: TWILIO_SENDGRID_API_KEY (from SendGrid, not Twilio)',
@@ -56,11 +68,12 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return;
     }
 
+    console.log(`📧 [OTP] Sending to: ${email}`);
     const result = await twilioEmailOTP.sendEmailOTP(email);
 
     if (!result.success) {
       tempPasswords.delete(email.toLowerCase());
-      console.error(`❌ OTP FAILED for ${email}: ${result.error}`);
+      console.error(`❌ [OTP FAILED] ${email} - Error: ${result.error}`);
       res.status(400).json({ 
         error: result.error || 'Failed to send OTP',
         reason: result.error 
@@ -68,16 +81,14 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return;
     }
 
-    console.log(`✅ OTP sent to ${email} from auth@audnixai.com`);
+    console.log(`✅ [OTP SUCCESS] OTP sent to ${email}`);
     res.json({
       success: true,
       message: 'OTP sent to your email from auth@audnixai.com',
       expiresIn: '10 minutes',
     });
-
-    console.log(`✅ OTP sent to ${email}`);
   } catch (error: unknown) {
-    console.error('Signup OTP error:', error);
+    console.error('🚨 [OTP CRASH]', error);
     res.status(500).json({ error: 'Failed to send OTP' });
   }
 });
