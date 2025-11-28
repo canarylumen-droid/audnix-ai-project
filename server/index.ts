@@ -104,6 +104,54 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
+// CORS Middleware - Allow browser requests from allowed origins
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    process.env.NEXT_PUBLIC_APP_URL,
+    'https://audnixai.com',
+    'https://www.audnixai.com',
+    'http://localhost:5000',
+    'https://localhost:5000',
+    'http://localhost:3000',
+    'https://localhost:3000',
+    `http://0.0.0.0:5000`,
+    `https://0.0.0.0:5000`
+  ].filter((url): url is string => Boolean(url));
+
+  const origin = req.get('origin');
+  
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      const isAllowed = allowedOrigins.some(allowed => {
+        try {
+          const allowedUrl = new URL(allowed);
+          return originUrl.host === allowedUrl.host;
+        } catch {
+          return false;
+        }
+      });
+
+      if (isAllowed) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+        res.setHeader('Access-Control-Max-Age', '86400');
+      }
+    } catch (e) {
+      // Invalid origin URL - ignore
+    }
+  }
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
 // CSRF Protection via SameSite cookies + Origin validation
 app.use((req, res, next) => {
   // Skip CSRF check for GET, HEAD, OPTIONS
