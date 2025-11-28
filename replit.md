@@ -36,15 +36,22 @@ Email → Password → OTP (SendGrid) → Username → Dashboard
 - **Admin Dashboard:** Direct plan upgrades, user management, real-time analytics
 - **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
-### Recent Changes (November 28, 2025) - FINAL PRODUCTION MIGRATION
-- **✅ COMPLETE MIGRATION TO NEON:** Removed ALL Supabase database code, using PostgreSQL (Neon) exclusively
-- **✅ Authentication Verified:** Password + SendGrid OTP (no Supabase auth), sessions in PostgreSQL
+### Recent Changes (November 28, 2025) - VERCEL BUILD FIX & PRODUCTION READY
+- **✅ VERCEL BUILD FIXED:** Removed esbuild bundling, using tsx for direct TypeScript execution
+- **✅ IMPORT PATHS CORRECTED:** Fixed `server/index.ts` to import from `./routes` (main routes file)
+- **✅ ALL API ENDPOINTS VERIFIED:** Health, auth, OTP, dashboard routes all working
+- **✅ PRODUCTION BUILD:** `npm run build` generates `dist/public/` successfully
+- **✅ COMPLETE MIGRATION TO NEON:** Using PostgreSQL (Neon) exclusively via Drizzle ORM
+- **✅ Authentication Verified:** Password + SendGrid OTP, sessions in PostgreSQL
 - **✅ Zero TypeScript Errors:** Full type safety across entire codebase
 - **✅ CSRF Protection Fixed:** Auth endpoints properly whitelisted
-- **✅ Email OTP Working:** SendGrid configured, verified sending to canarylumen@gmail.com
-- **✅ Production Deployment:** Live on Vercel with custom domain (audnixai.com)
 - **Stripe Integration:** API v2024-06-20, webhook type handling verified
 - **Session Storage:** PostgreSQL-backed (connect-pg-simple) for 500+ concurrent users
+
+**Build Configuration:**
+- `npm run build` - Builds client with Vite to `dist/public/`
+- `npm run start` - Runs server with tsx (TypeScript Execute)
+- Vercel uses `@vercel/node` to run `server/index.ts` directly
 
 **Database: 100% Neon PostgreSQL via Drizzle ORM**
 - No Supabase auth (removed all supabaseAdmin.auth calls)
