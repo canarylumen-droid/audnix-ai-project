@@ -602,7 +602,7 @@ export class MemStorage implements IStorage {
 }
 
 // Use DrizzleStorage with Replit PostgreSQL database
-import { drizzleStorage } from "./drizzle-storage";
+import { drizzleStorage } from "./drizzle-storage.js";
 
 export const storage: IStorage = drizzleStorage;
 
