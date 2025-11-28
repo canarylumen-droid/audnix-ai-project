@@ -321,7 +321,8 @@ async function runMigrations() {
 
 (async () => {
   // Run migrations first
-  await runMigrations();
+  // Temporarily disabled migrations - uncomment if you need database features
+  // await runMigrations();
 
   // Register API routes first (creates the HTTP server)
   const server = await registerRoutes(app);
