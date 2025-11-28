@@ -266,15 +266,9 @@ export default function Landing() {
             ))}
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            <div className="p-6 rounded-lg bg-white/5 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-3">Free Trial</h3>
-              <p className="text-white/70 text-sm">1 AI insight preview to see how it works</p>
-            </div>
-            <div className="p-6 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30">
-              <h3 className="text-lg font-bold text-cyan-400 mb-3">Pro & Enterprise</h3>
-              <p className="text-white/70 text-sm">Unlimited insights, full analytics, real-time recommendations</p>
-            </div>
+          <div className="max-w-3xl mx-auto space-y-4 text-center">
+            <p className="text-white/80 text-lg"><span className="font-semibold">Free Trial:</span> 1 AI insight preview to see how it works</p>
+            <p className="text-white/80 text-lg"><span className="font-semibold text-cyan-400">Pro & Enterprise:</span> Unlimited insights, full analytics, real-time recommendations</p>
           </div>
         </div>
       </section>
@@ -411,60 +405,30 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-12">
-            <AnimatedCard className="bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border-emerald-500/30 p-8">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
-                <Check className="w-6 h-6 text-emerald-400" />
-              </div>
+          <div className="max-w-3xl mx-auto space-y-8 mb-12">
+            <div>
               <h3 className="text-2xl font-bold mb-4 text-white">Intelligent Comment Detection</h3>
-              <ul className="space-y-3 text-white/80">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Understands "This is cool!" as buying intent (no keywords needed)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Detects emotion from emojis: 🔥 = excitement, 👀 = curiosity</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Multi-language support - works in any language</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Context-aware: "wow" means different things in different contexts</span>
-                </li>
+              <ul className="space-y-2 text-white/80 text-lg">
+                <li>• Understands "This is cool!" as buying intent (no keywords needed)</li>
+                <li>• Detects emotion from emojis: 🔥 = excitement, 👀 = curiosity</li>
+                <li>• Multi-language support - works in any language</li>
+                <li>• Context-aware: "wow" means different things in different contexts</li>
               </ul>
-            </AnimatedCard>
+            </div>
 
-            <AnimatedCard className="bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border-cyan-500/30 p-8">
-              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
-                <Check className="w-6 h-6 text-cyan-400" />
-              </div>
+            <div>
               <h3 className="text-2xl font-bold mb-4 text-white">Personalized DM Automation</h3>
-              <ul className="space-y-3 text-white/80">
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Uses actual Instagram usernames in replies</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>References what the lead said and wants</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Human-like timing: 2-8 minute delays</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="w-5 h-5 text-cyan-400 mt-0.5 flex-shrink-0" />
-                  <span>Handles objections and closes deals automatically</span>
-                </li>
+              <ul className="space-y-2 text-white/80 text-lg">
+                <li>• Uses actual Instagram usernames in replies</li>
+                <li>• References what the lead said and wants</li>
+                <li>• Human-like timing: 2-8 minute delays</li>
+                <li>• Handles objections and closes deals automatically</li>
               </ul>
-            </AnimatedCard>
+            </div>
           </div>
 
-          <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-4 text-white">The Audnix Difference</h3>
+          <div className="text-center mt-12">
+            <h3 className="text-2xl font-bold mb-6 text-white">The Audnix Difference</h3>
             <div className="grid md:grid-cols-3 gap-6 text-left">
               <div>
                 <h4 className="font-semibold text-emerald-400 mb-2">ManyChat</h4>
