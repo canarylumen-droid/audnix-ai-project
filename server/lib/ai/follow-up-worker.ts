@@ -160,7 +160,7 @@ export class FollowUpWorker {
       console.log(`Processing ${jobs.length} follow-up jobs...`);
 
       // Process jobs in parallel with proper typing
-      await Promise.all(jobs.map((job) => {
+      await Promise.all(jobs.map((job: typeof jobs[0]) => {
         const ctx = job.context as Record<string, unknown>;
         const typedJob: FollowUpJob = {
           id: job.id,

@@ -54,7 +54,7 @@ export class LeadLearningSystem {
     // Using Neon database for message storage - no Supabase needed
     try {
       // TODO: Fetch messages from Neon database via storage
-      const messages = [];
+      const messages: SupabaseMessage[] = [];
       if (!messages || messages.length === 0) return;
 
       // Using Neon database for lead and semantic memory storage

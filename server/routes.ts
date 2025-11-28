@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { supabaseAdmin, isSupabaseAdminConfigured, syncUserFromSupabase } from "./lib/supabase-admin";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin";
 import {
   isDemoMode as stripeDemoMode,
   createStripeCustomer,
