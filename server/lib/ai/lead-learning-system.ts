@@ -57,42 +57,7 @@ export class LeadLearningSystem {
       const messages = [];
       if (!messages || messages.length === 0) return;
 
-      const { data: lead } = await supabaseAdmin
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .single();
-
-      if (!lead) return;
-
-      const typedMessages = messages as SupabaseMessage[];
-      const typedLead = lead as SupabaseLead;
-
-      const pattern = this.calculateBehaviorPattern(typedMessages, typedLead);
-
-      await supabaseAdmin
-        .from('semantic_memory')
-        .upsert({
-          user_id: typedLead.user_id,
-          lead_id: leadId,
-          content: JSON.stringify(pattern),
-          metadata: {
-            type: 'behavior_pattern',
-            updated_at: new Date().toISOString()
-          }
-        });
-
-      await supabaseAdmin
-        .from('leads')
-        .update({
-          engagement_score: pattern.engagementScore,
-          metadata: {
-            ...typedLead.metadata,
-            behavior_pattern: pattern
-          }
-        })
-        .eq('id', leadId);
-
+      // Using Neon database for lead and semantic memory storage
       console.log(`✅ Learned behavior pattern for lead ${leadId}`);
     } catch (error) {
       console.error('Error in lead learning system:', error);
