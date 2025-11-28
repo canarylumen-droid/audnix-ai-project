@@ -5,7 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
-import { viteLimiter } from "./middleware/rate-limit.js";
+import { viteLimiter } from './middleware/rate-limit';
 
 const viteLogger = createLogger();
 

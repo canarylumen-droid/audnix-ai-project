@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage.js";
-import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
+import { storage } from './storage';
+import { supabaseAdmin, isSupabaseAdminConfigured } from './lib/supabase-admin';
 import {
   isDemoMode as stripeDemoMode,
   createStripeCustomer,
@@ -14,44 +14,44 @@ import {
   processTopupSuccess,
   createSubscriptionCheckout,
   createTopupCheckout
-} from "./lib/billing/stripe.js";
-import { generateInsights } from "./lib/ai/openai.js";
-import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from "./lib/file-upload.js";
-import { scheduleInitialFollowUp } from "./lib/ai/follow-up-worker.js";
-import { processPDF } from "./lib/pdf-processor.js";
-import { encrypt } from "./lib/crypto/encryption.js";
-import oauthRoutes from "./routes/oauth.js";
-import webhookRouter from "./routes/webhook.js";
-import workerRouter from "./routes/worker.js";
-import commentAutomationRouter from "./routes/comment-automation-routes.js";
-import videoAutomationRoutes from "./routes/video-automation-routes.js";
-import aiRoutes from "./routes/ai-routes.js";
-import voiceRoutes from "./routes/voice-routes.js";
-import whatsappRoutes from './routes/whatsapp-routes.js';
-import whatsappOTPRoutes from './routes/whatsapp-otp-routes.js';
-import customEmailRoutes from './routes/custom-email-routes.js';
-import emailStatsRoutes from './routes/email-stats-routes.js';
-import otpRoutes from './routes/otp-routes.js';
-import calendarRoutes from './routes/calendar-routes.js';
-import bulkActionsRoutes from "./routes/bulk-actions-routes.js";
-import { paymentApprovalRouter } from "./routes/payment-approval.js";
-import { paymentCheckoutRouter } from "./routes/payment-checkout.js";
-import adminPdfRoutes from "./routes/admin-pdf-routes.js";
-import adminPdfRoutesV2 from "./routes/admin-pdf-routes-v2.js";
-import leadIntelligenceRouter from "./routes/lead-intelligence.js";
-import aiSalesSuggestionRouter from "./routes/ai-sales-suggestion.js";
-import emailOTPRoutes from "./routes/email-otp-routes.js";
-import stripePaymentConfirmation from "./routes/stripe-payment-confirmation.js";
-import authUsernameOnboarding from "./routes/auth-username-onboarding.js";
-import authClean from "./routes/auth-clean.js";
-import userAuth from "./routes/user-auth.js";
-import adminAuth from "./routes/admin-auth.js";
-import whatsappConnect from "./routes/whatsapp-connect.js";
-import dashboardRoutes from "./routes/dashboard-routes.js";
-import salesEngineRouter from "./routes/sales-engine.js";
-import { followUpWorker } from "./lib/ai/follow-up-worker.js";
-import { weeklyInsightsWorker } from "./lib/ai/weekly-insights-worker.js";
-import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from "./middleware/auth.js";
+} from './lib/billing/stripe';
+import { generateInsights } from './lib/ai/openai';
+import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from './lib/file-upload';
+import { scheduleInitialFollowUp } from './lib/ai/follow-up-worker';
+import { processPDF } from './lib/pdf-processor';
+import { encrypt } from './lib/crypto/encryption';
+import oauthRoutes from './routes/oauth';
+import webhookRouter from './routes/webhook';
+import workerRouter from './routes/worker';
+import commentAutomationRouter from './routes/comment-automation-routes';
+import videoAutomationRoutes from './routes/video-automation-routes';
+import aiRoutes from './routes/ai-routes';
+import voiceRoutes from './routes/voice-routes';
+import whatsappRoutes from './routes/whatsapp-routes';
+import whatsappOTPRoutes from './routes/whatsapp-otp-routes';
+import customEmailRoutes from './routes/custom-email-routes';
+import emailStatsRoutes from './routes/email-stats-routes';
+import otpRoutes from './routes/otp-routes';
+import calendarRoutes from './routes/calendar-routes';
+import bulkActionsRoutes from './routes/bulk-actions-routes';
+import { paymentApprovalRouter } from './routes/payment-approval';
+import { paymentCheckoutRouter } from './routes/payment-checkout';
+import adminPdfRoutes from './routes/admin-pdf-routes';
+import adminPdfRoutesV2 from './routes/admin-pdf-routes-v2';
+import leadIntelligenceRouter from './routes/lead-intelligence';
+import aiSalesSuggestionRouter from './routes/ai-sales-suggestion';
+import emailOTPRoutes from './routes/email-otp-routes';
+import stripePaymentConfirmation from './routes/stripe-payment-confirmation';
+import authUsernameOnboarding from './routes/auth-username-onboarding';
+import authClean from './routes/auth-clean';
+import userAuth from './routes/user-auth';
+import adminAuth from './routes/admin-auth';
+import whatsappConnect from './routes/whatsapp-connect';
+import dashboardRoutes from './routes/dashboard-routes';
+import salesEngineRouter from './routes/sales-engine';
+import { followUpWorker } from './lib/ai/follow-up-worker';
+import { weeklyInsightsWorker } from './lib/ai/weekly-insights-worker';
+import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from './middleware/auth';
 import {
   validateEmail,
   validateLeadId,
@@ -62,11 +62,11 @@ import {
   validateProvider,
   handleValidationErrors,
   sanitizeBody
-} from "./middleware/input-validation.js";
+} from './middleware/input-validation';
 
 // Import AI modules for lead learning and content moderation
-import { contentModerationService } from './lib/ai/content-moderation.js';
-import { leadLearningSystem } from './lib/ai/lead-learning-system.js';
+import { contentModerationService } from './lib/ai/content-moderation';
+import { leadLearningSystem } from './lib/ai/lead-learning-system';
 
 // Import necessary modules for PDF processing and lead export
 import multer from 'multer';

@@ -1,6 +1,6 @@
-import type { IStorage } from "./storage.js";
+import type { IStorage } from './storage';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "@shared/schema";
-import { db } from "./db.js";
+import { db } from './db';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
