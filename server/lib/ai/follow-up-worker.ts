@@ -252,7 +252,7 @@ export class FollowUpWorker {
 
       // Prepend disclaimer for legal compliance
       try {
-        const { prependDisclaimerToMessage } = await import('./disclaimer-generator');
+        const { prependDisclaimerToMessage } = await import('./disclaimer-generator.js.js');
         const { messageWithDisclaimer } = prependDisclaimerToMessage(
           aiReply,
           job.channel as 'email' | 'whatsapp' | 'sms' | 'voice',
@@ -273,7 +273,7 @@ export class FollowUpWorker {
 
         // UPDATE: Log to audit trail
         try {
-          const { AuditTrailService } = await import('../audit-trail-service');
+          const { AuditTrailService } = await import('../../audit-trail-service.js');
           await AuditTrailService.logAiMessageSent(
             job.userId,
             job.leadId,

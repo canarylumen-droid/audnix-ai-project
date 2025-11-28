@@ -114,7 +114,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
   // CRITICAL: Check admin whitelist FIRST (primary security control)
   try {
-    const { db } = await import("../db");
+    const { db } = await import("../db.js.js");
     const { sql } = await import("drizzle-orm");
     
     const whitelistCheck = await db.execute(sql`

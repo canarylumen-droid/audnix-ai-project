@@ -181,7 +181,7 @@ export async function importGmailLeads(userId: string): Promise<{
     }
 
     // Get Gmail OAuth tokens
-    const { GmailOAuth } = await import('../oauth/gmail');
+    const { GmailOAuth } = await import('../../oauth/gmail.js');
     const oauth = new GmailOAuth();
     const accessToken = await oauth.getValidToken(userId);
 
@@ -414,7 +414,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
     }
 
     // Get WhatsApp session
-    const { whatsAppService } = await import('../integrations/whatsapp-web');
+    const { whatsAppService } = await import('../../integrations/whatsapp-web.js');
     const session = whatsAppService.getSession(userId);
 
     if (!session || session.status !== 'ready') {

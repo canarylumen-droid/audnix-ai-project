@@ -253,7 +253,7 @@ async function runMigrations() {
     console.log('🚀 Running database migrations...');
 
     // Use Drizzle's db connection directly
-    const { db } = await import('./db.js');
+    const { db } = await import('./db.js.js.js');
 
     // Check if db is actually initialized
     if (!db) {
@@ -358,7 +358,7 @@ async function runMigrations() {
   }
 
   // Start background workers only if database AND Supabase are configured
-  const { db } = await import('./db.js');
+  const { db } = await import('./db.js.js.js');
   const hasDatabase = process.env.DATABASE_URL && db;
   const hasSupabase = isSupabaseAdminConfigured();
 
@@ -376,11 +376,11 @@ async function runMigrations() {
     startVideoCommentMonitoring();
 
     // Start lead learning system
-    const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
+    const { startLeadLearning } = await import('./lib/ai/lead-learning.js.js');
     startLeadLearning();
 
     // Start OAuth token refresh worker (every 30 minutes)
-    const { GmailOAuth } = await import('./lib/oauth/gmail.js');
+    const { GmailOAuth } = await import('./lib/oauth/gmail.js.js');
     setInterval(() => {
       GmailOAuth.refreshExpiredTokens()
         .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))

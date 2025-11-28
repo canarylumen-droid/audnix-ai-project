@@ -163,7 +163,7 @@ class MultiProviderEmailFailover {
     if (!smtpConfig && userId) {
       const integration = await storage.getIntegration(userId, 'custom_email');
       if (integration?.encryptedMeta) {
-        const { decrypt } = await import('../crypto/encryption');
+        const { decrypt } = await import('../../crypto/encryption.js');
         const decrypted = await decrypt(integration.encryptedMeta);
         smtpConfig = JSON.parse(decrypted) as SmtpConfig;
       }
@@ -204,7 +204,7 @@ class MultiProviderEmailFailover {
       throw new Error('Gmail not configured');
     }
 
-    const { decrypt } = await import('../crypto/encryption');
+    const { decrypt } = await import('../../crypto/encryption.js');
     const decrypted = await decrypt(gmailIntegration.encryptedMeta);
     const credentials = JSON.parse(decrypted) as OAuthCredentials;
 
@@ -240,7 +240,7 @@ class MultiProviderEmailFailover {
       throw new Error('Outlook not configured');
     }
 
-    const { decrypt } = await import('../crypto/encryption');
+    const { decrypt } = await import('../../crypto/encryption.js');
     const decrypted = await decrypt(outlookIntegration.encryptedMeta);
     const credentials = JSON.parse(decrypted) as OAuthCredentials;
 

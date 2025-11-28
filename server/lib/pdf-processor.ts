@@ -315,8 +315,8 @@ async function autoReachOutToLead(
   offerData: any
 ): Promise<void> {
   try {
-    const { sendEmail } = await import('./channels/email');
-    const { sendWhatsAppMessage } = await import('./channels/whatsapp');
+    const { sendEmail } = await import('./channels/email.js');
+    const { sendWhatsAppMessage } = await import('./channels/whatsapp.js');
 
     // Get user's extracted brand data
     const user = await storage.getUserById(userId);

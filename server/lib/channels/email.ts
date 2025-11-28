@@ -230,7 +230,7 @@ export async function sendEmail(
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
   
   if (customEmailIntegration?.connected) {
-    const { decrypt } = await import('../crypto/encryption');
+    const { decrypt } = await import('../../crypto/encryption.js');
     if (!customEmailIntegration.encryptedMeta) {
       throw new Error('Email credentials not configured');
     }
@@ -276,7 +276,7 @@ export async function sendEmail(
 
   const brandColors = options.brandColors || await getUserBrandColors(userId);
   
-  const { generateEmailSubject } = await import('./email-subject-generator');
+  const { generateEmailSubject } = await import('./email-subject-generator.js.js');
   const emailSubject = subject || await generateEmailSubject(userId, content);
 
   const { data: userData } = await supabaseAdmin

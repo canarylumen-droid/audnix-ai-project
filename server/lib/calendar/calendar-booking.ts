@@ -74,7 +74,7 @@ export async function getAvailableTimeSlots(
 ): Promise<BookingSlot[]> {
   try {
     const integrations = await storage.getIntegrations(userId);
-    const decrypt = (await import('../crypto/encryption')).decrypt;
+    const decrypt = (await import('../../crypto/encryption.js')).decrypt;
 
     // 1. Try user's own Calendly token (instant API access)
     const calendlyIntegration = integrations.find(
@@ -228,7 +228,7 @@ export async function bookMeeting(
 ): Promise<BookMeetingResult> {
   try {
     const integrations = await storage.getIntegrations(userId);
-    const decrypt = (await import('../crypto/encryption')).decrypt;
+    const decrypt = (await import('../../crypto/encryption.js')).decrypt;
 
     // 1. Try user's own Calendly (instant API)
     const calendlyIntegration = integrations.find(

@@ -915,10 +915,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // CHECK: Rate limiting
-      const { UploadRateLimiter } = await import('./lib/upload-rate-limiter');
+      const { UploadRateLimiter } = await import('./lib/upload-rate-limiter.js');
       const rateLimitCheck = await UploadRateLimiter.canUpload(userId);
       if (!rateLimitCheck.allowed) {
-        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        const { AuditTrailService } = await import('./lib/audit-trail-service.js');
         await AuditTrailService.logRateLimitHit(userId, `PDF upload rate limited - ${rateLimitCheck.message}`);
         
         return res.status(429).json({
@@ -947,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const fileBuffer = req.file.buffer;
 
-      const { processPDF } = await import('./lib/pdf-processor');
+      const { processPDF } = await import('./lib/pdf-processor.js');
       const result = await processPDF(fileBuffer, userId, {
         autoReachOut: hasEmail || hasWhatsApp,
         extractOffer: true
@@ -961,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // LOG: PDF confidence to analytics
       try {
-        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        const { AuditTrailService } = await import('./lib/audit-trail-service.js');
         const confidence = result.confidence || 0.75; // Default to 75% if not provided
         const missingFields = result.missingFields || [];
         await AuditTrailService.logPdfProcessed(
@@ -1026,7 +1026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // LOG: Audit trail
       try {
-        const { AuditTrailService } = await import('./lib/audit-trail-service');
+        const { AuditTrailService } = await import('./lib/audit-trail-service.js');
         await AuditTrailService.logOptOutToggle(userId, leadId, aiPaused);
       } catch (auditError) {
         console.error('Failed to log opt-out:', auditError);
@@ -1770,7 +1770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const autoReachOut = req.body.autoReachOut === 'true';
       const extractOffer = req.body.extractOffer === 'true';
 
-      const { processPDF } = await import('./lib/pdf-processor');
+      const { processPDF } = await import('./lib/pdf-processor.js');
       const result = await processPDF(req.file.buffer, req.user!.id, {
         autoReachOut,
         extractOffer
@@ -1785,7 +1785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export leads to CSV
   app.get("/api/leads/export-csv", requireAuth, async (req, res) => {
     try {
-      const { exportLeadsToCSV } = await import("./lib/pdf-processor");
+      const { exportLeadsToCSV } = await import("./lib/pdf-processor.js");
       const csv = await exportLeadsToCSV(req.user!.id);
 
       res.setHeader('Content-Type', 'text/csv');
@@ -1825,7 +1825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CSV export route
   app.get('/api/leads/export', requireAuth, async (req, res) => {
     try {
-      const { exportLeadsToCSV } = await import('./lib/pdf-processor');
+      const { exportLeadsToCSV } = await import('./lib/pdf-processor.js');
       const csv = await exportLeadsToCSV(req.session.userId!);
 
       res.setHeader('Content-Type', 'text/csv');
@@ -1855,7 +1855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const { processPDF } = await import('./lib/pdf-processor');
+        const { processPDF } = await import('./lib/pdf-processor.js');
         const result = await processPDF(
           req.file.buffer,
           req.session.userId!,
@@ -2050,7 +2050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", dashboardRoutes); // Also available at /api/user/profile
 
   // Register admin routes
-  const adminRoutes = await import("./routes/admin-routes");
+  const adminRoutes = await import("./routes/admin-routes.js");
   app.use("/api/admin", adminRoutes.default);
   app.use("/api/admin", adminPdfRoutesV2);
   app.use("/api/brand-pdf", adminPdfRoutes);
@@ -2066,7 +2066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   weeklyInsightsWorker.start();
 
   // Initialize video comment monitoring
-  const { startVideoCommentMonitoring } = await import("./lib/ai/video-comment-monitor");
+  const { startVideoCommentMonitoring } = await import("./lib/ai/video-comment-monitor.js");
   console.log("Initializing video comment monitoring...");
   startVideoCommentMonitoring();
 

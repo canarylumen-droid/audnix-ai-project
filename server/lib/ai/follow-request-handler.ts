@@ -73,7 +73,7 @@ export async function handleFollowResponse(
       const igIntegration = integrations.find(i => i.provider === 'instagram');
 
       if (igIntegration && igIntegration.encryptedMeta) {
-        const { decrypt } = await import('../crypto/encryption');
+        const { decrypt } = await import('../../crypto/encryption.js');
         const meta = JSON.parse(decrypt(igIntegration.encryptedMeta));
 
         return {
