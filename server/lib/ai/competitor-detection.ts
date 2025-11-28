@@ -1,4 +1,4 @@
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 import type { Message } from '@shared/schema';
 
 interface CompetitorMention {

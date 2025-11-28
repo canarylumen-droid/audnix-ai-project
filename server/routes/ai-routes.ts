@@ -10,14 +10,14 @@ import {
   saveConversationToMemory,
   getConversationContext,
   autoUpdateLeadStatus
-} from '../lib/ai/conversation-ai';
-import { getCompetitorAnalytics } from '../lib/ai/competitor-detection';
-import { learnOptimalDiscount } from '../lib/ai/price-negotiation';
+} from '../lib/ai/conversation-ai.js';
+import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
+import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
 import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
-import { generateSmartReplies } from '../lib/ai/smart-replies';
-import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring';
-import { generateAnalyticsInsights } from '../lib/ai/analytics-engine';
+import { generateSmartReplies } from '../lib/ai/smart-replies.js';
+import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
+import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
 import type { ProviderType, ChannelType } from '@shared/types';
 
 type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';

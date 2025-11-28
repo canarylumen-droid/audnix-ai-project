@@ -1,11 +1,11 @@
 import { Request, Response, Router } from 'express';
-import { InstagramOAuth } from '../lib/oauth/instagram';
-import { WhatsAppOAuth } from '../lib/oauth/whatsapp';
-import { GmailOAuth } from '../lib/oauth/gmail';
-import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar';
-import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly';
-import { supabaseAdmin } from '../lib/supabase-admin';
-import { encrypt } from '../lib/crypto/encryption';
+import { InstagramOAuth } from '../lib/oauth/instagram.js';
+import { WhatsAppOAuth } from '../lib/oauth/whatsapp.js';
+import { GmailOAuth } from '../lib/oauth/gmail.js';
+import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
+import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
+import { supabaseAdmin } from '../lib/supabase-admin.js';
+import { encrypt } from '../lib/crypto/encryption.js';
 
 interface AuthenticatedRequest extends Request {
   session: Request['session'] & {

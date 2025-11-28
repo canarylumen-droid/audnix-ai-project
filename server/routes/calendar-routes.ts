@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
 import {
   getAvailableTimeSlots,
   sendBookingLinkToLead,
   bookMeeting,
   formatBookingMessage
-} from '../lib/calendar/calendar-booking';
-import { validateCalendlyToken } from '../lib/calendar/calendly';
-import { storage } from '../storage';
+} from '../lib/calendar/calendar-booking.js';
+import { validateCalendlyToken } from '../lib/calendar/calendly.js';
+import { storage } from '../storage.js';
 import type { ChannelType } from '@shared/types';
 
 const router = Router();

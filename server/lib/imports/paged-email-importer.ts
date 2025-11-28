@@ -1,6 +1,6 @@
-import { db } from '../../db';
+import { db } from '../../db.js';
 import { leads as leadsTable } from '@shared/schema';
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 
 /**

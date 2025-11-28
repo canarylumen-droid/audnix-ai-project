@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { supabaseAdmin } from '../supabase-admin';
-import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer';
-import { followUpWorker } from '../ai/follow-up-worker';
-import { saveConversationToMemory } from '../ai/conversation-ai';
-import { storage } from '../../storage';
+import { supabaseAdmin } from '../supabase-admin.js';
+import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
+import { followUpWorker } from '../ai/follow-up-worker.js';
+import { saveConversationToMemory } from '../ai/conversation-ai.js';
+import { storage } from '../../storage.js';
 import crypto from 'crypto';
 
 interface InstagramMessage {

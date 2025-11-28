@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabaseAdmin } from '../supabase-admin';
+import { supabaseAdmin } from '../supabase-admin.js';
 import crypto from 'crypto';
 
 interface CalendlyEventLocation {

@@ -1,6 +1,6 @@
 
 import qrcode from 'qrcode';
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);

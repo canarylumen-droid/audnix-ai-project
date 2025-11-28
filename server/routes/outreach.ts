@@ -3,8 +3,8 @@
  */
 
 import { Router } from 'express';
-import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine';
-import { requireAuth } from '../middleware/auth';
+import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

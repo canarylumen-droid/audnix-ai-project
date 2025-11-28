@@ -1,5 +1,5 @@
-import { storage } from '../../storage';
-import { db } from '../../db';
+import { storage } from '../../storage.js';
+import { db } from '../../db.js';
 import { followUpQueue } from '@shared/schema';
 import { InstagramOAuth } from "../oauth/instagram";
 import { decrypt } from "../crypto/encryption";

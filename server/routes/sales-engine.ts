@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import ObjectionHandler from '../lib/sales-engine/objection-handler';
-import { requireAuth } from '../middleware/auth';
+import ObjectionHandler from '../lib/sales-engine/objection-handler.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 

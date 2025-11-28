@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
-import { getStripeClient } from '../stripe-client';
-import { storage } from '../../storage';
+import { getStripeClient } from '../stripe-client.js';
+import { storage } from '../../storage.js';
 
 export const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
 

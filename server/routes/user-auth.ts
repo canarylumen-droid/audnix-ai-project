@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { twilioEmailOTP } from '../lib/auth/twilio-email-otp';
-import { storage } from '../storage';
+import { twilioEmailOTP } from '../lib/auth/twilio-email-otp.js';
+import { storage } from '../storage.js';
 import { rateLimit } from 'express-rate-limit';
 
 const router = Router();

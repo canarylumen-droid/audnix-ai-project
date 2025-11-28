@@ -1,10 +1,10 @@
 import { Request, Response, Router } from 'express';
 import Stripe from 'stripe';
 import crypto from 'crypto';
-import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe';
-import { supabaseAdmin } from '../lib/supabase-admin';
-import { storage } from '../storage';
-import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook';
+import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe.js';
+import { supabaseAdmin } from '../lib/supabase-admin.js';
+import { storage } from '../storage.js';
+import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook.js';
 import type { PlanType } from '@shared/types';
 
 const router = Router();

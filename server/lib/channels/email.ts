@@ -1,6 +1,6 @@
-import { supabaseAdmin } from '../supabase-admin';
-import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter';
-import { storage } from '../../storage';
+import { supabaseAdmin } from '../supabase-admin.js';
+import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter.js';
+import { storage } from '../../storage.js';
 
 /**
  * Email messaging functions with branded templates using extracted PDF brand colors

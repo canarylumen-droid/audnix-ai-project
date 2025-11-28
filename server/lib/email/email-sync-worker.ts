@@ -1,7 +1,7 @@
-import { storage } from '../../storage';
-import { decrypt } from '../crypto/encryption';
-import { importCustomEmails } from '../channels/email';
-import { pagedEmailImport } from '../imports/paged-email-importer';
+import { storage } from '../../storage.js';
+import { decrypt } from '../crypto/encryption.js';
+import { importCustomEmails } from '../channels/email.js';
+import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import type { Integration, Lead } from '@shared/schema';
 
 /**

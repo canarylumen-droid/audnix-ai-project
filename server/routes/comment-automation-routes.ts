@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { processCommentAutomation, detectCommentIntent } from '../lib/ai/comment-detection';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
+import { processCommentAutomation, detectCommentIntent } from '../lib/ai/comment-detection.js';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
 
 const router = Router();
 

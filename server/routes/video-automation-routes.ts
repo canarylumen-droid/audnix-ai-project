@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { storage } from '../storage';
-import { detectBuyingIntent, generateSalesmanDM } from '../lib/ai/video-comment-monitor';
-import { InstagramProvider } from '../lib/providers/instagram';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { storage } from '../storage.js';
+import { detectBuyingIntent, generateSalesmanDM } from '../lib/ai/video-comment-monitor.js';
+import { InstagramProvider } from '../lib/providers/instagram.js';
 
 interface InstagramMediaItem {
   id: string;

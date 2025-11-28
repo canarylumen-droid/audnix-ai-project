@@ -9,7 +9,7 @@
  * - Custom closing lines
  */
 
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 import type { ChannelType } from '@shared/types';
 
 interface BrandPersonalizationContext {

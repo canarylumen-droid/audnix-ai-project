@@ -1,7 +1,7 @@
 
 import { Whatsapp } from 'whatsapp-cloud-api';
-import { storage } from '../../storage';
-import { encrypt, decrypt } from '../crypto/encryption';
+import { storage } from '../../storage.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
 
 interface WhatsAppCloudConfig {
   phoneNumberId: string;

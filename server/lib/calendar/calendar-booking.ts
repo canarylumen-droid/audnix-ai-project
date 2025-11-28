@@ -5,9 +5,9 @@
  * Supports: Calendly (primary) + Google Calendar (fallback)
  */
 
-import { storage } from '../../storage';
-import { createCalendarEvent, listUpcomingEvents } from './google-calendar';
-import { getCalendlySlots, createCalendlyEvent } from './calendly';
+import { storage } from '../../storage.js';
+import { createCalendarEvent, listUpcomingEvents } from './google-calendar.js';
+import { getCalendlySlots, createCalendlyEvent } from './calendly.js';
 import type { ChannelType } from '@shared/types';
 
 interface BookingSlot {

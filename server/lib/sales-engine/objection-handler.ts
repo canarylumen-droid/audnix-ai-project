@@ -10,7 +10,7 @@ import {
   getObjectionReframe,
   getSalesStrategy,
   Objection,
-} from './objections-database';
+} from './objections-database.js';
 
 export interface ObjectionAnalysis {
   matchedObjection: Objection | null;

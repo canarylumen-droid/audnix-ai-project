@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import type { OAuth2Client } from 'google-auth-library';
-import { getOAuthRedirectUrl } from '../config/oauth-redirects';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
 
 export class GoogleCalendarOAuth {
   private oauth2Client: OAuth2Client;

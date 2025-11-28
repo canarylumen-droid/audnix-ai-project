@@ -1,8 +1,8 @@
 import { Router, type Request, type Response } from 'express';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { storage } from '../storage';
-import { generateAIReply } from '../lib/ai/conversation-ai';
-import { calculateLeadScore } from '../lib/ai/lead-scoring';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { storage } from '../storage.js';
+import { generateAIReply } from '../lib/ai/conversation-ai.js';
+import { calculateLeadScore } from '../lib/ai/lead-scoring.js';
 import type { ChannelType, ProviderType, LeadStatus } from '@shared/types';
 
 const router = Router();

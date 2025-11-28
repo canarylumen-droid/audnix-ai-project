@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { storage } from '../storage';
-import { encrypt } from '../lib/crypto/encryption';
-import { pagedEmailImport } from '../lib/imports/paged-email-importer';
-import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection';
-import { bounceHandler } from '../lib/email/bounce-handler';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { storage } from '../storage.js';
+import { encrypt } from '../lib/crypto/encryption.js';
+import { pagedEmailImport } from '../lib/imports/paged-email-importer.js';
+import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
+import { bounceHandler } from '../lib/email/bounce-handler.js';
 
 const router = Router();
 

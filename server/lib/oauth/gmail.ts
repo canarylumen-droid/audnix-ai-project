@@ -1,8 +1,8 @@
 import { google } from 'googleapis';
 import crypto from 'crypto';
-import { supabaseAdmin } from '../supabase-admin';
-import { encrypt, decrypt } from '../crypto/encryption';
-import { getOAuthRedirectUrl } from '../config/oauth-redirects';
+import { supabaseAdmin } from '../supabase-admin.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
+import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
 
 interface GmailOAuthConfig {
   clientId: string;

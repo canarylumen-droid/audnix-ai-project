@@ -1,6 +1,6 @@
-import { supabaseAdmin } from '../supabase-admin';
-import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/dm-formatter';
-import { storage } from '../../storage';
+import { supabaseAdmin } from '../supabase-admin.js';
+import { formatWhatsAppLink, formatWhatsAppMeeting, type DMButton } from '../ai/dm-formatter.js';
+import { storage } from '../../storage.js';
 
 /**
  * WhatsApp messaging functions using WhatsApp Business API with rich formatting

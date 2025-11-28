@@ -1,6 +1,6 @@
-import { storage } from '../storage';
-import { db } from '../db';
-import { followUpQueue, leads } from '../../shared/schema';
+import { storage } from '../storage.js';
+import { db } from '../db.js';
+import { followUpQueue, leads } from '../../shared/schema.js';
 import { eq, and, lt } from 'drizzle-orm';
 
 /**

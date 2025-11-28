@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { supabaseAdmin } from '../supabase-admin';
-import { encrypt, decrypt } from '../crypto/encryption';
+import { supabaseAdmin } from '../supabase-admin.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
 
 /**
  * WhatsApp OAuth using Twilio

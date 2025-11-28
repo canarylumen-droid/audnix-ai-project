@@ -1,7 +1,7 @@
-import { db } from '../../db';
+import { db } from '../../db.js';
 import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 
 /**
  * Email Warm-up System

@@ -1,7 +1,7 @@
 
 import crypto from 'crypto';
-import { storage } from '../../storage';
-import { encrypt, decrypt } from '../crypto/encryption';
+import { storage } from '../../storage.js';
+import { encrypt, decrypt } from '../crypto/encryption.js';
 
 interface TwilioConfig {
   accountSid: string;

@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { whatsAppService } from '../lib/integrations/whatsapp-web';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { whatsappLimiter } from '../middleware/rate-limit';
-import { storage } from '../storage';
+import { whatsAppService } from '../lib/integrations/whatsapp-web.js';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { whatsappLimiter } from '../middleware/rate-limit.js';
+import { storage } from '../storage.js';
 
 const router = Router();
 

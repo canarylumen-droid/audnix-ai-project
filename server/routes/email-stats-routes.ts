@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { bounceHandler } from '../lib/email/bounce-handler';
-import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection';
-import { emailWarmupWorker } from '../lib/email/email-warmup-worker';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { bounceHandler } from '../lib/email/bounce-handler.js';
+import { smtpAbuseProtection } from '../lib/email/smtp-abuse-protection.js';
+import { emailWarmupWorker } from '../lib/email/email-warmup-worker.js';
 
 const router = Router();
 

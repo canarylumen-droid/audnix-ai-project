@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { whatsAppTwilioOTP } from '../lib/integrations/whatsapp-twilio-otp';
-import { requireAuth, getCurrentUserId } from '../middleware/auth';
-import { whatsappLimiter } from '../middleware/rate-limit';
+import { whatsAppTwilioOTP } from '../lib/integrations/whatsapp-twilio-otp.js';
+import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { whatsappLimiter } from '../middleware/rate-limit.js';
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { storage } from '../../storage';
+import { storage } from '../../storage.js';
 import type { Lead, Message } from '@shared/schema';
 
 const openai = new OpenAI({

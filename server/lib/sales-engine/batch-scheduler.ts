@@ -10,7 +10,7 @@ import {
   LeadQuality,
   rankLeadQuality,
   DELIVERABILITY_RULES,
-} from './outreach-strategy';
+} from './outreach-strategy.js';
 
 export interface ScheduledBatch {
   batchId: string;

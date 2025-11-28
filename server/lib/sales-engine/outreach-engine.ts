@@ -3,10 +3,10 @@
  * Combines: Strategy, Message Rotation, Batch Scheduling, Deliverability
  */
 
-import { generateSendSchedule, optimizeForRevenue, estimateRevenue, ScheduledBatch, SendSchedule } from './batch-scheduler';
-import { getNextTemplate, personalizeMessage, shouldRotateTemplate } from './message-rotator';
-import { rankLeadQuality } from './outreach-strategy';
-import type { MessageTemplate } from './message-rotator';
+import { generateSendSchedule, optimizeForRevenue, estimateRevenue, ScheduledBatch, SendSchedule } from './batch-scheduler.js';
+import { getNextTemplate, personalizeMessage, shouldRotateTemplate } from './message-rotator.js';
+import { rankLeadQuality } from './outreach-strategy.js';
+import type { MessageTemplate } from './message-rotator.js';
 
 export interface OutreachCampaign {
   campaignId: string;
