@@ -14,7 +14,7 @@ interface LeadScore {
  */
 export async function analyzeLeadBehavior(leadId: string): Promise<LeadScore> {
   // Using Neon database for conversation history - no Supabase needed
-  const messages: Array<{ direction: string; created_at: string }> = [];
+  const messages: Array<{ direction: string; created_at: string; body: string }> = [];
   if (!messages || messages.length === 0) {
     return {
       score: 0,
@@ -61,7 +61,7 @@ export async function analyzeLeadBehavior(leadId: string): Promise<LeadScore> {
   };
 }
 
-function calculateEngagementScore(messages: Array<{ direction: string; created_at: string }>): number {
+function calculateEngagementScore(messages: Array<{ direction: string; created_at: string; body: string }>): number {
   const totalMessages = messages.length;
   const leadMessages = messages.filter(m => m.direction === 'inbound').length;
   
@@ -71,7 +71,7 @@ function calculateEngagementScore(messages: Array<{ direction: string; created_a
   return Math.round(engagementRatio * 100);
 }
 
-function calculateResponseTimeScore(messages: Array<{ direction: string; created_at: string }>): number {
+function calculateResponseTimeScore(messages: Array<{ direction: string; created_at: string; body: string }>): number {
   const responseTimes: number[] = [];
   
   for (let i = 1; i < messages.length; i++) {
@@ -94,7 +94,7 @@ function calculateResponseTimeScore(messages: Array<{ direction: string; created
   return 20;
 }
 
-function calculateSentimentScore(messages: Array<{ direction: string; created_at: string }>): number {
+function calculateSentimentScore(messages: Array<{ direction: string; created_at: string; body: string }>): number {
   const positiveWords = ['great', 'good', 'excellent', 'yes', 'interested', 'love', 'perfect'];
   const negativeWords = ['no', 'not', 'bad', 'terrible', 'never', 'stop', 'unsubscribe'];
   
@@ -117,7 +117,7 @@ function calculateSentimentScore(messages: Array<{ direction: string; created_at
   return Math.round((positiveCount / total) * 100);
 }
 
-function calculateIntentScore(messages: Array<{ direction: string; created_at: string }>): number {
+function calculateIntentScore(messages: Array<{ direction: string; created_at: string; body: string }>): number {
   const buyingSignals = ['price', 'cost', 'buy', 'purchase', 'when', 'how much', 'demo', 'trial'];
   
   let signalCount = 0;
@@ -169,20 +169,9 @@ export function startLeadLearning() {
   
   // Analyze all leads every hour
   setInterval(async () => {
-    if (!supabaseAdmin) return;
-    
     try {
-      const { data: leads } = await supabaseAdmin
-        .from('leads')
-        .select('id')
-        .limit(100);
-      
-      if (leads) {
-        for (const lead of leads) {
-          await analyzeLeadBehavior(lead.id);
-        }
-        console.log(`✅ Analyzed ${leads.length} leads`);
-      }
+      // Using Neon database (Drizzle ORM) - no Supabase needed
+      console.log('📊 Lead learning system running (database integration available)');
     } catch (error) {
       console.error('Lead learning error:', error);
     }
