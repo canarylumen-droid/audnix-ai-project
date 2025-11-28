@@ -150,6 +150,7 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
+      console.log('📧 Sending OTP request to:', '/api/user/auth/signup/request-otp');
       const response = await fetch('/api/user/auth/signup/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,9 +158,12 @@ export default function AuthPage() {
         credentials: 'include',
       });
 
+      console.log('✅ OTP Response Status:', response.status);
       const data = await response.json();
+      console.log('📨 OTP Response Data:', data);
 
       if (!response.ok) {
+        console.error('❌ OTP Request Failed:', data);
         toast({
           title: "Failed",
           description: data.error || data.reason || data.details || 'Could not send verification email',
@@ -180,9 +184,12 @@ export default function AuthPage() {
       
       setLoading(false);
     } catch (error: any) {
+      console.error('🚨 OTP Network Error:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       toast({
         title: "Network Error",
-        description: "Could not reach server. Please check your connection.",
+        description: `Could not reach server: ${error.message || 'Connection failed'}`,
         variant: "destructive",
       });
       setLoading(false);
