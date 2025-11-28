@@ -76,6 +76,16 @@ import path from 'path';
 const upload = multer({ storage: multer.memoryStorage() }); // Use memory storage for PDF uploads
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add no-cache headers to ALL API responses
+  app.use("/api/", (req, res, next) => {
+    res.set({
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache",
+      "Expires": "0"
+    });
+    next();
+  });
+
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     res.json({ ok: true, timestamp: new Date().toISOString() });
