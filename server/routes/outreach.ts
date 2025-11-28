@@ -4,7 +4,7 @@
 
 import { Router } from 'express';
 import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine';
-import { isAuthenticated } from '../middleware/auth';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ const router = Router();
  * POST /api/outreach/campaign/create
  * Create a new outreach campaign from leads
  */
-router.post('/campaign/create', isAuthenticated, async (req, res) => {
+router.post('/campaign/create', requireAuth, async (req, res) => {
   try {
     const { leads, campaignName } = req.body;
 
@@ -53,7 +53,7 @@ router.post('/campaign/create', isAuthenticated, async (req, res) => {
  * GET /api/outreach/strategy
  * Get current outreach strategy info
  */
-router.get('/strategy', isAuthenticated, async (req, res) => {
+router.get('/strategy', requireAuth, async (req, res) => {
   try {
     const { OUTREACH_STRATEGY, REVENUE_PROJECTION } = await import('../lib/sales-engine/outreach-strategy');
 
