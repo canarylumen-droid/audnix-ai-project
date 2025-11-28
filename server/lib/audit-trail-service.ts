@@ -3,7 +3,7 @@
  * Logs all AI actions for compliance and monitoring
  */
 
-import { db } from "../db";
+import { db } from "../db.js";
 import { auditTrail, pdfAnalytics } from "../../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 

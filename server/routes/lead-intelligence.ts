@@ -1,9 +1,9 @@
 import express, { Router, Request, Response } from "express";
 import type { Lead } from "../../shared/schema.js";
 import type { LeadProfile, ConversationMessage, BrandContext } from "../../shared/types.js";
-import { calculateLeadScore, findDuplicateLeads, enrichLeadCompany, addTimelineEvent, addLeadTag, setCustomFieldValue } from "../lib/ai/lead-management";
-import { detectLeadIntent, suggestSmartReply, detectObjection, predictDealAmount, assessChurnRisk, generateLeadIntelligenceDashboard } from "../lib/ai/lead-intelligence";
-import { generateOptimizedMessage } from "../lib/ai/universal-sales-agent";
+import { calculateLeadScore, findDuplicateLeads, enrichLeadCompany, addTimelineEvent, addLeadTag, setCustomFieldValue } from "../lib/ai/lead-management.js";
+import { detectLeadIntent, suggestSmartReply, detectObjection, predictDealAmount, assessChurnRisk, generateLeadIntelligenceDashboard } from "../lib/ai/lead-intelligence.js";
+import { generateOptimizedMessage } from "../lib/ai/universal-sales-agent.js";
 
 const router: Router = express.Router();
 

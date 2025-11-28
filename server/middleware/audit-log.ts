@@ -1,6 +1,6 @@
 
 import { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 /**
  * Security: Audit logging middleware

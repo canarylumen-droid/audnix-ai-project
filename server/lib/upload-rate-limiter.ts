@@ -3,7 +3,7 @@
  * Prevents abuse of file upload endpoints
  */
 
-import { db } from "../db";
+import { db } from "../db.js";
 import { uploadRateLimit } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 

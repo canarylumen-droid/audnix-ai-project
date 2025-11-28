@@ -1,4 +1,4 @@
-import { decrypt } from "../crypto/encryption";
+import { decrypt } from "../crypto/encryption.js";
 
 interface WhatsAppCredentials {
   // WhatsApp Business API credentials

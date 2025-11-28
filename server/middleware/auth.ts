@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import type { User } from "../../shared/schema.js";
 
 // Extend Express session to include our custom fields

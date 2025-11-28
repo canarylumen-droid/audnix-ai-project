@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
-import { storage } from "../storage";
-import { db } from "../db";
-import { requireAuth, getCurrentUserId } from "../middleware/auth";
+import { storage } from "../storage.js";
+import { db } from "../db.js";
+import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import { sql } from "drizzle-orm";
 
 const router = Router();

@@ -9,7 +9,7 @@ import type {
   Integration,
   InsertIntegration,
 } from "../shared/schema.js";
-import type { IStorage } from "./storage";
+import type { IStorage } from "./storage.js";
 
 // Initialize Supabase client with service role key for server-side operations
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -1,4 +1,4 @@
-import { decrypt } from "../crypto/encryption";
+import { decrypt } from "../crypto/encryption.js";
 
 interface GmailCredentials {
   access_token: string;

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { requireAuth, requireAdmin } from "../middleware/auth";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import multer from "multer";
 
 interface PDFCheckItem {

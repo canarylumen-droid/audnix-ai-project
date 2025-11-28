@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { requireAdmin } from "../middleware/auth";
-import { db } from "../db";
+import { requireAdmin } from "../middleware/auth.js";
+import { db } from "../db.js";
 import { users, leads, messages, integrations } from "../../shared/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 

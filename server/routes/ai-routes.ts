@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { eq } from "drizzle-orm";
-import { storage } from "../storage";
-import { requireAuth, getCurrentUserId } from "../middleware/auth";
+import { storage } from "../storage.js";
+import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import {
   generateAIReply,
   generateVoiceScript,
@@ -13,8 +13,8 @@ import {
 } from '../lib/ai/conversation-ai.js';
 import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
 import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
-import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer";
-import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar";
+import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer.js";
+import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar.js";
 import { generateSmartReplies } from '../lib/ai/smart-replies.js';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
 import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';

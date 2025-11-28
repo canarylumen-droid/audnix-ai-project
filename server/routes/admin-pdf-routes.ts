@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
-import { requireAuth, getCurrentUserId } from "../middleware/auth";
+import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import multer from "multer";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import OpenAI from "openai";
 
 const router = Router();
