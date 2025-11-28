@@ -41,7 +41,7 @@ export const PRICING_TIERS: PricingTier[] = [
     order: 0,
     features: [
       '100 leads',
-      'WhatsApp + Email',
+      'Email only',
       'Basic follow-ups',
       'No voice / no analytics',
     ],
