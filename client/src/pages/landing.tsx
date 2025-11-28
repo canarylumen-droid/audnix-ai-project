@@ -730,14 +730,10 @@ export default function Landing() {
               <h3 className="font-semibold text-white mb-3">Legal</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/privacy-policy">
-                    <a className="text-white/60 hover:text-primary transition-colors">Privacy Policy</a>
-                  </Link>
+                  <Link href="/privacy-policy" className="text-white/60 hover:text-primary transition-colors">Privacy Policy</Link>
                 </li>
                 <li>
-                  <Link href="/terms-of-service">
-                    <a className="text-white/60 hover:text-primary transition-colors">Terms of Service</a>
-                  </Link>
+                  <Link href="/terms-of-service" className="text-white/60 hover:text-primary transition-colors">Terms of Service</Link>
                 </li>
               </ul>
             </div>

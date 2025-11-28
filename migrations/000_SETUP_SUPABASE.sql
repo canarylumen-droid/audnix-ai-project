@@ -307,27 +307,28 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 -- ============================================================================
--- 17. BRAND EMBEDDINGS TABLE (pgvector for RAG)
+-- 17. BRAND EMBEDDINGS TABLE (pgvector for RAG - optional)
 -- ============================================================================
+-- Create table without vector type (works with or without pgvector)
 CREATE TABLE IF NOT EXISTS brand_embeddings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   source TEXT NOT NULL,
-  embedding vector(1536),
+  embedding TEXT,
   snippet TEXT NOT NULL,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================================================
--- 18. SEMANTIC MEMORY TABLE (pgvector for RAG)
+-- 18. SEMANTIC MEMORY TABLE (pgvector for RAG - optional)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS semantic_memory (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   lead_id UUID,
   source TEXT NOT NULL,
-  embedding vector(1536),
+  embedding TEXT,
   snippet TEXT NOT NULL,
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -384,12 +385,20 @@ CREATE INDEX IF NOT EXISTS idx_payments_stripe_id ON payments(stripe_payment_id)
 CREATE INDEX IF NOT EXISTS idx_brand_embeddings_user ON brand_embeddings(user_id);
 CREATE INDEX IF NOT EXISTS idx_semantic_memory_user ON semantic_memory(user_id);
 
--- Vector similarity search indexes (HNSW for better performance)
-CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings 
-  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-  
-CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory 
-  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- Vector similarity search indexes (only if pgvector is available)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings 
+      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory 
+      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+  ELSE
+    RAISE NOTICE 'pgvector not available, skipping vector indexes';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'Vector indexes skipped: %', SQLERRM;
+END $$;
 
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

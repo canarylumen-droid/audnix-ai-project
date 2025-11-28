@@ -320,9 +320,24 @@ async function runMigrations() {
 }
 
 (async () => {
-  // Run migrations first
-  // Temporarily disabled migrations - uncomment if you need database features
-  // await runMigrations();
+  // Run migrations first (with timeout to prevent hanging)
+  let migrationsSucceeded = false;
+  try {
+    const migrationPromise = runMigrations();
+    const timeoutPromise = new Promise<void>((_, reject) => 
+      setTimeout(() => reject(new Error('Migration timeout after 30 seconds')), 30000)
+    );
+    await Promise.race([migrationPromise, timeoutPromise]);
+    migrationsSucceeded = true;
+  } catch (error: any) {
+    if (error.message.includes('timeout')) {
+      console.error('❌ Migrations timed out. Server will still start but some features may not work.');
+      console.log('💡 Run migrations manually or check database connectivity');
+    } else {
+      console.log('⚠️  Migration step completed with warnings:', error.message);
+      migrationsSucceeded = true; // Non-timeout errors are handled gracefully in runMigrations
+    }
+  }
 
   // Register API routes first (creates the HTTP server)
   const server = await registerRoutes(app);

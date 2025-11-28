@@ -45,7 +45,19 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return;
     }
 
-    const existing = await storage.getUserByEmail(email);
+    // Check for existing user with better error handling
+    let existing;
+    try {
+      existing = await storage.getUserByEmail(email);
+    } catch (dbError: any) {
+      console.error('❌ [OTP] Database error checking existing user:', dbError.message);
+      res.status(503).json({ 
+        error: 'Database temporarily unavailable',
+        details: 'Please try again in a moment'
+      });
+      return;
+    }
+    
     if (existing) {
       console.error(`❌ [OTP] Email already registered: ${email}`);
       res.status(400).json({ error: 'Email already registered. Use login instead.' });
@@ -69,7 +81,18 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     }
 
     console.log(`📧 [OTP] Sending to: ${email}`);
-    const result = await twilioEmailOTP.sendEmailOTP(email);
+    let result;
+    try {
+      result = await twilioEmailOTP.sendEmailOTP(email);
+    } catch (emailError: any) {
+      tempPasswords.delete(email.toLowerCase());
+      console.error(`❌ [OTP] Email service error:`, emailError.message);
+      res.status(503).json({ 
+        error: 'Email service temporarily unavailable',
+        details: 'Please try again in a moment'
+      });
+      return;
+    }
 
     if (!result.success) {
       tempPasswords.delete(email.toLowerCase());
@@ -88,8 +111,12 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       expiresIn: '10 minutes',
     });
   } catch (error: unknown) {
-    console.error('🚨 [OTP CRASH]', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('🚨 [OTP CRASH]', errorMessage, error);
+    res.status(500).json({ 
+      error: 'A server error occurred',
+      details: 'Please try again later'
+    });
   }
 });
 
