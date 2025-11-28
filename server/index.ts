@@ -1,15 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin";
-import { followUpWorker } from "./lib/ai/follow-up-worker";
-import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor";
-import { workerHealthMonitor } from "./lib/monitoring/worker-health";
-import { emailWarmupWorker } from "./lib/email/email-warmup-worker";
-import { emailSyncWorker } from "./lib/email/email-sync-worker";
-import { apiLimiter, authLimiter } from "./middleware/rate-limit";
+import { registerRoutes } from "./routes.js";
+import { setupVite, serveStatic, log } from "./vite.js";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
+import { followUpWorker } from "./lib/ai/follow-up-worker.js";
+import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
+import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
+import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
+import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
+import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
@@ -253,7 +253,7 @@ async function runMigrations() {
     console.log('🚀 Running database migrations...');
 
     // Use Drizzle's db connection directly
-    const { db } = await import('./db');
+    const { db } = await import('./db.js');
 
     // Check if db is actually initialized
     if (!db) {
@@ -358,7 +358,7 @@ async function runMigrations() {
   }
 
   // Start background workers only if database AND Supabase are configured
-  const { db } = await import('./db');
+  const { db } = await import('./db.js');
   const hasDatabase = process.env.DATABASE_URL && db;
   const hasSupabase = isSupabaseAdminConfigured();
 
@@ -376,11 +376,11 @@ async function runMigrations() {
     startVideoCommentMonitoring();
 
     // Start lead learning system
-    const { startLeadLearning } = await import('./lib/ai/lead-learning');
+    const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
     startLeadLearning();
 
     // Start OAuth token refresh worker (every 30 minutes)
-    const { GmailOAuth } = await import('./lib/oauth/gmail');
+    const { GmailOAuth } = await import('./lib/oauth/gmail.js');
     setInterval(() => {
       GmailOAuth.refreshExpiredTokens()
         .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))

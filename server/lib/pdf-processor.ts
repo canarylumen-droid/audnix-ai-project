@@ -1,6 +1,6 @@
-import { supabaseAdmin } from './supabase-admin';
-import { storage } from '../storage';
-import { scheduleInitialFollowUp } from './ai/follow-up-worker';
+import { supabaseAdmin } from './supabase-admin.js';
+import { storage } from '../storage.js';
+import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
 import type { PDFProcessingResult } from '@shared/types';
 

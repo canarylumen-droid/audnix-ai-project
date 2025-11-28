@@ -1,19 +1,19 @@
-import { db } from '../../db';
+import { db } from '../../db.js';
 import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '@shared/schema';
 import { eq, and, lte, asc } from 'drizzle-orm';
-import { generateReply } from './openai';
-import { InstagramOAuth } from '../oauth/instagram';
-import { sendInstagramMessage } from '../channels/instagram';
-import { sendWhatsAppMessage } from '../channels/whatsapp';
-import { sendEmail } from '../channels/email';
-import { executeCommentFollowUps } from './comment-detection';
-import { storage } from '../../storage';
-import MultiChannelOrchestrator from '../multi-channel-orchestrator';
-import DayAwareSequence from './day-aware-sequence';
-import { getMessageScript, personalizeScript } from './message-scripts';
-import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization';
-import { multiProviderEmailFailover } from '../email/multi-provider-failover';
-import { decrypt } from '../crypto/encryption';
+import { generateReply } from './openai.js';
+import { InstagramOAuth } from '../oauth/instagram.js';
+import { sendInstagramMessage } from '../channels/instagram.js';
+import { sendWhatsAppMessage } from '../channels/whatsapp.js';
+import { sendEmail } from '../channels/email.js';
+import { executeCommentFollowUps } from './comment-detection.js';
+import { storage } from '../../storage.js';
+import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
+import DayAwareSequence from './day-aware-sequence.js';
+import { getMessageScript, personalizeScript } from './message-scripts.js';
+import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization.js';
+import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
+import { decrypt } from '../crypto/encryption.js';
 import type { 
   BrandContext, 
   ChannelType, 

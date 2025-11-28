@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
-import { storage } from '../../storage';
-import { InstagramProvider } from '../providers/instagram';
-import { formatDMWithButton } from './dm-formatter';
-import { workerHealthMonitor } from '../monitoring/worker-health';
+import { storage } from '../../storage.js';
+import { InstagramProvider } from '../providers/instagram.js';
+import { formatDMWithButton } from './dm-formatter.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { User, Lead, Integration, VideoMonitor } from '@shared/schema';
 
 const openai = new OpenAI({

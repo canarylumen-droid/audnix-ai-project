@@ -1,12 +1,12 @@
 import OpenAI from "openai";
-import { storage } from "../../storage";
+import { storage } from "../../storage.js";
 import type { Message, Lead } from "@shared/schema";
-import { storeConversationMemory, retrieveConversationMemory } from "./super-memory";
-import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector';
-import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation';
-import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection';
-import { optimizeSalesLanguage } from './sales-language-optimizer';
-import { getBrandContext, formatBrandContextForPrompt } from './brand-context';
+import { storeConversationMemory, retrieveConversationMemory } from "./super-memory.js";
+import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector.js';
+import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation.js';
+import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection.js';
+import { optimizeSalesLanguage } from './sales-language-optimizer.js';
+import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"

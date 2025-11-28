@@ -2,7 +2,7 @@ import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
 import { createClient } from "@supabase/supabase-js";
-import { embed as generateEmbedding } from "./ai/openai";
+import { embed as generateEmbedding } from "./ai/openai.js";
 import type { Request } from "express";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

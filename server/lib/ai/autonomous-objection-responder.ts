@@ -16,7 +16,7 @@ import OpenAI from "openai";
 import {
   OBJECTIONS_DATABASE,
   getObjectionsByIndustry,
-} from "./sales-engine/objections-database";
+} from "./sales-engine/objections-database.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",

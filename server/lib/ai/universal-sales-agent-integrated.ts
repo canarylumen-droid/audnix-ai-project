@@ -18,8 +18,8 @@ import {
   type SalesBrandContext,
   type Testimonial,
   type OptimizedMessageResult
-} from "./universal-sales-agent";
-import { calculateLeadScore } from "./lead-management";
+} from "./universal-sales-agent.js";
+import { calculateLeadScore } from "./lead-management.js";
 import { 
   detectLeadIntent, 
   suggestSmartReply, 
@@ -28,11 +28,11 @@ import {
   type IntentDetectionResult,
   type ChurnRiskAssessment,
   type SmartReplyOption
-} from "./lead-intelligence";
+} from "./lead-intelligence.js";
 import { 
   generateAutonomousObjectionResponse, 
   recordObjectionLearning 
-} from "./autonomous-objection-responder";
+} from "./autonomous-objection-responder.js";
 
 interface LeadWithProfile extends SalesLeadProfile {
   id: string;

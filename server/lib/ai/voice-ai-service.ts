@@ -1,10 +1,10 @@
-import { InstagramProvider } from '../providers/instagram';
-import { WhatsAppProvider } from '../providers/whatsapp';
-import { ElevenLabsProvider } from '../providers/elevenlabs';
-import { storage } from '../../storage';
-import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai';
-import { uploadToSupabase } from '../file-upload';
-import { decrypt } from '../crypto/encryption';
+import { InstagramProvider } from '../providers/instagram.js';
+import { WhatsAppProvider } from '../providers/whatsapp.js';
+import { ElevenLabsProvider } from '../providers/elevenlabs.js';
+import { storage } from '../../storage.js';
+import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai.js';
+import { uploadToSupabase } from '../file-upload.js';
+import { decrypt } from '../crypto/encryption.js';
 import type { Lead, Message, User } from '@shared/schema';
 import type { ProviderType } from '@shared/types';
 
