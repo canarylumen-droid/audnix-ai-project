@@ -1,6 +1,3 @@
-
-import { supabaseAdmin } from '../supabase-admin';
-
 interface WorkerHealth {
   name: string;
   status: 'healthy' | 'degraded' | 'failed';

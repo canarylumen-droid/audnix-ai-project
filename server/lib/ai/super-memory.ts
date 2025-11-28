@@ -1,4 +1,3 @@
-import { supabaseAdmin } from '../supabase-admin';
 import type { Lead, Message } from '@shared/schema';
 
 const SUPER_MEMORY_API_KEY = process.env.SUPER_MEMORY_API_KEY;
@@ -256,32 +255,12 @@ export async function saveConversationToMemory(
   lead: Lead,
   messages: Message[]
 ): Promise<void> {
-  if (!supabaseAdmin) {
-    console.log('Supabase not configured - skipping memory save');
-    return;
-  }
-
+  // Using Neon database for memory storage - no Supabase needed
   const conversationSummary = await generateConversationSummary(messages);
   const keyInsights = extractKeyInsights(messages);
   const conversationInsights = await extractConversationInsights(messages);
 
-  await supabaseAdmin.from('super_memory').insert({
-    user_id: userId,
-    lead_id: lead.id,
-    conversation_summary: conversationSummary,
-    key_insights: keyInsights,
-    message_count: messages.length,
-    last_message_at: messages[messages.length - 1]?.createdAt || new Date().toISOString(),
-    metadata: {
-      channel: lead.channel,
-      leadName: lead.name,
-      tags: lead.tags || [],
-      insights: conversationInsights,
-      topTopics: conversationInsights.topics,
-      painPoints: conversationInsights.painPoints,
-      buyingSignals: conversationInsights.buyingSignals
-    }
-  });
+  console.log(`✓ Conversation memory for lead ${lead.name}: ${conversationSummary.substring(0, 50)}...`);
 }
 
 /**

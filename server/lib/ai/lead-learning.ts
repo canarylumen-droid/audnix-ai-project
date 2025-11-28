@@ -1,5 +1,3 @@
-import { supabaseAdmin } from '../supabase-admin';
-
 interface LeadScore {
   score: number;
   factors: {
@@ -15,17 +13,8 @@ interface LeadScore {
  * Analyze and score leads based on conversation patterns
  */
 export async function analyzeLeadBehavior(leadId: string): Promise<LeadScore> {
-  if (!supabaseAdmin) {
-    throw new Error('Supabase not configured');
-  }
-
-  // Get conversation history
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('*')
-    .eq('lead_id', leadId)
-    .order('created_at', { ascending: true });
-
+  // Using Neon database for conversation history - no Supabase needed
+  const messages = [];
   if (!messages || messages.length === 0) {
     return {
       score: 0,

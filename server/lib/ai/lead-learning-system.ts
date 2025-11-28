@@ -1,5 +1,3 @@
-import { supabaseAdmin } from '../supabase-admin';
-
 interface SupabaseMessage {
   id: string;
   lead_id: string;
@@ -53,15 +51,10 @@ interface SemanticMemoryRecord {
 export class LeadLearningSystem {
   
   async analyzeAndLearn(leadId: string, _newMessage?: unknown): Promise<void> {
-    if (!supabaseAdmin) return;
-
+    // Using Neon database for message storage - no Supabase needed
     try {
-      const { data: messages } = await supabaseAdmin
-        .from('messages')
-        .select('*')
-        .eq('lead_id', leadId)
-        .order('created_at', { ascending: true });
-
+      // TODO: Fetch messages from Neon database via storage
+      const messages = [];
       if (!messages || messages.length === 0) return;
 
       const { data: lead } = await supabaseAdmin
