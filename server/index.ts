@@ -1,8 +1,13 @@
+// CRITICAL: Ensure NODE_ENV is set BEFORE any other code runs
+// This prevents Vite/Rollup from being loaded in production
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes.js";
-import { serveStatic, log } from "./vite.js";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
@@ -361,6 +366,8 @@ async function runMigrations() {
     await setupVite(app, server);
     console.log('🔄 Vite dev server initialized');
   } else {
+    // Production: import serveStatic ONLY when needed to avoid loading vite.ts module
+    const { serveStatic } = await import('./vite.js');
     serveStatic(app);
     console.log('📦 Serving pre-built static files (production mode)');
   }
