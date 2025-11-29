@@ -252,7 +252,7 @@ export class FollowUpWorker {
 
       // Prepend disclaimer for legal compliance
       try {
-        const { prependDisclaimerToMessage } = await import('./disclaimer-generator.js.js');
+        const { prependDisclaimerToMessage } = await import('./disclaimer-generator.js');
         const { messageWithDisclaimer } = prependDisclaimerToMessage(
           aiReply,
           job.channel as 'email' | 'whatsapp' | 'sms' | 'voice',

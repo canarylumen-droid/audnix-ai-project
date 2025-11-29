@@ -276,7 +276,7 @@ export async function sendEmail(
 
   const brandColors = options.brandColors || await getUserBrandColors(userId);
   
-  const { generateEmailSubject } = await import('./email-subject-generator.js.js');
+  const { generateEmailSubject } = await import('./email-subject-generator.js');
   const emailSubject = subject || await generateEmailSubject(userId, content);
 
   const { data: userData } = await supabaseAdmin

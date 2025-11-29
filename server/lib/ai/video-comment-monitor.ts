@@ -315,7 +315,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
           continue;
         }
 
-        const { contentModerationService } = await import('./content-moderation.js.js');
+        const { contentModerationService } = await import('./content-moderation.js');
         const moderationResult: ModerationResult = await contentModerationService.moderateWithAI(comment.text);
 
         if (moderationResult.shouldBlock) {

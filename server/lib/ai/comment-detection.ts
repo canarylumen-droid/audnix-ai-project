@@ -241,7 +241,7 @@ function selectEmojiForIntent(intent: string): string {
  */
 async function isCommentAppropriate(comment: string): Promise<boolean> {
   try {
-    const { contentModerationService } = await import('./content-moderation.js.js');
+    const { contentModerationService } = await import('./content-moderation.js');
     const result = await contentModerationService.moderateContent(comment);
     return result.isAppropriate;
   } catch (error) {
