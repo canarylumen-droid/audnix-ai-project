@@ -16,12 +16,12 @@
     "node": "20.x"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8",
+    "@rollup/rollup-darwin-arm64": "^4.28.0",
+    "@rollup/rollup-darwin-x64": "^4.28.0",
     "@rollup/rollup-linux-x64-gnu": "^4.28.0",
     "@rollup/rollup-linux-x64-musl": "^4.28.0",
-    "@rollup/rollup-darwin-x64": "^4.28.0",
-    "@rollup/rollup-darwin-arm64": "^4.28.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.28.0"
+    "@rollup/rollup-win32-x64-msvc": "^4.28.0",
+    "bufferutil": "^4.0.8"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
@@ -123,6 +123,7 @@
     "recharts": "^2.15.2",
     "redis": "^5.9.0",
     "resend": "^6.5.2",
+    "rollup": "^4.53.3",
     "stripe": "^19.3.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss": "^3.4.17",
