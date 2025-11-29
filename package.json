@@ -16,7 +16,12 @@
     "node": "20.x"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "bufferutil": "^4.0.8",
+    "@rollup/rollup-linux-x64-gnu": "^4.28.0",
+    "@rollup/rollup-linux-x64-musl": "^4.28.0",
+    "@rollup/rollup-darwin-x64": "^4.28.0",
+    "@rollup/rollup-darwin-arm64": "^4.28.0",
+    "@rollup/rollup-win32-x64-msvc": "^4.28.0"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
