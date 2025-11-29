@@ -258,21 +258,54 @@ export async function getTopupPaymentLink(
     }
   }
 
-  // Method 2: Price IDs fallback
+  // Method 2: Use Price IDs to create checkout session via Stripe SDK
   const topup = TOPUPS[topupKey];
   const priceId = topup.priceId;
 
-  if (!priceId || priceId.startsWith('price_')) {
+  if (!stripe || !process.env.STRIPE_SECRET_KEY) {
+    console.error('⚠️ Stripe SDK not initialized or STRIPE_SECRET_KEY missing');
     throw new Error(
-      `❌ No payment link configured for ${topupKey} top-up.\n\n` +
-      `Create a payment link in Stripe Dashboard:\n` +
-      `1. Go to https://dashboard.stripe.com/payment-links\n` +
-      `2. Click "+ New" and set price to $${topup.price} (ONE-TIME payment)\n` +
-      `3. Copy the link and add to Replit Secrets as: STRIPE_PAYMENT_LINK_${topupKey.toUpperCase()}`
+      `❌ Payment processing not configured.\n\n` +
+      `To enable payments:\n` +
+      `1. Ensure STRIPE_SECRET_KEY is set in Replit Secrets\n` +
+      `2. Create payment links: https://dashboard.stripe.com/payment-links\n` +
+      `3. Add them as STRIPE_PAYMENT_LINK_${topupKey.toUpperCase()} in Replit Secrets`
     );
   }
 
-  throw new Error('No payment method configured');
+  // Try to create a checkout session with the price ID
+  try {
+    console.log(`Creating checkout session with price ID: ${priceId}`);
+    
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.VITE_API_URL || 'https://audnix.ai'}/dashboard/pricing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${process.env.VITE_API_URL || 'https://audnix.ai'}/dashboard/pricing?cancelled=true`,
+      client_reference_id: userId,
+    });
+
+    if (!session.url) {
+      throw new Error('No checkout URL returned from Stripe');
+    }
+
+    console.log(`✅ Checkout session created: ${session.id}`);
+    return session.url;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`Error creating checkout session: ${errorMessage}`);
+    throw new Error(
+      `❌ Failed to create checkout for ${topupKey}.\n\n` +
+      `Error: ${errorMessage}\n\n` +
+      `Ensure STRIPE_SECRET_KEY is properly configured in Replit Secrets.`
+    );
+  }
 }
 
 /**
