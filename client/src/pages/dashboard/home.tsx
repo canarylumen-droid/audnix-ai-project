@@ -297,7 +297,7 @@ export default function DashboardHome() {
               style={{ textShadow: "0 0 40px rgba(0, 200, 255, 0.3)" }}
             >
               <span className="inline-flex items-center gap-3">
-                <span className="text-white">{user?.name || 'There'}</span>
+                <span className="text-white">Hey @{user?.username || 'Friend'}</span>
                 <motion.span
                   animate={prefersReducedMotion ? {} : {
                     rotate: [0, 14, -8, 14, -4, 10, 0, 0],
