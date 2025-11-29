@@ -16,10 +16,10 @@
     "node": "20.x"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8",
-    "@rollup/rollup-linux-x64-gnu": "^4.24.0"
+    "bufferutil": "^4.0.8"
   },
   "dependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.24.0",
     "@google-cloud/local-auth": "^3.0.1",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^3.10.0",
