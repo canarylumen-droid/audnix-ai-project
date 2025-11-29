@@ -21,6 +21,17 @@ import path from "path";
 
 const app = express();
 
+// Simple logging utility (avoid circular imports)
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
+
 // Set Express environment based on NODE_ENV (NOT the default 'development')
 const nodeEnv = process.env.NODE_ENV || 'development';
 app.set("env", nodeEnv);
