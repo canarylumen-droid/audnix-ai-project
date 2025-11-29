@@ -74,6 +74,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
   const [useCase, setUseCase] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [businessSize, setBusinessSize] = useState<string>('');
+  const [companyName, setCompanyName] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const { toast } = useToast();
@@ -111,21 +112,29 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
   const handleBusinessSizeSelect = (size: string) => {
     setBusinessSize(size);
-    setTimeout(() => handleComplete(), 500);
+    setTimeout(() => setStep(5), 500);
+  };
+
+  const handleCompanyNameSubmit = async () => {
+    if (!companyName.trim()) {
+      toast({
+        title: "Please enter your company name",
+        variant: "destructive",
+      });
+      return;
+    }
+    await handleComplete();
   };
 
   const handleComplete = async () => {
     setLoading(true);
     
     try {
-      const finalSource = source === 'Other' ? customSource : source;
-      
-      await apiClient.post('/api/onboarding', {
-        userRole,
-        source: finalSource,
-        useCase: useCase || selectedTags.join(', '),
-        businessSize,
-        tags: selectedTags,
+      // Call the backend to mark onboarding as complete
+      await apiClient.post('/api/auth/complete-onboarding', {
+        companyName: companyName.trim(),
+        businessDescription: useCase || selectedTags.join(', '),
+        industry: userRole,
       });
 
       toast({
@@ -390,6 +399,54 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       </motion.button>
                     ))}
                   </div>
+                </motion.div>
+              )}
+
+              {/* Step 5: Company Name */}
+              {step === 5 && (
+                <motion.div
+                  key="step5"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="text-center space-y-2">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                      <Sparkles className="w-8 h-8 text-primary" />
+                    </div>
+                    <h2 className="text-3xl font-bold">What's your company name?</h2>
+                    <p className="text-muted-foreground">One last thing!</p>
+                  </div>
+
+                  <div className="space-y-4 mt-8">
+                    <Label htmlFor="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      placeholder="Enter your company name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      autoFocus
+                      disabled={loading}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCompanyNameSubmit();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handleCompanyNameSubmit}
+                    className="w-full mt-6"
+                    size="lg"
+                    disabled={loading || !companyName.trim()}
+                  >
+                    {loading ? "Setting up..." : "Complete Setup 🎉"}
+                  </Button>
                 </motion.div>
               )}
             </AnimatePresence>
