@@ -222,27 +222,6 @@ export default function DashboardHome() {
     },
   ];
 
-  const quickActions = [
-    {
-      label: "Connect Instagram",
-      description: "Sync your Instagram DMs",
-      icon: Instagram,
-      action: "/dashboard/integrations",
-    },
-    {
-      label: "Send Broadcast",
-      description: "Message all active leads",
-      icon: Send,
-      action: "/dashboard/inbox",
-    },
-    {
-      label: "Import Leads",
-      description: "Upload leads from CSV",
-      icon: UserPlus,
-      action: "/dashboard/lead-import",
-    },
-  ];
-
   if (statsLoading) {
     return (
       <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
@@ -512,49 +491,6 @@ export default function DashboardHome() {
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Quick Actions */}
-          <motion.div
-            className="lg:col-span-1"
-            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.4 }}
-          >
-            <Card data-testid="card-quick-actions" className="glass-card border-border/50 hover:border-primary/30 transition-colors">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-4 md:px-6">
-                {quickActions.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <Link key={action.label} href={action.action}>
-                      <motion.div
-                        whileHover={prefersReducedMotion ? {} : { scale: 1.02, x: 4 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start glass-card border-border/50 hover:border-primary/50 hover:bg-primary/10 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group"
-                          data-testid={`button-action-${index}`}
-                        >
-                          <div className="p-1.5 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 mr-3">
-                            <Icon className="h-4 w-4 text-cyan-400" />
-                          </div>
-                          <div className="text-left">
-                            <div className="font-semibold text-white group-hover:text-cyan-400 transition-colors">{action.label}</div>
-                            <div className="text-xs text-white/70 group-hover:text-white/90 transition-colors">
-                              {action.description}
-                            </div>
-                          </div>
-                        </Button>
-                      </motion.div>
-                    </Link>
-                  );
-                })}
               </CardContent>
             </Card>
           </motion.div>
