@@ -1445,20 +1445,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let avatarUrl;
 
-      // Try to upload to Supabase if configured, otherwise use local path
+      // Try to upload to Supabase if configured, otherwise use base64 data URL
       if (isSupabaseAdminConfigured()) {
         try {
           avatarUrl = await uploadToSupabase(
             "avatars",
             `${userId}/${Date.now()}-${req.file.originalname}`,
-            req.file.path
+            req.file.buffer
           );
         } catch (error) {
-          console.log("Supabase upload failed, using local storage");
-          avatarUrl = `/uploads/${req.file.filename}`;
+          console.log("Supabase upload failed, using data URL");
+          avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
         }
       } else {
-        avatarUrl = `/uploads/${req.file.filename}`;
+        avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
       }
 
       // Update user avatar in database
@@ -1712,7 +1712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileUrl = await uploadToSupabase(
         "voice-samples",
         `${userId}/${Date.now()}-${req.file.originalname}`,
-        req.file.path
+        req.file.buffer
       );
 
       // Store voice sample record
@@ -1742,11 +1742,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileUrl = await uploadToSupabase(
         "documents",
         `${userId}/${Date.now()}-${req.file.originalname}`,
-        req.file.path
+        req.file.buffer
       );
 
-      // Queue PDF processing for embeddings
-      await processPDFEmbeddings(userId, fileUrl, req.file.originalname);
+      // Queue PDF processing for embeddings with buffer for text extraction
+      await processPDFEmbeddings(userId, fileUrl, req.file.originalname, undefined, req.file.buffer);
 
       res.json({
         success: true,

@@ -141,7 +141,8 @@ export async function processPDFEmbeddings(
   userId: string,
   fileUrl: string,
   fileName: string,
-  localPath?: string
+  localPath?: string,
+  fileBuffer?: Buffer
 ): Promise<void> {
   if (!supabase) {
     throw new Error("Supabase not configured");
@@ -164,7 +165,9 @@ export async function processPDFEmbeddings(
     }
 
     let extractedText = '';
-    if (localPath) {
+    if (fileBuffer) {
+      extractedText = await extractTextFromPDFBuffer(fileBuffer);
+    } else if (localPath) {
       extractedText = await extractTextFromPDF(localPath);
     }
 
@@ -255,7 +258,25 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
     return fullText || '';
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error extracting PDF text:', errorMessage);
+    console.error('Error extracting PDF text from file:', errorMessage);
+    return '';
+  }
+}
+
+async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
+  try {
+    const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
+    const pdfData = await pdfParse(fileBuffer);
+    
+    let fullText = '';
+    if (pdfData.text) {
+      fullText = pdfData.text;
+    }
+    
+    return fullText || '';
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error extracting PDF text from buffer:', errorMessage);
     return '';
   }
 }
