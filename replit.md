@@ -1,6 +1,6 @@
 # Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
 
-> Last Updated: **November 28, 2025** | **Status: ✅ Production Deployed**
+> Last Updated: **November 29, 2025** | **Status: ✅ Replit Migration Complete**
 
 ### Overview
 Audnix AI is a zero-setup, multi-channel sales automation SaaS platform designed to automate lead imports and personalized follow-ups across WhatsApp, Email, and CSV. It emphasizes user privacy by integrating directly with users' existing business accounts (email, Calendly, WhatsApp). The platform automates sales and objection handling for creators, coaches, agencies, and founders.
@@ -36,7 +36,31 @@ Email → Password → OTP (SendGrid) → Username → Dashboard
 - **Admin Dashboard:** Direct plan upgrades, user management, real-time analytics
 - **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
-### Recent Changes (November 28, 2025) - VERCEL BUILD FIX & PRODUCTION READY
+### Recent Changes (November 29, 2025) - REPLIT MIGRATION & STABILIZATION
+- **✅ REPLIT MIGRATION COMPLETE:** Migrated from Replit Agent to standard Replit environment
+- **✅ node-fetch REMOVED:** Replaced with native fetch API in `calendly.ts` and `multi-provider-failover.ts`
+- **✅ ROLLUP BINARY FIX:** Updated `.npmrc` configuration, installed `@rollup/rollup-linux-x64-gnu`
+- **✅ CI/CD PIPELINE:** Created `.github/workflows/ci.yml` for GitHub Actions deployment
+- **✅ VERCEL CONFIG:** Updated `vercel.json` with proper installCommand and output directory
+- **✅ ALL 19 MIGRATIONS WORKING:** Database schema fully synchronized
+- **✅ BUILD SUCCEEDS:** 19.27s build time, `dist/public/` generated successfully
+- **✅ SERVER RUNNING:** Port 5000, all business logic intact (rate limiting, follow-up worker, video monitoring, lead import, payment handlers, OTP system, admin routes, PDF uploads)
+
+### Required Secrets for Production
+The following secrets need to be configured in Replit Secrets for full functionality:
+
+| Secret | Purpose | Impact if Missing |
+|--------|---------|-------------------|
+| `TWILIO_SENDGRID_API_KEY` | Email OTP authentication | Users cannot sign up/login via email |
+| `OPENAI_API_KEY` | AI objection handling, analytics | Falls back to basic responses |
+| `STRIPE_SECRET_KEY` | Payment processing | Stripe webhooks disabled |
+| `REDIS_URL` | Distributed rate limiting | Falls back to memory-based limiting |
+| `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Google Calendar OAuth | Calendar integration disabled |
+| `CALENDLY_CLIENT_ID` + `CALENDLY_CLIENT_SECRET` | Calendly OAuth | Users can still use manual API key |
+| `ENCRYPTION_KEY` | Session encryption | Uses auto-generated key (insecure for production) |
+| `SUPER_MEMORY_API_KEY` | Extended conversation memory | Limited to database storage only |
+
+### Previous Changes (November 28, 2025) - VERCEL BUILD FIX
 - **✅ VERCEL BUILD FIXED:** Removed esbuild bundling, using tsx for direct TypeScript execution
 - **✅ IMPORT PATHS CORRECTED:** Fixed `server/index.ts` to import from `./routes` (main routes file)
 - **✅ ALL API ENDPOINTS VERIFIED:** Health, auth, OTP, dashboard routes all working
