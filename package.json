@@ -10,8 +10,13 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "setup": "tsx scripts/setup.ts",
-    "verify": "bash scripts/verify_build_and_run.sh"
+    "verify": "bash scripts/verify_build_and_run.sh",
+    "postinstall": "npm rebuild esbuild"
   },
+  "engines": {
+    "node": "20.x"
+  },
+  "optionalDependencies": {},
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@gsap/react": "^2.1.2",
