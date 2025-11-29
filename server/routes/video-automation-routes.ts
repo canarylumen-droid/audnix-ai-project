@@ -37,7 +37,7 @@ router.get('/videos', requireAuth, async (req: Request, res: Response): Promise<
     }
 
     // Fetch user's recent videos from Instagram Graph API
-    const { decrypt } = await import('../../lib/crypto/encryption.js');
+    const { decrypt } = await import('../lib/crypto/encryption.js');
     const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
 
     const response = await fetch(

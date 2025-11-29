@@ -181,7 +181,7 @@ export class InstagramProvider {
       }
 
       // Upload audio to a public URL first (using Supabase storage or similar)
-      const { uploadToSupabase } = await import('../../file-upload.js');
+      const { uploadToSupabase } = await import('../file-upload.js');
       
       // Save buffer to temp file first
       const fs = await import('fs/promises');

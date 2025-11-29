@@ -230,7 +230,7 @@ export async function sendEmail(
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
   
   if (customEmailIntegration?.connected) {
-    const { decrypt } = await import('../../crypto/encryption.js');
+    const { decrypt } = await import('../crypto/encryption.js');
     if (!customEmailIntegration.encryptedMeta) {
       throw new Error('Email credentials not configured');
     }

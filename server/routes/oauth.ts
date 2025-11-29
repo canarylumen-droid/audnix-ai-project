@@ -569,7 +569,7 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
     });
 
     if (leadId) {
-      const { storage } = await import('../../storage.js');
+      const { storage } = await import('../storage.js');
       await storage.createMessage({
         leadId,
         userId,

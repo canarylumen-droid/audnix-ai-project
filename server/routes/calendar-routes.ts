@@ -196,7 +196,7 @@ router.post('/connect-calendly', requireAuth, async (req: Request, res: Response
       return;
     }
 
-    const { encrypt } = await import('../../lib/crypto/encryption.js');
+    const { encrypt } = await import('../lib/crypto/encryption.js');
     const encrypted = await encrypt(JSON.stringify({ api_token: apiToken }));
 
     await storage.createIntegration({

@@ -163,7 +163,7 @@ class MultiProviderEmailFailover {
     if (!smtpConfig && userId) {
       const integration = await storage.getIntegration(userId, 'custom_email');
       if (integration?.encryptedMeta) {
-        const { decrypt } = await import('../../crypto/encryption.js');
+        const { decrypt } = await import('../crypto/encryption.js');
         const decrypted = await decrypt(integration.encryptedMeta);
         smtpConfig = JSON.parse(decrypted) as SmtpConfig;
       }

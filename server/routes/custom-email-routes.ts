@@ -138,11 +138,11 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
       return;
     }
 
-    const { decrypt } = await import('../../lib/crypto/encryption.js');
+    const { decrypt } = await import('../lib/crypto/encryption.js');
     const credentialsStr = await decrypt(integration.encryptedMeta!);
     const credentials: EmailConfig = JSON.parse(credentialsStr);
 
-    const { importCustomEmails } = await import('../../lib/channels/email.js');
+    const { importCustomEmails } = await import('../lib/channels/email.js');
     const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
 
     const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
