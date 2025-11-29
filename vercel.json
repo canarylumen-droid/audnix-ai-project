@@ -2,7 +2,6 @@
   "version": 2,
   "installCommand": "npm install --force",
   "buildCommand": "npm run build",
-  "cleanUrls": true,
   "builds": [
     {
       "src": "server/index.ts",
