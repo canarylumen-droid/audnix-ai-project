@@ -288,21 +288,6 @@ export default function PricingPage() {
                     <p className="text-sm text-white/70">{topup.description}</p>
                   </div>
 
-                  <div className="space-y-2 text-sm text-white/60 mb-6">
-                    {["Instant delivery", "Never expires"].map((item, i) => (
-                      <motion.p
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.05 }}
-                        className="flex items-center justify-center gap-1"
-                      >
-                        <Check className="w-4 h-4 text-emerald-400" />
-                        {item}
-                      </motion.p>
-                    ))}
-                  </div>
 
                   <motion.div
                     whileHover={{ scale: 1.02 }}
