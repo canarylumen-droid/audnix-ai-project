@@ -435,6 +435,17 @@ async function runMigrations() {
     }
   }
 
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    try {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+      console.log('📁 Uploads directory created');
+    } catch (err) {
+      console.warn('⚠️  Could not create uploads directory:', err);
+    }
+  }
+
   const PORT = parseInt(process.env.PORT || '5000', 10);
   server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
