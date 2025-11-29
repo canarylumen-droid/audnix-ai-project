@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes.js";
-import { setupVite, serveStatic, log } from "./vite.js";
+import { serveStatic, log } from "./vite.js";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
@@ -15,6 +15,10 @@ import fs from "fs";
 import path from "path";
 
 const app = express();
+
+// Set Express environment based on NODE_ENV (NOT the default 'development')
+const nodeEnv = process.env.NODE_ENV || 'development';
+app.set("env", nodeEnv);
 
 // Generate required secrets for development if not provided
 if (!process.env.SESSION_SECRET) {
@@ -350,11 +354,15 @@ async function runMigrations() {
     throw err;
   });
 
-  // Setup Vite or static serving (server must be created first)
-  if (app.get("env") === "development") {
+  // Setup Vite (dev only) or static serving (production only)
+  // In production (Vercel), only serve pre-built static files to avoid loading Rollup/Vite
+  if (process.env.NODE_ENV !== 'production') {
+    const { setupVite } = await import('./vite.js');
     await setupVite(app, server);
+    console.log('🔄 Vite dev server initialized');
   } else {
     serveStatic(app);
+    console.log('📦 Serving pre-built static files (production mode)');
   }
 
   // Start background workers only if database AND Supabase are configured
