@@ -12,8 +12,6 @@ const authLimiter = rateLimit({
   message: 'Too many auth attempts',
 });
 
-const tempPasswords = new Map<string, { password: string; expiresAt: Date }>();
-
 router.get('/otp-configured', async (_req: Request, res: Response): Promise<void> => {
   res.json({
     configured: twilioEmailOTP.isConfigured(),
@@ -64,13 +62,12 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return;
     }
 
-    tempPasswords.set(email.toLowerCase(), {
-      password: await bcrypt.hash(password, 10),
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
-    });
+    // Store password in session for temporary use during signup
+    const hashedPassword = await bcrypt.hash(password, 10);
+    (req.session as any).signupEmail = email.toLowerCase();
+    (req.session as any).signupPassword = hashedPassword;
 
     if (!twilioEmailOTP.isConfigured()) {
-      tempPasswords.delete(email.toLowerCase());
       console.error(`❌ [OTP] SendGrid NOT configured. Missing: TWILIO_SENDGRID_API_KEY`);
       res.status(503).json({ 
         error: 'Email service not configured',
@@ -85,7 +82,6 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     try {
       result = await twilioEmailOTP.sendEmailOTP(email);
     } catch (emailError: any) {
-      tempPasswords.delete(email.toLowerCase());
       console.error(`❌ [OTP] Email service error:`, emailError.message);
       res.status(503).json({ 
         error: 'Email service temporarily unavailable',
@@ -95,7 +91,6 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     }
 
     if (!result.success) {
-      tempPasswords.delete(email.toLowerCase());
       console.error(`❌ [OTP FAILED] ${email} - Error: ${result.error}`);
       res.status(400).json({ 
         error: result.error || 'Failed to send OTP',
@@ -130,16 +125,20 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     }
 
     const normalizedEmail = email.toLowerCase();
+    const sessionEmail = (req.session as any).signupEmail;
+    const sessionPassword = (req.session as any).signupPassword;
 
-    const tempData = tempPasswords.get(normalizedEmail);
-    if (!tempData) {
-      res.status(400).json({ error: 'Password not found. Please sign up again.' });
+    // Check if password exists in session
+    if (!sessionPassword || !sessionEmail) {
+      console.error(`❌ [OTP Verify] Session data missing for ${normalizedEmail}`);
+      res.status(400).json({ error: 'Please start signup again. Session expired.' });
       return;
     }
 
-    if (new Date() > tempData.expiresAt) {
-      tempPasswords.delete(normalizedEmail);
-      res.status(400).json({ error: 'Session expired. Please sign up again.' });
+    // Verify email matches what was in signup request
+    if (sessionEmail !== normalizedEmail) {
+      console.error(`❌ [OTP Verify] Email mismatch: session=${sessionEmail}, request=${normalizedEmail}`);
+      res.status(400).json({ error: 'Email does not match signup request' });
       return;
     }
 
@@ -154,12 +153,14 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     const user = await storage.createUser({
       email: normalizedEmail,
       username,
-      password: tempData.password,
+      password: sessionPassword,
       plan: 'trial',
       role: 'member',
     });
 
-    tempPasswords.delete(normalizedEmail);
+    // Clear session data
+    delete (req.session as any).signupEmail;
+    delete (req.session as any).signupPassword;
 
     req.session.userId = user.id;
     req.session.email = normalizedEmail;
