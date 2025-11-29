@@ -40,19 +40,7 @@ export const PLANS = {
 };
 
 /**
- * Top-up catalog - Voice minutes with 90%+ profit margin
- * 
- * COST BREAKDOWN PER MINUTE:
- * - ElevenLabs voice generation: $0.006
- * - Storage + delivery (S3/Supabase): $0.002  
- * - Processing overhead (API calls): $0.002
- * Total cost: ~$0.01/minute
- * 
- * PROFIT MARGINS (90%+):
- * - 100 min: Cost $1 → Price $10 (90% margin)
- * - 300 min: Cost $3 → Price $30 (90% margin)
- * - 600 min: Cost $6 → Price $60 (90% margin)
- * - 1,200 min: Cost $12 → Price $120 (90% margin)
+ * Top-up catalog - Voice minutes
  */
 export const TOPUPS = {
   leads_1000: {
