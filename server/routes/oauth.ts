@@ -466,7 +466,7 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
     }));
 
     try {
-      const { storage } = await import('../../storage.js');
+      const { storage } = await import('../storage.js');
 
       await storage.createIntegration({
         userId,

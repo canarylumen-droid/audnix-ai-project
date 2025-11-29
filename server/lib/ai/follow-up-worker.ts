@@ -273,7 +273,7 @@ export class FollowUpWorker {
 
         // UPDATE: Log to audit trail
         try {
-          const { AuditTrailService } = await import('../../audit-trail-service.js');
+          const { AuditTrailService } = await import('../audit-trail-service.js');
           await AuditTrailService.logAiMessageSent(
             job.userId,
             job.leadId,

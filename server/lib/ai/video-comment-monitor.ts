@@ -274,7 +274,7 @@ Generate ONLY the comment reply text (no quotes, no explanations):`;
  */
 export async function monitorVideoComments(userId: string, videoMonitorId: string): Promise<void> {
   try {
-    const { storage } = await import('../../../storage.js');
+    const { storage } = await import('../../storage.js');
 
     const user: User | undefined = await storage.getUserById(userId);
     if (!user || user.plan === 'trial') {
