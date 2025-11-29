@@ -1,5 +1,4 @@
 import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
-import fetch from 'node-fetch';
 
 export class CalendlyOAuth {
   private config: {

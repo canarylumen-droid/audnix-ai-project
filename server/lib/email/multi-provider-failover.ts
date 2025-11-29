@@ -11,7 +11,6 @@
  */
 
 import FormData from 'form-data';
-import fetch, { RequestInit } from 'node-fetch';
 import nodemailer from 'nodemailer';
 import type { SentMessageInfo } from 'nodemailer';
 import { storage } from '../../storage.js';
@@ -143,8 +142,8 @@ class MultiProviderEmailFailover {
           'Authorization': `Basic ${authHeader}`,
           ...form.getHeaders()
         },
-        body: form
-      } as RequestInit
+        body: form as any
+      }
     );
 
     if (!response.ok) {
