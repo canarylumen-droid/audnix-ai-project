@@ -36,6 +36,10 @@ function log(message: string, source = "express") {
 const nodeEnv = process.env.NODE_ENV || 'development';
 app.set("env", nodeEnv);
 
+// CRITICAL: Trust proxy for Vercel/production environments
+// This fixes X-Forwarded-For header validation for rate limiting
+app.set('trust proxy', 1);
+
 // Generate required secrets for development if not provided
 if (!process.env.SESSION_SECRET) {
   if (process.env.NODE_ENV === 'production') {
@@ -435,14 +439,16 @@ async function runMigrations() {
     }
   }
 
-  // Ensure uploads directory exists
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+  // Ensure uploads directory exists (use /tmp on Vercel for writable location)
+  const isVercel = process.env.VERCEL === '1';
+  const uploadsDir = isVercel ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadsDir)) {
     try {
       fs.mkdirSync(uploadsDir, { recursive: true });
-      console.log('📁 Uploads directory created');
-    } catch (err) {
-      console.warn('⚠️  Could not create uploads directory:', err);
+      console.log(`📁 Uploads directory created at ${uploadsDir}`);
+    } catch (err: any) {
+      // Gracefully handle if directory can't be created (read-only filesystem)
+      console.warn(`⚠️  Could not create uploads directory at ${uploadsDir}:`, err?.message || err);
     }
   }
 
