@@ -1,13 +1,9 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config.js";
 import { nanoid } from "nanoid";
 import { viteLimiter } from './middleware/rate-limit.js';
-
-const viteLogger = createLogger();
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -21,6 +17,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // ONLY import Vite in development mode - this prevents Rollup from loading in production
+  const { createServer: createViteServer, createLogger } = await import("vite");
+  const viteConfig = (await import("../vite.config.js")).default;
+  const viteLogger = createLogger();
+
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
