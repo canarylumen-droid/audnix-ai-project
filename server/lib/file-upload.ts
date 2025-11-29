@@ -16,25 +16,6 @@ const uploadDir = path.join(process.cwd(), "uploads");
 
 fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
 
-const multerStorage = multer.diskStorage({
-  destination: (
-    _req: Request,
-    _file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void
-  ): void => {
-    cb(null, uploadDir);
-  },
-  filename: (
-    _req: Request,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void
-  ): void => {
-    const crypto = require('crypto');
-    const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
-    cb(null, `${uniqueSuffix}-${file.originalname}`);
-  },
-});
-
 const voiceFileFilter = (
   _req: Request,
   file: Express.Multer.File,
@@ -67,7 +48,7 @@ const pdfFileFilter = (
 };
 
 export const uploadVoice = multer({
-  storage: multerStorage,
+  storage: multer.memoryStorage(),
   fileFilter: voiceFileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024,
@@ -75,7 +56,7 @@ export const uploadVoice = multer({
 });
 
 export const uploadPDF = multer({
-  storage: multerStorage,
+  storage: multer.memoryStorage(),
   fileFilter: pdfFileFilter,
   limits: {
     fileSize: 50 * 1024 * 1024,
@@ -97,7 +78,7 @@ const avatarFileFilter = (
 };
 
 export const uploadAvatar = multer({
-  storage: multerStorage,
+  storage: multer.memoryStorage(),
   fileFilter: avatarFileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024,
@@ -107,29 +88,40 @@ export const uploadAvatar = multer({
 export async function uploadToSupabase(
   bucket: string,
   filePath: string,
-  localPath: string
+  fileBuffer?: Buffer | string
 ): Promise<string> {
   if (!supabase) {
     throw new Error("Supabase not configured");
   }
 
-  const resolvedPath = path.resolve(localPath);
-  const uploadDirResolved = path.resolve(uploadDir);
-  
-  const relativePath = path.relative(uploadDirResolved, resolvedPath);
-  const isInsideUploadDir = relativePath && 
-    !relativePath.startsWith('..') && 
-    !path.isAbsolute(relativePath);
-  
-  if (!isInsideUploadDir) {
-    throw new Error("Invalid file path: path traversal detected");
+  // If fileBuffer is a string (file path), read it
+  let buffer: Buffer;
+  if (typeof fileBuffer === 'string') {
+    const resolvedPath = path.resolve(fileBuffer);
+    const uploadDirResolved = path.resolve(uploadDir);
+    
+    const relativePath = path.relative(uploadDirResolved, resolvedPath);
+    const isInsideUploadDir = relativePath && 
+      !relativePath.startsWith('..') && 
+      !path.isAbsolute(relativePath);
+    
+    if (!isInsideUploadDir) {
+      throw new Error("Invalid file path: path traversal detected");
+    }
+
+    buffer = await fs.readFile(resolvedPath);
+    
+    // Clean up local file
+    await fs.unlink(resolvedPath).catch(console.error);
+  } else if (Buffer.isBuffer(fileBuffer)) {
+    buffer = fileBuffer;
+  } else {
+    throw new Error("No file data provided");
   }
 
-  const fileBuffer = await fs.readFile(resolvedPath);
-  
   const { error } = await supabase.storage
     .from(bucket)
-    .upload(filePath, fileBuffer, {
+    .upload(filePath, buffer, {
       contentType: 'auto',
       upsert: true,
     });
@@ -141,15 +133,6 @@ export async function uploadToSupabase(
   const { data: { publicUrl } } = supabase.storage
     .from(bucket)
     .getPublicUrl(filePath);
-
-  const relativePathCheck = path.relative(uploadDirResolved, resolvedPath);
-  const canDelete = relativePathCheck && 
-    !relativePathCheck.startsWith('..') && 
-    !path.isAbsolute(relativePathCheck);
-    
-  if (canDelete) {
-    await fs.unlink(resolvedPath).catch(console.error);
-  }
 
   return publicUrl;
 }
