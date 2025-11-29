@@ -78,7 +78,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     });
 
     try {
-      const { importCustomEmails } = await import('../../lib/channels/email.js');
+      const { importCustomEmails } = await import('../lib/channels/email.js');
       const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
 
       const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
