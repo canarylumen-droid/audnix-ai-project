@@ -289,7 +289,7 @@ export default function PricingPage() {
                   </div>
 
                   <div className="space-y-2 text-sm text-white/60 mb-6">
-                    {["Instant delivery", "Never expires", "85%+ profit margin"].map((item, i) => (
+                    {["Instant delivery", "Never expires"].map((item, i) => (
                       <motion.p
                         key={i}
                         initial={{ opacity: 0, x: -10 }}
