@@ -83,6 +83,7 @@ export default function IntegrationsPage() {
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
   const [showInstagramComingSoon, setShowInstagramComingSoon] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -1223,7 +1224,51 @@ export default function IntegrationsPage() {
       {/* WhatsApp Web Integration */}
       <div>
         <h2 className="text-xl font-semibold mb-4">WhatsApp Business (QR Code)</h2>
-        <WhatsAppConnect />
+        {!canAccessWhatsApp ? (
+          <Card className="border-amber-200/50 bg-amber-50/20 dark:bg-amber-950/10">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="font-medium text-amber-900 dark:text-amber-100">Upgrade to Connect WhatsApp</p>
+                    <p className="text-sm text-amber-800/70 dark:text-amber-200/70">WhatsApp integration is available on paid plans only</p>
+                  </div>
+                </div>
+                <Button onClick={() => window.location.href = '/dashboard/pricing'} size="sm">
+                  View Plans
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="flex gap-2 mb-4">
+              <Button 
+                onClick={() => setShowWhatsAppModal(true)}
+                className="bg-green-500 hover:bg-green-600"
+              >
+                <SiWhatsapp className="h-4 w-4 mr-2" />
+                Connect WhatsApp
+              </Button>
+            </div>
+            
+            {/* WhatsApp Modal */}
+            <Dialog open={showWhatsAppModal} onOpenChange={setShowWhatsAppModal}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Connect WhatsApp Business</DialogTitle>
+                  <DialogDescription>
+                    Scan the QR code with your WhatsApp app to connect
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <WhatsAppConnect />
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
       </div>
 
       {/* All Set Dialog */}
@@ -1289,11 +1334,13 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Instagram Coming Soon Modal */}
-      <InstagramComingSoonModal 
-        open={showInstagramComingSoon} 
-        onOpenChange={setShowInstagramComingSoon}
-      />
+      {/* Instagram Coming Soon Modal - Only opens on click */}
+      {!canAccessInstagram ? (
+        <InstagramComingSoonModal 
+          open={showInstagramComingSoon} 
+          onOpenChange={setShowInstagramComingSoon}
+        />
+      ) : null}
     </div>
   );
 }
