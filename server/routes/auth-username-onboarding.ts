@@ -85,6 +85,7 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
       metadata: {
         businessDescription,
         industry,
+        onboardingCompleted: true,
         onboardedAt: new Date().toISOString(),
       },
     });

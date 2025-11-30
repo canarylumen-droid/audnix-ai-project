@@ -303,10 +303,7 @@ export default function SettingsPage() {
             Download All Leads as CSV
           </Button>
           <p className="text-xs text-muted-foreground">
-            📊 Exports: Name, Email, Phone, Company, Channel, Status, Score, Created Date
-          </p>
-          <p className="text-xs text-amber-600 dark:text-amber-500">
-            💡 Use for CRM imports, email campaigns, or offline analysis
+            Exports: Name, Email, Phone, Company, Channel, Status, Score, Date
           </p>
         </CardContent>
       </Card>
@@ -314,82 +311,18 @@ export default function SettingsPage() {
       {/* Brand Knowledge Base */}
       <Card data-testid="card-brand-knowledge">
         <CardHeader>
-          <CardTitle>Brand Knowledge Base</CardTitle>
+          <CardTitle>Brand Knowledge</CardTitle>
           <CardDescription>
-            Upload PDFs about your offers, products, or services - AI will use this to answer lead questions
+            Upload PDFs to teach AI about your brand
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm font-medium mb-1">Upload Brand & Product PDFs</p>
+            <p className="text-sm font-medium mb-2">Upload Brand PDF</p>
             <p className="text-xs text-muted-foreground mb-4">
-              📄 AI extracts EVERYTHING: Brand colors, product details, pricing, CTAs, contact info
+              Include: Brand colors, products, pricing, contact info
             </p>
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4 text-left">
-              <p className="text-xs font-semibold mb-2 text-primary">📋 What to Include in Your Brand PDF:</p>
-              <div className="space-y-3 text-xs">
-                <div>
-                  <p className="font-semibold mb-1 text-foreground">🎨 Brand Colors (CRITICAL for Email Templates)</p>
-                  <ul className="space-y-1 text-muted-foreground ml-3">
-                    <li>• Primary color: <code className="bg-muted px-1 rounded">#FF5733</code> or "Coral Red"</li>
-                    <li>• Secondary color: <code className="bg-muted px-1 rounded">#2563EB</code> or "Navy Blue"</li>
-                    <li>• Accent color: <code className="bg-muted px-1 rounded">#10B981</code> or "Emerald Green"</li>
-                    <li>• Label them as "Primary Brand Color:", "Secondary:", "Accent:"</li>
-                    <li>• Include RGB values if available: <code className="bg-muted px-1 rounded">rgb(255, 87, 51)</code></li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <p className="font-semibold mb-1 text-foreground">📦 Product/Service Details</p>
-                  <ul className="space-y-1 text-muted-foreground ml-3">
-                    <li>• Product name and one-sentence description</li>
-                    <li>• Key features as bullet points (AI will use in emails)</li>
-                    <li>• Benefits - how it solves customer pain points</li>
-                    <li>• Use cases or customer success stories</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <p className="font-semibold mb-1 text-foreground">💰 Pricing & CTAs</p>
-                  <ul className="space-y-1 text-muted-foreground ml-3">
-                    <li>• Pricing plans: Starter $49, Pro $99, Enterprise $199</li>
-                    <li>• Call-to-action text: "Get Started", "Book a Demo", "Try Free"</li>
-                    <li>• Links: Website, booking page, product page URLs</li>
-                    <li>• Discount codes or special offers (if any)</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <p className="font-semibold mb-1 text-foreground">📧 Contact & Support</p>
-                  <ul className="space-y-1 text-muted-foreground ml-3">
-                    <li>• Support email: support@yourbrand.com</li>
-                    <li>• Sales contact: sales@yourbrand.com</li>
-                    <li>• Company address (for email footers)</li>
-                    <li>• Social media handles (optional)</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <p className="font-semibold mb-1 text-foreground">🚀 Automatic Lead Outreach Settings</p>
-                  <ul className="space-y-1 text-muted-foreground ml-3">
-                    <li>• AI will use these details to personalize every email</li>
-                    <li>• Email templates will match YOUR brand colors automatically</li>
-                    <li>• Imported leads get branded emails with your CTA & links</li>
-                    <li>• Voice notes will mention your product features naturally</li>
-                  </ul>
-                </div>
-                
-                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded p-2 mt-2">
-                  <p className="font-semibold text-amber-800 dark:text-amber-400">💡 Pro Tip:</p>
-                  <p className="text-amber-700 dark:text-amber-300">
-                    Upload your brand guide, pitch deck, or product sheet PDF. 
-                    AI extracts colors, features, pricing - everything needed for professional outreach.
-                    Update anytime to refresh your brand voice!
-                  </p>
-                </div>
-              </div>
-            </div>
             <div className="space-y-3">
               {user?.metadata?.extracted_brand?.companyName && (
                 <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -543,23 +476,12 @@ export default function SettingsPage() {
           </div>
 
           {!voiceNotesEnabled && (
-            <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                Voice notes are currently paused. No voice messages will be sent to leads on any channel.
+                Voice notes paused. No voice messages will be sent.
               </p>
             </div>
           )}
-
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">How voice notes work:</p>
-            <ul className="space-y-1 ml-4">
-              <li>• AI detects warm, engaged leads automatically</li>
-              <li>• Voice notes are sent on Instagram DMs and WhatsApp only</li>
-              <li>• Each note is 15 seconds max for professional brevity</li>
-              <li>• Uses your cloned voice (upload in Integrations)</li>
-              <li>• Voice minutes are deducted from your plan balance</li>
-            </ul>
-          </div>
         </CardContent>
       </Card>
 
@@ -591,9 +513,6 @@ export default function SettingsPage() {
                 placeholder="Enter your full name"
                 data-testid="input-name" 
               />
-              <p className="text-xs text-muted-foreground">
-                👤 Your full name as it appears on your account
-              </p>
             </div>
             
             <div className="space-y-2">
@@ -605,13 +524,10 @@ export default function SettingsPage() {
                 placeholder="Choose a username"
                 data-testid="input-username" 
               />
-              <p className="text-xs text-muted-foreground">
-                🔑 Unique identifier for your account (used in URLs and mentions)
-              </p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email</Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -620,9 +536,6 @@ export default function SettingsPage() {
                 className="bg-muted"
                 data-testid="input-email"
               />
-              <p className="text-xs text-muted-foreground">
-                📧 Used for login and notifications (cannot be changed)
-              </p>
             </div>
             
             <div className="space-y-2">
@@ -634,9 +547,6 @@ export default function SettingsPage() {
                 placeholder="Your company name"
                 data-testid="input-company" 
               />
-              <p className="text-xs text-muted-foreground">
-                🏢 Business or organization name (shown in invoices and reports)
-              </p>
             </div>
             
             <div className="space-y-2 md:col-span-2">
@@ -660,23 +570,20 @@ export default function SettingsPage() {
                   <SelectItem value="Australia/Sydney">Sydney (AEDT)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                🌍 Sets your local time for scheduling follow-ups and analytics
-              </p>
             </div>
           </div>
 
           {/* Save Status */}
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center justify-between pt-4 border-t mt-4">
             <div className="text-sm text-muted-foreground">
               {saveMutation.isPending && (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  Saving changes...
+                  Saving...
                 </span>
               )}
               {!saveMutation.isPending && !hasChanges && user && (
-                <span className="text-green-600">All changes saved</span>
+                <span className="text-green-600">Saved</span>
               )}
               {hasChanges && !saveMutation.isPending && (
                 <span>Unsaved changes</span>
@@ -684,19 +591,13 @@ export default function SettingsPage() {
             </div>
             
             {hasChanges && (
-              <div className="flex flex-col items-end gap-1">
-                <Button 
-                  onClick={() => saveMutation.mutate(formData)}
-                  disabled={saveMutation.isPending}
-                  data-testid="button-save-profile"
-                  title="Save profile changes immediately"
-                >
-                  {saveMutation.isPending ? "Saving..." : "Save Now"}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  💾 Saves all changes immediately • Or wait 1 second for auto-save
-                </p>
-              </div>
+              <Button 
+                onClick={() => saveMutation.mutate(formData)}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-profile"
+              >
+                {saveMutation.isPending ? "Saving..." : "Save"}
+              </Button>
             )}
           </div>
         </CardContent>
