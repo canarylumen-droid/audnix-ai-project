@@ -221,7 +221,38 @@ export function WhatsAppConnect() {
   // No OTP/phone number flow available
 
   return (
-    <Card className="border-[#25D366]/20 bg-gradient-to-br from-[#075E54]/5 to-transparent">
+    <div className="w-full">
+      {/* Status Bar */}
+      <div className="flex items-center justify-between p-4 bg-muted rounded-lg mb-4">
+        <div className="flex items-center gap-2">
+          {statusDisplay.icon}
+          <span className={`font-medium ${statusDisplay.color}`}>
+            {statusDisplay.text}
+          </span>
+        </div>
+        {status === 'ready' ? (
+          <Button
+            variant="destructive"
+            onClick={handleDisconnect}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Disconnect'}
+          </Button>
+        ) : status === 'qr_ready' || status === 'authenticated' ? (
+          <Button variant="outline" disabled>
+            Waiting...
+          </Button>
+        ) : (
+          <Button
+            onClick={handleConnect}
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Connect WhatsApp'}
+          </Button>
+        )}
+      </div>
+
+      <Card className="border-[#25D366]/20 bg-gradient-to-br from-[#075E54]/5 to-transparent">
       <CardHeader>
         <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2 text-base sm:text-lg">
           <div className="flex items-center gap-2">
@@ -252,34 +283,6 @@ export function WhatsAppConnect() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-          <div className="flex items-center gap-2">
-            {statusDisplay.icon}
-            <span className={`font-medium ${statusDisplay.color}`}>
-              {statusDisplay.text}
-            </span>
-          </div>
-          {status === 'ready' ? (
-            <Button
-              variant="destructive"
-              onClick={handleDisconnect}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Disconnect'}
-            </Button>
-          ) : status === 'qr_ready' || status === 'authenticated' ? (
-            <Button variant="outline" disabled>
-              Waiting...
-            </Button>
-          ) : (
-            <Button
-              onClick={handleConnect}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Connect WhatsApp'}
-            </Button>
-          )}
-        </div>
 
         {qrCode && (
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed border-primary/50">
