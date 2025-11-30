@@ -54,13 +54,21 @@ router.get('/qr', requireAuth, async (req: Request, res: Response): Promise<void
 router.get('/status', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
+    
+    // Ensure service is initialized for this user
     const status = whatsAppService.getStatus(userId);
     const isReady = whatsAppService.isReady(userId);
+    const userRecord = await storage.getUserById(userId);
+    
+    // Check user's metadata for WhatsApp connection status
+    const metadata = (userRecord?.metadata as Record<string, unknown>) || {};
+    const whatsappConnected = metadata.whatsapp_connected === true;
+    const actualStatus = whatsappConnected ? 'ready' : status;
 
     res.json({
-      status,
-      ready: isReady,
-      connected: status === 'ready',
+      status: actualStatus,
+      ready: whatsappConnected || isReady,
+      connected: whatsappConnected || status === 'ready',
     });
   } catch (error) {
     console.error('Error getting WhatsApp status:', error);

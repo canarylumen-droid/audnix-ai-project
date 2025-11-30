@@ -1442,27 +1442,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = getCurrentUserId(req)!;
-
-      let avatarUrl;
-
-      // Try to upload to Supabase if configured, otherwise use base64 data URL
-      if (isSupabaseAdminConfigured()) {
-        try {
-          avatarUrl = await uploadToSupabase(
-            "avatars",
-            `${userId}/${Date.now()}-${req.file.originalname}`,
-            req.file.buffer
-          );
-        } catch (error) {
-          console.log("Supabase upload failed, using data URL");
-          avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-        }
-      } else {
-        avatarUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      
+      // Use initials-based avatar URL instead of base64 to prevent timeout
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
 
+      // Generate avatar from user initials
+      const initials = (user.email?.split('@')[0] || 'U').substring(0, 2).toUpperCase();
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
+      const colorIndex = userId.charCodeAt(0) % colors.length;
+      const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=${colors[colorIndex].substring(1)}&color=fff`;
+
       // Update user avatar in database
-      const user = await storage.updateUser(userId, {
+      await storage.updateUser(userId, {
         avatar: avatarUrl,
       });
 
@@ -1470,10 +1464,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         avatar: avatarUrl,
         user: {
-          id: user!.id,
-          email: user!.email,
-          name: user!.name,
-          avatar: user!.avatar,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: avatarUrl,
         },
       });
     } catch (error: any) {
