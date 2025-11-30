@@ -4,7 +4,23 @@ import { storage } from '../../storage.js';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const { Client, LocalAuth } = require('whatsapp-web.js');
+
+// Check if running in serverless environment (Vercel, etc.)
+const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+// Only load whatsapp-web.js if not in serverless (it requires puppeteer which doesn't work there)
+let Client: any;
+let LocalAuth: any;
+
+if (!isServerless) {
+  try {
+    const wwebjs = require('whatsapp-web.js');
+    Client = wwebjs.Client;
+    LocalAuth = wwebjs.LocalAuth;
+  } catch (error) {
+    console.warn('⚠️ WhatsApp Web.js not available - QR code connection disabled');
+  }
+}
 
 interface WhatsAppMessage {
   id: { _serialized: string };
@@ -31,7 +47,16 @@ class WhatsAppService {
     this.startSessionCleanup();
   }
 
+  isAvailable(): boolean {
+    return !isServerless && Client !== undefined;
+  }
+
   async initializeClient(userId: string): Promise<void> {
+    // Check if WhatsApp Web.js is available (not available in serverless environments)
+    if (!this.isAvailable()) {
+      throw new Error('WhatsApp QR connection is not available in this environment. Please use the WhatsApp OTP method via Twilio instead.');
+    }
+
     if (this.sessions.has(userId)) {
       const session = this.sessions.get(userId)!;
       if (session.status === 'ready' || session.status === 'authenticated') {

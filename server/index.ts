@@ -124,7 +124,7 @@ const sessionConfig: session.SessionOptions = {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     sameSite: 'lax', // Use 'lax' to allow same-site navigation with cookies
-    domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
+    domain: process.env.SESSION_COOKIE_DOMAIN || undefined, // Let browser set domain if not specified
   },
   store: sessionStore,
   rolling: true, // Refresh session expiry on each request

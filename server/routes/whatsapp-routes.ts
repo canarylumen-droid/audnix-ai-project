@@ -9,6 +9,17 @@ const router = Router();
 router.post('/connect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
+    
+    // Check if WhatsApp Web.js is available
+    if (!whatsAppService.isAvailable()) {
+      res.status(503).json({
+        error: 'QR code connection is not available in production. Please use the WhatsApp OTP method instead.',
+        suggestion: 'Go to Settings > Integrations and use "Connect via Phone Number" option',
+        useOTP: true,
+      });
+      return;
+    }
+    
     await whatsAppService.initializeClient(userId);
 
     res.json({
@@ -16,10 +27,11 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       message: 'WhatsApp connection initiated. Please scan the QR code.',
       status: whatsAppService.getStatus(userId),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error initializing WhatsApp:', error);
     res.status(500).json({
-      error: 'Failed to initialize WhatsApp connection',
+      error: error.message || 'Failed to initialize WhatsApp connection',
+      useOTP: true,
     });
   }
 });
@@ -27,6 +39,17 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 router.get('/qr', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
+    
+    // Check if WhatsApp Web.js is available
+    if (!whatsAppService.isAvailable()) {
+      res.status(503).json({
+        error: 'QR code connection is not available in production.',
+        suggestion: 'Please use the WhatsApp OTP method to connect your phone number.',
+        useOTP: true,
+      });
+      return;
+    }
+    
     const qrCode = whatsAppService.getQRCode(userId);
     const status = whatsAppService.getStatus(userId);
 
