@@ -8,7 +8,7 @@ interface AutoApprovalStats {
 }
 
 class PaymentAutoApprovalWorker {
-  private processingInterval: NodeJS.Timeout | null = null;
+  private processingInterval: ReturnType<typeof setInterval> | null = null;
   private stats: AutoApprovalStats = {
     checked: 0,
     approved: 0,

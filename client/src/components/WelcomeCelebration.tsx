@@ -11,7 +11,8 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
   const [isTyping, setIsTyping] = useState(true);
   const [confetti, setConfetti] = useState<Array<{ id: number; left: number; delay: number }>>([]);
 
-  const fullText = `Welcome @${username}!`;
+  const capitalizedUsername = username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Friend';
+  const fullText = `Welcome ${capitalizedUsername}!`;
 
   // Animated typing effect
   useEffect(() => {
