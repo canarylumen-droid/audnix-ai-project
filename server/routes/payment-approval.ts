@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+import { paymentAutoApprovalWorker } from "../lib/billing/payment-auto-approval-worker.js";
 
 const router = Router();
 
@@ -199,10 +200,38 @@ router.post("/mark-pending", async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      message: "Payment pending admin approval",
+      message: "Payment pending auto-approval (auto-upgrades within 5 seconds)",
     });
   } catch (error: any) {
     console.error("Error marking payment pending:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/payment-approval/worker/stats
+ * Check auto-approval worker status (admin only)
+ */
+router.get("/worker/stats", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req);
+    const user = await storage.getUserById(userId!);
+
+    if (!user || user.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const stats = paymentAutoApprovalWorker.getStats();
+
+    res.json({
+      success: true,
+      workerStatus: stats,
+      message: stats.status === "running" 
+        ? "✅ Auto-approval worker running (checks every 5 seconds)" 
+        : "❌ Auto-approval worker stopped",
+    });
+  } catch (error: any) {
+    console.error("Error fetching worker stats:", error);
     res.status(500).json({ error: error.message });
   }
 });

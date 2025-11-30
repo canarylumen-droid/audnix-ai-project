@@ -14,6 +14,7 @@ import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
 import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
 import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
+import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import crypto from "crypto";
 import fs from "fs";
@@ -437,6 +438,12 @@ async function runMigrations() {
       console.log('⏭️  Background workers disabled (no database configured)');
       console.log('💡 Add DATABASE_URL to enable AI workers');
     }
+  }
+
+  // Start payment auto-approval worker (runs 24/7, only needs database, no Supabase required)
+  if (hasDatabase) {
+    paymentAutoApprovalWorker.start();
+    console.log('💳 Payment auto-approval worker active (24/7 auto-upgrade, no admin approval needed)');
   }
 
   // Ensure uploads directory exists (use /tmp on Vercel for writable location)
