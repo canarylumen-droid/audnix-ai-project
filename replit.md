@@ -38,7 +38,37 @@ Email → Password → OTP (SendGrid) → Username → Dashboard
 - **Admin Dashboard:** Direct plan upgrades, user management, real-time analytics
 - **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
-### Recent Changes (November 30, 2025 - Final Update) - EMAIL & FEATURES UI REFACTOR
+### Recent Changes (November 30, 2025 - Session 2) - VERCEL COMPATIBILITY & BUG FIXES
+
+#### 🔧 SESSION & AUTH FIXES
+1. **✅ Session Cookie Configuration:**
+   - Fixed `sameSite: 'lax'` for Vercel compatibility (was 'strict')
+   - Cookie domain now configurable via `SESSION_COOKIE_DOMAIN` env var
+   - Trust proxy settings enabled for production
+
+2. **✅ TypeScript Build Fixes:**
+   - Fixed Timer type casting in payment-auto-approval-worker.ts
+   - Resolved null handling issues blocking Vercel builds
+
+#### 🔧 WHATSAPP INTEGRATION (SERVERLESS COMPATIBLE)
+1. **✅ Environment Detection:**
+   - Detects serverless environments (Vercel, AWS Lambda)
+   - WhatsApp Web.js (puppeteer) disabled in serverless mode
+   - Helpful error messages guide users to Twilio OTP method
+
+2. **✅ API Improvements:**
+   - `/api/whatsapp/connect` returns `useOTP: true` when QR unavailable
+   - `/api/whatsapp/qr` returns helpful suggestion for OTP method
+   - Clean error handling with actionable messages
+
+#### 🔧 PRODUCTION READINESS
+1. **✅ Payment Auto-Approval Worker:** Running every 5 seconds, auto-upgrades users immediately after payment
+2. **✅ All 19 Database Migrations:** Running successfully on Neon PostgreSQL
+3. **✅ Clean Logs:** Only expected warnings for unconfigured optional services
+
+---
+
+### Previous Changes (November 30, 2025 - Session 1) - EMAIL & FEATURES UI REFACTOR
 
 #### 🎯 EMAIL INTEGRATION IMPROVEMENTS
 1. **✅ Removed "Business Email" Button:** Only "Custom Email" option remains on integrations page
