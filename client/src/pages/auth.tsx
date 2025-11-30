@@ -7,7 +7,8 @@ import { Check, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useUser } from "@/hooks/use-user";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useToast } from "@/hooks/use-toast";
 import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
 import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
@@ -284,9 +285,10 @@ export default function AuthPage() {
         return;
       }
 
+      const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
       toast({
         title: "Welcome! 🎉",
-        description: `Welcome @${username}!`,
+        description: `Welcome ${capitalizedName}!`,
       });
 
       // Redirect to dashboard - celebration will show automatically
@@ -314,7 +316,10 @@ export default function AuthPage() {
     <>
       {/* Redirect Popup */}
       <Dialog open={showRedirectPopup} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md border-0">
+        <DialogContent className="sm:max-w-md border-0" aria-describedby={undefined}>
+          <VisuallyHidden>
+            <DialogTitle>Setting up your account</DialogTitle>
+          </VisuallyHidden>
           <motion.div
             className="flex flex-col items-center justify-center space-y-6 py-8"
             initial={{ opacity: 0, scale: 0.95 }}
@@ -335,7 +340,10 @@ export default function AuthPage() {
 
       {/* Success Popup */}
       <Dialog open={signupStep === 4} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md border-0">
+        <DialogContent className="sm:max-w-md border-0" aria-describedby={undefined}>
+          <VisuallyHidden>
+            <DialogTitle>Account created successfully</DialogTitle>
+          </VisuallyHidden>
           <motion.div
             className="flex flex-col items-center justify-center space-y-6 py-8"
             initial={{ opacity: 0, scale: 0.95 }}
