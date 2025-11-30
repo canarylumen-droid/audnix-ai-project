@@ -118,13 +118,16 @@ const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
+  name: 'audnix.sid',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+    sameSite: 'lax', // Use 'lax' to allow same-site navigation with cookies
+    domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
   },
-  store: sessionStore
+  store: sessionStore,
+  rolling: true, // Refresh session expiry on each request
 };
 
 app.use(session(sessionConfig));
