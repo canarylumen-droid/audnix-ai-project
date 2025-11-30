@@ -1,6 +1,6 @@
 # Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
 
-> Last Updated: **November 30, 2025** | **Status: ✅ Critical Fixes Complete + UI/UX Overhaul**
+> Last Updated: **November 30, 2025** | **Status: ✅ Email/Features UI Refactor Complete**
 
 ### Overview
 Audnix AI is a zero-setup, multi-channel sales automation SaaS platform designed to automate lead imports and personalized follow-ups across WhatsApp, Email, and CSV. It emphasizes user privacy by integrating directly with users' existing business accounts (email, Calendly, WhatsApp). The platform automates sales and objection handling for creators, coaches, agencies, and founders.
@@ -38,53 +38,41 @@ Email → Password → OTP (SendGrid) → Username → Dashboard
 - **Admin Dashboard:** Direct plan upgrades, user management, real-time analytics
 - **Background Workers:** Follow-ups, email sync, warmup, comment monitoring
 
-### Recent Changes (November 30, 2025) - UI/UX OVERHAUL + CRITICAL FIXES
+### Recent Changes (November 30, 2025 - Final Update) - EMAIL & FEATURES UI REFACTOR
 
-#### 🎯 THREE CRITICAL VERCEL PRODUCTION BUGS FIXED
-1. **✅ Avatar Upload Timeout (P1):** Replaced base64 conversion with UI Avatars API (instant generation)
-2. **✅ User Profile Endpoint Timeout (P2):** Removed message loading loop (reduced from 10+ seconds to <500ms)
-3. **✅ WhatsApp Status Always Disconnected (P3):** Added metadata-based connection state checking
+#### 🎯 EMAIL INTEGRATION IMPROVEMENTS
+1. **✅ Removed "Business Email" Button:** Only "Custom Email" option remains on integrations page
+2. **✅ Email Available to ALL Users:** Free and paid users can connect custom SMTP email
+3. **✅ Simplified Custom Email UI:**
+   - Cleaner section heading: "Email Integration" instead of "Custom Domain Email"
+   - Concise description: "Import and automate email responses from your custom domain"
+   - Reduced text in providers list to one line: "✅ Works with: Google Workspace • Microsoft 365 • Any custom SMTP"
+   - Better visual hierarchy and spacing
 
-#### 🎨 UI/UX IMPROVEMENTS
-- **WhatsApp Modal:** Now appears only when "Connect WhatsApp" button is clicked (not on page load)
-  - Proper Connect/Disconnect button states
-  - Paid-user restriction with upgrade prompt
-  - Professional modal presentation
-- **Instagram Modal:** "Coming Soon" modal appears only on click (not on page load)
-  - Paid-user restriction enforced
-  - Clean modal-first experience
-- **Settings Page:** 
-  - ✅ Auto-save implemented (saves after 1 second of inactivity)
-  - ✅ Manual "Save" button available for immediate persistence
-  - ✅ Real-time validation feedback
-- **Confetti Animation:** ✅ Verified and working properly in WelcomeCelebration component
-- **Dashboard Optimization:** Removed N+1 queries from stats endpoints (all dashboard pages responsive)
-- **Paid-User Gating:** 
-  - WhatsApp restricted to paid users only
-  - Instagram restricted to paid users only
-  - Upgrade prompts displayed for free tier users
+#### 🎯 FEATURE GATING - IMPROVED MESSAGING
+1. **✅ FeatureLock Component Enhanced:**
+   - Free users: Shows "🔒 Locked" with "Upgrade to [Plan]" button
+   - Paid users on coming-soon features: Shows "⏳ Coming Soon" message (no upgrade button)
+   - Example: Video automation shows "Coming Soon" for paid users, "Upgrade to Starter" for free users
 
-#### 🔄 REAL-TIME UPDATES
-- Lead imports trigger automatic data refresh via `queryClient.invalidateQueries`
-- Dashboard stats refresh every lead import/update
-- Message subscriptions work via Supabase real-time (optional, configured)
+2. **✅ Video Automation Updated:**
+   - Uses `comingSoonFeature={true}` flag in FeatureLock
+   - Free/Trial users: See "Upgrade to Starter" CTA
+   - Paid users: See "Coming Soon" message (work in progress)
 
-#### 🚀 PERFORMANCE IMPROVEMENTS
-- Avatar: Instant (no processing)
-- Profile load: <500ms (no message loading)
-- Dashboard stats: <1s (optimized queries)
-- WhatsApp status: Accurate (metadata-based)
+3. **✅ Feature Access Control:**
+   - WhatsApp: Paid users only (free users see upgrade prompt)
+   - Instagram: Paid users only + shows "Coming Soon" for paid users
+   - Video Comment Automation: Paid users only + shows "Coming Soon"
+   - Email: ALL users (free and paid)
 
-### Previous Changes (November 29, 2025) - PRODUCTION DEPLOYMENT COMPLETE
-- **✅ VERCEL DEPLOYMENT LIVE:** Application successfully deployed and running
-- **✅ OTP AUTHENTICATION FIXED:** Password persistence fixed - new accounts can sign up with email→OTP→account creation
-- **✅ SESSION-BASED PASSWORD STORAGE:** Passwords now properly stored in session during signup flow
-- **✅ ROLLUP BINARY RESOLVED:** Moved rollup to devDependencies, fixed dynamic Vite imports in production
-- **✅ BUILD DIRECTORY FIXED:** Corrected dist/public path resolution for Vercel production
-- **✅ UPLOADS DIRECTORY HANDLING:** Graceful creation of uploads folder on startup
-- **✅ ALL 19 MIGRATIONS VERIFIED:** PostgreSQL (Neon) fully synchronized at deployment time
-- **✅ PRODUCTION BUILD:** 14.04s build time on Vercel with proper static file serving
-- **✅ SERVICES RUNNING:** All background workers, rate limiting, lead import, payment handlers, PDF uploads working
+#### 🔄 PREVIOUS CRITICAL FIXES (November 30, 2025)
+- **WhatsApp Modal:** Click-only, appears only when "Connect WhatsApp" clicked
+- **Instagram Modal:** Click-only "Coming Soon" modal with proper gating
+- **Settings Page:** Auto-save + manual Save button with immediate persistence
+- **Dashboard Optimization:** N+1 query removal (profile load <500ms)
+- **Confetti Animation:** Verified and working
+- **Real-time Lead Updates:** Automatic refresh via React Query
 
 ### Required Secrets for Production
 The following secrets need to be configured in Replit Secrets for full functionality:
@@ -110,5 +98,7 @@ The following secrets need to be configured in Replit Secrets for full functiona
 - `shared/schema.ts`: Database schema with Drizzle ORM
 - `client/src/pages/dashboard/home.tsx`: Main dashboard
 - `client/src/pages/dashboard/settings.tsx`: Settings page (auto-save + manual save button)
-- `client/src/pages/dashboard/integrations.tsx`: WhatsApp/Instagram/Email integrations (modal-based)
+- `client/src/pages/dashboard/integrations.tsx`: WhatsApp/Instagram/Email integrations (click-only modals)
+- `client/src/pages/dashboard/video-automation.tsx`: Video comment automation (coming soon for paid users)
+- `client/src/components/upgrade/FeatureLock.tsx`: Feature access control component (shows "Coming Soon" for paid users on unfinished features)
 - `client/src/components/WelcomeCelebration.tsx`: Welcome screen with confetti animation (verified working)

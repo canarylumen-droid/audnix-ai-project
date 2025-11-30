@@ -427,6 +427,7 @@ export function WhatsAppConnect() {
           </ul>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }

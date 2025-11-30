@@ -1,7 +1,8 @@
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 interface FeatureLockProps {
@@ -11,6 +12,13 @@ interface FeatureLockProps {
   children?: React.ReactNode;
   className?: string;
   variant?: "overlay" | "inline" | "card";
+  comingSoonFeature?: boolean;
+}
+
+interface UserData {
+  user?: {
+    subscriptionTier?: string;
+  };
 }
 
 export function FeatureLock({
@@ -19,9 +27,12 @@ export function FeatureLock({
   requiredPlan = "Starter",
   children,
   className,
-  variant = "overlay"
+  variant = "overlay",
+  comingSoonFeature = false
 }: FeatureLockProps) {
   const [, setLocation] = useLocation();
+  const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user"] });
+  const isPaid = userData?.user?.subscriptionTier && userData.user.subscriptionTier !== "free";
 
   const handleUpgrade = () => {
     setLocation("/dashboard/pricing");
@@ -40,20 +51,37 @@ export function FeatureLock({
   }
 
   if (variant === "card") {
+    const isComingSoon = comingSoonFeature && isPaid;
+    
     return (
       <Card className={cn("relative overflow-hidden", className)}>
         <div className="absolute inset-0 bg-gradient-to-br from-background/95 to-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
           <div className="text-center space-y-4 p-6">
-            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Lock className="w-6 h-6 text-primary" />
+            <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center ${
+              isComingSoon ? "bg-blue-500/10" : "bg-primary/10"
+            }`}>
+              {isComingSoon ? (
+                <Zap className={`w-6 h-6 ${isComingSoon ? "text-blue-500" : "text-primary"}`} />
+              ) : (
+                <Lock className="w-6 h-6 text-primary" />
+              )}
             </div>
             <div>
-              <h3 className="font-bold text-lg mb-1">🔒 {featureName}</h3>
-              <p className="text-sm text-muted-foreground mb-4">{description}</p>
-              <Button onClick={handleUpgrade} className="gap-2">
-                <Sparkles className="w-4 h-4" />
-                Upgrade to {requiredPlan}
-              </Button>
+              <h3 className="font-bold text-lg mb-1">
+                {isComingSoon ? "⏳ Coming Soon" : `🔒 ${featureName}`}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {isComingSoon 
+                  ? `${featureName} will be available soon. We're working on it!`
+                  : description
+                }
+              </p>
+              {!isComingSoon && (
+                <Button onClick={handleUpgrade} className="gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  Upgrade to {requiredPlan}
+                </Button>
+              )}
             </div>
           </div>
         </div>

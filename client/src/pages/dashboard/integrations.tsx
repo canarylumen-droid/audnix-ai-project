@@ -598,7 +598,7 @@ export default function IntegrationsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["instagram", "whatsapp", "gmail"].map((providerId, index) => {
+            {["instagram", "whatsapp"].map((providerId, index) => {
               const integration = integrations.find((i) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
@@ -931,14 +931,14 @@ export default function IntegrationsPage() {
         )}
       </div>
 
-      {/* Custom Domain Email */}
+      {/* Custom Email - Available to all users (Free & Paid) */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Custom Domain Email</h2>
+        <h2 className="text-xl font-semibold mb-4">Email Integration</h2>
         <Card data-testid="card-custom-email">
           <CardHeader>
-            <CardTitle>Connect Custom Email Domain</CardTitle>
+            <CardTitle>Connect Custom Email</CardTitle>
             <CardDescription>
-              Import leads from your custom domain email (e.g., you@yourbusiness.com)
+              Import and automate email responses from your custom domain
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1015,12 +1015,9 @@ export default function IntegrationsPage() {
             </Button>
 
             <div className="text-xs text-muted-foreground">
-              <p className="font-semibold mb-2">Supported providers:</p>
+              <p className="font-semibold mb-2">✅ Works with:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Google Workspace (G Suite)</li>
-                <li>Microsoft 365 / Office 365</li>
-                <li>cPanel / WHM</li>
-                <li>Any SMTP/IMAP server</li>
+                <li>Google Workspace • Microsoft 365 • Any custom SMTP</li>
               </ul>
             </div>
           </CardContent>
