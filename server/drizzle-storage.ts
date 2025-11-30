@@ -786,16 +786,24 @@ export class DrizzleStorage implements IStorage {
     return updated;
   }
 
-  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any> {
-    const [otp] = await db.insert(otpCodes).values(data).returning();
+  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean; passwordHash?: string; purpose?: string }): Promise<any> {
+    const [otp] = await db.insert(otpCodes).values({
+      ...data,
+      purpose: data.purpose || 'login',
+    }).returning();
     return otp;
   }
 
-  async getLatestOtpCode(email: string): Promise<any> {
+  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
+    const conditions = [eq(otpCodes.email, email)];
+    if (purpose) {
+      conditions.push(eq(otpCodes.purpose, purpose));
+    }
+    
     const [otp] = await db
       .select()
       .from(otpCodes)
-      .where(eq(otpCodes.email, email))
+      .where(and(...conditions))
       .orderBy(desc(otpCodes.createdAt))
       .limit(1);
     return otp || null;

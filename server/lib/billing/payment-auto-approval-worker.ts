@@ -8,7 +8,7 @@ interface AutoApprovalStats {
 }
 
 class PaymentAutoApprovalWorker {
-  private processingInterval: NodeJS.Timer | null = null;
+  private processingInterval: ReturnType<typeof setInterval> | null = null;
   private stats: AutoApprovalStats = {
     checked: 0,
     approved: 0,
@@ -78,7 +78,7 @@ class PaymentAutoApprovalWorker {
       // Auto-approve each pending payment
       for (const user of pendingUsers) {
         try {
-          const plan = user.pendingPaymentPlan;
+          const plan = user.pendingPaymentPlan as "trial" | "starter" | "pro" | "enterprise";
           const email = user.email;
 
           // Upgrade user immediately

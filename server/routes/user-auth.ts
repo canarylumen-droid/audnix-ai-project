@@ -21,12 +21,6 @@ router.get('/otp-configured', async (_req: Request, res: Response): Promise<void
 router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('🔍 [OTP Request] Received request to /api/user/auth/signup/request-otp');
-    console.log('🔍 [OTP Request] Origin:', req.get('origin'));
-    console.log('🔍 [OTP Request] Headers:', {
-      'content-type': req.get('content-type'),
-      'user-agent': req.get('user-agent'),
-      'referer': req.get('referer')
-    });
     
     const { email, password } = req.body as { email?: string; password?: string };
     console.log('🔍 [OTP Request] Body - Email:', email ? '✓' : '✗', 'Password:', password ? '✓' : '✗');
@@ -62,10 +56,8 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       return;
     }
 
-    // Store password in session for temporary use during signup
+    // Hash password and store with OTP in database (serverless-safe)
     const hashedPassword = await bcrypt.hash(password, 10);
-    (req.session as any).signupEmail = email.toLowerCase();
-    (req.session as any).signupPassword = hashedPassword;
 
     if (!twilioEmailOTP.isConfigured()) {
       console.error(`❌ [OTP] SendGrid NOT configured. Missing: TWILIO_SENDGRID_API_KEY`);
@@ -80,7 +72,8 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     console.log(`📧 [OTP] Sending to: ${email}`);
     let result;
     try {
-      result = await twilioEmailOTP.sendEmailOTP(email);
+      // Send OTP with password hash stored in database (not session)
+      result = await twilioEmailOTP.sendSignupOTP(email, hashedPassword);
     } catch (emailError: any) {
       console.error(`❌ [OTP] Email service error:`, emailError.message);
       res.status(503).json({ 
@@ -125,26 +118,19 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     }
 
     const normalizedEmail = email.toLowerCase();
-    const sessionEmail = (req.session as any).signupEmail;
-    const sessionPassword = (req.session as any).signupPassword;
 
-    // Check if password exists in session
-    if (!sessionPassword || !sessionEmail) {
-      console.error(`❌ [OTP Verify] Session data missing for ${normalizedEmail}`);
-      res.status(400).json({ error: 'Please start signup again. Session expired.' });
-      return;
-    }
-
-    // Verify email matches what was in signup request
-    if (sessionEmail !== normalizedEmail) {
-      console.error(`❌ [OTP Verify] Email mismatch: session=${sessionEmail}, request=${normalizedEmail}`);
-      res.status(400).json({ error: 'Email does not match signup request' });
-      return;
-    }
-
-    const verifyResult = await twilioEmailOTP.verifyEmailOTP(email, otp);
+    // Verify OTP and get signup data from database (serverless-safe)
+    const verifyResult = await twilioEmailOTP.verifySignupOTP(email, otp);
     if (!verifyResult.success) {
       res.status(400).json({ error: verifyResult.error });
+      return;
+    }
+
+    // Get password hash from OTP record
+    const passwordHash = verifyResult.passwordHash;
+    if (!passwordHash) {
+      console.error(`❌ [OTP Verify] Password hash missing for ${normalizedEmail}`);
+      res.status(400).json({ error: 'Please start signup again. Data expired.' });
       return;
     }
 
@@ -153,21 +139,26 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     const user = await storage.createUser({
       email: normalizedEmail,
       username,
-      password: sessionPassword,
+      password: passwordHash,
       plan: 'trial',
       role: 'member',
     });
 
-    // Clear session data
-    delete (req.session as any).signupEmail;
-    delete (req.session as any).signupPassword;
-
+    // Set session for logged-in user
     req.session.userId = user.id;
     req.session.email = normalizedEmail;
     req.session.isAdmin = false;
     if (req.session.cookie) {
       req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
     }
+
+    // Save session explicitly for serverless environments
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     res.json({
       success: true,
@@ -226,6 +217,14 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     if (req.session.cookie) {
       req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
     }
+
+    // Save session explicitly for serverless environments
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     res.json({
       success: true,

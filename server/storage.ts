@@ -69,8 +69,8 @@ export interface IStorage {
   updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined>;
 
   // OTP methods
-  createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any>;
-  getLatestOtpCode(email: string): Promise<any>;
+  createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean; passwordHash?: string; purpose?: string }): Promise<any>;
+  getLatestOtpCode(email: string, purpose?: string): Promise<any>;
   incrementOtpAttempts(id: string): Promise<void>;
   markOtpVerified(id: string): Promise<void>;
 }
@@ -561,18 +561,18 @@ export class MemStorage implements IStorage {
   // OTP methods (MemStorage implementation)
   private otpCodes: Map<string, any> = new Map();
 
-  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean }): Promise<any> {
+  async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean; passwordHash?: string; purpose?: string }): Promise<any> {
     const id = randomUUID();
     const now = new Date();
-    const otpCode = { id, ...data, createdAt: now, updatedAt: now };
+    const otpCode = { id, ...data, purpose: data.purpose || 'login', createdAt: now, updatedAt: now };
     this.otpCodes.set(id, otpCode);
     return otpCode;
   }
 
-  async getLatestOtpCode(email: string): Promise<any> {
+  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
     // In-memory, this is inefficient, but for demonstration:
     return Array.from(this.otpCodes.values())
-      .filter(code => code.email === email)
+      .filter(code => code.email === email && (!purpose || code.purpose === purpose))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
   }
 
