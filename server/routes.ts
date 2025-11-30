@@ -13,7 +13,9 @@ import {
   verifyWebhookSignature,
   processTopupSuccess,
   createSubscriptionCheckout,
-  createTopupCheckout
+  createTopupCheckout,
+  getSubscriptionPaymentLink,
+  getTopupPaymentLink
 } from './lib/billing/stripe.js';
 import { generateInsights } from './lib/ai/openai.js';
 import { uploadVoice, uploadPDF, uploadAvatar, uploadToSupabase, storeVoiceSample, processPDFEmbeddings } from './lib/file-upload.js';
@@ -1257,6 +1259,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating subscription:", error);
       res.status(500).json({ error: "Failed to create subscription" });
+    }
+  });
+
+  app.post("/api/billing/payment-link", requireAuth, async (req, res) => {
+    try {
+      const { planKey } = req.body;
+      const userId = getCurrentUserId(req)!;
+      const user = await storage.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get payment link directly from Stripe
+      const url = await getSubscriptionPaymentLink(planKey, userId);
+
+      if (!url) {
+        return res.status(400).json({ error: "No payment link configured for this plan" });
+      }
+
+      res.json({ url });
+    } catch (error: any) {
+      console.error("Error getting payment link:", error);
+      res.status(500).json({ error: error.message || "Failed to get payment link" });
     }
   });
 
