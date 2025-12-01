@@ -803,7 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.plan === 'trial') {
         return res.status(403).json({
           error: "Premium feature",
-          message: "Lead import is available on paid plans. Upgrade to import unlimited leads via CSV, Excel, or PDF.",
+          message: "Lead import is available on paid plans. Upgrade to import more leads via CSV, Excel, or PDF.",
           redirectTo: "/dashboard/pricing"
         });
       }

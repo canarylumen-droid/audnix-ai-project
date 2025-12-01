@@ -1243,7 +1243,7 @@ export default function IntegrationsPage() {
                       🎉 You've imported {currentLeadCount} leads on us!
                     </p>
                     <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                      Upgrade to continue importing and unlock unlimited leads
+                      Upgrade to import more leads
                     </p>
                   </div>
                 ) : (
