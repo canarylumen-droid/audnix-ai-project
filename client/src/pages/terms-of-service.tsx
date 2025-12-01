@@ -107,7 +107,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Free Trial</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li>New users receive a 3-day free trial with full feature access with trial-level limits (500 leads, 30 voice minutes).</li>
+                    <li>New users receive a 3-day free trial with full feature access with trial-level limits (100 leads, 0 voice minutes).</li>
                     <li>No credit card required during trial period</li>
                     <li>Trial automatically expires unless you upgrade to a paid plan</li>
                     <li>One trial per person/business (based on email address)</li>

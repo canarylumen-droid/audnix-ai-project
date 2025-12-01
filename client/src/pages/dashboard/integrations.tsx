@@ -108,10 +108,10 @@ export default function IntegrationsPage() {
   const integrations = integrationsData?.integrations ?? [];
 
   // Get user's plan and lead limits
-  const userPlan = userData?.user?.subscriptionTier || 'free';
-  const isFreeTrial = userPlan === 'free' || !userData?.user?.subscriptionTier;
+  const userPlan = userData?.user?.subscriptionTier || 'trial';
+  const isFreeTrial = userPlan === 'trial' || !userData?.user?.subscriptionTier;
   const currentLeadCount = userData?.user?.totalLeads || 0;
-  const leadsLimit = isFreeTrial ? 500 : (userPlan === 'starter' ? 2500 : userPlan === 'pro' ? 7000 : 20000);
+  const leadsLimit = isFreeTrial ? 100 : (userPlan === 'starter' ? 2500 : userPlan === 'pro' ? 7000 : 20000);
   const leadUsagePercentage = (currentLeadCount / leadsLimit) * 100;
   const isNearLimit = leadUsagePercentage >= 80; // 80% threshold
   const isAtLimit = currentLeadCount >= leadsLimit;
@@ -1240,7 +1240,7 @@ export default function IntegrationsPage() {
                 {isAtLimit ? (
                   <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
                     <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                      🎉 You've imported {currentLeadCount} leads on us!
+                      🎉 You've reached your 100 trial leads!
                     </p>
                     <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                       Upgrade to import more leads
