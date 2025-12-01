@@ -42,23 +42,29 @@ export default function Landing() {
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { title: "Close Hot Leads First", desc: "Intent scoring. Hot prospects first. Maximum velocity." },
-              { title: "Smart Objection Handling", desc: "AI reframes and closes objections automatically." },
-              { title: "Email + Instagram Voice", desc: "Email sequences + voice notes on Instagram DMs." }
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="p-6 rounded-lg bg-white/5 border border-white/10 hover:border-emerald-500/30 transition-colors"
-              >
-                <h3 className="font-semibold text-emerald-400 mb-2">{item.title}</h3>
-                <p className="text-white/70 text-sm">{item.desc}</p>
-              </motion.div>
-            ))}
+            <AnimatedCard className="bg-gradient-to-br from-emerald-500/15 to-cyan-500/5 border-emerald-500/40 p-8" glowColor="rgba(16, 185, 129, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                <TrendingUp className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="font-bold text-emerald-400 mb-3 text-lg">Close Hot Leads First</h3>
+              <p className="text-white/80">Intent scoring. Hot prospects first. Maximum velocity.</p>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-cyan-500/15 to-blue-500/5 border-cyan-500/40 p-8" glowColor="rgba(34, 211, 238, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
+                <Brain className="w-6 h-6 text-cyan-400" />
+              </div>
+              <h3 className="font-bold text-cyan-400 mb-3 text-lg">Smart Objection Handling</h3>
+              <p className="text-white/80">AI reframes and closes objections automatically.</p>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-purple-500/15 to-pink-500/5 border-purple-500/40 p-8" glowColor="rgba(168, 85, 247, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="font-bold text-purple-400 mb-3 text-lg">Email + Instagram Voice</h3>
+              <p className="text-white/80">Email sequences + voice notes on Instagram DMs.</p>
+            </AnimatedCard>
           </div>
 
           <motion.div
