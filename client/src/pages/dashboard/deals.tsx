@@ -15,7 +15,6 @@ import {
   TrendingDown,
   BarChart3,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -51,9 +50,8 @@ interface RevenueAnalyticsResponse {
   timeline?: TimelineDataPoint[];
 }
 
-const channelIcons: Record<string, typeof Instagram | typeof Mail | typeof SiWhatsapp> = {
+const channelIcons: Record<string, typeof Instagram | typeof Mail> = {
   instagram: Instagram,
-  whatsapp: SiWhatsapp,
   email: Mail,
 };
 

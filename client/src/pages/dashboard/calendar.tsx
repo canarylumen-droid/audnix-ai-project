@@ -325,7 +325,7 @@ export default function CalendarPage() {
             <CalendarDays className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">You don't have any activity yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your Google Calendar or Outlook to sync meetings. Once connected, 
+              Connect your calendar to sync meetings. Once connected, 
               AI will automatically schedule appointments with your leads and they'll appear here in real-time.
             </p>
             <Button data-testid="button-connect-account">

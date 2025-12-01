@@ -130,7 +130,6 @@ export default function AdminLeads() {
                   <SelectContent>
                     <SelectItem value="">All Channels</SelectItem>
                     <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
                     <SelectItem value="email">Email</SelectItem>
                   </SelectContent>
                 </Select>

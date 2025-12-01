@@ -317,10 +317,10 @@ export default function TermsOfService() {
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Uninterrupted Service:</strong> We may experience downtime for maintenance, updates, or unforeseen technical issues</li>
                   <li><strong>Specific Results:</strong> We do not guarantee conversion rates, sales, or business outcomes from using our platform</li>
-                  <li><strong>Platform Immunity:</strong> We cannot prevent third-party platforms (Instagram, WhatsApp) from banning or restricting your account</li>
+                  <li><strong>Platform Immunity:</strong> We cannot prevent third-party platforms (Instagram, email providers) from banning or restricting your account</li>
                   <li><strong>AI Accuracy:</strong> AI-generated messages may occasionally be incorrect, inappropriate, or require human review</li>
                   <li><strong>Voice Cloning Perfection:</strong> Voice clones aim for 90%+ accuracy but may not perfectly replicate all speech nuances. Users are solely responsible for ensuring they have rights to use any voice they upload or clone.</li>
-                  <li><strong>API Compatibility:</strong> Third-party APIs (Instagram, WhatsApp, Gmail) may change without notice, affecting functionality</li>
+                  <li><strong>API Compatibility:</strong> Third-party APIs (Instagram, email providers) may change without notice, affecting functionality</li>
                   <li><strong>Data Loss Prevention:</strong> While we implement backups, we are not liable for data loss due to user error or force majeure</li>
                 </ul>
                 <p className="mt-4">
@@ -337,7 +337,7 @@ export default function TermsOfService() {
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Lost Profits or Revenue:</strong> Any loss of business, sales, or opportunities</li>
-                  <li><strong>Platform Bans:</strong> Instagram, WhatsApp, or Gmail account suspensions or restrictions</li>
+                  <li><strong>Platform Bans:</strong> Instagram or email account suspensions or restrictions</li>
                   <li><strong>Data Loss:</strong> Loss of lead data, messages, or content due to user error or third-party service failures</li>
                   <li><strong>Indirect Damages:</strong> Consequential, incidental, punitive, or special damages</li>
                   <li><strong>Third-Party Actions:</strong> Actions or failures of OpenAI, ElevenLabs, Stripe, or other integrated services</li>

@@ -1009,7 +1009,7 @@ export default function IntegrationsPage() {
             <div className="text-xs text-muted-foreground">
               <p className="font-semibold mb-2">✅ Works with:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Google Workspace • Microsoft 365 • Any custom SMTP</li>
+                <li>Any business email with SMTP/IMAP access</li>
               </ul>
             </div>
           </CardContent>

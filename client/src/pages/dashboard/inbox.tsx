@@ -34,13 +34,11 @@ import {
   Users,
   MessageCircle,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { Link } from "wouter";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 
 const channelIcons = {
   instagram: Instagram,
-  whatsapp: SiWhatsapp,
   email: Mail,
 };
 

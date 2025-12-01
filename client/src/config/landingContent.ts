@@ -143,16 +143,16 @@ export const landingContent = {
     note: "Audnix isn't a chatbot. It's a closer.",
     competitors: [
       { name: "Audnix", features: ["✅", "✅", "✅", "✅", "✅", "✅"] },
-      { name: "ManyChat", features: ["❌", "✅", "❌", "❌", "❌", "❌"] },
+      { name: "ManyChat", features: ["❌", "✅", "❌", "✅", "✅", "❌"] },
       { name: "CommentGuard", features: ["❌", "❌", "❌", "❌", "❌", "❌"] }
     ],
     featureLabels: [
-      "Real AI conversations",
+      "Real AI objection handling",
       "Flow builder",
-      "Voice notes (IG)",
-      "Auto-booking",
+      "AI voice notes (IG)",
+      "Smart auto-booking",
       "Email automation",
-      "Memory/context"
+      "Full conversation memory"
     ]
   },
   

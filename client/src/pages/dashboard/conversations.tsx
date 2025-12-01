@@ -19,7 +19,6 @@ import {
   Calendar,
   X,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -64,7 +63,6 @@ interface MessagesResponse {
 
 const channelIcons = {
   instagram: Instagram,
-  whatsapp: SiWhatsapp,
   email: Mail,
 };
 

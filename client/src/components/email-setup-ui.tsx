@@ -204,35 +204,13 @@ export function EmailSetupUI() {
               <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
                 💡 Common Business Email Server Settings:
               </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <strong>Google Workspace:</strong>
-                  <br />
-                  SMTP: smtp.office365.com:587
-                  <br />
-                  IMAP: imap.office365.com:993
-                </div>
-                <div>
-                  <strong>Microsoft 365:</strong>
-                  <br />
-                  SMTP: smtp.office365.com:587
-                  <br />
-                  IMAP: outlook.office365.com:993
-                </div>
-                <div>
-                  <strong>Zoho Mail:</strong>
-                  <br />
-                  SMTP: smtp.zoho.com:587
-                  <br />
-                  IMAP: imap.zoho.com:993
-                </div>
-                <div>
-                  <strong>Custom Domain:</strong>
-                  <br />
-                  Contact your email provider
-                  <br />
-                  for SMTP/IMAP settings
-                </div>
+              <div className="text-xs space-y-1">
+                <p>Enter your business email SMTP/IMAP settings below. Most business email providers use:</p>
+                <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
+                  <li>SMTP Port: 587 (TLS) or 465 (SSL)</li>
+                  <li>IMAP Port: 993 (SSL)</li>
+                </ul>
+                <p className="pt-1">Contact your email provider or IT admin for exact server addresses.</p>
               </div>
             </div>
 

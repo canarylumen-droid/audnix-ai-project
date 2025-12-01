@@ -38,6 +38,16 @@ Key features include:
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
 ### Recent Changes (Dec 1, 2025)
+- **Competitor Comparison:** Updated ManyChat feature comparison - they have auto-booking + email automation, not AI objection handling, voice notes, or conversation memory
+- **Integrations Page:** Updated custom email section to use generic "business email with SMTP/IMAP access" language
+- **Calendar Page:** Removed Google/Outlook references, now uses generic "calendar" language
+- **Terms of Service:** Removed WhatsApp and Gmail from platform ban disclaimers, replaced with neutral "email providers"
+- **Privacy Policy:** Removed WhatsApp and Gmail from third-party services list, kept only Instagram/Meta
+- **Inbox Page:** Removed WhatsApp from channel icons and filter options, fixed unused import
+- **Deals Page:** Removed WhatsApp from channel icons mapping
+- **Conversations Page:** Removed WhatsApp from channel icons mapping  
+- **Admin Leads Page:** Removed WhatsApp from channel filter dropdown
+- **Email Setup UI:** Simplified SMTP guidance, removed provider-specific examples
 - **Content Updates:** Removed WhatsApp UI from dashboard (backend kept), updated all references to use "Business Email" + "Custom SMTP"
 - **WelcomeCelebration:** Extended confetti to 5 seconds, fixed greeting to "Hey [Name]!" format with proper capitalization, fixed window.innerHeight SSR issue
 - **Terms & Privacy:** Updated to remove Gmail/WhatsApp references, replaced with neutral "Email" and "SMTP provider" language
