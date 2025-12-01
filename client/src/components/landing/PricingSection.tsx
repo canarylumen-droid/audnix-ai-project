@@ -21,54 +21,44 @@ export function PricingSection() {
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Pricing Built for<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-              Closers, Not Browsers
+              Revenue, Not Complexity
             </span>
           </h2>
           <p className="text-xl text-white/70 max-w-2xl mx-auto">
-            Start free → upgrade when you're closing deals
+            Pay only for what you use. Scale from 100 leads to 20,000/month as your business grows.
           </p>
         </motion.div>
 
-        {/* Channel Info by Plan */}
+        {/* Value Proposition */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mb-10 max-w-4xl mx-auto"
+          className="mb-12 max-w-3xl mx-auto"
         >
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-5 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border border-blue-500/20">
-              <div className="flex items-center gap-2 mb-3">
-                <Mail className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-white">Free Trial</h3>
-              </div>
-              <p className="text-white/70 text-sm mb-3">Perfect for testing</p>
-              <div className="flex items-center gap-2 text-sm">
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/80">Email automation</span>
-              </div>
+          <div className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-semibold text-white">Why Switch from Free to Paid?</h3>
             </div>
-            <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/30">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-5 h-5 text-emerald-400" />
-                <h3 className="font-semibold text-white">Paid Plans</h3>
+            <ul className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="text-white/80">10-70x more leads to reach</span>
               </div>
-              <p className="text-white/70 text-sm mb-3">Email + Voice + Instagram soon</p>
-              <div className="flex flex-wrap gap-3 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">Email</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">Voice Notes</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white/80">Instagram DMs</span>
-                </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="text-white/80">Voice automation on Instagram</span>
               </div>
-            </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="text-white/80">Advanced lead sequencing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span className="text-white/80">Team collaboration & workflows</span>
+              </div>
+            </ul>
           </div>
         </motion.div>
 

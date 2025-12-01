@@ -19,7 +19,7 @@ interface UserProfile {
 export default function PricingPage() {
   const { toast } = useToast();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const plans = getSortedPricingTiers().filter(tier => tier.id !== 'free');
+  const plans = getSortedPricingTiers(); // Include all plans: trial, free, starter, pro, enterprise
 
   const { data: user } = useQuery<UserProfile>({
     queryKey: ["/api/user/profile"],
@@ -68,14 +68,14 @@ export default function PricingPage() {
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 backdrop-blur-sm mb-6">
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-white/90">
-            Choose your plan
+            Scale your reach
           </span>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white" data-testid="heading-pricing">
-          Simple Pricing
+          Plans That Grow With You
         </h1>
         <p className="text-lg text-white/70" data-testid="text-subtitle">
-          Pick the plan that fits your needs
+          Start free, upgrade when you're closing deals. Pay only for what you scale.
         </p>
       </motion.div>
 
