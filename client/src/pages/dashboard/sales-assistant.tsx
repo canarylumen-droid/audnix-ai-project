@@ -220,7 +220,7 @@ export default function SalesAssistant() {
             </div>
             <div className="flex gap-3">
               <div className="font-bold text-primary">3.</div>
-              <p className="text-muted-foreground">AI analyzes against 110+ objections and returns reframe</p>
+              <p className="text-muted-foreground">AI analyzes objections and returns smart reframes</p>
             </div>
             <div className="flex gap-3">
               <div className="font-bold text-primary">4.</div>

@@ -578,7 +578,7 @@ export default function InsightsPage() {
             /* Show Feature Lock for free/trial users */
             <FeatureLock
               featureName="Advanced Analytics"
-              description="Get detailed charts, conversion funnels, and channel performance metrics to optimize your lead generation"
+              description="Detailed charts, funnels, & channel performance metrics"
               requiredPlan="Starter"
               variant="card"
               className="min-h-[400px]"

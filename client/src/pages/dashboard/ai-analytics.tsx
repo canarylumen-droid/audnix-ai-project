@@ -80,8 +80,7 @@ export default function AIAnalyticsPage() {
           </h2>
           
           <p className="text-muted-foreground text-center max-w-md mb-6">
-            Add at least <span className="font-semibold text-foreground">5 leads</span> to see detailed AI analytics.
-            The more data you have, the more accurate your insights become.
+            Add <span className="font-semibold text-foreground">5+ leads</span> to unlock AI performance insights.
           </p>
 
           <div className="bg-muted/50 rounded-lg p-4 max-w-sm text-center">
@@ -97,7 +96,7 @@ export default function AIAnalyticsPage() {
               <div>
                 <p className="font-medium text-sm">AI is actively learning</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Our AI is analyzing your brand, offer, and communication style to optimize responses for your business.
+                  AI is analyzing your brand to optimize responses.
                 </p>
               </div>
             </div>

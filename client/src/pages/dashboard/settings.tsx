@@ -266,7 +266,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Export Leads</CardTitle>
           <CardDescription>
-            Download all your leads with contact info (email, phone) as CSV spreadsheet
+            Export all leads as CSV with contact info
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

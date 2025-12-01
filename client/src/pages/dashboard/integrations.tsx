@@ -510,7 +510,7 @@ export default function IntegrationsPage() {
           <div>
             <p className="font-medium text-primary">Your data is encrypted</p>
             <p className="text-sm text-muted-foreground mt-1">
-              All tokens are encrypted with AES-256-GCM and stored securely. You can revoke access anytime.
+              All tokens encrypted & secured. Revoke access anytime.
             </p>
           </div>
         </CardContent>
