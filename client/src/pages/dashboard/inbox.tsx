@@ -191,12 +191,6 @@ export default function InboxPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <SiWhatsapp className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">
-                    {leads.filter((l: any) => l.channel === 'whatsapp').length} WhatsApp
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-blue-500" />
                   <span className="font-medium">
                     {leads.filter((l: any) => l.channel === 'email').length} Email
@@ -257,7 +251,6 @@ export default function InboxPage() {
               <SelectContent>
                 <SelectItem value="all">All channels</SelectItem>
                 <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
               </SelectContent>
             </Select>
@@ -324,7 +317,7 @@ export default function InboxPage() {
             </h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
               {leads.length === 0 
-                ? "Connect your Instagram, WhatsApp, or Email accounts to start receiving leads. Once connected, your leads will appear here in real-time."
+                ? "Connect your Instagram or Email accounts to start receiving leads. Once connected, your leads will appear here in real-time."
                 : "Try adjusting your filters or search query."}
             </p>
             {leads.length === 0 && (

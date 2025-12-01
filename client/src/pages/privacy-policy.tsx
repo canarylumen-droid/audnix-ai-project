@@ -100,75 +100,52 @@ export default function PrivacyPolicy() {
             <Card className="p-8 border-primary/20">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Mail className="w-6 h-6 text-primary" />
-                Gmail Integration - Detailed Scope Explanation
+                Business Email Integration (Custom SMTP)
               </h2>
               <div className="space-y-6 text-muted-foreground">
                 <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
                   <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-emerald-400" />
-                    Why We Need Gmail Access
+                    Why We Need Email Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates lead follow-ups via email. To do this effectively, we need to read incoming messages, 
-                    understand conversation context, and send intelligent replies on your behalf.
+                    Audnix AI automates lead follow-ups via email. Connect your business email using Custom SMTP 
+                    to send and receive messages through your own email server.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-foreground mb-3">Scopes We Request (3 Minimal Scopes Only)</h3>
+                  <h3 className="font-semibold text-foreground mb-3">How Custom SMTP Works</h3>
                   
                   <div className="space-y-4">
                     <div className="border-l-4 border-emerald-500 pl-4">
-                      <h4 className="font-semibold text-foreground">1. gmail.readonly</h4>
-                      <p className="text-sm mt-1"><strong>What it allows:</strong> Read email messages and metadata</p>
-                      <p className="text-sm mt-1"><strong>Why we need it:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Monitor incoming lead messages in real-time</li>
-                        <li>Understand full conversation history for context-aware AI replies</li>
-                        <li>Detect follow-up opportunities (e.g., unanswered questions from leads)</li>
-                        <li>Analyze lead engagement (opened emails, replied threads)</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-emerald-400"><strong>What we DON'T do:</strong> We do not scan unrelated emails or access emails outside of lead conversations you import.</p>
-                    </div>
-
-                    <div className="border-l-4 border-cyan-500 pl-4">
-                      <h4 className="font-semibold text-foreground">2. gmail.modify</h4>
-                      <p className="text-sm mt-1"><strong>What it allows:</strong> Mark messages as read, add/remove labels, organize threads</p>
-                      <p className="text-sm mt-1"><strong>Why we need it:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Mark AI-handled messages as "read" to keep your inbox clean</li>
-                        <li>Add labels like "Audnix Handled", "Follow-up Needed", "Hot Lead" for organization</li>
-                        <li>Archive or categorize threads automatically based on AI actions</li>
-                        <li>Keep your Gmail organized without manual intervention</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-cyan-400"><strong>What we DON'T do:</strong> We never delete emails or modify content. We only organize them.</p>
-                    </div>
-
-                    <div className="border-l-4 border-purple-500 pl-4">
-                      <h4 className="font-semibold text-foreground">3. gmail.send</h4>
-                      <p className="text-sm mt-1"><strong>What it allows:</strong> Send emails from your Gmail address</p>
-                      <p className="text-sm mt-1"><strong>Why we need it:</strong></p>
+                      <h4 className="font-semibold text-foreground">Sending Emails</h4>
+                      <p className="text-sm mt-1"><strong>What it allows:</strong> Send emails from your business email address</p>
                       <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
                         <li>Send AI-generated follow-up emails to leads automatically</li>
                         <li>Reply to lead inquiries with context-aware, personalized responses</li>
-                        <li>Send nurture sequences (e.g., "checking in", "did you see my last message?")</li>
-                        <li>Close deals by sending booking links, proposals, or answers to objections</li>
+                        <li>Send nurture sequences and booking links</li>
                       </ul>
-                      <p className="text-sm mt-2 text-purple-400"><strong>What we DON'T do:</strong> We never send spam, promotional emails, or emails unrelated to your leads.</p>
+                    </div>
+
+                    <div className="border-l-4 border-cyan-500 pl-4">
+                      <h4 className="font-semibold text-foreground">Reading Emails (IMAP)</h4>
+                      <p className="text-sm mt-1"><strong>What it allows:</strong> Read incoming lead messages</p>
+                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
+                        <li>Monitor incoming lead messages in real-time</li>
+                        <li>Understand conversation history for context-aware AI replies</li>
+                        <li>Detect follow-up opportunities</li>
+                      </ul>
+                      <p className="text-sm mt-2 text-cyan-400"><strong>What we DON'T do:</strong> We only access emails from leads you import.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-amber-400 mb-2">⚠️ Important: Email Storage Policy</h4>
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-emerald-400 mb-2">✅ Secure Connection</h4>
                   <p className="text-sm">
-                    <strong>We do NOT permanently store your emails.</strong> Emails are processed in real-time, 
-                    used to generate AI replies, and then only the lead conversation metadata (e.g., "replied on X date") 
-                    is stored. Full email content is never retained on our servers.
-                  </p>
-                  <p className="text-sm mt-2">
-                    <strong>Exception:</strong> If you enable "conversation history" in settings, we store message summaries 
-                    (not full emails) encrypted at rest for context in future conversations.
+                    Your SMTP credentials are encrypted with AES-256-GCM and stored securely. 
+                    We never store full email content - only conversation metadata for AI context.
                   </p>
                 </div>
               </div>
@@ -320,85 +297,6 @@ export default function PrivacyPolicy() {
               </div>
             </Card>
 
-            <Card className="p-8 border-primary/20">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Phone className="w-6 h-6 text-primary" />
-                WhatsApp Integration - Detailed Access Explanation
-              </h2>
-              <div className="space-y-6 text-muted-foreground">
-                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-emerald-400" />
-                    Why We Need WhatsApp Access
-                  </h3>
-                  <p className="text-sm">
-                    Audnix AI automates WhatsApp follow-ups and voice message replies. We need access to send messages, 
-                    read incoming chats, and deliver AI-cloned voice notes on your behalf.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-foreground mb-3">What We Access</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="border-l-4 border-emerald-500 pl-4">
-                      <h4 className="font-semibold text-foreground">WhatsApp Messages</h4>
-                      <p className="text-sm mt-1"><strong>What we access:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Incoming messages from leads you import</li>
-                        <li>Your outgoing message history (for conversation context)</li>
-                        <li>Message status (delivered, read, replied)</li>
-                      </ul>
-                      <p className="text-sm mt-2"><strong>Why we need it:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Detect when leads respond to your outreach</li>
-                        <li>Understand conversation flow for intelligent AI replies</li>
-                        <li>Send follow-up messages if leads don't respond</li>
-                        <li>Handle objections and close deals via WhatsApp</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-emerald-400"><strong>Encryption:</strong> WhatsApp messages are end-to-end encrypted by WhatsApp. We only process message text for AI replies.</p>
-                    </div>
-
-                    <div className="border-l-4 border-cyan-500 pl-4">
-                      <h4 className="font-semibold text-foreground">Voice Notes</h4>
-                      <p className="text-sm mt-1"><strong>What we access:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Your voice sample (30 seconds recording for AI cloning)</li>
-                        <li>Permission to send voice notes using your cloned voice</li>
-                      </ul>
-                      <p className="text-sm mt-2"><strong>Why we need it:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Clone your voice for personalized follow-up messages</li>
-                        <li>Send AI-generated voice notes that sound exactly like you</li>
-                        <li>Increase response rates (voice notes get 3x more replies than text)</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-cyan-400"><strong>Voice Storage:</strong> Your voice sample is encrypted with AES-256-GCM and stored securely. You can delete it at any time.</p>
-                    </div>
-
-                    <div className="border-l-4 border-purple-500 pl-4">
-                      <h4 className="font-semibold text-foreground">Contact Information</h4>
-                      <p className="text-sm mt-1"><strong>What we access:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Phone numbers of leads you manually import or add</li>
-                        <li>Contact names (if saved in your WhatsApp)</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-purple-400"><strong>Privacy:</strong> We only access contacts YOU explicitly import into Audnix. We never scan your entire contact list.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-emerald-400 mb-2">✅ WhatsApp Connection Methods</h4>
-                  <p className="text-sm mb-2">
-                    <strong>QR Code Login (Recommended):</strong> Scan a QR code to connect WhatsApp Web. Your password is NEVER entered or stored.
-                  </p>
-                  <p className="text-sm">
-                    <strong>Session Tokens:</strong> After QR code login, an encrypted session token is stored. This token is refreshed automatically and can be revoked at any time.
-                  </p>
-                </div>
-              </div>
-            </Card>
-
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
                 <Lock className="w-6 h-6 text-primary" />
@@ -426,8 +324,8 @@ export default function PrivacyPolicy() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">3. Password & Credential Security</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Zero Password Storage:</strong> Instagram and WhatsApp passwords are NEVER stored. They are used only once during authentication to generate encrypted session tokens, then immediately discarded from memory.</li>
-                    <li><strong>OAuth 2.0:</strong> Gmail and Google Calendar use OAuth 2.0 (industry-standard secure authorization)</li>
+                    <li><strong>Zero Password Storage:</strong> Instagram passwords are NEVER stored. They are used only once during authentication to generate encrypted session tokens, then immediately discarded from memory.</li>
+                    <li><strong>SMTP Credentials:</strong> Business email credentials are encrypted with AES-256-GCM</li>
                     <li><strong>Session Tokens:</strong> Encrypted with AES-256-GCM and automatically rotated every 7 days</li>
                     <li><strong>Token Revocation:</strong> You can instantly revoke all access tokens from your dashboard</li>
                   </ul>

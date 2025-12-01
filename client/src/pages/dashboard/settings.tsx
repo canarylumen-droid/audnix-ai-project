@@ -435,7 +435,7 @@ export default function SettingsPage() {
             Voice Notes Settings
           </CardTitle>
           <CardDescription>
-            Control how AI voice notes are sent to leads on Instagram and WhatsApp
+            Control how AI voice notes are sent to leads on Instagram DMs
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                 Enable AI Voice Notes
               </Label>
               <p className="text-sm text-muted-foreground">
-                When enabled, AI can send voice messages to warm leads on Instagram and WhatsApp
+                When enabled, AI can send voice messages to warm leads on Instagram DMs
               </p>
             </div>
             <Switch

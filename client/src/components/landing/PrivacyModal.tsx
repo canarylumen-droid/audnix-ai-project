@@ -67,7 +67,7 @@ export function PrivacyModal() {
             <section>
               <h3 className="text-xl font-semibold text-white mb-3">4. Third-Party Integrations</h3>
               <p className="leading-relaxed">
-                You control which services (WhatsApp, Email, Calendly, Stripe) connect to your account. We never access your credentials without permission.
+                You control which services (Instagram, Email, Calendly, Stripe) connect to your account. We never access your credentials without permission.
               </p>
             </section>
 

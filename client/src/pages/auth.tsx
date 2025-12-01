@@ -403,7 +403,7 @@ export default function AuthPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">Smart Lead Follow-ups</h3>
-                  <p className="text-white/60 text-sm">AI-powered messaging across WhatsApp, Email & more</p>
+                  <p className="text-white/60 text-sm">AI-powered messaging across Instagram, Email & more</p>
                 </div>
               </div>
 
@@ -413,7 +413,7 @@ export default function AuthPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">Zero Setup Required</h3>
-                  <p className="text-white/60 text-sm">Connect your own email, WhatsApp & Calendly instantly</p>
+                  <p className="text-white/60 text-sm">Connect your own email, Instagram & Calendly instantly</p>
                 </div>
               </div>
 

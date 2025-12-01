@@ -44,8 +44,8 @@ export default function Landing() {
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
               { title: "Close Hot Leads First", desc: "Intent scoring. Hot prospects first. Maximum velocity." },
-              { title: "110+ Objection Handling", desc: "Reframes and closes objections automatically." },
-              { title: "Email + Voice Closing", desc: "Powerful email sequences + voice notes. Instagram coming soon." }
+              { title: "Smart Objection Handling", desc: "AI reframes and closes objections automatically." },
+              { title: "Email + Instagram Voice", desc: "Email sequences + voice notes on Instagram DMs." }
             ].map((item, i) => (
               <motion.div
                 key={i}
@@ -278,10 +278,10 @@ export default function Landing() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Email + Voice Automation
+              Email + Instagram Automation
             </h2>
             <p className="text-xl text-white/80 max-w-3xl mx-auto">
-              Powerful email sequences + personalized voice notes. Instagram DMs launching 2026.
+              Email sequences that close deals. Voice notes on Instagram DMs (paid plans).
             </p>
           </motion.div>
 
@@ -305,13 +305,13 @@ export default function Landing() {
               <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
                 <MessageSquare className="w-6 h-6 text-cyan-400" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-white">Voice Notes</h3>
+              <h3 className="text-xl font-bold mb-3 text-white">Voice Notes (Instagram)</h3>
               <ul className="space-y-2 text-white/80 text-sm">
                 <li>• AI clones your exact voice</li>
                 <li>• Personal touch at scale</li>
                 <li>• 80%+ prefer voice over text</li>
                 <li>• Paid feature (Starter+)</li>
-                <li>• Works in email & Instagram DMs</li>
+                <li>• Instagram DMs only</li>
                 <li>• Unlimited custom messages</li>
               </ul>
             </AnimatedCard>
@@ -323,19 +323,19 @@ export default function Landing() {
               <h3 className="text-xl font-bold mb-3 text-white">AI Personalization</h3>
               <ul className="space-y-2 text-white/80 text-sm">
                 <li>• Learns from lead behavior</li>
-                <li>• Handles 110+ objections</li>
+                <li>• Smart objection handling</li>
                 <li>• Adapts messaging by stage</li>
                 <li>• Re-engages cold leads</li>
                 <li>• Real-time intent detection</li>
-                <li>• 24/7 automation, no sleep</li>
+                <li>• 24/7 automation</li>
               </ul>
             </AnimatedCard>
           </div>
 
           <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center">
-            <h3 className="text-2xl font-bold mb-3 text-white">Your Voice, Automated</h3>
+            <h3 className="text-2xl font-bold mb-3 text-white">Your Voice on Instagram</h3>
             <p className="text-white/90 text-lg">
-              Upload your voice once. AI personalizes every message. Email + voice = highest conversion.
+              Upload your voice once. AI sends personalized voice notes on Instagram DMs.
             </p>
           </div>
         </div>
@@ -428,28 +428,31 @@ export default function Landing() {
               <div>
                 <h4 className="font-semibold text-emerald-400 mb-2">ManyChat</h4>
                 <ul className="space-y-1 text-white/60 text-sm">
-                  <li>• Keyword-based triggers</li>
-                  <li>• Misses 70% of interested leads</li>
-                  <li>• Generic template responses</li>
-                  <li>• Instagram only</li>
+                  <li>✅ Instagram + Messenger + SMS</li>
+                  <li>✅ Flow builder automation</li>
+                  <li>❌ No AI objection handling</li>
+                  <li>❌ No voice cloning</li>
+                  <li>❌ No email sequences</li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-cyan-400 mb-2">CommentGuard</h4>
                 <ul className="space-y-1 text-white/60 text-sm">
-                  <li>• Basic spam filtering</li>
-                  <li>• No conversation AI</li>
-                  <li>• No follow-up system</li>
-                  <li>• Instagram only</li>
+                  <li>✅ Comment moderation</li>
+                  <li>❌ No DM automation</li>
+                  <li>❌ No AI conversations</li>
+                  <li>❌ No follow-up system</li>
+                  <li>❌ Instagram only</li>
                 </ul>
               </div>
               <div>
                 <h4 className="font-semibold text-primary mb-2">Audnix AI</h4>
                 <ul className="space-y-1 text-white/90 text-sm">
-                  <li>✅ Real AI intent detection</li>
-                  <li>✅ Catches every interested lead</li>
-                  <li>✅ Personalized conversations</li>
-                  <li>✅ Instagram + WhatsApp + Email</li>
+                  <li>✅ AI intent detection</li>
+                  <li>✅ Smart objection handling</li>
+                  <li>✅ Voice cloning (Instagram)</li>
+                  <li>✅ Email + Instagram automation</li>
+                  <li>✅ Auto-booking meetings</li>
                 </ul>
               </div>
             </div>
@@ -575,10 +578,10 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
             {[
               "Day 1-7 email sequences",
-              "Voice notes in your voice",
-              "110+ objection handling",
+              "Voice notes (Instagram)",
+              "Smart objection handling",
               "PDF brand understanding",
-              "Smart intent scoring",
+              "Intent scoring",
               "Auto-booking",
               "Re-engagement sequences",
               "Real-time personalization",
@@ -612,12 +615,12 @@ export default function Landing() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Email sequences", audnix: true, manychat: "WhatsApp-only", commentguard: "IG-only" },
-                  { feature: "110+ Objection handling", audnix: true, manychat: false, commentguard: false },
-                  { feature: "Voice notes", audnix: true, manychat: false, commentguard: false },
-                  { feature: "Auto-booking", audnix: true, manychat: false, commentguard: false },
-                  { feature: "Context awareness", audnix: "✅", manychat: "Limited", commentguard: "None" },
-                  { feature: "Memory/personalization", audnix: true, manychat: false, commentguard: false }
+                  { feature: "Email sequences", audnix: true, manychat: false, commentguard: false },
+                  { feature: "AI objection handling", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Voice cloning", audnix: "Instagram", manychat: false, commentguard: false },
+                  { feature: "Auto-booking meetings", audnix: true, manychat: false, commentguard: false },
+                  { feature: "Flow builder", audnix: false, manychat: true, commentguard: false },
+                  { feature: "Context-aware AI", audnix: true, manychat: "Limited", commentguard: false }
                 ].map((row, i) => (
                   <tr key={i} className="border-b border-white/10">
                     <td className="p-4 text-white/90">{row.feature}</td>

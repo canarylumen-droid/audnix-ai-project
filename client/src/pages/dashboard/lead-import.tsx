@@ -104,7 +104,7 @@ export default function LeadImportPage() {
       <div>
         <h1 className="text-3xl font-bold mb-2">Import Leads</h1>
         <p className="text-muted-foreground">
-          Upload CSV, Excel, or PDF - Our AI extracts Name, Email, WhatsApp Number automatically
+          Upload CSV, Excel, or PDF - Our AI extracts Name, Email, and Phone automatically
         </p>
         <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -242,18 +242,18 @@ export default function LeadImportPage() {
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Phone className="h-5 w-5 text-primary" />
-              WhatsApp Auto-Outreach
+              <Instagram className="h-5 w-5 text-primary" />
+              Instagram DM Automation
             </CardTitle>
             <CardDescription>
-              Automatically reach out via Twilio WhatsApp
+              Automatically reach out via Instagram DMs (coming Q4 2025)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2 text-sm">
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
-                <p><strong>Twilio integration:</strong> Connect your Twilio account to send WhatsApp messages</p>
+                <p><strong>Voice notes:</strong> AI sends personalized voice notes that sound like you</p>
               </div>
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5" />
@@ -267,7 +267,7 @@ export default function LeadImportPage() {
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-sm font-medium mb-2">💡 Use Case Example:</p>
               <p className="text-xs text-muted-foreground">
-                Import 500 leads from event attendees → AI sends personalized WhatsApp intro → 
+                Import 500 leads from event attendees → AI sends personalized DM intro → 
                 Auto-follow up if no reply → Book meetings automatically
               </p>
             </div>
@@ -377,7 +377,7 @@ export default function LeadImportPage() {
               </div>
               <h3 className="font-semibold mb-2">Configure Campaign</h3>
               <p className="text-sm text-muted-foreground">
-                Choose WhatsApp or Email + customize message
+                Choose Instagram or Email + customize message
               </p>
             </div>
             <div className="text-center">

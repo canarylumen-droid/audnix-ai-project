@@ -1,11 +1,10 @@
 import { motion } from "framer-motion";
 import { Instagram, Mail, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 
 interface ImportingLeadsAnimationProps {
-  channel: "instagram" | "whatsapp" | "email";
+  channel: "instagram" | "email";
   onComplete?: () => void;
   isImporting: boolean;
 }
@@ -16,12 +15,6 @@ const channelConfig = {
     name: "Instagram",
     color: "from-pink-500 to-purple-600",
     bgColor: "bg-gradient-to-r from-pink-500/10 to-purple-600/10",
-  },
-  whatsapp: {
-    icon: SiWhatsapp,
-    name: "WhatsApp",
-    color: "from-green-500 to-emerald-600",
-    bgColor: "bg-gradient-to-r from-green-500/10 to-emerald-600/10",
   },
   email: {
     icon: Mail,
@@ -89,7 +82,7 @@ export function ImportingLeadsAnimation({
                     ease: "easeInOut",
                   }}
                 >
-                  <ChannelIcon className={`h-10 w-10 text-${channel === 'whatsapp' ? 'green' : channel === 'instagram' ? 'pink' : 'blue'}-500`} />
+                  <ChannelIcon className={`h-10 w-10 text-${channel === 'instagram' ? 'pink' : 'blue'}-500`} />
                   <motion.div
                     className="absolute inset-0 rounded-full border-4 border-primary"
                     animate={{

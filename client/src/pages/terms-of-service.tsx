@@ -156,7 +156,7 @@ export default function TermsOfService() {
                   <p>You agree to use Audnix AI only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Sending spam, unsolicited messages, or violating CAN-SPAM Act / GDPR</li>
-                    <li>Violating Instagram, WhatsApp, Gmail, or other platform terms of service</li>
+                    <li>Violating Instagram or other platform terms of service</li>
                     <li>Using the service to harass, abuse, threaten, or harm others</li>
                     <li>Attempting to hack, reverse engineer, or compromise our security</li>
                     <li>Sharing account credentials or reselling our services</li>

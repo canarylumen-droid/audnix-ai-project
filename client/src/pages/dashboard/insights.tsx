@@ -101,8 +101,6 @@ export default function InsightsPage() {
     switch (channel.toLowerCase()) {
       case 'instagram':
         return Instagram;
-      case 'whatsapp':
-        return SiWhatsapp;
       case 'email':
         return Mail;
       default:
@@ -112,7 +110,6 @@ export default function InsightsPage() {
 
   const COLORS = {
     Instagram: '#E1306C',
-    WhatsApp: '#25D366',
     Email: '#3B82F6',
     primary: 'hsl(var(--primary))',
   };
@@ -121,10 +118,6 @@ export default function InsightsPage() {
     Instagram: {
       label: "Instagram",
       color: COLORS.Instagram,
-    },
-    WhatsApp: {
-      label: "WhatsApp",
-      color: COLORS.WhatsApp,
     },
     Email: {
       label: "Email",
@@ -259,7 +252,7 @@ export default function InsightsPage() {
             <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
             <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your Instagram, WhatsApp, or Email accounts to start receiving leads.
+              Connect your Instagram or Email accounts to start receiving leads.
               Once you have activity, AI-powered insights and analytics will appear here in real-time
               to help you optimize your conversions.
             </p>
@@ -323,7 +316,7 @@ export default function InsightsPage() {
                           ✨ Upgrade to unlock full analytics:
                         </p>
                         <ul className="text-xs text-gray-300 space-y-1 ml-2">
-                          <li>✓ Detailed channel breakdowns (Instagram, WhatsApp, Email)</li>
+                          <li>✓ Detailed channel breakdowns (Instagram, Email)</li>
                           <li>✓ Conversion rates & engagement scores</li>
                           <li>✓ Real-time performance charts</li>
                           <li>✓ AI-powered recommendations</li>

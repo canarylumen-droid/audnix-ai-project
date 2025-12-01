@@ -106,9 +106,9 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-sm sm:text-base md:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6 md:px-0"
         >
-          Powerful email sequences + voice notes that sound like you.{" "}
+          Email sequences that close deals + voice notes on Instagram DMs.{" "}
           <br className="hidden sm:block" />
-          Instagram DMs coming soon. 110+ objections handled automatically.
+          AI handles objections and books meetings automatically.
         </motion.p>
 
         {/* Feature Pills */}

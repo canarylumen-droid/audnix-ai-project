@@ -7,10 +7,10 @@ const features = [
   {
     number: 1,
     title: "Lead Import & Management",
-    desc: "Connect emails and CSV contacts, auto-deduplicate instantly",
+    desc: "Connect business email and CSV contacts",
     icon: Phone,
     details: [
-      "Business email sync (Gmail, Outlook, etc)",
+      "Business email sync via SMTP",
       "Bulk CSV upload with auto-mapping",
       "Real-time contact deduplication",
       "Lead scoring and segmentation",
@@ -31,8 +31,8 @@ const features = [
   },
   {
     number: 3,
-    title: "110+ Objection Handling",
-    desc: "AI handles price, trust, urgency, competitor objections — 24/7",
+    title: "Smart Objection Handling",
+    desc: "AI handles price, trust, urgency objections — 24/7",
     icon: Check,
     details: [
       "Price objections → value reframing",
@@ -44,13 +44,13 @@ const features = [
   },
   {
     number: 4,
-    title: "Voice Notes in Your Voice",
-    desc: "AI clones your voice for authentic, personal outreach at scale",
+    title: "Voice Notes (Instagram)",
+    desc: "AI clones your voice for authentic outreach on Instagram DMs",
     icon: Mic,
     details: [
       "Upload 30-second voice sample once",
       "AI generates natural voice messages",
-      "Works in email + Instagram DMs",
+      "Instagram DMs only (paid plans)",
       "80%+ leads prefer voice over text",
       "Personalization at massive scale"
     ]

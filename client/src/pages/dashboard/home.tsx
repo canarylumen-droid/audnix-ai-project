@@ -520,7 +520,7 @@ export default function DashboardHome() {
                 </motion.div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground">No leads yet</h3>
                 <p className="text-foreground/70 text-center mb-6 max-w-md">
-                  Connect your Instagram, WhatsApp, or Email accounts to start receiving and managing leads automatically.
+                  Connect your Instagram or Email accounts to start receiving and managing leads automatically.
                 </p>
                 <Link href="/dashboard/integrations">
                   <Button className="glow hover:scale-105 transition-transform" data-testid="button-connect-accounts">

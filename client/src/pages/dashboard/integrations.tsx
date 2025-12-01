@@ -12,9 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
-import { WhatsAppConnect } from "@/components/integrations/whatsapp-connect";
 import { InstagramComingSoonModal } from "@/components/instagram-coming-soon-modal";
-import { useCanAccessWhatsApp, useCanAccessInstagramDM } from "@/hooks/use-access-gate";
+import { useCanAccessInstagramDM } from "@/hooks/use-access-gate";
 import {
   Instagram,
   Mail,
@@ -30,7 +29,7 @@ import {
   Lock,
   CheckCircle2,
 } from "lucide-react";
-import { SiWhatsapp, SiGoogle } from "react-icons/si";
+import { SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -71,7 +70,6 @@ interface ImportResult {
 
 const channelIcons = {
   instagram: Instagram,
-  whatsapp: SiWhatsapp,
   gmail: SiGoogle,
 };
 
@@ -79,11 +77,10 @@ export default function IntegrationsPage() {
   const [voiceConsent, setVoiceConsent] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  const [importingChannel, setImportingChannel] = useState<"instagram" | "whatsapp" | "email" | null>(null);
+  const [importingChannel, setImportingChannel] = useState<"instagram" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
   const [showInstagramComingSoon, setShowInstagramComingSoon] = useState(false);
-  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -96,7 +93,6 @@ export default function IntegrationsPage() {
   const queryClient = useQueryClient();
   
   // Access control hooks
-  const { canAccess: canAccessWhatsApp } = useCanAccessWhatsApp();
   const { canAccess: canAccessInstagram } = useCanAccessInstagramDM();
 
   // Fetch user data to check plan
@@ -269,7 +265,6 @@ export default function IntegrationsPage() {
     onSuccess: (data, provider) => {
       const channelMap: Record<string, string> = {
         instagram: "Instagram",
-        whatsapp: "WhatsApp",
         gmail: "Email"
       };
 
@@ -460,16 +455,14 @@ export default function IntegrationsPage() {
   };
 
   const handleSyncNow = (provider: string) => {
-    const channelMap: Record<string, "instagram" | "whatsapp" | "email"> = {
+    const channelMap: Record<string, "instagram" | "email"> = {
       instagram: "instagram",
-      whatsapp: "whatsapp",
       gmail: "email"
     };
 
     // Map provider to backend endpoint
     const providerToEndpoint: Record<string, string> = {
       instagram: "instagram",
-      whatsapp: "whatsapp",
       gmail: "gmail"
     };
 
@@ -598,7 +591,7 @@ export default function IntegrationsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["instagram", "whatsapp"].map((providerId, index) => {
+            {["instagram"].map((providerId, index) => {
               const integration = integrations.find((i) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
@@ -1217,56 +1210,6 @@ export default function IntegrationsPage() {
           />
         )}
       </AnimatePresence>
-
-      {/* WhatsApp Web Integration */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">WhatsApp Business (QR Code)</h2>
-        {!canAccessWhatsApp ? (
-          <Card className="border-amber-200/50 bg-amber-50/20 dark:bg-amber-950/10">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  <div>
-                    <p className="font-medium text-amber-900 dark:text-amber-100">Upgrade to Connect WhatsApp</p>
-                    <p className="text-sm text-amber-800/70 dark:text-amber-200/70">WhatsApp integration is available on paid plans only</p>
-                  </div>
-                </div>
-                <Button onClick={() => window.location.href = '/dashboard/pricing'} size="sm">
-                  View Plans
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="flex gap-2 mb-4">
-              <Button 
-                onClick={() => setShowWhatsAppModal(true)}
-                className="bg-green-500 hover:bg-green-600"
-              >
-                <SiWhatsapp className="h-4 w-4 mr-2" />
-                Connect WhatsApp
-              </Button>
-            </div>
-            
-            {/* WhatsApp Modal */}
-            <Dialog open={showWhatsAppModal} onOpenChange={setShowWhatsAppModal}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Connect WhatsApp Business</DialogTitle>
-                  <DialogDescription>
-                    Scan the QR code with your WhatsApp app to connect
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <WhatsAppConnect />
-                </div>
-              </DialogContent>
-            </Dialog>
-          </>
-        )}
-      </div>
 
       {/* All Set Dialog */}
       <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>
