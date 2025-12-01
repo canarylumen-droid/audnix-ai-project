@@ -669,7 +669,6 @@ export default function IntegrationsPage() {
                                 <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
                                   Instagram
                                 </CardTitle>
-                                <Badge variant="secondary" className="text-xs bg-pink-500/10 text-pink-600">Coming Q4 2025</Badge>
                               </div>
                               <CardDescription className="text-sm">
                                 Meta API verification in progress • CSV import available now

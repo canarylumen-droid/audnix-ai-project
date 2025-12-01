@@ -246,7 +246,7 @@ export default function LeadImportPage() {
               Instagram DM Automation
             </CardTitle>
             <CardDescription>
-              Automatically reach out via Instagram DMs (coming Q4 2025)
+              Automatically reach out via Instagram DMs with AI voice notes
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
