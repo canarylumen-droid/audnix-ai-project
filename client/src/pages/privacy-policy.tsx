@@ -569,7 +569,7 @@ export default function PrivacyPolicy() {
                 <li><strong>Data Protection Officer:</strong> <a href="mailto:dpo@audnixai.com" className="text-primary hover:underline">dpo@audnixai.com</a></li>
                 <li><strong>Security Reports:</strong> <a href="mailto:security@audnixai.com" className="text-primary hover:underline">security@audnixai.com</a></li>
                 <li><strong>General Support:</strong> <a href="mailto:support@audnixai.com" className="text-primary hover:underline">support@audnixai.com</a></li>
-                <li><strong>Mailing Address:</strong> Audnix AI, Privacy Compliance Department, [Your Address]</li>
+                <li><strong>Mailing Address:</strong> Audnix AI, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
               </ul>
               <p className="text-muted-foreground mt-4">
                 <strong>Response Time:</strong> We respond to privacy requests within 48 hours (business days).

@@ -516,7 +516,7 @@ export default function TermsOfService() {
                 <li><strong>Legal Inquiries:</strong> <a href="mailto:legal@audnixai.com" className="text-primary hover:underline">legal@audnixai.com</a></li>
                 <li><strong>General Support:</strong> <a href="mailto:support@audnixai.com" className="text-primary hover:underline">support@audnixai.com</a></li>
                 <li><strong>Billing Questions:</strong> <a href="mailto:billing@audnixai.com" className="text-primary hover:underline">billing@audnixai.com</a></li>
-                <li><strong>Mailing Address:</strong> Audnix AI, Legal Department, [Your Address]</li>
+                <li><strong>Mailing Address:</strong> Audnix AI, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
               </ul>
             </Card>
           </motion.div>
