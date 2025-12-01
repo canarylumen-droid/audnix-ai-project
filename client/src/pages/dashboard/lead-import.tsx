@@ -267,8 +267,8 @@ export default function LeadImportPage() {
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <p className="text-sm font-medium mb-2">💡 Use Case Example:</p>
               <p className="text-xs text-muted-foreground">
-                Import 100 leads from event attendees → AI sends personalized DM intro → 
-                Auto-follow up if no reply → Book meetings automatically (upgrade for more)
+                Import 500 leads from event attendees → AI sends personalized DM intro → 
+                Auto-follow up if no reply → Book meetings automatically
               </p>
             </div>
           </CardContent>
