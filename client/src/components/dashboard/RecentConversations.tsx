@@ -15,9 +15,7 @@ import {
   ArrowLeft,
   Clock,
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
-
-type Channel = "instagram" | "whatsapp" | "email";
+type Channel = "instagram" | "email";
 
 interface Message {
   id: string;
@@ -43,13 +41,6 @@ const channelConfig = {
     color: "from-pink-500 to-purple-600",
     bgColor: "bg-gradient-to-r from-pink-500/10 to-purple-600/10",
     textColor: "text-pink-500",
-  },
-  whatsapp: {
-    icon: SiWhatsapp,
-    label: "WhatsApp",
-    color: "from-green-500 to-emerald-600",
-    bgColor: "bg-gradient-to-r from-green-500/10 to-emerald-600/10",
-    textColor: "text-green-500",
   },
   email: {
     icon: Mail,

@@ -208,9 +208,9 @@ export function EmailSetupUI() {
                 <div>
                   <strong>Google Workspace:</strong>
                   <br />
-                  SMTP: smtp.gmail.com:587
+                  SMTP: smtp.office365.com:587
                   <br />
-                  IMAP: imap.gmail.com:993
+                  IMAP: imap.office365.com:993
                 </div>
                 <div>
                   <strong>Microsoft 365:</strong>
@@ -264,7 +264,7 @@ export function EmailSetupUI() {
                 <div>
                   <label className="block text-sm font-medium mb-1">SMTP Host (Sending)</label>
                   <Input
-                    placeholder="smtp.gmail.com"
+                    placeholder="smtp.office365.com"
                     value={config.smtpHost}
                     onChange={(e) => setConfig({ ...config, smtpHost: e.target.value })}
                     className="font-mono text-sm"
@@ -286,7 +286,7 @@ export function EmailSetupUI() {
                 <div>
                   <label className="block text-sm font-medium mb-1">IMAP Host (Reading)</label>
                   <Input
-                    placeholder="imap.gmail.com"
+                    placeholder="imap.office365.com"
                     value={config.imapHost}
                     onChange={(e) => setConfig({ ...config, imapHost: e.target.value })}
                     className="font-mono text-sm"
