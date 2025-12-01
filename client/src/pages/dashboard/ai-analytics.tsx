@@ -13,7 +13,6 @@ interface DashboardStats {
   totalMessages: number;
   averageResponseTime: string;
   emailsThisMonth: number;
-  whatsappThisMonth: number;
   instagramThisMonth: number;
   plan: string;
   trialDaysLeft: number;

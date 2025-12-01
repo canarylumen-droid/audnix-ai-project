@@ -814,7 +814,7 @@ export class DrizzleStorage implements IStorage {
   async incrementOtpAttempts(id: string): Promise<void> {
     await db
       .update(otpCodes)
-      .set({ attempts: sql`${otpCodes.attempts} + 1` })
+      .set({ attempts: sql`attempts + 1` })
       .where(eq(otpCodes.id, id));
   }
 

@@ -1,12 +1,12 @@
 export const landingContent = {
   hero: {
-    badge: "AI-Powered Voice & Message Automation",
+    badge: "AI-Powered Sales Automation",
     subtitle: "Never Miss a Lead Again",
     title: "AI That Closes Deals 24/7",
-    description: "Audnix replies like a real human across WhatsApp + Email (+ Instagram soon). Natural timing (2–8 minutes), remembers context, and engages only when leads show intent. It nurtures → handles objections → books meetings → you close.",
+    description: "Audnix replies like a real human across Email + Instagram. Natural timing (2–8 minutes), remembers context, and engages only when leads show intent. It nurtures → handles objections → books meetings → you close.",
     features: [
       { icon: "check", text: "Human-like timing & tone" },
-      { icon: "mic", text: "Voice notes in your voice" },
+      { icon: "mic", text: "Voice notes on Instagram DMs" },
       { icon: "calendar", text: "Auto-booking + intelligent follow-ups" }
     ],
     cta: {
@@ -34,7 +34,7 @@ export const landingContent = {
       {
         number: 1,
         title: "Auto-imports leads",
-        description: "WhatsApp + Email + CSV",
+        description: "Email + Instagram + CSV",
         note: ""
       },
       {
@@ -50,7 +50,7 @@ export const landingContent = {
       {
         number: 4,
         title: "Sends voice notes",
-        description: "In your tone"
+        description: "On Instagram DMs in your voice"
       },
       {
         number: 5,
@@ -74,11 +74,11 @@ export const landingContent = {
       audnix: {
         title: "Audnix:",
         features: [
-          { text: "Context-aware", negative: false },
-          { text: "Natural timing", negative: false },
-          { text: "Objection-handling", negative: false },
-          { text: "Voice + text", negative: false },
-          { text: "Continues conversations intelligently", negative: false }
+          { text: "Context-aware AI", negative: false },
+          { text: "Natural 2-8 min timing", negative: false },
+          { text: "Real objection handling", negative: false },
+          { text: "Voice notes (Instagram)", negative: false },
+          { text: "Remembers full conversation history", negative: false }
         ]
       }
     },
@@ -103,7 +103,7 @@ export const landingContent = {
     steps: [
       {
         number: 1,
-        text: "Connect Instagram, WhatsApp & Email"
+        text: "Connect Instagram & Email"
       },
       {
         number: 2,
@@ -128,11 +128,11 @@ export const landingContent = {
       "Human-like replies",
       "Context + PDF understanding",
       "Objection handling",
-      "Voice messages",
+      "Voice notes (Instagram)",
       "Smart intent scoring",
       "Auto-booking",
       "Cold lead re-engagement",
-      "Email + WhatsApp + CSV",
+      "Email + Instagram + CSV",
       "Unified inbox",
       "Analytics"
     ]
@@ -143,15 +143,15 @@ export const landingContent = {
     note: "Audnix isn't a chatbot. It's a closer.",
     competitors: [
       { name: "Audnix", features: ["✅", "✅", "✅", "✅", "✅", "✅"] },
-      { name: "ManyChat", features: ["❌", "❌", "❌", "❌", "IG-only", "❌"] },
-      { name: "CommentGuard", features: ["❌", "❌", "❌", "❌", "IG-only", "❌"] }
+      { name: "ManyChat", features: ["❌", "✅", "❌", "❌", "❌", "❌"] },
+      { name: "CommentGuard", features: ["❌", "❌", "❌", "❌", "❌", "❌"] }
     ],
     featureLabels: [
-      "Human-like convo",
-      "Objection handling",
-      "Voice notes",
+      "Real AI conversations",
+      "Flow builder",
+      "Voice notes (IG)",
       "Auto-booking",
-      "Multi-channel",
+      "Email automation",
       "Memory/context"
     ]
   },

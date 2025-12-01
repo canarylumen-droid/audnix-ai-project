@@ -117,7 +117,7 @@ export default function SalesAssistant() {
               </Button>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="w-4 h-4" />
-                AI analyzes 110+ objection types
+                AI-powered objection analysis
               </div>
             </CardContent>
           </Card>

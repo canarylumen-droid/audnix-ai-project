@@ -185,8 +185,7 @@ export default function TermsOfService() {
                   <ul className="list-disc list-inside space-y-1">
                     <li>Voice message automation respects human-like delays (4-12 seconds between messages)</li>
                     <li>Instagram DMs limited to 40/hour to prevent platform flags</li>
-                    <li>WhatsApp messages limited to industry-standard rates</li>
-                    <li>Gmail sending uses Google's rate limits (2,000 emails/day for free Gmail, higher for Workspace)</li>
+                    <li>Email sending follows your SMTP provider's rate limits</li>
                     <li>Excessive API abuse may result in temporary or permanent account suspension</li>
                     <li>We reserve the right to throttle accounts violating fair use policies</li>
                   </ul>
@@ -196,8 +195,7 @@ export default function TermsOfService() {
                   <p className="text-sm mb-2">By using Audnix AI, you also agree to comply with:</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     <li><strong>Instagram:</strong> <a href="https://help.instagram.com/581066165581870" className="text-primary hover:underline" target="_blank">Instagram Community Guidelines</a> and <a href="https://www.facebook.com/help/instagram/477434105621119" className="text-primary hover:underline" target="_blank">Terms of Use</a></li>
-                    <li><strong>WhatsApp:</strong> <a href="https://www.whatsapp.com/legal/business-policy" className="text-primary hover:underline" target="_blank">WhatsApp Business Policy</a> and <a href="https://www.whatsapp.com/legal/terms-of-service" className="text-primary hover:underline" target="_blank">Terms of Service</a></li>
-                    <li><strong>Gmail:</strong> <a href="https://policies.google.com/terms" className="text-primary hover:underline" target="_blank">Google Terms of Service</a> and <a href="https://support.google.com/mail/answer/81126" className="text-primary hover:underline" target="_blank">Gmail Program Policies</a></li>
+                    <li><strong>Email:</strong> Your email provider's terms of service and anti-spam policies (CAN-SPAM, GDPR)</li>
                   </ul>
                 </div>
               </div>
@@ -226,7 +224,7 @@ export default function TermsOfService() {
                     <li>Keep your account credentials secure and confidential</li>
                     <li>Use strong, unique passwords and enable 2FA when available</li>
                     <li>Do not share your account with unauthorized users</li>
-                    <li>Comply with all third-party platform policies (Instagram, WhatsApp, Gmail)</li>
+                    <li>Comply with all third-party platform policies (Instagram, Email providers)</li>
                     <li>Ensure you have legal permission to contact leads in your database</li>
                     <li>Review and approve AI-generated messages before automation (if uncertain)</li>
                   </ul>
@@ -234,7 +232,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Integration Disconnection</h3>
                   <p className="text-sm">
-                    You can disconnect any integration (Gmail, Instagram, WhatsApp, Calendar) at any time without losing your account or lead data.
+                    You can disconnect any integration (Email, Instagram, Calendar) at any time without losing your account or lead data.
                     Disconnecting will revoke all access tokens and stop automated messaging for that platform.
                   </p>
                 </div>

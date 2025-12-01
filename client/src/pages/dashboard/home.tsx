@@ -20,7 +20,6 @@ import {
   Minus,
 } from "lucide-react";
 import { Link } from "wouter";
-import { SiWhatsapp } from "react-icons/si";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
@@ -81,7 +80,6 @@ interface DashboardActivityResponse {
 
 const channelIcons = {
   instagram: Instagram,
-  whatsapp: SiWhatsapp,
   email: Mail,
 };
 
