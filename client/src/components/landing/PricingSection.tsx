@@ -4,7 +4,6 @@ import { Check, Zap, Mail, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { getSortedPricingTiers } from "@shared/plan-utils";
-import { SiWhatsapp } from "react-icons/si";
 
 export function PricingSection() {
   const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial');
@@ -30,7 +29,7 @@ export function PricingSection() {
           </p>
         </motion.div>
 
-        {/* Channel Access by Plan */}
+        {/* Channel Info by Plan */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -43,10 +42,10 @@ export function PricingSection() {
                 <Mail className="w-5 h-5 text-blue-400" />
                 <h3 className="font-semibold text-white">Free Trial</h3>
               </div>
-              <p className="text-white/70 text-sm mb-3">Email automation included</p>
+              <p className="text-white/70 text-sm mb-3">Perfect for testing</p>
               <div className="flex items-center gap-2 text-sm">
                 <Check className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/80">Business Email Channel</span>
+                <span className="text-white/80">Email automation</span>
               </div>
             </div>
             <div className="p-5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/30">
@@ -54,19 +53,19 @@ export function PricingSection() {
                 <Zap className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-semibold text-white">Paid Plans</h3>
               </div>
-              <p className="text-white/70 text-sm mb-3">All 3 channels unlocked</p>
+              <p className="text-white/70 text-sm mb-3">Email + Voice + Instagram soon</p>
               <div className="flex flex-wrap gap-3 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Mail className="w-4 h-4 text-emerald-400" />
                   <span className="text-white/80">Email</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <SiWhatsapp className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">WhatsApp</span>
+                  <MessageSquare className="w-4 h-4 text-emerald-400" />
+                  <span className="text-white/80">Voice Notes</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <MessageSquare className="w-4 h-4 text-emerald-400" />
-                  <span className="text-white/80">Instagram</span>
+                  <MessageSquare className="w-4 h-4 text-cyan-400" />
+                  <span className="text-white/80">Instagram (2026)</span>
                 </div>
               </div>
             </div>

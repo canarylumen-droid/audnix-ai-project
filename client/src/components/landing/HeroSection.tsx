@@ -106,9 +106,9 @@ export function HeroSection() {
           variants={itemVariants}
           className="text-sm sm:text-base md:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6 md:px-0"
         >
-          Audnix replies like a real human across Instagram, WhatsApp, and Email.{" "}
+          Powerful email sequences + voice notes that sound like you.{" "}
           <br className="hidden sm:block" />
-          Natural timing (2–8 min), remembers context, and engages when leads show intent.
+          Instagram DMs coming soon. 110+ objections handled automatically.
         </motion.p>
 
         {/* Feature Pills */}

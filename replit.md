@@ -1,7 +1,7 @@
-# Audnix AI - Production-Ready Multi-Channel Sales Automation SaaS
+# Audnix AI - Production-Ready Email + Voice Sales Automation SaaS
 
 ### Overview
-Audnix AI is a zero-setup, multi-channel sales automation SaaS platform that automates lead imports and personalized follow-ups across Email (primary), WhatsApp (secondary), and Instagram (coming soon). It focuses on user privacy by integrating directly with existing business accounts. The platform is designed to automate sales and objection handling for creators, coaches, agencies, and founders, aiming to be a production-ready solution with a strong emphasis on a warm lead strategy for rapid revenue generation.
+Audnix AI is a zero-setup email-first sales automation SaaS platform with voice notes and AI-powered objection handling. Email automation (primary channel), voice notes (paid feature), and Instagram DMs (launching 2026). The platform focuses on user privacy by integrating directly with business email accounts. Built for creators, coaches, agencies, and founders automating warm leads for rapid revenue generation.
 
 ### User Preferences
 - I prefer simple language.
@@ -21,13 +21,20 @@ Key features include:
 - **Monetization:** Stripe for payments with an auto-approval worker.
 - **Real-time capabilities:** Optional Supabase integration for real-time subscriptions.
 - **UI/UX:** Utilizes Tailwind CSS and Radix UI for a modern and responsive design.
-- **Feature Tiers:** Free, Trial, Starter, Pro, and Enterprise tiers with varying lead limits, channel access (Email, WhatsApp, Instagram DM), voice minutes, and advanced features like team workflows and API access.
+- **Feature Tiers:** Free, Trial, Starter, Pro, and Enterprise tiers with varying lead limits, email automation, voice minutes (paid), and advanced features like team workflows and API access.
+- **Positioning:** Email + Voice (paid), Instagram DMs coming 2026. WhatsApp removed due to serverless limitations.
 
 ### External Dependencies
 - **Email Service:** SendGrid API (direct HTTP calls) for OTP and email automation.
-- **AI Services:** OpenAI GPT-4 for AI objection handling, intent analysis, and follow-up sequences. ElevenLabs for voice note generation.
-- **Payment Gateway:** Stripe for processing payments and managing subscriptions.
+- **AI Services:** OpenAI GPT-4 for objection handling (110+ types), intent analysis, and sequencing. ElevenLabs for voice note generation.
+- **Payment Gateway:** Stripe for payments with auto-approval worker.
 - **Database:** Neon (PostgreSQL) for primary data storage.
 - **Session Management:** `connect-pg-simple` for PostgreSQL-backed sessions.
-- **Real-time (Optional):** Supabase for potential real-time features.
-- **Lead Scraping (Recommended Strategy):** Apify (LinkedIn Scraper, Google Maps Scraper) for acquiring warm leads.
+- **Real-time (Optional):** Supabase for potential features.
+- **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
+
+### Recent Changes (Dec 1, 2025)
+- **Landing Page Repositioning:** Removed all WhatsApp references. Now positioned as "Email + Voice Automation" with "Instagram DMs Coming 2026"
+- **Pricing Updates:** Updated all tiers to remove WhatsApp, clarify voice as paid feature, highlight Instagram as 2026 roadmap
+- **Copy Refinement:** Shortened and clarified messaging across all sections to emphasize email-first strategy
+- **Marketing Strategy:** Focus on warm leads from Apify ($25 = $11,850 Week 1 revenue, 697x ROI)

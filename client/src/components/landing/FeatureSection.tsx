@@ -6,15 +6,15 @@ import { AnimatedCard } from "@/components/ui/animated-card";
 const features = [
   {
     number: 1,
-    title: "Multi-Channel Lead Import",
-    desc: "Connect your WhatsApp, Email, and CSV contacts instantly",
+    title: "Lead Import & Management",
+    desc: "Connect emails and CSV contacts, auto-deduplicate instantly",
     icon: Phone,
     details: [
-      "WhatsApp Business API integration",
-      "Business email sync (any provider)",
-      "Instagram DM automation",
+      "Business email sync (Gmail, Outlook, etc)",
       "Bulk CSV upload with auto-mapping",
-      "Real-time contact deduplication"
+      "Real-time contact deduplication",
+      "Lead scoring and segmentation",
+      "Instagram DM import (coming soon)"
     ]
   },
   {
@@ -31,26 +31,28 @@ const features = [
   },
   {
     number: 3,
-    title: "Smart Objection Handling",
-    desc: "Converts hesitation into commitment with proven frameworks",
+    title: "110+ Objection Handling",
+    desc: "AI handles price, trust, urgency, competitor objections — 24/7",
     icon: Check,
     details: [
       "Price objections → value reframing",
       "Stalling tactics → urgency creation",
       "Competitor comparisons → differentiation",
-      "Trust building through micro-commitments"
+      "Trust-building micro-commitments",
+      "Automatic re-engagement for cold leads"
     ]
   },
   {
     number: 4,
-    title: "Voice Notes in Your Tone",
-    desc: "Clone your voice for authentic, personalized outreach at scale",
+    title: "Voice Notes in Your Voice",
+    desc: "AI clones your voice for authentic, personal outreach at scale",
     icon: Mic,
     details: [
-      "Upload 30-second voice sample",
+      "Upload 30-second voice sample once",
       "AI generates natural voice messages",
-      "Adjustable pace and emotion",
-      "85%+ human recognition rate"
+      "Works in email + Instagram DMs",
+      "80%+ leads prefer voice over text",
+      "Personalization at massive scale"
     ]
   },
   {
