@@ -795,15 +795,16 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
-    const conditions = [eq(otpCodes.email, email)];
-    if (purpose) {
-      conditions.push(eq(otpCodes.purpose, purpose));
-    }
-    
-    const [otp] = await db
+    let query = db
       .select()
       .from(otpCodes)
-      .where(and(...conditions))
+      .where(eq(otpCodes.email, email));
+    
+    if (purpose) {
+      query = query.where(eq(otpCodes.purpose, purpose));
+    }
+    
+    const [otp] = await query
       .orderBy(desc(otpCodes.createdAt))
       .limit(1);
     return otp || null;
