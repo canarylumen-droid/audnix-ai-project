@@ -6,6 +6,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { FeatureSection } from "@/components/landing/FeatureSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
+import { ProcessTimeline } from "@/components/landing/ProcessTimeline";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { motion } from "framer-motion";
 
@@ -594,33 +595,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-20 px-4">
-        <div className="max-w-6xl mx-auto px-2 sm:px-0">
-          <h2 className="text-4xl md:text-5xl font-bold mb-12 text-center">
-            Simple Setup
-          </h2>
-
-          <div className="grid md:grid-cols-4 gap-4 sm:gap-6 mb-8">
-            {[
-              { num: 1, text: "Connect email & upload leads" },
-              { num: 2, text: "Upload voice sample (optional)" },
-              { num: 3, text: "Set your brand PDF" },
-              { num: 4, text: "Done — AI takes over" }
-            ].map((step) => (
-              <div key={step.num} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary mx-auto mb-4">
-                  {step.num}
-                </div>
-                <p className="text-white/90">{step.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <p className="text-2xl font-bold text-center text-primary">
-            Your job: show up and close.
-          </p>
-        </div>
-      </section>
+      <ProcessTimeline />
 
       <section className="py-20 px-4 border-y border-white/10">
         <div className="max-w-6xl mx-auto">
