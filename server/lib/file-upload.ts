@@ -16,14 +16,20 @@ const uploadDir = path.join(process.cwd(), "uploads");
 
 // Safely create uploads directory (optional - files use memory storage)
 // Don't crash if directory can't be created (e.g., in serverless environments)
-fs.mkdir(uploadDir, { recursive: true })
-  .catch((err) => {
+// Wrap in IIFE to properly handle async errors
+(async () => {
+  try {
+    await fs.mkdir(uploadDir, { recursive: true });
+  } catch (err: any) {
     if (err?.code === 'ENOENT' || err?.code === 'EACCES') {
       console.warn(`⚠️  Could not create uploads directory (${err.code}). Using memory storage instead.`);
     } else {
       console.error('Error creating uploads directory:', err?.message || err);
     }
-  });
+  }
+})().catch(() => {
+  // Silently ignore - directory creation is optional
+});
 
 const voiceFileFilter = (
   _req: Request,
