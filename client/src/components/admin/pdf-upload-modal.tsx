@@ -110,17 +110,10 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-3">
-              <p className="text-sm text-gray-300 font-semibold">What to include:</p>
-              <ul className="text-sm text-gray-400 space-y-1">
-                <li>✓ Company overview (what you do, who you serve)</li>
-                <li>✓ Your offer (pricing, packages, deliverables)</li>
-                <li>✓ Your tone (formal, casual, friendly, bold)</li>
-                <li>✓ Success stories / wins</li>
-                <li>✓ Objections you handle often</li>
-                <li>✓ Your brand language (prefer/avoid)</li>
-                <li>✓ Target client description</li>
-              </ul>
+            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+              <p className="text-sm text-cyan-100">
+                Include: the problem you solve, your exact offer/pricing, target customer profile, your communication tone/style, and objections you handle often. More detail = smarter AI that sounds exactly like you.
+              </p>
             </div>
 
             <div className="relative">
@@ -140,10 +133,6 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
                 </Button>
               </label>
             </div>
-
-            <p className="text-xs text-gray-500 text-center">
-              Clear details = better AI responses. Include specific details.
-            </p>
 
             <Button
               variant="outline"

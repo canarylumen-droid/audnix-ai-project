@@ -148,50 +148,14 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
               <CardDescription className="text-xs">Your AI closer needs your brand context. Help it sound like YOU.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex gap-3 items-start">
-                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Clear problem description</p>
-                    <p className="text-xs text-gray-400">What do your leads struggle with?</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Your offer clarity</p>
-                    <p className="text-xs text-gray-400">What are you actually selling?</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Target audience details</p>
-                    <p className="text-xs text-gray-400">Who wins most with your solution?</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Tone & brand voice (bonus)</p>
-                    <p className="text-xs text-gray-400">Formal? Casual? Blunt? Show examples.</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 items-start">
-                  <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">Success stories (bonus)</p>
-                    <p className="text-xs text-gray-400">Case studies? Testimonials? Links?</p>
-                  </div>
-                </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-4">
+                <p className="text-sm text-cyan-100 leading-relaxed">
+                  Include: the problem you solve, your exact offer/pricing, target customer profile, your communication tone/style, and objections you handle often. More detail = smarter AI that sounds exactly like you.
+                </p>
               </div>
 
               <div className="bg-blue-900/20 border border-blue-700/50 rounded p-3">
-                <p className="text-xs text-blue-200">💡 The more detail you give = smarter AI = better closes.</p>
+                <p className="text-xs text-blue-200">💡 Pro tip: Your AI will only be as good as the context you provide.</p>
               </div>
 
               <Button onClick={handleGateNext} className="w-full bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
