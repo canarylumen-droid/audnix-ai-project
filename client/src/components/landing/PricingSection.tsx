@@ -6,7 +6,7 @@ import { AnimatedCard } from "@/components/ui/animated-card";
 import { getSortedPricingTiers } from "@shared/plan-utils";
 
 export function PricingSection() {
-  const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial');
+  const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial' && tier.id !== 'free');
 
   return (
     <section id="pricing" className="py-20 px-4 bg-gradient-to-b from-white/[0.02] to-transparent">
@@ -104,7 +104,7 @@ export function PricingSection() {
                         } transition-all duration-300`}
                         size="lg"
                       >
-                        {tier.id === 'free' ? 'Start Free →' : 'Get Started →'}
+                        Get Started →
                       </Button>
                     </motion.div>
                   </Link>

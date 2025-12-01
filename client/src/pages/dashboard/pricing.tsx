@@ -26,7 +26,7 @@ export default function PricingPage() {
     retry: false,
   });
 
-  const currentPlan = user?.subscriptionTier || user?.plan || 'free';
+  const currentPlan = user?.subscriptionTier || user?.plan || 'trial';
 
   const handleUpgrade = async (planId: string) => {
     if (currentPlan === planId) return;
