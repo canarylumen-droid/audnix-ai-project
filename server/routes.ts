@@ -532,33 +532,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User role is required" });
       }
 
-      // Create or update onboarding profile
-      const profile = await storage.createOnboardingProfile({
-        userId,
-        userRole,
-        source,
-        useCase,
-        businessSize,
-        tags: tags || [],
-        completed: true,
-        completedAt: new Date(),
-      });
+      // Check if profile already exists
+      const existingProfile = await storage.getOnboardingProfile(userId);
+      
+      let profile;
+      if (existingProfile) {
+        // Update existing profile
+        profile = await storage.updateOnboardingProfile(userId, {
+          userRole,
+          source: source || null,
+          useCase: useCase || null,
+          businessSize: businessSize || null,
+          tags: tags || [],
+          completed: true,
+          completedAt: new Date(),
+        });
+      } else {
+        // Create new profile
+        profile = await storage.createOnboardingProfile({
+          userId,
+          userRole,
+          source: source || null,
+          useCase: useCase || null,
+          businessSize: businessSize || null,
+          tags: tags || [],
+          completed: true,
+          completedAt: new Date(),
+        });
+      }
 
       // Mark onboarding as completed in user metadata
       const user = await storage.getUserById(userId);
       if (user) {
         await storage.updateUser(userId, {
           metadata: {
-            ...user.metadata,
+            ...(user.metadata || {}),
             onboardingCompleted: true,
           },
         });
       }
 
       res.json({ success: true, profile });
-    } catch (error) {
-      console.error("Error saving onboarding:", error);
-      res.status(500).json({ error: "Failed to save onboarding data" });
+    } catch (error: any) {
+      console.error("Error saving onboarding:", error.message, error);
+      res.status(500).json({ error: "Failed to save onboarding data", details: error.message });
     }
   });
 
