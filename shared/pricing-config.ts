@@ -20,11 +20,11 @@ export const PRICING_TIERS: PricingTier[] = [
     price: 0,
     period: '3 days',
     description: 'Test everything. Close Copy helps you know exactly what to say next.',
-    leadsLimit: 100,
+    leadsLimit: 500,
     voiceMinutes: 0,
     order: -1,
     features: [
-      '100 leads to test',
+      '500 leads to test',
       'Email automation',
       'Close Copy (AI shows what prospects said + what to say next)',
       'Objection handling powered by AI',
