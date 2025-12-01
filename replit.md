@@ -39,7 +39,16 @@ Key features include:
 
 ### Recent Changes (Dec 1, 2025)
 - **Content Updates:** Removed WhatsApp UI from dashboard (backend kept), updated all references to use "Business Email" + "Custom SMTP"
-- **WelcomeCelebration:** Extended confetti to 5 seconds, fixed greeting to "Hey [Name]!" format with proper capitalization
+- **WelcomeCelebration:** Extended confetti to 5 seconds, fixed greeting to "Hey [Name]!" format with proper capitalization, fixed window.innerHeight SSR issue
 - **Terms & Privacy:** Updated to remove Gmail/WhatsApp references, replaced with neutral "Email" and "SMTP provider" language
 - **Sales Assistant:** Updated copy to use "AI-powered objection analysis" instead of "110+ objection types"
+- **Email Setup Form:** Removed Gmail examples, replaced with generic SMTP examples (Office 365, Zoho, Custom Domain)
+- **RecentConversations:** Removed WhatsApp channel type, now only supports Instagram + Email
+- **Favicon:** Created favicon.ico as fallback for browser compatibility
 - **Accurate Claims:** Voice notes clearly marked as Instagram DMs only, ManyChat comparison is accurate
+
+### Messaging Standards
+- **Email:** Always reference as "Business Email" or "Custom SMTP" - never "Gmail/Outlook"
+- **Voice Notes:** ONLY on Instagram DMs - never claim email has voice capability  
+- **Objection Handling:** Use varied language - "Smart objection handling", "AI-powered analysis" - avoid repeating "110+"
+- **Integrations:** Showcase Email + Instagram only (WhatsApp backend remains for future use, hidden from UI)
