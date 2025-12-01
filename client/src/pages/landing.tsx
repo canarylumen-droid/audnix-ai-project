@@ -258,10 +258,11 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="p-5 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20"
+                whileHover={{ y: -4, boxShadow: "0 0 30px rgba(34, 211, 238, 0.3)" }}
+                className="p-6 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/10 border border-cyan-500/30 backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/60 cursor-pointer group"
               >
-                <h3 className="font-semibold text-cyan-400 mb-2 text-sm">{item.title}</h3>
-                <p className="text-white/70 text-xs">{item.desc}</p>
+                <h3 className="font-bold text-cyan-400 mb-3 text-base group-hover:text-cyan-300 transition-colors">{item.title}</h3>
+                <p className="text-white/75 text-sm group-hover:text-white/90 transition-colors">{item.desc}</p>
               </motion.div>
             ))}
           </div>

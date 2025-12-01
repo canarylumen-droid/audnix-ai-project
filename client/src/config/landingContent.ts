@@ -10,7 +10,7 @@ export const landingContent = {
       { icon: "calendar", text: "Auto-booking + intelligent follow-ups" }
     ],
     cta: {
-      primary: "Start Closing Deals",
+      primary: "Start closing deals",
       secondary: "See How It Works"
     },
     subtext: "No Card Required"
