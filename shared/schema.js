@@ -310,6 +310,8 @@ export const otpCodes = pgTable("otp_codes", {
     expiresAt: timestamp("expires_at").notNull(),
     attempts: integer("attempts").notNull().default(0),
     verified: boolean("verified").notNull().default(false),
+    passwordHash: text("password_hash"),
+    purpose: text("purpose").notNull().default("login"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 // ========== ZOD VALIDATION SCHEMAS ==========
