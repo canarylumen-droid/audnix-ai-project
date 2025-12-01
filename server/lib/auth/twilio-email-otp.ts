@@ -89,7 +89,7 @@ export class TwilioEmailOTP {
                 companyName: 'Audnix AI',
                 userEmail: email,
                 expiryMinutes: 10,
-                logoUrl: 'https://app.audnixai.com/favicon.png',
+                logoUrl: '/logo.png',
                 brandColor: '#00D9FF'
               }),
             },
@@ -229,7 +229,7 @@ export class TwilioEmailOTP {
                 companyName: 'Audnix AI',
                 userEmail: email,
                 expiryMinutes: 10,
-                logoUrl: 'https://app.audnixai.com/favicon.png',
+                logoUrl: '/logo.png',
                 brandColor: '#00D9FF'
               }),
             },
