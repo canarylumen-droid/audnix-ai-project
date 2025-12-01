@@ -144,6 +144,14 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       role: 'member',
     });
 
+    // Regenerate session for newly authenticated user (prevents session fixation)
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
     // Set session for logged-in user
     req.session.userId = user.id;
     req.session.email = normalizedEmail;
@@ -210,6 +218,14 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       });
       return;
     }
+
+    // Regenerate session for newly authenticated user (prevents session fixation)
+    await new Promise<void>((resolve, reject) => {
+      req.session.regenerate((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
 
     req.session.userId = user.id;
     req.session.email = email;
