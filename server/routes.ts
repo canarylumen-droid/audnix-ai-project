@@ -1424,6 +1424,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== REMOVED: Unprotected dashboard & notification routes ====================
   // All dashboard routes now require authentication - see routes/dashboard-routes.ts
   // Frontend must redirect unauthenticated users to login
+
+  // Get user notifications
+  app.get("/api/user/notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const notifications = await storage.getNotifications(userId);
+      res.json({ notifications });
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/user/notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      const notificationId = req.params.id;
+      await storage.markNotificationAsRead(notificationId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch("/api/user/notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req)!;
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
   
   // Update user profile (protected)
   app.put("/api/user/profile", requireAuth, async (req, res) => {
