@@ -24,6 +24,10 @@
       "dest": "/assets/$1"
     },
     {
+      "src": "/(favicon\\.png|logo\\.png|manifest\\.json|notification\\.mp3|sw\\.js)$",
+      "dest": "/$1"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "server/index.ts"
     },
