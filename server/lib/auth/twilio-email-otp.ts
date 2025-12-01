@@ -189,8 +189,12 @@ export class TwilioEmailOTP {
       const otp = crypto.randomInt(100000, 999999).toString();
       const normalizedEmail = email.toLowerCase();
 
+      console.log(`📝 [OTP Store] Creating OTP for ${normalizedEmail}`);
+      console.log(`   - Password hash length: ${passwordHash.length} chars`);
+      console.log(`   - Password hash preview: ${passwordHash.substring(0, 30)}...`);
+
       // Store OTP with password hash in database for serverless persistence
-      await storage.createOtpCode({
+      const createdOtp = await storage.createOtpCode({
         email: normalizedEmail,
         code: otp,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -199,6 +203,12 @@ export class TwilioEmailOTP {
         passwordHash: passwordHash,
         purpose: 'signup',
       });
+
+      console.log(`✅ [OTP Store] Created OTP record ID: ${createdOtp?.id}`);
+      console.log(`   - Has passwordHash: ${createdOtp?.passwordHash ? '✓ YES' : '✗ NO'}`);
+      if (createdOtp?.passwordHash) {
+        console.log(`   - Stored hash length: ${createdOtp.passwordHash.length} chars`);
+      }
 
       if (!this.isConfigured()) {
         const error = 'SendGrid API not configured. Required: TWILIO_SENDGRID_API_KEY';
@@ -259,14 +269,27 @@ export class TwilioEmailOTP {
     try {
       const normalizedEmail = email.toLowerCase();
       
+      console.log(`🔍 [OTP Verify] Looking up OTP for ${normalizedEmail}`);
+
       // Get latest signup OTP from database
       const otpRecord = await storage.getLatestOtpCode(normalizedEmail, 'signup');
 
       if (!otpRecord) {
+        console.error(`❌ [OTP Verify] No OTP record found for ${normalizedEmail}`);
         return { success: false, error: 'Signup OTP not found. Please start signup again.' };
       }
 
+      console.log(`✅ [OTP Verify] Found OTP record for ${normalizedEmail}`);
+      console.log(`   - Record ID: ${otpRecord.id}`);
+      console.log(`   - Has passwordHash: ${otpRecord.passwordHash ? '✓ YES' : '✗ NO'}`);
+      if (otpRecord.passwordHash) {
+        console.log(`   - Hash length: ${otpRecord.passwordHash.length} chars`);
+      } else {
+        console.log(`   - ⚠️  WARNING: Password hash is missing from OTP record!`);
+      }
+
       if (new Date() > new Date(otpRecord.expiresAt)) {
+        console.error(`❌ [OTP Verify] OTP expired for ${normalizedEmail}`);
         return { success: false, error: 'OTP expired. Please start signup again.' };
       }
 
@@ -275,6 +298,7 @@ export class TwilioEmailOTP {
       const remainingAttempts = maxAttempts - currentAttempts;
       
       if (currentAttempts > maxAttempts) {
+        console.error(`❌ [OTP Verify] Too many attempts for ${normalizedEmail}`);
         return { success: false, error: 'Too many attempts. Please start signup again.', remainingAttempts: 0 };
       }
 
@@ -282,6 +306,7 @@ export class TwilioEmailOTP {
       await storage.incrementOtpAttempts(otpRecord.id);
 
       if (otpRecord.code !== otp) {
+        console.warn(`⚠️  [OTP Verify] Invalid OTP attempt for ${normalizedEmail}`);
         return { 
           success: false, 
           error: 'Invalid OTP. Please try again.',
@@ -292,6 +317,12 @@ export class TwilioEmailOTP {
 
       // Mark as verified in database
       await storage.markOtpVerified(otpRecord.id);
+
+      console.log(`✅ [OTP Verify] OTP verified successfully for ${normalizedEmail}`);
+      
+      if (!otpRecord.passwordHash) {
+        console.error(`❌ [OTP Verify] Password hash missing for ${normalizedEmail} - cannot complete signup!`);
+      }
 
       return { 
         success: true,
