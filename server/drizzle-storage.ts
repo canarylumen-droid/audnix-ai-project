@@ -157,7 +157,12 @@ export class DrizzleStorage implements IStorage {
     limit?: number;
   }): Promise<Lead[]> {
     checkDatabase();
-    let query = db.select().from(leads).where(eq(leads.userId, options.userId));
+    // Ensure userId is a string, not an object
+    const userId = typeof options.userId === 'string' ? options.userId : String(options.userId);
+    if (!userId || userId === '[object Object]') {
+      throw new Error(`Invalid user ID: ${String(options.userId)}`);
+    }
+    let query = db.select().from(leads).where(eq(leads.userId, userId));
 
     if (options.status) {
       query = query.where(eq(leads.status, options.status as any));
@@ -189,7 +194,12 @@ export class DrizzleStorage implements IStorage {
 
   async getLead(id: string): Promise<Lead | undefined> {
     checkDatabase();
-    const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+    // Ensure id is a string, not an object
+    const leadId = typeof id === 'string' ? id : String(id);
+    if (!leadId || leadId === '[object Object]') {
+      throw new Error(`Invalid lead ID: ${String(id)}`);
+    }
+    const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
     return result[0];
   }
 
