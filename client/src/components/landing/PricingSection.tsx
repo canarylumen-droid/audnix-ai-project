@@ -19,48 +19,16 @@ export function PricingSection() {
           className="text-center mb-12"
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Pricing Built for<br />
+            Simple, Transparent<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-              Revenue, Not Complexity
+              No Surprises
             </span>
           </h2>
           <p className="text-xl text-white/70 max-w-2xl mx-auto">
-            Pay only for what you use. Scale from 100 leads to 20,000/month as your business grows.
+            Start free. Add voice to reach more leads on Instagram. Scale as you close deals.
           </p>
         </motion.div>
 
-        {/* Value Proposition */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-12 max-w-3xl mx-auto"
-        >
-          <div className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/5 border border-emerald-500/30">
-            <div className="flex items-center gap-2 mb-3">
-              <Zap className="w-5 h-5 text-emerald-400" />
-              <h3 className="font-semibold text-white">Why Switch from Free to Paid?</h3>
-            </div>
-            <ul className="grid md:grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/80">10-70x more leads to reach</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/80">Voice automation on Instagram</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/80">Advanced lead sequencing</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span className="text-white/80">Team collaboration & workflows</span>
-              </div>
-            </ul>
-          </div>
-        </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {pricingTiers.map((tier, index) => {

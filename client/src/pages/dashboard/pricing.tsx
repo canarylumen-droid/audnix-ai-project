@@ -72,10 +72,10 @@ export default function PricingPage() {
           </span>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold mb-3 text-white" data-testid="heading-pricing">
-          Plans That Grow With You
+          Pick Your Plan
         </h1>
         <p className="text-lg text-white/70" data-testid="text-subtitle">
-          Start free, upgrade when you're closing deals. Pay only for what you scale.
+          Start free. Add features as you close more deals.
         </p>
       </motion.div>
 
