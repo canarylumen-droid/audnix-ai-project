@@ -401,26 +401,56 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="max-w-3xl mx-auto space-y-8 mb-12">
-            <div>
-              <h3 className="text-2xl font-bold mb-4 text-white">Intelligent Comment Detection</h3>
-              <ul className="space-y-2 text-white/80 text-lg">
-                <li>• Understands "This is cool!" as buying intent (no keywords needed)</li>
-                <li>• Detects emotion from emojis: 🔥 = excitement, 👀 = curiosity</li>
-                <li>• Multi-language support - works in any language</li>
-                <li>• Context-aware: "wow" means different things in different contexts</li>
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
+            <AnimatedCard className="bg-gradient-to-br from-emerald-500/15 to-cyan-500/5 border-emerald-500/40 p-8" glowColor="rgba(16, 185, 129, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-emerald-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-5 text-white">Intelligent Comment Detection</h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-emerald-400 font-bold mt-0.5">•</span>
+                  <span>Understands "This is cool!" as buying intent (no keywords needed)</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-emerald-400 font-bold mt-0.5">•</span>
+                  <span>Detects emotion from emojis: 🔥 = excitement, 👀 = curiosity</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-emerald-400 font-bold mt-0.5">•</span>
+                  <span>Multi-language support - works in any language</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-emerald-400 font-bold mt-0.5">•</span>
+                  <span>Context-aware: "wow" means different things in different contexts</span>
+                </li>
               </ul>
-            </div>
+            </AnimatedCard>
 
-            <div>
-              <h3 className="text-2xl font-bold mb-4 text-white">Personalized DM Automation</h3>
-              <ul className="space-y-2 text-white/80 text-lg">
-                <li>• Uses actual Instagram usernames in replies</li>
-                <li>• References what the lead said and wants</li>
-                <li>• Human-like timing: 2-8 minute delays</li>
-                <li>• Handles objections and closes deals automatically</li>
+            <AnimatedCard className="bg-gradient-to-br from-cyan-500/15 to-blue-500/5 border-cyan-500/40 p-8" glowColor="rgba(34, 211, 238, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mb-4">
+                <Zap className="w-6 h-6 text-cyan-400" />
+              </div>
+              <h3 className="text-2xl font-bold mb-5 text-white">Personalized DM Automation</h3>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                  <span>Uses actual Instagram usernames in replies</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                  <span>References what the lead said and wants</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                  <span>Human-like timing: 2-8 minute delays</span>
+                </li>
+                <li className="flex items-start gap-3 text-white/85">
+                  <span className="text-cyan-400 font-bold mt-0.5">•</span>
+                  <span>Handles objections and closes deals automatically</span>
+                </li>
               </ul>
-            </div>
+            </AnimatedCard>
           </div>
 
           <div className="text-center mt-12">
