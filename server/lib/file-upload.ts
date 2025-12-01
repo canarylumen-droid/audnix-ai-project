@@ -14,7 +14,16 @@ const supabase = supabaseUrl && supabaseServiceKey
 
 const uploadDir = path.join(process.cwd(), "uploads");
 
-fs.mkdir(uploadDir, { recursive: true }).catch(console.error);
+// Safely create uploads directory (optional - files use memory storage)
+// Don't crash if directory can't be created (e.g., in serverless environments)
+fs.mkdir(uploadDir, { recursive: true })
+  .catch((err) => {
+    if (err?.code === 'ENOENT' || err?.code === 'EACCES') {
+      console.warn(`⚠️  Could not create uploads directory (${err.code}). Using memory storage instead.`);
+    } else {
+      console.error('Error creating uploads directory:', err?.message || err);
+    }
+  });
 
 const voiceFileFilter = (
   _req: Request,
