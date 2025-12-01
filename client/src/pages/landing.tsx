@@ -459,39 +459,58 @@ export default function Landing() {
             </AnimatedCard>
           </div>
 
-          <div className="text-center mt-12">
-            <h3 className="text-2xl font-bold mb-6 text-white">The Audnix Difference</h3>
-            <div className="grid md:grid-cols-3 gap-6 text-left">
-              <div>
-                <h4 className="font-semibold text-emerald-400 mb-2">ManyChat</h4>
-                <ul className="space-y-1 text-white/60 text-sm">
-                  <li>✅ Instagram + Messenger + SMS</li>
-                  <li>✅ Flow builder automation</li>
-                  <li>❌ No AI objection handling</li>
-                  <li>❌ No voice cloning</li>
-                  <li>❌ No email sequences</li>
+          <div className="mt-12">
+            <h3 className="text-2xl font-bold mb-12 text-center text-white">Why Audnix Actually Works</h3>
+            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+              <AnimatedCard className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20 p-8" glowColor="rgba(239, 68, 68, 0.2)">
+                <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+                  <X className="w-6 h-6 text-red-400" />
+                </div>
+                <h4 className="font-bold text-red-400 mb-5 text-lg">Traditional Automation Tools</h4>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 text-white/80">
+                    <span className="text-red-400 font-bold mt-0.5">→</span>
+                    <span>Keyword-based triggers (misses context, creates false positives)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/80">
+                    <span className="text-red-400 font-bold mt-0.5">→</span>
+                    <span>Static scripts that repeat (sounds robotic, kills credibility)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/80">
+                    <span className="text-red-400 font-bold mt-0.5">→</span>
+                    <span>No real objection handling (dead ends, lost leads)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/80">
+                    <span className="text-red-400 font-bold mt-0.5">→</span>
+                    <span>One-channel only (Instagram or email, not both)</span>
+                  </li>
                 </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-cyan-400 mb-2">CommentGuard</h4>
-                <ul className="space-y-1 text-white/60 text-sm">
-                  <li>✅ Comment moderation</li>
-                  <li>❌ No DM automation</li>
-                  <li>❌ No AI conversations</li>
-                  <li>❌ No follow-up system</li>
-                  <li>❌ Instagram only</li>
+              </AnimatedCard>
+
+              <AnimatedCard className="bg-gradient-to-br from-emerald-500/15 to-cyan-500/5 border-emerald-500/40 p-8" glowColor="rgba(16, 185, 129, 0.3)">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+                  <Check className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h4 className="font-bold text-emerald-400 mb-5 text-lg">Audnix AI Real-Time Sales</h4>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3 text-white/90">
+                    <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                    <span>Understands intent, emotion, context in real-time (catches every opportunity)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/90">
+                    <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                    <span>Handles objections instantly (like your best closer, always on)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/90">
+                    <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                    <span>Adapts mid-conversation (speaks naturally, builds trust)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-white/90">
+                    <span className="text-emerald-400 font-bold mt-0.5">✓</span>
+                    <span>Email + Instagram + auto-booking (full pipeline automation)</span>
+                  </li>
                 </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-primary mb-2">Audnix AI</h4>
-                <ul className="space-y-1 text-white/90 text-sm">
-                  <li>✅ AI intent detection</li>
-                  <li>✅ Smart objection handling</li>
-                  <li>✅ Voice cloning (Instagram)</li>
-                  <li>✅ Email + Instagram automation</li>
-                  <li>✅ Auto-booking meetings</li>
-                </ul>
-              </div>
+              </AnimatedCard>
             </div>
           </div>
         </div>
