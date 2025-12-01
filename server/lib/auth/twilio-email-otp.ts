@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { SendGridDiagnostic } from './sendgrid-diagnostic.js';
 import type { OTPVerificationResult } from '../../../shared/types.js';
 import { storage } from '../../storage.js';
+import { generateOTPEmail } from '../email/otp-templates.js';
 
 interface OTPSendResult {
   success: boolean;
@@ -83,7 +84,14 @@ export class TwilioEmailOTP {
           content: [
             {
               type: 'text/html',
-              value: `<!DOCTYPE html>
+              value: generateOTPEmail({
+                code: otp,
+                companyName: 'Audnix AI',
+                userEmail: email,
+                expiryMinutes: 10,
+                logoUrl: 'https://app.audnixai.com/favicon.png',
+                brandColor: '#00D9FF'
+              }).replace(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
