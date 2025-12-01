@@ -71,6 +71,17 @@ export function HeroSection() {
         animate="visible"
         className="relative z-10 max-w-7xl mx-auto text-center"
       >
+        {/* Logo */}
+        <motion.div variants={itemVariants} className="flex justify-center mb-8">
+          <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-4 rounded-2xl border border-cyan-500/30 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-shadow">
+            <img
+              src="/logo.png"
+              alt="Audnix AI Logo"
+              className="h-16 w-16 object-contain"
+            />
+          </div>
+        </motion.div>
+
         {/* Badge */}
         <motion.div variants={itemVariants} className="flex justify-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 backdrop-blur-sm">
