@@ -65,7 +65,7 @@ export function PricingSection() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MessageSquare className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white/80">Instagram (2026)</span>
+                  <span className="text-white/80">Instagram DMs</span>
                 </div>
               </div>
             </div>

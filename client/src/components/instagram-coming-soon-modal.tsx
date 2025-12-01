@@ -98,9 +98,9 @@ export function InstagramComingSoonModal({
 
           {/* Timeline */}
           <div className="bg-muted/50 border border-muted-foreground/20 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Expected Timeline</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</p>
             <p className="text-sm text-foreground">
-              Beta access: <span className="font-semibold">Q4 2025</span> • Full rollout: <span className="font-semibold">Early 2026</span>
+              Beta testing in progress • <a href="/dashboard/lead-import" className="text-cyan-500 hover:underline font-semibold">CSV import available now</a>
             </p>
           </div>
 
