@@ -234,13 +234,21 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
     }
 
-    // Save session explicitly for serverless environments
+    // Save session explicitly and wait for completion
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('Session save error:', err);
+          reject(err);
+        } else {
+          console.log('✅ Session saved successfully for user:', user.id);
+          resolve();
+        }
       });
     });
+
+    // Add small delay to ensure session is written
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     res.json({
       success: true,

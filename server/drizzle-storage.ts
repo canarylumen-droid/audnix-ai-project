@@ -1,5 +1,5 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode } from "../shared/schema.js";
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
@@ -277,25 +277,25 @@ export class DrizzleStorage implements IStorage {
 
   async getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]> {
     checkDatabase();
-    
+
     // Build conditions array
     const conditions = [eq(messages.userId, userId)];
-    
+
     if (options?.channel) {
       conditions.push(eq(messages.provider, options.channel as any));
     }
-    
+
     // Build query with combined conditions
     let query = db
       .select()
       .from(messages)
       .where(and(...conditions))
       .orderBy(desc(messages.createdAt));
-    
+
     if (options?.limit) {
       return await query.limit(options.limit);
     }
-    
+
     return await query;
   }
 
@@ -804,17 +804,23 @@ export class DrizzleStorage implements IStorage {
     return otp;
   }
 
-  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
+  async getLatestOtpCode(email: string, purpose?: string): Promise<OtpCode | null> {
     try {
-      // Always query by email only - the purpose parameter is kept for backward compatibility
-      // but not used in the query to avoid column existence issues
+      const normalizedEmail = email.toLowerCase();
+
+      const conditions = [eq(otpCodes.email, normalizedEmail)];
+
+      if (purpose) {
+        conditions.push(eq(otpCodes.purpose, purpose));
+      }
+
       const result = await db
         .select()
         .from(otpCodes)
-        .where(eq(otpCodes.email, email))
+        .where(and(...conditions))
         .orderBy(desc(otpCodes.createdAt))
         .limit(1);
-      
+
       return result[0] || null;
     } catch (error) {
       console.error('Error getting latest OTP code:', error);

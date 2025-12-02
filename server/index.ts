@@ -123,11 +123,13 @@ const sessionConfig: session.SessionOptions = {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    sameSite: 'lax', // Use 'lax' to allow same-site navigation with cookies
-    domain: process.env.SESSION_COOKIE_DOMAIN || undefined, // Let browser set domain if not specified
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for production cross-origin
+    domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
+    path: '/',
   },
   store: sessionStore,
   rolling: true, // Refresh session expiry on each request
+  proxy: process.env.NODE_ENV === 'production', // Trust proxy in production
 };
 
 app.use(session(sessionConfig));

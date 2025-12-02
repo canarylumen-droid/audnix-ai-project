@@ -119,63 +119,15 @@ export default function AuthPage() {
 
       loginSuccess = true;
 
-      // Verify session with retry logic
-      let sessionVerified = false;
-      let retries = 0;
-      const maxRetries = 3;
+      toast({
+        title: "Welcome back!",
+        description: "Redirecting to dashboard...",
+      });
 
-      while (!sessionVerified && retries < maxRetries) {
-        try {
-          // Add small delay between retries
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500 * retries));
-          }
-
-          const verifyResponse = await fetch('/api/user', {
-            credentials: 'include',
-          });
-
-          if (verifyResponse.ok) {
-            const userData = await verifyResponse.json();
-            
-            // Additional validation: ensure we got valid user data
-            if (userData && userData.id) {
-              sessionVerified = true;
-              
-              toast({
-                title: "Welcome back!",
-                description: "Redirecting to dashboard...",
-              });
-
-              // Brief delay to let toast show, then hard redirect
-              setTimeout(() => {
-                window.location.href = '/dashboard';
-              }, 800);
-              
-              break;
-            }
-          }
-
-          retries++;
-        } catch (verifyError) {
-          console.error(`Session verification attempt ${retries + 1} failed:`, verifyError);
-          retries++;
-        }
-      }
-
-      // If all retries failed but login was successful
-      if (!sessionVerified && loginSuccess) {
-        toast({
-          title: "Almost there!",
-          description: "Please refresh the page to continue",
-        });
-        setLoading(false);
-        
-        // Auto-refresh after 3 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      }
+      // Direct redirect after successful login
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
     } catch (error: any) {
       console.error("Login error:", error);
       
@@ -388,67 +340,18 @@ export default function AuthPage() {
 
       accountCreated = true;
 
-      // Verify user session with retry logic
-      let sessionVerified = false;
-      let retries = 0;
-      const maxRetries = 3;
+      const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+      toast({
+        title: "Welcome! 🎉",
+        description: `Welcome ${capitalizedName}!`,
+      });
 
-      while (!sessionVerified && retries < maxRetries) {
-        try {
-          // Add small delay between retries
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 500 * retries));
-          }
-
-          const verifyResponse = await fetch('/api/user', {
-            credentials: 'include',
-          });
-
-          if (verifyResponse.ok) {
-            const userData = await verifyResponse.json();
-            
-            // Additional validation: ensure we got valid user data with username
-            if (userData && userData.id && userData.username) {
-              sessionVerified = true;
-              
-              const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
-              toast({
-                title: "Welcome! 🎉",
-                description: `Welcome ${capitalizedName}!`,
-              });
-
-              // Show success state briefly before redirect
-              setSignupStep(4);
-              
-              setTimeout(() => {
-                window.location.href = '/dashboard';
-              }, 1500);
-              
-              break;
-            }
-          }
-
-          retries++;
-        } catch (verifyError) {
-          console.error(`Session verification attempt ${retries + 1} failed:`, verifyError);
-          retries++;
-        }
-      }
-
-      // If all retries failed but account was created
-      if (!sessionVerified && accountCreated) {
-        setSignupStep(4);
-        toast({
-          title: "Account Created! 🎉",
-          description: "Refresh the page to get started",
-        });
-        setLoading(false);
-        
-        // Auto-refresh after 3 seconds
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      }
+      // Show success state briefly before redirect
+      setSignupStep(4);
+      
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
     } catch (error: any) {
       console.error("Signup step 3 error:", error);
       
