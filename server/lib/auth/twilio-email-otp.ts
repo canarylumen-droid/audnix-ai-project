@@ -93,8 +93,21 @@ export class TwilioEmailOTP {
                 brandColor: '#00D9FF'
               }),
             },
+            {
+              type: 'text/plain',
+              value: `Your Audnix AI verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nNever share this code with anyone.`
+            }
           ],
           reply_to: { email: this.emailFrom },
+          // Anti-spam improvements
+          tracking_settings: {
+            click_tracking: { enable: false },
+            open_tracking: { enable: false }
+          },
+          mail_settings: {
+            bypass_list_management: { enable: false },
+            sandbox_mode: { enable: false }
+          }
         }),
       });
 

@@ -43,7 +43,22 @@ export default function AuthPage() {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [showRedirectPopup, setShowRedirectPopup] = useState(false);
 
-  const passwordStrength = password ? zxcvbn(password) : null;
+  // Debounce password strength calculation to reduce lag
+  const [passwordStrength, setPasswordStrength] = useState<any>(null);
+
+  useEffect(() => {
+    if (!password) {
+      setPasswordStrength(null);
+      return;
+    }
+    
+    // Only calculate strength after user stops typing (300ms delay)
+    const timer = setTimeout(() => {
+      setPasswordStrength(zxcvbn(password));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [password]);
 
   useEffect(() => {
     if (user) {
@@ -507,19 +522,9 @@ export default function AuthPage() {
       </Dialog>
 
       <div className="min-h-screen bg-gradient-to-b from-[#0a0f1f] to-[#020409] text-white flex items-center justify-center px-4 py-12">
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            className="absolute top-1/3 left-1/3 w-96 h-96 bg-primary/30 rounded-full blur-3xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
+        {/* Simplified static background - no animation lag */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -673,8 +678,8 @@ export default function AuthPage() {
                         </button>
                       </div>
 
-                      {/* Password Strength (signup only) */}
-                      {!isLogin && password && (
+                      {/* Password Strength (signup only) - simplified */}
+                      {!isLogin && passwordStrength && (
                         <div className="space-y-2">
                           <div className="flex justify-between text-xs">
                             <span className="text-white/70">Strength:</span>
@@ -683,12 +688,9 @@ export default function AuthPage() {
                             </span>
                           </div>
                           <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                            <motion.div
-                              className={`h-full ${getPasswordStrengthColor()}`}
-                              initial={{ width: 0 }}
-                              animate={{
-                                width: `${((passwordStrength?.score || 0) + 1) * 25}%`,
-                              }}
+                            <div
+                              className={`h-full ${getPasswordStrengthColor()} transition-all duration-300`}
+                              style={{ width: `${((passwordStrength?.score || 0) + 1) * 25}%` }}
                             />
                           </div>
                         </div>
