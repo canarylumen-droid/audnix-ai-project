@@ -130,7 +130,7 @@ export default function AuthPage() {
       }, 500);
     } catch (error: any) {
       console.error("Login error:", error);
-      
+
       // If login succeeded but verification failed, still allow manual refresh
       if (loginSuccess) {
         toast({
@@ -192,40 +192,46 @@ export default function AuthPage() {
 
         if (!response.ok) {
           console.error('❌ OTP Request Failed:', data);
-          
-          // Don't retry on validation errors
-          if (response.status === 400 || response.status === 409) {
+
+          // Special handling for incomplete account
+          if (data.incompleteSetup && data.useLogin) {
             toast({
-              title: "Failed",
-              description: data.error || data.reason || data.details || 'Could not send verification email',
-              variant: "destructive",
+              title: "Account Found!",
+              description: "Please login to complete your account setup",
             });
+            setIsLogin(true);
+            setSignupStep(1);
             return false;
           }
-          
-          throw new Error(data.error || 'Server error');
+
+          toast({
+            title: "Failed",
+            description: data.error || data.reason || data.details || 'Could not send verification email',
+            variant: "destructive",
+          });
+          return false;
         }
 
         // OTP sent successfully
         setSignupStep(2);
         setResendCountdown(60);
-        
+
         toast({
           title: "Check Your Email!",
           description: `OTP sent to ${email}`,
         });
-        
+
         return true;
       } catch (error: any) {
         console.error('🚨 OTP Network Error:', error);
-        
+
         if (retryCount < maxRetries) {
           retryCount++;
           console.log(`Retrying... (${retryCount}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
           return attemptSendOTP();
         }
-        
+
         throw error;
       }
     };
@@ -348,13 +354,13 @@ export default function AuthPage() {
 
       // Show success state briefly before redirect
       setSignupStep(4);
-      
+
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 1500);
     } catch (error: any) {
       console.error("Signup step 3 error:", error);
-      
+
       // If account was created but verification failed, still guide user
       if (accountCreated) {
         setSignupStep(4);
@@ -362,7 +368,7 @@ export default function AuthPage() {
           title: "Account Created! 🎉",
           description: "Refresh the page to continue",
         });
-        
+
         setTimeout(() => {
           window.location.reload();
         }, 3000);

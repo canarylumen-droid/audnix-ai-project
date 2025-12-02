@@ -51,6 +51,22 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     }
     
     if (existing) {
+      // Check if account setup was incomplete
+      const isTemporaryUsername = existing.username && /\d{13}$/.test(existing.username);
+      const onboardingProfile = await storage.getOnboardingProfile(existing.id);
+      const hasCompletedOnboarding = onboardingProfile?.completed || existing.metadata?.onboardingCompleted;
+
+      if (isTemporaryUsername || !hasCompletedOnboarding) {
+        // Allow them to continue - they can login with their password to restore state
+        console.log(`ℹ️ [OTP] User ${email} has incomplete account - directing to login`);
+        res.status(400).json({ 
+          error: 'Account exists but setup incomplete. Please login to continue setup.',
+          incompleteSetup: true,
+          useLogin: true
+        });
+        return;
+      }
+
       console.error(`❌ [OTP] Email already registered: ${email}`);
       res.status(400).json({ error: 'Email already registered. Use login instead.' });
       return;
@@ -260,6 +276,28 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     // Add small delay to ensure session is written
     await new Promise(resolve => setTimeout(resolve, 100));
 
+    // Check if account setup is incomplete
+    const isTemporaryUsername = user.username && /\d{13}$/.test(user.username); // Ends with timestamp
+    const onboardingProfile = await storage.getOnboardingProfile(user.id);
+    const hasCompletedOnboarding = onboardingProfile?.completed || user.metadata?.onboardingCompleted;
+
+    let incompleteSetup = false;
+    let nextStep = null;
+    let suggestedUsername = null;
+
+    if (isTemporaryUsername) {
+      // User verified OTP but never set a proper username
+      incompleteSetup = true;
+      nextStep = 'username';
+      suggestedUsername = user.email.split('@')[0];
+      console.log(`🔄 User ${email} has incomplete setup - needs username`);
+    } else if (!hasCompletedOnboarding) {
+      // User has username but didn't complete onboarding
+      incompleteSetup = true;
+      nextStep = 'onboarding';
+      console.log(`🔄 User ${email} has incomplete setup - needs onboarding`);
+    }
+
     res.json({
       success: true,
       message: 'Logged in successfully',
@@ -270,10 +308,13 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
         plan: user.plan,
         role: 'member',
       },
+      incompleteSetup,
+      nextStep,
+      suggestedUsername,
       sessionExpiresIn: '7 days',
     });
 
-    console.log(`✅ User logged in: ${email}`);
+    console.log(`✅ User logged in: ${email}${incompleteSetup ? ` (incomplete setup: ${nextStep})` : ''}`);
   } catch (error: unknown) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
