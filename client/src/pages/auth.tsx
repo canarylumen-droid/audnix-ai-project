@@ -98,31 +98,54 @@ export default function AuthPage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      // Handle network errors
+      if (!response) {
+        throw new Error("No response from server");
+      }
+
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         toast({
           title: "Login Failed",
-          description: data.error,
+          description: data.error || "Invalid credentials",
           variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "Redirecting to dashboard...",
-      });
+      // Verify session before redirecting
+      try {
+        const verifyResponse = await fetch('/api/user', {
+          credentials: 'include',
+        });
 
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
+        if (verifyResponse.ok) {
+          toast({
+            title: "Welcome back!",
+            description: "Redirecting to dashboard...",
+          });
+
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1000);
+        } else {
+          throw new Error("Session verification failed");
+        }
+      } catch (verifyError) {
+        console.error("Session verification error:", verifyError);
+        toast({
+          title: "Login Successful",
+          description: "Please refresh the page to continue",
+        });
+        setLoading(false);
+      }
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "Failed to login",
+        title: "Connection Error",
+        description: "Please check your internet and try again",
         variant: "destructive",
       });
       setLoading(false);
@@ -150,47 +173,75 @@ export default function AuthPage() {
     }
 
     setLoading(true);
-    try {
-      console.log('📧 Sending OTP request to:', '/api/user/auth/signup/request-otp');
-      const response = await fetch('/api/user/auth/signup/request-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      });
+    let retryCount = 0;
+    const maxRetries = 2;
 
-      console.log('✅ OTP Response Status:', response.status);
-      const data = await response.json();
-      console.log('📨 OTP Response Data:', data);
-
-      if (!response.ok) {
-        console.error('❌ OTP Request Failed:', data);
-        toast({
-          title: "Failed",
-          description: data.error || data.reason || data.details || 'Could not send verification email',
-          variant: "destructive",
+    const attemptSendOTP = async (): Promise<boolean> => {
+      try {
+        console.log('📧 Sending OTP request to:', '/api/user/auth/signup/request-otp');
+        const response = await fetch('/api/user/auth/signup/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include',
         });
-        setLoading(false);
-        return;
-      }
 
-      // OTP sent successfully - immediately show OTP input step
-      setSignupStep(2);
-      setResendCountdown(60);
-      
-      toast({
-        title: "Check Your Email!",
-        description: `OTP sent to ${email}`,
-      });
-      
+        if (!response) {
+          throw new Error("No response from server");
+        }
+
+        console.log('✅ OTP Response Status:', response.status);
+        const data = await response.json().catch(() => ({}));
+        console.log('📨 OTP Response Data:', data);
+
+        if (!response.ok) {
+          console.error('❌ OTP Request Failed:', data);
+          
+          // Don't retry on validation errors
+          if (response.status === 400 || response.status === 409) {
+            toast({
+              title: "Failed",
+              description: data.error || data.reason || data.details || 'Could not send verification email',
+              variant: "destructive",
+            });
+            return false;
+          }
+          
+          throw new Error(data.error || 'Server error');
+        }
+
+        // OTP sent successfully
+        setSignupStep(2);
+        setResendCountdown(60);
+        
+        toast({
+          title: "Check Your Email!",
+          description: `OTP sent to ${email}`,
+        });
+        
+        return true;
+      } catch (error: any) {
+        console.error('🚨 OTP Network Error:', error);
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying... (${retryCount}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          return attemptSendOTP();
+        }
+        
+        throw error;
+      }
+    };
+
+    try {
+      await attemptSendOTP();
       setLoading(false);
     } catch (error: any) {
-      console.error('🚨 OTP Network Error:', error);
       console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
       toast({
-        title: "Network Error",
-        description: `Could not reach server: ${error.message || 'Connection failed'}`,
+        title: "Connection Error",
+        description: "Please check your internet and try again",
         variant: "destructive",
       });
       setLoading(false);
@@ -273,7 +324,11 @@ export default function AuthPage() {
         credentials: 'include',
       });
 
-      const data = await response.json();
+      if (!response) {
+        throw new Error("No response from server");
+      }
+
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         toast({
@@ -285,21 +340,41 @@ export default function AuthPage() {
         return;
       }
 
-      const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
-      toast({
-        title: "Welcome! 🎉",
-        description: `Welcome ${capitalizedName}!`,
-      });
+      // Verify user session before redirecting
+      try {
+        const verifyResponse = await fetch('/api/user', {
+          credentials: 'include',
+        });
 
-      // Redirect to dashboard - celebration will show automatically
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
+        if (verifyResponse.ok) {
+          const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+          toast({
+            title: "Welcome! 🎉",
+            description: `Welcome ${capitalizedName}!`,
+          });
+
+          // Show success state briefly before redirect
+          setSignupStep(4);
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 2000);
+        } else {
+          throw new Error("Session verification failed");
+        }
+      } catch (verifyError) {
+        console.error("Session verification error:", verifyError);
+        toast({
+          title: "Account Created!",
+          description: "Please refresh the page to continue",
+        });
+        setLoading(false);
+      }
     } catch (error: any) {
       console.error("Signup step 3 error:", error);
       toast({
-        title: "Error",
-        description: "Failed to set username",
+        title: "Connection Error",
+        description: "Please check your internet and try again",
         variant: "destructive",
       });
       setLoading(false);
