@@ -276,7 +276,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     // Add small delay to ensure session is written
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Check if account setup is incomplete
+    // Check if account setup is incomplete and restore state
     const isTemporaryUsername = user.username && /\d{13}$/.test(user.username); // Ends with timestamp
     const onboardingProfile = await storage.getOnboardingProfile(user.id);
     const hasCompletedOnboarding = onboardingProfile?.completed || user.metadata?.onboardingCompleted;
@@ -284,23 +284,35 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     let incompleteSetup = false;
     let nextStep = null;
     let suggestedUsername = null;
+    let restoreState = null;
 
     if (isTemporaryUsername) {
       // User verified OTP but never set a proper username
       incompleteSetup = true;
       nextStep = 'username';
       suggestedUsername = user.email.split('@')[0];
-      console.log(`🔄 User ${email} has incomplete setup - needs username`);
+      restoreState = {
+        step: 3,
+        email: user.email,
+        message: 'Continue your signup by choosing a username'
+      };
+      console.log(`🔄 User ${email} has incomplete setup - restoring to username step`);
     } else if (!hasCompletedOnboarding) {
       // User has username but didn't complete onboarding
       incompleteSetup = true;
       nextStep = 'onboarding';
-      console.log(`🔄 User ${email} has incomplete setup - needs onboarding`);
+      restoreState = {
+        step: 'onboarding',
+        username: user.username,
+        email: user.email,
+        message: 'Complete your profile setup to get started'
+      };
+      console.log(`🔄 User ${email} has incomplete setup - restoring to onboarding step`);
     }
 
     res.json({
       success: true,
-      message: 'Logged in successfully',
+      message: incompleteSetup ? 'Account found - continue setup' : 'Logged in successfully',
       user: {
         id: user.id,
         email: user.email,
@@ -311,10 +323,11 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       incompleteSetup,
       nextStep,
       suggestedUsername,
+      restoreState,
       sessionExpiresIn: '7 days',
     });
 
-    console.log(`✅ User logged in: ${email}${incompleteSetup ? ` (incomplete setup: ${nextStep})` : ''}`);
+    console.log(`✅ User logged in: ${email}${incompleteSetup ? ` (restoring to: ${nextStep})` : ''}`);
   } catch (error: unknown) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
@@ -341,6 +354,69 @@ router.post('/refresh-session', async (req: Request, res: Response): Promise<voi
     });
   } catch (error: unknown) {
     res.status(500).json({ error: 'Failed to refresh session' });
+  }
+});
+
+router.get('/check-state', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      res.json({ authenticated: false });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.json({ authenticated: false });
+      return;
+    }
+
+    // Check account completion state
+    const isTemporaryUsername = user.username && /\d{13}$/.test(user.username);
+    const onboardingProfile = await storage.getOnboardingProfile(user.id);
+    const hasCompletedOnboarding = onboardingProfile?.completed || user.metadata?.onboardingCompleted;
+
+    let incompleteSetup = false;
+    let nextStep = null;
+    let suggestedUsername = null;
+    let restoreState = null;
+
+    if (isTemporaryUsername) {
+      incompleteSetup = true;
+      nextStep = 'username';
+      suggestedUsername = user.email.split('@')[0];
+      restoreState = {
+        step: 3,
+        email: user.email,
+        message: 'Continue your signup by choosing a username'
+      };
+    } else if (!hasCompletedOnboarding) {
+      incompleteSetup = true;
+      nextStep = 'onboarding';
+      restoreState = {
+        step: 'onboarding',
+        username: user.username,
+        email: user.email,
+        message: 'Complete your profile setup to get started'
+      };
+    }
+
+    res.json({
+      authenticated: true,
+      incompleteSetup,
+      nextStep,
+      suggestedUsername,
+      restoreState,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+      },
+    });
+  } catch (error: unknown) {
+    console.error('Check state error:', error);
+    res.status(500).json({ error: 'Failed to check state' });
   }
 });
 

@@ -51,6 +51,46 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
+  // Check for incomplete setup on page load
+  useEffect(() => {
+    const checkIncompleteSetup = async () => {
+      try {
+        const response = await fetch('/api/user/auth/check-state', {
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.authenticated && data.incompleteSetup) {
+            // User is logged in but has incomplete setup
+            const { nextStep, suggestedUsername, restoreState } = data;
+            
+            if (nextStep === 'username' && restoreState?.step === 3) {
+              setIsLogin(false);
+              setSignupStep(3);
+              setEmail(restoreState.email || '');
+              setUsername(suggestedUsername || '');
+              
+              toast({
+                title: "Welcome Back!",
+                description: "Complete your username to continue",
+              });
+            } else if (nextStep === 'onboarding') {
+              // Redirect to onboarding
+              window.location.href = '/onboarding';
+            }
+          }
+        }
+      } catch (error) {
+        // Silently fail - user can still proceed normally
+        console.log('State check skipped');
+      }
+    };
+
+    checkIncompleteSetup();
+  }, []);
+
   useEffect(() => {
     if (resendCountdown > 0) {
       const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000);
@@ -118,6 +158,32 @@ export default function AuthPage() {
       }
 
       loginSuccess = true;
+
+      // Check if account setup is incomplete and restore state
+      if (data.incompleteSetup && data.restoreState) {
+        const { step, message, username: savedUsername } = data.restoreState;
+        
+        toast({
+          title: "Welcome Back!",
+          description: message || "Continue where you left off",
+        });
+
+        setLoading(false);
+
+        // Restore to the correct step
+        if (step === 3) {
+          // Username step
+          setIsLogin(false);
+          setSignupStep(3);
+          setUsername(data.suggestedUsername || '');
+        } else if (step === 'onboarding') {
+          // Onboarding step - redirect to onboarding
+          setTimeout(() => {
+            window.location.href = '/onboarding';
+          }, 500);
+        }
+        return;
+      }
 
       toast({
         title: "Welcome back!",
@@ -193,14 +259,17 @@ export default function AuthPage() {
         if (!response.ok) {
           console.error('❌ OTP Request Failed:', data);
 
-          // Special handling for incomplete account
+          // Special handling for incomplete account - auto-switch to login
           if (data.incompleteSetup && data.useLogin) {
             toast({
-              title: "Account Found!",
-              description: "Please login to complete your account setup",
+              title: "Account Found! 🎉",
+              description: "Logging you in to continue your setup...",
             });
-            setIsLogin(true);
-            setSignupStep(1);
+            
+            // Auto-attempt login to restore state
+            setTimeout(async () => {
+              await handleLogin();
+            }, 1000);
             return false;
           }
 
