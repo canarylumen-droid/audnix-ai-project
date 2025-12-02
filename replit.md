@@ -37,6 +37,15 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 2, 2025)
+- **UI/UX Restructure:** Complete sidebar navigation redesign with collapsible groups (Leads, Automation, Tools, Insights, Billing, Settings)
+- **GuidedTour Component:** 7-step premium onboarding tour with spotlight effects and portal rendering
+- **ActivationChecklist Component:** 4-step activation checklist with per-step feature unlocking
+- **Per-Step Feature Unlocking:** Features unlock progressively (Inbox/Calendar after SMTP, Conversations/Deals after leads import)
+- **Cookie Fix:** Fixed signout cookie name mismatch (changed from 'connect.sid' to 'audnix.sid')
+- **Mobile Responsive:** Full mobile support for collapsible navigation groups
+- **Tour/Activate Buttons:** Added sidebar footer buttons to replay tour or open activation checklist
+
 ### Recent Changes (Dec 1, 2025)
 - **Competitor Comparison:** Updated ManyChat feature comparison - they have auto-booking + email automation, not AI objection handling, voice notes, or conversation memory
 - **Integrations Page:** Updated custom email section to use generic "business email with SMTP/IMAP access" language

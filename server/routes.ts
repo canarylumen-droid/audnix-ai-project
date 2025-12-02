@@ -466,12 +466,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(500).json({ error: "Failed to destroy session" });
           }
 
-          // Clear the session cookie
-          res.clearCookie('connect.sid', {
+          // Clear the session cookie (using correct cookie name)
+          res.clearCookie('audnix.sid', {
             path: '/',
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax'
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
           });
 
           res.status(200).json({ success: true, message: "Signed out successfully" });
