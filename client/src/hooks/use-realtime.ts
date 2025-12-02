@@ -1,5 +1,4 @@
-
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -10,12 +9,12 @@ const registerServiceWorker = async () => {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
       console.log('✓ Service Worker registered:', registration);
-      
+
       // Request notification permission
       if ('Notification' in window && Notification.permission === 'default') {
         await Notification.requestPermission();
       }
-      
+
       return registration;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
@@ -52,7 +51,7 @@ const getRelativeTime = (timestamp: string | Date): string => {
   const now = Date.now();
   const then = new Date(timestamp).getTime();
   const diffSeconds = Math.floor((now - then) / 1000);
-  
+
   if (diffSeconds < 60) return 'Just now';
   if (diffSeconds < 120) return '1 min ago';
   if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} mins ago`;
@@ -88,13 +87,13 @@ export function useRealtime(userId?: string) {
         },
         (payload) => {
           console.log('Lead change:', payload);
-          
+
           // Invalidate leads queries and dashboard stats
           queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
           queryClient.invalidateQueries({ queryKey: ['/api/leads/stats'] });
           queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
           queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
-          
+
           // Show notification for new leads
           if (payload.eventType === 'INSERT') {
             playNotificationSound();
@@ -102,7 +101,7 @@ export function useRealtime(userId?: string) {
               title: '🎯 New Lead Captured',
               description: `${payload.new.name} from ${payload.new.channel}`,
             });
-            
+
             // Push notification
             showPushNotification('🎯 New Lead Captured', {
               body: `${payload.new.name} from ${payload.new.channel}`,
@@ -110,7 +109,7 @@ export function useRealtime(userId?: string) {
               data: { url: '/dashboard/inbox' }
             });
           }
-          
+
           // Show notification for status changes
           if (payload.eventType === 'UPDATE' && payload.old.status !== payload.new.status) {
             if (payload.new.status === 'converted') {
@@ -119,7 +118,7 @@ export function useRealtime(userId?: string) {
                 title: '🎉 Conversion!',
                 description: `${payload.new.name} converted to customer`,
               });
-              
+
               // Push notification
               showPushNotification('🎉 Conversion!', {
                 body: `${payload.new.name} converted to customer`,
@@ -146,13 +145,13 @@ export function useRealtime(userId?: string) {
         },
         (payload) => {
           console.log('New message:', payload);
-          
+
           // Invalidate conversation queries and dashboard
           queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
           queryClient.invalidateQueries({ queryKey: [`/api/conversations/${payload.new.lead_id}`] });
           queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
           queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
-          
+
           // Show notification for inbound messages with sound
           if (payload.new.direction === 'inbound') {
             playNotificationSound();
@@ -160,7 +159,7 @@ export function useRealtime(userId?: string) {
               title: '💬 New Message',
               description: 'You have a new message from a lead',
             });
-            
+
             // Push notification
             showPushNotification('💬 New Message', {
               body: 'You have a new message from a lead',
@@ -185,17 +184,17 @@ export function useRealtime(userId?: string) {
         },
         (payload) => {
           console.log('New notification:', payload);
-          
+
           // Invalidate notifications queries
           queryClient.invalidateQueries({ queryKey: ['/api/user/notifications'] });
-          
+
           // Throttle notification sounds (max 1 per 2 seconds)
           const now = Date.now();
           if (now - lastNotificationTime.current > 2000) {
             playNotificationSound();
             lastNotificationTime.current = now;
           }
-          
+
           // Show the notification with relative time
           const relativeTime = getRelativeTime(payload.new.created_at);
           toast({
@@ -220,16 +219,16 @@ export function useRealtime(userId?: string) {
         },
         (payload) => {
           console.log('New calendar event:', payload);
-          
+
           queryClient.invalidateQueries({ queryKey: ['/api/oauth/google-calendar/events'] });
-          
+
           if (payload.new.is_ai_booked) {
             playNotificationSound();
             toast({
               title: '📅 Meeting Booked',
               description: `AI scheduled: ${payload.new.title}`,
             });
-            
+
             // Push notification
             showPushNotification('📅 Meeting Booked', {
               body: `AI scheduled: ${payload.new.title}`,
@@ -256,6 +255,6 @@ export function useRealtime(userId?: string) {
 export function useDashboardRealtime() {
   // Get current user ID from your auth context or storage
   const userId = localStorage.getItem('userId') || undefined;
-  
+
   useRealtime(userId);
 }

@@ -175,6 +175,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 
+  // Detect low-end devices and reduce animations
+  const prefersReducedMotion = useState(() => {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  })[0]; // Get the value from the state
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Internet Connection Banner */}
@@ -191,7 +196,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
         initial={false}
         animate={{ width: sidebarCollapsed ? "4rem" : "16rem" }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeInOut" }}
         data-testid="sidebar-desktop"
         style={{
           boxShadow: "0 0 40px rgba(0, 200, 255, 0.1)",
@@ -205,6 +210,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
                 className="flex items-center gap-2"
                 data-testid="logo-text"
               >
@@ -227,6 +233,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
                 />
               </div>
             )}
@@ -258,6 +265,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     isActive ? "bg-primary/10 text-primary" : "text-white"
                   }`}
                   whileHover={{ x: 4 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
                   data-testid={`nav-item-${item.label.toLowerCase()}`}
                 >
                   <div className="flex items-center gap-3 px-3 py-2.5">
@@ -311,7 +319,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
@@ -319,7 +327,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               initial={{ x: -320 }}
               animate={{ x: 0 }}
               exit={{ x: -320 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
@@ -446,7 +454,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         const now = Date.now();
                         const then = new Date(timestamp).getTime();
                         const diffSeconds = Math.floor((now - then) / 1000);
-                        
+
                         if (diffSeconds < 60) return 'Just now';
                         if (diffSeconds < 120) return '1 min ago';
                         if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)} mins ago`;
@@ -573,7 +581,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
               className="h-full"
             >
               {children}
@@ -587,7 +595,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border/50 md:hidden z-50 shadow-lg"
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease: "easeOut" }}
       >
         <div className="flex items-center justify-around p-2 safe-bottom">
           {mobileNavItems.map((item) => {
@@ -596,7 +604,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Link key={item.path} href={item.path}>
                 <motion.div
                   whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.1 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.1 }}
                 >
                   <Button
                     variant="ghost"

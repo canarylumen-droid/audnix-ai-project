@@ -16,10 +16,11 @@ class PaymentAutoApprovalWorker {
     lastRun: new Date(),
   };
   private isProcessing = false;
+  private lastLogTime: number = 0; // To control log frequency
 
   /**
    * Start the auto-approval worker
-   * Runs every 5 seconds to check and auto-upgrade pending payments
+   * Runs every 30 seconds to check and auto-upgrade pending payments
    */
   start() {
     if (this.processingInterval) {
@@ -27,13 +28,13 @@ class PaymentAutoApprovalWorker {
       return;
     }
 
-    console.log("🚀 Payment auto-approval worker started (runs every 5 seconds)");
+    console.log("🚀 Payment auto-approval worker started (checks every 30s, 24/7 auto-upgrade)");
 
     this.processingInterval = setInterval(async () => {
       if (!this.isProcessing) {
         await this.processPendingPayments();
       }
-    }, 5000); // Check every 5 seconds
+    }, 30000); // Check every 30 seconds
   }
 
   /**
@@ -54,6 +55,7 @@ class PaymentAutoApprovalWorker {
     try {
       this.isProcessing = true;
       const now = new Date();
+      const currentTime = now.getTime();
 
       // Get all users
       const users = await storage.getAllUsers();
@@ -64,15 +66,17 @@ class PaymentAutoApprovalWorker {
       this.stats.checked += 1;
 
       if (pendingUsers.length === 0) {
-        // Only log every 30 seconds to avoid spam
-        if (this.stats.checked % 6 === 0) {
+        // Only log every 30 seconds (once per interval) to avoid spam if no activity
+        if (currentTime - this.lastLogTime > 30000) {
           console.log(`✅ Auto-approval check: 0 pending payments found`);
+          this.lastLogTime = currentTime;
         }
         return;
       }
 
+      // Log only when there are actual pending payments
       console.log(
-        `🔍 Auto-approval: Found ${pendingUsers.length} pending payment(s)`
+        `💳 Auto-approval: Found ${pendingUsers.length} pending payment(s)`
       );
 
       // Auto-approve each pending payment
@@ -106,6 +110,7 @@ class PaymentAutoApprovalWorker {
       }
 
       this.stats.lastRun = now;
+      this.lastLogTime = currentTime; // Update last log time when activity occurs
     } catch (error: any) {
       this.stats.errors += 1;
       console.error("❌ Error in payment auto-approval worker:", error.message);

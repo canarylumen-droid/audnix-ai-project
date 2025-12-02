@@ -103,7 +103,7 @@ export default function DashboardHome() {
       // Show celebration if first dashboard visit (track with localStorage)
       const celebrationKey = `celebration_shown_${user.id}`;
       const hasSeenCelebration = localStorage.getItem(celebrationKey);
-      
+
       if (!hasSeenCelebration && user.username) {
         setShowWelcomeCelebration(true);
         localStorage.setItem(celebrationKey, "true");
@@ -118,9 +118,8 @@ export default function DashboardHome() {
   // Fetch real dashboard stats - real-time via websockets, no polling
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    refetchOnWindowFocus: false,
-    retry: false,
-    staleTime: Infinity, // Don't auto-refresh, rely on real-time updates
+    staleTime: 60000, // 1 minute
+    refetchInterval: false, // No auto-refresh - backend will update
   });
 
   // Fetch previous period stats once
