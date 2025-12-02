@@ -122,16 +122,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return Math.max(0, daysLeft);
   };
 
-  // Fetch real user profile
+  // Fetch real user profile once - static data
   const { data: user } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
-    refetchInterval: 60000, // Refetch every minute to keep data fresh
+    staleTime: Infinity, // Don't auto-refresh, profile data is static
   });
 
-  // Fetch real-time notifications
+  // Fetch real-time notifications - reduced polling
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
-    refetchInterval: 30000, // Poll every 30 seconds for real-time updates
+    refetchInterval: 60000, // Poll every 60 seconds (real-time via Supabase in background)
+    refetchOnWindowFocus: false,
   });
 
   const notifications = notificationsData?.notifications || [];
@@ -306,19 +307,19 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {mobileMenuOpen && (
           <>
             <motion.div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+              className="fixed inset-0 bg-black/60 z-50 md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
-              className="fixed top-0 left-0 bottom-0 w-80 bg-card/95 backdrop-blur-lg z-50 md:hidden overflow-y-auto shadow-2xl border-r border-border/50"
-              initial={{ x: -320, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -320, opacity: 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 left-0 bottom-0 w-80 bg-card z-50 md:hidden overflow-y-auto shadow-2xl border-r border-border/50"
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
             >
               <div className="p-4 flex flex-col h-full">
                 <div className="flex items-center gap-2 mb-6">
@@ -332,32 +333,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                   <span className="font-bold text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Audnix</span>
                 </div>
                 <nav className="flex flex-col gap-1 flex-1">
-                  {filteredNavItems.map((item, index) => {
+                  {filteredNavItems.map((item) => {
                     const isActive = location === item.path;
                     return (
-                      <motion.div
-                        key={item.path}
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ delay: index * 0.05, duration: 0.2 }}
-                      >
+                      <div key={item.path}>
                         <Link href={item.path}>
-                          <motion.div whileTap={{ scale: 0.98 }}>
-                            <Button
-                              variant="ghost"
-                              className={`w-full justify-start gap-3 transition-all duration-200 ${
-                                isActive
-                                  ? "bg-primary/10 text-primary shadow-sm"
-                                  : "text-foreground/80 hover:text-foreground hover:bg-accent/50"
-                              }`}
-                              onClick={() => setMobileMenuOpen(false)}
-                            >
-                              <item.icon className={`h-5 w-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
-                              <span className="font-medium">{item.label}</span>
-                            </Button>
-                          </motion.div>
+                          <Button
+                            variant="ghost"
+                            className={`w-full justify-start gap-3 transition-colors ${
+                              isActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-foreground/80 hover:text-foreground hover:bg-accent/50"
+                            }`}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <item.icon className="h-5 w-5" />
+                            <span className="font-medium">{item.label}</span>
+                          </Button>
                         </Link>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </nav>

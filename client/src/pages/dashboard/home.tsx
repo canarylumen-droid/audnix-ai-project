@@ -115,27 +115,27 @@ export default function DashboardHome() {
     setShowOnboarding(false);
   };
 
-  // Fetch real dashboard stats with aggressive real-time updates
+  // Fetch real dashboard stats - real-time via websockets, no polling
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 5000, // Refresh every 5 seconds for real-time feel
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: false,
+    staleTime: Infinity, // Don't auto-refresh, rely on real-time updates
   });
 
-  // Fetch previous period stats for real-time percentage calculations
+  // Fetch previous period stats once
   const { data: previousStats } = useQuery<PreviousDashboardStats>({
     queryKey: ["/api/dashboard/stats/previous"],
-    refetchInterval: 10000,
     retry: false,
+    staleTime: Infinity,
   });
 
-  // Fetch real activity feed with real-time updates
+  // Fetch real activity feed once - real-time via websockets
   const { data: activityData, isLoading: activityLoading } = useQuery<DashboardActivityResponse>({
     queryKey: ["/api/dashboard/activity"],
-    refetchInterval: 5000, // Refresh every 5 seconds
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     retry: false,
+    staleTime: Infinity,
   });
 
   // Calculate trial days left using actual database expiry

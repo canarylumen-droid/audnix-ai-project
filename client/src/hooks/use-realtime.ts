@@ -89,9 +89,11 @@ export function useRealtime(userId?: string) {
         (payload) => {
           console.log('Lead change:', payload);
           
-          // Invalidate leads queries
+          // Invalidate leads queries and dashboard stats
           queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
           queryClient.invalidateQueries({ queryKey: ['/api/leads/stats'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
           
           // Show notification for new leads
           if (payload.eventType === 'INSERT') {
@@ -145,9 +147,11 @@ export function useRealtime(userId?: string) {
         (payload) => {
           console.log('New message:', payload);
           
-          // Invalidate conversation queries
+          // Invalidate conversation queries and dashboard
           queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
           queryClient.invalidateQueries({ queryKey: [`/api/conversations/${payload.new.lead_id}`] });
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
           
           // Show notification for inbound messages with sound
           if (payload.new.direction === 'inbound') {
