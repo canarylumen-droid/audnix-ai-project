@@ -90,6 +90,8 @@ export default function AuthPage() {
     }
 
     setLoading(true);
+    let loginSuccess = false;
+
     try {
       const response = await fetch('/api/user/auth/login', {
         method: 'POST',
@@ -115,39 +117,81 @@ export default function AuthPage() {
         return;
       }
 
-      // Verify session before redirecting
-      try {
-        const verifyResponse = await fetch('/api/user', {
-          credentials: 'include',
-        });
+      loginSuccess = true;
 
-        if (verifyResponse.ok) {
-          toast({
-            title: "Welcome back!",
-            description: "Redirecting to dashboard...",
+      // Verify session with retry logic
+      let sessionVerified = false;
+      let retries = 0;
+      const maxRetries = 3;
+
+      while (!sessionVerified && retries < maxRetries) {
+        try {
+          // Add small delay between retries
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500 * retries));
+          }
+
+          const verifyResponse = await fetch('/api/user', {
+            credentials: 'include',
           });
 
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 1000);
-        } else {
-          throw new Error("Session verification failed");
+          if (verifyResponse.ok) {
+            const userData = await verifyResponse.json();
+            
+            // Additional validation: ensure we got valid user data
+            if (userData && userData.id) {
+              sessionVerified = true;
+              
+              toast({
+                title: "Welcome back!",
+                description: "Redirecting to dashboard...",
+              });
+
+              // Brief delay to let toast show, then hard redirect
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 800);
+              
+              break;
+            }
+          }
+
+          retries++;
+        } catch (verifyError) {
+          console.error(`Session verification attempt ${retries + 1} failed:`, verifyError);
+          retries++;
         }
-      } catch (verifyError) {
-        console.error("Session verification error:", verifyError);
+      }
+
+      // If all retries failed but login was successful
+      if (!sessionVerified && loginSuccess) {
         toast({
-          title: "Login Successful",
+          title: "Almost there!",
           description: "Please refresh the page to continue",
         });
         setLoading(false);
+        
+        // Auto-refresh after 3 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      toast({
-        title: "Connection Error",
-        description: "Please check your internet and try again",
-        variant: "destructive",
-      });
+      
+      // If login succeeded but verification failed, still allow manual refresh
+      if (loginSuccess) {
+        toast({
+          title: "Login Successful",
+          description: "Refresh the page to continue",
+        });
+      } else {
+        toast({
+          title: "Connection Error",
+          description: "Please check your internet and try again",
+          variant: "destructive",
+        });
+      }
       setLoading(false);
     }
   };
@@ -316,6 +360,8 @@ export default function AuthPage() {
     }
 
     setLoading(true);
+    let accountCreated = false;
+
     try {
       const response = await fetch('/api/auth/set-username', {
         method: 'POST',
@@ -340,43 +386,90 @@ export default function AuthPage() {
         return;
       }
 
-      // Verify user session before redirecting
-      try {
-        const verifyResponse = await fetch('/api/user', {
-          credentials: 'include',
-        });
+      accountCreated = true;
 
-        if (verifyResponse.ok) {
-          const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
-          toast({
-            title: "Welcome! 🎉",
-            description: `Welcome ${capitalizedName}!`,
+      // Verify user session with retry logic
+      let sessionVerified = false;
+      let retries = 0;
+      const maxRetries = 3;
+
+      while (!sessionVerified && retries < maxRetries) {
+        try {
+          // Add small delay between retries
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 500 * retries));
+          }
+
+          const verifyResponse = await fetch('/api/user', {
+            credentials: 'include',
           });
 
-          // Show success state briefly before redirect
-          setSignupStep(4);
-          
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 2000);
-        } else {
-          throw new Error("Session verification failed");
+          if (verifyResponse.ok) {
+            const userData = await verifyResponse.json();
+            
+            // Additional validation: ensure we got valid user data with username
+            if (userData && userData.id && userData.username) {
+              sessionVerified = true;
+              
+              const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+              toast({
+                title: "Welcome! 🎉",
+                description: `Welcome ${capitalizedName}!`,
+              });
+
+              // Show success state briefly before redirect
+              setSignupStep(4);
+              
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 1500);
+              
+              break;
+            }
+          }
+
+          retries++;
+        } catch (verifyError) {
+          console.error(`Session verification attempt ${retries + 1} failed:`, verifyError);
+          retries++;
         }
-      } catch (verifyError) {
-        console.error("Session verification error:", verifyError);
+      }
+
+      // If all retries failed but account was created
+      if (!sessionVerified && accountCreated) {
+        setSignupStep(4);
         toast({
-          title: "Account Created!",
-          description: "Please refresh the page to continue",
+          title: "Account Created! 🎉",
+          description: "Refresh the page to get started",
         });
         setLoading(false);
+        
+        // Auto-refresh after 3 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
       }
     } catch (error: any) {
       console.error("Signup step 3 error:", error);
-      toast({
-        title: "Connection Error",
-        description: "Please check your internet and try again",
-        variant: "destructive",
-      });
+      
+      // If account was created but verification failed, still guide user
+      if (accountCreated) {
+        setSignupStep(4);
+        toast({
+          title: "Account Created! 🎉",
+          description: "Refresh the page to continue",
+        });
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      } else {
+        toast({
+          title: "Connection Error",
+          description: "Please check your internet and try again",
+          variant: "destructive",
+        });
+      }
       setLoading(false);
     }
   };
