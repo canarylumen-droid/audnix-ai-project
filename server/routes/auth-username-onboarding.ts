@@ -24,13 +24,22 @@ router.post('/set-username', requireAuth, async (req: Request<object, object, Se
     const userId = req.session?.userId;
     const { username } = req.body;
 
+    console.log('📝 Username update request - User ID:', userId, 'Username:', username);
+
     if (!userId) {
+      console.error('❌ No userId in session');
       res.status(401).json({ error: 'User not authenticated' });
       return;
     }
 
     if (!username || username.length < 3 || username.length > 30) {
       res.status(400).json({ error: 'Username must be 3-30 characters' });
+      return;
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      res.status(400).json({ error: 'Only letters, numbers, hyphens and underscores allowed' });
       return;
     }
 
@@ -49,6 +58,8 @@ router.post('/set-username', requireAuth, async (req: Request<object, object, Se
       return;
     }
 
+    console.log(`✅ Username updated successfully for user ${userId}: ${username}`);
+
     res.json({
       success: true,
       message: 'Username set successfully',
@@ -57,7 +68,7 @@ router.post('/set-username', requireAuth, async (req: Request<object, object, Se
         email: user.email,
         username: user.username,
       },
-      nextStep: '/onboarding',
+      nextStep: '/dashboard',
     });
   } catch (error: unknown) {
     console.error('Error setting username:', error);

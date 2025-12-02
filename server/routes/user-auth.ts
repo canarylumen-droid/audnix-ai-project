@@ -134,11 +134,12 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       return;
     }
 
-    const username = normalizedEmail.split('@')[0] + Date.now();
+    // Create temporary username (will be updated in step 3)
+    const tempUsername = normalizedEmail.split('@')[0] + Date.now();
 
     const user = await storage.createUser({
       email: normalizedEmail,
-      username,
+      username: tempUsername,
       password: passwordHash,
       plan: 'trial',
       role: 'member',
@@ -163,14 +164,22 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     // Save session explicitly for serverless environments
     await new Promise<void>((resolve, reject) => {
       req.session.save((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('Session save error after OTP verification:', err);
+          reject(err);
+        } else {
+          console.log('✅ Session saved successfully for user:', user.id);
+          resolve();
+        }
       });
     });
 
+    // Add small delay to ensure session is fully written
+    await new Promise(resolve => setTimeout(resolve, 150));
+
     res.json({
       success: true,
-      message: 'Account created successfully',
+      message: 'OTP verified - proceed to username',
       user: {
         id: user.id,
         email: user.email,
@@ -178,10 +187,11 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
         plan: user.plan,
         role: 'member',
       },
+      needsUsername: true,
       sessionExpiresIn: '7 days',
     });
 
-    console.log(`✅ New user signed up: ${normalizedEmail}`);
+    console.log(`✅ User created after OTP verification: ${normalizedEmail}`);
   } catch (error: unknown) {
     console.error('Signup verification error:', error);
     res.status(500).json({ error: 'Signup failed' });
