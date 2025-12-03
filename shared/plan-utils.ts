@@ -47,7 +47,7 @@ export function getPlanCapabilities(planId: string) {
     hasAPIAccess: isEnterprise,
     hasPrioritySupport: isProOrAbove,
     hasVideoAutomation: isPaid, // Video automation only for paid plans
-    hasInstagramDM: isPaid, // Instagram DM automation for paid plans only
+    hasInstagramDM: true, // Instagram DM automation available to ALL users
     hasWhatsApp: isPaid, // WhatsApp only for paid plans
     hasEmail: true // Email available to ALL users including free/trial
   };

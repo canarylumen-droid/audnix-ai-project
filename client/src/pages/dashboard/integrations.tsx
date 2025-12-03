@@ -12,8 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
-import { InstagramComingSoonModal } from "@/components/instagram-coming-soon-modal";
-import { useCanAccessInstagramDM } from "@/hooks/use-access-gate";
+import { useCanAccessInstagramDM, useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
 import {
   Instagram,
   Mail,
@@ -80,7 +79,6 @@ export default function IntegrationsPage() {
   const [importingChannel, setImportingChannel] = useState<"instagram" | "email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
-  const [showInstagramComingSoon, setShowInstagramComingSoon] = useState(false);
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -94,6 +92,7 @@ export default function IntegrationsPage() {
   
   // Access control hooks
   const { canAccess: canAccessInstagram } = useCanAccessInstagramDM();
+  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
 
   // Fetch user data to check plan
   const { data: userData } = useQuery<UserData | null>({
@@ -591,7 +590,7 @@ export default function IntegrationsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["instagram"].map((providerId, index) => {
+            {["instagram", "gmail"].map((providerId, index) => {
               const integration = integrations.find((i) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
@@ -603,60 +602,11 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  {/* Instagram - Locked for free/trial users */}
-                  {providerId === "instagram" && !canAccessInstagram && (
+                  {/* Instagram - Full OAuth connection for all users */}
+                  {providerId === "instagram" && (
                     <Card
-                      className="relative hover-elevate border-gray-500/30 bg-gray-500/5"
+                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : "border-pink-500/30 bg-pink-500/5"}`}
                       data-testid={`card-integration-${providerId}`}
-                    >
-                      {/* Blur overlay */}
-                      <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
-                        <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mx-auto mb-3">
-                            <Lock className="h-6 w-6 text-white" />
-                          </div>
-                          <h3 className="font-semibold text-lg mb-2">Instagram Automation</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Upgrade to any paid plan to connect Instagram DMs and automate lead follow-ups
-                          </p>
-                          <Button 
-                            size="sm" 
-                            onClick={() => window.location.href = '/dashboard/pricing'}
-                            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-                          >
-                            Upgrade to Unlock
-                          </Button>
-                        </div>
-                      </div>
-                      <CardHeader className="opacity-50">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-pink-500/10">
-                              <Instagram className="h-6 w-6 text-pink-500" />
-                            </div>
-                            <div className="flex-1">
-                              <CardTitle className="text-base">Instagram</CardTitle>
-                              <CardDescription className="text-sm">
-                                DM automation with Meta API integration
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="opacity-50 space-y-3">
-                        <Button className="w-full" disabled>
-                          Connect Instagram
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {/* Instagram - Coming soon for paid users */}
-                  {providerId === "instagram" && canAccessInstagram && (
-                    <Card
-                      className="hover-elevate border-pink-500/30 bg-pink-500/5 cursor-pointer transition-all"
-                      data-testid={`card-integration-${providerId}`}
-                      onClick={() => setShowInstagramComingSoon(true)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -671,38 +621,100 @@ export default function IntegrationsPage() {
                                 </CardTitle>
                               </div>
                               <CardDescription className="text-sm">
-                                Meta API verification in progress • CSV import available now
+                                DM automation with Meta API integration
                               </CardDescription>
                             </div>
                           </div>
+                          {isConnected && (
+                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
+                              <Check className="h-3 w-3 mr-1" />
+                              Connected
+                            </Badge>
+                          )}
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div className="p-4 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-800 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-pink-600 dark:text-pink-400 flex-shrink-0 mt-0.5" />
-                            <div className="text-xs space-y-1">
-                              <p className="font-semibold text-pink-800 dark:text-pink-300">Available Now: CSV Import</p>
-                              <p className="text-pink-700 dark:text-pink-400">Start automating while OAuth is in setup:</p>
-                              <ul className="list-disc list-inside space-y-0.5 ml-2">
-                                <li><strong>Export Instagram DMs</strong> from your phone/desktop</li>
-                                <li><strong>Upload CSV</strong> with name, username, last message</li>
-                                <li><strong>AI starts working immediately</strong></li>
-                              </ul>
+                        {isConnected ? (
+                          <>
+                            <div className="text-sm space-y-2">
+                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span className="font-medium">Connected • DM automation active</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Instagram DMs are being monitored and automated
+                              </p>
                             </div>
-                          </div>
-                        </div>
-                        <Button
-                          className="w-full bg-pink-500 hover:bg-pink-600"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.location.href = '/dashboard/lead-import';
-                          }}
-                          data-testid={`button-csv-import-${providerId}`}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Import Instagram CSV Now
-                        </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleDisconnect(providerId)}
+                                disabled={disconnectProviderMutation.isPending}
+                                data-testid={`button-disconnect-${providerId}`}
+                              >
+                                {disconnectProviderMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Disconnect"
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => handleSyncNow(providerId)}
+                                disabled={importLeadsMutation.isPending}
+                                data-testid={`button-sync-${providerId}`}
+                              >
+                                {importLeadsMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Sync Now"
+                                )}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="p-4 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-800 rounded-lg">
+                              <div className="flex items-start gap-2">
+                                <Sparkles className="h-4 w-4 text-pink-600 dark:text-pink-400 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs space-y-1">
+                                  <p className="font-semibold text-pink-800 dark:text-pink-300">Instagram DM Automation</p>
+                                  <ul className="list-disc list-inside space-y-0.5 ml-2 text-pink-700 dark:text-pink-400">
+                                    <li>AI monitors and responds to DMs 24/7</li>
+                                    <li>Smart comment detection triggers DMs</li>
+                                    <li>Voice notes for personal touch</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                            <Button
+                              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                              onClick={() => handleConnect(providerId)}
+                              disabled={connectProviderMutation.isPending}
+                              data-testid={`button-connect-${providerId}`}
+                            >
+                              {connectProviderMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Instagram className="h-4 w-4 mr-2" />
+                              )}
+                              Connect Instagram
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => window.location.href = '/dashboard/lead-import'}
+                              data-testid={`button-csv-import-${providerId}`}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Or Import CSV
+                            </Button>
+                          </>
+                        )}
                       </CardContent>
                     </Card>
                   )}
@@ -1020,14 +1032,35 @@ export default function IntegrationsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h2 className="text-xl font-semibold mb-4">Voice Clone Setup</h2>
-          <Card data-testid="card-voice-setup">
-          <CardHeader>
+          <Card data-testid="card-voice-setup" className={!canAccessVoiceNotes ? "relative" : ""}>
+            {/* Upgrade overlay for free/trial users */}
+            {!canAccessVoiceNotes && (
+              <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
+                <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mx-auto mb-3">
+                    <Lock className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">Voice Notes</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upgrade to a paid plan to unlock AI voice cloning and send personalized voice messages to your leads
+                  </p>
+                  <Button 
+                    size="sm" 
+                    onClick={() => window.location.href = '/dashboard/pricing'}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                  >
+                    Upgrade to Unlock
+                  </Button>
+                </div>
+              </div>
+            )}
+          <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
             <CardTitle>AI Voice Messaging</CardTitle>
             <CardDescription>
               Upload a short voice sample to enable AI voice replies that sound like you
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
             {/* Usage */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -1048,6 +1081,7 @@ export default function IntegrationsPage() {
                 onChange={handleVoiceFileSelect}
                 className="hidden"
                 data-testid="input-voice-file"
+                disabled={!canAccessVoiceNotes}
               />
 
               <div className="border-2 border-dashed rounded-lg p-8 text-center">
@@ -1063,6 +1097,7 @@ export default function IntegrationsPage() {
                         size="sm"
                         onClick={() => voiceInputRef.current?.click()}
                         data-testid="button-upload-new"
+                        disabled={!canAccessVoiceNotes}
                       >
                         <Upload className="h-4 w-4 mr-2" />
                         Upload New
@@ -1085,7 +1120,7 @@ export default function IntegrationsPage() {
                     </div>
                     <Button
                       onClick={() => voiceInputRef.current?.click()}
-                      disabled={isVoiceLocked}
+                      disabled={isVoiceLocked || !canAccessVoiceNotes}
                       data-testid="button-upload-voice"
                     >
                       {isVoiceLocked ? <Lock className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
@@ -1093,7 +1128,7 @@ export default function IntegrationsPage() {
                     </Button>
                     {isVoiceLocked && (
                       <p className="text-xs text-red-500 text-center mt-2">
-                        🔒 Voice minutes depleted. Top up to upload voice samples.
+                        Voice minutes depleted. Top up to upload voice samples.
                       </p>
                     )}
                   </div>
@@ -1107,6 +1142,7 @@ export default function IntegrationsPage() {
                   checked={voiceConsent}
                   onCheckedChange={(checked) => setVoiceConsent(checked as boolean)}
                   data-testid="checkbox-voice-consent"
+                  disabled={!canAccessVoiceNotes}
                 />
                 <label
                   htmlFor="voice-consent"
@@ -1121,10 +1157,10 @@ export default function IntegrationsPage() {
               {/* Activate */}
               <Button
                 className="w-full"
-                disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked}
+                disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked || !canAccessVoiceNotes}
                 data-testid="button-activate-voice"
               >
-                {isVoiceLocked ? "🔒 Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
+                {isVoiceLocked ? "Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
               </Button>
             </div>
 
@@ -1273,13 +1309,6 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Instagram Coming Soon Modal - Only opens on click */}
-      {!canAccessInstagram ? (
-        <InstagramComingSoonModal 
-          open={showInstagramComingSoon} 
-          onOpenChange={setShowInstagramComingSoon}
-        />
-      ) : null}
     </div>
   );
 }

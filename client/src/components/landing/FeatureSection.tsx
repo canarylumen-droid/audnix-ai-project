@@ -7,14 +7,14 @@ const features = [
   {
     number: 1,
     title: "Lead Import & Management",
-    desc: "Connect business email and CSV contacts",
+    desc: "Connect business email, Instagram DMs, and CSV contacts",
     icon: Phone,
     details: [
       "Business email sync via SMTP",
+      "Instagram DM automation with Meta API",
       "Bulk CSV upload with auto-mapping",
       "Real-time contact deduplication",
-      "Lead scoring and segmentation",
-      "Instagram DM import (coming soon)"
+      "Lead scoring and segmentation"
     ]
   },
   {
@@ -50,7 +50,7 @@ const features = [
     details: [
       "Upload 30-second voice sample once",
       "AI generates natural voice messages",
-      "Instagram DMs only (paid plans)",
+      "Instagram DMs with voice automation",
       "80%+ leads prefer voice over text",
       "Personalization at massive scale"
     ]

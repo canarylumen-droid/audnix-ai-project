@@ -26,7 +26,7 @@ Key features include:
 - **Real-time capabilities:** Optional Supabase integration for real-time subscriptions.
 - **UI/UX:** Utilizes Tailwind CSS and Radix UI for a modern and responsive design.
 - **Feature Tiers:** Free, Trial, Starter, Pro, and Enterprise tiers with varying lead limits, email automation, voice minutes (paid), and advanced features like team workflows and API access.
-- **Positioning:** Email + Voice (Instagram only, paid), Instagram DMs launching Q4 2025.
+- **Positioning:** Email + Voice (Instagram only, paid), Instagram DMs now fully available to all users.
 
 ### External Dependencies
 - **Email Service:** Custom SMTP for business email, SendGrid API for OTP.
@@ -38,6 +38,10 @@ Key features include:
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
 ### Recent Changes (Dec 3, 2025)
+- **Instagram Integration Live:** Instagram OAuth connection now available to ALL users (free and paid plans)
+- **Voice Notes Gated:** Voice notes remain a paid-plan feature - free/trial users see upgrade overlay
+- **UI Cleanup:** Removed all "coming soon" labels for Instagram, simplified integrations page
+- **Documentation:** Created comprehensive INSTAGRAM_SETUP.md for webhook and OAuth configuration
 - **Closer Engine Live:** New premium real-time objection handler page with collapsible tactical sections (Reframe, Close Question, Story, Identity Upgrade)
 - **Sidebar Restructure:** Updated to 6 groups (Leads, Closer Engine Live, Conversations, Automation & Deals, Insights, Account & Billing)
 - **Premium Styling:** Closer Engine Live section has gradient background, PRO badge, and accent styling to highlight as Ferrari feature
