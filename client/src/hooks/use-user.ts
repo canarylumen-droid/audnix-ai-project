@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { isSupabaseConfigured } from "@/lib/supabase";
 
 export interface User {
   id: string;
@@ -14,23 +13,27 @@ export interface User {
 }
 
 async function fetchUser(): Promise<User | null> {
-  if (!isSupabaseConfigured()) {
-    return null;
-  }
-
   try {
-    const response = await fetch('/api/auth/me', {
+    // Try session-based auth first (password auth)
+    const sessionResponse = await fetch('/api/user/profile', {
       credentials: 'include',
     });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        return null;
-      }
-      throw new Error('Failed to fetch user');
+    if (sessionResponse.ok) {
+      const userData = await sessionResponse.json();
+      return userData;
     }
 
-    return response.json();
+    // Fallback to Supabase auth if configured
+    const supabaseResponse = await fetch('/api/auth/me', {
+      credentials: 'include',
+    });
+
+    if (supabaseResponse.ok) {
+      return supabaseResponse.json();
+    }
+
+    return null;
   } catch (error) {
     console.error('Error fetching user:', error);
     return null;
