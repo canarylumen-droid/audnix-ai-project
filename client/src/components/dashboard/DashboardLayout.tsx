@@ -128,12 +128,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    Leads: true,
-    Automation: true,
-    Tools: false,
-    Insights: false,
-    Billing: false,
-    Settings: false,
+    "Leads": true,
+    "Closer Engine Live": true,
+    "Conversations": false,
+    "Automation & Deals": false,
+    "Insights": false,
+    "Account & Billing": false,
   });
   const adminSecretPath = useAdminSecretPath();
 
@@ -147,22 +147,30 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       defaultOpen: true,
       items: [
         { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
+        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations", requiresStep: "leads" },
       ],
     },
     {
-      label: "Automation",
+      label: "Closer Engine Live",
       icon: Zap,
       defaultOpen: true,
       items: [
-        { label: "Inbox", icon: Inbox, path: "/dashboard/inbox", requiresStep: "smtp" },
-        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations", requiresStep: "leads" },
-        { label: "Sales Assistant", icon: Phone, path: "/dashboard/sales-assistant" },
+        { label: "Objection Handler", icon: Phone, path: "/dashboard/closer-engine" },
       ],
     },
     {
-      label: "Tools",
+      label: "Conversations",
+      icon: MessageSquare,
+      defaultOpen: false,
+      items: [
+        { label: "Inbox", icon: Inbox, path: "/dashboard/inbox", requiresStep: "smtp" },
+      ],
+    },
+    {
+      label: "Automation & Deals",
       icon: Wrench,
       items: [
+        { label: "Workflows", icon: Zap, path: "/dashboard/conversations", requiresStep: "leads" },
         { label: "Deals", icon: Briefcase, path: "/dashboard/deals", requiresStep: "leads" },
         { label: "Calendar", icon: Calendar, path: "/dashboard/calendar", requiresStep: "smtp" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
@@ -173,20 +181,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       icon: LineChart,
       items: [
         { label: "Analytics", icon: BarChart3, path: "/dashboard/insights" },
+        { label: "Reports", icon: LineChart, path: "/dashboard/insights" },
         { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
       ],
     },
     {
-      label: "Billing",
+      label: "Account & Billing",
       icon: Receipt,
       items: [
-        { label: "Pricing", icon: CreditCard, path: "/dashboard/pricing" },
-      ],
-    },
-    {
-      label: "Settings",
-      icon: Settings,
-      items: [
+        { label: "Pricing & Plans", icon: CreditCard, path: "/dashboard/pricing" },
         { label: "Profile & Preferences", icon: Settings, path: "/dashboard/settings" },
       ],
     },
@@ -312,6 +315,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     const isExpanded = expandedGroups[group.label];
     const GroupIcon = group.icon;
     const hasActiveItem = group.items.some(item => isPathActive(item.path));
+    const isCloserEngine = group.label === "Closer Engine Live";
 
     if (sidebarCollapsed) {
       return (
@@ -319,11 +323,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <DropdownMenuTrigger asChild>
             <div
               className={`mx-2 mb-1 rounded-md transition-colors cursor-pointer hover:bg-primary/10 ${
-                hasActiveItem ? "bg-primary/10 text-primary" : "text-white/80"
-              }`}
+                isCloserEngine ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : ""
+              } ${hasActiveItem ? "bg-primary/10 text-primary" : "text-white/80"}`}
             >
               <div className="flex items-center justify-center px-3 py-2.5">
-                <GroupIcon className="h-5 w-5" />
+                <GroupIcon className={`h-5 w-5 ${isCloserEngine ? "text-cyan-400" : ""}`} />
               </div>
             </div>
           </DropdownMenuTrigger>
@@ -359,20 +363,30 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         key={group.label}
         open={isExpanded}
         onOpenChange={() => toggleGroup(group.label)}
-        className="mb-1"
+        className={`mb-1 ${isCloserEngine ? "relative" : ""}`}
       >
+        {isCloserEngine && (
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5 rounded-xl pointer-events-none" />
+        )}
         <CollapsibleTrigger asChild>
           <div
             className={`mx-2 rounded-md transition-colors cursor-pointer hover:bg-white/5 ${
-              hasActiveItem && !isExpanded ? "bg-primary/10" : ""
+              isCloserEngine 
+                ? "bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 hover:border-cyan-500/40 shadow-lg shadow-cyan-500/5" 
+                : hasActiveItem && !isExpanded ? "bg-primary/10" : ""
             }`}
           >
             <div className="flex items-center justify-between px-3 py-2.5">
               <div className="flex items-center gap-3">
-                <GroupIcon className={`h-4 w-4 flex-shrink-0 ${hasActiveItem ? "text-primary" : "text-white/60"}`} />
-                <span className={`text-sm font-semibold ${hasActiveItem ? "text-primary" : "text-white/70"}`}>
+                <GroupIcon className={`h-4 w-4 flex-shrink-0 ${isCloserEngine ? "text-cyan-400" : hasActiveItem ? "text-primary" : "text-white/60"}`} />
+                <span className={`text-sm font-semibold ${isCloserEngine ? "text-cyan-300" : hasActiveItem ? "text-primary" : "text-white/70"}`}>
                   {group.label}
                 </span>
+                {isCloserEngine && (
+                  <Badge className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0 h-4">
+                    PRO
+                  </Badge>
+                )}
               </div>
               <ChevronDown
                 className={`h-4 w-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}

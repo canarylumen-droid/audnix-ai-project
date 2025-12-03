@@ -9,6 +9,10 @@ import IntegrationsPage from "./integrations";
 import InsightsPage from "./insights";
 import PricingPage from "./pricing";
 import SettingsPage from "./settings";
+import LeadImportPage from "./lead-import";
+import VideoAutomationPage from "./video-automation";
+import CloserEngineLive from "./closer-engine";
+import SalesAssistant from "./sales-assistant";
 
 export default function DashboardRoutes() {
   return (
@@ -24,6 +28,10 @@ export default function DashboardRoutes() {
         <Route path="/dashboard/insights" component={InsightsPage} />
         <Route path="/dashboard/pricing" component={PricingPage} />
         <Route path="/dashboard/settings" component={SettingsPage} />
+        <Route path="/dashboard/lead-import" component={LeadImportPage} />
+        <Route path="/dashboard/video-automation" component={VideoAutomationPage} />
+        <Route path="/dashboard/closer-engine" component={CloserEngineLive} />
+        <Route path="/dashboard/sales-assistant" component={SalesAssistant} />
       </Switch>
     </DashboardLayout>
   );
