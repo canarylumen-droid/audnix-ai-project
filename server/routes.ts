@@ -409,11 +409,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Set username for logged-in user
-  app.post("/api/auth/set-username", requireAuth, async (req, res) => {
+  app.post("/api/auth/set-username", async (req, res) => {
     try {
-      const userId = getCurrentUserId(req);
+      console.log('📝 [set-username] Request received');
+      console.log('📝 [set-username] Session ID:', req.sessionID);
+      console.log('📝 [set-username] Session userId:', req.session?.userId);
+      console.log('📝 [set-username] Cookies:', req.headers.cookie ? 'Present' : 'Missing');
+      
+      const userId = req.session?.userId;
       if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        console.error('❌ [set-username] No userId in session - auth failed');
+        console.error('❌ [set-username] Session data:', JSON.stringify(req.session));
+        return res.status(401).json({ 
+          error: "Not authenticated",
+          hint: "Session may have expired. Please login again."
+        });
       }
 
       const { username } = req.body;
@@ -439,6 +449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Failed to update username" });
       }
 
+      console.log(`✅ [set-username] Username set successfully for ${userId}: ${username}`);
+
       res.json({ 
         success: true, 
         message: "Username updated",
@@ -450,7 +462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error: any) {
-      console.error("Error setting username:", error);
+      console.error("❌ [set-username] Error:", error);
       res.status(500).json({ error: "Failed to set username" });
     }
   });
