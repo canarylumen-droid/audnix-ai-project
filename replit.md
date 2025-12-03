@@ -37,8 +37,16 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 3, 2025)
+- **Closer Engine Live:** New premium real-time objection handler page with collapsible tactical sections (Reframe, Close Question, Story, Identity Upgrade)
+- **Sidebar Restructure:** Updated to 6 groups (Leads, Closer Engine Live, Conversations, Automation & Deals, Insights, Account & Billing)
+- **Premium Styling:** Closer Engine Live section has gradient background, PRO badge, and accent styling to highlight as Ferrari feature
+- **Tailwind Fix:** Fixed dynamic class generation with static lookup maps for all accent colors
+- **Confetti Polish:** Improved welcome celebration with controlled 30% center spread radius, 5-second duration, professional emoji selection
+- **Dashboard Routes:** Added /dashboard/closer-engine, /dashboard/lead-import, /dashboard/video-automation routes
+
 ### Recent Changes (Dec 2, 2025)
-- **UI/UX Restructure:** Complete sidebar navigation redesign with collapsible groups (Leads, Automation, Tools, Insights, Billing, Settings)
+- **UI/UX Restructure:** Complete sidebar navigation redesign with collapsible groups
 - **GuidedTour Component:** 7-step premium onboarding tour with spotlight effects and portal rendering
 - **ActivationChecklist Component:** 4-step activation checklist with per-step feature unlocking
 - **Per-Step Feature Unlocking:** Features unlock progressively (Inbox/Calendar after SMTP, Conversations/Deals after leads import)
