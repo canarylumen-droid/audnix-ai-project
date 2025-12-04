@@ -116,13 +116,13 @@ if (process.env.DATABASE_URL) {
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
-  resave: false,
+  resave: true, // Force session save even if unmodified (helps with persistence)
   saveUninitialized: false,
   name: 'audnix.sid',
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days (extended from 1 week)
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for production cross-origin
     domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
     path: '/',

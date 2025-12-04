@@ -112,7 +112,7 @@ export const authLimiter = rateLimit(
   createRateLimiterOptions(
     {
       windowMs: 15 * 60 * 1000,
-      max: 5,
+      max: 20, // Increased from 5 to 20 to prevent lockouts
       message: 'Too many authentication attempts, please try again later',
       standardHeaders: true,
       legacyHeaders: false,

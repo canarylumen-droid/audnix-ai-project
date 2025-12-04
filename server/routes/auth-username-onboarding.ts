@@ -19,16 +19,26 @@ interface CompleteOnboardingBody {
  * POST /api/auth/set-username
  * After OTP verified → User selects username → Saved to DB
  */
-router.post('/set-username', requireAuth, async (req: Request<object, object, SetUsernameBody>, res: Response): Promise<void> => {
+router.post('/set-username', async (req: Request<object, object, SetUsernameBody>, res: Response): Promise<void> => {
   try {
     const userId = req.session?.userId;
     const { username } = req.body;
 
-    console.log('📝 Username update request - User ID:', userId, 'Username:', username);
+    console.log('📝 [set-username] Request received');
+    console.log('📝 [set-username] Session data:', JSON.stringify(req.session));
+    console.log('📝 [set-username] User ID from session:', userId);
+    console.log('📝 [set-username] Username requested:', username);
 
     if (!userId) {
-      console.error('❌ No userId in session');
-      res.status(401).json({ error: 'User not authenticated' });
+      console.error('❌ [set-username] Session data:', JSON.stringify(req.session));
+      res.status(401).json({ 
+        error: 'Not authenticated',
+        hint: 'Session may have expired. Please login again.',
+        debug: {
+          hasSession: !!req.session,
+          hasCookie: !!req.session?.cookie,
+        }
+      });
       return;
     }
 

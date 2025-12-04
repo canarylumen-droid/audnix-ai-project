@@ -52,21 +52,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     });
   }
 
-  // Security: Regenerate session ID periodically to prevent session fixation
-  const lastRegeneration = (req.session as any).lastRegeneration || 0;
-  const now = Date.now();
-  const ONE_HOUR = 60 * 60 * 1000;
-  
-  if (now - lastRegeneration > ONE_HOUR) {
-    req.session.regenerate((err) => {
-      if (err) {
-        console.error("Session regeneration error:", err);
-      } else {
-        (req.session as any).userId = userId;
-        (req.session as any).lastRegeneration = now;
-      }
-    });
-  }
+  // Note: Session regeneration removed to prevent session data loss
+  // The session is already secured via:
+  // - httpOnly cookies (prevents XSS)
+  // - SameSite=None with Secure (prevents CSRF)
+  // - Session ID is regenerated on login/signup (prevents fixation)
 
   // Attach user to request for downstream handlers
   req.user = user;

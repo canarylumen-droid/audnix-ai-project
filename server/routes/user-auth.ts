@@ -161,20 +161,35 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       role: 'member',
     });
 
-    // Regenerate session for newly authenticated user (prevents session fixation)
+    // Set session for logged-in user FIRST (before regenerate to preserve data)
+    const sessionData = {
+      userId: user.id,
+      email: normalizedEmail,
+      isAdmin: false,
+    };
+    
+    console.log(`📝 [OTP Verify] Setting session data:`, JSON.stringify(sessionData));
+
+    // Regenerate session ID for security (prevents session fixation)
     await new Promise<void>((resolve, reject) => {
+      const oldSessionId = req.sessionID;
       req.session.regenerate((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('Session regenerate error:', err);
+          reject(err);
+        } else {
+          console.log(`✅ Session regenerated: ${oldSessionId.slice(0,8)}... -> ${req.sessionID.slice(0,8)}...`);
+          resolve();
+        }
       });
     });
 
-    // Set session for logged-in user
+    // Re-apply session data after regeneration
     req.session.userId = user.id;
     req.session.email = normalizedEmail;
     req.session.isAdmin = false;
     if (req.session.cookie) {
-      req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
     }
 
     // Save session explicitly for serverless environments
@@ -185,13 +200,18 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
           reject(err);
         } else {
           console.log('✅ Session saved successfully for user:', user.id);
+          console.log('📝 [OTP Verify] Session after save:', JSON.stringify({
+            userId: req.session.userId,
+            email: req.session.email,
+            sessionID: req.sessionID.slice(0, 8) + '...',
+          }));
           resolve();
         }
       });
     });
 
-    // Add small delay to ensure session is fully written
-    await new Promise(resolve => setTimeout(resolve, 150));
+    // Add small delay to ensure session is fully written to PostgreSQL
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     res.json({
       success: true,
@@ -204,7 +224,7 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
         role: 'member',
       },
       needsUsername: true,
-      sessionExpiresIn: '7 days',
+      sessionExpiresIn: '30 days',
     });
 
     console.log(`✅ User created after OTP verification: ${normalizedEmail}`);
@@ -245,19 +265,25 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Regenerate session for newly authenticated user (prevents session fixation)
+    // Regenerate session ID for security (prevents session fixation)
     await new Promise<void>((resolve, reject) => {
       req.session.regenerate((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('Session regenerate error:', err);
+          reject(err);
+        } else {
+          console.log('✅ Session regenerated for login');
+          resolve();
+        }
       });
     });
 
+    // Set session data after regeneration
     req.session.userId = user.id;
     req.session.email = email;
     req.session.isAdmin = false;
     if (req.session.cookie) {
-      req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
     }
 
     // Save session explicitly and wait for completion
@@ -268,13 +294,18 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
           reject(err);
         } else {
           console.log('✅ Session saved successfully for user:', user.id);
+          console.log('📝 [Login] Session data:', JSON.stringify({
+            userId: req.session.userId,
+            email: req.session.email,
+            sessionID: req.sessionID.slice(0, 8) + '...',
+          }));
           resolve();
         }
       });
     });
 
-    // Add small delay to ensure session is written
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Add small delay to ensure session is written to PostgreSQL
+    await new Promise(resolve => setTimeout(resolve, 150));
 
     // Check if account setup is incomplete and restore state
     const isTemporaryUsername = user.username && /\d{13}$/.test(user.username); // Ends with timestamp
@@ -324,7 +355,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
       nextStep,
       suggestedUsername,
       restoreState,
-      sessionExpiresIn: '7 days',
+      sessionExpiresIn: '30 days',
     });
 
     console.log(`✅ User logged in: ${email}${incompleteSetup ? ` (restoring to: ${nextStep})` : ''}`);
@@ -417,6 +448,99 @@ router.get('/check-state', async (req: Request, res: Response): Promise<void> =>
   } catch (error: unknown) {
     console.error('Check state error:', error);
     res.status(500).json({ error: 'Failed to check state' });
+  }
+});
+
+/**
+ * POST /api/user/auth/reset-account
+ * For users stuck in limbo state - allows them to clear their account and start fresh
+ * This preserves their email but resets username and onboarding status
+ */
+router.post('/reset-account', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body as { email?: string };
+
+    if (!email) {
+      res.status(400).json({ error: 'Email required' });
+      return;
+    }
+
+    const user = await storage.getUserByEmail(email);
+
+    if (!user) {
+      // User doesn't exist - that's fine, they can sign up fresh
+      res.json({
+        success: true,
+        message: 'Account not found - you can sign up fresh',
+        action: 'signup',
+      });
+      return;
+    }
+
+    // Reset user to initial state
+    const tempUsername = email.split('@')[0] + Date.now();
+    
+    await storage.updateUser(user.id, {
+      username: tempUsername,
+      metadata: {
+        onboardingCompleted: false,
+        resetAt: new Date().toISOString(),
+      },
+    });
+
+    // Clear any existing onboarding profile
+    const onboardingProfile = await storage.getOnboardingProfile(user.id);
+    if (onboardingProfile) {
+      await storage.updateOnboardingProfile(user.id, {
+        ...onboardingProfile,
+        completed: false,
+      });
+    }
+
+    // Destroy any existing sessions for this user
+    req.session.destroy(() => {});
+
+    console.log(`🔄 User account reset for: ${email}`);
+
+    res.json({
+      success: true,
+      message: 'Account reset. Please login with your email and password to continue.',
+      action: 'login',
+    });
+  } catch (error: unknown) {
+    console.error('Reset account error:', error);
+    res.status(500).json({ error: 'Failed to reset account' });
+  }
+});
+
+/**
+ * POST /api/user/auth/logout
+ * Logout user and destroy session
+ */
+router.post('/logout', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destroy error:', err);
+      }
+    });
+
+    res.clearCookie('audnix.sid', {
+      domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
+      path: '/',
+    });
+
+    console.log(`👋 User logged out: ${userId || 'unknown'}`);
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error: unknown) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
   }
 });
 
