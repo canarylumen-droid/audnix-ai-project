@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight, Sparkles } from "lucide-react";
+import { Check, ArrowRight, Sparkles, Brain, Clock, Target } from "lucide-react";
 import { Link } from "wouter";
 
 const containerVariants = {
@@ -27,15 +27,14 @@ const itemVariants = {
 };
 
 const features = [
-  "Human-like timing & tone",
-  "Voice notes in your voice",
-  "Auto-booking + intelligent follow-ups"
+  { icon: Clock, text: "Smart timing — knows when each lead responds best" },
+  { icon: Brain, text: "Learns from conversations — never one-size-fits-all" },
+  { icon: Target, text: "Predicts ROI — only follows up when it matters" }
 ];
 
 export function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-8 py-24 mt-16 overflow-hidden">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="absolute top-1/4 -left-48 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"
@@ -71,17 +70,15 @@ export function HeroSection() {
         animate="visible"
         className="relative z-10 max-w-7xl mx-auto text-center"
       >
-        {/* Badge */}
         <motion.div variants={itemVariants} className="flex justify-center mb-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-white/90">
-              Your AI Sales Closer — Available 24/7
+              AI Sales Closer with Predictive Intelligence
             </span>
           </div>
         </motion.div>
 
-        {/* Headline */}
         <motion.h1 
           variants={itemVariants}
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight text-white px-4 sm:px-6 md:px-0"
@@ -92,26 +89,24 @@ export function HeroSection() {
           </span>
         </motion.h1>
         
-        {/* Subheadline */}
         <motion.p 
           variants={itemVariants}
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
         >
-          Your AI sales closer that handles objections, closes deals,{" "}
+          AI that learns each lead's behavior, predicts the perfect follow-up time,{" "}
           <br className="hidden md:block" />
-          and converts leads — 24/7, while you sleep.
+          and only reaches out when it'll actually convert.
         </motion.p>
 
         <motion.p 
           variants={itemVariants}
           className="text-sm sm:text-base md:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6 md:px-0"
         >
-          Email sequences that close deals + voice notes on Instagram DMs.{" "}
-          <br className="hidden sm:block" />
-          AI handles objections and books meetings automatically.
+          No spam. No pushy timing. Just intelligent outreach that{" "}
+          <span className="text-emerald-400 font-semibold">feels human</span> because it{" "}
+          <span className="text-cyan-400 font-semibold">thinks like one</span>.
         </motion.p>
 
-        {/* Feature Pills */}
         <motion.div 
           variants={itemVariants}
           className="flex flex-wrap gap-3 justify-center mb-10"
@@ -122,13 +117,26 @@ export function HeroSection() {
               whileHover={{ scale: 1.05, y: -2 }}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm group hover:border-primary/50 transition-all"
             >
-              <Check className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span className="text-white/90 text-sm sm:text-base">{feature}</span>
+              <feature.icon className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="text-white/90 text-sm sm:text-base">{feature.text}</span>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* CTA Button */}
+        <motion.div 
+          variants={itemVariants}
+          className="mb-8 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 max-w-2xl mx-auto"
+        >
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Brain className="w-5 h-5 text-emerald-400" />
+            <span className="text-white font-semibold">Intelligence Layer</span>
+          </div>
+          <p className="text-white/80 text-sm">
+            Analyzes conversation history, detects buying signals, predicts optimal timing,{" "}
+            and decides if following up now will actually get ROI — all automatically.
+          </p>
+        </motion.div>
+
         <motion.div variants={itemVariants}>
           <Link href="/auth">
             <motion.div
@@ -154,7 +162,7 @@ export function HeroSection() {
             variants={itemVariants}
             className="text-white/50 text-sm mt-4"
           >
-            3-day free trial • No credit card • Setup in 5 minutes
+            3-day free trial • 500 leads included • No credit card required
           </motion.p>
         </motion.div>
       </motion.div>

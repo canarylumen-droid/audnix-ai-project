@@ -843,4 +843,93 @@ router.delete("/whitelist/:email", async (req: Request, res: Response): Promise<
   }
 });
 
+// ============ USER RESET OPERATIONS ============
+
+router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("[ADMIN] Starting limbo user reset...");
+    
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    const limboUsersResult = await db.execute(sql`
+      SELECT u.* FROM users u
+      WHERE (
+        u.username ~ '\\d{13}$'
+        OR (u.password IS NULL AND u.plan = 'trial')
+        OR (
+          u.plan = 'trial' 
+          AND u.created_at < ${twentyFourHoursAgo}
+          AND NOT EXISTS (
+            SELECT 1 FROM onboarding_profiles op 
+            WHERE op.user_id = u.id AND op.completed = true
+          )
+        )
+      )
+    `);
+    
+    const limboUsers = limboUsersResult.rows as any[];
+    console.log(`[ADMIN] Found ${limboUsers.length} limbo users`);
+    
+    let deletedCount = 0;
+    
+    for (const user of limboUsers) {
+      try {
+        await db.execute(sql`DELETE FROM onboarding_profiles WHERE user_id = ${user.id}`);
+        await db.execute(sql`DELETE FROM users WHERE id = ${user.id}`);
+        deletedCount++;
+        console.log(`[ADMIN] Deleted limbo user: ${user.email}`);
+      } catch (err) {
+        console.error(`[ADMIN] Error deleting user ${user.email}:`, err);
+      }
+    }
+    
+    const expiredOtpsResult = await db.execute(sql`
+      DELETE FROM otp_codes WHERE expires_at < ${now} RETURNING *
+    `);
+    
+    console.log(`[ADMIN] Cleaned ${expiredOtpsResult.rows.length} expired OTPs`);
+    
+    res.json({
+      success: true,
+      usersReset: deletedCount,
+      otpsCleaned: expiredOtpsResult.rows.length,
+      message: `Reset ${deletedCount} limbo users and cleaned ${expiredOtpsResult.rows.length} expired OTPs`
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error resetting limbo users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/reset-all-users", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { confirmReset } = req.body;
+    
+    if (confirmReset !== "CONFIRM_RESET_ALL_USERS") {
+      res.status(400).json({ 
+        error: "Confirmation required",
+        message: "Send { confirmReset: 'CONFIRM_RESET_ALL_USERS' } to proceed"
+      });
+      return;
+    }
+    
+    console.log("[ADMIN] ⚠️ RESETTING ALL USERS - This is a destructive operation");
+    
+    await db.execute(sql`DELETE FROM onboarding_profiles`);
+    await db.execute(sql`DELETE FROM otp_codes`);
+    await db.execute(sql`DELETE FROM users WHERE role != 'admin'`);
+    
+    console.log("[ADMIN] ✅ All non-admin users reset complete");
+    
+    res.json({
+      success: true,
+      message: "All non-admin users have been reset. Users can now sign up fresh."
+    });
+  } catch (error) {
+    console.error("[ADMIN] Error resetting all users:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
  trial_active BOOLEAN DEFAULT false,
  stripe_customer_id TEXT,
  stripe_subscription_id TEXT,
- leads_limit INTEGER DEFAULT 100,
+ leads_limit INTEGER DEFAULT 500,
  voice_seconds_limit INTEGER DEFAULT 0,
  usage_leads NUMERIC DEFAULT 0,
  usage_voice_seconds NUMERIC DEFAULT 0,
