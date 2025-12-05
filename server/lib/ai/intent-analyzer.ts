@@ -1,3 +1,6 @@
+import OpenAI from 'openai';
+import { supabaseAdmin } from '../supabase-admin.js';
+
 export interface IntentAnalysis {
   isInterested: boolean;
   isNegative: boolean;
