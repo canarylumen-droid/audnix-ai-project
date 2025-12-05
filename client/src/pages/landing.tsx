@@ -276,6 +276,139 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* AI Intelligence Layer - Advanced Sales AI */}
+      <section className="py-20 px-4 border-b border-orange-500/20 bg-gradient-to-b from-orange-500/5 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <div className="inline-block px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/30 mb-6">
+              <span className="text-orange-400 text-sm font-semibold">INTELLIGENCE LAYER</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              AI That Thinks Like Your Best Sales Rep
+            </h2>
+            <p className="text-xl text-white/80 max-w-3xl mx-auto">
+              Not just automation. Actual intelligence that learns patterns, predicts behavior, and adapts in real-time.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+            <AnimatedCard className="bg-gradient-to-br from-orange-500/15 to-red-500/5 border-orange-500/40 p-8" glowColor="rgba(249, 115, 22, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center mb-4">
+                <Brain className="w-6 h-6 text-orange-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Behavioral Modeling</h3>
+              <p className="text-white/80 text-sm mb-3">
+                AI learns how each lead interacts: response times, message length preferences, engagement patterns.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• Tracks click patterns</li>
+                <li>• Measures response velocity</li>
+                <li>• Identifies buying signals</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-red-500/15 to-pink-500/5 border-red-500/40 p-8" glowColor="rgba(239, 68, 68, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+                <BarChart3 className="w-6 h-6 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Objection Pattern Recognition</h3>
+              <p className="text-white/80 text-sm mb-3">
+                Detects objections before they kill deals. AI identifies "I need to think" patterns and responds strategically.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• Price objection handling</li>
+                <li>• Timing objection responses</li>
+                <li>• Trust-building sequences</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-yellow-500/15 to-orange-500/5 border-yellow-500/40 p-8" glowColor="rgba(234, 179, 8, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
+                <TrendingUp className="w-6 h-6 text-yellow-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Smart Prioritization</h3>
+              <p className="text-white/80 text-sm mb-3">
+                Not all leads are equal. AI ranks by intent, engagement, and conversion probability.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• Intent scoring (0-100)</li>
+                <li>• Engagement heat mapping</li>
+                <li>• Hot lead alerts</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-pink-500/15 to-purple-500/5 border-pink-500/40 p-8" glowColor="rgba(236, 72, 153, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center mb-4">
+                <Sparkles className="w-6 h-6 text-pink-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Tone & Voice Evolution</h3>
+              <p className="text-white/80 text-sm mb-3">
+                AI adapts its communication style based on what works. If casual converts better, it goes casual.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• A/B tests tone automatically</li>
+                <li>• Learns winning phrases</li>
+                <li>• Adapts per lead segment</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-purple-500/15 to-indigo-500/5 border-purple-500/40 p-8" glowColor="rgba(168, 85, 247, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mb-4">
+                <Zap className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Predictive Follow-up Timing</h3>
+              <p className="text-white/80 text-sm mb-3">
+                No fixed schedule. AI predicts the BEST time to reach each lead based on their behavior.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• Optimal send time prediction</li>
+                <li>• Activity-based triggers</li>
+                <li>• Weekend vs weekday intelligence</li>
+              </ul>
+            </AnimatedCard>
+
+            <AnimatedCard className="bg-gradient-to-br from-indigo-500/15 to-blue-500/5 border-indigo-500/40 p-8" glowColor="rgba(99, 102, 241, 0.3)">
+              <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center mb-4">
+                <MessageSquare className="w-6 h-6 text-indigo-400" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-white">Context Memory</h3>
+              <p className="text-white/80 text-sm mb-3">
+                AI remembers every interaction. Never asks "who are you?" twice. References past conversations naturally.
+              </p>
+              <ul className="space-y-1 text-white/70 text-xs">
+                <li>• Full conversation history</li>
+                <li>• Preference tracking</li>
+                <li>• Relationship scoring</li>
+              </ul>
+            </AnimatedCard>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="p-8 rounded-2xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 max-w-4xl mx-auto"
+          >
+            <div className="text-center">
+              <h3 className="text-2xl font-bold mb-3 text-white">The Result?</h3>
+              <p className="text-white/90 text-lg mb-4">
+                8-12% conversion rates instead of industry-standard 2-3%. Because AI that actually thinks beats automation that just sends.
+              </p>
+              <div className="flex flex-wrap justify-center gap-4 text-sm">
+                <span className="px-4 py-2 rounded-full bg-orange-500/20 text-orange-400 font-semibold">3x Higher Response Rates</span>
+                <span className="px-4 py-2 rounded-full bg-red-500/20 text-red-400 font-semibold">2x Faster Deal Cycles</span>
+                <span className="px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-400 font-semibold">50% Fewer Lost Leads</span>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Email + Voice Automation */}
       <section className="py-20 px-4 border-b border-emerald-500/20 bg-gradient-to-b from-emerald-500/5 to-transparent">
         <div className="max-w-6xl mx-auto">

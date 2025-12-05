@@ -2102,7 +2102,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/calendar', calendarRoutes);
 
   // Webhook routes
-  app.use("/api/webhook", webhookRouter); // This line seems to be a duplicate, keeping it as per original code.
+  app.use("/api/webhook", webhookRouter);
+  // Also mount webhooks at /api/webhooks for compatibility with documented URLs
+  app.use("/api/webhooks", webhookRouter);
 
   // Register bulk actions routes
   app.use("/api/bulk", bulkActionsRoutes);

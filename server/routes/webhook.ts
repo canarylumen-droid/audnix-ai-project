@@ -5,6 +5,7 @@ import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../l
 import { supabaseAdmin } from '../lib/supabase-admin.js';
 import { storage } from '../storage.js';
 import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook.js';
+import { handleInstagramWebhook, handleInstagramVerification } from '../lib/webhooks/instagram-webhook.js';
 import type { PlanType } from '../../shared/types.js';
 
 const router = Router();
@@ -58,6 +59,22 @@ router.post('/webhook/calendly', async (req: Request, res: Response): Promise<vo
   }
 
   await handleCalendlyWebhook(req, res);
+});
+
+/**
+ * Instagram webhook verification (GET request from Meta)
+ * URL: /api/webhook/instagram
+ */
+router.get('/instagram', (req: Request, res: Response): void => {
+  handleInstagramVerification(req, res);
+});
+
+/**
+ * Instagram webhook handler (POST events from Meta)
+ * URL: /api/webhook/instagram
+ */
+router.post('/instagram', async (req: Request, res: Response): Promise<void> => {
+  await handleInstagramWebhook(req, res);
 });
 
 /**

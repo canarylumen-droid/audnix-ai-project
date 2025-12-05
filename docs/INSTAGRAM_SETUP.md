@@ -41,7 +41,8 @@ INSTAGRAM_WEBHOOK_TOKEN=your_webhook_verify_token
 
 2. **Add Callback URL**
    - Development: `https://your-replit-domain.replit.dev/api/webhooks/instagram`
-   - Production: `https://your-domain.com/api/webhooks/instagram`
+   - Production: `https://audnixai.com/api/webhooks/instagram`
+   - Alternative: `https://audnixai.com/api/webhook/instagram` (both paths work)
 
 3. **Verify Token**
    - Enter the same token you set as `INSTAGRAM_WEBHOOK_TOKEN`
