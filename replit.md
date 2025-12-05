@@ -37,6 +37,15 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 5, 2025)
+- **TypeScript Fix:** Fixed intent-analyzer.ts compilation errors (OpenAI imports, type annotations) - Vercel deployment unblocked
+- **Security Update:** Verified jws package override set to ^4.0.0 for HMAC vulnerability patch
+- **Lead Limits:** Updated free trial from 100 to 500 leads across pricing config, migrations, and UI
+- **Predictive Timing:** Enhanced AI follow-up intelligence with ROI-based decisions, conversation insights analysis, and smart timing based on lead behavior (not one-size-fits-all)
+- **Admin Tools:** Added /api/admin/reset-limbo-users and /api/admin/reset-all-users endpoints for auth cleanup
+- **Landing Page:** Updated HeroSection with intelligence layer messaging - "knows when to follow up based on lead behavior"
+- **Missing Secrets:** SendGrid API key (TWILIO_SENDGRID_API_KEY) required for OTP authentication to work
+
 ### Recent Changes (Dec 3, 2025)
 - **Instagram Integration Live:** Instagram OAuth connection now available to ALL users (free and paid plans)
 - **Voice Notes Gated:** Voice notes remain a paid-plan feature - free/trial users see upgrade overlay
