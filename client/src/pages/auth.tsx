@@ -42,6 +42,79 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [showRedirectPopup, setShowRedirectPopup] = useState(false);
+  const [showResetOption, setShowResetOption] = useState(false);
+  const [resetUsed, setResetUsed] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  // Check if reset was already used for this email
+  useEffect(() => {
+    if (email && email.includes('@')) {
+      const resetKey = `audnix_reset_used_${email.toLowerCase()}`;
+      const wasReset = localStorage.getItem(resetKey);
+      setResetUsed(!!wasReset);
+      setShowResetOption(!wasReset && isLogin);
+    } else {
+      setShowResetOption(false);
+    }
+  }, [email, isLogin]);
+
+  // Self-service account reset handler
+  const handleSelfReset = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Email Required",
+        description: "Enter your email first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      const response = await fetch('/api/user/auth/reset-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Mark as used in localStorage (one-time use)
+        const resetKey = `audnix_reset_used_${email.toLowerCase()}`;
+        localStorage.setItem(resetKey, new Date().toISOString());
+        setResetUsed(true);
+        setShowResetOption(false);
+
+        toast({
+          title: "Account Reset",
+          description: data.action === 'signup' 
+            ? "You can now sign up fresh" 
+            : "Login with your password to start fresh",
+        });
+
+        // Switch to signup mode
+        setIsLogin(false);
+        setSignupStep(1);
+        setPassword("");
+      } else {
+        toast({
+          title: "Reset Failed",
+          description: data.error || "Could not reset account",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reset account",
+        variant: "destructive",
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   // Debounce password strength calculation to reduce lag
   const [passwordStrength, setPasswordStrength] = useState<any>(null);
@@ -735,6 +808,19 @@ export default function AuthPage() {
                         </>
                       )}
                     </div>
+
+                    {/* Self-service reset button (one-time use, user-controlled) */}
+                    {showResetOption && !resetUsed && email && email.includes('@') && (
+                      <div className="text-center pt-2 border-t border-white/10">
+                        <button
+                          onClick={handleSelfReset}
+                          disabled={resetLoading}
+                          className="text-xs text-white/40 hover:text-white/60 transition-colors"
+                        >
+                          {resetLoading ? 'Resetting...' : 'Trouble logging in? Reset my account'}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Submit Button */}
                     <Button
