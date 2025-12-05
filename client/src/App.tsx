@@ -14,10 +14,12 @@ import ConversationsPage from "./pages/dashboard/conversations";
 import CalendarPage from "./pages/dashboard/calendar";
 import InsightsPage from "./pages/dashboard/insights";
 import VideoAutomationPage from "./pages/dashboard/video-automation";
-import { lazy } from "react";
+import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
 import { AuthGuard } from "@/components/auth-guard";
+
+const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
 
 const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
@@ -175,6 +177,16 @@ function Router() {
           </AuthGuard>
         )}
       </Route>
+      
+      {/* Mockup Demo - Isolated, no auth, for investor/marketing screenshots */}
+      <Route path="/mockup-demo">
+        {() => (
+          <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
+            <MockupDemo />
+          </Suspense>
+        )}
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );
