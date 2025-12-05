@@ -159,13 +159,13 @@ export async function importGmailLeads(userId: string): Promise<{
     const currentLeadCount = existingLeads.length;
 
     const planLimits: Record<string, number> = {
-      'free': 100,
-      'trial': 100,
+      'free': 500,
+      'trial': 500,
       'starter': 2500,
       'pro': 7000,
       'enterprise': 20000
     };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
 
     if (currentLeadCount >= maxLeads) {
       results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
@@ -324,13 +324,13 @@ export async function importManualWhatsAppLeads(
     const currentLeadCount = existingLeads.length;
 
     const planLimits: Record<string, number> = {
-      'free': 100,
-      'trial': 100,
+      'free': 500,
+      'trial': 500,
       'starter': 2500,
       'pro': 7000,
       'enterprise': 20000
     };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
 
     if (currentLeadCount >= maxLeads) {
       results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
@@ -392,13 +392,13 @@ export async function importWhatsAppLeads(userId: string): Promise<{
 
     // Plan-based limits
     const planLimits: Record<string, number> = {
-      'free': 100,
-      'trial': 100,
+      'free': 500,
+      'trial': 500,
       'starter': 2500,
       'pro': 7000,
       'enterprise': 20000
     };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
 
     if (currentLeadCount >= maxLeads) {
       results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
@@ -564,13 +564,13 @@ export async function importManychatLeads(userId: string): Promise<{
     const user = await storage.getUserById(userId);
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const planLimits: Record<string, number> = {
-      'free': 100,
-      'trial': 100,
+      'free': 500,
+      'trial': 500,
       'starter': 2500,
       'pro': 7000,
       'enterprise': 20000
     };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 100;
+    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
     const leadsToImport = Math.min(subscribers.length, maxLeads - existingLeads.length);
 
     for (let i = 0; i < leadsToImport; i++) {

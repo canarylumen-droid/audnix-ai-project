@@ -297,4 +297,68 @@ router.get('/auth/status', async (req: Request, res: Response): Promise<void> =>
   }
 });
 
+router.post('/reset-limbo-users', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const admin = await storage.getUserById(userId);
+    if (!admin || admin.role !== 'admin') {
+      res.status(403).json({ error: 'Admin access required' });
+      return;
+    }
+
+    console.log('🔧 [Admin] Starting limbo user reset...');
+
+    const results = {
+      usersReset: 0,
+      usersWithTempUsername: 0,
+      usersWithIncompleteOnboarding: 0,
+      errors: [] as string[]
+    };
+
+    const allUsers = await storage.getAllUsers();
+
+    for (const user of allUsers) {
+      try {
+        const isTemporaryUsername = user.username && /\d{13}$/.test(user.username);
+        const onboardingProfile = await storage.getOnboardingProfile(user.id);
+        const hasCompletedOnboarding = onboardingProfile?.completed || (user.metadata as any)?.onboardingCompleted;
+
+        if (isTemporaryUsername) {
+          results.usersWithTempUsername++;
+          const suggestedUsername = user.email.split('@')[0];
+          await storage.updateUser(user.id, { 
+            username: suggestedUsername,
+            metadata: { ...(user.metadata as object || {}), needsUsernameReset: false }
+          });
+          results.usersReset++;
+          console.log(`✅ Reset user ${user.email} to username: ${suggestedUsername}`);
+        }
+
+        if (!hasCompletedOnboarding && !isTemporaryUsername) {
+          results.usersWithIncompleteOnboarding++;
+        }
+      } catch (userError: any) {
+        results.errors.push(`Failed to process ${user.email}: ${userError.message}`);
+      }
+    }
+
+    console.log(`✅ [Admin] Limbo user reset complete: ${results.usersReset} users fixed`);
+
+    res.json({
+      success: true,
+      message: `Reset ${results.usersReset} users from limbo state`,
+      results
+    });
+
+  } catch (error: unknown) {
+    console.error('Admin reset limbo users error:', error);
+    res.status(500).json({ error: 'Failed to reset users' });
+  }
+});
+
 export default router;

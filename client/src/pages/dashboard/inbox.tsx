@@ -80,7 +80,7 @@ export default function InboxPage() {
 
   const leads = leadsData?.leads || [];
   const userPlan = user?.plan || "trial";
-  const leadsLimit = userPlan === "trial" ? 100 : userPlan === "starter" ? 1000 : 10000;
+  const leadsLimit = userPlan === "trial" ? 500 : userPlan === "starter" ? 2500 : userPlan === "pro" ? 7000 : 20000;
   const currentLeadCount = leads.length;
   const isAtLimit = currentLeadCount >= leadsLimit;
 

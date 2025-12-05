@@ -316,7 +316,7 @@ export function getPlanLimits(planKey: string): { leads_limit: number; voice_min
 
   if (!plan) {
     return {
-      leads_limit: 100,
+      leads_limit: 500,
       voice_minutes: 0,
     };
   }

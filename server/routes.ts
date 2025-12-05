@@ -686,13 +686,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const leads = await storage.getLeads({ userId, limit: 10000 });
       const leadLimits: Record<string, number> = {
-        'trial': 100,
+        'trial': 500,
         'starter': 2500,
         'pro': 7000,
         'enterprise': 20000
       };
 
-      const userLimit = leadLimits[user.plan] || 100;
+      const userLimit = leadLimits[user.plan] || 500;
       if (leads.length >= userLimit) {
         return res.status(402).json({
           error: "Lead limit reached",
