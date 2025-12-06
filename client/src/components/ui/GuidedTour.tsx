@@ -204,14 +204,22 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           )}
 
           <motion.div
-            className="fixed z-[10000] w-[400px] max-w-[90vw] bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl"
-            style={modalStyle}
+            className="fixed z-[10000] w-[400px] max-w-[calc(100vw-32px)] md:max-w-[90vw] bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 bottom-4 md:bottom-auto"
+            style={{
+              ...modalStyle,
+              ...(typeof window !== 'undefined' && window.innerWidth < 768 ? {
+                top: 'auto',
+                bottom: '16px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+              } : {})
+            }}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2">
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden md:block">
               <div className="px-4 py-1.5 bg-cyan-500/20 rounded-full border border-cyan-500/30 text-xs text-cyan-300 font-medium">
                 Step {currentStep + 1} of {TOUR_STEPS.length}
               </div>
@@ -219,32 +227,37 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
 
             <button
               onClick={handleSkip}
-              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors text-sm"
+              className="absolute top-3 right-3 md:top-4 md:right-4 text-white/50 hover:text-white transition-colors text-xs md:text-sm"
             >
               Skip Tour
             </button>
 
-            <div className="p-8">
+            <div className="p-4 md:p-8">
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mb-6 border border-cyan-500/20">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4 md:mb-6 border border-cyan-500/20">
                   {step.icon}
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-3">{step.title}</h3>
-                <p className="text-white/70 text-base leading-relaxed">{step.description}</p>
+                <div className="md:hidden mb-2">
+                  <span className="px-3 py-1 bg-cyan-500/20 rounded-full border border-cyan-500/30 text-xs text-cyan-300 font-medium">
+                    {currentStep + 1} / {TOUR_STEPS.length}
+                  </span>
+                </div>
+                <h3 className="text-lg md:text-2xl font-bold text-white mb-2 md:mb-3">{step.title}</h3>
+                <p className="text-white/70 text-sm md:text-base leading-relaxed">{step.description}</p>
               </div>
 
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/10">
+              <div className="flex items-center justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/10">
                 <Button
                   variant="ghost"
                   onClick={handleBack}
                   disabled={currentStep === 0}
-                  className="text-white/70 hover:text-white disabled:opacity-30"
+                  className="text-white/70 hover:text-white disabled:opacity-30 text-sm px-2 md:px-4"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Back
                 </Button>
 
-                <div className="flex gap-1.5">
+                <div className="hidden md:flex gap-1.5">
                   {TOUR_STEPS.map((_, index) => (
                     <div
                       key={index}
@@ -261,7 +274,7 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
 
                 <Button
                   onClick={handleNext}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white"
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm px-3 md:px-4"
                 >
                   {currentStep === TOUR_STEPS.length - 1 ? (
                     <>
@@ -285,10 +298,15 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
   );
 }
 
-export function useTour() {
+export function useTour(onboardingCompleted: boolean = false) {
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
+    if (!onboardingCompleted) {
+      setShowTour(false);
+      return;
+    }
+    
     const tourCompleted = localStorage.getItem("audnixTourCompleted");
     if (!tourCompleted) {
       const timer = setTimeout(() => {
@@ -296,7 +314,7 @@ export function useTour() {
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [onboardingCompleted]);
 
   const completeTour = useCallback(() => {
     localStorage.setItem("audnixTourCompleted", "true");

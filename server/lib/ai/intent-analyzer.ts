@@ -228,7 +228,7 @@ export async function suggestLeadTags(lead: Lead): Promise<string[]> {
     return ['new', lead.channel];
   }
 
-  const allMessages = messages.map((m: Message) => m.content).join(' ').toLowerCase();
+  const allMessages = messages.map((m: { content: any }) => m.content).join(' ').toLowerCase();
   
   if (allMessages.match(/\b(saas|software|app|tech|startup)\b/)) tags.push('tech');
   if (allMessages.match(/\b(retail|shop|store|ecommerce)\b/)) tags.push('retail');

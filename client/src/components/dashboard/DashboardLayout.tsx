@@ -137,7 +137,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   });
   const adminSecretPath = useAdminSecretPath();
 
-  const { showTour, completeTour, skipTour, replayTour } = useTour();
   const { showChecklist, isComplete: activationComplete, closeChecklist, openChecklist, handleComplete, activationState } = useActivationChecklist();
 
   const navGroups: NavGroup[] = [
@@ -212,6 +211,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     queryKey: ["/api/user/profile"],
     staleTime: Infinity,
   });
+
+  const onboardingCompleted = user?.metadata?.onboardingCompleted || false;
+  const { showTour, completeTour, skipTour, replayTour } = useTour(onboardingCompleted);
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
