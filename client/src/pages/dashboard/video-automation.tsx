@@ -657,7 +657,6 @@ export default function VideoAutomationPage() {
           description="Automatically detect buying intent in video comments and convert them into leads. Upgrade to unlock this powerful feature."
           requiredPlan="Starter"
           variant="card"
-          comingSoonFeature={true}
         >
           <div className="h-64 flex items-center justify-center">
             <div className="text-center">
