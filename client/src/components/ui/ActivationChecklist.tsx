@@ -291,7 +291,13 @@ export function useActivationChecklist() {
     const state = getActivationState();
     setActivationStateLocal(state);
     const completedCount = Object.values(state).filter(Boolean).length;
-    setIsComplete(completedCount === 4);
+    const allComplete = completedCount === 4;
+    setIsComplete(allComplete);
+    
+    if (allComplete) {
+      setShowChecklist(false);
+      return;
+    }
     
     if (completedCount < 4) {
       const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
@@ -309,7 +315,11 @@ export function useActivationChecklist() {
       const state = getActivationState();
       setActivationStateLocal(state);
       const completedCount = Object.values(state).filter(Boolean).length;
-      setIsComplete(completedCount === 4);
+      const allComplete = completedCount === 4;
+      setIsComplete(allComplete);
+      if (allComplete) {
+        setShowChecklist(false);
+      }
     }, 5000);
     return () => clearInterval(interval);
   }, []);

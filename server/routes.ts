@@ -334,13 +334,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map((e) => e.trim().toLowerCase())
         .filter((e) => e.length > 0);
       const isAdmin = adminWhitelist.includes(email.toLowerCase());
+      
+      // OWNER WHITELIST: Check if email qualifies for enterprise plan (owners get premium access)
+      const ownerWhitelistEnv = process.env.OWNER_WHITELIST_EMAILS || '';
+      const ownerWhitelist = ownerWhitelistEnv
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter((e) => e.length > 0);
+      const isOwner = ownerWhitelist.includes(email.toLowerCase());
+      
+      // Determine plan: owners get enterprise, everyone else gets trial
+      const userPlan = isOwner ? 'enterprise' : 'trial';
 
       // Create user account
       const user = await storage.createUser({
         email,
         password: hashedPassword,
         name,
-        plan: 'trial',
+        plan: userPlan,
         role: isAdmin ? 'admin' : 'member',
       });
 

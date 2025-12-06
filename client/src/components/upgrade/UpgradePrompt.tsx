@@ -1,8 +1,12 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Lock, Sparkles, X } from "lucide-react";
 import { useLocation } from "wouter";
+
+const UPGRADE_DISMISSED_KEY = 'audnixUpgradeDismissedAt';
+const DISMISS_DURATION_DAYS = 30;
 
 export type UpgradeVariant = 'trialExpired' | 'trialReminder' | 'planLimit' | 'featureLocked';
 
@@ -74,14 +78,37 @@ export function UpgradePrompt({
 }: UpgradePromptProps) {
   const content = contentMap[variant];
   const [, setLocation] = useLocation();
+  const [isDismissed, setIsDismissed] = useState(false);
+  
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem(UPGRADE_DISMISSED_KEY);
+    if (dismissedAt) {
+      const daysSinceDismissal = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissal < DISMISS_DURATION_DAYS) {
+        setIsDismissed(true);
+      } else {
+        localStorage.removeItem(UPGRADE_DISMISSED_KEY);
+      }
+    }
+  }, []);
   
   const handleUpgrade = () => {
     setLocation('/dashboard/pricing');
     onClose?.();
   };
+  
+  const handleDismiss = () => {
+    localStorage.setItem(UPGRADE_DISMISSED_KEY, Date.now().toString());
+    setIsDismissed(true);
+    onClose?.();
+  };
 
   const showDaysLeft = variant === 'trialReminder' && daysLeft !== undefined;
   const showLimitType = variant === 'planLimit' && limitType;
+  
+  if (isDismissed && !isBlocking) {
+    return null;
+  }
 
   return (
     <>
@@ -165,7 +192,7 @@ export function UpgradePrompt({
             {onClose && (
               <Button
                 variant="outline"
-                onClick={onClose}
+                onClick={handleDismiss}
                 className="flex-1"
               >
                 {isBlocking ? 'View Only' : 'Close'}

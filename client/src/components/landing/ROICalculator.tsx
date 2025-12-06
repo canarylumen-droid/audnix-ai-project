@@ -110,13 +110,13 @@ export function ROICalculator() {
                       value={[leadsPerMonth]}
                       onValueChange={([val]) => setLeadsPerMonth(val)}
                       min={50}
-                      max={1000}
+                      max={10000}
                       step={50}
                       className="cursor-pointer"
                     />
                     <div className="flex justify-between text-xs text-white/50">
                       <span>50</span>
-                      <span>1,000</span>
+                      <span>10,000</span>
                     </div>
                   </div>
 
@@ -198,11 +198,20 @@ export function ROICalculator() {
           </Card>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mt-8 text-center">
+        <motion.div variants={itemVariants} className="mt-8 text-center space-y-4">
           <p className="text-white/50 text-sm">
             Why 8-12x? Our AI learns from every conversation. It knows when leads open emails, 
             what objections they have, and the exact moment they're ready to buy.
           </p>
+          <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-2xl mx-auto">
+            <p className="text-white/70 text-sm">
+              <span className="text-emerald-400 font-semibold">How we achieve 18% conversion:</span>{" "}
+              Industry average is 2% because most follow-ups happen at the wrong time. 
+              Audnix AI analyzes engagement signals (email opens, link clicks, response patterns) 
+              and only reaches out when leads show buying intent. This timing precision, combined with 
+              personalized objection handling, has helped our users close 8-12x more deals consistently.
+            </p>
+          </div>
         </motion.div>
       </motion.div>
     </section>
