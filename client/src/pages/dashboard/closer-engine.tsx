@@ -233,8 +233,8 @@ export default function CloserEngineLive() {
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
                 Closer Engine Live
-                <Badge className="bg-emerald-500/20 text-emerald-300 text-xs font-normal">
-                  Real-time
+                <Badge className="bg-purple-500/20 text-purple-300 text-xs font-normal">
+                  Beta
                 </Badge>
               </h1>
               <p className="text-white/60 mt-1">
