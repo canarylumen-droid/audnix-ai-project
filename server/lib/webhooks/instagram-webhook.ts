@@ -66,8 +66,14 @@ function verifySignature(req: Request): boolean {
   const signature = req.headers['x-hub-signature-256'] as string;
   if (!signature) return false;
 
+  const appSecret = process.env.META_APP_SECRET || '';
+  if (!appSecret) {
+    console.error('META_APP_SECRET not configured');
+    return false;
+  }
+
   const expectedSignature = crypto
-    .createHmac('sha256', process.env.INSTAGRAM_APP_SECRET || '')
+    .createHmac('sha256', appSecret)
     .update(JSON.stringify(req.body))
     .digest('hex');
 
@@ -79,14 +85,17 @@ export function handleInstagramVerification(req: Request, res: Response): void {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const sanitizedChallenge = typeof challenge === 'string' 
-    ? challenge.replace(/[<>]/g, '') 
-    : '';
+  const verifyToken = process.env.META_VERIFY_TOKEN || 'audnixai';
+  
+  console.log('[Instagram Webhook] Verification request received');
+  console.log('[Instagram Webhook] Mode:', mode);
+  console.log('[Instagram Webhook] Token match:', token === verifyToken);
 
-  if (mode === 'subscribe' && token === process.env.INSTAGRAM_WEBHOOK_TOKEN) {
-    console.log('Instagram webhook verified');
-    res.status(200).type('text/plain').send(sanitizedChallenge);
+  if (mode === 'subscribe' && token === verifyToken) {
+    console.log('[Instagram Webhook] Verification successful');
+    res.status(200).type('text/plain').send(challenge);
   } else {
+    console.log('[Instagram Webhook] Verification failed - invalid token or mode');
     res.sendStatus(403);
   }
 }

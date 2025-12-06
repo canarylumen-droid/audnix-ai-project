@@ -2162,6 +2162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/webhook", webhookRouter);
   // Also mount webhooks at /api/webhooks for compatibility with documented URLs
   app.use("/api/webhooks", webhookRouter);
+  // Mount Instagram callback at /api/instagram for Meta webhook compatibility
+  app.use("/api/instagram", webhookRouter);
 
   // Register bulk actions routes
   app.use("/api/bulk", bulkActionsRoutes);

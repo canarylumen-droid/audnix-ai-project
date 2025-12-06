@@ -32,8 +32,8 @@ export class InstagramOAuth {
 
   constructor() {
     this.config = {
-      clientId: process.env.INSTAGRAM_APP_ID || '',
-      clientSecret: process.env.INSTAGRAM_APP_SECRET || '',
+      clientId: process.env.META_APP_ID || '',
+      clientSecret: process.env.META_APP_SECRET || '',
       redirectUri: getOAuthRedirectUrl('instagram')
     };
   }

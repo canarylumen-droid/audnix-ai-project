@@ -78,6 +78,28 @@ router.post('/instagram', async (req: Request, res: Response): Promise<void> => 
 });
 
 /**
+ * Instagram callback verification (GET request from Meta)
+ * URL: /api/instagram/callback
+ * This is the Meta-required endpoint format
+ */
+router.get('/callback', (req: Request, res: Response): void => {
+  console.log('[Instagram Callback] GET request received');
+  console.log('[Instagram Callback] Query params:', req.query);
+  handleInstagramVerification(req, res);
+});
+
+/**
+ * Instagram callback handler (POST events from Meta)
+ * URL: /api/instagram/callback
+ * This is the Meta-required endpoint format
+ */
+router.post('/callback', async (req: Request, res: Response): Promise<void> => {
+  console.log('[Instagram Callback] POST request received');
+  console.log('[Instagram Callback] Body:', JSON.stringify(req.body, null, 2));
+  await handleInstagramWebhook(req, res);
+});
+
+/**
  * Stripe webhook handler
  */
 router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void> => {

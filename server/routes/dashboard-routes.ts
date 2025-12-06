@@ -142,11 +142,13 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       id: user.id,
       email: user.email,
       username: user.username,
+      name: user.name,
       role: user.role || 'member',
       plan: user.plan,
       businessName: user.businessName,
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
+      metadata: metadata || {},
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch profile' });
