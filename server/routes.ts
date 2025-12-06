@@ -537,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/onboarding", requireAuth, async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
-      const { userRole, source, useCase, businessSize, tags } = req.body;
+      const { userRole, source, useCase, businessSize, tags, companyName } = req.body;
 
       // Validation
       if (!userRole) {
@@ -573,13 +573,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Mark onboarding as completed in user metadata
+      // Mark onboarding as completed in user metadata and store company name
       const user = await storage.getUserById(userId);
       if (user) {
         await storage.updateUser(userId, {
           metadata: {
             ...(user.metadata || {}),
             onboardingCompleted: true,
+            companyName: companyName || null,
           },
         });
       }

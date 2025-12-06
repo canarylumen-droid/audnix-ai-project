@@ -130,11 +130,14 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
     setLoading(true);
     
     try {
-      // Call the backend to mark onboarding as complete
-      await apiClient.post('/api/auth/complete-onboarding', {
+      // Call the backend to save onboarding profile and mark as complete
+      await apiClient.post('/api/onboarding', {
+        userRole,
+        source: source === 'Other' ? customSource : source,
+        useCase: useCase || selectedTags.join(', '),
+        businessSize,
+        tags: selectedTags,
         companyName: companyName.trim(),
-        businessDescription: useCase || selectedTags.join(', '),
-        industry: userRole,
       });
 
       toast({
