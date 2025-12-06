@@ -248,6 +248,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resend OTP with 60-second cooldown
+  app.post("/api/auth/resend-otp", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email required" });
+      }
+
+      const normalizedEmail = email.toLowerCase();
+
+      // Check if there's a recent OTP (within 60 seconds) to enforce cooldown
+      const latestOtp = await storage.getLatestOtpCode(normalizedEmail);
+      if (latestOtp) {
+        const otpCreatedAt = new Date(latestOtp.createdAt || Date.now());
+        const secondsSinceLastOtp = (Date.now() - otpCreatedAt.getTime()) / 1000;
+        const cooldownSeconds = 60;
+
+        if (secondsSinceLastOtp < cooldownSeconds) {
+          const remainingSeconds = Math.ceil(cooldownSeconds - secondsSinceLastOtp);
+          return res.status(429).json({ 
+            error: `Please wait ${remainingSeconds} seconds before requesting a new code`,
+            retryAfter: remainingSeconds
+          });
+        }
+      }
+
+      // Generate new 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Store in database
+      await storage.createOtpCode({
+        email: normalizedEmail,
+        code,
+        expiresAt,
+        attempts: 0,
+        verified: false
+      });
+
+      // Send email using SendGrid API (for now just log it if not configured)
+      const sendgridKey = process.env.TWILIO_SENDGRID_API_KEY;
+      if (sendgridKey) {
+        const { twilioEmailOTP } = await import('./lib/auth/twilio-email-otp.js');
+        await twilioEmailOTP.resendEmailOTP(normalizedEmail);
+      } else {
+        console.log(`[DEV] OTP Code for ${normalizedEmail}: ${code}`);
+      }
+
+      res.json({ success: true, message: "A new code has been sent to your email" });
+    } catch (error: any) {
+      console.error("Error resending OTP:", error);
+      res.status(500).json({ error: "Failed to resend code" });
+    }
+  });
+
   // Direct email/password signup (no email verification)
   app.post("/api/auth/signup", async (req, res) => {
     try {
