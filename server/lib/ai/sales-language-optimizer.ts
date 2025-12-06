@@ -120,10 +120,7 @@ export function applyMillionaireCloserTone(text: string): string {
   result = result.replace(/Unfortunately|regrettably/gi, "Here's what matters");
   result = result.replace(/I need to|Let me/gi, "");
 
-  // Inject confidence markers
-  if (!result.includes("For sure") && !result.includes("Absolutely") && !result.includes("Clearly")) {
-    result = "For sure — " + result;
-  }
+  // Note: Removed automatic "For sure —" prefix to keep responses natural and DM-style
 
   // Inject ROI language
   if (!result.includes("return") && !result.includes("conversion") && !result.includes("ROI")) {
@@ -280,7 +277,7 @@ export function injectMemoryCallbacks(text: string, conversationHistory: string[
   const lastMessage = conversationHistory[conversationHistory.length - 1] || "";
 
   if (lastMessage.includes("timing") && !result.includes("timing")) {
-    result = result.replace(/So|Therefore/, "Since timing matters — as you mentioned —");
+    result = result.replace(/So|Therefore/, "Since timing matters, as you mentioned,");
   }
 
   if (lastMessage.includes("goal") && !result.includes("goal")) {
@@ -317,12 +314,8 @@ export function enforceNonNegotiableRules(text: string): string {
     result = result.replace(/clients/, "serious, high-performing clients");
   }
 
-  // Rule 4: ADVANCE THE CLOSE
-  if (!result.includes("activate") && !result.includes("join") && !result.includes("agreement")) {
-    if (result.endsWith("?")) {
-      result = result.slice(0, -1) + " — ready to activate?";
-    }
-  }
+  // Rule 4: ADVANCE THE CLOSE - Keep natural, don't force em-dashes
+  // Note: Removed automatic " — ready to activate?" suffix to keep DM-style messages natural
 
   return result;
 }
