@@ -486,10 +486,6 @@ export default function IntegrationsPage() {
     i.provider === "voice" || uploadVoiceMutation.isSuccess
   );
 
-  const voiceMinutesUsed = 89;
-  const voiceMinutesLimit = 400;
-  const voicePercentage = (voiceMinutesUsed / voiceMinutesLimit) * 100;
-
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
       {/* Header */}
@@ -1061,16 +1057,8 @@ export default function IntegrationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
-            {/* Usage */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Voice Minutes Used</span>
-                <span className="text-sm text-muted-foreground" data-testid="text-voice-usage">
-                  {voiceMinutesUsed} / {voiceMinutesLimit} minutes
-                </span>
-              </div>
-              <Progress value={voicePercentage} className="h-2" data-testid="progress-voice-minutes" />
-            </div>
+            {/* Voice Minutes Widget - Real-time data */}
+            <VoiceMinutesWidget />
 
             {/* Upload Section */}
             <div className="space-y-4">

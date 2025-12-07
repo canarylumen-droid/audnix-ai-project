@@ -24,7 +24,7 @@ export default function Landing() {
       <HeroSection />
 
       {/* Smart Outreach System Section */}
-      <section className="py-16 px-4 bg-gradient-to-b from-emerald-500/5 to-cyan-500/5 border-b border-white/10">
+      <section id="features" className="py-16 px-4 bg-gradient-to-b from-emerald-500/5 to-cyan-500/5 border-b border-white/10">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
