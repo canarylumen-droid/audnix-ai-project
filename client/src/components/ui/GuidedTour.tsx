@@ -49,7 +49,7 @@ const TOUR_STEPS: TourStep[] = [
     id: "sales-assistant",
     title: "Your Intelligent Closer",
     description: "Paste what your prospect said, and get instant AI-powered responses to handle objections, adapt tone, and close the deal.",
-    targetSelector: "[data-testid='nav-item-sales assistant']",
+    targetSelector: "[data-testid='nav-item-objection handler']",
     icon: <Brain className="w-8 h-8 text-cyan-400" />,
     position: "right",
   },
