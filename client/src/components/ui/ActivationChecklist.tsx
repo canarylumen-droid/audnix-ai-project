@@ -287,19 +287,44 @@ export function useActivationChecklist() {
   const [isComplete, setIsComplete] = useState(false);
   const [activationState, setActivationStateLocal] = useState<ActivationState>(getActivationState);
 
+  const { data: user } = useQuery<any>({
+    queryKey: ["/api/user/profile"],
+    retry: false,
+    staleTime: 30000,
+  });
+
+  const { data: dashboardStats } = useQuery<any>({
+    queryKey: ["/api/dashboard/stats"],
+    retry: false,
+    staleTime: 30000,
+  });
+
   useEffect(() => {
-    const state = getActivationState();
-    setActivationStateLocal(state);
-    const completedCount = Object.values(state).filter(Boolean).length;
-    const allComplete = completedCount === 4;
-    setIsComplete(allComplete);
-    
-    if (allComplete) {
-      setShowChecklist(false);
-      return;
-    }
-    
-    if (completedCount < 4) {
+    if (user) {
+      const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
+      const hasEmailConnected = user.smtpConfigured || user.metadata?.smtpConnected || false;
+      const hasLeads = (dashboardStats?.leads || 0) > 0 || (dashboardStats?.totalLeads || 0) > 0;
+      const hasEngineActive = user.automationEnabled || hasLeads;
+
+      const newState: ActivationState = {
+        profile: hasCompletedOnboarding,
+        smtp: hasEmailConnected,
+        leads: hasLeads,
+        engine: hasEngineActive,
+      };
+
+      setActivationStateLocal(newState);
+      setActivationState(newState);
+
+      const completedCount = Object.values(newState).filter(Boolean).length;
+      const allComplete = completedCount === 4;
+      setIsComplete(allComplete);
+
+      if (allComplete) {
+        setShowChecklist(false);
+        return;
+      }
+
       const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
       if (!checklistDismissed) {
         const timer = setTimeout(() => {
@@ -307,8 +332,29 @@ export function useActivationChecklist() {
         }, 2000);
         return () => clearTimeout(timer);
       }
+    } else {
+      const state = getActivationState();
+      setActivationStateLocal(state);
+      const completedCount = Object.values(state).filter(Boolean).length;
+      const allComplete = completedCount === 4;
+      setIsComplete(allComplete);
+      
+      if (allComplete) {
+        setShowChecklist(false);
+        return;
+      }
+      
+      if (completedCount < 4) {
+        const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
+        if (!checklistDismissed) {
+          const timer = setTimeout(() => {
+            setShowChecklist(true);
+          }, 2000);
+          return () => clearTimeout(timer);
+        }
+      }
     }
-  }, []);
+  }, [user, dashboardStats]);
 
   useEffect(() => {
     const interval = setInterval(() => {
