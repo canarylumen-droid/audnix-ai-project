@@ -166,17 +166,17 @@ export default function TermsOfService() {
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">Instagram Private API Warning</h3>
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mt-2">
-                    <p className="text-amber-600 dark:text-amber-400 font-semibold mb-2">
-                      ⚠️ IMPORTANT: Using unofficial Instagram APIs carries risk
+                  <h3 className="font-semibold text-foreground mb-2">Instagram Integration</h3>
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 mt-2">
+                    <p className="text-emerald-600 dark:text-emerald-400 font-semibold mb-2">
+                      ✅ Official Instagram Graph API Integration
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Your Instagram account may be temporarily or permanently banned by Meta (not our platform)</li>
-                      <li>We provide safe rate limits (40 DMs/hour) and human-like delays, but cannot guarantee immunity</li>
-                      <li>We strongly recommend using official Instagram Graph API with Business/Creator accounts</li>
-                      <li>Use unofficial APIs at your own risk - Audnix AI is not liable for platform bans or restrictions</li>
-                      <li>We recommend creating a separate Instagram account for automation testing</li>
+                      <li>Audnix AI uses the official Instagram Graph API for all Instagram features</li>
+                      <li>Requires an Instagram Business or Creator account connected to a Facebook Page</li>
+                      <li>Uses Meta's official OAuth authentication flow for secure access</li>
+                      <li>Complies with Instagram Platform Policy and Meta's terms of service</li>
+                      <li>You are responsible for following Instagram Community Guidelines in your messaging</li>
                     </ul>
                   </div>
                 </div>

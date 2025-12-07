@@ -35,14 +35,14 @@ This document contains all the required information to complete your Meta Develo
 
 | Field | Value |
 |-------|-------|
-| **Street Address** | [Your Business Address] |
-| **Apt/Suite/Other** | (Optional) |
-| **City/District** | [Your City] |
-| **State/Province/Region** | [Your State] |
-| **ZIP/Postal Code** | [Your ZIP Code] |
-| **Country** | United States (or your country) |
+| **Street Address** | 251 18th Street |
+| **Apt/Suite/Other** | 7th Floor |
+| **City/District** | New York |
+| **State/Province/Region** | NY |
+| **ZIP/Postal Code** | 10011 |
+| **Country** | United States |
 
-**Note**: For the address, you can use a virtual business address or your registered business address. This information will be visible to people on Facebook along with other information about your app or website.
+**Note**: This address matches the one in your Privacy Policy. If you need to change it, update both the Privacy Policy page and this guide to keep them consistent.
 
 ---
 

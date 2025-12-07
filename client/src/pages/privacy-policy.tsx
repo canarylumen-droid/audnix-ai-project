@@ -282,16 +282,14 @@ export default function PrivacyPolicy() {
                   </div>
                 </div>
 
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-amber-400 mb-2">⚠️ Instagram Private API Warning</h4>
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                  <h4 className="font-semibold text-emerald-400 mb-2">✅ Official Instagram Graph API</h4>
                   <p className="text-sm">
-                    <strong>Important:</strong> Instagram's unofficial API is used for DM automation. While we implement safe rate limits 
-                    (40 DMs/hour) and human-like delays, there is always a risk of account restrictions from Meta. 
-                    We strongly recommend using Instagram Graph API (official) with a Business account for maximum safety.
+                    Audnix AI uses the official Instagram Graph API for all Instagram integrations. This ensures full compliance 
+                    with Meta's platform policies and provides secure, reliable access to messaging and content features.
                   </p>
                   <p className="text-sm mt-2">
-                    <strong>Your password is NEVER stored.</strong> It's used once during login to generate an encrypted session token, 
-                    then immediately discarded.
+                    <strong>OAuth Authentication:</strong> We use Meta's official OAuth flow. Your credentials are never accessed or stored by Audnix AI.
                   </p>
                 </div>
               </div>
@@ -324,7 +322,7 @@ export default function PrivacyPolicy() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">3. Password & Credential Security</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>Zero Password Storage:</strong> Instagram passwords are NEVER stored. They are used only once during authentication to generate encrypted session tokens, then immediately discarded from memory.</li>
+                    <li><strong>OAuth-Only Authentication:</strong> We use official OAuth flows for Instagram and other integrations. Your passwords are never accessed or stored by Audnix AI.</li>
                     <li><strong>SMTP Credentials:</strong> Business email credentials are encrypted with AES-256-GCM</li>
                     <li><strong>Session Tokens:</strong> Encrypted with AES-256-GCM and automatically rotated every 7 days</li>
                     <li><strong>Token Revocation:</strong> You can instantly revoke all access tokens from your dashboard</li>

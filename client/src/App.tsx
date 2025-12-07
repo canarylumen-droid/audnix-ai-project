@@ -10,6 +10,7 @@ import { OnboardingPage } from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
+import DataDeletion from "@/pages/data-deletion";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import ConversationsPage from "./pages/dashboard/conversations";
 import CalendarPage from "./pages/dashboard/calendar";
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
+      <Route path="/data-deletion" component={DataDeletion} />
       <Route path="/dashboard">
         {() => (
           <AuthGuard>

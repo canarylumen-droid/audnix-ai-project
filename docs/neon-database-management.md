@@ -153,3 +153,67 @@ AND "lastLogin" IS NULL;
 ```sql
 SELECT pg_size_pretty(pg_database_size(current_database()));
 ```
+
+---
+
+## Complete Full Reset (Database + Sessions + Cookies)
+
+When you want to completely reset EVERYTHING and start fresh:
+
+### Step 1: Clear All Database Tables
+
+Run this in Neon Console or Replit Database tab:
+
+```sql
+-- FULL RESET: Clears ALL data from ALL tables
+-- WARNING: This is irreversible!
+
+TRUNCATE TABLE messages CASCADE;
+TRUNCATE TABLE conversations CASCADE;
+TRUNCATE TABLE leads CASCADE;
+TRUNCATE TABLE deals CASCADE;
+TRUNCATE TABLE video_monitors CASCADE;
+TRUNCATE TABLE onboarding_profiles CASCADE;
+TRUNCATE TABLE oauth_accounts CASCADE;
+TRUNCATE TABLE otp_codes CASCADE;
+TRUNCATE TABLE session CASCADE;
+TRUNCATE TABLE users CASCADE;
+
+-- Verify tables are empty
+SELECT 'users' as table_name, COUNT(*) as count FROM users
+UNION ALL SELECT 'leads', COUNT(*) FROM leads
+UNION ALL SELECT 'conversations', COUNT(*) FROM conversations
+UNION ALL SELECT 'session', COUNT(*) FROM session;
+```
+
+### Step 2: Clear Browser Cookies
+
+After clearing the database, users need to clear their browser cookies to fully reset:
+
+**Option A: Manual (for single user)**
+1. Open browser DevTools (F12)
+2. Go to Application → Cookies → audnixai.com
+3. Delete all cookies (especially `audnix.sid`)
+
+**Option B: Instruct Users**
+Tell users to:
+1. Clear browser cookies for audnixai.com
+2. Or use an incognito/private window
+
+### Step 3: Restart the Server
+
+After database reset, restart the workflow to clear any cached sessions:
+- In Replit: Stop and restart the "Start Game" workflow
+- Or redeploy the application
+
+---
+
+## Can Users Re-Signup After Data Deletion?
+
+**Yes!** After their data is deleted:
+- Users can sign up again with the same email
+- They get a fresh account with no previous data
+- All features work normally
+- They start with a new trial period (if applicable)
+
+The email address is not blacklisted - deletion is a complete removal that allows re-registration.
