@@ -160,7 +160,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       label: "Automation & Deals",
       icon: Wrench,
       items: [
-        { label: "Workflows", icon: Zap, path: "/dashboard/conversations", requiresStep: "leads" },
         { label: "Deals", icon: Briefcase, path: "/dashboard/deals", requiresStep: "leads" },
         { label: "Calendar", icon: Calendar, path: "/dashboard/calendar", requiresStep: "smtp" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
