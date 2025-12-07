@@ -26,16 +26,17 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
   const fullText = `Hey ${capitalizedUsername}!`;
 
   const confetti = useMemo(() => {
-    const centerX = 50;
-    const spreadRadius = 30;
-    return Array.from({ length: 35 }, (_, i) => ({
+    const goldColors = ["#FFD700", "#FFC107", "#F7C948", "#F9A825", "#FFEB3B", "#FFE082"];
+    return Array.from({ length: 50 }, (_, i) => ({
       id: i,
-      left: centerX + (Math.random() - 0.5) * spreadRadius * 2,
-      delay: Math.random() * 0.3,
-      emoji: ["🎉", "✨", "🌟", "💫"][Math.floor(Math.random() * 4)],
-      size: 18 + Math.random() * 12,
-      duration: 3.5 + Math.random() * 1.5,
-      xDrift: (Math.random() - 0.5) * 100,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.8,
+      color: goldColors[Math.floor(Math.random() * goldColors.length)],
+      size: 8 + Math.random() * 8,
+      duration: 2.5 + Math.random() * 2,
+      xDrift: (Math.random() - 0.5) * 150,
+      rotation: Math.random() * 360,
+      shape: Math.random() > 0.5 ? 'circle' : 'square',
     }));
   }, []);
 
@@ -114,32 +115,34 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
         <motion.div
           key={piece.id}
           initial={{ 
-            y: -50, 
+            y: -20, 
             x: 0,
             opacity: 1, 
-            rotate: 0, 
-            scale: 0.5 
+            rotate: piece.rotation, 
+            scale: 0 
           }}
           animate={{ 
-            y: windowHeight * 0.6, 
+            y: windowHeight + 50, 
             x: piece.xDrift,
-            opacity: [1, 1, 0.6, 0], 
-            rotate: 180 + Math.random() * 180,
-            scale: [0.5, 1, 0.7]
+            opacity: [0, 1, 1, 0.8, 0], 
+            rotate: piece.rotation + 720,
+            scale: [0, 1, 1, 0.8]
           }}
           transition={{
             duration: piece.duration,
             delay: piece.delay,
-            ease: [0.25, 0.46, 0.45, 0.94],
+            ease: [0.12, 0, 0.39, 0],
           }}
           style={{ 
             left: `${piece.left}%`,
-            fontSize: `${piece.size}px`,
+            width: `${piece.size}px`,
+            height: piece.shape === 'circle' ? `${piece.size}px` : `${piece.size * 1.5}px`,
+            backgroundColor: piece.color,
+            borderRadius: piece.shape === 'circle' ? '50%' : '2px',
+            boxShadow: `0 0 ${piece.size / 2}px ${piece.color}`,
           }}
           className="absolute pointer-events-none"
-        >
-          {piece.emoji}
-        </motion.div>
+        />
       ))}
     </motion.div>
   );

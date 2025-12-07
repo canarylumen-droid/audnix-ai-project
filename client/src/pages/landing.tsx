@@ -905,6 +905,9 @@ export default function Landing() {
                 <li>
                   <Link href="/terms-of-service" className="text-white/60 hover:text-primary transition-colors">Terms of Service</Link>
                 </li>
+                <li>
+                  <Link href="/data-deletion" className="text-white/60 hover:text-primary transition-colors">Data Deletion</Link>
+                </li>
               </ul>
             </div>
 

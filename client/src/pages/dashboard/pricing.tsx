@@ -26,6 +26,7 @@ export default function PricingPage() {
   });
 
   const currentPlan = user?.subscriptionTier || user?.plan || 'trial';
+  const isPaidUser = currentPlan !== 'trial' && currentPlan !== '';
 
   const handleUpgrade = async (planId: string) => {
     if (currentPlan === planId) return;
@@ -79,8 +80,8 @@ export default function PricingPage() {
         </motion.div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          {pricingTiers.map((tier, index) => {
+        <div className={`grid gap-6 mb-8 ${isPaidUser ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-5'}`}>
+          {pricingTiers.filter(tier => isPaidUser ? tier.id !== 'trial' : true).map((tier, index) => {
             const isPopular = tier.id === 'pro';
             const isCurrentPlan = currentPlan === tier.id;
             const isPaidPlan = tier.id !== 'trial';
