@@ -135,8 +135,11 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       return;
     }
 
+    const onboardingProfile = await storage.getOnboardingProfile(userId);
     const metadata = user.metadata as Record<string, unknown> | null;
     const voiceNotesEnabled = metadata?.voiceNotesEnabled !== false;
+    
+    const hasCompletedOnboarding = onboardingProfile?.completed || (metadata?.onboardingCompleted as boolean) || false;
 
     res.json({
       id: user.id,
@@ -148,7 +151,10 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       businessName: user.businessName,
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
-      metadata: metadata || {},
+      metadata: {
+        ...(metadata || {}),
+        onboardingCompleted: hasCompletedOnboarding,
+      },
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch profile' });

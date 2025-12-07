@@ -130,7 +130,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     "Leads": true,
     "Closer Engine Live": true,
-    "Conversations": false,
     "Automation & Deals": false,
     "Insights": false,
     "Account & Billing": false,
@@ -155,14 +154,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       defaultOpen: true,
       items: [
         { label: "Objection Handler", icon: Phone, path: "/dashboard/closer-engine" },
-      ],
-    },
-    {
-      label: "Conversations",
-      icon: MessageSquare,
-      defaultOpen: false,
-      items: [
-        { label: "Inbox", icon: Inbox, path: "/dashboard/inbox", requiresStep: "smtp" },
       ],
     },
     {
