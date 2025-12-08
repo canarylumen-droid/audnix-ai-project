@@ -5,6 +5,7 @@ import { followUpWorker } from '../ai/follow-up-worker.js';
 import { saveConversationToMemory } from '../ai/conversation-ai.js';
 import { storage } from '../../storage.js';
 import crypto from 'crypto';
+import { recordWebhookEvent } from '../../routes/instagram-status.js';
 
 interface InstagramMessage {
   sender: { id: string };
@@ -102,37 +103,66 @@ export function handleInstagramVerification(req: Request, res: Response): void {
 
 export async function handleInstagramWebhook(req: Request, res: Response): Promise<void> {
   try {
+    console.log('[IG_EVENT] Webhook received:', JSON.stringify(req.body, null, 2));
+    recordWebhookEvent();
+    
     if (!verifySignature(req)) {
+      console.log('[IG_EVENT] Signature verification failed');
       res.sendStatus(403);
       return;
     }
 
     const { object, entry } = req.body as { object: string; entry: InstagramWebhookEntry[] };
+    console.log(`[IG_EVENT] Object: ${object}, Entries: ${entry?.length || 0}`);
 
     if (object !== 'instagram') {
+      console.log(`[IG_EVENT] Ignoring non-instagram object: ${object}`);
       res.sendStatus(404);
       return;
     }
 
     for (const item of entry) {
+      console.log(`[IG_EVENT] Processing entry ID: ${item.id}, Time: ${item.time}`);
+      
       if (item.messaging) {
         for (const message of item.messaging) {
+          const eventType = message.message ? 'message' : 
+                           message.postback ? 'postback' : 
+                           'unknown';
+          console.log(`[IG_EVENT] Message event: ${eventType}, Sender: ${message.sender.id}`);
+          
+          if (message.message?.text) {
+            console.log(`[IG_EVENT] Message text: "${message.message.text.substring(0, 100)}..."`);
+          }
+          
           await processInstagramMessage(message);
         }
       }
 
       if (item.changes) {
         for (const change of item.changes) {
+          console.log(`[IG_EVENT] Change event: ${change.field}`);
+          
           if (change.field === 'comments') {
+            console.log(`[IG_EVENT] Comment from: ${change.value.from?.username}, text: "${change.value.text?.substring(0, 100)}..."`);
             await processInstagramComment(change.value);
+          } else if (change.field === 'message_reactions') {
+            console.log(`[IG_EVENT] Message reaction received`);
+          } else if (change.field === 'messaging_seen') {
+            console.log(`[IG_EVENT] Message seen event`);
+          } else if (change.field === 'messaging_postbacks') {
+            console.log(`[IG_EVENT] Postback event`);
+          } else if (change.field === 'messaging_referral') {
+            console.log(`[IG_EVENT] Referral event`);
           }
         }
       }
     }
 
+    console.log('[IG_EVENT] Webhook processed successfully');
     res.sendStatus(200);
   } catch (error) {
-    console.error('Error handling Instagram webhook:', error);
+    console.error('[IG_EVENT] Error handling Instagram webhook:', error);
     res.sendStatus(500);
   }
 }

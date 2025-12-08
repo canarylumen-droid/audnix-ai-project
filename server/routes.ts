@@ -2216,6 +2216,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/admin", adminPdfRoutesV2);
   app.use("/api/brand-pdf", adminPdfRoutes);
 
+  // Register email tracking routes (open/click tracking pixels)
+  // Note: Using /api/email-tracking to avoid conflict with /api/email (email stats)
+  app.use("/api/email-tracking", emailTrackingRoutes);
+  
+  // Register DNS verification routes (SPF/DKIM/DMARC)
+  app.use("/api/dns", dnsVerificationRoutes);
+  
+  // Register Instagram status routes (webhook status, logs)
+  app.use("/api/instagram", instagramStatusRoutes);
+
   const httpServer = createServer(app);
 
   // Initialize follow-up worker on server start

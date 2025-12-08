@@ -25,7 +25,7 @@ export function generateTrackingToken(): string {
 }
 
 export function generateTrackingPixel(baseUrl: string, token: string): string {
-  return `<img src="${baseUrl}/api/email/track/open/${token}" width="1" height="1" style="display:none;" alt="" />`;
+  return `<img src="${baseUrl}/api/email-tracking/track/open/${token}" width="1" height="1" style="display:none;" alt="" />`;
 }
 
 export function wrapLinksWithTracking(html: string, baseUrl: string, messageToken: string): string {
@@ -37,7 +37,7 @@ export function wrapLinksWithTracking(html: string, baseUrl: string, messageToke
     }
     
     const encodedUrl = encodeURIComponent(url);
-    const trackingUrl = `${baseUrl}/api/email/track/click/${messageToken}?url=${encodedUrl}`;
+    const trackingUrl = `${baseUrl}/api/email-tracking/track/click/${messageToken}?url=${encodedUrl}`;
     return `<a ${prefix}${trackingUrl}${suffix}>`;
   });
 }
