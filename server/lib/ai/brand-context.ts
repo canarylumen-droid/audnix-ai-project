@@ -15,6 +15,12 @@ export interface BrandContext {
     prefer?: string[];
     avoid?: string[];
   };
+  // Auto-send links from brand PDF
+  meetingLink?: string | null; // Calendly, Cal.com, booking link
+  paymentLink?: string | null; // Stripe, PayPal, bank details
+  appLink?: string | null; // SaaS app, download link
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }
 
 /**
@@ -48,6 +54,12 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
         prefer: [],
         avoid: [],
       },
+      // Auto-send links from brand PDF
+      meetingLink: metadata.meeting_link || metadata.calendly_link || metadata.booking_link || null,
+      paymentLink: metadata.payment_link || metadata.stripe_link || metadata.bank_details || null,
+      appLink: metadata.app_link || metadata.signup_link || metadata.download_link || null,
+      contactEmail: metadata.contact_email || user.email || null,
+      contactPhone: metadata.contact_phone || null,
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);

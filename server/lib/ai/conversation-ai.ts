@@ -7,6 +7,7 @@ import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationRespon
 import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection.js';
 import { optimizeSalesLanguage } from './sales-language-optimizer.js';
 import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
+import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key"
@@ -449,6 +450,19 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
 
 
   try {
+    // First check if lead is requesting a meeting, payment, or app link
+    const linkIntent = await detectAndGenerateLinkResponse(lead.userId, lastMessage.body);
+    
+    // If strong intent detected with available link, use that response
+    if (linkIntent.detected && linkIntent.confidence >= 0.5 && linkIntent.suggestedResponse) {
+      console.log(`🔗 Auto-detected ${linkIntent.intentType} intent - sending link`);
+      return {
+        text: optimizeSalesLanguage(linkIntent.suggestedResponse),
+        useVoice: false,
+        detections: { language: languageDetection }
+      };
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -459,7 +473,10 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       max_tokens: platform === 'email' ? 300 : 150,
     });
 
-    const responseText = completion.choices[0]?.message?.content || "";
+    let responseText = completion.choices[0]?.message?.content || "";
+    
+    // Append meeting/payment/app link if detected with lower confidence
+    responseText = await appendLinkIfNeeded(lead.userId, lastMessage.body, responseText);
 
     return {
       text: optimizeSalesLanguage(responseText),

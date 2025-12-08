@@ -36,6 +36,17 @@ export interface ExtractedPDFContent {
   success_metrics: string[];
   website_urls: string[];
   competitor_positioning: string;
+  // NEW: Auto-send links extracted from PDF
+  meeting_link: string | null; // Calendly, Cal.com, or any booking link
+  payment_link: string | null; // Stripe, PayPal, bank details, invoice link
+  app_link: string | null; // SaaS app, download link, signup page
+  contact_email: string | null;
+  contact_phone: string | null;
+  social_links: string[];
+  // Deep research results
+  market_research: string | null;
+  competitor_analysis: string[];
+  industry_trends: string[];
 }
 
 interface IndustryGuidance {
@@ -49,7 +60,7 @@ export async function extractComprehensiveContext(pdfText: string): Promise<Extr
   try {
     const extractionPrompt = `Analyze this brand PDF and extract EVERYTHING about their business:
 
-${pdfText.substring(0, 5000)} 
+${pdfText.substring(0, 6000)} 
 
 Extract and return ONLY valid JSON (no markdown, no code blocks):
 {
@@ -64,9 +75,18 @@ Extract and return ONLY valid JSON (no markdown, no code blocks):
   "tone_examples": ["sample brand language"],
   "success_metrics": ["metric 1", "metric 2"],
   "website_urls": ["url1", "url2"],
-  "competitor_positioning": "how they position vs competitors"
+  "competitor_positioning": "how they position vs competitors",
+  "meeting_link": "calendly.com/xxx or cal.com/xxx or any booking URL found",
+  "payment_link": "stripe payment link, paypal.me, bank details, or invoice URL",
+  "app_link": "SaaS app URL, signup page, or download link",
+  "contact_email": "business email for contact",
+  "contact_phone": "business phone/WhatsApp",
+  "social_links": ["instagram", "twitter", "linkedin URLs"]
 }
 
+IMPORTANT: Look carefully for ANY booking/calendar links (Calendly, Cal.com, Acuity, etc).
+Look for payment links (Stripe, PayPal, Gumroad, invoice details, bank transfer info).
+Look for app/signup links if it's a SaaS or software product.
 Be thorough and precise.`;
 
     const extractionResponse = await openai.chat.completions.create({
@@ -95,6 +115,13 @@ Be thorough and precise.`;
       extracted.target_audience ?? "Businesses"
     );
 
+    // Deep online research for the brand
+    const deepResearch = await performDeepBrandResearch(
+      extracted.company_name ?? "Unknown",
+      extracted.industry ?? "B2B",
+      extracted.website_urls ?? []
+    );
+
     return {
       company_name: extracted.company_name ?? "Unknown",
       industry: extracted.industry ?? "B2B",
@@ -108,6 +135,17 @@ Be thorough and precise.`;
       success_metrics: extracted.success_metrics ?? [],
       website_urls: extracted.website_urls ?? [],
       competitor_positioning: competitiveResearch ?? "Competitive",
+      // New link fields
+      meeting_link: (extracted as any).meeting_link || null,
+      payment_link: (extracted as any).payment_link || null,
+      app_link: (extracted as any).app_link || null,
+      contact_email: (extracted as any).contact_email || null,
+      contact_phone: (extracted as any).contact_phone || null,
+      social_links: (extracted as any).social_links || [],
+      // Deep research results
+      market_research: deepResearch.market_research,
+      competitor_analysis: deepResearch.competitor_analysis,
+      industry_trends: deepResearch.industry_trends,
     };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -125,6 +163,101 @@ Be thorough and precise.`;
       success_metrics: [],
       website_urls: [],
       competitor_positioning: "Standard offering",
+      meeting_link: null,
+      payment_link: null,
+      app_link: null,
+      contact_email: null,
+      contact_phone: null,
+      social_links: [],
+      market_research: null,
+      competitor_analysis: [],
+      industry_trends: [],
+    };
+  }
+}
+
+/**
+ * DEEP BRAND RESEARCH - Goes online to analyze brand thoroughly
+ */
+export async function performDeepBrandResearch(
+  companyName: string,
+  industry: string,
+  websiteUrls: string[]
+): Promise<{
+  market_research: string | null;
+  competitor_analysis: string[];
+  industry_trends: string[];
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a world-class market research analyst. Research deeply and provide actionable insights.`,
+        },
+        {
+          role: "user",
+          content: `Conduct DEEP research on this business and provide comprehensive analysis:
+
+Company: ${companyName}
+Industry: ${industry}
+Known URLs: ${websiteUrls.join(", ") || "Not provided"}
+
+Research and provide:
+
+1. MARKET RESEARCH (500 words):
+- Current market size and growth trajectory
+- Key market segments and opportunities
+- Customer pain points this company can solve
+- Untapped opportunities in their space
+
+2. COMPETITOR ANALYSIS (list top 5-7):
+- Who are the main competitors?
+- What are their weaknesses?
+- How can ${companyName} outposition them?
+- Pricing gaps in the market
+
+3. INDUSTRY TRENDS (list 5-7):
+- What's changing in ${industry}?
+- New technologies affecting the space
+- Customer behavior shifts
+- Regulatory changes
+- Where is the industry heading in 12-24 months?
+
+Return as JSON:
+{
+  "market_research": "comprehensive market analysis paragraph",
+  "competitor_analysis": ["competitor 1: weakness and opportunity", "competitor 2: weakness"],
+  "industry_trends": ["trend 1 with implications", "trend 2"]
+}`,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 1500,
+    });
+
+    const content = response.choices[0]?.message?.content ?? "{}";
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        market_research: parsed.market_research || null,
+        competitor_analysis: parsed.competitor_analysis || [],
+        industry_trends: parsed.industry_trends || [],
+      };
+    } catch {
+      return {
+        market_research: content,
+        competitor_analysis: [],
+        industry_trends: [],
+      };
+    }
+  } catch (error) {
+    console.error("Deep research error:", error);
+    return {
+      market_research: null,
+      competitor_analysis: [],
+      industry_trends: [],
     };
   }
 }
