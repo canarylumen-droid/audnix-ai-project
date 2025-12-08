@@ -3,6 +3,7 @@ import { supabaseAdmin } from '../supabase-admin.js';
 import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
 import { followUpWorker } from '../ai/follow-up-worker.js';
 import { saveConversationToMemory } from '../ai/conversation-ai.js';
+import { scheduleAutomatedDMReply, checkUserAutomationSettings } from '../ai/dm-automation.js';
 import { storage } from '../../storage.js';
 import crypto from 'crypto';
 import { recordWebhookEvent } from '../../routes/instagram-status.js';
@@ -348,6 +349,28 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
       console.error('Failed to save conversation to memory:', memoryError);
     }
 
+    try {
+      const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
+      
+      if (automationSettings.enabled && newStatus !== 'not_interested') {
+        console.log(`[IG_EVENT] Scheduling automated DM reply for lead ${lead.name}`);
+        
+        await scheduleAutomatedDMReply(
+          typedIntegration.user_id,
+          lead.id,
+          senderId,
+          messageText,
+          intent
+        );
+        
+        console.log(`[IG_EVENT] Automated reply scheduled with 2-8 min delay`);
+      } else {
+        console.log(`[IG_EVENT] DM automation skipped - enabled: ${automationSettings.enabled}, status: ${newStatus}`);
+      }
+    } catch (automationError) {
+      console.error('[IG_EVENT] Error scheduling DM automation:', automationError);
+    }
+
   } catch (error) {
     console.error('Error processing Instagram message:', error);
   }
@@ -450,6 +473,24 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
 
       if (queueError) {
         console.error('Error adding to follow-up queue:', queueError);
+      }
+
+      try {
+        const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
+        
+        if (automationSettings.enabled) {
+          console.log(`[IG_EVENT] Scheduling automated DM reply for comment from ${from.username}`);
+          
+          await scheduleAutomatedDMReply(
+            typedIntegration.user_id,
+            lead.id,
+            from.id,
+            text,
+            intent
+          );
+        }
+      } catch (automationError) {
+        console.error('[IG_EVENT] Error scheduling comment DM automation:', automationError);
       }
     }
 
