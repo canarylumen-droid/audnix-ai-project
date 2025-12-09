@@ -154,59 +154,57 @@ export default function PrivacyPolicy() {
             <Card className="p-8 border-primary/20">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Calendar className="w-6 h-6 text-primary" />
-                Google Calendar Integration - Detailed Scope Explanation
+                Calendly Integration - Auto-Booking Explanation
               </h2>
               <div className="space-y-6 text-muted-foreground">
                 <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
                   <h3 className="font-bold text-foreground mb-2 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-emerald-400" />
-                    Why We Need Calendar Access
+                    Auto-Booking with Calendly
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automatically books calls with leads. To prevent double-bookings and suggest available times, 
-                    we need to check your calendar availability and create events.
+                    Audnix AI integrates with Calendly to automatically book calls with leads. When a lead shows interest,
+                    our AI sends them your Calendly link so they can book directly on your calendar.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-foreground mb-3">Scopes We Request (2 Minimal Scopes Only)</h3>
+                  <h3 className="font-semibold text-foreground mb-3">How Auto-Booking Works</h3>
                   
                   <div className="space-y-4">
                     <div className="border-l-4 border-emerald-500 pl-4">
-                      <h4 className="font-semibold text-foreground">1. calendar.events</h4>
-                      <p className="text-sm mt-1"><strong>What it allows:</strong> Create, edit, and delete calendar events</p>
-                      <p className="text-sm mt-1"><strong>Why we need it:</strong></p>
+                      <h4 className="font-semibold text-foreground">1. Calendly Link Integration</h4>
+                      <p className="text-sm mt-1"><strong>What happens:</strong> Connect your Calendly account or paste your booking link</p>
                       <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Automatically create calendar events when leads book calls</li>
-                        <li>Add Google Meet links for video calls</li>
-                        <li>Send calendar invites to leads automatically</li>
-                        <li>Update event details if leads reschedule</li>
+                        <li>AI detects when leads are ready to book a call</li>
+                        <li>Automatically sends your Calendly link in the conversation</li>
+                        <li>Leads book directly on your calendar - no back-and-forth</li>
+                        <li>You get notified when new bookings are made</li>
                       </ul>
-                      <p className="text-sm mt-2 text-emerald-400"><strong>What we DON'T do:</strong> We only create events related to Audnix lead bookings. We never modify your personal events.</p>
+                      <p className="text-sm mt-2 text-emerald-400"><strong>Your control:</strong> You set your availability in Calendly. We just share the link at the right moment.</p>
                     </div>
 
                     <div className="border-l-4 border-cyan-500 pl-4">
-                      <h4 className="font-semibold text-foreground">2. calendar.events.readonly</h4>
-                      <p className="text-sm mt-1"><strong>What it allows:</strong> View existing calendar events (read-only)</p>
-                      <p className="text-sm mt-1"><strong>Why we need it:</strong></p>
+                      <h4 className="font-semibold text-foreground">2. Booking Confirmation</h4>
+                      <p className="text-sm mt-1"><strong>What happens:</strong> After a lead books</p>
                       <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Check your availability before suggesting call times to leads</li>
-                        <li>Prevent double-bookings by detecting conflicts</li>
-                        <li>Suggest alternative times if requested slot is already taken</li>
-                        <li>Show your upcoming appointments in Audnix dashboard</li>
+                        <li>Calendly sends both you and the lead confirmation emails</li>
+                        <li>Event is added to your calendar automatically</li>
+                        <li>Audnix tracks the booking in your lead pipeline</li>
+                        <li>Lead status updates to "Booked Call"</li>
                       </ul>
-                      <p className="text-sm mt-2 text-cyan-400"><strong>What we DON'T do:</strong> We never read event content (e.g., meeting notes). We only check start/end times for availability.</p>
+                      <p className="text-sm mt-2 text-cyan-400"><strong>Privacy:</strong> We only know that a booking was made. We don't access your Calendly calendar data.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                  <h4 className="font-semibold text-emerald-400 mb-2">✅ Calendar Data Usage</h4>
+                  <h4 className="font-semibold text-emerald-400 mb-2">✅ Calendly Integration Benefits</h4>
                   <ul className="text-sm space-y-1">
-                    <li>✓ We only check if time slots are "busy" or "free" - no event details are stored</li>
-                    <li>✓ Calendar data is processed in real-time and never permanently stored</li>
-                    <li>✓ You can disconnect your calendar at any time without losing lead data</li>
-                    <li>✓ Events created by Audnix are clearly labeled so you can identify them</li>
+                    <li>✓ No manual scheduling - leads book when they're hot</li>
+                    <li>✓ Your availability is always accurate (managed in Calendly)</li>
+                    <li>✓ Automatic reminders sent to leads before calls</li>
+                    <li>✓ Disconnect anytime without losing lead data</li>
                   </ul>
                 </div>
               </div>

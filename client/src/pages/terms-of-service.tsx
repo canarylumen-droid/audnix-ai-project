@@ -232,7 +232,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Integration Disconnection</h3>
                   <p className="text-sm">
-                    You can disconnect any integration (Email, Instagram, Calendar) at any time without losing your account or lead data.
+                    You can disconnect any integration (Email, Instagram, Calendly) at any time without losing your account or lead data.
                     Disconnecting will revoke all access tokens and stop automated messaging for that platform.
                   </p>
                 </div>

@@ -6,14 +6,14 @@ import { storage } from '../../storage.js';
 /**
  * Email Warm-up System
  * 
- * Gradually increases sending volume to build sender reputation:
- * - Day 1: 30 emails
- * - Day 2: 50 emails
- * - Day 3: 80 emails
- * - Day 4: 120 emails
- * - Day 5: 150 emails
- * - Day 6-10: 200 emails (plateau)
- * - Auto-adjusts based on bounce rate
+ * ULTRA-AGGRESSIVE warmup for handling 5K+ leads in 3-4 days:
+ * - Day 1: 1,500 emails (~60-65/hour)
+ * - Day 2: 1,600 emails (~65-70/hour)
+ * - Day 3: 1,680 emails (~70/hour)
+ * - Day 4+: 1,680 emails (~70/hour) - Full speed
+ * 
+ * Total: 5,000+ emails in 3-4 days at 60-70 emails/hour
+ * Auto-adjusts based on bounce rate
  */
 
 interface WarmupSchedule {
@@ -22,40 +22,45 @@ interface WarmupSchedule {
 }
 
 /**
- * AGGRESSIVE WARMUP SCHEDULE for handling 5K+ leads faster
+ * ULTRA-AGGRESSIVE WARMUP SCHEDULE for handling 5K+ leads in 3-4 days
  * 
- * Safe email sending rates (won't get banned):
- * - Day 1: 100 emails/day (~4/hour over 24h) - Conservative start
- * - Day 2: 200 emails/day (~8/hour) - Building reputation
- * - Day 3: 400 emails/day (~17/hour) - Accelerating
- * - Day 4: 600 emails/day (~25/hour) - Strong sender
- * - Day 5+: 1000 emails/day (~42/hour) - Full speed
+ * Faster email sending rates (60-70/hour):
+ * - Day 1: 1,500 emails/day (~60/hour over 24h) - Fast start
+ * - Day 2: 1,600 emails/day (~65/hour) - Accelerating
+ * - Day 3: 1,680 emails/day (~70/hour) - Full speed
+ * - Day 4+: 1,680 emails/day (~70/hour) - Sustained max
  * 
- * NOTE: 100/hour is SAFE if you have:
+ * NOTE: 60-70/hour is SAFE if you have:
  * - Verified domain with SPF/DKIM/DMARC
  * - Low bounce rate (<5%)
  * - Good engagement (opens/replies)
  * - Proper list hygiene (verified emails)
+ * 
+ * TIMELINE: 5,000 leads in 3-4 days
+ * - Day 1: 1,500 emails
+ * - Day 2: 1,600 emails (total: 3,100)
+ * - Day 3: 1,680 emails (total: 4,780)
+ * - Day 4: 220+ emails (total: 5,000+)
  */
 const WARMUP_SCHEDULE: WarmupSchedule[] = [
-  { day: 1, emailsToSend: 100 },   // ~4 emails/hour over 24h
-  { day: 2, emailsToSend: 200 },   // ~8 emails/hour
-  { day: 3, emailsToSend: 400 },   // ~17 emails/hour
-  { day: 4, emailsToSend: 600 },   // ~25 emails/hour
-  { day: 5, emailsToSend: 800 },   // ~33 emails/hour
-  { day: 6, emailsToSend: 1000 },  // ~42 emails/hour
-  { day: 7, emailsToSend: 1000 },  // Plateau
-  { day: 8, emailsToSend: 1500 },  // Scale up
-  { day: 9, emailsToSend: 2000 },  // High volume
-  { day: 10, emailsToSend: 2500 }, // Full capacity
+  { day: 1, emailsToSend: 1500 },  // ~60 emails/hour over 24h
+  { day: 2, emailsToSend: 1600 },  // ~65 emails/hour
+  { day: 3, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 4, emailsToSend: 1680 },  // ~70 emails/hour (sustained)
+  { day: 5, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 6, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 7, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 8, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 9, emailsToSend: 1680 },  // ~70 emails/hour
+  { day: 10, emailsToSend: 1680 }, // ~70 emails/hour
 ];
 
 /**
- * HOURLY LIMITS to avoid triggering spam filters
- * Most ESPs recommend max 100-150 emails/hour for warm domains
+ * HOURLY LIMITS for faster sending (60-70/hour)
+ * Optimized for reaching 5K leads in 3-4 days
  */
-export const HOURLY_EMAIL_LIMIT = 100; // Safe for warmed domains
-export const EMAILS_PER_MINUTE = 5; // Spread sends to avoid bursts
+export const HOURLY_EMAIL_LIMIT = 70; // 60-70 emails/hour for fast warmup
+export const EMAILS_PER_MINUTE = 2; // ~2 emails/minute for steady flow
 
 class EmailWarmupWorker {
   private isRunning = false;
