@@ -37,6 +37,14 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 9, 2025)
+- **Aggressive CTA Copy:** Updated all landing page CTAs to "Recover My Clients" (header) and "Recover My Lost Clients" (hero/calculator) for psychological impact
+- **Calendly-Only Booking:** Removed all Google Calendar references from UI - Calendly is the only booking integration
+- **Auto-Booking Context:** Added explanation in Calendly settings - "AI automatically books meetings when leads show buying intent"
+- **WhatsApp Cleanup:** Fixed integrations page hooks error by removing remaining WhatsApp code
+- **Settings Page:** Calendar tab now references only Calendly, not Google Calendar
+- **CalendlyConnectUI:** Removed Google Calendar card entirely, updated info banner to focus on Calendly + Audnix auto-booking
+
 ### Recent Changes (Dec 5, 2025)
 - **TypeScript Fix:** Fixed intent-analyzer.ts compilation errors (OpenAI imports, type annotations) - Vercel deployment unblocked
 - **Security Update:** Verified jws package override set to ^4.0.0 for HMAC vulnerability patch
