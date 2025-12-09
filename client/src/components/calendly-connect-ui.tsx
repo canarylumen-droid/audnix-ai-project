@@ -7,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface CalendarStatus {
   calendly: { connected: boolean; accountType: string | null };
-  google: { connected: boolean; accountType: string | null };
+  google?: { connected: boolean; accountType: string | null }; // legacy - not displayed
   primary: string | null;
   message: string;
 }
@@ -250,37 +250,9 @@ export function CalendlyConnectUI() {
         </CardContent>
       </Card>
 
-      {/* Google Calendar Status */}
-      <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>📆 Google Calendar</span>
-            {status?.google.connected ? (
-              <CheckCircle className="w-5 h-5 text-green-500" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-gray-400" />
-            )}
-          </CardTitle>
-          <CardDescription>
-            {status?.google.connected ? 'Backup booking method' : 'Optional - Calendly is recommended'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {status?.google.connected ? (
-            <p className="text-sm text-green-700 dark:text-green-400">
-              ✅ {status.google.accountType}
-            </p>
-          ) : (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Not connected (Calendly is your primary option)
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
       {/* Info */}
       <div className="bg-blue-500/5 border border-blue-500/30 rounded p-3 text-sm text-blue-700 dark:text-blue-400">
-        <p>💡 <strong>Pro tip:</strong> Calendly syncs with Google Calendar automatically. If you use Google Calendar, Calendly will respect those busy times!</p>
+        <p>💡 <strong>Pro tip:</strong> Set up your availability in Calendly once, and Audnix will automatically book meetings when leads show buying intent!</p>
       </div>
     </div>
   );
