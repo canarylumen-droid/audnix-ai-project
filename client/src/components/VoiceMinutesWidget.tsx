@@ -17,10 +17,20 @@ interface VoiceBalanceData {
 }
 
 export function VoiceMinutesWidget() {
+  const [_, navigate] = useLocation();
   const { data: voiceBalance, isLoading } = useQuery<VoiceBalanceData>({
     queryKey: ["/api/voice/balance"],
     refetchInterval: 10000,
   });
+
+  const balance = voiceBalance?.balance || 0;
+  const total = voiceBalance?.total || 0;
+  const used = voiceBalance?.used || 0;
+  const percentage = voiceBalance?.percentage || 0;
+  const isLocked = voiceBalance?.locked || false;
+  const minutesRemaining = total - used;
+  const minutesUsed = used;
+  const totalMinutes = total;
 
   if (isLoading) {
     return (
@@ -34,18 +44,6 @@ export function VoiceMinutesWidget() {
       </Card>
     );
   }
-
-  const balance = voiceBalance?.balance || 0;
-  const total = voiceBalance?.total || 0;
-  const used = voiceBalance?.used || 0;
-  const percentage = voiceBalance?.percentage || 0;
-  const isLocked = voiceBalance?.locked || false;
-
-  // Extracting minutesRemaining and assigning values for the new logic
-  const minutesRemaining = total - used;
-  const minutesUsed = used;
-  const totalMinutes = total;
-  const [_, navigate] = useLocation();
 
   return (
     <Card className="w-full border-primary/20 hover:border-primary/50 transition-all duration-300">
