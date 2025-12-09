@@ -7,7 +7,7 @@ import { FeatureSection } from "@/components/landing/FeatureSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { ProcessTimeline } from "@/components/landing/ProcessTimeline";
-import { ROICalculator } from "@/components/landing/ROICalculator";
+import { LethalROICalculator } from "@/components/landing/LethalROICalculator";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { motion } from "framer-motion";
 
@@ -812,7 +812,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <ROICalculator />
+      <LethalROICalculator />
 
       <PricingSection />
 

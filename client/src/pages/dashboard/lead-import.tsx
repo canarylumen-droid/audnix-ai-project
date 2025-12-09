@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, Users, Mail, Phone, Sparkles, FileText, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Users, Mail, Phone, Sparkles, FileText, Loader2, Instagram } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LeadImportPage() {
