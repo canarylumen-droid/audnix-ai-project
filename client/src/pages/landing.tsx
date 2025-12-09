@@ -142,7 +142,7 @@ export default function Landing() {
                   <h3 className="text-2xl font-bold text-emerald-400">Audnix AI Closer</h3>
                 </div>
                 <ul className="space-y-3">
-                  {["Closes deals in minutes, not days", "Handles objections like a pro", "Books meetings automatically", "Converts leads while you sleep"].map((item, i) => (
+                  {["Closes deals in minutes, not days", "Handles objections like a pro", "Auto-books via Calendly", "Converts leads while you sleep"].map((item, i) => (
                     <motion.li
                       key={i}
                       initial={{ opacity: 0, x: -10 }}
@@ -642,7 +642,7 @@ export default function Landing() {
                   </li>
                   <li className="flex items-start gap-3 text-white/90">
                     <span className="text-emerald-400 font-bold mt-0.5">✓</span>
-                    <span>Email + Instagram + auto-booking (full pipeline automation)</span>
+                    <span>Email + Instagram + Calendly auto-booking (full pipeline)</span>
                   </li>
                 </ul>
               </AnimatedCard>

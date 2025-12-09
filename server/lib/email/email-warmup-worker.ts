@@ -119,14 +119,20 @@ class EmailWarmupWorker {
 
   /**
    * Update warm-up schedule for a user
+   * 
+   * NOTE: The `day` field stores the calendar day (1-31) as a deduplication key
+   * to ensure only one schedule record per day. The actual warmup level is
+   * determined by `daysSinceCreated` (days since user account creation),
+   * ensuring warmup properly ramps up regardless of calendar date.
    */
   private async updateUserWarmupSchedule(userId: string): Promise<void> {
     if (!db) return;
 
     try {
       const now = new Date();
-      const today = now.getDate();
+      const today = now.getDate(); // Calendar day as deduplication key
 
+      // Check if schedule already exists for today (prevent duplicates)
       const scheduleResults: EmailWarmupSchedule[] = await db
         .select()
         .from(emailWarmupSchedules)
@@ -141,22 +147,24 @@ class EmailWarmupWorker {
       const existingSchedule = scheduleResults[0];
 
       if (existingSchedule) {
-        return;
+        return; // Already has today's schedule
       }
 
       const user = await storage.getUserById(userId);
       if (!user?.createdAt) return;
 
+      // Calculate warmup day based on account age (not calendar day)
       const daysSinceCreated = Math.floor(
         (now.getTime() - user.createdAt.getTime()) / (1000 * 60 * 60 * 24)
       ) + 1;
 
+      // Use daysSinceCreated to determine warmup level (max day 10)
       const warmupDay = Math.min(daysSinceCreated, 10);
       const schedule = WARMUP_SCHEDULE[warmupDay - 1] || WARMUP_SCHEDULE[9];
 
       await db.insert(emailWarmupSchedules).values({
         userId,
-        day: today,
+        day: today, // Calendar day for deduplication
         dailyLimit: schedule.emailsToSend,
         randomDelay: true
       });

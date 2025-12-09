@@ -500,14 +500,9 @@ export default function IntegrationsPage() {
 
       {/* Security Notice */}
       <Card className="border-primary/20 bg-primary/5" data-testid="card-security-notice">
-        <CardContent className="flex items-start gap-3 p-4">
-          <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-primary">Your data is encrypted</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              All tokens encrypted & secured. Revoke access anytime.
-            </p>
-          </div>
+        <CardContent className="flex items-center gap-3 p-3">
+          <Shield className="h-4 w-4 text-primary flex-shrink-0" />
+          <p className="text-sm text-primary">Encrypted & secure. Revoke anytime.</p>
         </CardContent>
       </Card>
 
@@ -551,25 +546,15 @@ export default function IntegrationsPage() {
               </div>
 
               {!isAtLimit && (
-                <div className="text-xs text-muted-foreground">
-                  <p className="font-medium mb-1">✨ What you get with paid plans:</p>
-                  <ul className="list-disc list-inside space-y-0.5 ml-2">
-                    <li><strong>Starter ($49.99/mo):</strong> 2,500 leads/month + 100 voice minutes</li>
-                    <li><strong>Pro ($99.99/mo):</strong> 7,000 leads/month + 400 voice minutes</li>
-                    <li><strong>Enterprise ($199.99/mo):</strong> 20,000 leads/month + 1,000 voice minutes</li>
-                  </ul>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upgrade for more leads + voice minutes
+                </p>
               )}
 
               {isAtLimit && (
-                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    🎁 <strong>Special Offer:</strong> Upgrade now and keep all {currentLeadCount} leads + import thousands more!
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                    All your conversations and AI insights are preserved when you upgrade.
-                  </p>
-                </div>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Upgrade to keep leads + import more
+                </p>
               )}
             </div>
           </CardContent>
@@ -1014,12 +999,7 @@ export default function IntegrationsPage() {
               {connectCustomEmailMutation.isPending ? 'Connecting...' : 'Connect Custom Email'}
             </Button>
 
-            <div className="text-xs text-muted-foreground">
-              <p className="font-semibold mb-2">✅ Works with:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Any business email with SMTP/IMAP access</li>
-              </ul>
-            </div>
+            <p className="text-xs text-muted-foreground">Works with any business email (SMTP/IMAP)</p>
           </CardContent>
         </Card>
       </div>
@@ -1032,29 +1012,23 @@ export default function IntegrationsPage() {
             {/* Upgrade overlay for free/trial users */}
             {!canAccessVoiceNotes && (
               <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
-                <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center mx-auto mb-3">
-                    <Lock className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">Voice Notes</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Upgrade to a paid plan to unlock AI voice cloning and send personalized voice messages to your leads
-                  </p>
+                <div className="text-center p-4 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
+                  <Lock className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                  <h3 className="font-semibold mb-1">Voice Notes</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Upgrade to unlock AI voice cloning</p>
                   <Button 
                     size="sm" 
                     onClick={() => window.location.href = '/dashboard/pricing'}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+                    className="w-full"
                   >
-                    Upgrade to Unlock
+                    Upgrade
                   </Button>
                 </div>
               </div>
             )}
           <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
             <CardTitle>AI Voice Messaging</CardTitle>
-            <CardDescription>
-              Upload a short voice sample to enable AI voice replies that sound like you
-            </CardDescription>
+            <CardDescription>Clone your voice for personalized replies</CardDescription>
           </CardHeader>
           <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
             {/* Voice Minutes Widget - Real-time data */}
@@ -1136,9 +1110,7 @@ export default function IntegrationsPage() {
                   htmlFor="voice-consent"
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
-                  I consent to Audnix AI using my voice sample to generate AI voice messages for
-                  lead follow-ups. I understand this voice clone will only be used for my account
-                  and can be deleted at any time.
+                  I consent to AI voice cloning for lead follow-ups
                 </label>
               </div>
 
@@ -1205,9 +1177,7 @@ export default function IntegrationsPage() {
                   <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
                   <div>
                     <p className="font-medium">Upload PDF Documents</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Brand guidelines, product specs, FAQs, etc. (Max 50MB)
-                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">Max 50MB</p>
                   </div>
                   <Button
                     onClick={() => pdfInputRef.current?.click()}
