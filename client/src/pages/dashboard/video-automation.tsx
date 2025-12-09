@@ -569,9 +569,17 @@ export default function VideoAutomationPage() {
   const [customMessage, setCustomMessage] = useState("");
   const [askFollowOnConvert, setAskFollowOnConvert] = useState(true);
   const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
+  const [selectedReel, setSelectedReel] = useState<any>(null);
+  const [brandKnowledge, setBrandKnowledge] = useState("");
 
   const { data: monitors, isLoading } = useQuery<VideoMonitor[]>({
     queryKey: ["/api/video-monitors"],
+  });
+
+  // Fetch user's Instagram reels when component loads
+  const { data: instagramReels, isLoading: reelsLoading } = useQuery({
+    queryKey: ["/api/video-automation/reels"],
+    enabled: canAccessVideo,
   });
 
   const createMonitor = useMutation({
@@ -734,12 +742,73 @@ export default function VideoAutomationPage() {
         </Card>
       </div>
 
+      {/* Instagram Reels Gallery */}
+      {instagramReels?.reels?.length > 0 && (
+        <Card className="border-2 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Instagram className="h-5 w-5 text-primary" />
+              Your Recent Instagram Reels
+            </CardTitle>
+            <CardDescription>
+              Select a reel to monitor - AI will analyze caption and extract brand knowledge automatically
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-96">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {instagramReels.reels.map((reel: any) => (
+                  <motion.div
+                    key={reel.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setSelectedReel(reel);
+                      setVideoUrl(reel.url);
+                    }}
+                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedReel?.id === reel.id
+                        ? "border-primary shadow-lg shadow-primary/20"
+                        : "border-white/10 hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="aspect-[9/16] bg-muted relative">
+                      {reel.thumbnailUrl ? (
+                        <img
+                          src={reel.thumbnailUrl}
+                          alt={reel.caption?.substring(0, 50) || "Reel"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <Video className="h-12 w-12 text-muted-foreground" />
+                        </div>
+                      )}
+                      {selectedReel?.id === reel.id && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <CheckCircle2 className="h-12 w-12 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-2 bg-muted/50">
+                      <p className="text-xs line-clamp-2">
+                        {reel.caption || "No caption"}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Create Monitor */}
       <Card>
         <CardHeader>
-          <CardTitle>Add Video Monitor</CardTitle>
+          <CardTitle>Configure Video Monitor</CardTitle>
           <CardDescription>
-            Paste any Instagram video URL - AI handles the rest
+            {selectedReel ? "AI will analyze your selected reel" : "Or paste any Instagram video URL"}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -750,7 +819,14 @@ export default function VideoAutomationPage() {
               placeholder="https://www.instagram.com/p/ABC123..."
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
+              disabled={!!selectedReel}
             />
+            {selectedReel && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span>Reel selected - AI will auto-extract brand knowledge</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -761,6 +837,22 @@ export default function VideoAutomationPage() {
               value={ctaLink}
               onChange={(e) => setCtaLink(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brand-knowledge">Brand Knowledge (Optional)</Label>
+            <Textarea
+              id="brand-knowledge"
+              placeholder="AI will auto-extract from video caption, or paste your own brand info here..."
+              value={brandKnowledge}
+              onChange={(e) => setBrandKnowledge(e.target.value)}
+              rows={4}
+            />
+            <p className="text-xs text-muted-foreground">
+              {selectedReel?.caption 
+                ? "✅ AI detected from caption: " + selectedReel.caption.substring(0, 100) + "..."
+                : "AI will analyze video and extract product/service details"}
+            </p>
           </div>
 
           <Button

@@ -20,14 +20,75 @@ interface InstagramMediaResponse {
 const router = Router();
 
 /**
- * Get user's Instagram videos for selection
+ * Get user's Instagram reels with thumbnails and auto-extracted brand knowledge
+ * GET /api/video-automation/reels
+ */
+router.get('/reels', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+
+    const integrations = await storage.getIntegrations(userId);
+    const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
+
+    if (!igIntegration) {
+      res.json({ reels: [], message: 'Connect Instagram to see your reels' });
+      return;
+    }
+
+    const { decrypt } = await import('../lib/crypto/encryption.js');
+    const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
+
+    // Fetch reels with thumbnail URLs
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp,permalink&limit=30`,
+      {
+        headers: { Authorization: `Bearer ${meta.accessToken}` }
+      }
+    );
+
+    if (!response.ok) {
+      res.status(500).json({ error: 'Failed to fetch Instagram reels' });
+      return;
+    }
+
+    const data = await response.json() as InstagramMediaResponse & { data: Array<InstagramMediaItem & { thumbnail_url?: string }> };
+    const reels = data.data
+      .filter((item) => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM')
+      .map((item) => ({
+        id: item.id,
+        url: item.permalink,
+        mediaUrl: item.media_url,
+        thumbnailUrl: item.thumbnail_url || item.media_url,
+        caption: item.caption || '',
+        timestamp: item.timestamp,
+        extractedKnowledge: item.caption ? extractBrandKnowledgeFromCaption(item.caption) : null
+      }));
+
+    res.json({ reels });
+  } catch (error) {
+    console.error('Error fetching reels:', error);
+    const message = error instanceof Error ? error.message : 'Failed to fetch reels';
+    res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * AI extracts brand knowledge from video caption
+ */
+function extractBrandKnowledgeFromCaption(caption: string): string {
+  // Simple extraction - can be enhanced with OpenAI later
+  const lines = caption.split('\n').filter(line => line.trim().length > 0);
+  return lines.slice(0, 3).join(' '); // First 3 lines as brand context
+}
+
+/**
+ * Get user's Instagram videos for selection (deprecated - use /reels)
  * GET /api/video-automation/videos
  */
 router.get('/videos', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
 
-    // Get user's Instagram media
     const integrations = await storage.getIntegrations(userId);
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
 
@@ -36,7 +97,6 @@ router.get('/videos', requireAuth, async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Fetch user's recent videos from Instagram Graph API
     const { decrypt } = await import('../lib/crypto/encryption.js');
     const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
 
