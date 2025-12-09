@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ export function LethalROICalculator() {
   const [replyTime, setReplyTime] = useState(24);
   const [recoveryModel, setRecoveryModel] = useState<RecoveryModel>("conservative");
   const [showMath, setShowMath] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   const calculations = useMemo(() => {
     const optimalCloseRate = 0.18;
@@ -96,7 +97,16 @@ export function LethalROICalculator() {
     setDealValue(p.dealValue);
     setCloseRate(p.closeRate);
     setReplyTime(p.replyTime);
+    setHasInteracted(true);
   };
+
+  const handleSliderChange = (setter: (val: number) => void) => (values: number[]) => {
+    setter(values[0]);
+    setHasInteracted(true);
+  };
+
+  // Show results only if user has interacted AND there are actual losses
+  const shouldShowResults = hasInteracted && calculations.lostRevenue > 0;
 
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-gradient-to-b from-red-500/5 via-transparent to-emerald-500/5">
@@ -176,7 +186,7 @@ export function LethalROICalculator() {
                     <p className="text-xs text-white/50 mb-2">How many people DM you, fill forms, or join your email list?</p>
                     <Slider
                       value={[leads]}
-                      onValueChange={([val]) => setLeads(val)}
+                      onValueChange={handleSliderChange(setLeads)}
                       min={50}
                       max={10000}
                       step={50}
@@ -199,7 +209,7 @@ export function LethalROICalculator() {
                     <p className="text-xs text-white/50 mb-2">How much do you charge per client?</p>
                     <Slider
                       value={[dealValue]}
-                      onValueChange={([val]) => setDealValue(val)}
+                      onValueChange={handleSliderChange(setDealValue)}
                       min={50}
                       max={5000}
                       step={50}
@@ -219,15 +229,17 @@ export function LethalROICalculator() {
                       </Label>
                       <span className="text-xl font-bold text-white">{closeRate}%</span>
                     </div>
-                    <p className="text-xs text-white/50 mb-2">Be honest — you're only hurting yourself.</p>
-                    <Slider
-                      value={[closeRate]}
-                      onValueChange={([val]) => setCloseRate(val)}
-                      min={1}
-                      max={20}
-                      step={1}
-                      className="cursor-pointer"
-                    />
+                    <p className="text-xs text-white/50 mb-2">Your real close rate is the only number that matters.</p>
+                    <div className="relative">
+                      <Slider
+                        value={[closeRate]}
+                        onValueChange={handleSliderChange(setCloseRate)}
+                        min={1}
+                        max={20}
+                        step={1}
+                        className="cursor-pointer [&_.bg-primary]:bg-gradient-to-r [&_.bg-primary]:from-red-500 [&_.bg-primary]:to-orange-500"
+                      />
+                    </div>
                     <div className="flex justify-between text-xs text-white/50 mt-1">
                       <span>1%</span>
                       <span>20%</span>
@@ -245,7 +257,7 @@ export function LethalROICalculator() {
                     <p className="text-xs text-white/50 mb-2">Slow replies kill sales.</p>
                     <Slider
                       value={[replyTime]}
-                      onValueChange={([val]) => setReplyTime(val)}
+                      onValueChange={handleSliderChange(setReplyTime)}
                       min={1}
                       max={72}
                       step={1}
@@ -260,99 +272,125 @@ export function LethalROICalculator() {
               </div>
 
               <div className="space-y-6">
-                <motion.div
-                  key={calculations.lostRevenue}
-                  initial={{ scale: 1.05 }}
-                  animate={{ scale: 1 }}
-                  className="p-6 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingDown className="w-5 h-5 text-red-400" />
-                    <p className="text-red-400 text-sm font-semibold uppercase tracking-wide">You Lost This Much Last Month</p>
-                  </div>
-                  <motion.div
-                    key={`lost-${calculations.lostRevenue}`}
-                    initial={{ opacity: 0.5, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <span className="text-4xl sm:text-5xl font-black text-red-400">
-                      {formatCurrency(calculations.lostRevenue)}
-                    </span>
-                  </motion.div>
-                  <p className="text-white/60 text-sm mt-2">
-                    <span className="text-red-300 font-medium">{formatCurrency(calculations.lostRevenue)}</span> vanished because you replied late.
-                  </p>
-                  <p className="text-white/50 text-sm mt-1">
-                    You lost <span className="text-red-300 font-semibold">{calculations.lostDeals} clients</span> without even realizing it.
-                  </p>
-                </motion.div>
-
-                <div className="flex gap-2">
-                  {(["conservative", "realistic", "optimistic"] as RecoveryModel[]).map((model) => (
-                    <Button
-                      key={model}
-                      variant={recoveryModel === model ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setRecoveryModel(model)}
-                      className={recoveryModel === model 
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white flex-1" 
-                        : "border-white/20 text-white/60 hover:text-white flex-1"
-                      }
+                <AnimatePresence mode="wait">
+                  {shouldShowResults ? (
+                    <motion.div
+                      key="results"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.4 }}
+                      className="space-y-6"
                     >
-                      {model.charAt(0).toUpperCase() + model.slice(1)}
-                    </Button>
-                  ))}
-                </div>
+                      <motion.div
+                        key={calculations.lostRevenue}
+                        initial={{ scale: 1.05 }}
+                        animate={{ scale: 1 }}
+                        className="p-6 rounded-xl bg-gradient-to-br from-red-500/20 to-red-600/10 border border-red-500/30"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingDown className="w-5 h-5 text-red-400" />
+                          <p className="text-red-400 text-sm font-semibold uppercase tracking-wide">You Lost This Much Last Month</p>
+                        </div>
+                        <motion.div
+                          key={`lost-${calculations.lostRevenue}`}
+                          initial={{ opacity: 0.5, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <span className="text-4xl sm:text-5xl font-black text-red-400">
+                            {formatCurrency(calculations.lostRevenue)}
+                          </span>
+                        </motion.div>
+                        <p className="text-white/60 text-sm mt-2">
+                          <span className="text-red-300 font-medium">{formatCurrency(calculations.lostRevenue)}</span> vanished because you replied late.
+                        </p>
+                        <p className="text-white/50 text-sm mt-1">
+                          You lost <span className="text-red-300 font-semibold">{calculations.lostDeals} clients</span> without even realizing it.
+                        </p>
+                      </motion.div>
 
-                <motion.div
-                  key={calculations.recoveredRevenue}
-                  initial={{ scale: 1.05 }}
-                  animate={{ scale: 1 }}
-                  className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 border border-emerald-500/30"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-5 h-5 text-emerald-400" />
-                    <p className="text-emerald-400 text-sm font-semibold uppercase tracking-wide">Audnix Would Recover</p>
-                  </div>
-                  <motion.div
-                    key={`recovered-${calculations.recoveredRevenue}`}
-                    initial={{ opacity: 0.5, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <span className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-                      +{formatCurrency(calculations.recoveredRevenue)}
-                    </span>
-                  </motion.div>
-                  <p className="text-white/60 text-sm mt-2">
-                    Audnix would've added back <span className="text-emerald-300 font-medium">+{formatCurrency(calculations.recoveredRevenue)}</span> this month.
-                  </p>
-                  <p className="text-white/50 text-xs mt-2">
-                    By replying instantly, handling objections, predicting the perfect follow-up time, and never letting warm leads die.
-                  </p>
-                </motion.div>
+                      <div className="flex gap-2">
+                        {(["conservative", "realistic", "optimistic"] as RecoveryModel[]).map((model) => (
+                          <Button
+                            key={model}
+                            variant={recoveryModel === model ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setRecoveryModel(model)}
+                            className={recoveryModel === model 
+                              ? "bg-emerald-500 hover:bg-emerald-600 text-white flex-1" 
+                              : "border-white/20 text-white/60 hover:text-white flex-1"
+                            }
+                          >
+                            {model.charAt(0).toUpperCase() + model.slice(1)}
+                          </Button>
+                        ))}
+                      </div>
 
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <p className="text-white/70 text-sm font-semibold mb-3 flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-yellow-400" />
-                    Your ROI with Audnix
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="text-center p-2 rounded-lg bg-white/5">
-                      <p className="text-xs text-white/50">Starter $49</p>
-                      <p className="text-lg font-bold text-emerald-400">{calculations.roiStarter}x</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-white/5 border border-emerald-500/20">
-                      <p className="text-xs text-white/50">Pro $99</p>
-                      <p className="text-lg font-bold text-emerald-400">{calculations.roiPro}x</p>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-white/5">
-                      <p className="text-xs text-white/50">Enterprise $199</p>
-                      <p className="text-lg font-bold text-emerald-400">{calculations.roiEnterprise}x</p>
-                    </div>
-                  </div>
-                </div>
+                      <motion.div
+                        key={calculations.recoveredRevenue}
+                        initial={{ scale: 1.05 }}
+                        animate={{ scale: 1 }}
+                        className="p-6 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 border border-emerald-500/30"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-5 h-5 text-emerald-400" />
+                          <p className="text-emerald-400 text-sm font-semibold uppercase tracking-wide">Audnix Would Recover</p>
+                        </div>
+                        <motion.div
+                          key={`recovered-${calculations.recoveredRevenue}`}
+                          initial={{ opacity: 0.5, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <span className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
+                            +{formatCurrency(calculations.recoveredRevenue)}
+                          </span>
+                        </motion.div>
+                        <p className="text-white/60 text-sm mt-2">
+                          Audnix would've added back <span className="text-emerald-300 font-medium">+{formatCurrency(calculations.recoveredRevenue)}</span> this month.
+                        </p>
+                        <p className="text-white/50 text-xs mt-2">
+                          By replying instantly, handling objections, predicting the perfect follow-up time, and never letting warm leads die.
+                        </p>
+                      </motion.div>
+
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+                        <p className="text-white/70 text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-yellow-400" />
+                          Your ROI with Audnix
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="text-center p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-white/50">Starter $49</p>
+                            <p className="text-lg font-bold text-emerald-400">{calculations.roiStarter}x</p>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-white/5 border border-emerald-500/20">
+                            <p className="text-xs text-white/50">Pro $99</p>
+                            <p className="text-lg font-bold text-emerald-400">{calculations.roiPro}x</p>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-white/5">
+                            <p className="text-xs text-white/50">Enterprise $199</p>
+                            <p className="text-lg font-bold text-emerald-400">{calculations.roiEnterprise}x</p>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="placeholder"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center h-full min-h-[400px]"
+                    >
+                      <div className="text-center space-y-4">
+                        <AlertTriangle className="w-16 h-16 text-white/20 mx-auto" />
+                        <p className="text-white/50 text-lg">Adjust the sliders to see your revenue loss</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -369,16 +407,21 @@ export function LethalROICalculator() {
                     {showMath ? "Hide the math" : "Show me the math"}
                   </Button>
                 </div>
-                <Link href="/auth">
-                  <Button className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold px-8 py-6 rounded-full group text-lg">
-                    Recover My Lost Clients
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-white/60 text-sm text-center max-w-md">
+                    Every number here is based on your inputs. This isn't theory — it's your actual pipeline data.
+                  </p>
+                  <Link href="/auth">
+                    <Button className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold px-8 py-6 rounded-full group text-lg">
+                      Recover My Lost Clients (Start Free)
+                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                  <p className="text-center text-white/40 text-xs">
+                    500 leads included • No card • Setup in 60 seconds
+                  </p>
+                </div>
               </div>
-              <p className="text-center text-white/40 text-xs mt-3">
-                Start free — 500 leads included — no card required.
-              </p>
             </div>
 
             <AnimatePresence>
@@ -387,6 +430,7 @@ export function LethalROICalculator() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
                   className="mt-6 p-4 rounded-lg bg-white/5 border border-white/10 overflow-hidden"
                 >
                   <p className="text-white/70 text-sm font-semibold mb-3">How we calculate your losses:</p>
@@ -404,7 +448,7 @@ export function LethalROICalculator() {
                     </div>
                   </div>
                   <p className="text-white/40 text-xs mt-4">
-                    Sources: Harvard Business Review (speed-to-lead studies), InsideSales.com (response time research), our internal conversion data from 10,000+ leads.
+                    Sources: Harvard Business Review, InsideSales, and aggregate data across 10,000+ leads.
                   </p>
                 </motion.div>
               )}
@@ -418,7 +462,7 @@ export function LethalROICalculator() {
           viewport={{ once: true }}
           className="text-center text-white/40 text-sm mt-8"
         >
-          If these numbers hurt, good. That means you finally see the truth.
+          Pain isn't the problem — ignoring it is.
         </motion.p>
       </div>
     </section>
