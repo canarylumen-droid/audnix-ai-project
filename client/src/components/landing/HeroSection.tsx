@@ -145,14 +145,14 @@ export function HeroSection() {
             >
               <Button 
                 size="lg" 
-                className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-base sm:text-lg px-8 sm:px-12 py-6 sm:py-7 rounded-full shadow-2xl shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 group relative overflow-hidden"
+                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold text-base sm:text-lg px-8 sm:px-12 py-6 sm:py-7 rounded-full shadow-2xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300 group relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                  Start closing deals
+                  Stop Losing Clients
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"
                   initial={false}
                 />
               </Button>
@@ -162,7 +162,7 @@ export function HeroSection() {
             variants={itemVariants}
             className="text-white/50 text-sm mt-4"
           >
-            3-day free trial • 500 leads included • No credit card required
+            Free trial • 500 leads • No card needed
           </motion.p>
         </motion.div>
       </motion.div>

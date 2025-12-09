@@ -855,10 +855,10 @@ export default function Landing() {
               >
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold text-sm md:text-lg lg:text-xl px-4 py-4 md:px-12 md:py-7 lg:py-8 rounded-full shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 group w-full md:w-auto max-w-sm md:max-w-none"
+                  className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold text-sm md:text-lg lg:text-xl px-4 py-4 md:px-12 md:py-7 lg:py-8 rounded-full shadow-2xl shadow-red-500/30 hover:shadow-red-500/50 transition-all duration-300 group w-full md:w-auto max-w-sm md:max-w-none"
                 >
                   <span className="flex items-center justify-center gap-2">
-                    Start Free – No Card Required
+                    Stop Losing Money Now
                     <ArrowRight className="w-4 h-4 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
                   </span>
                 </Button>
@@ -872,7 +872,7 @@ export default function Landing() {
               transition={{ delay: 0.3 }}
               className="text-white/50 text-sm mt-6"
             >
-              Join hundreds of closers automating their follow-up
+              Free trial • 500 leads • No card needed
             </motion.p>
           </motion.div>
         </div>

@@ -99,12 +99,12 @@ export function PricingSection() {
                       <Button
                         className={`w-full rounded-full font-bold ${
                           isPopular
-                            ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-primary/25'
+                            ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/25'
                             : 'bg-black hover:bg-black/80 text-white border border-white/30 hover:border-white/50 shadow-lg'
                         } transition-all duration-300`}
                         size="lg"
                       >
-                        Get Started →
+                        {isPopular ? "Recover Lost Revenue →" : "Start Free →"}
                       </Button>
                     </motion.div>
                   </Link>
