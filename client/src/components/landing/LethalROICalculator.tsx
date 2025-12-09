@@ -412,7 +412,7 @@ export function LethalROICalculator() {
                     Every number here is based on your inputs. This isn't theory — it's your actual pipeline data.
                   </p>
                   <Link href="/auth">
-                    <Button className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold px-8 py-6 rounded-full group text-lg">
+                    <Button className="bg-gradient-to-r from-red-500 via-orange-500 to-red-600 hover:from-red-600 hover:via-orange-600 hover:to-red-700 text-white font-bold px-8 py-6 rounded-full group text-lg shadow-2xl shadow-red-500/40 hover:shadow-red-500/60 hover:scale-[1.02] transition-all duration-300">
                       Recover My Lost Clients (Start Free)
                       <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
