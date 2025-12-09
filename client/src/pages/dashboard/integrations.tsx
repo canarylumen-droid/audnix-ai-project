@@ -583,7 +583,7 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  {/* Instagram - Full OAuth connection for all users */}
+                  {/* Instagram - OAuth connection */}
                   {providerId === "instagram" && (
                     <Card
                       className={`hover-elevate ${isConnected ? "border-emerald-500/50" : "border-pink-500/30 bg-pink-500/5"}`}
@@ -695,127 +695,6 @@ export default function IntegrationsPage() {
                               Or Import CSV
                             </Button>
                           </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                  {/* WhatsApp - Locked for free/trial users */}
-                  {providerId === "whatsapp" && !canAccessWhatsApp && (
-                    <Card
-                      className="relative hover-elevate border-gray-500/30 bg-gray-500/5"
-                      data-testid={`card-integration-${providerId}`}
-                    >
-                      {/* Blur overlay */}
-                      <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
-                        <div className="text-center p-6 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-3">
-                            <Lock className="h-6 w-6 text-white" />
-                          </div>
-                          <h3 className="font-semibold text-lg mb-2">WhatsApp Automation</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Upgrade to any paid plan to connect WhatsApp and automate lead follow-ups
-                          </p>
-                          <Button 
-                            size="sm" 
-                            onClick={() => window.location.href = '/dashboard/pricing'}
-                            className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                          >
-                            Upgrade to Unlock
-                          </Button>
-                        </div>
-                      </div>
-                      <CardHeader className="opacity-50">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-green-500/10">
-                              <SiWhatsapp className="h-6 w-6 text-green-500" />
-                            </div>
-                            <div className="flex-1">
-                              <CardTitle className="text-base">WhatsApp</CardTitle>
-                              <CardDescription className="text-sm">
-                                OTP sent by WhatsApp • No credentials stored
-                              </CardDescription>
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="opacity-50 space-y-3">
-                        <Button className="w-full" disabled>
-                          Connect WhatsApp
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {/* WhatsApp - Unlocked for paid users */}
-                  {providerId === "whatsapp" && canAccessWhatsApp && (
-                    <Card
-                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : ""}`}
-                      data-testid={`card-integration-${providerId}`}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-green-500/10">
-                              <SiWhatsapp className="h-6 w-6 text-green-500" />
-                            </div>
-                            <div className="flex-1">
-                              <CardTitle className="text-base">WhatsApp</CardTitle>
-                              <CardDescription className="text-sm">
-                                OTP sent by WhatsApp • No credentials stored
-                              </CardDescription>
-                            </div>
-                          </div>
-                          {isConnected && (
-                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                              <Check className="h-3 w-3 mr-1" />
-                              Connected
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {isConnected ? (
-                          <>
-                            <div className="text-sm space-y-2">
-                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">Connected • Importing leads...</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                WhatsApp conversations are encrypted and being imported
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleDisconnect(providerId)}
-                                disabled={disconnectProviderMutation.isPending}
-                              >
-                                Disconnect
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleSyncNow(providerId)}
-                                disabled={importLeadsMutation.isPending}
-                              >
-                                Sync Now
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <Button
-                            className="w-full bg-green-500 hover:bg-green-600"
-                            onClick={() => handleConnect(providerId)}
-                            disabled={connectProviderMutation.isPending}
-                          >
-                            {connectProviderMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            Connect WhatsApp
-                          </Button>
                         )}
                       </CardContent>
                     </Card>

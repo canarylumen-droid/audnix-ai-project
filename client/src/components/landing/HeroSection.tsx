@@ -148,7 +148,7 @@ export function HeroSection() {
                 className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold text-base sm:text-lg px-8 sm:px-12 py-6 sm:py-7 rounded-full shadow-2xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300 group relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
-                  Start Free
+                  Recover My Lost Clients
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </span>
                 <motion.div
@@ -162,7 +162,7 @@ export function HeroSection() {
             variants={itemVariants}
             className="text-white/50 text-sm mt-4"
           >
-            Free trial • 500 leads • No card needed
+            Start free — 500 leads included — no card required
           </motion.p>
         </motion.div>
       </motion.div>

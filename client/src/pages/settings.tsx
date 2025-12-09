@@ -41,7 +41,7 @@ export function SettingsPage() {
               <CardHeader>
                 <CardTitle>Calendar & Booking</CardTitle>
                 <CardDescription>
-                  Connect Calendly or Google Calendar for automatic meeting scheduling
+                  Connect Calendly for automatic meeting scheduling when leads show buying intent
                 </CardDescription>
               </CardHeader>
               <CardContent>

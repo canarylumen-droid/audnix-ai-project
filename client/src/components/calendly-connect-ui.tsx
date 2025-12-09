@@ -128,9 +128,19 @@ export function CalendlyConnectUI() {
             )}
           </CardTitle>
           <CardDescription>
-            {status?.calendly.connected ? 'Your Calendly is connected' : 'Connect your Calendly for booking meetings'}
+            {status?.calendly.connected ? 'Your Calendly is connected' : 'Connect Calendly for AI auto-booking'}
           </CardDescription>
         </CardHeader>
+        {!status?.calendly.connected && (
+          <div className="px-6 pb-2">
+            <div className="p-3 rounded-lg bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 text-sm text-gray-300">
+              <p className="font-semibold text-cyan-400 mb-1">Why connect Calendly?</p>
+              <p className="text-gray-400 text-xs">
+                Audnix automatically books meetings when it detects buying intent. The AI reads the chat, handles objections, and drives leads to book a call — automatically. You can also attach a payment link for direct-to-payment flows.
+              </p>
+            </div>
+          </div>
+        )}
         <CardContent className="space-y-3">
           {status?.calendly.connected ? (
             <div className="bg-green-500/10 border border-green-500/30 rounded p-3">

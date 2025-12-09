@@ -80,9 +80,9 @@ export function Navigation() {
             <Link href="/auth">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg px-6"
+                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold rounded-lg px-6"
               >
-                Start Free Trial
+                Recover My Clients
               </Button>
             </Link>
           </div>
@@ -153,10 +153,10 @@ export function Navigation() {
               </button>
               <Link href="/auth">
                 <Button
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg py-3"
+                  className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold rounded-lg py-3"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Start Free Trial
+                  Recover My Clients
                 </Button>
               </Link>
             </div>
