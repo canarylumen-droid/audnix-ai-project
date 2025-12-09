@@ -29,8 +29,9 @@ import commentAutomationRouter from './routes/comment-automation-routes.js';
 import videoAutomationRoutes from './routes/video-automation-routes.js';
 import aiRoutes from './routes/ai-routes.js';
 import voiceRoutes from './routes/voice-routes.js';
-import whatsappRoutes from './routes/whatsapp-routes.js';
-import whatsappOTPRoutes from './routes/whatsapp-otp-routes.js';
+// WhatsApp removed - not needed for MVP
+// import whatsappRoutes from './routes/whatsapp-routes.js';
+// import whatsappOTPRoutes from './routes/whatsapp-otp-routes.js';
 import customEmailRoutes from './routes/custom-email-routes.js';
 import emailStatsRoutes from './routes/email-stats-routes.js';
 import otpRoutes from './routes/otp-routes.js';
@@ -48,7 +49,8 @@ import authUsernameOnboarding from './routes/auth-username-onboarding.js';
 import authClean from './routes/auth-clean.js';
 import userAuth from './routes/user-auth.js';
 import adminAuth from './routes/admin-auth.js';
-import whatsappConnect from './routes/whatsapp-connect.js';
+// WhatsApp removed - not needed for MVP
+// import whatsappConnect from './routes/whatsapp-connect.js';
 import dashboardRoutes from './routes/dashboard-routes.js';
 import salesEngineRouter from './routes/sales-engine.js';
 import emailTrackingRoutes from './routes/email-tracking-routes.js';
@@ -2071,46 +2073,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // WhatsApp OAuth initiation
-  app.post("/api/integrations/whatsapp/connect", requireAuth, async (req, res) => {
-    try {
-      const { phoneNumberId, accessToken, phoneNumber } = req.body;
-
-      if (!phoneNumberId || !accessToken) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      const userId = getCurrentUserId(req)!;
-
-      // Encrypt and store credentials
-      const encryptedMeta = encrypt(JSON.stringify({
-        phoneNumberId,
-        accessToken,
-        phoneNumber,
-      }));
-
-      const integration = await storage.createIntegration({
-        userId,
-        provider: "whatsapp",
-        encryptedMeta,
-        connected: true,
-        accountType: phoneNumber || "WhatsApp Business",
-      });
-
-      res.json({
-        success: true,
-        integration: {
-          id: integration.id,
-          provider: integration.provider,
-          connected: integration.connected,
-          accountType: integration.accountType,
-        },
-      });
-    } catch (error: any) {
-      console.error("Error connecting WhatsApp:", error);
-      res.status(500).json({ error: "Failed to connect WhatsApp" });
-    }
-  });
+  // WhatsApp removed - not needed for MVP
+  // app.post("/api/integrations/whatsapp/connect", requireAuth, async (req, res) => { ... });
 
   // Gmail OAuth initiation
   app.post("/api/integrations/gmail/connect", requireAuth, async (req, res) => {
@@ -2163,9 +2127,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/automation", commentAutomationRouter);
   app.use("/api/video-automation", videoAutomationRoutes);
 
-  // Register WhatsApp routes
-  app.use('/api/whatsapp', whatsappRoutes);
-  app.use('/api/whatsapp-otp', whatsappOTPRoutes);
+  // WhatsApp removed - not needed for MVP
+  // app.use('/api/whatsapp', whatsappRoutes);
+  // app.use('/api/whatsapp-otp', whatsappOTPRoutes);
   app.use('/api/auth', emailOTPRoutes);
   app.use('/api/custom-email', customEmailRoutes);
   app.use('/api/email', emailStatsRoutes);
@@ -2203,8 +2167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/user/auth", userAuth); // User signup/login (anyone)
   app.use("/api/admin", adminAuth); // Admin login (whitelisted only)
 
-  // Register WhatsApp connection routes (for dashboard)
-  app.use("/api/whatsapp-connect", whatsappConnect);
+  // WhatsApp removed - not needed for MVP
+  // app.use("/api/whatsapp-connect", whatsappConnect);
 
   // Register dashboard routes
   app.use("/api/dashboard", dashboardRoutes);
