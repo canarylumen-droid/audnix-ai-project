@@ -26,9 +26,6 @@ import stripePaymentConfirmation from "./stripe-payment-confirmation.js";
 import videoAutomationRoutes from "./video-automation-routes.js";
 import voiceRoutes from "./voice-routes.js";
 import webhookRouter from "./webhook.js";
-import whatsappConnect from "./whatsapp-connect.js";
-import whatsappOtpRoutes from "./whatsapp-otp-routes.js";
-import whatsappRoutes from "./whatsapp-routes.js";
 import workerRoutes from "./worker.js";
 
 export async function registerRoutes(app: Express) {
@@ -60,9 +57,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/video", videoAutomationRoutes);
   app.use("/api/voice", voiceRoutes);
   app.use("/webhook", webhookRouter);
-  app.use("/api/whatsapp/connect", whatsappConnect);
-  app.use("/api/whatsapp/otp", whatsappOtpRoutes);
-  app.use("/api/whatsapp", whatsappRoutes);
   app.use("/api/worker", workerRoutes);
 
   return app;

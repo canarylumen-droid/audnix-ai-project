@@ -29,18 +29,19 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
     const celebrationColors = [
       "#FFD700", "#FFC107", "#F7C948", "#F9A825", "#FFEB3B", "#FFE082",
       "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD",
-      "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1"
+      "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9", "#F8B500", "#00CED1",
+      "#FF1493", "#00FF7F", "#FF4500", "#7B68EE", "#32CD32", "#FF69B4"
     ];
-    return Array.from({ length: 150 }, (_, i) => ({
+    return Array.from({ length: 400 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
-      delay: Math.random() * 1.5,
+      delay: Math.random() * 2.5,
       color: celebrationColors[Math.floor(Math.random() * celebrationColors.length)],
-      size: 10 + Math.random() * 15,
-      duration: 3 + Math.random() * 3,
-      xDrift: (Math.random() - 0.5) * 300,
+      size: 12 + Math.random() * 20,
+      duration: 4 + Math.random() * 4,
+      xDrift: (Math.random() - 0.5) * 500,
       rotation: Math.random() * 360,
-      shape: ['circle', 'square', 'star'][Math.floor(Math.random() * 3)],
+      shape: ['circle', 'square', 'star', 'ribbon'][Math.floor(Math.random() * 4)],
     }));
   }, []);
 
@@ -119,18 +120,18 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
         <motion.div
           key={piece.id}
           initial={{ 
-            y: -50, 
+            y: -100, 
             x: 0,
             opacity: 1, 
             rotate: piece.rotation, 
             scale: 0 
           }}
           animate={{ 
-            y: windowHeight + 100, 
+            y: windowHeight + 150, 
             x: piece.xDrift,
-            opacity: [0, 1, 1, 1, 0.8, 0], 
-            rotate: piece.rotation + 1080,
-            scale: [0, 1.2, 1, 1, 0.8]
+            opacity: [0, 1, 1, 1, 1, 0.8, 0], 
+            rotate: piece.rotation + 1440,
+            scale: [0, 1.5, 1.2, 1, 1, 0.8]
           }}
           transition={{
             duration: piece.duration,
@@ -139,11 +140,11 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
           }}
           style={{ 
             left: `${piece.left}%`,
-            width: `${piece.size}px`,
-            height: piece.shape === 'circle' ? `${piece.size}px` : piece.shape === 'star' ? `${piece.size}px` : `${piece.size * 1.5}px`,
+            width: piece.shape === 'ribbon' ? `${piece.size * 0.4}px` : `${piece.size}px`,
+            height: piece.shape === 'circle' ? `${piece.size}px` : piece.shape === 'star' ? `${piece.size}px` : piece.shape === 'ribbon' ? `${piece.size * 2.5}px` : `${piece.size * 1.5}px`,
             backgroundColor: piece.shape === 'star' ? 'transparent' : piece.color,
-            borderRadius: piece.shape === 'circle' ? '50%' : piece.shape === 'star' ? '0' : '3px',
-            boxShadow: `0 0 ${piece.size}px ${piece.color}`,
+            borderRadius: piece.shape === 'circle' ? '50%' : piece.shape === 'star' ? '0' : piece.shape === 'ribbon' ? '2px' : '4px',
+            boxShadow: `0 0 ${piece.size * 1.2}px ${piece.color}`,
             clipPath: piece.shape === 'star' ? 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' : 'none',
             background: piece.shape === 'star' ? piece.color : undefined,
           }}
