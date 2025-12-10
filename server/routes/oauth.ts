@@ -1,6 +1,5 @@
 import { Request, Response, Router } from 'express';
 import { InstagramOAuth } from '../lib/oauth/instagram.js';
-import { WhatsAppOAuth } from '../lib/oauth/whatsapp.js';
 import { GmailOAuth } from '../lib/oauth/gmail.js';
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
@@ -11,13 +10,6 @@ interface AuthenticatedRequest extends Request {
   session: Request['session'] & {
     userId?: string;
   };
-}
-
-interface WhatsAppConnectBody {
-  user_id?: string;
-  accountSid: string;
-  authToken: string;
-  fromNumber: string;
 }
 
 interface CalendarEventBody {
@@ -70,7 +62,6 @@ function getUserId(req: AuthenticatedRequest, fromBody = false): string | undefi
 
 const router = Router();
 const instagramOAuth = new InstagramOAuth();
-const whatsappOAuth = new WhatsAppOAuth();
 const gmailOAuth = new GmailOAuth();
 const googleCalendarOAuth = new GoogleCalendarOAuth();
 const calendlyOAuth = new CalendlyOAuth();
@@ -202,90 +193,6 @@ router.get('/oauth/instagram/status', async (req: Request, res: Response): Promi
     }
   } catch (error) {
     console.error('Error checking Instagram status:', error);
-    res.status(500).json({ error: 'Failed to check status' });
-  }
-});
-
-// ==================== WHATSAPP OAUTH (TWILIO) ====================
-
-router.post('/oauth/whatsapp/connect', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const authReq = req as AuthenticatedRequest;
-    const body = req.body as WhatsAppConnectBody;
-    const userId = authReq.session?.userId || body.user_id;
-
-    if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
-
-    const { accountSid, authToken, fromNumber } = body;
-
-    if (!accountSid || !authToken || !fromNumber) {
-      res.status(400).json({ error: 'Missing required Twilio credentials' });
-      return;
-    }
-
-    const isValid = await whatsappOAuth.validateCredentials({ accountSid, authToken });
-    if (!isValid) {
-      res.status(400).json({ error: 'Invalid Twilio credentials' });
-      return;
-    }
-
-    await whatsappOAuth.saveCredentials(userId, {
-      accountSid,
-      authToken,
-      fromNumber
-    });
-
-    res.json({ 
-      success: true,
-      message: 'WhatsApp connected successfully via Twilio'
-    });
-  } catch (error) {
-    console.error('Error connecting WhatsApp:', error);
-    res.status(500).json({ error: 'Failed to connect WhatsApp' });
-  }
-});
-
-router.post('/oauth/whatsapp/disconnect', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getUserId(req as AuthenticatedRequest, true);
-
-    if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
-
-    await whatsappOAuth.revokeCredentials(userId);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error disconnecting WhatsApp:', error);
-    res.status(500).json({ error: 'Failed to disconnect' });
-  }
-});
-
-router.get('/oauth/whatsapp/status', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getUserId(req as AuthenticatedRequest);
-
-    if (!userId) {
-      res.status(401).json({ error: 'User not authenticated' });
-      return;
-    }
-
-    const credentials = await whatsappOAuth.getCredentials(userId);
-
-    if (credentials) {
-      res.json({ 
-        connected: true,
-        fromNumber: credentials.fromNumber
-      });
-    } else {
-      res.json({ connected: false });
-    }
-  } catch (error) {
-    console.error('Error checking WhatsApp status:', error);
     res.status(500).json({ error: 'Failed to check status' });
   }
 });
