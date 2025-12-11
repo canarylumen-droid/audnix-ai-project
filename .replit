@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
@@ -45,10 +45,6 @@ integrations = ["javascript_openai:1.0.0", "resend:1.0.0", "stripe:1.0.0"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 24678
-externalPort = 3000
 
 [userenv]
 
