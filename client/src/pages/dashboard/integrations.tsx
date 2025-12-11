@@ -1079,6 +1079,8 @@ export default function IntegrationsPage() {
             channel={importingChannel}
             isImporting={!!importingChannel}
             onComplete={() => setImportingChannel(null)}
+            planLimit={leadsLimit}
+            currentLeads={currentLeadCount}
           />
         )}
       </AnimatePresence>

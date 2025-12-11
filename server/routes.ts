@@ -608,20 +608,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/onboarding", requireAuth, async (req, res) => {
     try {
-      const userId = getCurrentUserId(req)!;
+      const userId = getCurrentUserId(req);
       const { userRole, source, useCase, businessSize, tags, companyName } = req.body;
 
+      console.log("[Onboarding] POST request - userId:", userId, "data:", { userRole, source, useCase, businessSize, tags: tags?.length, companyName });
+
       // Validation
+      if (!userId) {
+        console.error("[Onboarding] No userId in session");
+        return res.status(401).json({ error: "Session expired. Please log in again." });
+      }
+
       if (!userRole) {
         return res.status(400).json({ error: "User role is required" });
       }
 
+      // Verify user exists
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        console.error("[Onboarding] User not found in database:", userId);
+        return res.status(404).json({ error: "User not found. Please log in again." });
+      }
+
       // Check if profile already exists
-      const existingProfile = await storage.getOnboardingProfile(userId);
+      let existingProfile;
+      try {
+        existingProfile = await storage.getOnboardingProfile(userId);
+      } catch (err) {
+        console.log("[Onboarding] No existing profile found, creating new one");
+      }
       
       let profile;
       if (existingProfile) {
         // Update existing profile
+        console.log("[Onboarding] Updating existing profile for user:", userId);
         profile = await storage.updateOnboardingProfile(userId, {
           userRole,
           source: source || null,
@@ -633,6 +653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // Create new profile
+        console.log("[Onboarding] Creating new profile for user:", userId);
         profile = await storage.createOnboardingProfile({
           userId,
           userRole,
@@ -646,21 +667,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Mark onboarding as completed in user metadata and store company name
-      const user = await storage.getUserById(userId);
-      if (user) {
-        await storage.updateUser(userId, {
-          metadata: {
-            ...(user.metadata || {}),
-            onboardingCompleted: true,
-            companyName: companyName || null,
-          },
-        });
-      }
+      console.log("[Onboarding] Updating user metadata with onboarding status");
+      await storage.updateUser(userId, {
+        metadata: {
+          ...(user.metadata || {}),
+          onboardingCompleted: true,
+          companyName: companyName || null,
+        },
+        businessName: companyName || user.businessName,
+      });
 
+      console.log("[Onboarding] Successfully saved onboarding profile for user:", userId);
       res.json({ success: true, profile });
     } catch (error: any) {
-      console.error("Error saving onboarding:", error.message, error);
-      res.status(500).json({ error: "Failed to save onboarding data", details: error.message });
+      console.error("[Onboarding] Error saving onboarding:", error.message, error.stack);
+      res.status(500).json({ 
+        error: "Failed to save onboarding data", 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
     }
   });
 

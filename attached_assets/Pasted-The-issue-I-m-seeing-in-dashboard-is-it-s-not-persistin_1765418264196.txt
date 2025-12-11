@@ -1,0 +1,337 @@
+The issue I'm seeing in dashboard is it's not persisting and not saving data again check the screenshot on my PC attached here  they signup tells them error saving progress or onboarding saved it anyways or something please let's fix it please then start working on my oth
+er request too
+And also work on all these things I am saying 
+And it imports their leads very fast if they don't have any leads also say it  animations sync with leads in real time while importing all kpi cards too that DM hour rating or limiting for email it's for AI in sending outreach not for importing hope you know  animations for email import and Instagram should differ too make AI full to be same in email the backend response adaptive tone intelligence layer everything in app to be same in email and Instagram DM automation replies use the Instagram button to wrap up links for them to feel premium web hook events supports it so use their button the way competitors do too like manychat etc
+Don't be offended some page are locked when they signup ornlimda hidden is it the pro features or what conversation please don't be so harsh there and also  hope our AI actually connects their calendly via oauth and web hook we have everything already and if a lead wants to book meeting for our users when they connect calendly it asks  in conversing with them goes to calendly vreate new meeting for them I'm their account and send meeting link like that on email then if on instgram if needed in conversation it wraps it up in a button for them too confirm it's there too
+
+"""
+You are a senior full-stack developer + AI prompt engineer. You are tasked with implementing the *Instagram DM Leads Import UI + AI Filtering* for Audnix AI. The goal is to make the flow *fully automated, fast, and visually clear* while keeping plan-based lead limits and ensuring AI filters for real leads. Follow these requirements:
+
+---
+
+# 1. Plan-Based Lead Limits
+
+- Free plan: first 500 DMs  
+- $49 plan: first 2,500 DMs  
+- $99 plan: first 7,000 DMs  
+- $199 plan: first 20,000 DMs  
+
+- UI must display:
+    - Number of DMs already imported.  
+    - Total lead limit for that plan.  
+    - Progress bar or counter showing how many DMs are being imported.  
+
+---
+
+# 2. DM Import Flow
+
+1. User clicks *“Import DMs”*.  
+2. AI first fetches *latest DMs* (most recent messages first).  
+3. AI reads each conversation *very fast* and filters for quality:
+    - Exclude low-effort messages (“hey”, “hi”, emojis only).  
+    - Keep messages showing engagement, interest, or buying intent.  
+4. AI presents a *button for user acknowledgment*:
+    - “I understand AI will read my DMs to filter real leads before importing.”
+    - Only after acknowledgment does the AI proceed.  
+5. Once confirmed, AI imports filtered DMs up to the plan’s lead limit.  
+6. Progress is animated to show work being done (“AI analyzing conversations…”).  
+7. At the end, UI shows:
+    - Number of DMs imported.  
+    - Total plan limit.  
+    - Remaining importable DMs.  
+8. If fewer real leads exist than plan limit, show the actual number imported.
+
+---
+
+# 3. AI Features
+
+- Reads conversation context to *filter fake or low-quality leads*.  
+- Reads only the *latest messages* down to the point where lead becomes irrelevant.  
+- Ensures *speed and accuracy*.  
+- Animations and progress indicators must reflect real-time work (“AI scanning X DMs…”).  
+- Logs imported leads and filtered-out leads for auditing.  
+
+---
+
+# 4. UI/UX Requirements
+
+- Clean, minimal design.  
+- Progress bar for import + number of DMs imported / total lead limit.  
+- Animated AI “working” effect while scanning conversations.  
+- Button for user acknowledgment *before import*.  
+- Clear message if fewer leads than limit are found.  
+- Works on both desktop and tablet screens.
+
+---
+
+# 5. Backend Requirements
+
+- Fully integrate with Instagram Graph API to fetch DMs.  
+- Filter conversations using AI analysis.  
+- Respect plan-based lead limits.  
+- Log imported leads and skipped conversations.  
+- Send data to frontend for real-time updates during import.  
+
+---
+
+# 6. Deliverable
+
+- Fully functional *Instagram DM Leads Importer*.  
+- Clean, branded, animated UI.  
+- AI accurately filters low-quality leads.  
+- Lead counts displayed, progress shown.  
+- User acknowledgment handled correctly.  
+- Fully integrated with existing Audnix AI backend and webhook APIs.  
+
+---
+
+Generate *React/Next.js frontend + backend endpoints* with fully working AI import logic, plan-based limits, animated progress, acknowledgment button, and conversation filtering. Ensure the AI reads the latest messages first, filters effectively, and logs all actions for auditing. UI must match Audnix AI branding and be production-ready.
+"""
+"""
+You are a senior full-stack developer and AI prompt engineer tasked to fully redesign and implement the *Instagram Reels Comment Monitoring and DM Automation Tab* for Audnix AI. Your goal is to *completely update the UI, backend, and AI flows*, while preserving all existing AI intelligence and functionality. This includes objection handling, comment-to-DM flows, context-aware replies, CTA buttons, PDF/brand knowledge overrides, emoji understanding, and adaptive AI decision-making. Everything must be production-ready and fully integrated with existing APIs and webhooks.  
+
+---
+
+# 1. Instagram Integration
+
+- Use Instagram Graph API (latest version) to fetch all Reels automatically after OAuth login.  
+- Display all reels in a *responsive grid* (4 per row), lazy-loading 8–12 at a time.  
+- Reel thumbnails show video preview, duration, engagement metrics (likes/comments).  
+- Clicking a reel opens a *detail panel* or same-tab overlay:
+    - Back arrow to return to grid.  
+    - Embedded video player.  
+    - Toggle switches for:
+        - “Enable Comment Monitoring”
+        - “Enable DM Automation”
+        - “Enable CTA Link”
+    - Section for *optional PDF/text upload* or brand knowledge override.
+    - Automatically extract brand/product info from captions.  
+    - AI analyzes all existing comments for *intent, sentiment, emoji context, and objections*.  
+    - AI can immediately suggest replies with full context.
+
+---
+
+# 2. AI Features (fully retained and enhanced)
+
+- *Context-aware replies*:
+    - Understands captions, comments, emojis, PDFs/brand info.  
+    - Handles objections in comments and converts them to DM opportunities.  
+    - Replies are professional, conversion-optimized, and contextually accurate.  
+    - Avoids spammy or irrelevant responses.  
+
+- *Comment → DM flow*:
+    - AI automatically moves high-intent commenters to DM.  
+    - Replies include user-specified CTA link as a *hyperlinked button*.  
+    - AI ensures CTA matches what user promised or the brand knowledge.  
+    - All DM/CTA actions are logged in the backend.  
+
+- *Adaptive AI brain*:
+    - Learns from previous replies, objections, and successes.  
+    - Improves intent detection and objection handling over time.  
+    - Replies are personalized per user and maintain branding tone.  
+
+- *Audit & confirmation*:
+    - AI logs all comment and DM replies with timestamps and confirmation.  
+    - Works across Instagram, email, and other channels via webhooks/APIs.  
+
+---
+
+# 3. UI/UX Updates
+
+- Fully *modern, branded UI* matching Audnix colors and fonts.  
+- Clean, minimal design — grid-based, responsive, scrollable.  
+- Clear empty states: “Connect Instagram to see your Reels.”  
+- Back arrow for navigation from reel detail to grid.  
+- Toggle switches, PDF/text upload, CTA input clearly visible.  
+- Lazy-load reels and AI suggestions for smooth performance.  
+- Status indicators for AI processing, sent replies, and errors.
+
+---
+
+# 4. Backend Requirements
+
+- Fully integrated with *existing APIs and webhooks*:
+    - Supports comment monitoring, DM automation, CTA handling, and logging.  
+    - Real-time updates for comment/DM status.  
+    - Scalable for thousands of comments per reel.  
+- Modular endpoints for AI brain:
+    - /fetchReels → fetch user reels  
+    - /analyzeComments → AI parses comments for intent and context  
+    - /sendReplies → comment replies with CTA buttons  
+    - /sendDMs → DM automation with CTA buttons  
+    - /logActivity → logs every AI action for auditing  
+
+---
+
+# 5. Technical Stack
+
+- Frontend: React / Next.js, responsive, component-based.  
+- Backend: Node.js/Express or preferred stack, connected to Audnix AI brain.  
+- AI: Context-aware, objection handling, adaptive learning, CTA integration.  
+- Webhook/API: fully integrated to accept external triggers, update status, and confirm delivery.  
+- Real-time processing and notifications for users.  
+
+---
+
+# 6. Automation Flow
+
+1. User logs in via Instagram OAuth → reels load automatically.  
+2. User selects a reel → detail panel opens.  
+3. User toggles automation, adds optional brand info/CTA link.  
+4. User clicks *“Run AI Automation”*.  
+5. AI:
+    - Analyzes caption, comments, and brand info.  
+    - Handles objections in comments.  
+    - Sends replies and DMs with CTA button.  
+    - Logs all actions.  
+6. User monitors replies in real-time.  
+
+---
+
+# 7. Non-functional Requirements
+
+- Fast (<2s) grid load and lazy-loading.  
+- Responsive for desktop and tablet.  
+- Clear error messages.  
+- Scalable for thousands of comments per reel.  
+- Clean logs for auditing and tracking AI decisions.  
+
+---
+
+# 8. Deliverable
+
+- Fully functional *Instagram Reels Comment Monitoring + DM Automation Tab*.  
+- Clean, branded, production-ready UI/UX.  
+- Backend fully integrated with AI brain, APIs, webhooks.  
+- Adaptive AI replies, objection handling, and CTA automation fully functional.  
+- All previous AI features retained and enhanced.  
+
+---
+
+Generate *full React/Next.js frontend + backend endpoints* implementing the above, ready to deploy on Replit. Ensure the code is modular, clean, and matches the Audnix AI brand style and colors. All AI logic must function exactly as described, preserving full context, objection handling, and comment-to-DM flows.
+"""
+"""
+You are a senior full-stack engineer + AI prompt architect. You are tasked to fully redesign and implement the *Instagram Reels Comment Monitoring Tab* in the Audnix AI app. The goal is a *modern, professional, intuitive, automated UI* where everything is seamless once Instagram OAuth is connected. Manual steps must be removed wherever possible. Below are the functional, UI, and AI requirements. Follow them strictly.
+
+---
+
+# 1. Instagram Integration
+
+- The user connects Instagram via OAuth. Once connected:
+    - Fetch all their Reels automatically via Instagram Graph API.
+    - Display reels as a *grid*, 4 per row, lazy-load 8–12 at a time as the user scrolls.
+    - Each reel thumbnail shows:
+        - Video thumbnail
+        - Video duration
+        - Engagement metrics (likes/comments)
+
+- Clicking a reel opens a *reel detail panel* (overlay or new page within the tab):
+    - Back arrow to return to the reel list.
+    - Reel player embedded.
+    - Toggle switches for AI automation:
+        - “Enable Comment Monitoring”
+        - “Enable Auto DM”
+        - “Enable CTA Link”
+    - Section to *paste or upload PDF / text* describing product/service (optional override for AI)
+    - Automatically extract brand/product info from the video caption.
+    - AI analyzes existing comments for *intent and sentiment* (emoji included).
+    - AI uses context to prepare accurate replies (no guessing).
+    - AI replies are professional, precise, and *conversion-optimized*.
+    - CTA in DM section:
+        - When AI DMs someone, it uses the link the user specifies.
+        - CTA is presented as a *button* (hyperlinked to the user-specified link).
+        - AI ensures the CTA matches the comment context and provides real value.
+    - AI avoids harassment or nonsensical replies.
+    - Replies are confirmed across *all channels* (Instagram comments & DMs, email if applicable).
+    - AI does not generate human em dashes or unnatural punctuation.
+
+---
+
+# 2. UI / UX Requirements
+
+- Grid-based reel display, responsive.
+- Clean, minimal design.
+- Loading animations for lazy-loading reels.
+- Clear empty state when no reels exist: “Connect Instagram to see your Reels.”
+- Back arrow for detail view navigation.
+- Toggle switches for automation features.
+- Paste/upload section for brand knowledge.
+- CTA input field with placeholder: “Insert link or offer to drive action.”
+- Scrollable comment preview area with AI suggestions.
+- Run automation button clearly visible.
+- Status notifications: AI processing, replies sent, errors, etc.
+
+---
+
+# 3. AI Functional Requirements
+
+- AI reads:
+    - Video caption
+    - Comments
+    - Uploaded brand info
+- AI determines:
+    - Intent (interest, purchase intent, inquiry, etc.)
+    - Contextual meaning of emojis
+    - Optimal tone for reply
+- AI replies:
+    - Personalized per commenter
+    - Professional, helpful, persuasive
+    - Includes *CTA button* linking to user-provided URL
+    - Avoids generic or irrelevant replies
+- Replies are logged with timestamps and confirmation of delivery.
+
+---
+
+# 4. Automation Flow
+
+1. User selects reel.
+2. User sets toggles + CTA link + optional PDF/text input.
+3. User clicks *“Run AI Automation”*.
+4. AI:
+    - Analyzes caption + comments + optional brand info.
+    - Drafts and sends replies in Instagram comments.
+    - Sends DMs with CTA button where appropriate.
+5. All actions are logged and displayed in UI with status.
+
+---
+
+# 5. Technical Requirements
+
+- React / Next.js frontend preferred.
+- Use Instagram Graph API v20 or latest.
+- Backend handles AI processing via Audnix AI APIs.
+- Real-time updates for comments and AI replies.
+- Ensure scalability: can handle thousands of comments per reel.
+- Modular code: UI components reusable for other social channels later.
+
+---
+
+# 6. Non-Functional Requirements
+
+- Fast load times (<2s for initial reels grid)
+- Responsive for desktop & tablet
+- No clutter, focus on conversions
+- Error handling: if Instagram API fails, show clear user-friendly message
+- Logging for all AI interactions
+
+---
+
+# Deliverable:
+
+- Fully functional *Instagram Reels Comment Monitoring Tab*
+- Clean, modern UI
+- AI automation fully integrated
+- Real-time comment monitoring & reply
+- Proper logging & CTA handling
+
+---
+
+Generate *React/Next.js code + backend endpoints* to implement the above. Make the UI interactive and production-ready. Do not include placeholder comments or mockups — implement real functionality.
+"""
+Work on all these things please 🥺 manage replit free plan too
+
+some are done check the one not done bro before working
+WhatsApp removal incomplete; UI and server start are clean, but backend logic still references WhatsApp. Further cleanup is required in routes, storage, and data import flows to fully remove the feature.
+
+
+Check what's not done yet before working please and I think cuz of that not saving onboarding data keeps showing company data etc over and over again they couldn't connect Instagram auth was saying user not authenticated or something and in that activated checklist you didn't make task 1 completed by default cuz they must see onboarding before dashboard so yeaa should be marked as default

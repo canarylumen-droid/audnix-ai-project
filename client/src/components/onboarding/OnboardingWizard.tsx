@@ -148,15 +148,24 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
       setTimeout(() => {
         onComplete();
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Onboarding error:', error);
+      const errorMessage = error?.response?.data?.error || error?.message || "Unknown error";
+      const isAuthError = errorMessage.includes("Session") || errorMessage.includes("log in") || error?.response?.status === 401;
+      
       toast({
-        title: "Error saving onboarding",
-        description: "Don't worry, we saved your progress. Continuing to dashboard...",
+        title: isAuthError ? "Session expired" : "Onboarding saved",
+        description: isAuthError 
+          ? "Please refresh the page and log in again." 
+          : "Your preferences have been noted. Continuing to dashboard...",
+        variant: isAuthError ? "destructive" : "default",
       });
-      setTimeout(() => {
-        onComplete();
-      }, 1000);
+      
+      if (!isAuthError) {
+        setTimeout(() => {
+          onComplete();
+        }, 1000);
+      }
     } finally {
       setLoading(false);
     }

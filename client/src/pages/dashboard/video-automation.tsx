@@ -42,7 +42,14 @@ import {
   DollarSign,
   Globe,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  ArrowLeft,
+  Instagram,
+  Settings,
+  FileText,
+  Send,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 
 interface VideoMonitorStats {
@@ -571,6 +578,21 @@ export default function VideoAutomationPage() {
   const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
   const [selectedReel, setSelectedReel] = useState<any>(null);
   const [brandKnowledge, setBrandKnowledge] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "detail">("grid");
+  const [commentMonitoringEnabled, setCommentMonitoringEnabled] = useState(true);
+  const [dmAutomationEnabled, setDmAutomationEnabled] = useState(true);
+  const [ctaLinkEnabled, setCtaLinkEnabled] = useState(true);
+
+  const handleSelectReel = (reel: any) => {
+    setSelectedReel(reel);
+    setVideoUrl(reel.url);
+    setViewMode("detail");
+  };
+
+  const handleBackToGrid = () => {
+    setViewMode("grid");
+    setSelectedReel(null);
+  };
 
   const { data: monitors, isLoading } = useQuery<VideoMonitor[]>({
     queryKey: ["/api/video-monitors"],
