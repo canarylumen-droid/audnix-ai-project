@@ -22,7 +22,7 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
   try {
     const userId = getCurrentUserId(req)!;
     
-    const integration = await storage.getIntegrationByProvider(userId, 'instagram');
+    const integration = await storage.getIntegration(userId, 'instagram');
     
     if (!integration || !integration.connected) {
       res.json({

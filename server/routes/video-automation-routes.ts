@@ -8,6 +8,7 @@ interface InstagramMediaItem {
   id: string;
   media_type: 'VIDEO' | 'IMAGE' | 'CAROUSEL_ALBUM';
   media_url?: string;
+  thumbnail_url?: string;
   caption?: string;
   timestamp: string;
   permalink: string;
@@ -51,7 +52,7 @@ router.get('/reels', requireAuth, async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const data = await response.json() as InstagramMediaResponse & { data: Array<InstagramMediaItem & { thumbnail_url?: string }> };
+    const data = await response.json() as InstagramMediaResponse;
     const reels = data.data
       .filter((item) => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM')
       .map((item) => ({

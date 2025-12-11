@@ -79,6 +79,19 @@ app.use('/api/auth/', authLimiter);
 // This MUST come before express.json() to preserve the raw buffer
 app.use('/webhook/stripe', express.raw({ type: 'application/json' }));
 
+// Instagram webhooks need raw body for Meta signature verification
+// We use json() with verify callback to preserve raw body
+app.use('/api/webhook/instagram', express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+app.use('/api/instagram/callback', express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+
 // For all other routes, use JSON parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

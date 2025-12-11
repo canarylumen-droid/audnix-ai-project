@@ -66,20 +66,40 @@ interface IntegrationRecord {
 
 function verifySignature(req: Request): boolean {
   const signature = req.headers['x-hub-signature-256'] as string;
-  if (!signature) return false;
-
-  const appSecret = process.env.META_APP_SECRET || '';
-  if (!appSecret) {
-    console.error('META_APP_SECRET not configured');
+  if (!signature) {
+    console.log('[IG_WEBHOOK] No x-hub-signature-256 header found');
     return false;
   }
 
+  const appSecret = process.env.META_APP_SECRET || '';
+  if (!appSecret) {
+    console.error('[IG_WEBHOOK] META_APP_SECRET not configured');
+    return false;
+  }
+
+  // Raw body must be preserved by middleware for signature verification
+  const rawBody = (req as any).rawBody;
+  if (!rawBody) {
+    console.error('[IG_WEBHOOK] Raw body not available - middleware not configured for this route');
+    console.error('[IG_WEBHOOK] Ensure route uses express.json with verify callback to preserve rawBody');
+    return false;
+  }
+  
   const expectedSignature = crypto
     .createHmac('sha256', appSecret)
-    .update(JSON.stringify(req.body))
+    .update(rawBody)
     .digest('hex');
 
-  return signature === `sha256=${expectedSignature}`;
+  const expectedFull = `sha256=${expectedSignature}`;
+  const isValid = signature === expectedFull;
+  
+  if (!isValid) {
+    console.log('[IG_WEBHOOK] Signature mismatch');
+    console.log('[IG_WEBHOOK] Received:', signature);
+    console.log('[IG_WEBHOOK] Expected:', expectedFull);
+  }
+
+  return isValid;
 }
 
 export function handleInstagramVerification(req: Request, res: Response): void {

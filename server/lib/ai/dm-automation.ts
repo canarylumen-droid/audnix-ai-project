@@ -219,7 +219,7 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
         userId: job.userId,
         leadId: job.leadId,
         body: aiResult.text,
-        channel: 'instagram',
+        provider: 'instagram',
         direction: 'outbound',
         metadata: {
           automated: true,
@@ -335,7 +335,7 @@ async function getConversationHistory(leadId: string): Promise<Message[]> {
       .orderBy(messages.createdAt)
       .limit(20);
 
-    return messageHistory.map(m => ({
+    return messageHistory.map((m: { id: string; body: string; direction: string; createdAt: Date }) => ({
       id: m.id,
       body: m.body,
       direction: m.direction as 'inbound' | 'outbound',
