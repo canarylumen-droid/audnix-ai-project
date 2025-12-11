@@ -115,10 +115,9 @@ const mobileNavItems: Array<{
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   path: string;
-  requiresStep?: keyof ActivationState;
 }> = [
   { label: "Home", icon: Home, path: "/dashboard" },
-  { label: "Inbox", icon: Inbox, path: "/dashboard/inbox", requiresStep: "smtp" },
+  { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
   { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
   { label: "Profile", icon: User, path: "/dashboard/settings" },
 ];
@@ -145,7 +144,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       defaultOpen: true,
       items: [
         { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
-        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations", requiresStep: "leads" },
+        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
       ],
     },
     {
@@ -160,8 +159,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       label: "Automation & Deals",
       icon: Wrench,
       items: [
-        { label: "Deals", icon: Briefcase, path: "/dashboard/deals", requiresStep: "leads" },
-        { label: "Calendar", icon: Calendar, path: "/dashboard/calendar", requiresStep: "smtp" },
+        { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
+        { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
       ],
     },

@@ -37,6 +37,21 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 11, 2025)
+- **Navigation Unlocked:** All dashboard pages accessible for free trial users (no activation step restrictions)
+- **Instagram Integration UI:** Removed CSV import option, simplified to OAuth-only (Meta API)
+- **Tour Guide Mobile Fix:** Centered at bottom of screen on mobile devices
+- **Email Connection Form:** Added IMAP host field, improved form layout (2-column grid)
+- **Text Verbosity:** Reduced verbose text across integrations page
+- **Onboarding Cache Fix:** Fixed query cache invalidation after onboarding completion
+
+### Required Environment Variables for Payments
+```
+STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/xxx
+STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/xxx
+STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/xxx
+```
+
 ### Recent Changes (Dec 9, 2025)
 - **Aggressive CTA Copy:** Updated all landing page CTAs to "Recover My Clients" (header) and "Recover My Lost Clients" (hero/calculator) for psychological impact
 - **Calendly-Only Booking:** Removed all Google Calendar references from UI - Calendly is the only booking integration

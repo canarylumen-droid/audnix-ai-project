@@ -82,6 +82,8 @@ export default function IntegrationsPage() {
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
+    imapHost: '',
+    imapPort: '993',
     email: '',
     password: ''
   });
@@ -244,12 +246,16 @@ export default function IntegrationsPage() {
         description: "Your business email has been connected successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', email: '', password: '' });
+      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '' });
     },
     onError: (error: Error) => {
+      let errorMessage = error.message;
+      if (errorMessage.includes('IMAP') || errorMessage.includes('imap')) {
+        errorMessage = 'IMAP connection failed. Check your email host and port settings. Common ports: IMAP=993, SMTP=587';
+      }
       toast({
         title: "Connection failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -659,19 +665,6 @@ export default function IntegrationsPage() {
                           </>
                         ) : (
                           <>
-                            <div className="p-4 bg-pink-50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-800 rounded-lg">
-                              <div className="flex items-start gap-2">
-                                <Sparkles className="h-4 w-4 text-pink-600 dark:text-pink-400 flex-shrink-0 mt-0.5" />
-                                <div className="text-xs space-y-1">
-                                  <p className="font-semibold text-pink-800 dark:text-pink-300">Instagram DM Automation</p>
-                                  <ul className="list-disc list-inside space-y-0.5 ml-2 text-pink-700 dark:text-pink-400">
-                                    <li>AI monitors and responds to DMs 24/7</li>
-                                    <li>Smart comment detection triggers DMs</li>
-                                    <li>Voice notes for personal touch</li>
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
                             <Button
                               className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                               onClick={() => handleConnect(providerId)}
@@ -685,15 +678,9 @@ export default function IntegrationsPage() {
                               )}
                               Connect Instagram
                             </Button>
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() => window.location.href = '/dashboard/lead-import'}
-                              data-testid={`button-csv-import-${providerId}`}
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Or Import CSV
-                            </Button>
+                            <p className="text-xs text-muted-foreground text-center">
+                              AI monitors and responds to DMs automatically
+                            </p>
                           </>
                         )}
                       </CardContent>
@@ -806,7 +793,7 @@ export default function IntegrationsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="smtp-host">SMTP Server</Label>
                 <Input
@@ -819,14 +806,14 @@ export default function IntegrationsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="smtp-port">Port</Label>
+                <Label htmlFor="imap-host">IMAP Server (optional)</Label>
                 <Input
-                  id="smtp-port"
-                  type="number"
-                  placeholder="587"
-                  value={customEmailConfig.smtpPort}
-                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpPort: e.target.value })}
-                  data-testid="input-smtp-port"
+                  id="imap-host"
+                  type="text"
+                  placeholder="imap.yourdomain.com"
+                  value={customEmailConfig.imapHost}
+                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
+                  data-testid="input-imap-host"
                 />
               </div>
               <div>
@@ -841,7 +828,7 @@ export default function IntegrationsPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="smtp-password">Password / App Password</Label>
+                <Label htmlFor="smtp-password">App Password</Label>
                 <Input
                   id="smtp-password"
                   type="password"
@@ -850,17 +837,6 @@ export default function IntegrationsPage() {
                   onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
                   data-testid="input-smtp-password"
                 />
-              </div>
-            </div>
-
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-              <div className="flex items-start gap-2">
-                <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1">
-                  <p className="font-semibold text-amber-800 dark:text-amber-300">Secure Storage</p>
-                  <p className="text-amber-700 dark:text-amber-400">Your credentials are encrypted with AES-256-GCM</p>
-                  <p className="text-amber-700 dark:text-amber-400">Only used to import and send emails on your behalf</p>
-                </div>
               </div>
             </div>
 
@@ -875,10 +851,10 @@ export default function IntegrationsPage() {
               ) : (
                 <Mail className="h-4 w-4 mr-2" />
               )}
-              {connectCustomEmailMutation.isPending ? 'Connecting...' : 'Connect Custom Email'}
+              {connectCustomEmailMutation.isPending ? 'Connecting...' : 'Connect Email'}
             </Button>
 
-            <p className="text-xs text-muted-foreground">Works with any business email (SMTP/IMAP)</p>
+            <p className="text-xs text-muted-foreground text-center">Credentials encrypted. Common ports: SMTP=587, IMAP=993</p>
           </CardContent>
         </Card>
       </div>

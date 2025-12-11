@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,7 @@ export default function DashboardHome() {
   const prefersReducedMotion = useReducedMotion();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch real user profile
   const { data: user } = useQuery<UserProfile>({
@@ -113,6 +114,7 @@ export default function DashboardHome() {
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
   };
 
   // Fetch real dashboard stats - real-time via websockets, no polling

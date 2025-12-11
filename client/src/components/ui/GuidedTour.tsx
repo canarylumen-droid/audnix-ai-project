@@ -204,15 +204,12 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           )}
 
           <motion.div
-            className="fixed z-[10000] w-[400px] max-w-[calc(100vw-32px)] md:max-w-[90vw] bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 bottom-4 md:bottom-auto"
+            className="fixed z-[10000] w-[calc(100vw-32px)] max-w-[360px] md:max-w-[400px] bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl"
             style={{
-              ...modalStyle,
-              ...(typeof window !== 'undefined' && window.innerWidth < 768 ? {
-                top: 'auto',
-                bottom: '16px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-              } : {})
+              top: 'auto',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
             }}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
