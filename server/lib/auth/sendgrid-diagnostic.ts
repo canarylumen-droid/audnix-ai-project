@@ -49,7 +49,4 @@ export class SendGridDiagnostic {
   }
 }
 
-// Run on startup
-if (process.env.NODE_ENV === 'development') {
-  SendGridDiagnostic.diagnose().catch(console.error);
-}
+// Note: Diagnosis is triggered from twilio-email-otp.ts to avoid duplicate logs

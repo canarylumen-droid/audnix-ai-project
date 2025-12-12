@@ -85,6 +85,121 @@ router.get('/connect/instagram', async (req: Request, res: Response): Promise<vo
   }
 });
 
+// GET /auth/instagram - Redirect to Instagram OAuth authorization page
+router.get('/instagram', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getUserId(req as AuthenticatedRequest);
+
+    if (!userId) {
+      // Redirect to login page if not authenticated
+      res.redirect('/auth?error=not_authenticated&redirect=/auth/instagram');
+      return;
+    }
+
+    const authUrl = instagramOAuth.getAuthorizationUrl(userId);
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('Error initiating Instagram OAuth:', error);
+    res.redirect('/dashboard/integrations?error=oauth_init_failed');
+  }
+});
+
+// GET /auth/instagram/callback - Handle Instagram OAuth callback (matches Meta's registered URL)
+router.get('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { code, state, error_reason, error, error_description } = req.query;
+
+    console.log('[Instagram OAuth] Callback received:', { 
+      hasCode: !!code, 
+      hasState: !!state, 
+      error_reason, 
+      error,
+      error_description 
+    });
+
+    if (error_reason === 'user_denied' || error === 'access_denied') {
+      res.redirect('/dashboard/integrations?error=denied');
+      return;
+    }
+
+    if (error) {
+      console.error('[Instagram OAuth] Error from Meta:', { error, error_description });
+      res.redirect(`/dashboard/integrations?error=${encodeURIComponent(String(error))}`);
+      return;
+    }
+
+    if (!code || !state) {
+      console.error('[Instagram OAuth] Missing code or state');
+      res.redirect('/dashboard/integrations?error=invalid_request');
+      return;
+    }
+
+    const stateData = instagramOAuth.verifyState(state as string);
+    if (!stateData || !stateData.userId) {
+      console.error('[Instagram OAuth] Invalid state:', { state, stateData });
+      res.redirect('/dashboard/integrations?error=invalid_state');
+      return;
+    }
+
+    console.log('[Instagram OAuth] Exchanging code for token...');
+    const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);
+    if (!tokenData || !tokenData.access_token) {
+      console.error('[Instagram OAuth] Token exchange failed:', tokenData);
+      res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      return;
+    }
+
+    console.log('[Instagram OAuth] Getting long-lived token...');
+    const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
+    if (!longLivedToken || !longLivedToken.access_token) {
+      console.error('[Instagram OAuth] Long-lived token failed');
+      res.redirect('/dashboard/integrations?error=token_exchange_failed');
+      return;
+    }
+
+    console.log('[Instagram OAuth] Fetching user profile...');
+    const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
+    if (!profile || !profile.id) {
+      console.error('[Instagram OAuth] Profile fetch failed');
+      res.redirect('/dashboard/integrations?error=profile_fetch_failed');
+      return;
+    }
+
+    console.log('[Instagram OAuth] Saving token for user:', stateData.userId);
+    
+    // Save to Neon database using storage
+    const { storage } = await import('../storage.js');
+    const { encrypt } = await import('../lib/crypto/encryption.js');
+    
+    const encryptedMeta = encrypt(JSON.stringify({
+      accessToken: longLivedToken.access_token,
+      userId: profile.id,
+      username: profile.username,
+      expiresAt: new Date(Date.now() + (longLivedToken.expires_in * 1000)).toISOString()
+    }));
+
+    await storage.createIntegration({
+      userId: stateData.userId,
+      provider: 'instagram',
+      encryptedMeta,
+      connected: true,
+      accountType: profile.username || 'Instagram',
+      lastSync: new Date()
+    });
+
+    console.log('[Instagram OAuth] Success! Redirecting...');
+    res.redirect('/dashboard/integrations?success=instagram_connected');
+  } catch (error: unknown) {
+    const err = error as Error & { code?: string; statusCode?: number };
+    console.error('[Instagram OAuth] Callback error:', {
+      message: err?.message,
+      stack: err?.stack,
+      code: err?.code
+    });
+    res.redirect('/dashboard/integrations?error=oauth_failed');
+  }
+});
+
 router.get('/oauth/instagram/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error_reason } = req.query;

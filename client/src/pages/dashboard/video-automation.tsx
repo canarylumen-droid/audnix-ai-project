@@ -671,33 +671,7 @@ export default function VideoAutomationPage() {
     });
   };
 
-  if (!canAccessVideo) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
-        <div>
-          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            Instagram Video Automation
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            AI-powered sales engine that converts comments into booked meetings
-          </p>
-        </div>
-        <FeatureLock
-          featureName="Video Automation"
-          description="Automatically detect buying intent in video comments and convert them into leads. Upgrade to unlock this powerful feature."
-          requiredPlan="Starter"
-          variant="card"
-        >
-          <div className="h-64 flex items-center justify-center">
-            <div className="text-center">
-              <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Video automation preview</p>
-            </div>
-          </div>
-        </FeatureLock>
-      </div>
-    );
-  }
+  // Video automation is FREE for all plans - no lock needed
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">

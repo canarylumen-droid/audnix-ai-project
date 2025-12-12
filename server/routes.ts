@@ -1632,17 +1632,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = getCurrentUserId(req)!;
       
-      // Use initials-based avatar URL instead of base64 to prevent timeout
       const user = await storage.getUserById(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Generate avatar from user initials
-      const initials = (user.email?.split('@')[0] || 'U').substring(0, 2).toUpperCase();
-      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'];
-      const colorIndex = userId.charCodeAt(0) % colors.length;
-      const avatarUrl = `https://ui-avatars.com/api/?name=${initials}&background=${colors[colorIndex].substring(1)}&color=fff`;
+      // Convert uploaded file to base64 data URL
+      const base64 = req.file.buffer.toString('base64');
+      const mimeType = req.file.mimetype || 'image/jpeg';
+      const avatarUrl = `data:${mimeType};base64,${base64}`;
 
       // Update user avatar in database
       await storage.updateUser(userId, {
@@ -2143,6 +2141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register OAuth routes
   app.use("/api", oauthRoutes);
+  
+  // Instagram OAuth at /auth path to match Meta's registered callback URL
+  app.use("/auth", oauthRoutes);
   app.use("/api/payment-approval", paymentApprovalRouter);
   app.use("/api/payment", paymentCheckoutRouter);
 
