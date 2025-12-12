@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -126,6 +126,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     "Leads": true,
     "Closer Engine Live": true,
@@ -134,6 +135,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     "Account & Billing": false,
   });
   const adminSecretPath = useAdminSecretPath();
+
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      setLocation(`/dashboard/inbox?search=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  };
 
   const { showChecklist, isComplete: activationComplete, closeChecklist, openChecklist, handleComplete, activationState } = useActivationChecklist();
 
@@ -712,9 +720,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search leads, messages, settings..."
+                placeholder="Search leads, messages... (press Enter)"
                 className="pl-10 bg-muted/50 border-border"
                 data-testid="input-search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
               />
             </div>
           </div>

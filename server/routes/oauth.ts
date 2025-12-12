@@ -183,7 +183,7 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
       provider: 'instagram',
       encryptedMeta,
       connected: true,
-      accountType: profile.username || 'Instagram',
+      accountType: 'business',
       lastSync: new Date()
     });
 

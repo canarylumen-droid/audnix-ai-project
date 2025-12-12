@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ import {
   Users,
   MessageCircle,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { RecentConversations } from "@/components/dashboard/RecentConversations";
 
 const channelIcons = {
@@ -54,12 +54,21 @@ const statusColors = {
 };
 
 export default function InboxPage() {
+  const searchParams = useSearch();
+  const urlSearchQuery = new URLSearchParams(searchParams).get("search") || "";
+  
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(urlSearchQuery);
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showRecentConversations, setShowRecentConversations] = useState(false);
+
+  useEffect(() => {
+    if (urlSearchQuery) {
+      setSearchQuery(urlSearchQuery);
+    }
+  }, [urlSearchQuery]);
 
   // Fetch real leads from backend with real-time updates
   const { data: leadsData, isLoading, error } = useQuery({
