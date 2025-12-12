@@ -46,10 +46,6 @@ integrations = ["javascript_openai:1.0.0", "resend:1.0.0", "stripe:1.0.0"]
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 24678
-externalPort = 3000
-
 [userenv]
 
 [userenv.shared]
