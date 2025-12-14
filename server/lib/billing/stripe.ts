@@ -207,21 +207,28 @@ export async function getSubscriptionPaymentLink(
   const plan = PLANS[planKey];
   const priceId = plan.priceId;
 
-  if (!priceId || priceId.startsWith('price_')) {
-    throw new Error(
-      `❌ No payment link configured for ${planKey} plan.\n\n` +
-      `Option 1 (Recommended): Create a payment link in Stripe Dashboard:\n` +
-      `1. Go to https://dashboard.stripe.com/payment-links\n` +
-      `2. Click "+ New" and set price to $${plan.price}/month\n` +
-      `3. Copy the link and add to Replit Secrets as: STRIPE_PAYMENT_LINK_${planKey.toUpperCase()}\n\n` +
-      `Option 2: If you have a price ID (${priceId}), create a payment link from it in Stripe Dashboard.`
-    );
+  // Try to create checkout session if Stripe SDK is available and we have a valid price ID
+  if (stripe && process.env.STRIPE_SECRET_KEY && priceId && priceId.startsWith('price_')) {
+    try {
+      console.log(`Creating Stripe checkout session for ${planKey} with price ID: ${priceId}`);
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${process.env.VITE_API_URL || 'https://audnixai.com'}/dashboard/pricing?success=true`,
+        cancel_url: `${process.env.VITE_API_URL || 'https://audnixai.com'}/dashboard/pricing?cancelled=true`,
+        client_reference_id: userId,
+      });
+      if (session.url) return session.url;
+    } catch (e) {
+      console.error('Stripe checkout session creation failed:', e);
+    }
   }
 
-  // Fallback: If you only have Price IDs, create Checkout Session
-  // This requires STRIPE_SECRET_KEY to be set
-  // Return a placeholder - user needs to create payment links
-  return `https://billing.stripe.com/p/login/test_placeholder?prefilled_email=user@example.com`;
+  // Return helpful error with instructions
+  throw new Error(
+    `Payment link not configured for ${planKey} plan. Please add STRIPE_PAYMENT_LINK_${planKey.toUpperCase()} to your environment variables, or configure STRIPE_SECRET_KEY with valid price IDs.`
+  );
 }
 
 /**

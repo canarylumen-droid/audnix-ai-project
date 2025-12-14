@@ -66,14 +66,26 @@ interface IntegrationRecord {
 
 function verifySignature(req: Request): boolean {
   const signature = req.headers['x-hub-signature-256'] as string;
+  
+  // Check for explicit test mode flag (controlled, not automatic)
+  const isTestMode = process.env.INSTAGRAM_WEBHOOK_TEST_MODE === 'true';
+  
   if (!signature) {
     console.log('[IG_WEBHOOK] No x-hub-signature-256 header found');
+    if (isTestMode) {
+      console.warn('[IG_WEBHOOK] TEST MODE: Allowing unsigned request (disable in production!)');
+      return true;
+    }
     return false;
   }
 
   const appSecret = process.env.META_APP_SECRET || '';
   if (!appSecret) {
     console.error('[IG_WEBHOOK] META_APP_SECRET not configured');
+    if (isTestMode) {
+      console.warn('[IG_WEBHOOK] TEST MODE: Allowing request without META_APP_SECRET');
+      return true;
+    }
     return false;
   }
 

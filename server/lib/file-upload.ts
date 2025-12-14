@@ -13,6 +13,58 @@ const supabase = supabaseUrl && supabaseServiceKey
   : null;
 
 const uploadDir = path.join(process.cwd(), "uploads");
+const localStorageDir = path.join(process.cwd(), "public", "uploads");
+
+/**
+ * Local storage fallback when Supabase is not configured
+ */
+async function uploadToLocalStorage(
+  bucket: string,
+  filePath: string,
+  fileBuffer?: Buffer | string
+): Promise<string> {
+  // Security: Sanitize filePath to prevent path traversal attacks
+  const sanitizedBucket = path.basename(bucket);
+  const sanitizedPath = filePath.replace(/\.\./g, '').replace(/^\/+/, '');
+  
+  if (sanitizedPath.includes('..') || path.isAbsolute(sanitizedPath)) {
+    throw new Error("Invalid file path: path traversal detected");
+  }
+  
+  const bucketDir = path.join(localStorageDir, sanitizedBucket);
+  const localPath = path.join(bucketDir, sanitizedPath);
+  
+  // Verify resolved path is within uploads directory
+  const resolvedPath = path.resolve(localPath);
+  const resolvedBucketDir = path.resolve(bucketDir);
+  if (!resolvedPath.startsWith(resolvedBucketDir)) {
+    throw new Error("Invalid file path: path traversal detected");
+  }
+  
+  try {
+    await fs.mkdir(bucketDir, { recursive: true });
+  } catch (err: any) {
+    console.error('Error creating local storage directory:', err?.message);
+  }
+  
+  let buffer: Buffer;
+  if (typeof fileBuffer === 'string') {
+    buffer = await fs.readFile(fileBuffer);
+  } else if (Buffer.isBuffer(fileBuffer)) {
+    buffer = fileBuffer;
+  } else {
+    throw new Error("No file data provided");
+  }
+  
+  const localDir = path.dirname(resolvedPath);
+  await fs.mkdir(localDir, { recursive: true });
+  await fs.writeFile(resolvedPath, buffer);
+  
+  // Return a public URL path
+  const publicUrl = `/uploads/${sanitizedBucket}/${sanitizedPath}`;
+  console.log(`✅ File saved to local storage: ${publicUrl}`);
+  return publicUrl;
+}
 
 // Safely create uploads directory (optional - files use memory storage)
 // Don't crash if directory can't be created (e.g., in serverless environments)
@@ -105,8 +157,10 @@ export async function uploadToSupabase(
   filePath: string,
   fileBuffer?: Buffer | string
 ): Promise<string> {
+  // If Supabase not configured, use local filesystem fallback
   if (!supabase) {
-    throw new Error("Supabase not configured");
+    console.log('⚠️ Supabase not configured, using local storage fallback');
+    return await uploadToLocalStorage(bucket, filePath, fileBuffer);
   }
 
   // If fileBuffer is a string (file path), read it
