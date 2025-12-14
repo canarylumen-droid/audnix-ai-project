@@ -890,7 +890,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights", requireAuth, async (req, res) => {
     try {
       const userId = getCurrentUserId(req)!;
-
+      const leads = await storage.getLeads({ userId, limit: 100 });
+      
+      // Generate basic insights
+      const insights = await generateInsights(leads);
+      res.json({ insights });
+    } catch (error) {
+      console.error("Error getting insights:", error);
+      res.status(500).json({ error: "Failed to get insights" });
+    }
+  });
 
   /**
    * Import leads from CSV file
@@ -1170,118 +1179,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Opt-out toggle error:", error);
       res.status(500).json({ error: error.message || "Failed to update lead" });
-    }
-  });
-
-      const leads = await storage.getLeads({ userId, limit: 1000 });
-
-      if (leads.length === 0) {
-        return res.json({
-          hasData: false,
-          summary: null,
-          channels: [],
-          funnel: [],
-          timeSeries: [],
-          metrics: {
-            avgResponseTime: "—",
-            conversionRate: "0",
-            engagementScore: "0",
-          },
-        });
-      }
-
-      // Channel breakdown
-      const channelStats = leads.reduce((acc: any, lead: any) => {
-        acc[lead.channel] = (acc[lead.channel] || 0) + 1;
-        return acc;
-      }, {});
-
-      const totalLeads = leads.length;
-      const channels = Object.entries(channelStats).map(([channel, count]) => ({
-        channel: channel.charAt(0).toUpperCase() + channel.slice(1),
-        count,
-        percentage: Math.round((count as number / totalLeads) * 100),
-      }));
-
-      // Conversion funnel
-      const statusStats = leads.reduce((acc: any, lead: any) => {
-        acc[lead.status] = (acc[lead.status] || 0) + 1;
-        return acc;
-      }, {});
-
-      const statusOrder = ['new', 'open', 'replied', 'converted', 'not_interested', 'cold'];
-      const funnel = statusOrder
-        .filter(status => statusStats[status])
-        .map(status => ({
-          stage: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
-          count: statusStats[status],
-          percentage: Math.round((statusStats[status] / totalLeads) * 100),
-        }));
-
-      // Time series (last 7 days)
-      const now = new Date();
-      const timeSeries = [];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(now);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-        const dayStart = new Date(date.setHours(0, 0, 0, 0));
-        const dayEnd = new Date(date.setHours(23, 59, 59, 999));
-
-        const leadsCount = leads.filter(lead => {
-          const leadDate = new Date(lead.createdAt);
-          return leadDate >= dayStart && leadDate <= dayEnd;
-        }).length;
-
-        timeSeries.push({
-          date: dateStr,
-          leads: leadsCount,
-        });
-      }
-
-      // Metrics
-      const convertedCount = statusStats['converted'] || 0;
-      const conversionRate = totalLeads > 0 ? ((convertedCount / totalLeads) * 100).toFixed(1) : "0";
-
-      const metrics = {
-        avgResponseTime: "2.3h",
-        conversionRate,
-        engagementScore: Math.min(100, Math.round((leads.filter(l => l.status === 'replied' || l.status === 'converted').length / totalLeads) * 100)).toString(),
-      };
-
-      // Generate AI insights (with fallback if OpenAI not configured)
-      const analyticsData = {
-        total_leads: totalLeads,
-        by_channel: channelStats,
-        by_status: statusStats,
-        conversion_rate: conversionRate,
-      };
-
-      let summary = null;
-      try {
-        summary = await generateInsights(
-          analyticsData,
-          "Generate a concise 2-sentence summary of lead performance and the most important insight:"
-        );
-      } catch (error) {
-        // Fallback summary if OpenAI is not configured
-        const topChannel = Object.entries(channelStats).sort((a, b) => (b[1] as number) - (a[1] as number))[0];
-        summary = `You have ${totalLeads} total leads with a ${conversionRate}% conversion rate. ${topChannel ? `${topChannel[0]} is your top channel with ${topChannel[1]} leads.` : 'Start connecting channels to see more insights.'}`;
-        console.warn("OpenAI not configured, using fallback insights");
-      }
-
-      res.json({
-        hasData: true,
-        summary,
-        channels,
-        funnel,
-        timeSeries,
-        metrics,
-      });
-    } catch (error) {
-      console.error("Error generating insights:", error);
-      res.status(500).json({ error: "Failed to generate insights" });
     }
   });
 
