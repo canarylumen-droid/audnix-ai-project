@@ -300,6 +300,14 @@ export function useActivationChecklist() {
   });
 
   useEffect(() => {
+    // Check if checklist was already permanently completed/dismissed
+    const permanentlyComplete = localStorage.getItem("audnixActivationComplete");
+    if (permanentlyComplete === "true") {
+      setIsComplete(true);
+      setShowChecklist(false);
+      return;
+    }
+
     if (user) {
       const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
       const hasEmailConnected = user.smtpConfigured || user.metadata?.smtpConnected || false;
@@ -321,6 +329,9 @@ export function useActivationChecklist() {
       setIsComplete(allComplete);
 
       if (allComplete) {
+        // Permanently mark as complete
+        localStorage.setItem("audnixActivationComplete", "true");
+        localStorage.setItem("audnixChecklistDismissed", "true");
         setShowChecklist(false);
         return;
       }
@@ -340,18 +351,16 @@ export function useActivationChecklist() {
       setIsComplete(allComplete);
       
       if (allComplete) {
+        localStorage.setItem("audnixActivationComplete", "true");
+        localStorage.setItem("audnixChecklistDismissed", "true");
         setShowChecklist(false);
         return;
       }
       
-      if (completedCount < 4) {
-        const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
-        if (!checklistDismissed) {
-          const timer = setTimeout(() => {
-            setShowChecklist(true);
-          }, 2000);
-          return () => clearTimeout(timer);
-        }
+      const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
+      if (checklistDismissed) {
+        setShowChecklist(false);
+        return;
       }
     }
   }, [user, dashboardStats]);
@@ -372,7 +381,11 @@ export function useActivationChecklist() {
 
   const closeChecklist = useCallback(() => {
     setShowChecklist(false);
-  }, []);
+    // Permanently dismiss when all complete
+    if (isComplete) {
+      localStorage.setItem("audnixChecklistDismissed", "true");
+    }
+  }, [isComplete]);
 
   const openChecklist = useCallback(() => {
     setShowChecklist(true);
@@ -380,6 +393,9 @@ export function useActivationChecklist() {
 
   const handleComplete = useCallback(() => {
     setIsComplete(true);
+    // Permanently dismiss checklist when completed
+    localStorage.setItem("audnixChecklistDismissed", "true");
+    localStorage.setItem("audnixActivationComplete", "true");
     setTimeout(() => {
       setShowChecklist(false);
     }, 2000);

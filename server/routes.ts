@@ -892,8 +892,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getCurrentUserId(req)!;
       const leads = await storage.getLeads({ userId, limit: 100 });
       
-      // Generate basic insights
-      const insights = await generateInsights(leads);
+      // Generate basic insights with proper prompt
+      const prompt = "Analyze the following lead data and provide actionable insights about lead sources, conversion patterns, engagement trends, and recommendations for improvement. Focus on practical advice.";
+      const insights = await generateInsights(leads, prompt);
       res.json({ insights });
     } catch (error) {
       console.error("Error getting insights:", error);

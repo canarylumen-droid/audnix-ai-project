@@ -95,26 +95,40 @@ export default function DashboardHome() {
     retry: false,
   });
 
-  // Check if user needs onboarding and show celebration on first dashboard visit
+  // Check if user needs onboarding and show celebration after onboarding completion
   useEffect(() => {
     if (user) {
       const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
-      setShowOnboarding(!hasCompletedOnboarding);
+      const onboardingDismissedKey = `onboarding_dismissed_${user.id}`;
+      const wasOnboardingDismissed = localStorage.getItem(onboardingDismissedKey);
+      
+      // Only show onboarding if not completed AND not previously dismissed
+      setShowOnboarding(!hasCompletedOnboarding && !wasOnboardingDismissed);
+    }
+  }, [user]);
 
-      // Show celebration if first dashboard visit (track with localStorage)
+  // Handle celebration - only show AFTER onboarding wizard is completed (not on first visit)
+  const showCelebrationAfterOnboarding = () => {
+    if (user?.username) {
       const celebrationKey = `celebration_shown_${user.id}`;
       const hasSeenCelebration = localStorage.getItem(celebrationKey);
-
-      if (!hasSeenCelebration && user.username) {
+      
+      if (!hasSeenCelebration) {
         setShowWelcomeCelebration(true);
         localStorage.setItem(celebrationKey, "true");
       }
     }
-  }, [user]);
+  };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    // Mark onboarding as dismissed for this user
+    if (user?.id) {
+      localStorage.setItem(`onboarding_dismissed_${user.id}`, "true");
+    }
     queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    // Show celebration AFTER onboarding is completed
+    showCelebrationAfterOnboarding();
   };
 
   // Fetch real dashboard stats - real-time via websockets, no polling
