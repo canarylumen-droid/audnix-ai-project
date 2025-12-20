@@ -124,7 +124,8 @@ async function sendCustomSMTP(
  */
 export async function importCustomEmails(
   config: EmailConfig,
-  limit: number = 50
+  limit: number = 50,
+  timeoutMs: number = 15000
 ): Promise<ImportedEmail[]> {
   const Imap = require('imap');
   const { simpleParser } = require('mailparser');
@@ -137,13 +138,30 @@ export async function importCustomEmails(
   }
   
   return new Promise((resolve, reject) => {
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    let completed = false;
+
+    const cleanup = () => {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      completed = true;
+    };
+
+    timeoutHandle = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        reject(new Error(`IMAP connection timeout after ${timeoutMs}ms. Please check your IMAP settings.`));
+      }
+    }, timeoutMs);
+
     const imap = new Imap({
       user: config.smtp_user,
       password: config.smtp_pass,
       host: imapHost,
       port: imapPort,
       tls: true,
-      tlsOptions: { rejectUnauthorized: false }
+      tlsOptions: { rejectUnauthorized: false },
+      connTimeout: 10000,
+      authTimeout: 10000
     });
 
     const emails: ImportedEmail[] = [];
@@ -151,7 +169,9 @@ export async function importCustomEmails(
     imap.once('ready', () => {
       imap.openBox('INBOX', true, (err: Error | null) => {
         if (err) {
-          reject(err);
+          cleanup();
+          imap.end();
+          reject(new Error(`Failed to open INBOX: ${err.message}`));
           return;
         }
 
@@ -163,7 +183,7 @@ export async function importCustomEmails(
         fetch.on('message', (msg: { on: (event: string, callback: (stream: NodeJS.ReadableStream) => void) => void }) => {
           msg.on('body', (stream: NodeJS.ReadableStream) => {
             simpleParser(stream, (parseErr: Error | null, parsed: ParsedEmail) => {
-              if (!parseErr) {
+              if (!parseErr && parsed) {
                 emails.push({
                   from: parsed.from?.text,
                   to: parsed.to?.text,
@@ -177,6 +197,12 @@ export async function importCustomEmails(
           });
         });
 
+        fetch.once('error', (err: Error) => {
+          cleanup();
+          imap.end();
+          reject(new Error(`Failed to fetch emails: ${err.message}`));
+        });
+
         fetch.once('end', () => {
           imap.end();
         });
@@ -184,11 +210,17 @@ export async function importCustomEmails(
     });
 
     imap.once('error', (err: Error) => {
-      reject(err);
+      if (!completed) {
+        cleanup();
+        reject(new Error(`IMAP connection error: ${err.message}`));
+      }
     });
 
     imap.once('end', () => {
-      resolve(emails);
+      if (!completed) {
+        cleanup();
+        resolve(emails);
+      }
     });
 
     imap.connect();

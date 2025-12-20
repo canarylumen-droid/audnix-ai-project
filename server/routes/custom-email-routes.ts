@@ -54,11 +54,13 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     const { smtpHost, smtpPort, imapHost, imapPort, email, password } = req.body as ConnectRequestBody;
 
     if (!smtpHost || !email || !password) {
+      console.warn(`[Email Connect] Missing required fields for user ${userId}`);
       res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
       return;
     }
     
     const effectiveImapHost = imapHost || smtpHost.replace('smtp.', 'imap.');
+    console.log(`[Email Connect] Connecting ${email} via SMTP ${smtpHost}:${smtpPort || 587}`);
 
     const credentials: EmailConfig = {
       smtp_host: smtpHost,
@@ -79,9 +81,16 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       connected: true,
     });
 
+    console.log(`[Email Connect] Email account saved for user ${userId}`);
+
+    // Try to import emails, but don't fail the connection if import fails
+    let importResults: any = null;
+    let importError: string | null = null;
+    
     try {
+      console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
       const { importCustomEmails } = await import('../lib/channels/email.js');
-      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
+      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 10000);
 
       const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
         from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
@@ -91,29 +100,35 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
         html: emailData.html
       }));
 
-      const importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
-        console.log(`📧 Email import progress: ${progress}%`);
-      });
-
-      res.json({
-        success: true,
-        message: 'Custom email connected successfully',
-        leadsImported: importResults.imported,
-        leadsSkipped: importResults.skipped,
-        errors: importResults.errors
-      });
-    } catch (importError: unknown) {
-      const errorMessage = importError instanceof Error ? importError.message : 'Unknown error';
-      console.error('Auto-import failed:', importError);
-      res.json({
-        success: true,
-        message: 'Custom email connected, but initial import failed. You can manually import later.',
-        importError: errorMessage
-      });
+      if (emailsForImport.length > 0) {
+        importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
+          console.log(`[Email Connect] Import progress: ${progress}%`);
+        });
+        console.log(`[Email Connect] Imported ${importResults.imported} emails`);
+      } else {
+        console.log(`[Email Connect] No emails found in INBOX`);
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      importError = errorMsg;
+      console.warn(`[Email Connect] Auto-import failed (non-critical): ${errorMsg}`);
     }
+
+    // Always return success if email was saved, even if import failed
+    res.json({
+      success: true,
+      message: 'Custom email connected successfully',
+      leadsImported: importResults?.imported || 0,
+      leadsSkipped: importResults?.skipped || 0,
+      importError: importError || undefined
+    });
   } catch (error: unknown) {
-    console.error('Error connecting custom email:', error);
-    res.status(500).json({ error: 'Failed to connect custom email' });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Email Connect] Fatal error:`, error);
+    res.status(500).json({ 
+      error: 'Failed to connect custom email',
+      details: errorMsg 
+    });
   }
 });
 
