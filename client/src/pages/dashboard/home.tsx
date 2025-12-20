@@ -112,8 +112,10 @@ export default function DashboardHome() {
     if (user?.username) {
       const celebrationKey = `celebration_shown_${user.id}`;
       const hasSeenCelebration = localStorage.getItem(celebrationKey);
+      const onboardingDismissedKey = `onboarding_dismissed_${user.id}`;
       
-      if (!hasSeenCelebration) {
+      // Only show celebration if user just completed onboarding (not on first visit)
+      if (!hasSeenCelebration && localStorage.getItem(onboardingDismissedKey)) {
         setShowWelcomeCelebration(true);
         localStorage.setItem(celebrationKey, "true");
       }

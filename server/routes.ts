@@ -2101,7 +2101,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const adminRoutes = await import("./routes/admin-routes.js");
   app.use("/api/admin", adminRoutes.default);
   app.use("/api/admin", adminPdfRoutesV2);
+  // Register brand PDF routes at both paths for compatibility
   app.use("/api/brand-pdf", adminPdfRoutes);
+  app.use("/api/admin", adminPdfRoutes); // Also available at /api/admin for client calls
 
   // Register email tracking routes (open/click tracking pixels)
   // Note: Using /api/email-tracking to avoid conflict with /api/email (email stats)
