@@ -186,7 +186,6 @@ export async function uploadToSupabase(
 ): Promise<string> {
   // If Supabase not configured, use local filesystem fallback
   if (!supabase) {
-    console.log('⚠️ Supabase not configured, using local storage fallback');
     return await uploadToLocalStorage(bucket, filePath, fileBuffer);
   }
 
@@ -218,23 +217,28 @@ export async function uploadToSupabase(
     throw new Error("No file data provided");
   }
 
-  const { error } = await supabase.storage
-    .from(bucket)
-    .upload(filePath, buffer, {
-      contentType: 'auto',
-      upsert: true,
-    });
+  try {
+    const { error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, buffer, {
+        contentType: 'auto',
+        upsert: true,
+      });
 
-  if (error) {
-    console.error(`❌ Supabase upload failed for bucket "${bucket}":`, error.message);
-    throw new Error(`Failed to upload to Supabase: ${error.message}`);
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (supabaseError) {
+    // Fallback to local storage if Supabase upload fails
+    console.warn(`Supabase upload failed, falling back to local storage:`, supabaseError);
+    return await uploadToLocalStorage(bucket, filePath, buffer);
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(filePath);
-
-  return publicUrl;
 }
 
 export async function processPDFEmbeddings(
