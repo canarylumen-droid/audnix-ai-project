@@ -29,14 +29,14 @@ export function getPlanCapabilities(planId: string) {
     };
   }
 
-  const hasVoiceNotes = true; // Voice notes FREE for all users
+  const hasVoiceNotes = tier.voiceMinutes > 0; // Voice notes PAID ONLY (starter+ plans)
   const isPaid = isPaidPlan(planId);
   const isProOrAbove = ['pro', 'enterprise'].includes(planId);
   const isEnterprise = planId === 'enterprise';
 
   return {
     leadsLimit: tier.leadsLimit,
-    voiceMinutes: tier.voiceMinutes || 100, // Free users get 100 minutes
+    voiceMinutes: tier.voiceMinutes,
     hasVoiceNotes,
     hasAnalytics: true, // FREE for all users - show preview for trial/free, full features for paid
     hasFullAnalytics: isPaid, // Full analytics only for paid plans

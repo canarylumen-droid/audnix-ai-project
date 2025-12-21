@@ -94,8 +94,8 @@ export default function ConversationsPage() {
   });
 
   // Fetch messages for this lead with aggressive real-time updates and pagination
-  const { data: messagesData, isLoading: messagesLoading } = useQuery<MessagesResponse>({
-    queryKey: ["/api/messages", leadId, { limit: 100, offset: 0 }],
+  const { data: messagesData, isLoading: messagesLoading, fetchNextPage: fetchMoreMessages, hasNextPage: hasMoreMessages } = useQuery<MessagesResponse>({
+    queryKey: ["/api/messages", leadId, { limit: 100 }],
     refetchInterval: 2000, // Refresh every 2 seconds for instant feel
     refetchOnWindowFocus: true,
     enabled: !!leadId,

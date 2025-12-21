@@ -79,13 +79,12 @@ export default function InboxPage() {
     }
   }, [urlSearchQuery]);
 
-  // Fetch real leads from backend with real-time updates
-  const { data: leadsData, isLoading, error } = useQuery({
+  // Fetch real leads from backend with real-time updates (infinite scroll pagination)
+  const { data: leadsData, isLoading, error, fetchNextPage, hasNextPage } = useQuery({
     queryKey: ["/api/leads", { 
       channel: channelFilter !== "all" ? channelFilter : undefined, 
       status: statusFilter !== "all" ? statusFilter : undefined,
-      limit: 50, // Pagination
-      offset: 0
+      limit: 50 // Load 50 at a time
     }],
     refetchInterval: 3000, // Update every 3 seconds
     refetchOnWindowFocus: true,
