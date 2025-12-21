@@ -221,6 +221,7 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
   const extractedColors = extractColorsFromText(text);
   
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+    console.warn('⚠️ OpenAI API key not configured - using regex-based brand extraction only');
     // Return regex-based colors if OpenAI not available
     return {
       offer: null,
@@ -261,6 +262,7 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
     });
     
     const result = JSON.parse(response.choices[0].message.content || '{}');
+    console.log('✅ Brand analysis complete via OpenAI');
     
     // Merge AI-extracted colors with regex-extracted colors for maximum coverage
     const aiColors = result.brand?.colors || {};
@@ -295,8 +297,9 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
       offer: result.offer || null,
       brand: result.brand || null
     };
-  } catch (error) {
-    console.error('Brand/Offer extraction error:', error);
+  } catch (error: any) {
+    console.error('❌ Brand/Offer extraction error:', error?.message || error);
+    console.error('📋 Falling back to regex-based brand extraction');
     // Return regex-based extraction as fallback
     return {
       offer: null,

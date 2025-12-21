@@ -152,6 +152,33 @@ export const uploadAvatar = multer({
   },
 });
 
+/**
+ * Ensure Supabase bucket exists before uploading
+ */
+async function ensureBucketExists(bucketName: string): Promise<void> {
+  if (!supabase) return;
+  
+  try {
+    // Try to list files in bucket - if it doesn't exist, this will fail
+    await supabase.storage.from(bucketName).list('', { limit: 1 });
+  } catch (error: any) {
+    // Bucket doesn't exist, try to create it
+    if (error?.message?.includes('not found') || error?.message?.includes('does not exist')) {
+      try {
+        console.log(`📦 Creating Supabase bucket: ${bucketName}`);
+        await supabase.storage.createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 52428800, // 50MB
+        });
+        console.log(`✅ Bucket created: ${bucketName}`);
+      } catch (createError: any) {
+        console.warn(`⚠️ Could not create bucket ${bucketName}: ${createError?.message}`);
+        // Continue anyway - bucket might exist but list() failed for permissions
+      }
+    }
+  }
+}
+
 export async function uploadToSupabase(
   bucket: string,
   filePath: string,
@@ -162,6 +189,9 @@ export async function uploadToSupabase(
     console.log('⚠️ Supabase not configured, using local storage fallback');
     return await uploadToLocalStorage(bucket, filePath, fileBuffer);
   }
+
+  // Ensure bucket exists before uploading
+  await ensureBucketExists(bucket);
 
   // If fileBuffer is a string (file path), read it
   let buffer: Buffer;
@@ -196,6 +226,7 @@ export async function uploadToSupabase(
     });
 
   if (error) {
+    console.error(`❌ Supabase upload failed for bucket "${bucket}":`, error.message);
     throw new Error(`Failed to upload to Supabase: ${error.message}`);
   }
 
