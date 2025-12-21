@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Instagram,
   Mail,
@@ -22,6 +23,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface Lead {
   id: string;
@@ -77,6 +79,13 @@ export default function ConversationsPage() {
   const { toast } = useToast();
   const [selectedLead, setSelectedLead] = useState<any>(null); // State to manage selected lead for mobile view
 
+  // Get user for real-time subscriptions
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile"],
+    retry: false,
+  });
+  useRealtime(user?.id);
+
   // Fetch lead details
   const { data: lead, isLoading: leadLoading } = useQuery<LeadResponse>({
     queryKey: ["/api/leads", leadId],
@@ -84,10 +93,10 @@ export default function ConversationsPage() {
     retry: false,
   });
 
-  // Fetch messages for this lead with aggressive real-time updates
+  // Fetch messages for this lead with aggressive real-time updates and pagination
   const { data: messagesData, isLoading: messagesLoading } = useQuery<MessagesResponse>({
-    queryKey: ["/api/messages", leadId],
-    refetchInterval: 3000, // Refresh every 3 seconds for instant feel
+    queryKey: ["/api/messages", leadId, { limit: 100, offset: 0 }],
+    refetchInterval: 2000, // Refresh every 2 seconds for instant feel
     refetchOnWindowFocus: true,
     enabled: !!leadId,
     retry: false,

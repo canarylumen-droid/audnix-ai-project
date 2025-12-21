@@ -58,14 +58,14 @@ const contentMap: Record<UpgradeVariant, {
     microcopy: "View-only mode enabled. Upgrade to resume actions."
   },
   featureLocked: {
-    title: "Premium feature",
-    description: "This feature is available on paid plans.",
+    title: "Upgrade for more",
+    description: "This feature includes advanced capabilities on paid plans.",
     benefits: [
       "Unlock advanced features",
       "Boost your conversion rate",
       "Close more deals"
     ],
-    cta: "Upgrade to Access"
+    cta: "View Plans"
   }
 };
 

@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRealtime } from "@/hooks/use-realtime";
 import {
   Select,
   SelectContent,
@@ -63,6 +65,13 @@ export default function InboxPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showRecentConversations, setShowRecentConversations] = useState(false);
+  
+  // Get user ID for real-time updates
+  const { data: user } = useQuery({
+    queryKey: ["/api/user/profile"],
+    retry: false,
+  });
+  useRealtime(user?.id);
 
   useEffect(() => {
     if (urlSearchQuery) {
@@ -74,16 +83,12 @@ export default function InboxPage() {
   const { data: leadsData, isLoading, error } = useQuery({
     queryKey: ["/api/leads", { 
       channel: channelFilter !== "all" ? channelFilter : undefined, 
-      status: statusFilter !== "all" ? statusFilter : undefined 
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      limit: 50, // Pagination
+      offset: 0
     }],
-    refetchInterval: 5000, // Update every 5 seconds
+    refetchInterval: 3000, // Update every 3 seconds
     refetchOnWindowFocus: true,
-    retry: false,
-  });
-
-  // Get real user data
-  const { data: user } = useQuery({
-    queryKey: ["/api/user/profile"],
     retry: false,
   });
 

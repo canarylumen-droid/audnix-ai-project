@@ -439,7 +439,7 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
+          <div className={`flex items-center justify-between p-4 rounded-lg border bg-card transition-opacity ${user?.plan === 'trial' || user?.plan === 'free' ? 'opacity-50' : ''}`} style={user?.plan === 'trial' || user?.plan === 'free' ? { backdropFilter: 'blur(4px)' } : {}}>
             <div className="space-y-1">
               <Label htmlFor="voice-toggle" className="text-base font-medium">
                 Enable AI Voice Notes
@@ -447,10 +447,16 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 When enabled, AI can send voice messages to warm leads on Instagram DMs
               </p>
+              {(user?.plan === 'trial' || user?.plan === 'free') && (
+                <p className="text-xs text-amber-600 dark:text-amber-500 mt-2">
+                  ✨ Available on all plans • Upgrade for unlimited voice minutes
+                </p>
+              )}
             </div>
             <Switch
               id="voice-toggle"
               checked={voiceNotesEnabled}
+              disabled={user?.plan === 'trial' || user?.plan === 'free'}
               onCheckedChange={async (checked) => {
                 setVoiceNotesEnabled(checked);
                 try {
