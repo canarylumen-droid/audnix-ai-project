@@ -65,6 +65,8 @@ export default function InboxPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showRecentConversations, setShowRecentConversations] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [allLeads, setAllLeads] = useState<any[]>([]);
   
   // Get user ID for real-time updates
   const { data: user } = useQuery({
@@ -79,19 +81,31 @@ export default function InboxPage() {
     }
   }, [urlSearchQuery]);
 
-  // Fetch real leads from backend with real-time updates (infinite scroll pagination)
-  const { data: leadsData, isLoading, error, fetchNextPage, hasNextPage } = useQuery({
+  // Fetch real leads from backend with pagination
+  const { data: leadsData, isLoading, error } = useQuery({
     queryKey: ["/api/leads", { 
       channel: channelFilter !== "all" ? channelFilter : undefined, 
       status: statusFilter !== "all" ? statusFilter : undefined,
-      limit: 50 // Load 50 at a time
+      limit: 50,
+      offset: offset
     }],
-    refetchInterval: 3000, // Update every 3 seconds
+    refetchInterval: 3000,
     refetchOnWindowFocus: true,
     retry: false,
   });
 
-  const leads = leadsData?.leads || [];
+  // Accumulate leads as user loads more
+  useEffect(() => {
+    if (leadsData?.leads) {
+      if (offset === 0) {
+        setAllLeads(leadsData.leads);
+      } else {
+        setAllLeads(prev => [...prev, ...leadsData.leads]);
+      }
+    }
+  }, [leadsData, offset]);
+
+  const leads = allLeads;
   const userPlan = user?.plan || "trial";
   const leadsLimit = userPlan === "trial" ? 500 : userPlan === "starter" ? 2500 : userPlan === "pro" ? 7000 : 20000;
   const currentLeadCount = leads.length;
@@ -319,7 +333,7 @@ export default function InboxPage() {
       </Card>
 
         {/* Leads Display */}
-        {filteredLeads.length === 0 ? (
+        {filteredLeads.length === 0 && allLeads.length === 0 ? (
         <Card className="border-dashed" data-testid="card-empty-state">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -524,6 +538,27 @@ export default function InboxPage() {
         </div>
         )}
       </div>
+
+      {/* Load More Button */}
+      {filteredLeads.length > 0 && (leadsData?.leads?.length || 0) >= 50 && (
+        <div className="flex justify-center p-4 mb-4">
+          <Button 
+            variant="outline"
+            onClick={() => setOffset(prev => prev + 50)}
+            disabled={isLoading}
+            className="w-full"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading More...
+              </>
+            ) : (
+              'Load More Leads'
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Desktop Recent Conversations Sidebar */}
       <div className="hidden lg:block w-[400px] flex-shrink-0">

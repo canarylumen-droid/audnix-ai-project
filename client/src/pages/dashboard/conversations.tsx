@@ -77,7 +77,9 @@ export default function ConversationsPage() {
   const [typedText, setTypedText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const [selectedLead, setSelectedLead] = useState<any>(null); // State to manage selected lead for mobile view
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [messageOffset, setMessageOffset] = useState(0);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
 
   // Get user for real-time subscriptions
   const { data: user } = useQuery({
@@ -93,16 +95,27 @@ export default function ConversationsPage() {
     retry: false,
   });
 
-  // Fetch messages for this lead with aggressive real-time updates and pagination
-  const { data: messagesData, isLoading: messagesLoading, fetchNextPage: fetchMoreMessages, hasNextPage: hasMoreMessages } = useQuery<MessagesResponse>({
-    queryKey: ["/api/messages", leadId, { limit: 100 }],
-    refetchInterval: 2000, // Refresh every 2 seconds for instant feel
+  // Fetch messages for this lead with pagination
+  const { data: messagesData, isLoading: messagesLoading } = useQuery<MessagesResponse>({
+    queryKey: ["/api/messages", leadId, { limit: 100, offset: messageOffset }],
+    refetchInterval: 2000,
     refetchOnWindowFocus: true,
     enabled: !!leadId,
     retry: false,
   });
 
-  const messages = messagesData?.messages || [];
+  // Accumulate messages as user loads more
+  useEffect(() => {
+    if (messagesData?.messages) {
+      if (messageOffset === 0) {
+        setAllMessages(messagesData.messages);
+      } else {
+        setAllMessages(prev => [...prev, ...messagesData.messages]);
+      }
+    }
+  }, [messagesData, messageOffset]);
+
+  const messages = allMessages;
 
   // Send message mutation
   const sendMutation = useMutation({
@@ -360,6 +373,20 @@ export default function ConversationsPage() {
                       <p className="text-sm">{typedText}</p>
                     </div>
                   </motion.div>
+                )}
+
+                {(messagesData?.messages?.length || 0) >= 100 && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMessageOffset(prev => prev + 100)}
+                      disabled={messagesLoading}
+                    >
+                      {messagesLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Load Earlier Messages
+                    </Button>
+                  </div>
                 )}
 
                 <div ref={messagesEndRef} />

@@ -439,6 +439,13 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!['starter', 'pro', 'enterprise'].includes(user?.plan || '') && (
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                💎 Voice notes are available on <strong>Starter</strong> plan and above. Upgrade to get 100+ voice minutes/month.
+              </p>
+            </div>
+          )}
           <div className={`flex items-center justify-between p-4 rounded-lg border bg-card transition-opacity ${!['starter', 'pro', 'enterprise'].includes(user?.plan || '') ? 'opacity-60' : ''}`} style={!['starter', 'pro', 'enterprise'].includes(user?.plan || '') ? { backdropFilter: 'blur(3px)' } : {}}>
             <div className="space-y-1">
               <Label htmlFor="voice-toggle" className="text-base font-medium">
@@ -447,11 +454,6 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground">
                 When enabled, AI can send voice messages to warm leads on Instagram DMs
               </p>
-              {!['starter', 'pro', 'enterprise'].includes(user?.plan || '') && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  💎 Upgrade to Starter plan to enable voice notes
-                </p>
-              )}
             </div>
             <Switch
               id="voice-toggle"
