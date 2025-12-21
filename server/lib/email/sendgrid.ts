@@ -40,7 +40,7 @@ class SendGridEmailService {
 
   private initConfig(): void {
     const apiKey = process.env.TWILIO_SENDGRID_API_KEY;
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.TWILIO_EMAIL_FROM || 'team@audnixai.com';
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'team@audnixai.com';
     const fromName = process.env.SENDGRID_FROM_NAME || 'Audnix AI Team';
 
     if (apiKey && apiKey.trim().length > 0) {
