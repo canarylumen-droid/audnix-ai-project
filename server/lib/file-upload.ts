@@ -214,7 +214,9 @@ export async function processPDFEmbeddings(
   fileBuffer?: Buffer
 ): Promise<void> {
   if (!supabase) {
-    throw new Error("Supabase not configured");
+    console.warn('⚠️ Supabase not configured - skipping PDF embeddings processing');
+    console.warn('⚠️ Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set');
+    return; // Non-fatal - allow PDF to be uploaded even if embeddings not stored
   }
 
   try {

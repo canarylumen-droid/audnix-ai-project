@@ -40,14 +40,16 @@ class SendGridEmailService {
 
   private initConfig(): void {
     const apiKey = process.env.TWILIO_SENDGRID_API_KEY;
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'team@audnixai.com';
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || process.env.TWILIO_EMAIL_FROM || 'team@audnixai.com';
     const fromName = process.env.SENDGRID_FROM_NAME || 'Audnix AI Team';
 
-    if (apiKey) {
+    if (apiKey && apiKey.trim().length > 0) {
       this.config = { apiKey, fromEmail, fromName };
       console.log('✅ SendGrid configured with:', fromEmail);
     } else {
-      console.warn('⚠️ SendGrid not configured - TWILIO_SENDGRID_API_KEY not set');
+      console.error('❌ CRITICAL: SendGrid API key missing - TWILIO_SENDGRID_API_KEY not set');
+      console.error('📋 OTP emails and transactional emails will FAIL');
+      console.error('📍 Set TWILIO_SENDGRID_API_KEY in your environment');
     }
   }
 

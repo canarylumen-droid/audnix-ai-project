@@ -4,8 +4,14 @@ import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
 import type { PDFProcessingResult } from '../../shared/types.js';
 
+// Initialize OpenAI - will use mock-key if not configured
+const openaiKey = process.env.OPENAI_API_KEY;
+if (!openaiKey) {
+  console.error('❌ CRITICAL: OPENAI_API_KEY not set');
+  console.error('📋 PDF analysis and AI features will use fallback responses');
+}
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+  apiKey: openaiKey || 'mock-key',
 });
 
 /**

@@ -119,17 +119,29 @@ export function handleInstagramVerification(req: Request, res: Response): void {
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const verifyToken = process.env.META_VERIFY_TOKEN || 'audnixai';
+  const verifyToken = process.env.META_VERIFY_TOKEN;
   
   console.log('[Instagram Webhook] Verification request received');
   console.log('[Instagram Webhook] Mode:', mode);
-  console.log('[Instagram Webhook] Token match:', token === verifyToken);
+  console.log('[Instagram Webhook] Token received:', token);
+  console.log('[Instagram Webhook] Token configured:', !!verifyToken);
+  
+  // If no token configured, show helpful error
+  if (!verifyToken) {
+    console.error('[Instagram Webhook] ❌ META_VERIFY_TOKEN not configured!');
+    console.error('[Instagram Webhook] Set META_VERIFY_TOKEN in environment to fix this');
+    console.log('[Instagram Webhook] Token received from Meta:', token);
+    res.status(403).json({ error: 'META_VERIFY_TOKEN not configured on server' });
+    return;
+  }
 
   if (mode === 'subscribe' && token === verifyToken) {
-    console.log('[Instagram Webhook] Verification successful');
+    console.log('[Instagram Webhook] ✅ Verification successful');
     res.status(200).type('text/plain').send(challenge);
   } else {
-    console.log('[Instagram Webhook] Verification failed - invalid token or mode');
+    console.error('[Instagram Webhook] ❌ Verification failed');
+    console.error('[Instagram Webhook] Expected token:', verifyToken);
+    console.error('[Instagram Webhook] Received token:', token);
     res.sendStatus(403);
   }
 }
