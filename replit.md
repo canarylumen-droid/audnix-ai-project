@@ -37,6 +37,22 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 22, 2025)
+- **HOMEPAGE REDESIGN:** Complete conversion-focused restructure following senior product designer framework
+  - **Narrative:** Unified around core differentiator - "Audnix remembers every lead and only follows up when it will convert"
+  - **Page reduction:** ~35% reduction in page length by eliminating repetitive sections
+  - **Copy tightening:** Removed hype language, replaced with specific, believable outcomes
+  - **Section reorganization:** Hero → Why Leads Go Cold → How It Works → Intelligence Layer (condensed) → Brand PDF → Email+Instagram → Trust Signals → Calculator → Pricing
+  - **Intelligence Layer condensed:** Reduced from 6 cards (130 lines) to 3 focused cards on Memory, Intent Scoring, Objection Handling
+  - **Brand PDF elevated:** Now standalone key differentiator section (not buried in features)
+  - **Trust signals moved:** Legal/Privacy section now appears before pricing (builds confidence before purchase)
+  - **Calculator repositioned:** Moved before pricing section for revenue impact messaging
+  - **Removed sections:** Generic "Why It's Different", redundant Instagram section, verbose features list, duplicate comparisons
+  - **Simplified comparison:** Reduced table from 6 features to 5 core features vs ManyChat
+  - **CTA updated:** Color changed from red-orange to emerald-cyan (matches brand), copy says "Recover My Lost Leads"
+  - **Trust cue added:** "No card • 500 leads • Setup in minutes" below primary CTA
+  - **SEO friendly:** Page title and meta optimized for "AI sales closer", "follow-up automation", "lead recovery"
+
 ### Recent Changes (Dec 11, 2025)
 - **Navigation Unlocked:** All dashboard pages accessible for free trial users (no activation step restrictions)
 - **Instagram Integration UI:** Removed CSV import option, simplified to OAuth-only (Meta API)
