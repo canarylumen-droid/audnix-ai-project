@@ -56,6 +56,7 @@ import salesEngineRouter from './routes/sales-engine.js';
 import emailTrackingRoutes from './routes/email-tracking-routes.js';
 import dnsVerificationRoutes from './routes/dns-verification-routes.js';
 import instagramStatusRoutes from './routes/instagram-status.js';
+import { registerVerificationRoutes } from './routes/verification-routes.js';
 import { followUpWorker } from './lib/ai/follow-up-worker.js';
 import { weeklyInsightsWorker } from './lib/ai/weekly-insights-worker.js';
 import { requireAuth, requireAdmin, optionalAuth, getCurrentUserId } from './middleware/auth.js';
@@ -2114,6 +2115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register Instagram status routes (webhook status, logs)
   app.use("/api/instagram", instagramStatusRoutes);
+
+  // Register verification routes (PHASE 1: Supabase Storage + Database validation)
+  registerVerificationRoutes(app);
 
   const httpServer = createServer(app);
 
