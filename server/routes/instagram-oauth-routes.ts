@@ -42,7 +42,7 @@ function generateOAuthUrl(clientId: string, redirectUri: string, state: string):
   return `https://api.instagram.com/oauth/authorize?${params.toString()}`;
 }
 
-export function registerInstagramOAuthRoutes(app: Express) {
+export default function registerInstagramOAuthRoutes(app: Express) {
   oauthLog("🔑 Registering Instagram OAuth routes...");
 
   const META_APP_ID = process.env.META_APP_ID;
@@ -74,14 +74,14 @@ export function registerInstagramOAuthRoutes(app: Express) {
     // Generate random state for CSRF protection
     const state = Math.random().toString(36).substring(7);
 
-    oauthLog(`Client ID: ${META_APP_ID}`);
+    oauthLog(`Client ID: ${META_APP_ID.substring(0, 10)}...`);
     oauthLog(`Callback URL: ${META_CALLBACK_URL}`);
     oauthLog(`State: ${state}`);
     oauthLog(`Scope: instagram_basic,instagram_manage_messages`);
 
     // Generate OAuth URL
     const oauthUrl = generateOAuthUrl(META_APP_ID, META_CALLBACK_URL, state);
-    oauthLog(`Generated OAuth URL: ${oauthUrl}`);
+    oauthLog(`Generated OAuth URL successfully`);
 
     // Store state in session for verification (optional)
     if ((req as any).session) {
@@ -106,10 +106,11 @@ export function registerInstagramOAuthRoutes(app: Express) {
     const error = req.query.error as string;
     const errorReason = req.query.error_reason as string;
 
-    oauthLog(`Code: ${code || "NOT RECEIVED"}`);
-    oauthLog(`State: ${state || "NOT RECEIVED"}`);
-    oauthLog(`Error: ${error || "none"}`);
-    oauthLog(`Error reason: ${errorReason || "none"}`);
+    oauthLog(`Received callback parameters:`);
+    oauthLog(`  Code: ${code ? "✅ " + code.substring(0, 20) + "..." : "❌ NOT RECEIVED"}`);
+    oauthLog(`  State: ${state || "❌ NOT RECEIVED"}`);
+    oauthLog(`  Error: ${error || "✅ NONE"}`);
+    oauthLog(`  Error reason: ${errorReason || "none"}`);
 
     // Check for errors
     if (error) {
@@ -128,8 +129,8 @@ export function registerInstagramOAuthRoutes(app: Express) {
     const sessionState = (req as any).session?.oauthState;
     if (sessionState && state !== sessionState) {
       oauthLog(`❌ State mismatch - possible CSRF attack`);
-      oauthLog(`Expected state: ${sessionState}`);
-      oauthLog(`Received state: ${state}`);
+      oauthLog(`Expected: ${sessionState}`);
+      oauthLog(`Received: ${state}`);
       return res.status(403).json({ error: "Invalid state parameter" });
     }
 
@@ -139,13 +140,13 @@ export function registerInstagramOAuthRoutes(app: Express) {
     }
 
     oauthLog("✅ Authorization code received successfully");
-    oauthLog(`Next step: Exchange code for access token using META_APP_SECRET`);
+    oauthLog(`Next: Exchange code for access token using META_APP_SECRET`);
 
     // For verification-only, just acknowledge receipt
     res.json({
       success: true,
       message: "Authorization code received",
-      code: code,
+      codeLength: code.length,
       state: state,
       nextSteps: "Exchange code for access token via backend API",
     });
@@ -163,10 +164,10 @@ export function registerInstagramOAuthRoutes(app: Express) {
       meta_app_id: META_APP_ID ? "✅ SET" : "❌ MISSING",
       meta_callback_url: META_CALLBACK_URL ? "✅ SET" : "❌ MISSING",
       meta_verify_token: META_VERIFY_TOKEN ? "✅ SET" : "❌ MISSING",
-      oauth_url: META_APP_ID && META_CALLBACK_URL ? generateOAuthUrl(META_APP_ID, META_CALLBACK_URL, "test-state") : "CANNOT_GENERATE",
+      oauthUrlGeneratable: Boolean(META_APP_ID && META_CALLBACK_URL),
     };
 
-    oauthLog(`Configuration: ${status.configured ? "READY" : "INCOMPLETE"}`);
+    oauthLog(`Configuration: ${status.configured ? "✅ READY" : "❌ INCOMPLETE"}`);
     oauthLog(`App ID: ${status.meta_app_id}`);
     oauthLog(`Callback URL: ${status.meta_callback_url}`);
     oauthLog(`Verify Token: ${status.meta_verify_token}`);
@@ -175,9 +176,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
   });
 
   oauthLog("✅ Instagram OAuth routes registered:");
-  oauthLog("   - GET /auth/instagram - Generate OAuth redirect");
+  oauthLog("   - GET /auth/instagram - Start OAuth flow");
   oauthLog("   - GET /auth/instagram/callback - Receive auth code");
-  oauthLog("   - GET /auth/instagram/status - Check OAuth config");
-  oauthLog(`   - Client ID configured: ${META_APP_ID ? "YES" : "NO"}`);
-  oauthLog(`   - Callback URL: ${META_CALLBACK_URL || "NOT SET"}`);
+  oauthLog("   - GET /auth/instagram/status - Check config");
 }
