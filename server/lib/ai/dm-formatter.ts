@@ -17,10 +17,44 @@ export interface BrandColors {
 }
 
 /**
- * Format a message with a button-like link
+ * Format a message with ManyChat-style button link
+ * Clean, branded, professional appearance
  */
 export function formatDMWithButton(message: string, button: DMButton): string {
-  return `${message}\n\n━━━━━━━━━━━━━━━━━━\n🔗 ${button.text.toUpperCase()}\n${button.url}\n━━━━━━━━━━━━━━━━━━`;
+  const buttonText = button.text.toUpperCase();
+  const buttonLine = `╔═══════════════════════╗`;
+  const buttonContent = `║  🔗 ${buttonText}  ║`;
+  const buttonBottom = `╚═══════════════════════╝`;
+  
+  return `${message}\n\n${buttonLine}\n${buttonContent}\n${buttonBottom}\n\n👆 ${button.url}`;
+}
+
+/**
+ * Format DM with multiple button options (ManyChat style)
+ */
+export function formatDMWithButtons(message: string, buttons: DMButton[]): string {
+  const formattedButtons = buttons.slice(0, 3).map((btn, i) => {
+    const emoji = i === 0 ? '🔥' : i === 1 ? '✨' : '💡';
+    return `${emoji} ${btn.text}: ${btn.url}`;
+  }).join('\n');
+  
+  return `${message}\n\n━━━━━━━━━━━━━━━━━━━\n${formattedButtons}\n━━━━━━━━━━━━━━━━━━━\n\n👆 Tap a link above to continue`;
+}
+
+/**
+ * Format short comment reply (emoji + quick message)
+ */
+export function formatCommentReply(intent: string): string {
+  const replies: Record<string, string[]> = {
+    'link': ['🔥 Sent!', '✨ Check DMs!', '📩 Just DMd you!', '🚀 In your DMs!'],
+    'info': ['📩 DMd you!', '✨ Check inbox!', '💬 Sent details!'],
+    'offer': ['🎁 Sending now!', '✨ Check DMs!', '🔥 Just sent!'],
+    'product': ['📦 DMd you!', '✨ Check inbox!', '💫 Sent info!'],
+    'general': ['👍 DMd you!', '✨ Check DMs!', '💬 Sent!']
+  };
+  
+  const options = replies[intent] || replies['general'];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 /**

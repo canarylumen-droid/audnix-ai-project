@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
+import { formatDMWithButton, formatCommentReply, type DMButton } from './dm-formatter.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
@@ -80,6 +81,7 @@ Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }
 
 /**
  * Generate personalized initial DM based on what they commented for
+ * Now includes ManyChat-style CTA button formatting
  */
 export async function generateInitialDM(
   leadName: string,
@@ -88,10 +90,15 @@ export async function generateInitialDM(
     intent: 'link' | 'info' | 'offer' | 'product' | 'general';
     originalMessage: string;
   },
-  postContext: string
+  postContext: string,
+  ctaButton?: DMButton
 ): Promise<string> {
   if (isDemoMode) {
-    return `Hey ${leadName}! Thanks for your interest. Here's what you asked for: [Your Link/Info]`;
+    const message = `Hey ${leadName}! Thanks for your interest. Here's what you asked for:`;
+    if (ctaButton) {
+      return formatDMWithButton(message, ctaButton);
+    }
+    return message;
   }
 
   try {
@@ -106,27 +113,36 @@ Guidelines:
 - Address them by name naturally (just once at the start)
 - Reference what they asked for (link, info, offer, etc.)
 - Be warm but professional
-- Keep it under 100 words
-- Include a clear next step or CTA
+- Keep it under 60 words (the CTA link button will be added separately)
 - Sound human, not like a bot
 - If it's an offer, create light urgency ("limited spots", "early access")
+- DO NOT include any links in your message - the CTA button will be added below
 
 Generate the DM:`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a skilled digital marketer creating personalized DM responses.' },
+        { role: 'system', content: 'You are a skilled digital marketer creating personalized DM responses. Never include URLs - they will be added as styled buttons.' },
         { role: 'user', content: prompt }
       ],
-      max_completion_tokens: 200,
+      max_completion_tokens: 150,
       temperature: 0.8
     });
 
-    return response.choices[0].message.content || `Hey ${leadName}! Thanks for reaching out. Here's the info you requested.`;
+    const aiMessage = response.choices[0].message.content || `Hey ${leadName}! Thanks for reaching out.`;
+    
+    if (ctaButton) {
+      return formatDMWithButton(aiMessage, ctaButton);
+    }
+    return aiMessage;
   } catch (error) {
     console.error('Initial DM generation error:', error);
-    return `Hey ${leadName}! Thanks for your interest. Let me share what you asked for.`;
+    const fallback = `Hey ${leadName}! Thanks for your interest. Let me share what you asked for.`;
+    if (ctaButton) {
+      return formatDMWithButton(fallback, ctaButton);
+    }
+    return fallback;
   }
 }
 
@@ -285,26 +301,24 @@ export async function processCommentAutomation(
       return { success: false, followUpScheduled: false, commentReplied: false };
     }
 
-    // Step 2: REPLY TO COMMENT FIRST with emoji (like human behavior)
-    const emoji = selectEmojiForIntent(intent.intent);
+    // Step 2: REPLY TO COMMENT FIRST with short message (ManyChat style)
+    const shortReply = formatCommentReply(intent.intent);
     let commentReplied = false;
     
     if (channel === 'instagram' && commentId) {
       try {
-        // Reply to the comment with emoji
-        // This would use Instagram Graph API comment reply endpoint
-        console.log(`💬 Replying to comment ${commentId} with emoji: ${emoji}`);
+        // Reply to the comment with short message like "Check DMs!"
+        console.log(`💬 Replying to comment ${commentId} with: ${shortReply}`);
         // TODO: Implement actual Instagram comment reply via Graph API
-        // For now, log the action
         await storage.createNotification({
           userId,
           title: '💬 Comment Reply Sent',
-          message: `Replied "${emoji}" to ${username}'s comment. DM will be sent shortly.`,
+          message: `Replied "${shortReply}" to ${username}'s comment. DM will be sent shortly.`,
           type: 'info',
           read: false,
           metadata: {
             username,
-            emoji,
+            shortReply,
             originalComment: comment,
             action: 'comment_reply'
           }
@@ -312,7 +326,6 @@ export async function processCommentAutomation(
         commentReplied = true;
       } catch (error) {
         console.error('Failed to reply to comment:', error);
-        // Continue with automation even if comment reply fails
       }
     }
 
@@ -336,10 +349,20 @@ export async function processCommentAutomation(
       });
     }
 
-    // Step 4: Generate initial DM (but don't send yet - scheduled in follow-up)
-    const initialDM = await generateInitialDM(username, intent, postContext);
+    // Step 4: Get user's CTA settings for branded buttons
+    const user = await storage.getUser(userId);
+    const ctaLink = user?.metadata?.ctaLink || null;
+    const ctaText = user?.metadata?.ctaText || 'Get Access';
     
-    // Step 5: Schedule DM for 2-8 minutes later (human-like timing)
+    const ctaButton: DMButton | undefined = ctaLink ? {
+      text: ctaText,
+      url: ctaLink
+    } : undefined;
+
+    // Step 5: Generate initial DM with ManyChat-style CTA button
+    const initialDM = await generateInitialDM(username, intent, postContext, ctaButton);
+    
+    // Step 6: Schedule DM for 2-8 minutes later (human-like timing)
     const delayMinutes = Math.floor(Math.random() * 6) + 2; // Random 2-8 minutes
     const dmTime = new Date(Date.now() + delayMinutes * 60 * 1000);
     
@@ -359,8 +382,9 @@ export async function processCommentAutomation(
     });
 
     console.log(`✓ Comment automation started for ${username}:`);
-    console.log(`  - Comment replied with ${emoji}`);
+    console.log(`  - Comment replied with: "${shortReply}"`);
     console.log(`  - DM scheduled in ${delayMinutes} minutes`);
+    console.log(`  - CTA button: ${ctaButton ? ctaButton.text : 'None configured'}`);
 
     return {
       success: true,
