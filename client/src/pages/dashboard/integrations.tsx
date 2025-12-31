@@ -29,7 +29,17 @@ import {
   CheckCircle2,
   Pencil,
   Unlink,
+  Eye,
+  EyeOff,
+  XCircle,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -87,9 +97,13 @@ export default function IntegrationsPage() {
     imapHost: '',
     imapPort: '993',
     email: '',
-    password: ''
+    password: '',
+    fromName: ''
   });
   const [isEditingCustomEmail, setIsEditingCustomEmail] = useState(false);
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -258,8 +272,9 @@ export default function IntegrationsPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
-      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '' });
+      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
       setIsEditingCustomEmail(false);
+      setEmailTestResult(null);
     },
     onError: (error: Error) => {
       let errorMessage = error.message;
@@ -297,6 +312,27 @@ export default function IntegrationsPage() {
       });
     },
   });
+
+  // Test custom email connection
+  const testEmailConnection = async () => {
+    setIsTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const response = await apiRequest("POST", "/api/custom-email/test", {
+        smtpHost: customEmailConfig.smtpHost,
+        smtpPort: customEmailConfig.smtpPort,
+        email: customEmailConfig.email,
+        password: customEmailConfig.password,
+      });
+      setEmailTestResult({ success: true, message: "SMTP connection successful!" });
+      toast({ title: "Connection test passed" });
+    } catch (error: any) {
+      setEmailTestResult({ success: false, message: error.message || "Connection failed" });
+      toast({ title: "Connection test failed", variant: "destructive" });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
 
   // Import leads mutation
   const importLeadsMutation = useMutation<ImportResult, Error, string>({
@@ -893,15 +929,20 @@ export default function IntegrationsPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="imap-host">IMAP Server (optional)</Label>
-                    <Input
-                      id="imap-host"
-                      type="text"
-                      placeholder="imap.yourdomain.com"
-                      value={customEmailConfig.imapHost}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
-                      data-testid="input-imap-host"
-                    />
+                    <Label htmlFor="smtp-port">SMTP Port</Label>
+                    <Select
+                      value={customEmailConfig.smtpPort}
+                      onValueChange={(value) => setCustomEmailConfig({ ...customEmailConfig, smtpPort: value })}
+                    >
+                      <SelectTrigger id="smtp-port">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="587">587 (TLS - Recommended)</SelectItem>
+                        <SelectItem value="465">465 (SSL)</SelectItem>
+                        <SelectItem value="25">25 (Unencrypted)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label htmlFor="smtp-email">Email Address</Label>
@@ -916,18 +957,80 @@ export default function IntegrationsPage() {
                   </div>
                   <div>
                     <Label htmlFor="smtp-password">App Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="smtp-password"
+                        type={showEmailPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={customEmailConfig.password}
+                        onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
+                        data-testid="input-smtp-password"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowEmailPassword(!showEmailPassword)}
+                      >
+                        {showEmailPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="from-name">From Name</Label>
                     <Input
-                      id="smtp-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={customEmailConfig.password}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
-                      data-testid="input-smtp-password"
+                      id="from-name"
+                      type="text"
+                      placeholder="Your Business Name"
+                      value={customEmailConfig.fromName}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
+                      data-testid="input-from-name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="imap-host">IMAP Server (optional)</Label>
+                    <Input
+                      id="imap-host"
+                      type="text"
+                      placeholder="imap.yourdomain.com"
+                      value={customEmailConfig.imapHost}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
+                      data-testid="input-imap-host"
                     />
                   </div>
                 </div>
 
+                {emailTestResult && (
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${
+                    emailTestResult.success 
+                      ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800" 
+                      : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                  }`}>
+                    {emailTestResult.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-red-600" />
+                    )}
+                    <p className={`text-sm ${emailTestResult.success ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"}`}>
+                      {emailTestResult.message}
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    className="flex-1"
+                    onClick={testEmailConnection}
+                    disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || isTestingEmail}
+                    data-testid="button-test-email"
+                  >
+                    {isTestingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : null}
+                    Test Connection
+                  </Button>
                   <Button 
                     className="flex-1" 
                     onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
@@ -946,7 +1049,8 @@ export default function IntegrationsPage() {
                       variant="outline"
                       onClick={() => {
                         setIsEditingCustomEmail(false);
-                        setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '' });
+                        setEmailTestResult(null);
+                        setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
                       }}
                     >
                       Cancel
@@ -954,7 +1058,7 @@ export default function IntegrationsPage() {
                   )}
                 </div>
 
-                <p className="text-xs text-muted-foreground text-center">Credentials encrypted. Common ports: SMTP=587, IMAP=993</p>
+                <p className="text-xs text-muted-foreground text-center">For Gmail, use an App Password. Credentials encrypted.</p>
               </>
             )}
           </CardContent>

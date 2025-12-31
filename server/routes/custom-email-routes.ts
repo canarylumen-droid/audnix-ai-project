@@ -15,6 +15,7 @@ interface EmailConfig {
   imap_port?: number;
   smtp_user?: string;
   smtp_pass?: string;
+  from_name?: string;
   oauth_token?: string;
   provider?: 'gmail' | 'outlook' | 'smtp' | 'custom';
 }
@@ -43,6 +44,7 @@ interface ConnectRequestBody {
   imapPort: string;
   email: string;
   password: string;
+  fromName?: string;
 }
 
 /**
@@ -51,7 +53,7 @@ interface ConnectRequestBody {
 router.post('/connect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { smtpHost, smtpPort, imapHost, imapPort, email, password } = req.body as ConnectRequestBody;
+    const { smtpHost, smtpPort, imapHost, imapPort, email, password, fromName } = req.body as ConnectRequestBody;
 
     if (!smtpHost || !email || !password) {
       console.warn(`[Email Connect] Missing required fields for user ${userId}`);
@@ -69,6 +71,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       imap_port: parseInt(imapPort) || 993,
       smtp_user: email,
       smtp_pass: password,
+      from_name: fromName || '',
       provider: 'custom'
     };
 
@@ -210,6 +213,53 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
 });
 
 /**
+ * Test SMTP connection without saving
+ */
+router.post('/test', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { smtpHost, smtpPort, email, password } = req.body;
+
+    if (!smtpHost || !email || !password) {
+      res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
+      return;
+    }
+
+    console.log(`[Email Test] Testing SMTP connection to ${smtpHost}:${smtpPort || 587}`);
+
+    // Import nodemailer to test connection
+    const nodemailer = await import('nodemailer');
+    
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(smtpPort) || 587,
+      secure: parseInt(smtpPort) === 465,
+      auth: {
+        user: email,
+        pass: password,
+      },
+      connectionTimeout: 10000,
+    });
+
+    // Verify connection
+    await transporter.verify();
+    
+    console.log(`[Email Test] SMTP connection successful for ${email}`);
+    
+    res.json({
+      success: true,
+      message: 'SMTP connection verified successfully'
+    });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[Email Test] Connection failed:`, errorMsg);
+    res.status(400).json({ 
+      error: 'SMTP connection failed',
+      details: errorMsg 
+    });
+  }
+});
+
+/**
  * Disconnect custom email
  */
 router.post('/disconnect', requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -245,46 +295,6 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
   } catch (error: unknown) {
     console.error('Error getting email status:', error);
     res.status(500).json({ error: 'Failed to get email status' });
-  }
-});
-
-/**
- * Test SMTP connection without saving
- */
-router.post('/test', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { smtpHost, smtpPort, email, password } = req.body as ConnectRequestBody;
-
-    if (!smtpHost || !email || !password) {
-      res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
-      return;
-    }
-
-    const nodemailer = await import('nodemailer');
-    const transporter = nodemailer.createTransport({
-      host: smtpHost,
-      port: parseInt(String(smtpPort)) || 587,
-      secure: parseInt(String(smtpPort)) === 465,
-      auth: {
-        user: email,
-        pass: password,
-      },
-      connectionTimeout: 10000,
-    });
-
-    await transporter.verify();
-
-    res.json({
-      success: true,
-      message: 'SMTP connection successful'
-    });
-  } catch (error: unknown) {
-    const errorMsg = error instanceof Error ? error.message : 'Connection failed';
-    console.error('[Email Test] Connection failed:', error);
-    res.status(400).json({ 
-      error: 'SMTP connection failed', 
-      details: errorMsg 
-    });
   }
 });
 
