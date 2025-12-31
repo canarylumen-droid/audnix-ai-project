@@ -1,8 +1,12 @@
 /**
  * Format messages with channel-specific rich formatting
- * Instagram: Visual button-like elements (ManyChat style)
+ * Instagram: Meta API button templates (rounded, hyperlinked)
  * WhatsApp: Clean link formatting with context
  * Email: Branded HTML templates with CTA buttons
+ * 
+ * IMPORTANT: For Instagram DMs, we now use Meta API button payloads
+ * instead of ASCII boxes. The message and button are returned separately
+ * so the Instagram provider can send them via the template API.
  */
 
 export interface DMButton {
@@ -16,17 +20,34 @@ export interface BrandColors {
   accent?: string;
 }
 
+export interface FormattedDMWithButton {
+  message: string;
+  button: DMButton;
+  useMetaButton: boolean;
+}
+
+/**
+ * Prepare message + button for Meta API template
+ * Returns structured data for sendMessageWithButton()
+ */
+export function prepareMetaButton(message: string, button: DMButton): FormattedDMWithButton {
+  return {
+    message: message.substring(0, 640),
+    button: {
+      text: button.text.substring(0, 20),
+      url: button.url
+    },
+    useMetaButton: true
+  };
+}
+
 /**
  * Format a message with ManyChat-style button link
- * Clean, branded, professional appearance
+ * This is the FALLBACK for non-API contexts or text previews
+ * For actual Instagram sends, use prepareMetaButton() + sendMessageWithButton()
  */
 export function formatDMWithButton(message: string, button: DMButton): string {
-  const buttonText = button.text.toUpperCase();
-  const buttonLine = `╔═══════════════════════╗`;
-  const buttonContent = `║  🔗 ${buttonText}  ║`;
-  const buttonBottom = `╚═══════════════════════╝`;
-  
-  return `${message}\n\n${buttonLine}\n${buttonContent}\n${buttonBottom}\n\n👆 ${button.url}`;
+  return `${message}\n\n🔗 ${button.text}: ${button.url}`;
 }
 
 /**

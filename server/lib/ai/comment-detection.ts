@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
-import { formatDMWithButton, formatCommentReply, type DMButton } from './dm-formatter.js';
+import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'mock-key',
@@ -147,14 +147,15 @@ Generate the DM:`;
 }
 
 /**
- * Generate 6-hour follow-up for leads who didn't open or engage
+ * Generate context-aware 6-hour follow-up that references previous messages
  */
 export async function generateFollowUpDM(
   leadName: string,
   originalIntent: 'link' | 'info' | 'offer' | 'product' | 'general',
   messageOpened: boolean,
   linkClicked: boolean,
-  postContext: string
+  postContext: string,
+  conversationHistory?: Array<{ direction: 'inbound' | 'outbound'; body: string; createdAt: Date }>
 ): Promise<string> {
   if (isDemoMode) {
     return `Hey ${leadName}, just wanted to make sure you saw the ${originalIntent} I sent earlier. Still interested?`;
@@ -167,29 +168,37 @@ export async function generateFollowUpDM(
       ? 'opened and clicked' 
       : 'opened but didn\'t click the link';
 
-    const prompt = `Generate a gentle follow-up DM for someone who commented 6 hours ago.
+    const historyContext = conversationHistory && conversationHistory.length > 0
+      ? `\n\nPrevious conversation:\n${conversationHistory.slice(-5).map(m => 
+          `${m.direction === 'outbound' ? 'You' : 'Lead'}: ${m.body.substring(0, 200)}`
+        ).join('\n')}`
+      : '';
+
+    const prompt = `Generate a context-aware follow-up DM for someone who commented 6 hours ago.
 
 Lead Name: ${leadName}
 Original Intent: ${originalIntent}
 Engagement: ${engagementStatus}
-Post Context: ${postContext}
+Post Context: ${postContext}${historyContext}
 
 Guidelines:
 - Use their name naturally (once at start)
-- Acknowledge you sent something earlier (don't be pushy)
+- REFERENCE something specific from the previous conversation if available
+- Acknowledge what you sent before (be specific if you know what it was)
 - For offers: Create urgency ("might be last chance", "limited spots filling up")
-- For info/links: Check if they had a chance to look
+- For info/links: Check if they had a chance to look at [specific thing you sent]
 - For products: Soft reminder with benefit highlight
 - Keep it friendly and conversational (60-80 words max)
 - End with a question or gentle CTA
 - Don't sound desperate or robotic
+- If they already engaged, acknowledge that too
 
 Generate the follow-up:`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'You are a skilled sales professional creating thoughtful follow-up messages.' },
+        { role: 'system', content: 'You are a skilled sales professional creating thoughtful, context-aware follow-up messages. Always reference specific details from previous conversations when available.' },
         { role: 'user', content: prompt }
       ],
       max_completion_tokens: 180,
@@ -435,13 +444,21 @@ export async function executeCommentFollowUps(): Promise<void> {
             const messageOpened = lastMessage?.metadata?.opened || false;
             const linkClicked = lastMessage?.metadata?.clicked || false;
             
-            // Generate and send follow-up
+            // Build conversation history for context-aware follow-up
+            const conversationHistory = messages.map(m => ({
+              direction: m.direction as 'inbound' | 'outbound',
+              body: m.body,
+              createdAt: m.createdAt
+            }));
+            
+            // Generate and send context-aware follow-up
             const followUpDM = await generateFollowUpDM(
               lead.name,
               intent,
               messageOpened,
               linkClicked,
-              postContext
+              postContext,
+              conversationHistory
             );
             
             await storage.createMessage({

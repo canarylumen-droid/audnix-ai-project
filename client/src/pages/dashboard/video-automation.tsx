@@ -49,7 +49,9 @@ import {
   FileText,
   Send,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Search,
+  RefreshCw
 } from "lucide-react";
 
 interface VideoMonitorStats {
@@ -576,6 +578,8 @@ export default function VideoAutomationPage() {
   const [commentMonitoringEnabled, setCommentMonitoringEnabled] = useState(true);
   const [dmAutomationEnabled, setDmAutomationEnabled] = useState(true);
   const [ctaLinkEnabled, setCtaLinkEnabled] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredReel, setHoveredReel] = useState<string | null>(null);
 
   const handleSelectReel = (reel: any) => {
     setSelectedReel(reel);
@@ -693,26 +697,55 @@ export default function VideoAutomationPage() {
         </Badge>
       </div>
 
-      {/* Instagram Reels Gallery */}
+      {/* Instagram Reels Gallery with Search + Hover Preview */}
       {instagramReels?.reels?.length > 0 && (
         <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Instagram className="h-5 w-5 text-primary" />
-              Your Reels
-            </CardTitle>
-            <CardDescription>
-              Select a reel to monitor
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Instagram className="h-5 w-5 text-primary" />
+                  Your Reels ({instagramReels.reels.length})
+                </CardTitle>
+                <CardDescription>
+                  Select a reel to monitor - hover to preview
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/video/reels"] })}
+                disabled={reelsLoading}
+              >
+                {reelsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                <span className="ml-2 hidden sm:inline">Refresh</span>
+              </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search reels by caption..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-96">
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {instagramReels.reels.map((reel: any) => (
+                {instagramReels.reels
+                  .filter((reel: any) => 
+                    !searchQuery || 
+                    reel.caption?.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((reel: any) => (
                   <motion.div
                     key={reel.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onMouseEnter={() => setHoveredReel(reel.id)}
+                    onMouseLeave={() => setHoveredReel(null)}
                     onClick={() => {
                       setSelectedReel(reel);
                       setVideoUrl(reel.url);
@@ -723,8 +756,17 @@ export default function VideoAutomationPage() {
                         : "border-white/10 hover:border-primary/50"
                     }`}
                   >
-                    <div className="aspect-[9/16] bg-muted relative">
-                      {reel.thumbnailUrl ? (
+                    <div className="aspect-[9/16] bg-muted relative group">
+                      {hoveredReel === reel.id && reel.mediaUrl ? (
+                        <video
+                          src={reel.mediaUrl}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : reel.thumbnailUrl ? (
                         <img
                           src={reel.thumbnailUrl}
                           alt={reel.caption?.substring(0, 50) || "Reel"}
@@ -740,6 +782,11 @@ export default function VideoAutomationPage() {
                           <CheckCircle2 className="h-12 w-12 text-primary" />
                         </div>
                       )}
+                      {hoveredReel !== reel.id && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                          <Play className="h-10 w-10 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
+                        </div>
+                      )}
                     </div>
                     <div className="p-2 bg-muted/50">
                       <p className="text-xs line-clamp-2">
@@ -749,6 +796,14 @@ export default function VideoAutomationPage() {
                   </motion.div>
                 ))}
               </div>
+              {instagramReels.reels.filter((reel: any) => 
+                !searchQuery || reel.caption?.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No reels match "{searchQuery}"</p>
+                </div>
+              )}
             </ScrollArea>
           </CardContent>
         </Card>

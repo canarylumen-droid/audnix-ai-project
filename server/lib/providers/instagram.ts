@@ -70,7 +70,7 @@ export class InstagramProvider {
   }
 
   /**
-   * Send a text message
+   * Send a text message (plain text without buttons)
    */
   async sendMessage(recipientId: string, message: string): Promise<void> {
     if (this.isDemoMode) {
@@ -96,9 +96,101 @@ export class InstagramProvider {
       const error = await response.json();
       throw new Error(`Instagram API error: ${error.error?.message || response.statusText}`);
     }
+  }
 
-    // The original code returned messageId, but the prompt asks for void return type.
-    // So, we will not return anything here.
+  /**
+   * Send message with Meta API CTA button (rounded, hyperlinked)
+   * Uses Instagram's Generic Template with URL button
+   */
+  async sendMessageWithButton(
+    recipientId: string,
+    message: string,
+    buttonText: string,
+    buttonUrl: string
+  ): Promise<void> {
+    if (this.isDemoMode) {
+      console.log(`Demo mode: Would send message with button "${buttonText}" -> ${buttonUrl} to ${recipientId}`);
+      return;
+    }
+
+    const url = `https://graph.facebook.com/v18.0/me/messages`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.credentials.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "button",
+              text: message.substring(0, 640),
+              buttons: [
+                {
+                  type: "web_url",
+                  url: buttonUrl,
+                  title: buttonText.substring(0, 20)
+                }
+              ]
+            }
+          }
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Instagram button message error:', error);
+      console.log('Falling back to text message with link');
+      await this.sendMessage(recipientId, `${message}\n\n🔗 ${buttonText}: ${buttonUrl}`);
+      return;
+    }
+  }
+
+  /**
+   * Send message with multiple quick reply options
+   * Used for choice-based conversations
+   */
+  async sendQuickReplies(
+    recipientId: string,
+    message: string,
+    options: Array<{ title: string; payload: string }>
+  ): Promise<void> {
+    if (this.isDemoMode) {
+      console.log(`Demo mode: Would send quick replies to ${recipientId}`);
+      return;
+    }
+
+    const url = `https://graph.facebook.com/v18.0/me/messages`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${this.credentials.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        message: {
+          text: message,
+          quick_replies: options.slice(0, 13).map(opt => ({
+            content_type: "text",
+            title: opt.title.substring(0, 20),
+            payload: opt.payload
+          }))
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Instagram quick replies error:', error);
+      await this.sendMessage(recipientId, message);
+    }
   }
 
   /**
