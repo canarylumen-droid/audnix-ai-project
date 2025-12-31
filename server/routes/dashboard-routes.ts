@@ -192,6 +192,8 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       email: user.email,
       username: user.username,
       name: user.name,
+      company: user.businessName,
+      timezone: user.timezone,
       role: user.role || 'member',
       plan: user.plan,
       avatar: user.avatar,
@@ -200,6 +202,8 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
       createdAt: user.createdAt,
+      defaultCtaLink: metadata?.defaultCtaLink as string || '',
+      defaultCtaText: metadata?.defaultCtaText as string || '',
       metadata: {
         ...(metadata || {}),
         onboardingCompleted: hasCompletedOnboarding,
@@ -245,6 +249,52 @@ router.put('/user/voice-settings', requireAuth, async (req: Request, res: Respon
   } catch (error) {
     console.error('Voice settings error:', error);
     res.status(500).json({ error: 'Failed to update voice settings' });
+  }
+});
+
+/**
+ * PUT /api/user/profile
+ * Update user profile including CTA settings
+ */
+router.put('/user/profile', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { name, username, company, timezone, defaultCtaLink, defaultCtaText } = req.body;
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const existingMetadata = (user.metadata as Record<string, unknown>) || {};
+    const updates: Record<string, unknown> = {};
+
+    if (name !== undefined) updates.name = name;
+    if (username !== undefined) updates.username = username;
+    if (company !== undefined) updates.businessName = company;
+    if (timezone !== undefined) updates.timezone = timezone;
+    
+    // Store CTA settings in metadata
+    if (defaultCtaLink !== undefined || defaultCtaText !== undefined) {
+      updates.metadata = {
+        ...existingMetadata,
+        ...(defaultCtaLink !== undefined && { defaultCtaLink }),
+        ...(defaultCtaText !== undefined && { defaultCtaText }),
+      };
+    }
+
+    await storage.updateUser(userId, updates);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

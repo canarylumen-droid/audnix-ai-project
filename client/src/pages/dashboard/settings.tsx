@@ -57,6 +57,8 @@ interface UserProfile {
   metadata?: UserMetadata;
   createdAt?: string;
   lastLogin?: string;
+  defaultCtaLink?: string;
+  defaultCtaText?: string;
 }
 
 export default function SettingsPage() {
@@ -65,6 +67,9 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(true);
+  const [ctaLink, setCtaLink] = useState("");
+  const [ctaText, setCtaText] = useState("");
+  const [ctaSaving, setCtaSaving] = useState(false);
   
   const { canAccess: canAccessVoiceNotes, showUpgradePrompt } = useCanAccessVoiceNotes();
   
@@ -92,6 +97,8 @@ export default function SettingsPage() {
         timezone: user.timezone || "America/New_York",
       });
       setVoiceNotesEnabled(user.voiceNotesEnabled !== false);
+      setCtaLink(user.defaultCtaLink || "");
+      setCtaText(user.defaultCtaText || "");
     }
   }, [user]);
 
@@ -127,6 +134,20 @@ export default function SettingsPage() {
   const handleFieldChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
+  };
+
+  // CTA settings save
+  const saveCtaSettings = async () => {
+    setCtaSaving(true);
+    try {
+      await apiRequest("PUT", "/api/user/profile", { defaultCtaLink: ctaLink, defaultCtaText: ctaText });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({ title: "CTA settings saved" });
+    } catch {
+      toast({ title: "Failed to save CTA settings", variant: "destructive" });
+    } finally {
+      setCtaSaving(false);
+    }
   };
 
   // Avatar upload mutation
@@ -428,6 +449,49 @@ export default function SettingsPage() {
             </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Shared CTA Settings */}
+      <Card data-testid="card-cta-settings">
+        <CardHeader>
+          <CardTitle>Default CTA</CardTitle>
+          <CardDescription>
+            Used across Instagram DMs and Email automation
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cta-link">CTA Link</Label>
+              <Input
+                id="cta-link"
+                placeholder="https://yourbrand.com/book"
+                value={ctaLink}
+                onChange={(e) => setCtaLink(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cta-text">CTA Button Text</Label>
+              <Input
+                id="cta-text"
+                placeholder="Book a call"
+                value={ctaText}
+                onChange={(e) => setCtaText(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button 
+            onClick={saveCtaSettings} 
+            disabled={ctaSaving}
+            className="w-full"
+          >
+            {ctaSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Save CTA Settings
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            AI uses this link in Instagram DMs and email follow-ups
+          </p>
         </CardContent>
       </Card>
 
