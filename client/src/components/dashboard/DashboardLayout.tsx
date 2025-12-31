@@ -163,6 +163,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       defaultOpen: true,
       items: [
         { label: "Objection Handler", icon: Phone, path: "/dashboard/closer-engine" },
+        { label: "Objections Library", icon: FileText, path: "/dashboard/objections" },
+        { label: "Sales Assistant", icon: Sparkles, path: "/dashboard/sales-assistant" },
       ],
     },
     {

@@ -36,6 +36,8 @@ import automationRulesRoutes from "./automation-rules-routes.js";
 import channelStatusRoutes from "./channel-status-routes.js";
 import dealsRoutes from "./deals-routes.js";
 import integrationsRoutes from "./integrations-routes.js";
+import objectionsRoutes from "./objections-routes.js";
+import userSettingsRoutes from "./user-settings-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -82,6 +84,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/channels", channelStatusRoutes);
   app.use("/api/deals", dealsRoutes);
   app.use("/api/integrations", integrationsRoutes);
+  app.use("/api/objections", objectionsRoutes);
+  app.use("/api/settings", userSettingsRoutes);
+  app.use("/api/sales-engine", salesEngine);
 
   // Create HTTP server
   const server = http.createServer(app);

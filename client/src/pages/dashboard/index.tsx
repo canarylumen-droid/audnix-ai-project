@@ -16,6 +16,7 @@ import SalesAssistant from "./sales-assistant";
 import AutomationBuilderPage from "./automation-builder";
 import ContentLibraryPage from "./content-library";
 import AIDecisionsPage from "./ai-decisions";
+import ObjectionsLibraryPage from "./objections-library";
 
 export default function DashboardRoutes() {
   return (
@@ -38,6 +39,7 @@ export default function DashboardRoutes() {
         <Route path="/dashboard/automation" component={AutomationBuilderPage} />
         <Route path="/dashboard/content-library" component={ContentLibraryPage} />
         <Route path="/dashboard/ai-decisions" component={AIDecisionsPage} />
+        <Route path="/dashboard/objections" component={ObjectionsLibraryPage} />
       </Switch>
     </DashboardLayout>
   );
