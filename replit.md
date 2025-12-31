@@ -37,6 +37,23 @@ Key features include:
 - **Real-time (Optional):** Supabase for potential features.
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
+### Recent Changes (Dec 31, 2025)
+- **Calendar Integration (Production-Grade):**
+  - New calendar_settings table with Calendly token storage, auto-booking controls (min intent/timing scores)
+  - Calendar page with Calendly connection UI, auto-booking sliders, AI booking decisions view
+  - AI decision engine enforcing deterministic control: intent_score >= 70 AND timing_score >= 60 for booking approval
+  - Decision types: act (proceed), wait (not yet), skip (don't do), escalate (needs human review)
+- **Video Automation Backend:**
+  - New video_assets table for Instagram video metadata with AI context fields (purpose, CTA, notes)
+  - Video asset sync from Instagram, CRUD operations, AI-specific video logs
+- **AI Decision Engine:**
+  - New ai_action_logs table capturing all AI actions with confidence, reasoning, timing rationale
+  - Intelligence transparency: every AI decision logged before execution
+  - AI NEVER acts without decision engine approval
+- **Database Migration 022:** Creates calendar_settings, video_assets, ai_action_logs, calendar_bookings tables with indexes
+- **Files Added:** server/lib/ai/decision-engine.ts, server/routes/calendar-routes.ts, server/routes/video-automation-routes.ts
+- **Architecture Requirement Met:** Sub-200ms caching support via availabilityCache field in calendar_settings
+
 ### Recent Changes (Dec 22, 2025)
 - **HOMEPAGE REDESIGN:** Complete conversion-focused restructure following senior product designer framework
   - **Narrative:** Unified around core differentiator - "Audnix remembers every lead and only follows up when it will convert"
