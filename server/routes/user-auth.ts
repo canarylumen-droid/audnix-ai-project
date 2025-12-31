@@ -1,10 +1,22 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
 import { twilioEmailOTP } from '../lib/auth/twilio-email-otp.js';
 import { storage } from '../storage.js';
 import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max for avatars
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images allowed'));
+    }
+  }
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -586,6 +598,43 @@ router.post('/logout', async (req: Request, res: Response): Promise<void> => {
   } catch (error: unknown) {
     console.error('Logout error:', error);
     res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
+/**
+ * POST /api/user/auth/avatar
+ * Upload avatar as base64 - stored directly in PostgreSQL (zero setup)
+ */
+router.post('/avatar', avatarUpload.single('avatar'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: 'No image provided' });
+      return;
+    }
+
+    // Convert to base64 data URL
+    const base64 = req.file.buffer.toString('base64');
+    const dataUrl = `data:${req.file.mimetype};base64,${base64}`;
+
+    // Store directly in PostgreSQL user record
+    await storage.updateUser(userId, { avatar: dataUrl });
+
+    console.log(`✅ Avatar uploaded for user ${userId} (${Math.round(req.file.size / 1024)}KB)`);
+
+    res.json({
+      success: true,
+      avatar: dataUrl,
+      message: 'Avatar updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ error: 'Failed to upload avatar' });
   }
 });
 

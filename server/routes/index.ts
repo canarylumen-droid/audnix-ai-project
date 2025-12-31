@@ -33,6 +33,7 @@ import workerRoutes from "./worker.js";
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
   app.use("/api/user/auth", userAuthRouter);
+  app.use("/api/user", userAuthRouter); // Alias for /api/user/avatar calls
   app.use("/api/admin/auth", adminAuthRouter);
   app.use("/api/admin/pdf", adminPdfRoutes);
   app.use("/api/admin/pdf-v2", adminPdfRoutesV2);
