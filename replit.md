@@ -38,6 +38,14 @@ Key features include:
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
 ### Recent Changes (Dec 31, 2025)
+- **UI Copy Cleanup:**
+  - Video Automation page: Removed emoji headings, condensed verbose marketing copy, replaced benefit cards with compact badge pills
+  - Integrations page: Trimmed verbose descriptions, improved professional tone throughout
+- **Shared CTA Settings:**
+  - New PUT /api/user/profile endpoint for updating profile including CTA settings
+  - Default CTA link and text stored in user metadata, accessible via GET /api/user/profile
+  - Settings page UI with dedicated CTA configuration card (link + button text fields)
+  - CTA settings available for use across Instagram DMs and Email automation
 - **Calendar Integration (Production-Grade):**
   - New calendar_settings table with Calendly token storage, auto-booking controls (min intent/timing scores)
   - Calendar page with Calendly connection UI, auto-booking sliders, AI booking decisions view
