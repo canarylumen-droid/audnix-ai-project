@@ -830,9 +830,9 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
 
 /**
  * Import leads from CSV file upload
- * POST /api/leads/import-csv-file
+ * POST /api/leads/import-csv
  */
-router.post("/import-csv-file", requireAuth, upload.single("file"), async (req: Request, res: Response): Promise<void> => {
+router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     
@@ -949,7 +949,7 @@ router.post("/import-csv-file", requireAuth, upload.single("file"), async (req: 
  * Import leads from PDF file upload
  * POST /api/leads/import-pdf
  */
-router.post("/import-pdf", requireAuth, upload.single("file"), async (req: Request, res: Response): Promise<void> => {
+router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     

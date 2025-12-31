@@ -200,68 +200,6 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
   }
 });
 
-router.get('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code, state, error_reason } = req.query;
-
-    if (error_reason === 'user_denied') {
-      res.redirect('/dashboard/integrations?error=denied');
-      return;
-    }
-
-    if (!code || !state) {
-      res.redirect('/dashboard/integrations?error=invalid_request');
-      return;
-    }
-
-    const stateData = instagramOAuth.verifyState(state as string);
-    if (!stateData || !stateData.userId) {
-      console.error('Invalid or missing state data:', { state, stateData });
-      res.redirect('/dashboard/integrations?error=invalid_state');
-      return;
-    }
-
-    const tokenData = await instagramOAuth.exchangeCodeForToken(code as string);
-    if (!tokenData || !tokenData.access_token) {
-      console.error('Failed to exchange code for token');
-      res.redirect('/dashboard/integrations?error=token_exchange_failed');
-      return;
-    }
-
-    const longLivedToken = await instagramOAuth.exchangeForLongLivedToken(tokenData.access_token);
-    if (!longLivedToken || !longLivedToken.access_token) {
-      console.error('Failed to get long-lived token');
-      res.redirect('/dashboard/integrations?error=token_exchange_failed');
-      return;
-    }
-
-    const profile = await instagramOAuth.getUserProfile(longLivedToken.access_token);
-    if (!profile || !profile.id) {
-      console.error('Failed to get user profile');
-      res.redirect('/dashboard/integrations?error=profile_fetch_failed');
-      return;
-    }
-
-    await instagramOAuth.saveToken(stateData.userId, {
-      access_token: longLivedToken.access_token,
-      user_id: profile.id,
-      permissions: ['instagram_basic', 'instagram_manage_messages']
-    }, longLivedToken.expires_in);
-
-    // Using Neon database for integration storage - no Supabase needed
-    res.redirect('/dashboard/integrations?success=instagram_connected');
-  } catch (error: unknown) {
-    const err = error as Error & { code?: string; statusCode?: number };
-    console.error('OAuth callback error:', error);
-    console.error('OAuth error details:', {
-      message: err?.message,
-      stack: err?.stack,
-      code: err?.code,
-      statusCode: err?.statusCode
-    });
-    res.redirect('/dashboard/integrations?error=oauth_failed');
-  }
-});
 
 router.post('/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {

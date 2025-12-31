@@ -30,6 +30,8 @@ import voiceRoutes from "./voice-routes.js";
 import webhookRouter from "./webhook.js";
 import workerRoutes from "./worker.js";
 import messagesRoutes from "./messages-routes.js";
+import authInstagramRoutes from "./auth-instagram.js";
+import webhookMetaRoutes from "./webhook-meta.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -68,7 +70,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/stripe/confirmation", stripePaymentConfirmation);
   app.use("/api/video", videoAutomationRoutes);
   app.use("/api/voice", voiceRoutes);
-  app.use("/webhook", webhookRouter);
+  app.use("/api/webhook", webhookRouter);
+  app.use("/webhook", webhookMetaRoutes); // Root-level Meta webhook
+  app.use("/auth/instagram", authInstagramRoutes); // Root-level Instagram OAuth
   app.use("/api/worker", workerRoutes);
 
   // Create HTTP server
