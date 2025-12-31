@@ -555,6 +555,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
       name: user.name,
       role: user.role || 'member',
       plan: user.plan,
+      avatar: user.avatar,
       subscriptionTier: user.subscriptionTier,
       businessName: user.businessName,
       trialExpiresAt: user.trialExpiresAt,
