@@ -442,6 +442,68 @@ export const calendarBookings = pgTable("calendar_bookings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Intelligence-governed automation rules (not trigger-based)
+export const automationRules = pgTable("automation_rules", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  channel: text("channel", { enum: ["instagram", "email", "all"] }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  minIntentScore: integer("min_intent_score").notNull().default(50),
+  maxIntentScore: integer("max_intent_score").notNull().default(100),
+  minConfidence: real("min_confidence").notNull().default(0.6),
+  allowedActions: jsonb("allowed_actions").$type<Array<"reply" | "video" | "calendar" | "cta">>().notNull().default(sql`'["reply"]'::jsonb`),
+  cooldownMinutes: integer("cooldown_minutes").notNull().default(60),
+  maxActionsPerDay: integer("max_actions_per_day").notNull().default(10),
+  escalateOnLowConfidence: boolean("escalate_on_low_confidence").notNull().default(true),
+  requireHumanApproval: boolean("require_human_approval").notNull().default(false),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Content library for AI to choose from
+export const contentLibrary = pgTable("content_library", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["reply", "objection", "cta", "video"] }).notNull(),
+  name: text("name").notNull(),
+  content: text("content").notNull(),
+  intentTags: jsonb("intent_tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  objectionTags: jsonb("objection_tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  channelRestriction: text("channel_restriction", { enum: ["instagram", "email", "all"] }).notNull().default("all"),
+  isActive: boolean("is_active").notNull().default(true),
+  usageCount: integer("usage_count").notNull().default(0),
+  successRate: real("success_rate"),
+  linkedVideoId: uuid("linked_video_id"),
+  linkedCtaLink: text("linked_cta_link"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Conversation events for unified message ingestion
+export const conversationEvents = pgTable("conversation_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  content: text("content").notNull(),
+  contentType: text("content_type", { enum: ["text", "image", "video", "audio", "file"] }).notNull().default("text"),
+  externalId: text("external_id"),
+  threadId: text("thread_id"),
+  signals: jsonb("signals").$type<{
+    behavioral?: Record<string, any>;
+    commercial?: Record<string, any>;
+    risk?: Record<string, any>;
+  }>().notNull().default(sql`'{}'::jsonb`),
+  processedByEngine: boolean("processed_by_engine").notNull().default(false),
+  engineDecision: text("engine_decision", { enum: ["act", "wait", "skip", "escalate"] }),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -467,6 +529,9 @@ export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings)
 export const insertVideoAssetSchema = createInsertSchema(videoAssets).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertAiActionLogSchema = createInsertSchema(aiActionLogs).omit({ id: true, createdAt: true });
 export const insertCalendarBookingSchema = createInsertSchema(calendarBookings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAutomationRuleSchema = createInsertSchema(automationRules).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertContentLibrarySchema = createInsertSchema(contentLibrary).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertConversationEventSchema = createInsertSchema(conversationEvents).omit({ id: true, createdAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -517,6 +582,12 @@ export type AiActionLog = typeof aiActionLogs.$inferSelect;
 export type InsertAiActionLog = typeof aiActionLogs.$inferInsert;
 export type CalendarBooking = typeof calendarBookings.$inferSelect;
 export type InsertCalendarBooking = typeof calendarBookings.$inferInsert;
+export type AutomationRule = typeof automationRules.$inferSelect;
+export type InsertAutomationRule = typeof automationRules.$inferInsert;
+export type ContentLibraryItem = typeof contentLibrary.$inferSelect;
+export type InsertContentLibraryItem = typeof contentLibrary.$inferInsert;
+export type ConversationEvent = typeof conversationEvents.$inferSelect;
+export type InsertConversationEvent = typeof conversationEvents.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({
