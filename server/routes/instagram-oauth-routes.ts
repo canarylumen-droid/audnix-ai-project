@@ -12,6 +12,17 @@ import type { Express, Request, Response } from "express";
 
 const OAUTH_LOG_PREFIX = "🔐 [OAUTH]";
 
+function sanitizeForLog(value: unknown): string {
+  if (typeof value !== 'string') return '[invalid-type]';
+  return value.replace(/%/g, '%%').substring(0, 100);
+}
+
+function redactSensitive(value: string | undefined, showLast: number = 4): string {
+  if (!value || typeof value !== 'string') return '[none]';
+  if (value.length <= showLast) return '***';
+  return '***' + value.slice(-showLast);
+}
+
 function oauthLog(message: string, data?: any) {
   const timestamp = new Date().toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -19,7 +30,15 @@ function oauthLog(message: string, data?: any) {
     second: "2-digit",
     hour12: true,
   });
-  console.log(`${timestamp} ${OAUTH_LOG_PREFIX} ${message}`, data ? JSON.stringify(data, null, 2) : "");
+  const safeMessage = typeof message === 'string' ? message.replace(/%/g, '%%') : '[invalid]';
+  console.log(`${timestamp} ${OAUTH_LOG_PREFIX} ${safeMessage}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
+function getStringParam(query: any, key: string): string | undefined {
+  const value = query[key];
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+  return undefined;
 }
 
 /**
@@ -101,53 +120,48 @@ export default function registerInstagramOAuthRoutes(app: Express) {
   app.get("/auth/instagram/callback", (req: Request, res: Response) => {
     oauthLog("=== INSTAGRAM OAUTH CALLBACK ===");
 
-    const code = req.query.code as string;
-    const state = req.query.state as string;
-    const error = req.query.error as string;
-    const errorReason = req.query.error_reason as string;
+    const code = getStringParam(req.query, 'code');
+    const state = getStringParam(req.query, 'state');
+    const error = getStringParam(req.query, 'error');
+    const errorReason = getStringParam(req.query, 'error_reason');
 
-    oauthLog(`Received callback parameters:`);
-    oauthLog(`  Code: ${code ? "✅ " + code.substring(0, 20) + "..." : "❌ NOT RECEIVED"}`);
-    oauthLog(`  State: ${state || "❌ NOT RECEIVED"}`);
-    oauthLog(`  Error: ${error || "✅ NONE"}`);
-    oauthLog(`  Error reason: ${errorReason || "none"}`);
+    oauthLog("Received callback parameters:");
+    oauthLog(`  Code: ${code ? "received" : "not received"}`);
+    oauthLog(`  State: ${state ? "received" : "not received"}`);
+    oauthLog(`  Error: ${error ? sanitizeForLog(error) : "none"}`);
 
     // Check for errors
     if (error) {
-      oauthLog(`❌ Instagram returned error: ${error}`);
+      oauthLog("Instagram returned an error");
       if (errorReason === "user_cancelled_login") {
         oauthLog("User cancelled the login dialog");
       }
       return res.status(400).json({
-        error: error,
-        reason: errorReason || "Unknown",
+        error: "oauth_error",
+        reason: errorReason === "user_cancelled_login" ? "user_cancelled" : "unknown",
         message: "Instagram OAuth failed",
       });
     }
 
     // Verify state matches what we sent (CSRF protection)
     const sessionState = (req as any).session?.oauthState;
-    if (sessionState && state !== sessionState) {
-      oauthLog(`❌ State mismatch - possible CSRF attack`);
-      oauthLog(`Expected: ${sessionState}`);
-      oauthLog(`Received: ${state}`);
+    if (sessionState && typeof state === 'string' && state !== sessionState) {
+      oauthLog("State mismatch - possible CSRF attack");
       return res.status(403).json({ error: "Invalid state parameter" });
     }
 
-    if (!code) {
-      oauthLog("❌ No authorization code received");
+    if (!code || typeof code !== 'string') {
+      oauthLog("No authorization code received");
       return res.status(400).json({ error: "No authorization code received" });
     }
 
-    oauthLog("✅ Authorization code received successfully");
-    oauthLog(`Next: Exchange code for access token using META_APP_SECRET`);
+    oauthLog("Authorization code received successfully");
 
     // For verification-only, just acknowledge receipt
     res.json({
       success: true,
       message: "Authorization code received",
-      codeLength: code.length,
-      state: state,
+      codeReceived: true,
       nextSteps: "Exchange code for access token via backend API",
     });
   });

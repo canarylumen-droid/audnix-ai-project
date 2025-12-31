@@ -17,6 +17,11 @@ interface RawRequest extends Request {
   rawBody?: Buffer;
 }
 
+function sanitizeForLog(value: unknown): string {
+  if (typeof value !== 'string') return '[invalid-type]';
+  return value.replace(/%/g, '%%').substring(0, 100);
+}
+
 function webhookLog(message: string, data?: any) {
   const timestamp = new Date().toLocaleTimeString("en-US", {
     hour: "2-digit",
@@ -24,7 +29,20 @@ function webhookLog(message: string, data?: any) {
     second: "2-digit",
     hour12: true,
   });
-  console.log(`${timestamp} ${WEBHOOK_LOG_PREFIX} ${message}`, data ? JSON.stringify(data, null, 2) : "");
+  const safeMessage = typeof message === 'string' ? message.replace(/%/g, '%%') : '[invalid]';
+  console.log(`${timestamp} ${WEBHOOK_LOG_PREFIX} ${safeMessage}`, data ? JSON.stringify(data, null, 2) : "");
+}
+
+function getStringParam(query: any, key: string): string | undefined {
+  const value = query[key];
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+  return undefined;
+}
+
+function isValidChallenge(challenge: string | undefined): boolean {
+  if (!challenge || typeof challenge !== 'string') return false;
+  return /^[a-zA-Z0-9_-]+$/.test(challenge) && challenge.length <= 256;
 }
 
 /**
@@ -66,44 +84,40 @@ export default function registerInstagramWebhookRoutes(app: Express) {
   app.get("/api/webhook/instagram", (req: Request, res: Response) => {
     webhookLog("=== INSTAGRAM WEBHOOK VERIFICATION ===");
 
-    const hubMode = req.query["hub.mode"] as string;
-    const hubChallenge = req.query["hub.challenge"] as string;
-    const hubVerifyToken = req.query["hub.verify_token"] as string;
+    const hubMode = getStringParam(req.query, "hub.mode");
+    const hubChallenge = getStringParam(req.query, "hub.challenge");
+    const hubVerifyToken = getStringParam(req.query, "hub.verify_token");
 
-    webhookLog(`Mode: ${hubMode || "NOT RECEIVED"}`);
-    webhookLog(`Challenge: ${hubChallenge ? "✅ RECEIVED" : "❌ NOT RECEIVED"}`);
-    webhookLog(`Verify Token: ${hubVerifyToken || "❌ NOT RECEIVED"}`);
-    webhookLog(`Expected Token: ${META_VERIFY_TOKEN}`);
+    webhookLog(`Mode: ${hubMode ? "received" : "not received"}`);
+    webhookLog(`Challenge: ${hubChallenge ? "received" : "not received"}`);
+    webhookLog(`Verify Token: ${hubVerifyToken ? "received" : "not received"}`);
 
     // Verify the token
-    if (hubVerifyToken !== META_VERIFY_TOKEN) {
-      webhookLog("❌ Verify token mismatch!");
-      webhookLog(`Expected: ${META_VERIFY_TOKEN}`);
-      webhookLog(`Received: ${hubVerifyToken}`);
+    if (!hubVerifyToken || hubVerifyToken !== META_VERIFY_TOKEN) {
+      webhookLog("Verify token mismatch");
       return res.status(403).json({ error: "Invalid verify token" });
     }
 
-    webhookLog("✅ Verify token matches");
+    webhookLog("Verify token matches");
 
     // Verify mode
     if (hubMode !== "subscribe") {
-      webhookLog(`❌ Invalid hub.mode: ${hubMode} (expected 'subscribe')`);
+      webhookLog("Invalid hub.mode received");
       return res.status(400).json({ error: "Invalid hub.mode" });
     }
 
-    webhookLog("✅ Mode verified");
+    webhookLog("Mode verified");
 
-    // Return the challenge
-    if (!hubChallenge) {
-      webhookLog("❌ No hub.challenge parameter");
-      return res.status(400).json({ error: "Missing hub.challenge" });
+    // Validate and return the challenge
+    if (!isValidChallenge(hubChallenge)) {
+      webhookLog("Invalid or missing hub.challenge parameter");
+      return res.status(400).json({ error: "Invalid hub.challenge" });
     }
 
-    webhookLog(`✅ Returning challenge: ${hubChallenge}`);
-    webhookLog("✅ Webhook verification successful!");
+    webhookLog("Webhook verification successful");
 
-    // Return the challenge as plain text
-    res.status(200).send(hubChallenge);
+    // Return the challenge as plain text to prevent XSS
+    res.type("text/plain").status(200).send(hubChallenge);
   });
 
   /**
