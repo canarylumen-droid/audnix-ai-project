@@ -390,10 +390,10 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
 
   const updateLinkMutation = useMutation({
     mutationFn: async (newLink: string) => {
-      return apiRequest("PATCH", `/api/video-automation/monitors/${monitor.id}`, { productLink: newLink });
+      return apiRequest("PATCH", `/api/video/monitors/${monitor.id}`, { productLink: newLink });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
       toast({ title: "✅ Link updated", description: "Changes apply immediately to new DMs" });
       setIsEditingLink(false);
     },
@@ -590,21 +590,21 @@ export default function VideoAutomationPage() {
   };
 
   const { data: monitors, isLoading } = useQuery<VideoMonitor[]>({
-    queryKey: ["/api/video-monitors"],
+    queryKey: ["/api/video/monitors"],
   });
 
   // Fetch user's Instagram reels when component loads
   const { data: instagramReels, isLoading: reelsLoading } = useQuery({
-    queryKey: ["/api/video-automation/reels"],
+    queryKey: ["/api/video/reels"],
     enabled: canAccessVideo,
   });
 
   const createMonitor = useMutation({
     mutationFn: async (data: CreateMonitorPayload) => {
-      return apiRequest("POST", "/api/video-monitors", data);
+      return apiRequest("POST", "/api/video/monitors", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
       toast({
         title: "✅ Video Monitor Created",
         description: "AI will now detect buying intent in comments 24/7",
@@ -624,19 +624,19 @@ export default function VideoAutomationPage() {
 
   const toggleMonitor = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest("PATCH", `/api/video-monitors/${id}`, { isActive });
+      return apiRequest("PATCH", `/api/video/monitors/${id}`, { isActive });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
     },
   });
 
   const deleteMonitor = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/video-monitors/${id}`);
+      return apiRequest("DELETE", `/api/video/monitors/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
       toast({ title: "Monitor deleted" });
     },
   });
