@@ -4,9 +4,10 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, Lock, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { Mic, Lock, Zap, TrendingUp, AlertTriangle, Sparkles } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
 
 interface VoiceBalanceData {
   balance: number;
@@ -18,6 +19,7 @@ interface VoiceBalanceData {
 
 export function VoiceMinutesWidget() {
   const [_, navigate] = useLocation();
+  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
   const { data: voiceBalance, isLoading } = useQuery<VoiceBalanceData>({
     queryKey: ["/api/voice/balance"],
     refetchInterval: 10000,
@@ -39,6 +41,48 @@ export function VoiceMinutesWidget() {
           <div className="animate-pulse space-y-3">
             <div className="h-4 bg-muted rounded w-1/2"></div>
             <div className="h-8 bg-muted rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!canAccessVoiceNotes) {
+    return (
+      <Card className="w-full border-primary/20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+          <div className="text-center p-4 space-y-3">
+            <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Lock className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Voice Minutes</p>
+              <p className="text-xs text-muted-foreground mb-3">Available on Starter+</p>
+              <Link href="/dashboard/pricing">
+                <Button size="sm" className="gap-1.5 text-xs">
+                  <Sparkles className="w-3 h-3" />
+                  Upgrade
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+        <CardHeader className="pb-3 opacity-30">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Mic className="h-4 w-4 text-muted-foreground" />
+            <span>Voice Minutes</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="opacity-30">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Minutes Used</p>
+              <p className="text-2xl font-bold">0</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Total Available</p>
+              <p className="text-2xl font-bold">0</p>
+            </div>
           </div>
         </CardContent>
       </Card>

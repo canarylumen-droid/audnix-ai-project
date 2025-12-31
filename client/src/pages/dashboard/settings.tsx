@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, MicOff, FileText } from "lucide-react";
+import { User, Loader2, Upload, Mic, MicOff, FileText, Lock, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
+import { Link } from "wouter";
 
 interface BrandColors {
   primary?: string;
@@ -63,6 +65,8 @@ export default function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [voiceNotesEnabled, setVoiceNotesEnabled] = useState(true);
+  
+  const { canAccess: canAccessVoiceNotes, showUpgradePrompt } = useCanAccessVoiceNotes();
   
   // Local state for form fields
   const [formData, setFormData] = useState({
@@ -428,10 +432,31 @@ export default function SettingsPage() {
       </Card>
 
       {/* Voice Notes Settings */}
-      <Card data-testid="card-voice-settings">
-        <CardHeader>
+      <Card data-testid="card-voice-settings" className="relative">
+        {!canAccessVoiceNotes && (
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+            <div className="text-center p-6 space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Lock className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Voice Notes - Paid Feature</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  AI voice notes are available on Starter plan and above
+                </p>
+                <Link href="/dashboard/pricing">
+                  <Button className="gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Upgrade to Unlock
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+        <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
           <CardTitle className="flex items-center gap-2">
-            {voiceNotesEnabled ? (
+            {voiceNotesEnabled && canAccessVoiceNotes ? (
               <Mic className="h-5 w-5 text-primary" />
             ) : (
               <MicOff className="h-5 w-5 text-muted-foreground" />
@@ -442,15 +467,8 @@ export default function SettingsPage() {
             Control how AI voice notes are sent to leads on Instagram DMs
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {!['starter', 'pro', 'enterprise'].includes(user?.plan || '') && (
-            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                💎 Voice notes are available on <strong>Starter</strong> plan and above. Upgrade to get 100+ voice minutes/month.
-              </p>
-            </div>
-          )}
-          <div className={`flex items-center justify-between p-4 rounded-lg border bg-card transition-opacity ${!['starter', 'pro', 'enterprise'].includes(user?.plan || '') ? 'opacity-60' : ''}`} style={!['starter', 'pro', 'enterprise'].includes(user?.plan || '') ? { backdropFilter: 'blur(3px)' } : {}}>
+        <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50 pointer-events-none" : ""}`}>
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
             <div className="space-y-1">
               <Label htmlFor="voice-toggle" className="text-base font-medium">
                 Enable AI Voice Notes
@@ -461,9 +479,10 @@ export default function SettingsPage() {
             </div>
             <Switch
               id="voice-toggle"
-              checked={voiceNotesEnabled}
-              disabled={!['starter', 'pro', 'enterprise'].includes(user?.plan || '')}
+              checked={voiceNotesEnabled && canAccessVoiceNotes}
+              disabled={!canAccessVoiceNotes}
               onCheckedChange={async (checked) => {
+                if (!canAccessVoiceNotes) return;
                 setVoiceNotesEnabled(checked);
                 try {
                   await apiRequest("PUT", "/api/user/voice-settings", { voiceNotesEnabled: checked });
@@ -487,7 +506,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          {!voiceNotesEnabled && (
+          {!voiceNotesEnabled && canAccessVoiceNotes && (
             <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
               <p className="text-sm text-amber-800 dark:text-amber-200">
                 Voice notes paused. No voice messages will be sent.
