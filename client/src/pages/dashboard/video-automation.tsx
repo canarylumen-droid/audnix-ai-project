@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCanAccessVideoAutomation } from "@/hooks/use-access-gate";
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
@@ -697,8 +698,43 @@ export default function VideoAutomationPage() {
         </Badge>
       </div>
 
+      {/* Skeleton Loading State */}
+      {reelsLoading && (
+        <Card className="border-2 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <Skeleton className="h-9 w-24" />
+            </div>
+            <Skeleton className="h-10 w-full mt-4" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="rounded-lg overflow-hidden border-2 border-white/10"
+                >
+                  <Skeleton className="aspect-[9/16] w-full" />
+                  <div className="p-2 bg-muted/50 space-y-1">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Instagram Reels Gallery with Search + Hover Preview */}
-      {instagramReels?.reels?.length > 0 && (
+      {!reelsLoading && instagramReels?.reels?.length > 0 && (
         <Card className="border-2 border-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between">
