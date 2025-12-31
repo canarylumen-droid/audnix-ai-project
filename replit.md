@@ -1,7 +1,7 @@
 # Audnix AI - Production-Ready Email + Voice Sales Automation SaaS
 
 ### Overview
-Audnix AI is a zero-setup email-first sales automation SaaS platform with voice notes and AI-powered objection handling. Email automation (primary channel, via Custom SMTP), voice notes (Instagram DMs only, paid feature), and Instagram DM automation (launching Q4 2025). The platform focuses on user privacy by integrating directly with business email accounts. Built for creators, coaches, agencies, and founders automating warm leads for rapid revenue generation.
+Audnix AI is a zero-setup, email-first sales automation SaaS platform designed for creators, coaches, agencies, and founders. Its primary purpose is to automate warm lead nurturing for rapid revenue generation through email automation (via Custom SMTP), AI-powered objection handling, and Instagram DM automation with voice notes (paid feature). The platform emphasizes user privacy by integrating directly with business email accounts.
 
 ### User Preferences
 - I prefer simple language.
@@ -16,165 +16,24 @@ Audnix AI is a zero-setup email-first sales automation SaaS platform with voice 
 - ManyChat comparison must be accurate: they have flow builder + keyword triggers, don't have AI conversations/voice/email
 
 ### System Architecture
-The platform is built with a robust tech stack including Node.js + Express + TypeScript for the backend, PostgreSQL (Neon) with Drizzle ORM for the database, and React + Vite + Tailwind CSS + Radix UI for the frontend. Session management is handled by PostgreSQL-backed `connect-pg-simple`.
+The platform is built with a Node.js + Express + TypeScript backend, PostgreSQL (Neon) with Drizzle ORM, and a React + Vite + Tailwind CSS + Radix UI frontend. Session management is handled by PostgreSQL-backed `connect-pg-simple`.
 
-Key features include:
-- **Email Automation:** Business email via Custom SMTP, Day 1-7 sequences and re-engagement sequences.
-- **AI-Powered Capabilities:** OpenAI GPT-4 for smart objection handling, intent analysis, and sequencing. ElevenLabs for voice notes (Instagram only).
-- **Authentication:** Email → Password → OTP (SendGrid) → Username → Dashboard flow.
-- **Monetization:** Stripe for payments with an auto-approval worker.
+Key architectural decisions and features include:
+- **Email Automation:** Supports Day 1-7 sequences and re-engagement via Custom SMTP.
+- **AI-Powered Capabilities:** Utilizes OpenAI GPT-4 for smart objection handling, intent analysis, and sequencing. ElevenLabs provides voice note generation for Instagram DMs.
+- **Authentication:** Features a secure Email → Password → OTP (SendGrid) → Username → Dashboard flow.
+- **Monetization:** Integrated Stripe for payment processing with an auto-approval worker, supporting Free, Trial, Starter, Pro, and Enterprise tiers.
 - **Real-time capabilities:** Optional Supabase integration for real-time subscriptions.
-- **UI/UX:** Utilizes Tailwind CSS and Radix UI for a modern and responsive design.
-- **Feature Tiers:** Free, Trial, Starter, Pro, and Enterprise tiers with varying lead limits, email automation, voice minutes (paid), and advanced features like team workflows and API access.
-- **Positioning:** Email + Voice (Instagram only, paid), Instagram DMs now fully available to all users.
+- **UI/UX:** Modern and responsive design leveraging Tailwind CSS and Radix UI.
+- **Feature Set:** Includes lead limits, email automation, voice minutes (paid), team workflows, and API access across different tiers. Instagram DM automation is fully integrated.
+- **Intelligence-Governed Automation:** Features an `automation_rules` table for various rule types (follow_up, objection_handler, etc.), a `content_library` for intent-tagged templates, and a `conversation_events` table for unified message ingestion. A Decision Engine evaluates actions, logging all AI decisions with confidence and reasoning.
 
 ### External Dependencies
 - **Email Service:** Custom SMTP for business email, SendGrid API for OTP.
-- **AI Services:** OpenAI GPT-4 for smart objection handling, intent analysis, and sequencing. ElevenLabs for voice note generation (Instagram DMs only).
-- **Payment Gateway:** Stripe for payments with auto-approval worker.
-- **Database:** Neon (PostgreSQL) for primary data storage.
-- **Session Management:** `connect-pg-simple` for PostgreSQL-backed sessions.
-- **Real-time (Optional):** Supabase for potential features.
-- **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
-
-### Recent Changes (Dec 31, 2025)
-- **Intelligence-Governed Automation System (Complete):**
-  - automation_rules table: ruleType (follow_up, objection_handler, meeting_booking, re_engagement), intent thresholds, action permissions, cooldowns
-  - content_library table: intent-tagged templates, CTAs, videos for AI selection
-  - conversation_events table: unified message ingestion for Email and Instagram
-  - Decision Engine: DM, Email, Follow-up evaluators (calendar/video already existed)
-  - All AI actions logged with confidence, reasoning, timing rationale
-- **Automation Builder Page:**
-  - Intent score sliders (min/max), confidence thresholds
-  - Action permissions (reply, video, calendar, CTA)
-  - Cooldown and escalation settings
-- **Content Library Page:**
-  - CRUD for replies, objections, CTAs, videos
-  - Intent tags for AI content selection
-  - Channel restrictions per content item
-- **AI Decisions Dashboard:**
-  - Full transparency into every AI decision
-  - Decision types: act, wait, skip, escalate
-  - Confidence scores, reasoning, timing rationale displayed
-- **API Contract Fixes:**
-  - All endpoints return bare arrays with camelCase fields
-  - minConfidence converts percentage (frontend) to decimal (database)
-  - POST /rules includes ruleType and echoes formatted response
-- **Channel Status API:**
-  - GET /api/channels/all: unified status for Email, Instagram, Calendly
-- **Email SMTP Testing:**
-  - POST /api/email/custom/test: validates SMTP credentials
-  - POST /api/email/custom/send-test: sends test email through SMTP
-- **Database Migrations:** 023 (automation_rules, content_library, conversation_events), 024 (add rule_type column)
-- **Files Added:** automation-rules-routes.ts, channel-status-routes.ts, automation-builder.tsx, content-library.tsx, ai-decisions.tsx
-
-### Previous Changes (Dec 31, 2025 - Earlier)
-- **UI Copy Cleanup:**
-  - Video Automation page: Removed emoji headings, condensed verbose marketing copy
-  - Integrations page: Trimmed verbose descriptions
-- **Shared CTA Settings:**
-  - PUT /api/user/profile endpoint for profile + CTA settings
-  - Settings page UI with CTA configuration card
-- **Calendar Integration (Production-Grade):**
-  - calendar_settings table with Calendly token storage, auto-booking controls
-  - AI decision engine: intent_score >= 70 AND timing_score >= 60 for booking approval
-- **Video Automation Backend:**
-  - video_assets table for Instagram video metadata
-- **AI Decision Engine (Base):**
-  - ai_action_logs table, calendar_bookings table
-  - Architecture: AI NEVER acts without decision engine approval
-
-### Recent Changes (Dec 22, 2025)
-- **HOMEPAGE REDESIGN:** Complete conversion-focused restructure following senior product designer framework
-  - **Narrative:** Unified around core differentiator - "Audnix remembers every lead and only follows up when it will convert"
-  - **Page reduction:** ~35% reduction in page length by eliminating repetitive sections
-  - **Copy tightening:** Removed hype language, replaced with specific, believable outcomes
-  - **Section reorganization:** Hero → Why Leads Go Cold → How It Works → Intelligence Layer (condensed) → Brand PDF → Email+Instagram → Trust Signals → Calculator → Pricing
-  - **Intelligence Layer condensed:** Reduced from 6 cards (130 lines) to 3 focused cards on Memory, Intent Scoring, Objection Handling
-  - **Brand PDF elevated:** Now standalone key differentiator section (not buried in features)
-  - **Trust signals moved:** Legal/Privacy section now appears before pricing (builds confidence before purchase)
-  - **Calculator repositioned:** Moved before pricing section for revenue impact messaging
-  - **Removed sections:** Generic "Why It's Different", redundant Instagram section, verbose features list, duplicate comparisons
-  - **Simplified comparison:** Reduced table from 6 features to 5 core features vs ManyChat
-  - **CTA updated:** Color changed from red-orange to emerald-cyan (matches brand), copy says "Recover My Lost Leads"
-  - **Trust cue added:** "No card • 500 leads • Setup in minutes" below primary CTA
-  - **SEO friendly:** Page title and meta optimized for "AI sales closer", "follow-up automation", "lead recovery"
-
-### Recent Changes (Dec 11, 2025)
-- **Navigation Unlocked:** All dashboard pages accessible for free trial users (no activation step restrictions)
-- **Instagram Integration UI:** Removed CSV import option, simplified to OAuth-only (Meta API)
-- **Tour Guide Mobile Fix:** Centered at bottom of screen on mobile devices
-- **Email Connection Form:** Added IMAP host field, improved form layout (2-column grid)
-- **Text Verbosity:** Reduced verbose text across integrations page
-- **Onboarding Cache Fix:** Fixed query cache invalidation after onboarding completion
-
-### Required Environment Variables for Payments
-```
-STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/xxx
-STRIPE_PAYMENT_LINK_PRO=https://buy.stripe.com/xxx
-STRIPE_PAYMENT_LINK_ENTERPRISE=https://buy.stripe.com/xxx
-```
-
-### Recent Changes (Dec 9, 2025)
-- **Aggressive CTA Copy:** Updated all landing page CTAs to "Recover My Clients" (header) and "Recover My Lost Clients" (hero/calculator) for psychological impact
-- **Calendly-Only Booking:** Removed all Google Calendar references from UI - Calendly is the only booking integration
-- **Auto-Booking Context:** Added explanation in Calendly settings - "AI automatically books meetings when leads show buying intent"
-- **WhatsApp Cleanup:** Fixed integrations page hooks error by removing remaining WhatsApp code
-- **Settings Page:** Calendar tab now references only Calendly, not Google Calendar
-- **CalendlyConnectUI:** Removed Google Calendar card entirely, updated info banner to focus on Calendly + Audnix auto-booking
-
-### Recent Changes (Dec 5, 2025)
-- **TypeScript Fix:** Fixed intent-analyzer.ts compilation errors (OpenAI imports, type annotations) - Vercel deployment unblocked
-- **Security Update:** Verified jws package override set to ^4.0.0 for HMAC vulnerability patch
-- **Lead Limits:** Updated free trial from 100 to 500 leads across pricing config, migrations, and UI
-- **Predictive Timing:** Enhanced AI follow-up intelligence with ROI-based decisions, conversation insights analysis, and smart timing based on lead behavior (not one-size-fits-all)
-- **Admin Tools:** Added /api/admin/reset-limbo-users and /api/admin/reset-all-users endpoints for auth cleanup
-- **Landing Page:** Updated HeroSection with intelligence layer messaging - "knows when to follow up based on lead behavior"
-- **Missing Secrets:** SendGrid API key (TWILIO_SENDGRID_API_KEY) required for OTP authentication to work
-
-### Recent Changes (Dec 3, 2025)
-- **Instagram Integration Live:** Instagram OAuth connection now available to ALL users (free and paid plans)
-- **Voice Notes Gated:** Voice notes remain a paid-plan feature - free/trial users see upgrade overlay
-- **UI Cleanup:** Removed all "coming soon" labels for Instagram, simplified integrations page
-- **Documentation:** Created comprehensive INSTAGRAM_SETUP.md for webhook and OAuth configuration
-- **Closer Engine Live:** New premium real-time objection handler page with collapsible tactical sections (Reframe, Close Question, Story, Identity Upgrade)
-- **Sidebar Restructure:** Updated to 6 groups (Leads, Closer Engine Live, Conversations, Automation & Deals, Insights, Account & Billing)
-- **Premium Styling:** Closer Engine Live section has gradient background, PRO badge, and accent styling to highlight as Ferrari feature
-- **Tailwind Fix:** Fixed dynamic class generation with static lookup maps for all accent colors
-- **Confetti Polish:** Improved welcome celebration with controlled 30% center spread radius, 5-second duration, professional emoji selection
-- **Dashboard Routes:** Added /dashboard/closer-engine, /dashboard/lead-import, /dashboard/video-automation routes
-
-### Recent Changes (Dec 2, 2025)
-- **UI/UX Restructure:** Complete sidebar navigation redesign with collapsible groups
-- **GuidedTour Component:** 7-step premium onboarding tour with spotlight effects and portal rendering
-- **ActivationChecklist Component:** 4-step activation checklist with per-step feature unlocking
-- **Per-Step Feature Unlocking:** Features unlock progressively (Inbox/Calendar after SMTP, Conversations/Deals after leads import)
-- **Cookie Fix:** Fixed signout cookie name mismatch (changed from 'connect.sid' to 'audnix.sid')
-- **Mobile Responsive:** Full mobile support for collapsible navigation groups
-- **Tour/Activate Buttons:** Added sidebar footer buttons to replay tour or open activation checklist
-
-### Recent Changes (Dec 1, 2025)
-- **Competitor Comparison:** Updated ManyChat feature comparison - they have auto-booking + email automation, not AI objection handling, voice notes, or conversation memory
-- **Integrations Page:** Updated custom email section to use generic "business email with SMTP/IMAP access" language
-- **Calendar Page:** Removed Google/Outlook references, now uses generic "calendar" language
-- **Terms of Service:** Removed WhatsApp and Gmail from platform ban disclaimers, replaced with neutral "email providers"
-- **Privacy Policy:** Removed WhatsApp and Gmail from third-party services list, kept only Instagram/Meta
-- **Inbox Page:** Removed WhatsApp from channel icons and filter options, fixed unused import
-- **Deals Page:** Removed WhatsApp from channel icons mapping
-- **Conversations Page:** Removed WhatsApp from channel icons mapping  
-- **Admin Leads Page:** Removed WhatsApp from channel filter dropdown
-- **Email Setup UI:** Simplified SMTP guidance, removed provider-specific examples
-- **Content Updates:** Removed WhatsApp UI from dashboard (backend kept), updated all references to use "Business Email" + "Custom SMTP"
-- **WelcomeCelebration:** Extended confetti to 5 seconds, fixed greeting to "Hey [Name]!" format with proper capitalization, fixed window.innerHeight SSR issue
-- **Terms & Privacy:** Updated to remove Gmail/WhatsApp references, replaced with neutral "Email" and "SMTP provider" language
-- **Sales Assistant:** Updated copy to use "AI-powered objection analysis" instead of "110+ objection types"
-- **Email Setup Form:** Removed Gmail examples, replaced with generic SMTP examples (Office 365, Zoho, Custom Domain)
-- **RecentConversations:** Removed WhatsApp channel type, now only supports Instagram + Email
-- **Favicon:** Created favicon.ico as fallback for browser compatibility
-- **Accurate Claims:** Voice notes clearly marked as Instagram DMs only, ManyChat comparison is accurate
-
-### Messaging Standards
-- **Email:** Always reference as "Business Email" or "Custom SMTP" - never "Gmail/Outlook"
-- **Voice Notes:** ONLY on Instagram DMs - never claim email has voice capability  
-- **Objection Handling:** Use varied language - "Smart objection handling", "AI-powered analysis" - avoid repeating "110+"
-- **Integrations:** Showcase Email + Instagram only (WhatsApp backend remains for future use, hidden from UI)
+- **AI Services:** OpenAI GPT-4, ElevenLabs (for Instagram voice notes).
+- **Payment Gateway:** Stripe.
+- **Database:** Neon (PostgreSQL).
+- **Session Management:** `connect-pg-simple`.
+- **Real-time (Optional):** Supabase.
+- **Lead Acquisition:** Apify.
+- **Calendar Integration:** Calendly (for automated meeting bookings).
