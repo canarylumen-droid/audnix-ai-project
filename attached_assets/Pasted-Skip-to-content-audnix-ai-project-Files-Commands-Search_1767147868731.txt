@@ -1,0 +1,489 @@
+Skip to content
+
+
+audnix-ai-project
+Files
+Commands
+Search
+Packager files
+Config files
+/
+
+import { Router, Request, Response } from "express";
+import { eq } from "drizzle-orm";
+import multer from "multer";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
+import { storage } from "../storage.js";
+import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+
+const upload = multer({ storage: multer.memoryStorage() });
+import {
+  generateAIReply,
+  generateVoiceScript,
+  scheduleFollowUp,
+  detectConversationStatus,
+  saveConversationToMemory,
+  getConversationContext,
+  autoUpdateLeadStatus
+} from '../lib/ai/conversation-ai.js';
+import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
+import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
+import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer.js";
+import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar.js";
+import { generateSmartReplies } from '../lib/ai/smart-replies.js';
+import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
+import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
+import type { ProviderType, ChannelType } from '../../shared/types.js';
+
+type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
+
+const router = Router();
+
+/**
+ * GET /api/leads
+ * Get all leads for the authenticated user with pagination and filtering
+ */
+    console.log(`[Email Connect] Connecting ${email} via SMTP ${smtpHost}:${smtpPort || 587}`);
+
+    const credentials: EmailConfig = {
+      smtp_host: smtpHost,
+      smtp_port: parseInt(smtpPort) || 587,
+      imap_host: effectiveImapHost,
+      imap_port: parseInt(imapPort) || 993,
+      smtp_user: email,
+      smtp_pass: password,
+      provider: 'custom'
+    };
+
+    let encryptedMeta: string;
+    try {
+      encryptedMeta = await encrypt(JSON.stringify(credentials));
+    } catch (encryptError: unknown) {
+      const msg = encryptError instanceof Error ? encryptError.message : 'Encryption failed';
+      console.error(`[Email Connect] Encryption error:`, encryptError);
+      res.status(500).json({ error: 'Failed to securely store credentials', details: msg });
+      return;
+    }
+
+    try {
+      await storage.createIntegration({
+        userId,
+        provider: 'custom_email',
+        encryptedMeta,
+        connected: true,
+      });
+    } catch (dbError: unknown) {
+      const msg = dbError instanceof Error ? dbError.message : 'Database error';
+      console.error(`[Email Connect] Storage error:`, dbError);
+      res.status(500).json({ error: 'Failed to save email configuration', details: msg });
+      return;
+    }
+
+    console.log(`[Email Connect] Email account saved for user ${userId}`);
+
+    // Try to import emails, but don't fail the connection if import fails
+    let importResults: any = null;
+    let importError: string | null = null;
+    
+    try {
+      console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
+      const { importCustomEmails } = await import('../lib/channels/email.js');
+      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 10000);
+
+      const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
+        from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
+        subject: emailData.subject,
+        text: emailData.text || emailData.html || '',
+        date: emailData.date,
+        html: emailData.html
+      }));
+
+      if (emailsForImport.length > 0) {
+        importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
+          console.log(`[Email Connect] Import progress: ${progress}%`);
+        });
+        console.log(`[Email Connect] Imported ${importResults.imported} emails`);
+      } else {
+        console.log(`[Email Connect] No emails found in INBOX`);
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Check, Shield, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { useUser } from "@/hooks/use-user";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { useToast } from "@/hooks/use-toast";
+import { zxcvbn, zxcvbnOptions } from "@zxcvbn-ts/core";
+import * as zxcvbnCommonPackage from "@zxcvbn-ts/language-common";
+import * as zxcvbnEnPackage from "@zxcvbn-ts/language-en";
+
+const options = {
+  dictionary: {
+    ...zxcvbnCommonPackage.dictionary,
+    ...zxcvbnEnPackage.dictionary,
+  },
+  graphs: zxcvbnCommonPackage.adjacencyGraphs,
+  translations: zxcvbnEnPackage.translations,
+};
+zxcvbnOptions.setOptions(options);
+
+export default function AuthPage() {
+  const [, setLocation] = useLocation();
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  // Signup flow: 1 = Email+Password, 2 = OTP/Skip, 3 = Username, 4 = Success
+  const [signupStep, setSignupStep] = useState(1);
+  const [isLogin, setIsLogin] = useState(false);
+
+  // Form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [username, setUsername] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [showRedirectPopup, setShowRedirectPopup] = useState(false);
+  const [showResetOption, setShowResetOption] = useState(false);
+   */
+      code
+    });
+
+    const response = await fetch('https://api.instagram.com/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString()
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Failed to exchange code for token');
+    }
+
+    return data;
+  }
+
+  /**
+   * Exchange short-lived token for long-lived token
+   */
+  async exchangeForLongLivedToken(accessToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+    const params = new URLSearchParams({
+      grant_type: 'ig_exchange_token',
+      client_secret: this.config.clientSecret,
+      access_token: accessToken
+    });
+
+    const response = await fetch(`https://graph.instagram.com/access_token?${params.toString()}`);
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Failed to get long-lived token');
+    }
+
+    return data;
+  }
+
+  /**
+   * Refresh long-lived token (should be called before expiry)
+   */
+  async refreshLongLivedToken(accessToken: string): Promise<{ access_token: string; token_type: string; expires_in: number }> {
+    const params = new URLSearchParams({
+      grant_type: 'ig_refresh_token',
+      access_token: accessToken
+    });
+
+    const response = await fetch(`https://graph.instagram.com/refresh_access_token?${params.toString()}`);
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message || 'Failed to refresh token');
+    }
+
+    return data;
+  }
+
+  /**
+   * Get user profile information
+   */
+  async getUserProfile(accessToken: string): Promise<InstagramUserProfile> {
+    const response = await fetch(
+      `https://graph.instagram.com/me?fields=id,username,name,account_type&access_token=${accessToken}`
+    );
+
+    const data = await response.json();
+Commands
+Search for tools & files…
+Time
+Deployment
+Source
+Log
+2025-12-31 03:02:24.40
+302457e8
+System
+starting up user application
+2025-12-31 03:02:35.82
+302457e8
+User
+Error: Cannot find module '/home/runner/workspace/dist/index.cjs'
+2025-12-31 03:02:35.82
+302457e8
+User
+at Module._load (node:internal/modules/cjs/loader:1043:27)
+2025-12-31 03:02:35.82
+302457e8
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2025-12-31 03:02:35.82
+302457e8
+User
+at node:internal/main/run_main_module:28:49 {
+2025-12-31 03:02:35.82
+302457e8
+User
+^
+2025-12-31 03:02:35.82
+302457e8
+User
+}
+2025-12-31 03:02:35.82
+302457e8
+User
+node:internal/modules/cjs/loader:1215
+2025-12-31 03:02:35.82
+302457e8
+System
+command finished with error [node ./dist/index.cjs]: exit status 1
+2025-12-31 03:02:45.80
+302457e8
+System
+crash loop detected
+2025-12-31 03:04:53.65
+302457e8
+System
+command finished with error [node ./dist/index.cjs]: exit status 1
+2025-12-31 03:04:53.77
+302457e8
+User
+Error: Cannot find module '/home/runner/workspace/dist/index.cjs'
+2025-12-31 03:04:53.77
+302457e8
+User
+throw err;
+2025-12-31 03:04:53.77
+302457e8
+User
+at node:internal/main/run_main_module:28:49 {
+2025-12-31 03:04:53.77
+302457e8
+User
+node:internal/modules/cjs/loader:1215
+2025-12-31 03:04:53.77
+302457e8
+User
+Node.js v20.19.3
+2025-12-31 03:04:53.77
+302457e8
+User
+at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+2025-12-31 03:04:53.77
+302457e8
+User
+code: 'MODULE_NOT_FOUND',
+2025-12-31 03:04:53.77
+302457e8
+User
+^
+2025-12-31 03:04:53.77
+302457e8
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2025-12-31 03:04:53.77
+302457e8
+User
+at Module._load (node:internal/modules/cjs/loader:1043:27)
+2025-12-31 03:04:53.91
+302457e8
+User
+Error: Cannot find module '/home/runner/workspace/dist/index.cjs'
+2025-12-31 03:04:53.91
+302457e8
+User
+at Module._resolveFilename (node:internal/modules/cjs/loader:1212:15)
+2025-12-31 03:04:53.91
+302457e8
+User
+throw err;
+2025-12-31 03:04:53.91
+302457e8
+User
+at node:internal/main/run_main_module:28:49 {
+2025-12-31 03:04:53.91
+302457e8
+User
+node:internal/modules/cjs/loader:1215
+2025-12-31 03:04:53.91
+302457e8
+User
+Node.js v20.19.3
+2025-12-31 03:04:53.91
+302457e8
+User
+at Module._load (node:internal/modules/cjs/loader:1043:27)
+2025-12-31 03:04:54.48
+302457e8
+User
+code: 'MODULE_NOT_FOUND',
+2025-12-31 03:04:54.48
+302457e8
+User
+^
+2025-12-31 03:04:54.48
+302457e8
+User
+node:internal/modules/cjs/loader:1215
+2025-12-31 03:04:54.48
+302457e8
+User
+requireStack: []
+2025-12-31 03:04:54.48
+302457e8
+User
+at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+2025-12-31 03:04:55.18
+302457e8
+User
+Error: Cannot find module '/home/runner/workspace/dist/index.cjs'
+Wrap
+Colors
+Security and Privacy Scanner
+Beta
+Run a scan to check for potential security risks and privacy leaks in your application. Scans are typically complete within minutes. Learn more
+21 potential vulnerabilities found.
+Last ran on
+ 
+3:20 am, Dec 31, 2025
+Security
+Outdated dependencies have known vulnerabilities
+There are dependencies that have vulnerabilities and may need to be updated.
+These dependencies can be updated automatically.
+qs@6.13.0
+ws@8.9.0
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Facebook OAuth detected. Avoid hardcoding credentials directly in connection strings as this creates security risks. Instead, use environment variables to store and access credentials at runtime. If you need the actual credential values to make this work properly, ask me to provide them through Replit's secret system.
+Security
+Replace pool.query(), db.execute() and sql.raw() calls with Drizzle's recommended sql`...` template literals or Drizzle's query builders. This is a required coding standard for all Drizzle projects regardless of context (including migrations). Raw string queries violate framework conventions and must be converted to maintain codebase consistency and type safety.
+Security
+Replace pool.query(), db.execute() and sql.raw() calls with Drizzle's recommended sql`...` template literals or Drizzle's query builders. This is a required coding standard for all Drizzle projects regardless of context (including migrations). Raw string queries violate framework conventions and must be converted to maintain codebase consistency and type safety.
+Security
+The call to 'createDecipheriv' with the Galois Counter Mode (GCM) mode of operation is missing an expected authentication tag length. If the expected authentication tag length is not specified or otherwise checked, the application might be tricked into verifying a shorter-than-expected authentication tag. This can be abused by an attacker to spoof ciphertexts or recover the implicit authentication key of GCM, allowing arbitrary forgeries.
+Security
+Detected user input used to manually construct a SQL string. This is usually bad practice because manual construction could accidentally result in a SQL injection. An attacker could use a SQL injection to steal or modify contents of the database. Instead, use a parameterized query which is available by default in most database engines. Alternatively, consider using an object-relational mapper (ORM) such as Sequelize which will protect your queries.
+Privacy
+Email and Password sent to Standard Output
+Privacy
+Auth Token sent to Standard Output
+Privacy
+Auth Token sent to Standard Output
+Privacy
+Auth Token sent to Standard Output
+Vulnerability scans are enabled by the following Replit partners:
+Security scans are powered by Semgrep Community Edition.
+Privacy scans are powered by HoundDog.ai.
+Security scanning powered by Semgrep and privacy scanning powered by HoundDog.ai , both running locally on Replit infrastructure. No code or data is transmitted to any third party, including Semgrep or HoundDog.ai.
+Saved progress at the end of the loop
+Explain settings needed for users
+4 / 5
+
+9 messages & 69 actions
+Let me be real with you - I need to check this more carefully. Looking at the code: 1. **Loading state** - Currently it's just a spinner, NOT skeleton cards 2. **Instagram connection** - The OAuth routes are fixed, but let me verify the full flow Let me check and improve the skeleton loading:
+Checkpoint made
+Add inbox message functionality and improve loading states
+Worked for 5 minutes
+Set up a Node.js + Express backend that does the following for Audnix AI:
+When I visit /auth/instagram, it generates the Instagram OAuth redirect URL using META_CALLBACK_URL from .env and logs it, showing that it correctly uses the callback URL.
+Handle the /auth/instagram/callback route separately, logging any code parameter received.
+Set up a /webhook route that listens for GET verification requests from Meta using META_VERIFY_TOKEN and responds with the challenge.
+The /webhook route also handles POST requests for Instagram events and logs the received JSON.
+Make sure the OAuth redirect and webhook handling are completely separate and clearly logged.
+Use CORS and body-parser so requests can be tested in Replit.
+Print all URLs and incoming data in the console for verification.”
+Also did you read this log and fix all issues there all secrets and env is in vercel please fix issues of not reading payment links even in button and for email we're using SMTP connections didn't work read logs to see issues of both Instagram and email SMTP
+Also I uploaded something under import leads it said premium feature it uploaded also make it import too
+Also in brand PDF it said directory issues
+
+
+6 messages & 63 actions
+Let me check the current state and fix all these issues systematically.
+Checkpoint made
+Saved progress at the end of the loop
+Worked for 6 minutes
+and why is it if i refresh page feels it starts from afresh even the avatar disappeared please make it even if they upladed brand odf or leads should cache it and save too
+
+Checked system logs
+Searched for "How is user session data persisted on page refresh? Look at the session configuration, user data fetching on app load, and how avatar/onboarding status is stored and retrieved from the database."
+-0
++3
+-0
++3
+      name: user.name,
+      role: user.role || 'member',
+      plan: user.plan,
+      avatar: user.avatar,
+      subscriptionTier: user.subscriptionTier,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
+      voiceNotesEnabled,
+      createdAt: user.createdAt,
+      metadata: {
+        ...(metadata || {}),
+        onboardingCompleted: hasCompletedOnboarding,
+-0
++1
+-0
++1
+      name: user.name,
+      role: user.role || 'member',
+      plan: user.plan,
+      avatar: user.avatar,
+      subscriptionTier: user.subscriptionTier,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
+Checked system logs
+Working...
+
+Scroll to latest
+
+Make, test, iterate…
+audnix-ai-project - Replit
