@@ -519,36 +519,31 @@ export class DrizzleStorage implements IStorage {
 
   async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
     checkDatabase();
-    const setClauses: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
+    const setClauses: ReturnType<typeof sql>[] = [];
 
     if (updates.isActive !== undefined) {
-      setClauses.push(`is_active = $${paramIndex++}`);
-      values.push(updates.isActive);
+      setClauses.push(sql`is_active = ${updates.isActive}`);
     }
     if (updates.autoReplyEnabled !== undefined) {
-      setClauses.push(`auto_reply_enabled = $${paramIndex++}`);
-      values.push(updates.autoReplyEnabled);
+      setClauses.push(sql`auto_reply_enabled = ${updates.autoReplyEnabled}`);
     }
     if (updates.productLink) {
-      setClauses.push(`product_link = $${paramIndex++}`);
-      values.push(updates.productLink);
+      setClauses.push(sql`product_link = ${updates.productLink}`);
     }
     if (updates.ctaText) {
-      setClauses.push(`cta_text = $${paramIndex++}`);
-      values.push(updates.ctaText);
+      setClauses.push(sql`cta_text = ${updates.ctaText}`);
     }
 
     if (setClauses.length === 0) return null;
 
-    values.push(id, userId);
-    const result = await db.execute(sql.raw(`
+    setClauses.push(sql`updated_at = NOW()`);
+
+    const result = await db.execute(sql`
       UPDATE video_monitors 
-      SET ${setClauses.join(', ')}, updated_at = NOW()
-      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
+      SET ${sql.join(setClauses, sql`, `)}
+      WHERE id = ${id} AND user_id = ${userId}
       RETURNING *
-    `));
+    `);
 
     return result.rows[0];
   }
@@ -613,33 +608,27 @@ export class DrizzleStorage implements IStorage {
 
   async updateDeal(id: string, userId: string, updates: any): Promise<any> {
     checkDatabase();
-    const setClauses: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
+    const updateData: Record<string, any> = {};
 
     if (updates.status) {
-      setClauses.push(`status = $${paramIndex++}`);
-      values.push(updates.status);
+      updateData.status = updates.status;
       if (updates.status === 'closed_won' || updates.status === 'closed_lost') {
-        setClauses.push(`closed_at = NOW()`);
+        updateData.convertedAt = new Date();
       }
     }
     if (updates.amount !== undefined) {
-      setClauses.push(`amount = $${paramIndex++}`);
-      values.push(updates.amount);
+      updateData.value = updates.amount;
     }
 
-    if (setClauses.length === 0) return null;
+    if (Object.keys(updateData).length === 0) return null;
 
-    values.push(id, userId);
-    const result = await db.execute(sql.raw(`
-      UPDATE deals 
-      SET ${setClauses.join(', ')}, updated_at = NOW()
-      WHERE id = $${paramIndex++} AND user_id = $${paramIndex}
-      RETURNING *
-    `));
+    const result = await db
+      .update(deals)
+      .set(updateData)
+      .where(and(eq(deals.id, id), eq(deals.userId, userId)))
+      .returning();
 
-    return result.rows[0];
+    return result[0];
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
