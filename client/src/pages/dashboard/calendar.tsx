@@ -7,9 +7,9 @@ import {
   Clock,
   Video,
   ExternalLink,
-  Loader2,
   CalendarDays,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -138,27 +138,6 @@ export default function CalendarPage() {
     return "past";
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8">
-        <div className="text-center py-12">
-          <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Unable to load calendar</h2>
-          <p className="text-muted-foreground">
-            Please check your connection and try again.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">

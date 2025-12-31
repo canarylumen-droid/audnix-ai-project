@@ -9,7 +9,6 @@ import {
   Calendar,
   Instagram,
   Mail,
-  Loader2,
   Package,
   TrendingUp,
   TrendingDown,
@@ -116,27 +115,6 @@ export default function DealsPage() {
     });
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8">
-        <div className="text-center py-12">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Unable to load deals</h2>
-          <p className="text-muted-foreground">
-            Please check your connection and try again.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-6">
