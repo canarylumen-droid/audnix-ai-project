@@ -4,7 +4,11 @@ interface WhatsAppCredentials {
   // WhatsApp Business API credentials
   phoneNumberId: string;
   accessToken: string;
-  businessAccountId: string;
+  businessAccountId?: string;
+  // Twilio credentials (legacy support)
+  accountSid?: string;
+  authToken?: string;
+  fromNumber?: string;
 }
 
 interface WhatsAppMessage {
@@ -23,6 +27,8 @@ export class WhatsAppProvider {
 
     if (this.isDemoMode) {
       this.credentials = {
+        phoneNumberId: "mock_phone_number_id",
+        accessToken: "mock_access_token",
         accountSid: "mock_account_sid",
         authToken: "mock_auth_token",
         fromNumber: "whatsapp:+1234567890"

@@ -290,4 +290,53 @@ export class InstagramOAuth {
       return null;
     }
   }
+
+  /**
+   * Get Instagram conversations (threads) for a user
+   */
+  async getConversations(accessToken: string): Promise<Array<{
+    id: string;
+    participants?: Array<{ id: string; username: string }>;
+    updated_time?: string;
+  }>> {
+    try {
+      const response = await fetch(
+        `https://graph.instagram.com/me/conversations?fields=id,participants,updated_time&access_token=${accessToken}`
+      );
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || 'Failed to get conversations');
+      }
+      return data.data || [];
+    } catch (error) {
+      console.error('Failed to get Instagram conversations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all messages from a conversation thread
+   */
+  async getAllMessages(accessToken: string, conversationId: string): Promise<Array<{
+    id: string;
+    message?: string;
+    from?: { id: string };
+    created_time?: string;
+    audio_url?: string;
+    attachments?: Array<unknown>;
+  }>> {
+    try {
+      const response = await fetch(
+        `https://graph.instagram.com/${conversationId}/messages?fields=id,message,from,created_time&access_token=${accessToken}`
+      );
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || 'Failed to get messages');
+      }
+      return data.data || [];
+    } catch (error) {
+      console.error('Failed to get Instagram messages:', error);
+      return [];
+    }
+  }
 }

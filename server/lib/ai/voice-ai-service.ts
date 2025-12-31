@@ -165,7 +165,8 @@ export class VoiceAIService {
     try {
       // Check if user has voice notes enabled
       const user = await storage.getUserById(userId);
-      if (user?.voiceNotesEnabled === false) {
+      const userMetadata = user?.metadata as Record<string, unknown> | undefined;
+      if (userMetadata?.voiceNotesEnabled === false) {
         return { success: false, error: 'Voice notes disabled in settings' };
       }
 
@@ -202,7 +203,7 @@ export class VoiceAIService {
       }
 
       // Get user's cloned voice ID or use default (user already fetched at start of function)
-      const voiceId = user?.voiceCloneId || undefined;
+      const voiceId = (userMetadata?.voiceCloneId as string) || undefined;
 
       // Generate voice with ElevenLabs
       const voiceData = await this.elevenlabs.textToSpeech(aiResponse, { voiceId });
@@ -218,7 +219,7 @@ export class VoiceAIService {
 
       // Upload audio to storage
       const fileName = `voice_${leadId}_${Date.now()}.mp3`;
-      const audioUrl = await uploadToSupabase(voiceData.audioBuffer, fileName, 'audio/mpeg');
+      const audioUrl = await uploadToSupabase('voice-notes', fileName, voiceData.audioBuffer);
 
       // Send voice message based on channel
       let messageId: string;
@@ -240,10 +241,7 @@ export class VoiceAIService {
           return { success: false, error: 'Instagram credentials incomplete' };
         }
 
-        const instagram = new InstagramProvider({
-          access_token: accessToken,
-          page_id: pageId
-        });
+        const instagram = new InstagramProvider(igIntegration.encryptedMeta);
 
         const result = await instagram.sendAudioMessage(lead.externalId || '', audioUrl);
         messageId = result.messageId;
@@ -268,6 +266,8 @@ export class VoiceAIService {
         }
 
         const whatsapp = new WhatsAppProvider({
+          phoneNumberId: accountSid || '',
+          accessToken: authToken || '',
           accountSid,
           authToken,
           fromNumber

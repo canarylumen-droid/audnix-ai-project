@@ -1,0 +1,99 @@
+02:13:50.481 Running build in Washington, D.C., USA (East) – iad1
+02:13:50.482 Build machine configuration: 2 cores, 8 GB
+02:13:50.743 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: d684616)
+02:13:52.732 Cloning completed: 1.989s
+02:13:52.817 Found .vercelignore
+02:13:52.823 Removed 1 ignored files defined in .vercelignore
+02:13:52.823   /.replit
+02:13:52.891 Restored build cache from previous deployment (QfLNVPCTqeYtjCd8pCmL9vqNsD6c)
+02:13:53.877 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+02:13:53.878 Running "vercel build"
+02:13:54.302 Vercel CLI 50.1.3
+02:13:54.480 WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+02:13:55.039 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+02:13:55.052 Installing dependencies...
+02:13:55.222 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+02:13:55.222 npm warn config `--include=optional` to include them.
+02:13:55.223 npm warn config
+02:13:55.223 npm warn config       Default value does install optional deps unless otherwise omitted.
+02:13:57.115 
+02:13:57.115 up to date in 2s
+02:13:57.115 
+02:13:57.116 108 packages are looking for funding
+02:13:57.116   run `npm fund` for details
+02:13:57.130 Running "npm run build"
+02:13:57.228 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+02:13:57.229 npm warn config `--include=optional` to include them.
+02:13:57.229 npm warn config
+02:13:57.231 npm warn config       Default value does install optional deps unless otherwise omitted.
+02:13:57.260 
+02:13:57.261 > rest-express@1.0.0 build
+02:13:57.261 > vite build
+02:13:57.261 
+02:13:57.560 [36mvite v6.4.1 [32mbuilding for production...[36m[39m
+02:13:57.939 transforming...
+02:13:59.669 
+02:13:59.669 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+02:14:09.804 [32m✓[39m 3256 modules transformed.
+02:14:10.616 rendering chunks...
+02:14:11.402 [33m[plugin vite:reporter] 
+02:14:11.404 (!) /vercel/path0/client/src/pages/dashboard/pricing.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+02:14:11.404 [39m
+02:14:11.404 [33m[plugin vite:reporter] 
+02:14:11.405 (!) /vercel/path0/client/src/pages/dashboard/settings.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+02:14:11.405 [39m
+02:14:11.405 [33m[plugin vite:reporter] 
+02:14:11.405 (!) /vercel/path0/client/src/pages/dashboard/lead-import.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+02:14:11.406 [39m
+02:14:11.504 computing gzip size...
+02:14:11.662 [2m../dist/public/[22m[32mindex.html                              [39m[1m[2m    5.01 kB[22m[1m[22m[2m │ gzip:     1.82 kB[22m
+02:14:11.662 [2m../dist/public/[22m[2massets/[22m[35mindex-B2cmCKkN.css               [39m[1m[2m  151.78 kB[22m[1m[22m[2m │ gzip:    21.61 kB[22m
+02:14:11.663 [2m../dist/public/[22m[2massets/[22m[36mAdminLayout-BqiLlv88.js          [39m[1m[2m    7.27 kB[22m[1m[22m[2m │ gzip:     1.61 kB[22m
+02:14:11.663 [2m../dist/public/[22m[2massets/[22m[36manalytics-CmkgGPtN.js            [39m[1m[2m   11.74 kB[22m[1m[22m[2m │ gzip:     1.94 kB[22m
+02:14:11.663 [2m../dist/public/[22m[2massets/[22m[36mleads-DLRYTGu9.js                [39m[1m[2m   12.19 kB[22m[1m[22m[2m │ gzip:     1.99 kB[22m
+02:14:11.664 [2m../dist/public/[22m[2massets/[22m[36mformatDistanceToNow-Cms4ICH0.js  [39m[1m[2m   12.41 kB[22m[1m[22m[2m │ gzip:     3.98 kB[22m
+02:14:11.664 [2m../dist/public/[22m[2massets/[22m[36mindex-DriL-f2o.js                [39m[1m[2m   15.45 kB[22m[1m[22m[2m │ gzip:     2.45 kB[22m
+02:14:11.665 [2m../dist/public/[22m[2massets/[22m[36msettings-CFebO0nt.js             [39m[1m[2m   19.33 kB[22m[1m[22m[2m │ gzip:     4.30 kB[22m
+02:14:11.665 [2m../dist/public/[22m[2massets/[22m[36musers-B3BVPUX6.js                [39m[1m[2m   21.41 kB[22m[1m[22m[2m │ gzip:     3.32 kB[22m
+02:14:11.665 [2m../dist/public/[22m[2massets/[22m[36mLiveCallModeDemo-CnMrd1pk.js     [39m[1m[2m  113.00 kB[22m[1m[22m[2m │ gzip:    14.21 kB[22m
+02:14:11.665 [2m../dist/public/[22m[2massets/[22m[36mindex-xAnCbuGb.js                [39m[1m[33m3,906.08 kB[39m[22m[2m │ gzip: 1,326.15 kB[22m
+02:14:11.668 [33m
+02:14:11.670 (!) Some chunks are larger than 500 kB after minification. Consider:
+02:14:11.670 - Using dynamic import() to code-split the application
+02:14:11.670 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+02:14:11.670 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+02:14:11.671 [32m✓ built in 13.77s[39m
+02:14:11.759 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+02:14:12.040 Using TypeScript 5.6.3 (local user-provided)
+02:14:41.464 server/routes/ai-routes.ts(361,48): error TS2307: Cannot find module '../../lib/supabase-admin.js' or its corresponding type declarations.
+02:14:41.465 server/routes/ai-routes.ts(362,54): error TS2307: Cannot find module '../../lib/oauth/google-calendar.js' or its corresponding type declarations.
+02:14:41.465 server/routes/ai-routes.ts(395,27): error TS18047: 'eventData' is possibly 'null'.
+02:14:41.465 server/routes/ai-routes.ts(395,52): error TS18047: 'eventData' is possibly 'null'.
+02:14:41.467 server/routes/ai-routes.ts(744,33): error TS2307: Cannot find module '../../db.js' or its corresponding type declarations.
+02:14:41.467 server/routes/ai-routes.ts(745,46): error TS2307: Cannot find module '../../../shared/schema.js' or its corresponding type declarations.
+02:14:41.468 server/routes/ai-routes.ts(746,36): error TS2307: Cannot find module '../../lib/ai/openai.js' or its corresponding type declarations.
+02:14:41.468 
+02:14:42.526 server/routes/outreach.ts(58,68): error TS2307: Cannot find module '../../lib/sales-engine/outreach-strategy.js' or its corresponding type declarations.
+02:14:42.527 
+02:14:45.899 server/lib/imports/lead-importer.ts(58,39): error TS2339: Property 'getConversations' does not exist on type 'InstagramOAuth'.
+02:14:45.899 server/lib/imports/lead-importer.ts(95,45): error TS2339: Property 'getAllMessages' does not exist on type 'InstagramOAuth'.
+02:14:45.899 server/lib/imports/lead-importer.ts(184,41): error TS2307: Cannot find module '../../oauth/gmail.js' or its corresponding type declarations.
+02:14:45.899 server/lib/imports/lead-importer.ts(417,46): error TS2307: Cannot find module '../../integrations/whatsapp-web.js' or its corresponding type declarations.
+02:14:45.899 
+02:14:47.309 server/lib/ai/voice-ai-service.ts(168,17): error TS2339: Property 'voiceNotesEnabled' does not exist on type '{ id: string; name: string | null; supabaseId: string | null; email: string; password: string | null; username: string | null; avatar: string | null; company: string | null; timezone: string; ... 25 more ...; updatedAt: Date | null; }'.
+02:14:47.310 server/lib/ai/voice-ai-service.ts(221,47): error TS2345: Argument of type 'Buffer' is not assignable to parameter of type 'string'.
+02:14:47.310 server/lib/ai/voice-ai-service.ts(243,49): error TS2345: Argument of type '{ access_token: string; page_id: string; }' is not assignable to parameter of type 'string'.
+02:14:47.310 server/lib/ai/voice-ai-service.ts(271,11): error TS2353: Object literal may only specify known properties, and 'accountSid' does not exist in type 'WhatsAppCredentials'.
+02:14:47.310 
+02:15:04.340 server/lib/providers/whatsapp.ts(26,9): error TS2353: Object literal may only specify known properties, and 'accountSid' does not exist in type 'WhatsAppCredentials'.
+02:15:04.341 server/lib/providers/whatsapp.ts(118,82): error TS2339: Property 'accountSid' does not exist on type 'WhatsAppCredentials'.
+02:15:04.341 server/lib/providers/whatsapp.ts(121,69): error TS2339: Property 'accountSid' does not exist on type 'WhatsAppCredentials'.
+02:15:04.342 server/lib/providers/whatsapp.ts(121,100): error TS2339: Property 'authToken' does not exist on type 'WhatsAppCredentials'.
+02:15:04.342 
+02:15:23.040 Build Completed in /vercel/output [1m]
+02:15:23.890 Deploying outputs...
+02:15:36.377 Deployment completed
+02:15:37.335 Creating build cache...
+02:16:24.674 Created build cache: 47.332s
+02:16:24.674 Uploading build cache [316.46 MB]
+02:16:28.934 Build cache uploaded: 4.265s

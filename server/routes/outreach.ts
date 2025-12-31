@@ -55,7 +55,7 @@ router.post('/campaign/create', requireAuth, async (req, res) => {
  */
 router.get('/strategy', requireAuth, async (req, res) => {
   try {
-    const { OUTREACH_STRATEGY, REVENUE_PROJECTION } = await import('../../lib/sales-engine/outreach-strategy.js');
+    const { OUTREACH_STRATEGY, REVENUE_PROJECTION } = await import('../lib/sales-engine/outreach-strategy.js');
 
     res.json({
       strategy: OUTREACH_STRATEGY,

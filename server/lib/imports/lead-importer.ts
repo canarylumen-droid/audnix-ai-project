@@ -180,13 +180,13 @@ export async function importGmailLeads(userId: string): Promise<{
       return results;
     }
 
-    // Get Gmail OAuth tokens
-    const { GmailOAuth } = await import('../../oauth/gmail.js');
-    const oauth = new GmailOAuth();
-    const accessToken = await oauth.getValidToken(userId);
+    // Get email access token from integration
+    const decryptedMetaJson = decrypt(gmailIntegration.encryptedMeta);
+    const decryptedMeta = JSON.parse(decryptedMetaJson);
+    const accessToken = decryptedMeta.tokens?.access_token || decryptedMeta.accessToken;
 
     if (!accessToken) {
-      results.errors.push('Gmail token expired. Please reconnect Gmail.');
+      results.errors.push('Email token expired. Please reconnect email.');
       return results;
     }
 
@@ -414,7 +414,7 @@ export async function importWhatsAppLeads(userId: string): Promise<{
     }
 
     // Get WhatsApp session
-    const { whatsAppService } = await import('../../integrations/whatsapp-web.js');
+    const { whatsAppService } = await import('../integrations/whatsapp-web.js');
     const session = whatsAppService.getSession(userId);
 
     if (!session || session.status !== 'ready') {

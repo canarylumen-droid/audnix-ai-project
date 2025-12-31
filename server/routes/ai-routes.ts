@@ -358,8 +358,8 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
 
     if (createEvent && startTime) {
       try {
-        const { supabaseAdmin } = await import('../../lib/supabase-admin.js');
-        const { GoogleCalendarOAuth } = await import('../../lib/oauth/google-calendar.js');
+        const { supabaseAdmin } = await import('../lib/supabase-admin.js');
+        const { GoogleCalendarOAuth } = await import('../lib/oauth/google-calendar.js');
 
         if (supabaseAdmin) {
           const { data: integration } = await supabaseAdmin
@@ -392,7 +392,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
               attendeeEmail: lead.email || undefined,
             });
 
-            bookingLink = eventData.hangoutLink || eventData.htmlLink || bookingLink;
+            bookingLink = eventData?.hangoutLink || eventData?.htmlLink || bookingLink;
 
             if (!availabilityCheck.isOriginalTimeAvailable) {
               await storage.createMessage({
@@ -741,9 +741,9 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
       return;
     }
 
-    const { db } = await import('../../db.js');
-    const { brandEmbeddings } = await import('../../../shared/schema.js');
-    const { embed } = await import('../../lib/ai/openai.js');
+    const { db } = await import('../db.js');
+    const { brandEmbeddings } = await import('../../shared/schema.js');
+    const { embed } = await import('../lib/ai/openai.js');
 
     await db.delete(brandEmbeddings).where(eq(brandEmbeddings.userId, userId));
 
