@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
 import { storage } from '../storage.js';
+import { db } from '../db.js';
+import { videoAssets, aiActionLogs } from '../../shared/schema.js';
+import { eq, desc, and } from 'drizzle-orm';
 import { detectBuyingIntent, generateSalesmanDM } from '../lib/ai/video-comment-monitor.js';
 import { InstagramProvider } from '../lib/providers/instagram.js';
 
@@ -297,6 +300,175 @@ router.post('/test-intent', requireAuth, async (req: Request, res: Response): Pr
     console.error('Intent test error:', error);
     const message = error instanceof Error ? error.message : 'Intent detection failed';
     res.status(500).json({ error: message });
+  }
+});
+
+/**
+ * Get video assets for user
+ * GET /api/video-automation/assets
+ */
+router.get('/assets', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const assets = await db
+      .select()
+      .from(videoAssets)
+      .where(eq(videoAssets.userId, userId))
+      .orderBy(desc(videoAssets.createdAt))
+      .limit(50);
+    
+    res.json({ assets });
+  } catch (error: any) {
+    console.error('Error getting video assets:', error.message);
+    res.status(500).json({ error: 'Failed to get assets' });
+  }
+});
+
+/**
+ * Sync video assets from Instagram
+ * POST /api/video-automation/assets/sync
+ */
+router.post('/assets/sync', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const integrations = await storage.getIntegrations(userId);
+    const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
+    
+    if (!igIntegration) {
+      res.status(400).json({ error: 'Instagram not connected' });
+      return;
+    }
+    
+    const { decrypt } = await import('../lib/crypto/encryption.js');
+    const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
+    
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp,permalink&limit=30`,
+      { headers: { Authorization: `Bearer ${meta.accessToken}` } }
+    );
+    
+    if (!response.ok) {
+      res.status(500).json({ error: 'Failed to fetch from Instagram' });
+      return;
+    }
+    
+    const data = await response.json() as InstagramMediaResponse;
+    const videos = data.data.filter(item => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM');
+    
+    let synced = 0;
+    for (const video of videos) {
+      const existing = await db
+        .select()
+        .from(videoAssets)
+        .where(and(eq(videoAssets.userId, userId), eq(videoAssets.externalId, video.id)))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(videoAssets).values({
+          userId,
+          platform: 'instagram',
+          externalId: video.id,
+          videoUrl: video.permalink,
+          thumbnailUrl: video.thumbnail_url || video.media_url,
+          caption: video.caption || null,
+          enabled: true,
+        });
+        synced++;
+      }
+    }
+    
+    res.json({ success: true, synced, total: videos.length });
+  } catch (error: any) {
+    console.error('Error syncing video assets:', error.message);
+    res.status(500).json({ error: 'Failed to sync' });
+  }
+});
+
+/**
+ * Update video asset with AI context
+ * PATCH /api/video-automation/assets/:id
+ */
+router.patch('/assets/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { id } = req.params;
+    const { purpose, ctaLink, aiContext, enabled } = req.body;
+    
+    const [updated] = await db
+      .update(videoAssets)
+      .set({
+        ...(purpose !== undefined && { purpose }),
+        ...(ctaLink !== undefined && { ctaLink }),
+        ...(aiContext !== undefined && { aiContext }),
+        ...(enabled !== undefined && { enabled }),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
+      .returning();
+    
+    if (!updated) {
+      res.status(404).json({ error: 'Asset not found' });
+      return;
+    }
+    
+    res.json({ asset: updated });
+  } catch (error: any) {
+    console.error('Error updating video asset:', error.message);
+    res.status(500).json({ error: 'Failed to update' });
+  }
+});
+
+/**
+ * Get single video asset
+ * GET /api/video-automation/assets/:id
+ */
+router.get('/assets/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { id } = req.params;
+    
+    const [asset] = await db
+      .select()
+      .from(videoAssets)
+      .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
+      .limit(1);
+    
+    if (!asset) {
+      res.status(404).json({ error: 'Asset not found' });
+      return;
+    }
+    
+    res.json({ asset });
+  } catch (error: any) {
+    console.error('Error getting video asset:', error.message);
+    res.status(500).json({ error: 'Failed to get asset' });
+  }
+});
+
+/**
+ * Get AI action logs for video
+ * GET /api/video-automation/ai-logs
+ */
+router.get('/ai-logs', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const logs = await db
+      .select()
+      .from(aiActionLogs)
+      .where(and(
+        eq(aiActionLogs.userId, userId),
+        eq(aiActionLogs.actionType, 'video_sent')
+      ))
+      .orderBy(desc(aiActionLogs.createdAt))
+      .limit(20);
+    
+    res.json({ logs });
+  } catch (error: any) {
+    console.error('Error getting AI logs:', error.message);
+    res.status(500).json({ error: 'Failed to get logs' });
   }
 });
 

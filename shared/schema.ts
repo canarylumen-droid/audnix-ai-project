@@ -358,6 +358,90 @@ export const otpCodes = pgTable("otp_codes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const calendarSettings = pgTable("calendar_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  calendlyToken: text("calendly_token"),
+  calendlyUsername: text("calendly_username"),
+  calendlyEventTypeUri: text("calendly_event_type_uri"),
+  googleCalendarEnabled: boolean("google_calendar_enabled").notNull().default(false),
+  calendlyEnabled: boolean("calendly_enabled").notNull().default(false),
+  autoBookingEnabled: boolean("auto_booking_enabled").notNull().default(false),
+  minIntentScore: integer("min_intent_score").notNull().default(70),
+  minTimingScore: integer("min_timing_score").notNull().default(60),
+  meetingDuration: integer("meeting_duration").notNull().default(30),
+  titleTemplate: text("title_template").notNull().default("{{lead_name}} - Discovery Call"),
+  bufferBefore: integer("buffer_before").notNull().default(10),
+  bufferAfter: integer("buffer_after").notNull().default(5),
+  workingHoursStart: integer("working_hours_start").notNull().default(9),
+  workingHoursEnd: integer("working_hours_end").notNull().default(17),
+  timezone: text("timezone").notNull().default("America/New_York"),
+  availabilityCache: jsonb("availability_cache").$type<Array<{ time: string; available: boolean }>>().notNull().default(sql`'[]'::jsonb`),
+  availabilityCachedAt: timestamp("availability_cached_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const videoAssets = pgTable("video_assets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  platform: text("platform").notNull().default("instagram"),
+  externalId: text("external_id").notNull(),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  caption: text("caption"),
+  purpose: text("purpose", { enum: ["education", "pitch", "proof", "entertainment", "other"] }),
+  ctaLink: text("cta_link"),
+  aiContext: text("ai_context"),
+  enabled: boolean("enabled").notNull().default(true),
+  impressionCount: integer("impression_count").notNull().default(0),
+  dmSentCount: integer("dm_sent_count").notNull().default(0),
+  conversionCount: integer("conversion_count").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const aiActionLogs = pgTable("ai_action_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  actionType: text("action_type", { enum: ["calendar_booking", "video_sent", "dm_sent", "follow_up", "objection_handled"] }).notNull(),
+  decision: text("decision", { enum: ["act", "wait", "skip", "escalate"] }).notNull(),
+  intentScore: integer("intent_score"),
+  timingScore: integer("timing_score"),
+  confidence: real("confidence"),
+  reasoning: text("reasoning"),
+  assetId: uuid("asset_id"),
+  assetType: text("asset_type"),
+  outcome: text("outcome"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const calendarBookings = pgTable("calendar_bookings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  provider: text("provider", { enum: ["calendly", "google", "outlook"] }).notNull(),
+  externalEventId: text("external_event_id"),
+  title: text("title").notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  meetingUrl: text("meeting_url"),
+  attendeeEmail: text("attendee_email"),
+  attendeeName: text("attendee_name"),
+  status: text("status", { enum: ["scheduled", "completed", "cancelled", "no_show"] }).notNull().default("scheduled"),
+  isAiBooked: boolean("is_ai_booked").notNull().default(false),
+  intentScoreAtBooking: integer("intent_score_at_booking"),
+  confidenceAtBooking: real("confidence_at_booking"),
+  bookingReason: text("booking_reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -379,6 +463,10 @@ export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({
 export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({ id: true, createdAt: true });
 export const insertEmailWarmupScheduleSchema = createInsertSchema(emailWarmupSchedules).omit({ id: true, createdAt: true });
 export const insertBounceTrackerSchema = createInsertSchema(bounceTracker).omit({ id: true, createdAt: true });
+export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertVideoAssetSchema = createInsertSchema(videoAssets).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAiActionLogSchema = createInsertSchema(aiActionLogs).omit({ id: true, createdAt: true });
+export const insertCalendarBookingSchema = createInsertSchema(calendarBookings).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -421,6 +509,14 @@ export type VideoMonitor = typeof videoMonitors.$inferSelect;
 export type InsertVideoMonitor = typeof videoMonitors.$inferInsert;
 export type ProcessedComment = typeof processedComments.$inferSelect;
 export type InsertProcessedComment = typeof processedComments.$inferInsert;
+export type CalendarSetting = typeof calendarSettings.$inferSelect;
+export type InsertCalendarSetting = typeof calendarSettings.$inferInsert;
+export type VideoAsset = typeof videoAssets.$inferSelect;
+export type InsertVideoAsset = typeof videoAssets.$inferInsert;
+export type AiActionLog = typeof aiActionLogs.$inferSelect;
+export type InsertAiActionLog = typeof aiActionLogs.$inferInsert;
+export type CalendarBooking = typeof calendarBookings.$inferSelect;
+export type InsertCalendarBooking = typeof calendarBookings.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({

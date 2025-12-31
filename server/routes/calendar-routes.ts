@@ -8,9 +8,205 @@ import {
 } from '../lib/calendar/calendar-booking.js';
 import { validateCalendlyToken } from '../lib/calendar/calendly.js';
 import { storage } from '../storage.js';
+import { db } from '../db.js';
+import { calendarSettings, calendarBookings, aiActionLogs } from '../../shared/schema.js';
+import { eq, desc } from 'drizzle-orm';
 import type { ChannelType } from '../../shared/types.js';
 
 const router = Router();
+
+/**
+ * Get calendar settings for user
+ */
+router.get('/settings', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const [settings] = await db
+      .select()
+      .from(calendarSettings)
+      .where(eq(calendarSettings.userId, userId))
+      .limit(1);
+    
+    const integrations = await storage.getIntegrations(userId);
+    const calendlyIntegration = integrations.find(i => i.provider === 'calendly' && i.connected);
+    const googleIntegration = integrations.find(i => i.provider === 'google_calendar' && i.connected);
+    
+    let calendlyUsername = null;
+    if (calendlyIntegration?.encryptedMeta) {
+      try {
+        const { decrypt } = await import('../lib/crypto/encryption.js');
+        const decrypted = await decrypt(calendlyIntegration.encryptedMeta);
+        const data = JSON.parse(decrypted);
+        calendlyUsername = data.username || 'connected';
+      } catch {}
+    }
+    
+    res.json({
+      settings: settings ? {
+        ...settings,
+        calendlyEnabled: !!calendlyIntegration,
+        calendlyUsername,
+        googleCalendarEnabled: !!googleIntegration,
+      } : {
+        id: null,
+        calendlyEnabled: !!calendlyIntegration,
+        calendlyUsername,
+        googleCalendarEnabled: !!googleIntegration,
+        autoBookingEnabled: false,
+        minIntentScore: 70,
+        minTimingScore: 60,
+        meetingDuration: 30,
+        titleTemplate: '{{lead_name}} - Discovery Call',
+        bufferBefore: 10,
+        bufferAfter: 5,
+        workingHoursStart: 9,
+        workingHoursEnd: 17,
+        timezone: 'America/New_York',
+      }
+    });
+  } catch (error: any) {
+    console.error('Error getting calendar settings:', error.message);
+    res.status(500).json({ error: 'Failed to get settings' });
+  }
+});
+
+/**
+ * Update calendar settings
+ */
+router.patch('/settings', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const updates = req.body;
+    
+    const [existing] = await db
+      .select()
+      .from(calendarSettings)
+      .where(eq(calendarSettings.userId, userId))
+      .limit(1);
+    
+    if (existing) {
+      const [updated] = await db
+        .update(calendarSettings)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(calendarSettings.userId, userId))
+        .returning();
+      res.json({ settings: updated });
+    } else {
+      const [created] = await db
+        .insert(calendarSettings)
+        .values({ userId, ...updates })
+        .returning();
+      res.json({ settings: created });
+    }
+  } catch (error: any) {
+    console.error('Error updating calendar settings:', error.message);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+/**
+ * Get calendar bookings
+ */
+router.get('/bookings', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const bookings = await db
+      .select()
+      .from(calendarBookings)
+      .where(eq(calendarBookings.userId, userId))
+      .orderBy(desc(calendarBookings.startTime))
+      .limit(50);
+    
+    res.json({ bookings });
+  } catch (error: any) {
+    console.error('Error getting bookings:', error.message);
+    res.status(500).json({ error: 'Failed to get bookings' });
+  }
+});
+
+/**
+ * Get AI action logs for calendar
+ */
+router.get('/ai-logs', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    const logs = await db
+      .select()
+      .from(aiActionLogs)
+      .where(eq(aiActionLogs.userId, userId))
+      .orderBy(desc(aiActionLogs.createdAt))
+      .limit(20);
+    
+    res.json({ logs });
+  } catch (error: any) {
+    console.error('Error getting AI logs:', error.message);
+    res.status(500).json({ error: 'Failed to get logs' });
+  }
+});
+
+/**
+ * Connect Calendly with token
+ */
+router.post('/connect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { token } = req.body;
+    
+    if (!token?.trim()) {
+      res.status(400).json({ error: 'Token required' });
+      return;
+    }
+    
+    const validation = await validateCalendlyToken(token);
+    if (!validation.valid) {
+      res.status(400).json({ error: validation.error || 'Invalid token' });
+      return;
+    }
+    
+    const { encrypt } = await import('../lib/crypto/encryption.js');
+    const encrypted = await encrypt(JSON.stringify({ 
+      api_token: token,
+      username: validation.userName 
+    }));
+    
+    const existingIntegrations = await storage.getIntegrations(userId);
+    const existingCalendly = existingIntegrations.find(i => i.provider === 'calendly');
+    
+    if (existingCalendly) {
+      await storage.deleteIntegration(userId, 'calendly');
+    }
+    
+    await storage.createIntegration({
+      userId,
+      provider: 'calendly',
+      connected: true,
+      encryptedMeta: encrypted,
+      accountType: 'personal'
+    });
+    
+    res.json({ success: true, username: validation.userName });
+  } catch (error: any) {
+    console.error('Error connecting Calendly:', error.message);
+    res.status(500).json({ error: 'Failed to connect' });
+  }
+});
+
+/**
+ * Disconnect Calendly
+ */
+router.post('/disconnect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    await storage.deleteIntegration(userId, 'calendly');
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Error disconnecting Calendly:', error.message);
+    res.status(500).json({ error: 'Failed to disconnect' });
+  }
+});
 
 /**
  * Get available time slots for booking
@@ -171,79 +367,6 @@ router.post('/format-message', requireAuth, async (req: Request, res: Response):
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error formatting message:', errorMessage);
     res.status(500).json({ error: 'Failed to format message' });
-  }
-});
-
-/**
- * Connect Calendly integration
- */
-router.post('/connect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getCurrentUserId(req)!;
-    const { apiToken } = req.body as { apiToken?: string };
-
-    if (!apiToken || !apiToken.trim()) {
-      res.status(400).json({ error: 'Calendly API token required' });
-      return;
-    }
-
-    const validation = await validateCalendlyToken(apiToken);
-    if (!validation.valid) {
-      res.status(400).json({
-        error: 'Invalid Calendly API token',
-        details: validation.error
-      });
-      return;
-    }
-
-    const { encrypt } = await import('../lib/crypto/encryption.js');
-    const encrypted = await encrypt(JSON.stringify({ api_token: apiToken }));
-
-    await storage.createIntegration({
-      userId,
-      provider: 'calendly',
-      connected: true,
-      encryptedMeta: encrypted,
-      accountType: 'personal'
-    });
-
-    res.json({
-      success: true,
-      message: `Calendly connected! Ready to book meetings.`,
-      userName: validation.userName
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error connecting Calendly:', errorMessage);
-    res.status(500).json({ error: 'Failed to connect Calendly' });
-  }
-});
-
-/**
- * Disconnect Calendly
- */
-router.post('/disconnect-calendly', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getCurrentUserId(req)!;
-
-    const integrations = await storage.getIntegrations(userId);
-    const calendlyIntegration = integrations.find(i => i.provider === 'calendly');
-
-    if (!calendlyIntegration) {
-      res.status(400).json({ error: 'Calendly not connected' });
-      return;
-    }
-
-    await storage.disconnectIntegration(userId, 'calendly');
-
-    res.json({
-      success: true,
-      message: 'Calendly disconnected'
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error disconnecting Calendly:', errorMessage);
-    res.status(500).json({ error: 'Failed to disconnect Calendly' });
   }
 });
 
