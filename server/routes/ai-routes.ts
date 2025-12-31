@@ -1,7 +1,12 @@
 import { Router, Request, Response } from "express";
 import { eq } from "drizzle-orm";
+import multer from "multer";
+import csvParser from "csv-parser";
+import { Readable } from "stream";
 import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+
+const upload = multer({ storage: multer.memoryStorage() });
 import {
   generateAIReply,
   generateVoiceScript,
@@ -764,6 +769,242 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to update brand info";
     console.error("Brand info update error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Import leads from CSV file upload
+ * POST /api/leads/import-csv-file
+ */
+router.post("/import-csv-file", requireAuth, upload.single("file"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    if (!req.file) {
+      res.status(400).json({ error: "No CSV file provided" });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+
+    const planLimits: Record<string, number> = {
+      'free': 500,
+      'trial': 500,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
+
+    if (currentLeadCount >= maxLeads) {
+      res.status(403).json({ 
+        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
+        isPremiumFeature: true
+      });
+      return;
+    }
+
+    const results = {
+      leadsImported: 0,
+      errors: [] as string[]
+    };
+
+    const leadsData: Array<Record<string, string>> = [];
+    
+    await new Promise<void>((resolve, reject) => {
+      const stream = Readable.from(req.file!.buffer);
+      stream
+        .pipe(csvParser())
+        .on('data', (row: Record<string, string>) => leadsData.push(row))
+        .on('end', () => resolve())
+        .on('error', reject);
+    });
+
+    const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
+    const importedIdentifiers = new Set<string>();
+    const existingEmails = new Set(existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean));
+    const existingPhones = new Set(existingLeads.map(l => l.phone).filter(Boolean));
+
+    for (let i = 0; i < leadsToImport; i++) {
+      const row = leadsData[i];
+      
+      try {
+        const email = row.email || row.Email || row.EMAIL;
+        const phone = row.phone || row.Phone || row.PHONE || row.mobile || row.Mobile;
+        const name = row.name || row.Name || row.NAME || row.full_name || row.fullName || 'Unknown';
+        const company = row.company || row.Company || row.COMPANY || row.organization;
+        
+        const identifier = email || phone;
+        if (!identifier) {
+          results.errors.push(`Row ${i + 1}: Missing email or phone`);
+          continue;
+        }
+
+        if (importedIdentifiers.has(identifier.toLowerCase()) ||
+            (email && existingEmails.has(email.toLowerCase())) ||
+            (phone && existingPhones.has(phone))) {
+          results.errors.push(`Row ${i + 1}: Duplicate lead ${identifier}`);
+          continue;
+        }
+
+        await storage.createLead({
+          userId,
+          name: name || 'Unknown Lead',
+          email: email || undefined,
+          phone: phone || undefined,
+          channel: email ? 'email' : 'whatsapp',
+          status: 'new',
+          metadata: {
+            imported_from_csv: true,
+            company: company,
+            import_date: new Date().toISOString()
+          }
+        });
+
+        importedIdentifiers.add(identifier.toLowerCase());
+        results.leadsImported++;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Row ${i + 1}: ${errorMessage}`);
+      }
+    }
+
+    if (leadsData.length > leadsToImport) {
+      results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
+    }
+
+    res.json({
+      success: results.leadsImported > 0,
+      leadsImported: results.leadsImported,
+      errors: results.errors,
+      message: `Imported ${results.leadsImported} leads successfully`
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
+    console.error("CSV file import error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Import leads from PDF file upload
+ * POST /api/leads/import-pdf
+ */
+router.post("/import-pdf", requireAuth, upload.single("file"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    
+    if (!req.file) {
+      res.status(400).json({ error: "No PDF file provided" });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+
+    const planLimits: Record<string, number> = {
+      'free': 500,
+      'trial': 500,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
+
+    if (currentLeadCount >= maxLeads) {
+      res.status(403).json({ 
+        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
+        isPremiumFeature: true
+      });
+      return;
+    }
+
+    const pdfParse = require("pdf-parse");
+    const data = await pdfParse(req.file.buffer);
+    const pdfText: string = data.text;
+
+    // Extract emails from PDF
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const emails = [...new Set(pdfText.match(emailRegex) || [])];
+
+    // Extract phone numbers from PDF
+    const phoneRegex = /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/g;
+    const phones = [...new Set(pdfText.match(phoneRegex) || [])];
+
+    const results = {
+      leadsImported: 0,
+      errors: [] as string[]
+    };
+
+    const existingEmails = new Set(existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean));
+    const existingPhones = new Set(existingLeads.map(l => l.phone).filter(Boolean));
+    const importedIdentifiers = new Set<string>();
+
+    // Import email leads
+    for (const email of emails) {
+      if (currentLeadCount + results.leadsImported >= maxLeads) break;
+      if (existingEmails.has(email.toLowerCase()) || importedIdentifiers.has(email.toLowerCase())) continue;
+
+      try {
+        await storage.createLead({
+          userId,
+          name: email.split('@')[0],
+          email,
+          channel: 'email',
+          status: 'new',
+          metadata: {
+            imported_from_pdf: true,
+            import_date: new Date().toISOString()
+          }
+        });
+        importedIdentifiers.add(email.toLowerCase());
+        results.leadsImported++;
+      } catch (error) {
+        results.errors.push(`Failed to import ${email}`);
+      }
+    }
+
+    // Import phone leads
+    for (const phone of phones) {
+      if (currentLeadCount + results.leadsImported >= maxLeads) break;
+      if (existingPhones.has(phone) || importedIdentifiers.has(phone)) continue;
+
+      try {
+        await storage.createLead({
+          userId,
+          name: 'Lead ' + phone.slice(-4),
+          phone,
+          channel: 'whatsapp',
+          status: 'new',
+          metadata: {
+            imported_from_pdf: true,
+            import_date: new Date().toISOString()
+          }
+        });
+        importedIdentifiers.add(phone);
+        results.leadsImported++;
+      } catch (error) {
+        results.errors.push(`Failed to import ${phone}`);
+      }
+    }
+
+    res.json({
+      success: results.leadsImported > 0,
+      leadsImported: results.leadsImported,
+      emailsFound: emails.length,
+      phonesFound: phones.length,
+      errors: results.errors,
+      message: `Imported ${results.leadsImported} leads from PDF`
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to import leads from PDF";
+    console.error("PDF import error:", error);
     res.status(500).json({ error: errorMessage });
   }
 });

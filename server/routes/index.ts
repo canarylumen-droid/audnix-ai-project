@@ -52,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/email/otp", emailOtpRoutes);
   app.use("/api/email/stats", emailStatsRoutes);
   app.use("/api/leads/intelligence", leadIntelligence);
+  app.use("/api/leads", aiRoutes);
+  app.use("/api/brand-pdf", adminPdfRoutes);
+  app.use("/api/admin", adminPdfRoutes);
   app.use("/api/oauth", oauthRoutes);
   app.use("/api/otp", otpRoutes);
   app.use("/api/outreach", outreach);

@@ -372,4 +372,118 @@ router.patch(
   }
 );
 
+// Alias routes for different client calls
+router.post("/analyze-pdf", requireAuth, upload.single("pdf"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "No PDF provided" });
+      return;
+    }
+
+    const pdfParse = require("pdf-parse");
+    const data = await pdfParse(req.file.buffer);
+    const pdfText = data.text.toLowerCase();
+
+    const checks = [
+      { name: "Company Overview", present: /company|business|about|overview|who we are/.test(pdfText), required: true },
+      { name: "Offer/Pricing", present: /price|pricing|package|offer|plan|investment|program/.test(pdfText), required: true },
+      { name: "Target Client", present: /ideal|target|client|audience|avatar|help|serve/.test(pdfText), required: true },
+      { name: "Tone Style", present: /tone|style|voice|personality|brand|professional|friendly/.test(pdfText), required: true },
+      { name: "Success Stories", present: /success|case study|win|result|testimonial|client|achieved/.test(pdfText), required: false },
+      { name: "Objections", present: /objection|concern|hesitation|doubt|question|faq|worry/.test(pdfText), required: false },
+      { name: "Brand Language", present: /language|words|avoid|prefer|slang|terminology/.test(pdfText), required: false },
+    ];
+
+    const presentCount = checks.filter((c) => c.present).length;
+    const score = Math.round((presentCount / checks.length) * 100);
+    const missingCritical = checks.filter((c) => c.required && !c.present).map((c) => c.name);
+
+    res.json({
+      overall_score: score,
+      items: checks,
+      missing_critical: missingCritical,
+      text_length: data.text.length,
+    });
+  } catch (error: unknown) {
+    console.error("Error analyzing PDF:", error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    if (!req.file) {
+      res.status(400).json({ error: "No PDF provided" });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const pdfParse = require("pdf-parse");
+    const data = await pdfParse(req.file.buffer);
+    const pdfText: string = data.text;
+
+    if (!pdfText || pdfText.length < 50) {
+      res.status(400).json({ error: "PDF appears to be empty or too short" });
+      return;
+    }
+
+    let brandContext: BrandExtraction = {};
+    
+    // Try AI extraction if available
+    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4-turbo-preview",
+          messages: [
+            { role: "system", content: "Extract brand information from the document. Return JSON with: companyName, businessDescription, industry, uniqueValue, targetAudience, offer, tone." },
+            { role: "user", content: `Extract brand context:\n\n${pdfText.substring(0, 8000)}` }
+          ],
+          temperature: 0.3,
+          max_tokens: 1500,
+          response_format: { type: "json_object" }
+        });
+        const response = completion.choices[0].message.content;
+        if (response) brandContext = JSON.parse(response) as BrandExtraction;
+      } catch (aiError) {
+        console.warn("AI extraction failed, using fallback");
+      }
+    }
+
+    // Fallback extraction
+    if (!brandContext.companyName) {
+      const companyMatch = pdfText.match(/(?:company|brand|business)\s*(?:name)?[:\s]+([A-Z][a-zA-Z\s]+)/i);
+      brandContext.companyName = companyMatch?.[1]?.trim() || user.businessName || user.name || undefined;
+    }
+
+    const existingMetadata = (user.metadata || {}) as DeepMergeObject;
+    const brandMetadata: DeepMergeObject = {
+      ...brandContext,
+      brandPdfUploadedAt: new Date().toISOString(),
+      brandPdfFileName: req.file.originalname,
+    };
+
+    await storage.updateUser(userId, {
+      metadata: deepMerge(existingMetadata, brandMetadata),
+      businessName: brandContext.companyName || user.businessName,
+    });
+
+    console.log(`✅ Brand PDF uploaded for user ${userId}`);
+    res.json({ success: true, message: "Brand PDF uploaded successfully", brandContext });
+  } catch (error: unknown) {
+    console.error("Error uploading brand PDF:", error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
 export default router;
