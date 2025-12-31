@@ -1,5 +1,6 @@
 import { Express } from "express";
 import http from "http";
+import { wsSync } from "../lib/websocket-sync.js";
 import userAuthRouter from "./user-auth.js";
 import adminAuthRouter from "./admin-auth.js";
 import adminPdfRoutes from "./admin-pdf-routes.js";
@@ -90,5 +91,9 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
 
   // Create HTTP server
   const server = http.createServer(app);
+
+  // Initialize WebSocket server for real-time sync
+  wsSync.initialize(server);
+
   return server;
 }

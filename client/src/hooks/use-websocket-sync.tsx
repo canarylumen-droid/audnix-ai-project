@@ -57,6 +57,7 @@ export function useWebSocketSync({ userId, enabled = true, onMessage }: UseWebSo
               break;
             case 'settings_updated':
               queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/settings/smtp'] });
               queryClient.invalidateQueries({ queryKey: ['/api/user/profile'] });
               break;
             case 'ping':

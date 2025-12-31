@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, MicOff, FileText, Lock, Sparkles } from "lucide-react";
+import { User, Loader2, Upload, Mic, MicOff, FileText, Lock, Sparkles, Mail, CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +73,20 @@ export default function SettingsPage() {
   
   const { canAccess: canAccessVoiceNotes, showUpgradePrompt } = useCanAccessVoiceNotes();
   
+  // SMTP settings state
+  const [smtpConfig, setSmtpConfig] = useState({
+    host: "",
+    port: "587",
+    username: "",
+    password: "",
+    fromEmail: "",
+    fromName: "",
+  });
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  
   // Local state for form fields
   const [formData, setFormData] = useState({
     name: "",
@@ -85,6 +99,13 @@ export default function SettingsPage() {
   const { data: user, isLoading, error } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
     retry: false,
+  });
+
+  // Fetch SMTP settings
+  const { data: smtpData } = useQuery({
+    queryKey: ["/api/settings/smtp"],
+    retry: false,
+    enabled: !!user,
   });
 
   // Update local state when user data loads
@@ -101,6 +122,20 @@ export default function SettingsPage() {
       setCtaText(user.defaultCtaText || "");
     }
   }, [user]);
+
+  // Update SMTP config when data loads
+  useEffect(() => {
+    if (smtpData) {
+      setSmtpConfig({
+        host: (smtpData as any).host || "",
+        port: (smtpData as any).port?.toString() || "587",
+        username: (smtpData as any).username || "",
+        password: "",
+        fromEmail: (smtpData as any).fromEmail || "",
+        fromName: (smtpData as any).fromName || "",
+      });
+    }
+  }, [smtpData]);
 
   // Save profile mutation with auto-save on field change
   const saveMutation = useMutation({
@@ -147,6 +182,50 @@ export default function SettingsPage() {
       toast({ title: "Failed to save CTA settings", variant: "destructive" });
     } finally {
       setCtaSaving(false);
+    }
+  };
+
+  // SMTP settings save
+  const saveSmtpSettings = async () => {
+    setSmtpSaving(true);
+    setSmtpTestResult(null);
+    try {
+      await apiRequest("PUT", "/api/settings/smtp", {
+        host: smtpConfig.host,
+        port: parseInt(smtpConfig.port),
+        username: smtpConfig.username,
+        password: smtpConfig.password || undefined,
+        fromEmail: smtpConfig.fromEmail,
+        fromName: smtpConfig.fromName,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/smtp"] });
+      toast({ title: "SMTP settings saved" });
+    } catch {
+      toast({ title: "Failed to save SMTP settings", variant: "destructive" });
+    } finally {
+      setSmtpSaving(false);
+    }
+  };
+
+  // SMTP connection test
+  const testSmtpConnection = async () => {
+    setSmtpTesting(true);
+    setSmtpTestResult(null);
+    try {
+      const result = await apiRequest("POST", "/api/settings/smtp/test", {
+        host: smtpConfig.host,
+        port: parseInt(smtpConfig.port),
+        username: smtpConfig.username,
+        password: smtpConfig.password || undefined,
+        fromEmail: smtpConfig.fromEmail,
+      });
+      setSmtpTestResult({ success: true, message: "Connection successful!" });
+      toast({ title: "SMTP connection test passed" });
+    } catch (error: any) {
+      setSmtpTestResult({ success: false, message: error.message || "Connection failed" });
+      toast({ title: "SMTP connection test failed", variant: "destructive" });
+    } finally {
+      setSmtpTesting(false);
     }
   };
 
@@ -577,6 +656,138 @@ export default function SettingsPage() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* SMTP Email Settings */}
+      <Card data-testid="card-smtp-settings">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" />
+            Business Email (SMTP)
+          </CardTitle>
+          <CardDescription>
+            Connect your business email to send automated follow-ups
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="smtp-host">SMTP Host</Label>
+              <Input
+                id="smtp-host"
+                placeholder="smtp.yourprovider.com"
+                value={smtpConfig.host}
+                onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtp-port">Port</Label>
+              <Select
+                value={smtpConfig.port}
+                onValueChange={(value) => setSmtpConfig({ ...smtpConfig, port: value })}
+              >
+                <SelectTrigger id="smtp-port">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="587">587 (TLS - Recommended)</SelectItem>
+                  <SelectItem value="465">465 (SSL)</SelectItem>
+                  <SelectItem value="25">25 (Unencrypted)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtp-username">Username</Label>
+              <Input
+                id="smtp-username"
+                placeholder="your@email.com"
+                value={smtpConfig.username}
+                onChange={(e) => setSmtpConfig({ ...smtpConfig, username: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtp-password">Password / App Password</Label>
+              <div className="relative">
+                <Input
+                  id="smtp-password"
+                  type={showSmtpPassword ? "text" : "password"}
+                  placeholder={smtpData ? "••••••••" : "Enter password"}
+                  value={smtpConfig.password}
+                  onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                >
+                  {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtp-from-email">From Email</Label>
+              <Input
+                id="smtp-from-email"
+                type="email"
+                placeholder="noreply@yourdomain.com"
+                value={smtpConfig.fromEmail}
+                onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="smtp-from-name">From Name</Label>
+              <Input
+                id="smtp-from-name"
+                placeholder="Your Business Name"
+                value={smtpConfig.fromName}
+                onChange={(e) => setSmtpConfig({ ...smtpConfig, fromName: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {smtpTestResult && (
+            <div className={`p-3 rounded-lg flex items-center gap-2 ${
+              smtpTestResult.success 
+                ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800" 
+                : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+            }`}>
+              {smtpTestResult.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-600" />
+              )}
+              <p className={`text-sm ${smtpTestResult.success ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"}`}>
+                {smtpTestResult.message}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              onClick={testSmtpConnection}
+              disabled={smtpTesting || !smtpConfig.host || !smtpConfig.username}
+              variant="outline"
+              className="flex-1"
+            >
+              {smtpTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Test Connection
+            </Button>
+            <Button
+              onClick={saveSmtpSettings}
+              disabled={smtpSaving || !smtpConfig.host || !smtpConfig.username || !smtpConfig.fromEmail}
+              className="flex-1"
+            >
+              {smtpSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save SMTP Settings
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            For Gmail, use an App Password. For other providers, check their SMTP documentation.
+          </p>
         </CardContent>
       </Card>
 
