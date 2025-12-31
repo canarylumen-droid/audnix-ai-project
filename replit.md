@@ -38,29 +38,51 @@ Key features include:
 - **Lead Acquisition:** Apify (warm leads, $25 for 5K with 88% discount).
 
 ### Recent Changes (Dec 31, 2025)
+- **Intelligence-Governed Automation System (Complete):**
+  - automation_rules table: ruleType (follow_up, objection_handler, meeting_booking, re_engagement), intent thresholds, action permissions, cooldowns
+  - content_library table: intent-tagged templates, CTAs, videos for AI selection
+  - conversation_events table: unified message ingestion for Email and Instagram
+  - Decision Engine: DM, Email, Follow-up evaluators (calendar/video already existed)
+  - All AI actions logged with confidence, reasoning, timing rationale
+- **Automation Builder Page:**
+  - Intent score sliders (min/max), confidence thresholds
+  - Action permissions (reply, video, calendar, CTA)
+  - Cooldown and escalation settings
+- **Content Library Page:**
+  - CRUD for replies, objections, CTAs, videos
+  - Intent tags for AI content selection
+  - Channel restrictions per content item
+- **AI Decisions Dashboard:**
+  - Full transparency into every AI decision
+  - Decision types: act, wait, skip, escalate
+  - Confidence scores, reasoning, timing rationale displayed
+- **API Contract Fixes:**
+  - All endpoints return bare arrays with camelCase fields
+  - minConfidence converts percentage (frontend) to decimal (database)
+  - POST /rules includes ruleType and echoes formatted response
+- **Channel Status API:**
+  - GET /api/channels/all: unified status for Email, Instagram, Calendly
+- **Email SMTP Testing:**
+  - POST /api/email/custom/test: validates SMTP credentials
+  - POST /api/email/custom/send-test: sends test email through SMTP
+- **Database Migrations:** 023 (automation_rules, content_library, conversation_events), 024 (add rule_type column)
+- **Files Added:** automation-rules-routes.ts, channel-status-routes.ts, automation-builder.tsx, content-library.tsx, ai-decisions.tsx
+
+### Previous Changes (Dec 31, 2025 - Earlier)
 - **UI Copy Cleanup:**
-  - Video Automation page: Removed emoji headings, condensed verbose marketing copy, replaced benefit cards with compact badge pills
-  - Integrations page: Trimmed verbose descriptions, improved professional tone throughout
+  - Video Automation page: Removed emoji headings, condensed verbose marketing copy
+  - Integrations page: Trimmed verbose descriptions
 - **Shared CTA Settings:**
-  - New PUT /api/user/profile endpoint for updating profile including CTA settings
-  - Default CTA link and text stored in user metadata, accessible via GET /api/user/profile
-  - Settings page UI with dedicated CTA configuration card (link + button text fields)
-  - CTA settings available for use across Instagram DMs and Email automation
+  - PUT /api/user/profile endpoint for profile + CTA settings
+  - Settings page UI with CTA configuration card
 - **Calendar Integration (Production-Grade):**
-  - New calendar_settings table with Calendly token storage, auto-booking controls (min intent/timing scores)
-  - Calendar page with Calendly connection UI, auto-booking sliders, AI booking decisions view
-  - AI decision engine enforcing deterministic control: intent_score >= 70 AND timing_score >= 60 for booking approval
-  - Decision types: act (proceed), wait (not yet), skip (don't do), escalate (needs human review)
+  - calendar_settings table with Calendly token storage, auto-booking controls
+  - AI decision engine: intent_score >= 70 AND timing_score >= 60 for booking approval
 - **Video Automation Backend:**
-  - New video_assets table for Instagram video metadata with AI context fields (purpose, CTA, notes)
-  - Video asset sync from Instagram, CRUD operations, AI-specific video logs
-- **AI Decision Engine:**
-  - New ai_action_logs table capturing all AI actions with confidence, reasoning, timing rationale
-  - Intelligence transparency: every AI decision logged before execution
-  - AI NEVER acts without decision engine approval
-- **Database Migration 022:** Creates calendar_settings, video_assets, ai_action_logs, calendar_bookings tables with indexes
-- **Files Added:** server/lib/ai/decision-engine.ts, server/routes/calendar-routes.ts, server/routes/video-automation-routes.ts
-- **Architecture Requirement Met:** Sub-200ms caching support via availabilityCache field in calendar_settings
+  - video_assets table for Instagram video metadata
+- **AI Decision Engine (Base):**
+  - ai_action_logs table, calendar_bookings table
+  - Architecture: AI NEVER acts without decision engine approval
 
 ### Recent Changes (Dec 22, 2025)
 - **HOMEPAGE REDESIGN:** Complete conversion-focused restructure following senior product designer framework
