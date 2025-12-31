@@ -264,6 +264,8 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     };
 
     const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
+    
+    const importedIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsToImport; i++) {
       const leadData = leadsData[i];
@@ -275,8 +277,13 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           continue;
         }
 
+        if (importedIdentifiers.has(identifier.toLowerCase())) {
+          results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
+          continue;
+        }
+
         const existingLead = existingLeads.find(l => 
-          (leadData.email && l.email === leadData.email) ||
+          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase()) ||
           (leadData.phone && l.phone === leadData.phone)
         );
 
@@ -299,6 +306,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           }
         });
 
+        importedIdentifiers.add(identifier.toLowerCase());
         results.leadsImported++;
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
