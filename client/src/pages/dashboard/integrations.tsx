@@ -27,6 +27,8 @@ import {
   Sparkles,
   Lock,
   CheckCircle2,
+  Pencil,
+  Unlink,
 } from "lucide-react";
 import { SiGoogle } from "react-icons/si";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -87,6 +89,7 @@ export default function IntegrationsPage() {
     email: '',
     password: ''
   });
+  const [isEditingCustomEmail, setIsEditingCustomEmail] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -124,6 +127,14 @@ export default function IntegrationsPage() {
   });
 
   const isVoiceLocked = voiceBalance?.locked || false;
+
+  // Fetch custom email status
+  const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({
+    queryKey: ["/api/custom-email/status"],
+  });
+
+  const isCustomEmailConnected = customEmailStatus?.connected || false;
+  const connectedCustomEmail = customEmailStatus?.email || '';
 
   // Voice upload mutation
   const uploadVoiceMutation = useMutation({
@@ -246,7 +257,9 @@ export default function IntegrationsPage() {
         description: "Your business email has been connected successfully",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
       setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '' });
+      setIsEditingCustomEmail(false);
     },
     onError: (error: Error) => {
       let errorMessage = error.message;
@@ -256,6 +269,30 @@ export default function IntegrationsPage() {
       toast({
         title: "Connection failed",
         description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Disconnect custom email mutation
+  const disconnectCustomEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/custom-email/disconnect");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Disconnected",
+        description: "Your business email has been disconnected",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
+      setIsEditingCustomEmail(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Disconnect failed",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -785,76 +822,147 @@ export default function IntegrationsPage() {
       {/* Custom Email - Available to all users (Free & Paid) */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Email Integration</h2>
-        <Card data-testid="card-custom-email">
+        <Card data-testid="card-custom-email" className={isCustomEmailConnected ? "border-emerald-500/50" : ""}>
           <CardHeader>
-            <CardTitle>Connect Custom Email</CardTitle>
-            <CardDescription>
-              Import and automate email responses from your custom domain
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Business Email</CardTitle>
+                <CardDescription>
+                  Import and automate email responses from your custom domain
+                </CardDescription>
+              </div>
+              {isCustomEmailConnected && (
+                <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0">
+                  <Check className="h-3 w-3 mr-1" />
+                  Connected
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="smtp-host">SMTP Server</Label>
-                <Input
-                  id="smtp-host"
-                  type="text"
-                  placeholder="smtp.yourdomain.com"
-                  value={customEmailConfig.smtpHost}
-                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpHost: e.target.value })}
-                  data-testid="input-smtp-host"
-                />
-              </div>
-              <div>
-                <Label htmlFor="imap-host">IMAP Server (optional)</Label>
-                <Input
-                  id="imap-host"
-                  type="text"
-                  placeholder="imap.yourdomain.com"
-                  value={customEmailConfig.imapHost}
-                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
-                  data-testid="input-imap-host"
-                />
-              </div>
-              <div>
-                <Label htmlFor="smtp-email">Email Address</Label>
-                <Input
-                  id="smtp-email"
-                  type="email"
-                  placeholder="you@yourbusiness.com"
-                  value={customEmailConfig.email}
-                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
-                  data-testid="input-smtp-email"
-                />
-              </div>
-              <div>
-                <Label htmlFor="smtp-password">App Password</Label>
-                <Input
-                  id="smtp-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={customEmailConfig.password}
-                  onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
-                  data-testid="input-smtp-password"
-                />
-              </div>
-            </div>
+            {isCustomEmailConnected && !isEditingCustomEmail ? (
+              <>
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                    <span className="font-medium text-emerald-700 dark:text-emerald-400">Email Connected</span>
+                  </div>
+                  <p className="text-sm font-mono text-muted-foreground">{connectedCustomEmail}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Automated follow-ups active. Email campaigns sending from this address.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setIsEditingCustomEmail(true)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit Settings
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                    onClick={() => {
+                      if (confirm('Disconnect your business email? This will stop all email automation.')) {
+                        disconnectCustomEmailMutation.mutate();
+                      }
+                    }}
+                    disabled={disconnectCustomEmailMutation.isPending}
+                  >
+                    {disconnectCustomEmailMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Unlink className="h-4 w-4 mr-2" />
+                        Disconnect
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="smtp-host">SMTP Server</Label>
+                    <Input
+                      id="smtp-host"
+                      type="text"
+                      placeholder="smtp.yourdomain.com"
+                      value={customEmailConfig.smtpHost}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpHost: e.target.value })}
+                      data-testid="input-smtp-host"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="imap-host">IMAP Server (optional)</Label>
+                    <Input
+                      id="imap-host"
+                      type="text"
+                      placeholder="imap.yourdomain.com"
+                      value={customEmailConfig.imapHost}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
+                      data-testid="input-imap-host"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="smtp-email">Email Address</Label>
+                    <Input
+                      id="smtp-email"
+                      type="email"
+                      placeholder="you@yourbusiness.com"
+                      value={customEmailConfig.email}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
+                      data-testid="input-smtp-email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="smtp-password">App Password</Label>
+                    <Input
+                      id="smtp-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={customEmailConfig.password}
+                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
+                      data-testid="input-smtp-password"
+                    />
+                  </div>
+                </div>
 
-            <Button 
-              className="w-full" 
-              onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
-              disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || connectCustomEmailMutation.isPending}
-              data-testid="button-connect-custom-email"
-            >
-              {connectCustomEmailMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="h-4 w-4 mr-2" />
-              )}
-              {connectCustomEmailMutation.isPending ? 'Connecting...' : 'Connect Email'}
-            </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
+                    disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || connectCustomEmailMutation.isPending}
+                    data-testid="button-connect-custom-email"
+                  >
+                    {connectCustomEmailMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    {connectCustomEmailMutation.isPending ? 'Connecting...' : isEditingCustomEmail ? 'Update Email' : 'Connect Email'}
+                  </Button>
+                  {isEditingCustomEmail && (
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditingCustomEmail(false);
+                        setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '' });
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
 
-            <p className="text-xs text-muted-foreground text-center">Credentials encrypted. Common ports: SMTP=587, IMAP=993</p>
+                <p className="text-xs text-muted-foreground text-center">Credentials encrypted. Common ports: SMTP=587, IMAP=993</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
