@@ -34,6 +34,8 @@ import authInstagramRoutes from "./auth-instagram.js";
 import webhookMetaRoutes from "./webhook-meta.js";
 import automationRulesRoutes from "./automation-rules-routes.js";
 import channelStatusRoutes from "./channel-status-routes.js";
+import dealsRoutes from "./deals-routes.js";
+import integrationsRoutes from "./integrations-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -78,6 +80,8 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/worker", workerRoutes);
   app.use("/api/automation", automationRulesRoutes);
   app.use("/api/channels", channelStatusRoutes);
+  app.use("/api/deals", dealsRoutes);
+  app.use("/api/integrations", integrationsRoutes);
 
   // Create HTTP server
   const server = http.createServer(app);

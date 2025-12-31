@@ -2,10 +2,30 @@ import { Router, Request, Response } from "express";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import multer from "multer";
 import { storage } from "../storage.js";
+import { db } from "../db.js";
+import { sql } from "drizzle-orm";
 import OpenAI from "openai";
+import crypto from "crypto";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit for brand PDFs
+});
+
+function generateFileHash(buffer: Buffer): string {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+interface CachedPdfData {
+  id: string;
+  brand_context: BrandExtraction;
+  extracted_text: string;
+  analysis_score: number;
+  analysis_items: any[];
+  file_name: string;
+  created_at: Date;
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",
@@ -140,7 +160,8 @@ router.post(
 /**
  * POST /api/brand-pdf/upload
  * Upload and store brand PDF - extracts and saves brand context
- * Available to all authenticated users
+ * Caches PDF and extracted data in PostgreSQL for fast retrieval
+ * Supports files up to 10 MB
  */
 router.post(
   "/upload",
@@ -165,6 +186,60 @@ router.post(
         return;
       }
 
+      // Generate hash to check if PDF was already processed
+      const fileHash = generateFileHash(req.file.buffer);
+      
+      // Check PostgreSQL cache first
+      try {
+        const cachedResult = await db.execute(sql`
+          SELECT id, brand_context, extracted_text, analysis_score, file_name, file_size, created_at
+          FROM brand_pdf_cache
+          WHERE user_id = ${userId} AND file_hash = ${fileHash}
+          LIMIT 1
+        `);
+
+        if (cachedResult.rows.length > 0) {
+          const cached = cachedResult.rows[0] as any;
+          const brandContext = cached.brand_context as BrandExtraction;
+          const cachedFileSize = cached.file_size || req.file.size;
+          
+          console.log(`📦 Using cached brand PDF analysis for user ${userId}`);
+          
+          // Update user metadata from cache (use cached file size, not current upload size)
+          const existingMetadata = (user.metadata || {}) as DeepMergeObject;
+          const brandMetadata: DeepMergeObject = {
+            ...brandContext,
+            brandPdfUploadedAt: cached.created_at,
+            brandPdfFileName: cached.file_name,
+            brandPdfSize: cachedFileSize,
+            brandPdfCached: true,
+          };
+          const updatedMetadata = deepMerge(existingMetadata, brandMetadata);
+          
+          await storage.updateUser(userId, {
+            metadata: updatedMetadata,
+            businessName: brandContext.companyName || user.businessName,
+          });
+
+          res.json({
+            success: true,
+            message: "Brand PDF loaded from cache",
+            cached: true,
+            extracted: {
+              companyName: brandContext.companyName,
+              industry: brandContext.industry,
+              targetAudience: brandContext.targetAudience,
+              tone: brandContext.tone,
+              hasSuccessStories: (brandContext.successStories?.length || 0) > 0,
+              hasObjections: Object.keys(brandContext.objections || {}).length > 0,
+            },
+          });
+          return;
+        }
+      } catch (cacheError) {
+        console.warn("Cache check failed (table may not exist yet):", cacheError);
+      }
+
       // Parse PDF
       const pdfParse = require("pdf-parse");
       const data = await pdfParse(req.file.buffer);
@@ -180,6 +255,8 @@ router.post(
 
       // Extract brand context using AI
       let brandContext: BrandExtraction = {};
+      let analysisScore = 0;
+      let analysisItems: any[] = [];
 
       if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
         try {
@@ -229,6 +306,45 @@ Only include fields you can confidently extract. Return valid JSON only.`
         brandContext.companyName = companyMatch?.[1]?.trim() || user.businessName || user.name || undefined;
       }
 
+      // Calculate analysis score
+      const checks = [
+        { name: "Company Name", present: !!brandContext.companyName },
+        { name: "Industry", present: !!brandContext.industry },
+        { name: "Target Audience", present: !!brandContext.targetAudience },
+        { name: "Offer", present: !!brandContext.offer },
+        { name: "Tone", present: !!brandContext.tone },
+        { name: "Success Stories", present: (brandContext.successStories?.length || 0) > 0 },
+        { name: "Objections", present: Object.keys(brandContext.objections || {}).length > 0 },
+      ];
+      analysisItems = checks;
+      analysisScore = Math.round((checks.filter(c => c.present).length / checks.length) * 100);
+
+      // Cache in PostgreSQL (including raw PDF for re-analysis)
+      try {
+        await db.execute(sql`
+          INSERT INTO brand_pdf_cache (user_id, file_name, file_size, file_hash, pdf_content, extracted_text, brand_context, analysis_score, analysis_items)
+          VALUES (
+            ${userId},
+            ${req.file.originalname},
+            ${req.file.size},
+            ${fileHash},
+            ${req.file.buffer},
+            ${pdfText.substring(0, 50000)},
+            ${JSON.stringify(brandContext)}::jsonb,
+            ${analysisScore},
+            ${JSON.stringify(analysisItems)}::jsonb
+          )
+          ON CONFLICT (user_id, file_hash) DO UPDATE SET
+            brand_context = ${JSON.stringify(brandContext)}::jsonb,
+            analysis_score = ${analysisScore},
+            analysis_items = ${JSON.stringify(analysisItems)}::jsonb,
+            updated_at = NOW()
+        `);
+        console.log(`💾 Brand PDF cached in PostgreSQL for user ${userId} (${(req.file.size / 1024 / 1024).toFixed(2)} MB)`);
+      } catch (cacheError) {
+        console.warn("Failed to cache PDF (table may not exist):", cacheError);
+      }
+
       // Deep merge with existing metadata to preserve nested objects
       const existingMetadata = (user.metadata || {}) as DeepMergeObject;
       const brandMetadata: DeepMergeObject = {
@@ -262,6 +378,7 @@ Only include fields you can confidently extract. Return valid JSON only.`
       res.json({
         success: true,
         message: "Brand PDF uploaded and processed successfully",
+        cached: false,
         extracted: {
           companyName: brandContext.companyName,
           industry: brandContext.industry,
@@ -485,5 +602,74 @@ router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: 
     res.status(500).json({ error: getErrorMessage(error) });
   }
 });
+
+/**
+ * GET /api/brand-pdf/cache
+ * Get cached PDF history for the user
+ */
+router.get(
+  "/cache",
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+
+      const result = await db.execute(sql`
+        SELECT id, file_name, file_size, analysis_score, created_at, updated_at
+        FROM brand_pdf_cache
+        WHERE user_id = ${userId}
+        ORDER BY created_at DESC
+        LIMIT 10
+      `);
+
+      res.json({
+        cached: result.rows.length > 0,
+        pdfs: result.rows.map((row: any) => ({
+          id: row.id,
+          fileName: row.file_name,
+          fileSize: row.file_size,
+          analysisScore: row.analysis_score,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        })),
+      });
+    } catch (error: unknown) {
+      console.error("Error fetching PDF cache:", error);
+      res.json({ cached: false, pdfs: [] });
+    }
+  }
+);
+
+/**
+ * DELETE /api/brand-pdf/cache
+ * Clear all cached PDFs for the user
+ */
+router.delete(
+  "/cache",
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+
+      await db.execute(sql`
+        DELETE FROM brand_pdf_cache WHERE user_id = ${userId}
+      `);
+
+      console.log(`🗑️ Cleared PDF cache for user ${userId}`);
+      res.json({ success: true, message: "PDF cache cleared" });
+    } catch (error: unknown) {
+      console.error("Error clearing PDF cache:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  }
+);
 
 export default router;
