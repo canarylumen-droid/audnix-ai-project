@@ -1,4 +1,5 @@
 import { Express } from "express";
+import http from "http";
 import userAuthRouter from "./user-auth.js";
 import adminAuthRouter from "./admin-auth.js";
 import adminPdfRoutes from "./admin-pdf-routes.js";
@@ -8,6 +9,7 @@ import aiRoutes from "./ai-routes.js";
 import aiSalesSuggestion from "./ai-sales-suggestion.js";
 import authClean from "./auth-clean.js";
 import authUsernameOnboarding from "./auth-username-onboarding.js";
+import billingRoutes from "./billing-routes.js";
 import bulkActionsRoutes from "./bulk-actions-routes.js";
 import calendarRoutes from "./calendar-routes.js";
 import commentAutomationRoutes from "./comment-automation-routes.js";
@@ -28,7 +30,7 @@ import voiceRoutes from "./voice-routes.js";
 import webhookRouter from "./webhook.js";
 import workerRoutes from "./worker.js";
 
-export async function registerRoutes(app: Express) {
+export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
   app.use("/api/user/auth", userAuthRouter);
   app.use("/api/admin/auth", adminAuthRouter);
@@ -39,6 +41,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/ai/sales-suggestion", aiSalesSuggestion);
   app.use("/api/auth/clean", authClean);
   app.use("/api/auth/username", authUsernameOnboarding);
+  app.use("/api/billing", billingRoutes);
   app.use("/api/bulk", bulkActionsRoutes);
   app.use("/api/calendar", calendarRoutes);
   app.use("/api/comments", commentAutomationRoutes);
@@ -59,5 +62,7 @@ export async function registerRoutes(app: Express) {
   app.use("/webhook", webhookRouter);
   app.use("/api/worker", workerRoutes);
 
-  return app;
+  // Create HTTP server
+  const server = http.createServer(app);
+  return server;
 }

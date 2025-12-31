@@ -7,7 +7,7 @@ if (!process.env.NODE_ENV) {
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "./routes.js";
+import { registerRoutes } from "./routes/index.js";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";

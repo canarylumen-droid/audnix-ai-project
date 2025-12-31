@@ -221,6 +221,110 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 });
 
 /**
+ * Import leads from CSV file
+ * POST /api/ai/import-csv
+ */
+router.post("/import-csv", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leads: leadsData, channel = 'email' } = req.body as { 
+      leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
+      channel?: 'email' | 'whatsapp' | 'instagram';
+    };
+
+    if (!Array.isArray(leadsData) || leadsData.length === 0) {
+      res.status(400).json({ error: "No leads data provided" });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const currentLeadCount = existingLeads.length;
+
+    const planLimits: Record<string, number> = {
+      'free': 500,
+      'trial': 500,
+      'starter': 2500,
+      'pro': 7000,
+      'enterprise': 20000
+    };
+    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
+
+    if (currentLeadCount >= maxLeads) {
+      res.status(403).json({ 
+        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
+        isPremiumFeature: true
+      });
+      return;
+    }
+
+    const results = {
+      leadsImported: 0,
+      errors: [] as string[]
+    };
+
+    const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
+
+    for (let i = 0; i < leadsToImport; i++) {
+      const leadData = leadsData[i];
+      
+      try {
+        const identifier = leadData.email || leadData.phone;
+        if (!identifier) {
+          results.errors.push(`Row ${i + 1}: Missing email or phone`);
+          continue;
+        }
+
+        const existingLead = existingLeads.find(l => 
+          (leadData.email && l.email === leadData.email) ||
+          (leadData.phone && l.phone === leadData.phone)
+        );
+
+        if (existingLead) {
+          results.errors.push(`Row ${i + 1}: Lead already exists`);
+          continue;
+        }
+
+        await storage.createLead({
+          userId,
+          name: leadData.name || identifier.split('@')[0] || 'Unknown',
+          email: leadData.email || null,
+          phone: leadData.phone || null,
+          channel: channel as 'email' | 'whatsapp' | 'instagram',
+          status: 'new',
+          metadata: {
+            imported_from_csv: true,
+            company: leadData.company,
+            import_date: new Date().toISOString()
+          }
+        });
+
+        results.leadsImported++;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Row ${i + 1}: ${errorMessage}`);
+      }
+    }
+
+    if (leadsData.length > leadsToImport) {
+      results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
+    }
+
+    res.json({
+      success: results.leadsImported > 0,
+      leadsImported: results.leadsImported,
+      errors: results.errors,
+      message: `Imported ${results.leadsImported} leads successfully`
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
+    console.error("CSV Import error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
  * Create calendar booking link for lead
  * POST /api/ai/calendar/:leadId
  */
