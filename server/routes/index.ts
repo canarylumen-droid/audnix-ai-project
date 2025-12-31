@@ -39,6 +39,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/admin", adminRoutes);
   app.use("/api/ai", aiRoutes);
   app.use("/api/ai/sales-suggestion", aiSalesSuggestion);
+  app.use("/api/auth", authClean);
   app.use("/api/auth/clean", authClean);
   app.use("/api/auth/username", authUsernameOnboarding);
   app.use("/api/billing", billingRoutes);
@@ -47,6 +48,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/comments", commentAutomationRoutes);
   app.use("/api/email/custom", customEmailRoutes);
   app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api", dashboardRoutes);
   app.use("/api/email/otp", emailOtpRoutes);
   app.use("/api/email/stats", emailStatsRoutes);
   app.use("/api/leads/intelligence", leadIntelligence);

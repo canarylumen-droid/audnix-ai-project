@@ -514,6 +514,51 @@ router.post('/reset-account', async (req: Request, res: Response): Promise<void>
 });
 
 /**
+ * GET /api/user/auth/me
+ * Get current authenticated user
+ */
+router.get('/me', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const onboardingProfile = await storage.getOnboardingProfile(userId);
+    const metadata = user.metadata as Record<string, unknown> | null;
+    const hasCompletedOnboarding = onboardingProfile?.completed || (metadata?.onboardingCompleted as boolean) || false;
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      name: user.name,
+      role: user.role || 'member',
+      plan: user.plan,
+      subscriptionTier: user.subscriptionTier,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
+      createdAt: user.createdAt,
+      metadata: {
+        ...(metadata || {}),
+        onboardingCompleted: hasCompletedOnboarding,
+      },
+    });
+  } catch (error: unknown) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
  * POST /api/user/auth/logout
  * Logout user and destroy session
  */

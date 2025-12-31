@@ -118,6 +118,49 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
 });
 
 /**
+ * GET /api/user
+ * Get current user (simple alias)
+ */
+router.get('/user', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const onboardingProfile = await storage.getOnboardingProfile(userId);
+    const metadata = user.metadata as Record<string, unknown> | null;
+    const voiceNotesEnabled = metadata?.voiceNotesEnabled !== false;
+    const hasCompletedOnboarding = onboardingProfile?.completed || (metadata?.onboardingCompleted as boolean) || false;
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      name: user.name,
+      role: user.role || 'member',
+      plan: user.plan,
+      businessName: user.businessName,
+      trialExpiresAt: user.trialExpiresAt,
+      voiceNotesEnabled,
+      metadata: {
+        ...(metadata || {}),
+        onboardingCompleted: hasCompletedOnboarding,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+/**
  * GET /api/user/profile
  * Get current user profile (alias for /api/auth/me)
  */
