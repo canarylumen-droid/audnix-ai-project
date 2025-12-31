@@ -447,6 +447,7 @@ export const automationRules = pgTable("automation_rules", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  ruleType: text("rule_type", { enum: ["follow_up", "objection_handler", "meeting_booking", "re_engagement"] }).notNull().default("follow_up"),
   channel: text("channel", { enum: ["instagram", "email", "all"] }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
   minIntentScore: integer("min_intent_score").notNull().default(50),

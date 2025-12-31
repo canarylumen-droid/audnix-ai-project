@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { db } from '../db.js';
-import { automationRules, contentLibrary } from '../../shared/schema.js';
+import { automationRules, contentLibrary, aiActionLogs } from '../../shared/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
 
 const router = Router();
@@ -22,7 +22,20 @@ router.get('/rules', requireAuth, async (req: Request, res: Response): Promise<v
       .where(eq(automationRules.userId, userId))
       .orderBy(desc(automationRules.createdAt));
     
-    res.json({ rules });
+    const formattedRules = rules.map(r => ({
+      id: r.id,
+      name: r.name,
+      ruleType: r.ruleType || 'follow_up',
+      channel: r.channel,
+      isActive: r.isActive,
+      minIntentScore: r.minIntentScore,
+      minConfidence: Math.round((r.minConfidence || 0.6) * 100),
+      cooldownMinutes: r.cooldownMinutes,
+      allowedActions: r.allowedActions,
+      createdAt: r.createdAt,
+    }));
+    
+    res.json(formattedRules);
   } catch (error: any) {
     console.error('Error fetching automation rules:', error.message);
     res.status(500).json({ error: 'Failed to fetch rules' });
@@ -33,7 +46,8 @@ router.post('/rules', requireAuth, async (req: Request, res: Response): Promise<
   try {
     const userId = getCurrentUserId(req)!;
     const { 
-      name, 
+      name,
+      ruleType,
       channel, 
       minIntentScore, 
       maxIntentScore, 
@@ -50,15 +64,20 @@ router.post('/rules', requireAuth, async (req: Request, res: Response): Promise<
       return;
     }
     
+    const confidenceValue = minConfidence && minConfidence > 1 
+      ? minConfidence / 100 
+      : minConfidence ?? 0.6;
+    
     const [rule] = await db
       .insert(automationRules)
       .values({
         userId,
         name,
+        ruleType: ruleType || 'follow_up',
         channel,
         minIntentScore: minIntentScore ?? 50,
         maxIntentScore: maxIntentScore ?? 100,
-        minConfidence: minConfidence ?? 0.6,
+        minConfidence: confidenceValue,
         allowedActions: allowedActions ?? ['reply'],
         cooldownMinutes: cooldownMinutes ?? 60,
         maxActionsPerDay: maxActionsPerDay ?? 10,
@@ -67,7 +86,18 @@ router.post('/rules', requireAuth, async (req: Request, res: Response): Promise<
       })
       .returning();
     
-    res.json({ rule });
+    res.json({
+      id: rule.id,
+      name: rule.name,
+      ruleType: rule.ruleType,
+      channel: rule.channel,
+      isActive: rule.isActive,
+      minIntentScore: rule.minIntentScore,
+      minConfidence: Math.round((rule.minConfidence || 0.6) * 100),
+      cooldownMinutes: rule.cooldownMinutes,
+      allowedActions: rule.allowedActions,
+      createdAt: rule.createdAt,
+    });
   } catch (error: any) {
     console.error('Error creating automation rule:', error.message);
     res.status(500).json({ error: 'Failed to create rule' });
@@ -129,12 +159,23 @@ router.get('/content', requireAuth, async (req: Request, res: Response): Promise
     
     const content = await query;
     
-    // Filter by type if specified
     const filtered = type 
       ? content.filter(c => c.type === type)
       : content;
     
-    res.json({ content: filtered });
+    const formattedContent = filtered.map(c => ({
+      id: c.id,
+      contentType: c.type,
+      name: c.name,
+      content: c.content,
+      intentTags: c.intentTags,
+      channel: c.channelRestriction || 'all',
+      isActive: c.isActive,
+      usageCount: c.usageCount,
+      createdAt: c.createdAt,
+    }));
+    
+    res.json(formattedContent);
   } catch (error: any) {
     console.error('Error fetching content library:', error.message);
     res.status(500).json({ error: 'Failed to fetch content' });
@@ -145,9 +186,11 @@ router.post('/content', requireAuth, async (req: Request, res: Response): Promis
   try {
     const userId = getCurrentUserId(req)!;
     const { 
+      contentType,
       type, 
       name, 
       content,
+      channel,
       intentTags,
       objectionTags,
       channelRestriction,
@@ -155,7 +198,8 @@ router.post('/content', requireAuth, async (req: Request, res: Response): Promis
       linkedCtaLink
     } = req.body;
     
-    if (!type || !name || !content) {
+    const actualType = contentType || type;
+    if (!actualType || !name || !content) {
       res.status(400).json({ error: 'Type, name, and content required' });
       return;
     }
@@ -164,18 +208,28 @@ router.post('/content', requireAuth, async (req: Request, res: Response): Promis
       .insert(contentLibrary)
       .values({
         userId,
-        type,
+        type: actualType,
         name,
         content,
         intentTags: intentTags ?? [],
         objectionTags: objectionTags ?? [],
-        channelRestriction: channelRestriction ?? 'all',
+        channelRestriction: channel || channelRestriction || 'all',
         linkedVideoId,
         linkedCtaLink,
       })
       .returning();
     
-    res.json({ item });
+    res.json({
+      id: item.id,
+      contentType: item.type,
+      name: item.name,
+      content: item.content,
+      intentTags: item.intentTags,
+      channel: item.channelRestriction,
+      isActive: item.isActive,
+      usageCount: item.usageCount,
+      createdAt: item.createdAt,
+    });
   } catch (error: any) {
     console.error('Error creating content:', error.message);
     res.status(500).json({ error: 'Failed to create content' });
@@ -219,6 +273,39 @@ router.delete('/content/:id', requireAuth, async (req: Request, res: Response): 
   } catch (error: any) {
     console.error('Error deleting content:', error.message);
     res.status(500).json({ error: 'Failed to delete content' });
+  }
+});
+
+// ========== AI DECISIONS ==========
+
+router.get('/decisions', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const limit = parseInt(req.query.limit as string) || 50;
+    
+    const decisions = await db
+      .select()
+      .from(aiActionLogs)
+      .where(eq(aiActionLogs.userId, userId))
+      .orderBy(desc(aiActionLogs.createdAt))
+      .limit(limit);
+    
+    const formattedDecisions = decisions.map(d => ({
+      id: d.id,
+      actionType: d.actionType,
+      decision: d.decision,
+      intentScore: d.intentScore,
+      timingScore: d.timingScore,
+      confidence: d.confidence,
+      reasoning: d.reasoning,
+      leadId: d.leadId,
+      createdAt: d.createdAt,
+    }));
+    
+    res.json(formattedDecisions);
+  } catch (error: any) {
+    console.error('Error fetching AI decisions:', error.message);
+    res.status(500).json({ error: 'Failed to fetch decisions' });
   }
 });
 

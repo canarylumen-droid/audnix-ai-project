@@ -183,6 +183,165 @@ export async function evaluateVideoDeliveryDecision(
   };
 }
 
+export async function evaluateDMDecision(
+  context: DecisionContext
+): Promise<DecisionResult> {
+  const { intentScore, timingScore, confidence } = context;
+  
+  if (intentScore >= 60 && timingScore >= 50) {
+    return {
+      decision: 'act',
+      reasoning: `Intent (${intentScore}%) and timing (${timingScore}%) suitable for DM outreach`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: true,
+    };
+  }
+  
+  if (intentScore >= 40 && timingScore >= 70) {
+    return {
+      decision: 'act',
+      reasoning: `Good timing (${timingScore}%) with moderate intent (${intentScore}%) - opportune moment for DM`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: true,
+    };
+  }
+  
+  if (intentScore < 30) {
+    return {
+      decision: 'skip',
+      reasoning: `Intent too low (${intentScore}%). DM may feel intrusive.`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: false,
+    };
+  }
+  
+  if (timingScore < 30) {
+    return {
+      decision: 'wait',
+      reasoning: `Poor timing (${timingScore}%). Wait for lead to be more active.`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: false,
+    };
+  }
+  
+  return {
+    decision: 'wait',
+    reasoning: `Intent (${intentScore}%) and timing (${timingScore}%) below thresholds. Continuing to monitor.`,
+    intentScore,
+    timingScore,
+    confidence,
+    shouldProceed: false,
+  };
+}
+
+export async function evaluateEmailDecision(
+  context: DecisionContext
+): Promise<DecisionResult> {
+  const { intentScore, timingScore, confidence } = context;
+  
+  if (intentScore >= 55 && timingScore >= 45) {
+    return {
+      decision: 'act',
+      reasoning: `Intent (${intentScore}%) and timing (${timingScore}%) suitable for email follow-up`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: true,
+    };
+  }
+  
+  if (intentScore >= 35 && timingScore >= 65) {
+    return {
+      decision: 'act',
+      reasoning: `Good timing (${timingScore}%) with moderate intent (${intentScore}%) - optimal for email`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: true,
+    };
+  }
+  
+  if (intentScore < 25) {
+    return {
+      decision: 'skip',
+      reasoning: `Intent too low (${intentScore}%). Email likely to be ignored.`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: false,
+    };
+  }
+  
+  return {
+    decision: 'wait',
+    reasoning: `Timing (${timingScore}%) not optimal. Waiting for better engagement signals.`,
+    intentScore,
+    timingScore,
+    confidence,
+    shouldProceed: false,
+  };
+}
+
+export async function evaluateFollowUpDecision(
+  context: DecisionContext
+): Promise<DecisionResult> {
+  const { intentScore, timingScore, confidence, lead } = context;
+  
+  const daysSinceLastContact = lead?.lastMessageAt
+    ? Math.floor((Date.now() - new Date(lead.lastMessageAt).getTime()) / (1000 * 60 * 60 * 24))
+    : 999;
+  
+  if (daysSinceLastContact < 1) {
+    return {
+      decision: 'wait',
+      reasoning: `Last contact less than 24h ago. Following up too soon may seem pushy.`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: false,
+    };
+  }
+  
+  if (intentScore >= 50 && daysSinceLastContact >= 2 && daysSinceLastContact <= 7) {
+    return {
+      decision: 'act',
+      reasoning: `Good intent (${intentScore}%) and ${daysSinceLastContact} days since last contact - optimal for follow-up`,
+      intentScore,
+      timingScore,
+      confidence,
+      shouldProceed: true,
+    };
+  }
+  
+  if (daysSinceLastContact > 14) {
+    return {
+      decision: 'act',
+      reasoning: `${daysSinceLastContact} days since last contact - re-engagement follow-up recommended`,
+      intentScore,
+      timingScore,
+      confidence: confidence * 0.8,
+      shouldProceed: true,
+    };
+  }
+  
+  return {
+    decision: 'wait',
+    reasoning: `Waiting for better timing. Last contact: ${daysSinceLastContact} days ago.`,
+    intentScore,
+    timingScore,
+    confidence,
+    shouldProceed: false,
+  };
+}
+
 export function calculateTimingScore(lead: Lead | undefined): number {
   if (!lead) return 50;
   
@@ -242,6 +401,15 @@ export async function evaluateAndLogDecision(
       break;
     case 'video_sent':
       result = await evaluateVideoDeliveryDecision(context);
+      break;
+    case 'dm_sent':
+      result = await evaluateDMDecision(context);
+      break;
+    case 'follow_up':
+      result = await evaluateFollowUpDecision(context);
+      break;
+    case 'objection_handled':
+      result = await evaluateEmailDecision(context);
       break;
     default:
       result = {

@@ -42,6 +42,8 @@ import {
   Play,
   CheckCircle,
   Lock,
+  Brain,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,6 +169,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       label: "Automation & Deals",
       icon: Wrench,
       items: [
+        { label: "Automation Builder", icon: Brain, path: "/dashboard/automation" },
+        { label: "Content Library", icon: FileText, path: "/dashboard/content-library" },
         { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
         { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
@@ -176,8 +180,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       label: "Insights",
       icon: LineChart,
       items: [
+        { label: "AI Decisions", icon: Brain, path: "/dashboard/ai-decisions" },
         { label: "Analytics", icon: BarChart3, path: "/dashboard/insights" },
-        { label: "Reports", icon: LineChart, path: "/dashboard/insights" },
         { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
       ],
     },

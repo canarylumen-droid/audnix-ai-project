@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS automation_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  rule_type TEXT NOT NULL DEFAULT 'follow_up' CHECK (rule_type IN ('follow_up', 'objection_handler', 'meeting_booking', 're_engagement')),
   channel TEXT NOT NULL CHECK (channel IN ('instagram', 'email', 'all')),
   is_active BOOLEAN NOT NULL DEFAULT true,
   min_intent_score INTEGER NOT NULL DEFAULT 50,

@@ -248,4 +248,88 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
   }
 });
 
+/**
+ * Test SMTP connection without saving
+ */
+router.post('/test', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { smtpHost, smtpPort, email, password } = req.body as ConnectRequestBody;
+
+    if (!smtpHost || !email || !password) {
+      res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
+      return;
+    }
+
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: parseInt(String(smtpPort)) || 587,
+      secure: parseInt(String(smtpPort)) === 465,
+      auth: {
+        user: email,
+        pass: password,
+      },
+      connectionTimeout: 10000,
+    });
+
+    await transporter.verify();
+
+    res.json({
+      success: true,
+      message: 'SMTP connection successful'
+    });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Connection failed';
+    console.error('[Email Test] Connection failed:', error);
+    res.status(400).json({ 
+      error: 'SMTP connection failed', 
+      details: errorMsg 
+    });
+  }
+});
+
+/**
+ * Send a test email through connected SMTP
+ */
+router.post('/send-test', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { recipientEmail, subject, content } = req.body;
+
+    if (!recipientEmail) {
+      res.status(400).json({ error: 'Recipient email is required' });
+      return;
+    }
+
+    const integration = await storage.getIntegration(userId, 'custom_email');
+    
+    if (!integration?.connected) {
+      res.status(400).json({ error: 'Email not connected. Please connect your email first.' });
+      return;
+    }
+
+    const { sendEmail } = await import('../lib/channels/email.js');
+    
+    await sendEmail(
+      userId,
+      recipientEmail,
+      content || 'This is a test email from Audnix AI to verify your email connection.',
+      subject || 'Audnix AI - Test Email',
+      { isHtml: false }
+    );
+
+    res.json({
+      success: true,
+      message: `Test email sent to ${recipientEmail}`
+    });
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Send failed';
+    console.error('[Email Send Test] Failed:', error);
+    res.status(500).json({ 
+      error: 'Failed to send test email', 
+      details: errorMsg 
+    });
+  }
+});
+
 export default router;
