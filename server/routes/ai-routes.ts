@@ -256,9 +256,9 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(403).json({ 
-        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
-        isPremiumFeature: true
+      res.status(400).json({ 
+        error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
+        limitReached: true
       });
       return;
     }
@@ -800,9 +800,9 @@ router.post("/import-csv-file", requireAuth, upload.single("file"), async (req: 
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(403).json({ 
-        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
-        isPremiumFeature: true
+      res.status(400).json({ 
+        error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
+        limitReached: true
       });
       return;
     }
@@ -917,9 +917,9 @@ router.post("/import-pdf", requireAuth, upload.single("file"), async (req: Reque
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(403).json({ 
-        error: `Lead limit reached (${maxLeads} leads). Upgrade to import more.`,
-        isPremiumFeature: true
+      res.status(400).json({ 
+        error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
+        limitReached: true
       });
       return;
     }

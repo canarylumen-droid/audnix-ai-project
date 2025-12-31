@@ -336,13 +336,14 @@ export function useActivationChecklist() {
         return;
       }
 
-      const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
-      if (!checklistDismissed) {
-        const timer = setTimeout(() => {
-          setShowChecklist(true);
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
+      // Don't auto-show checklist - user must click to open
+      // const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
+      // if (!checklistDismissed) {
+      //   const timer = setTimeout(() => {
+      //     setShowChecklist(true);
+      //   }, 2000);
+      //   return () => clearTimeout(timer);
+      // }
     } else {
       const state = getActivationState();
       setActivationStateLocal(state);

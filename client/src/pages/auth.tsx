@@ -258,18 +258,10 @@ export default function AuthPage() {
 
         setLoading(false);
 
-        // Restore to the correct step
-        if (step === 3) {
-          // Username step
-          setIsLogin(false);
-          setSignupStep(3);
-          setUsername(data.suggestedUsername || '');
-        } else if (step === 'onboarding') {
-          // Onboarding step - redirect to onboarding
-          setTimeout(() => {
-            window.location.href = '/onboarding';
-          }, 500);
-        }
+        // Skip onboarding - go straight to dashboard
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 500);
         return;
       }
 
@@ -347,17 +339,14 @@ export default function AuthPage() {
         if (!response.ok) {
           console.error('❌ OTP Request Failed:', data);
 
-          // Special handling for incomplete account - auto-switch to login
-          if (data.incompleteSetup && data.useLogin) {
+          // Account exists - tell user to login instead
+          if (data.incompleteSetup || data.error?.includes('already registered')) {
             toast({
-              title: "Account Found! 🎉",
-              description: "Logging you in to continue your setup...",
+              title: "Account Exists",
+              description: "This email is already registered. Please login instead.",
             });
-            
-            // Auto-attempt login to restore state
-            setTimeout(async () => {
-              await handleLogin();
-            }, 1000);
+            setIsLogin(true);
+            setLoading(false);
             return false;
           }
 

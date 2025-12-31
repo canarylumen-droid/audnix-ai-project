@@ -72,14 +72,29 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       provider: 'custom'
     };
 
-    const encryptedMeta = await encrypt(JSON.stringify(credentials));
+    let encryptedMeta: string;
+    try {
+      encryptedMeta = await encrypt(JSON.stringify(credentials));
+    } catch (encryptError: unknown) {
+      const msg = encryptError instanceof Error ? encryptError.message : 'Encryption failed';
+      console.error(`[Email Connect] Encryption error:`, encryptError);
+      res.status(500).json({ error: 'Failed to securely store credentials', details: msg });
+      return;
+    }
 
-    await storage.createIntegration({
-      userId,
-      provider: 'custom_email',
-      encryptedMeta,
-      connected: true,
-    });
+    try {
+      await storage.createIntegration({
+        userId,
+        provider: 'custom_email',
+        encryptedMeta,
+        connected: true,
+      });
+    } catch (dbError: unknown) {
+      const msg = dbError instanceof Error ? dbError.message : 'Database error';
+      console.error(`[Email Connect] Storage error:`, dbError);
+      res.status(500).json({ error: 'Failed to save email configuration', details: msg });
+      return;
+    }
 
     console.log(`[Email Connect] Email account saved for user ${userId}`);
 

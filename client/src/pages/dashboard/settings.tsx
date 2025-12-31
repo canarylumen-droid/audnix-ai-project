@@ -142,8 +142,12 @@ export default function SettingsPage() {
       
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    onSuccess: (data) => {
+      // Immediately update the cache with new avatar
+      queryClient.setQueryData(["/api/user/profile"], (old: any) => ({
+        ...old,
+        avatar: data.avatar
+      }));
       toast({
         title: "Success",
         description: "Avatar updated successfully!",
