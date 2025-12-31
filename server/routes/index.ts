@@ -29,6 +29,7 @@ import videoAutomationRoutes from "./video-automation-routes.js";
 import voiceRoutes from "./voice-routes.js";
 import webhookRouter from "./webhook.js";
 import workerRoutes from "./worker.js";
+import messagesRoutes from "./messages-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -54,6 +55,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/email/stats", emailStatsRoutes);
   app.use("/api/leads/intelligence", leadIntelligence);
   app.use("/api/leads", aiRoutes);
+  app.use("/api/messages", messagesRoutes);
   app.use("/api/brand-pdf", adminPdfRoutes);
   app.use("/api/admin", adminPdfRoutes);
   app.use("/api/pdf", adminPdfRoutes); // Alias for /api/pdf/upload calls

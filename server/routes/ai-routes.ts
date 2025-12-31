@@ -30,6 +30,61 @@ type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead
 const router = Router();
 
 /**
+ * GET /api/leads
+ * Get all leads for the authenticated user with pagination and filtering
+ */
+router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { channel, status, limit = "50", offset = "0", search } = req.query;
+
+    const leads = await storage.getLeads({
+      userId,
+      channel: channel as string | undefined,
+      status: status as string | undefined,
+      search: search as string | undefined,
+      limit: Math.min(parseInt(limit as string) || 50, 500),
+    });
+
+    // Apply offset for pagination
+    const offsetNum = parseInt(offset as string) || 0;
+    const paginatedLeads = leads.slice(offsetNum, offsetNum + (parseInt(limit as string) || 50));
+
+    res.json({
+      leads: paginatedLeads,
+      total: leads.length,
+      hasMore: offsetNum + paginatedLeads.length < leads.length,
+    });
+  } catch (error: unknown) {
+    console.error("Get leads error:", error);
+    res.status(500).json({ error: "Failed to fetch leads" });
+  }
+});
+
+/**
+ * GET /api/leads/:leadId
+ * Get a single lead by ID
+ */
+router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leadId } = req.params;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    res.json({ lead });
+  } catch (error: unknown) {
+    console.error("Get lead error:", error);
+    res.status(500).json({ error: "Failed to fetch lead" });
+  }
+});
+
+
+/**
  * Send AI-generated reply to a lead
  * POST /api/ai/reply/:leadId
  */

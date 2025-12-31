@@ -166,8 +166,64 @@ export default function InboxPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="p-4 md:p-6 lg:p-8 space-y-6">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+        </div>
+        
+        {/* Filter bar skeleton */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-40" />
+              <Skeleton className="h-10 w-40" />
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-10 w-10" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leads table skeleton */}
+        <Card>
+          <CardContent className="p-0">
+            <table className="w-full">
+              <thead className="border-b">
+                <tr>
+                  <th className="p-4"><Skeleton className="h-4 w-4" /></th>
+                  <th className="p-4"><Skeleton className="h-4 w-16" /></th>
+                  <th className="p-4"><Skeleton className="h-4 w-20" /></th>
+                  <th className="p-4"><Skeleton className="h-4 w-16" /></th>
+                  <th className="p-4"><Skeleton className="h-4 w-12" /></th>
+                  <th className="p-4"><Skeleton className="h-4 w-24" /></th>
+                  <th className="p-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(8)].map((_, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="p-4"><Skeleton className="h-4 w-4" /></td>
+                    <td className="p-4">
+                      <Skeleton className="h-5 w-32 mb-1" />
+                      <Skeleton className="h-4 w-40" />
+                    </td>
+                    <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                    <td className="p-4"><Skeleton className="h-6 w-16 rounded-full" /></td>
+                    <td className="p-4"><Skeleton className="h-4 w-10" /></td>
+                    <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                    <td className="p-4"><Skeleton className="h-8 w-8 rounded" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
       </div>
     );
   }
