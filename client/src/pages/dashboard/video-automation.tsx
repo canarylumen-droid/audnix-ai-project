@@ -390,10 +390,7 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
 
   const updateLinkMutation = useMutation({
     mutationFn: async (newLink: string) => {
-      return apiRequest(`/api/video-automation/monitors/${monitor.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ productLink: newLink })
-      });
+      return apiRequest("PATCH", `/api/video-automation/monitors/${monitor.id}`, { productLink: newLink });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
@@ -604,10 +601,7 @@ export default function VideoAutomationPage() {
 
   const createMonitor = useMutation({
     mutationFn: async (data: CreateMonitorPayload) => {
-      return apiRequest("/api/video-monitors", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/video-monitors", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
@@ -630,10 +624,7 @@ export default function VideoAutomationPage() {
 
   const toggleMonitor = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest(`/api/video-monitors/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ isActive }),
-      });
+      return apiRequest("PATCH", `/api/video-monitors/${id}`, { isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
@@ -642,9 +633,7 @@ export default function VideoAutomationPage() {
 
   const deleteMonitor = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/video-monitors/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/video-monitors/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-monitors"] });
