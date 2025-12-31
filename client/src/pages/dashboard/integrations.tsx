@@ -559,7 +559,7 @@ export default function IntegrationsPage() {
                   <Sparkles className={`h-5 w-5 flex-shrink-0 mt-0.5 ${isAtLimit ? 'text-amber-500' : isNearLimit ? 'text-blue-500' : 'text-emerald-500'}`} />
                   <div className="flex-1">
                     <p className={`font-semibold ${isAtLimit ? 'text-amber-700 dark:text-amber-300' : isNearLimit ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                      {isAtLimit ? '🎉 Free Trial Limit Reached!' : isNearLimit ? '💫 Almost There!' : '🚀 Free Trial Active'}
+                      {isAtLimit ? 'Free Trial Limit Reached' : isNearLimit ? 'Almost at limit' : 'Free Trial'}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       {isAtLimit 
@@ -645,7 +645,7 @@ export default function IntegrationsPage() {
                                 </CardTitle>
                               </div>
                               <CardDescription className="text-sm">
-                                DM automation with Meta API integration
+                                AI monitors and responds to DMs
                               </CardDescription>
                             </div>
                           </div>
@@ -660,14 +660,11 @@ export default function IntegrationsPage() {
                       <CardContent className="space-y-3">
                         {isConnected ? (
                           <>
-                            <div className="text-sm space-y-2">
+                            <div className="text-sm">
                               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                 <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">Connected • DM automation active</span>
+                                <span className="font-medium">DM automation active</span>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                Instagram DMs are being monitored and automated
-                              </p>
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -716,7 +713,7 @@ export default function IntegrationsPage() {
                               Connect Instagram
                             </Button>
                             <p className="text-xs text-muted-foreground text-center">
-                              AI monitors and responds to DMs automatically
+                              Connect with Meta OAuth
                             </p>
                           </>
                         )}
@@ -741,7 +738,7 @@ export default function IntegrationsPage() {
                                 Business Email
                               </CardTitle>
                               <CardDescription className="text-sm">
-                                Connect your business email for automated follow-ups
+                                Automated follow-ups via SMTP
                               </CardDescription>
                             </div>
                           </div>
@@ -756,14 +753,11 @@ export default function IntegrationsPage() {
                       <CardContent className="space-y-3">
                         {isConnected ? (
                           <>
-                            <div className="text-sm space-y-2">
+                            <div className="text-sm">
                               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                                 <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">Connected • Importing leads...</span>
+                                <span className="font-medium">Email sync active</span>
                               </div>
-                              <p className="text-xs text-muted-foreground">
-                                Email conversations are being securely synced
-                              </p>
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -828,7 +822,7 @@ export default function IntegrationsPage() {
               <div>
                 <CardTitle>Business Email</CardTitle>
                 <CardDescription>
-                  Import and automate email responses from your custom domain
+                  Connect via SMTP/IMAP
                 </CardDescription>
               </div>
               {isCustomEmailConnected && (
@@ -849,7 +843,7 @@ export default function IntegrationsPage() {
                   </div>
                   <p className="text-sm font-mono text-muted-foreground">{connectedCustomEmail}</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Automated follow-ups active. Email campaigns sending from this address.
+                    Sending automated follow-ups
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -991,7 +985,7 @@ export default function IntegrationsPage() {
             )}
           <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
             <CardTitle>AI Voice Messaging</CardTitle>
-            <CardDescription>Clone your voice for personalized replies</CardDescription>
+            <CardDescription>Clone your voice for Instagram DMs</CardDescription>
           </CardHeader>
           <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
             {/* Voice Minutes Widget - Real-time data */}

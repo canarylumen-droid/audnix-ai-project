@@ -153,7 +153,7 @@ function IntentDetectionDemo() {
   const analyzeComment = async (comment: string) => {
     setAnalyzing(true);
     try {
-      const response = await apiRequest("POST", "/api/video-automation/test-intent", { comment, videoContext: "Product video" });
+      const response = await apiRequest("POST", "/api/video/test-intent", { comment, videoContext: "Product video" });
       const data = await response.json();
       setResult(data);
     } catch (error) {
@@ -171,9 +171,9 @@ function IntentDetectionDemo() {
             <Brain className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-xl">🧠 AI Intent Detection Engine</CardTitle>
+            <CardTitle className="text-lg">Intent Detection</CardTitle>
             <CardDescription>
-              No keywords needed. Understands context, emotion, and buying signals in any language.
+              Understands buying signals in any language
             </CardDescription>
           </div>
         </div>
@@ -181,9 +181,8 @@ function IntentDetectionDemo() {
       <CardContent className="space-y-6">
         {/* Demo Examples */}
         <div className="space-y-3">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-yellow-500" />
-            Try These Examples (Click to Test)
+          <h4 className="font-medium text-sm text-muted-foreground">
+            Test Examples
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {demoComments.map((demo, idx) => (
@@ -674,67 +673,36 @@ export default function VideoAutomationPage() {
       {/* Intent Detection Demo */}
       <IntentDetectionDemo />
 
-      {/* Sales Copy Benefits */}
-      <div className="grid md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-emerald-500/20">
-                <Brain className="h-5 w-5 text-emerald-400" />
-              </div>
-              <CardTitle className="text-base">No Keywords Needed</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Understands "This is cool!" and "😍" as buying signals. ManyChat needs exact trigger words like "link" or "interested"
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500/10 to-transparent border-orange-500/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-orange-500/20">
-                <DollarSign className="h-5 w-5 text-orange-400" />
-              </div>
-              <CardTitle className="text-base">Handles Price Objections</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Detects "too expensive" in any language and automatically reframes value in personalized DMs
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-blue-500/20">
-                <Users className="h-5 w-5 text-blue-400" />
-              </div>
-              <CardTitle className="text-base">Real Usernames</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Uses actual Instagram handles in DMs. References what THEY said. No robotic templates.
-            </p>
-          </CardContent>
-        </Card>
+      {/* Feature Pills */}
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="secondary" className="py-1.5 px-3">
+          <Brain className="h-3.5 w-3.5 mr-1.5" />
+          No keywords needed
+        </Badge>
+        <Badge variant="secondary" className="py-1.5 px-3">
+          <DollarSign className="h-3.5 w-3.5 mr-1.5" />
+          Handles objections
+        </Badge>
+        <Badge variant="secondary" className="py-1.5 px-3">
+          <Users className="h-3.5 w-3.5 mr-1.5" />
+          Personalized DMs
+        </Badge>
+        <Badge variant="secondary" className="py-1.5 px-3">
+          <Globe className="h-3.5 w-3.5 mr-1.5" />
+          Any language
+        </Badge>
       </div>
 
       {/* Instagram Reels Gallery */}
       {instagramReels?.reels?.length > 0 && (
         <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Instagram className="h-5 w-5 text-primary" />
-              Your Recent Instagram Reels
+              Your Reels
             </CardTitle>
             <CardDescription>
-              Select a reel to monitor - AI will analyze caption and extract brand knowledge automatically
+              Select a reel to monitor
             </CardDescription>
           </CardHeader>
           <CardContent>
