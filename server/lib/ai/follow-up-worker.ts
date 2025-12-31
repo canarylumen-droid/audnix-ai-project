@@ -136,7 +136,6 @@ export class FollowUpWorker {
       await executeCommentFollowUps();
 
       if (!db) {
-        console.warn('Database not configured - skipping queue processing');
         return;
       }
 

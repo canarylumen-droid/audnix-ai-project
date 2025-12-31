@@ -509,7 +509,7 @@ export function startVideoCommentMonitoring(): void {
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (!errorMessage?.includes('does not exist')) {
+      if (!errorMessage?.includes('does not exist') && !errorMessage?.includes('Database connection is not available')) {
         console.error('Comment monitoring error:', errorMessage);
       }
     }
