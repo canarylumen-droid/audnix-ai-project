@@ -549,7 +549,7 @@ export default function Landing() {
 
           <div className="border-t border-white/10 pt-6 text-center">
             <p className="text-white/40 text-sm">
-              © {new Date().getFullYear()} Audnix AI. All rights reserved.
+              © 2026 Audnix AI. All rights reserved.
             </p>
           </div>
         </div>

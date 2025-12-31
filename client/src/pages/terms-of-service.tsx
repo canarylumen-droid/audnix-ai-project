@@ -45,7 +45,7 @@ export default function TermsOfService() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Terms of Service</h1>
             <p className="text-xl text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              Last updated: January 3, 2026
             </p>
           </motion.div>
 

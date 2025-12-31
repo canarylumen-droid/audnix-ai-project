@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
             <p className="text-xl text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              Last updated: January 3, 2026
             </p>
           </motion.div>
 

@@ -1,8 +1,8 @@
 # Audnix AI - Production-Ready AI Sales Automation Platform
 
-**Multi-Channel Lead Management** | **Real-Time AI Automation** | **500+ Concurrent Users** | **$11,850 Week 1 Revenue with Warm Leads**
+**Multi-Channel Lead Management** | **Real-Time AI Automation** | **500+ Concurrent Users**
 
-> Last Updated: **December 1, 2025** | **Status: ✅ Production Ready + Warm Lead Strategy Optimized**
+> Last Updated: **January 3, 2026** | **Status: Production Ready**
 
 ---
 
@@ -20,23 +20,6 @@ npm run dev
 
 ---
 
-## 🚀 Launch Strategy (Week 1 Revenue: $14,800 with Apify)
-
-### **Warm Leads = 697x ROI**
-- Get 5,000 warm leads (actively searching "lead automation") via Apify Gold plan
-- Cost: **$25 with Apify Business discount** (88% off) + your $8 credit = **~$17 out-of-pocket**
-- Week 1 warm revenue: **$11,850** (45-50% trial→paid conversion)
-- Combined with cold leads Week 1: **$14,800 in 14 days**
-
-**Apify Gold Setup:**
-1. Create free Apify account → Upgrade to Business plan (unlocks 88% discount)
-2. LinkedIn Scraper: Keywords "lead automation" + filter + enrich = $12.50 for 2.5K
-3. Google Maps Scraper: Search "marketing agencies" + filter + enrich = $12.50 for 2.5K
-4. Total cost: $25 (~$17 after credit)
-5. Send Day 1 warm email blast → Monitor conversions
-
----
-
 ## Features
 
 ### Authentication System
@@ -49,29 +32,29 @@ npm run dev
 **Auth Flow:** Email → Password → OTP sent → OTP verify → Username → Dashboard
 
 ### Multi-Channel AI Sales Engine
-- **Email**: ✅ 100% WORKING - SMTP/IMAP integration with bounce handling (primary channel)
-- **WhatsApp**: Cloud API with voice notes (secondary, doesn't work on serverless)
-- **Instagram**: DM automation with comment monitoring (coming soon)
+- **Email**: SMTP/IMAP integration with bounce handling (primary channel)
+- **WhatsApp**: Cloud API with voice notes
+- **Instagram**: DM automation with comment monitoring
 
-### AI Features (FREE For ALL Users)
-- ✅ **110+ objection handlers** (GPT-4 powered) - YOUR KILLER COMPETITIVE ADVANTAGE (competitors charge $200+)
-- ✅ **Intent analysis** - Buying signal detection
-- ✅ **Day 1-7 email sequences** - Automated follow-ups with personalization
-- ✅ **Re-engagement sequences** - Auto-follow-ups when ghosted (2-8 minute delays)
-- ✅ **Context-aware responses** - Adapted to lead profile
-- ✅ **Voice cloning** - Personal touch via ElevenLabs (paid feature only)
-- ✅ **PDF brand learning** - Instant analysis of your company style
+### AI Features
+- **220+ objection handlers** (GPT-4 powered) across 7 categories
+- **Intent analysis** - Buying signal detection
+- **Day 1-7 email sequences** - Automated follow-ups with personalization
+- **Re-engagement sequences** - Auto-follow-ups when ghosted (2-8 minute delays)
+- **Context-aware responses** - Adapted to lead profile
+- **Voice cloning** - Personal touch via ElevenLabs (paid feature only)
+- **PDF brand learning** - Instant analysis of your company style
 
-### Real-Time Analytics (FREE For ALL Users)
+### Real-Time Analytics
 - Live dashboard metrics (5-second refresh)
 - Conversion funnel tracking
 - Channel performance comparison
 - AI learning status monitoring
-- **Deep insights** - Real analytics, not vanity metrics (AI-generated insights from your activity)
+- Deep insights - Real analytics from your activity
 
 ### Admin Dashboard
 - User management with direct plan upgrades
-- Payment approval workflow (no Stripe API keys needed)
+- Payment approval workflow
 - Real-time platform analytics
 - Onboarding data tracking (roles, sources, business sizes)
 
@@ -110,7 +93,7 @@ npm run dev
 - **AI**: OpenAI GPT-4
 - **Voice**: ElevenLabs
 - **Payments**: Stripe (payment links only)
-- **Calendar**: Google Calendar API
+- **Calendar**: Calendly
 - **Real-time**: Supabase (optional)
 
 ---
@@ -140,8 +123,7 @@ OPENAI_API_KEY=sk-xxxxx
 ELEVENLABS_API_KEY=xxxxx
 
 # Calendar
-GOOGLE_CLIENT_ID=xxxxx
-GOOGLE_CLIENT_SECRET=xxxxx
+CALENDLY_API_KEY=xxxxx
 
 # Payments
 STRIPE_PAYMENT_LINK_STARTER=https://buy.stripe.com/xxxxx
@@ -177,6 +159,11 @@ VITE_ADMIN_SECRET_URL=/admin-secret-path
 - `POST /api/leads/import` - Bulk CSV import
 - `PUT /api/leads/:id` - Update lead
 
+### Objections
+- `GET /api/objections` - List objections with filters
+- `POST /api/objections` - Create custom objection
+- `POST /api/objections/:id/copy` - Track copy usage
+
 ### Admin
 - `GET /api/admin/metrics` - Platform stats
 - `GET /api/admin/users` - List users
@@ -189,28 +176,9 @@ VITE_ADMIN_SECRET_URL=/admin-secret-path
 1. **Follow-up Worker** - Automated lead follow-ups
 2. **Email Sync Worker** - 5-minute mailbox sync
 3. **Email Warmup Worker** - Gradual sending ramp
-4. **Video Comment Monitor** - Instagram/YouTube replies
+4. **Video Comment Monitor** - Instagram replies
 5. **Weekly Insights Worker** - AI analytics generation
 6. **OAuth Token Refresh** - Keep integrations alive
-
----
-
-## Revenue Projections
-
-### **Week 1-2 (Hybrid Strategy)**
-| Scenario | Cost | Revenue | Customers |
-|----------|------|---------|-----------|
-| Cold leads only (Week 1) | $0 | $2,950 | 46-47 |
-| Warm leads only (Week 2) | $25 | $11,850 | 73-102 |
-| **Combined (Week 1-2)** | **$25** | **$14,800** | **120-150** |
-
-### **Month 1 (Warm Lead Focus)**
-- Week 1 (cold): $2,950
-- Week 2 (warm): $11,850
-- Week 3 (momentum): $18,000
-- Week 4 (peak): $22,500
-- **Month 1 Total: $55,300**
-- **MRR by Month 1: $170-190**
 
 ---
 
@@ -220,15 +188,11 @@ VITE_ADMIN_SECRET_URL=/admin-secret-path
 1. Click "Publish" in Replit
 2. All secrets auto-transfer
 3. Choose Autoscale or Reserved VM
-4. Send cold leads Day 1 ($2,950 revenue)
-5. Start Apify scrape for warm leads (parallel)
-6. Send warm leads Day 8-14 ($11,850 revenue)
 
 ### Vercel
 1. Import repository
 2. Add all environment variables manually
 3. Deploy
-4. Follow same lead strategy above
 
 ---
 
@@ -250,3 +214,5 @@ For issues or questions, contact the development team.
 ---
 
 Built with precision for creators, coaches, agencies, and founders.
+
+© 2026 Audnix AI. All rights reserved.

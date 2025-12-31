@@ -12,7 +12,7 @@ interface AlreadyJoinedBannerProps {
   eta?: string;
 }
 
-export function AlreadyJoinedBanner({ featureName, eta = "Q4 2025" }: AlreadyJoinedBannerProps) {
+export function AlreadyJoinedBanner({ featureName, eta = "Q1 2026" }: AlreadyJoinedBannerProps) {
   // Patience animation - dots cycling
   const dotVariants = {
     animate: {
