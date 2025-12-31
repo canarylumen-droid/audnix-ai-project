@@ -153,11 +153,9 @@ function IntentDetectionDemo() {
   const analyzeComment = async (comment: string) => {
     setAnalyzing(true);
     try {
-      const response = await apiRequest("/api/video-automation/test-intent", {
-        method: "POST",
-        body: JSON.stringify({ comment, videoContext: "Product video" })
-      });
-      setResult(response);
+      const response = await apiRequest("POST", "/api/video-automation/test-intent", { comment, videoContext: "Product video" });
+      const data = await response.json();
+      setResult(data);
     } catch (error) {
       toast({ title: "Failed to analyze", variant: "destructive" });
     } finally {

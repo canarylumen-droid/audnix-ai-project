@@ -247,20 +247,83 @@ export default function InsightsPage() {
       </div>
 
       {!hasData ? (
-        <Card className="border-dashed" data-testid="card-empty-state">
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <BarChart className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">You don't have any activity yet</h3>
-            <p className="text-muted-foreground text-center mb-6 max-w-md">
-              Connect your Instagram or Email accounts to start receiving leads.
-              Once you have activity, AI-powered insights and analytics will appear here in real-time
-              to help you optimize your conversions.
-            </p>
-            <Button data-testid="button-connect-accounts" asChild>
-              <a href="/dashboard/integrations">Connect Accounts</a>
-            </Button>
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5" data-testid="card-empty-state">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="relative mb-6"
+              >
+                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
+                <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/30">
+                  <TrendingUp className="h-12 w-12 text-primary" />
+                </div>
+              </motion.div>
+              
+              <h3 className="text-2xl font-bold mb-3 text-center">Start Your First Automation</h3>
+              <p className="text-muted-foreground text-center mb-8 max-w-lg">
+                Real-time analytics and AI insights will appear here once your automations are running.
+                Connect your accounts to start seeing data flow in.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                <Button 
+                  className="flex-1 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700" 
+                  data-testid="button-connect-accounts" 
+                  asChild
+                >
+                  <a href="/dashboard/integrations">
+                    <Instagram className="h-4 w-4 mr-2" />
+                    Connect Instagram
+                  </a>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1 border-primary/30 hover:bg-primary/10" 
+                  asChild
+                >
+                  <a href="/dashboard/video-automation">
+                    <BarChart className="h-4 w-4 mr-2" />
+                    Video Automation
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { icon: TrendingUp, title: "Conversion Tracking", desc: "See which messages convert leads to deals" },
+              { icon: BarChart, title: "Channel Analytics", desc: "Compare Instagram vs Email performance" },
+              { icon: RefreshCw, title: "Real-time Updates", desc: "Data updates automatically every 10 seconds" },
+            ].map((feature, idx) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 * (idx + 1) }}
+              >
+                <Card className="bg-muted/30 border-white/5">
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <feature.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm">{feature.title}</h4>
+                      <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       ) : (
         <>
           {/* AI Insights - FREE for all users! Show preview for trial users */}
