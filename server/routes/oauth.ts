@@ -200,7 +200,7 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
   }
 });
 
-router.get('/oauth/instagram/callback', async (req: Request, res: Response): Promise<void> => {
+router.get('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error_reason } = req.query;
 
@@ -263,7 +263,7 @@ router.get('/oauth/instagram/callback', async (req: Request, res: Response): Pro
   }
 });
 
-router.post('/oauth/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
+router.post('/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest, true);
 
@@ -281,7 +281,7 @@ router.post('/oauth/instagram/disconnect', async (req: Request, res: Response): 
   }
 });
 
-router.get('/oauth/instagram/status', async (req: Request, res: Response): Promise<void> => {
+router.get('/instagram/status', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest);
 
@@ -331,7 +331,7 @@ router.get('/connect/gmail', async (req: Request, res: Response): Promise<void> 
   }
 });
 
-router.get('/oauth/gmail/callback', async (req: Request, res: Response): Promise<void> => {
+router.get('/gmail/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
@@ -385,7 +385,7 @@ router.get('/oauth/gmail/callback', async (req: Request, res: Response): Promise
   }
 });
 
-router.post('/oauth/gmail/disconnect', async (req: Request, res: Response): Promise<void> => {
+router.post('/gmail/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest, true);
 
@@ -414,7 +414,7 @@ router.post('/oauth/gmail/disconnect', async (req: Request, res: Response): Prom
   }
 });
 
-router.get('/oauth/gmail/status', async (req: Request, res: Response): Promise<void> => {
+router.get('/gmail/status', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest);
 
@@ -463,7 +463,7 @@ router.get('/connect/google-calendar', async (req: Request, res: Response): Prom
   }
 });
 
-router.get('/oauth/google-calendar/callback', async (req: Request, res: Response): Promise<void> => {
+router.get('/google-calendar/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 
@@ -509,7 +509,7 @@ router.get('/oauth/google-calendar/callback', async (req: Request, res: Response
   }
 });
 
-router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Response): Promise<void> => {
+router.post('/google-calendar/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest, true);
 
@@ -536,7 +536,7 @@ router.post('/oauth/google-calendar/disconnect', async (req: Request, res: Respo
   }
 });
 
-router.post('/oauth/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
+router.post('/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
   try {
     const authReq = req as AuthenticatedRequest;
     const body = req.body as CalendarEventBody;
@@ -613,7 +613,7 @@ router.post('/oauth/google-calendar/events', async (req: Request, res: Response)
   }
 });
 
-router.get('/oauth/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
+router.get('/google-calendar/events', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest);
 
@@ -705,7 +705,7 @@ router.get('/connect/calendly', async (req: Request, res: Response): Promise<voi
   }
 });
 
-router.get('/oauth/calendly/callback', async (req: Request, res: Response): Promise<void> => {
+router.get('/calendly/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error } = req.query;
 

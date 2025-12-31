@@ -638,4 +638,55 @@ router.post('/avatar', avatarUpload.single('avatar'), async (req: Request, res: 
   }
 });
 
+/**
+ * GET /api/user/notifications
+ * Get user notifications
+ */
+router.get('/notifications', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const notifications = await storage.getNotifications(userId);
+    res.json({ notifications });
+  } catch (error: unknown) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({ error: 'Failed to get notifications' });
+  }
+});
+
+/**
+ * POST /api/user/notifications/:id/read
+ * Mark notification as read (with ownership validation)
+ */
+router.post('/notifications/:id/read', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { id } = req.params;
+    
+    // Verify ownership before marking as read
+    const notifications = await storage.getNotifications(userId);
+    const notification = notifications.find(n => n.id === id);
+    
+    if (!notification) {
+      res.status(404).json({ error: 'Notification not found' });
+      return;
+    }
+    
+    await storage.markNotificationRead(id);
+    res.json({ success: true });
+  } catch (error: unknown) {
+    console.error('Mark notification read error:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
 export default router;
