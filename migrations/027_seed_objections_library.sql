@@ -6,7 +6,7 @@
 ALTER TABLE content_library ALTER COLUMN user_id DROP NOT NULL;
 
 -- TIMING OBJECTIONS (15 entries)
-INSERT INTO content_library (user_id, type, name, content, intent_tags, objection_tags, channel_restriction, metadata, is_active)
+INSERT INTO content_library (user_id, type, name, content, intent_tags, objection_tags, channel_restriction, metadata)
 VALUES
   (NULL, 'objection', 'Timing - Not Right Now', 'I totally understand timing is everything. Quick question - if timing were perfect, would this be something you''d move forward with? Let''s at least lock in your spot so you don''t lose the current pricing.', '["timing", "hesitation"]'::jsonb, '["not_now", "busy", "later"]'::jsonb, 'all', '{"category": "timing", "reframe": "Turn delay into urgency"}'::jsonb),
   (NULL, 'objection', 'Timing - Too Busy', 'That actually makes this the perfect time - this system runs 24/7 so you don''t have to. It''s designed for busy people who can''t afford to miss opportunities. Want me to show you how it works while you sleep?', '["timing", "busy"]'::jsonb, '["busy", "no_time", "swamped"]'::jsonb, 'all', '{"category": "timing", "reframe": "Busy = more need for automation"}'::jsonb),
