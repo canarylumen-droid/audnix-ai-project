@@ -9,7 +9,7 @@ packages = ["mailutils"]
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["node", "./dist/index.cjs"]
+run = ["npx", "tsx", "server/index.ts"]
 
 [env]
 PORT = "5000"
