@@ -363,25 +363,6 @@ async function runMigrations() {
 }
 
 (async () => {
-  // Run migrations first (with timeout to prevent hanging)
-  let migrationsSucceeded = false;
-  try {
-    const migrationPromise = runMigrations();
-    const timeoutPromise = new Promise<void>((_, reject) => 
-      setTimeout(() => reject(new Error('Migration timeout after 30 seconds')), 30000)
-    );
-    await Promise.race([migrationPromise, timeoutPromise]);
-    migrationsSucceeded = true;
-  } catch (error: any) {
-    if (error.message.includes('timeout')) {
-      console.error('❌ Migrations timed out. Server will still start but some features may not work.');
-      console.log('💡 Run migrations manually or check database connectivity');
-    } else {
-      console.log('⚠️  Migration step completed with warnings:', error.message);
-      migrationsSucceeded = true; // Non-timeout errors are handled gracefully in runMigrations
-    }
-  }
-
   // Register API routes first (creates the HTTP server)
   const server = await registerRoutes(app);
 
@@ -394,87 +375,14 @@ async function runMigrations() {
   });
 
   // Setup Vite (dev only) or static serving (production only)
-  // In production (Vercel), only serve pre-built static files to avoid loading Rollup/Vite
   if (process.env.NODE_ENV !== 'production') {
     const { setupVite } = await import('./vite.js');
     await setupVite(app, server);
     console.log('🔄 Vite dev server initialized');
   } else {
-    // Production: import serveStatic ONLY when needed to avoid loading vite.ts module
     const { serveStatic } = await import('./vite.js');
     serveStatic(app);
     console.log('📦 Serving pre-built static files (production mode)');
-  }
-
-  // Start background workers only if database AND Supabase are configured
-  const { db } = await import('./db.js');
-  const hasDatabase = process.env.DATABASE_URL && db;
-  const hasSupabase = isSupabaseAdminConfigured();
-
-  if (hasDatabase && hasSupabase && supabaseAdmin) {
-    console.log('🤖 Starting AI workers...');
-
-    // Register workers for health monitoring
-    workerHealthMonitor.registerWorker('follow-up-worker');
-    workerHealthMonitor.registerWorker('video-comment-monitor');
-    workerHealthMonitor.registerWorker('lead-learning');
-    workerHealthMonitor.registerWorker('oauth-token-refresh');
-    workerHealthMonitor.start();
-
-    followUpWorker.start();
-    startVideoCommentMonitoring();
-
-    // Start lead learning system
-    const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
-    startLeadLearning();
-
-    // Start OAuth token refresh worker (every 30 minutes)
-    const { GmailOAuth } = await import('./lib/oauth/gmail.js');
-    setInterval(() => {
-      GmailOAuth.refreshExpiredTokens()
-        .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
-        .catch((err) => {
-          console.error(err);
-          workerHealthMonitor.recordError('oauth-token-refresh', err.message);
-        });
-    }, 30 * 60 * 1000);
-
-    console.log('✅ AI workers running');
-    console.log('✅ Lead learning system active');
-    console.log('✅ OAuth token refresh worker started');
-    console.log('✅ Worker health monitoring active');
-
-    // Start email warmup worker
-    emailWarmupWorker.start();
-    console.log('🔥 Email warmup worker active');
-
-    // Start email sync worker (syncs user's connected mailboxes)
-    emailSyncWorker.start();
-    console.log('📬 Email sync worker active');
-  } else {
-    if (!hasDatabase) {
-      console.log('⏭️  Background workers disabled (no database configured)');
-      console.log('💡 Add DATABASE_URL to enable AI workers');
-    }
-  }
-
-  // Start payment auto-approval worker (runs 24/7, only needs database, no Supabase required)
-  if (hasDatabase) {
-    paymentAutoApprovalWorker.start();
-    console.log('💳 Payment auto-approval worker active (24/7 auto-upgrade, no admin approval needed)');
-  }
-
-  // Ensure uploads directory exists (use /tmp on Vercel for writable location)
-  const isVercel = process.env.VERCEL === '1';
-  const uploadsDir = isVercel ? '/tmp/uploads' : path.join(process.cwd(), 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    try {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-      console.log(`📁 Uploads directory created at ${uploadsDir}`);
-    } catch (err: any) {
-      // Gracefully handle if directory can't be created (read-only filesystem)
-      console.warn(`⚠️  Could not create uploads directory at ${uploadsDir}:`, err?.message || err);
-    }
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -483,4 +391,48 @@ async function runMigrations() {
     log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     log(`✅ Ready for production traffic`);
   });
+
+  // Run migrations and start workers in background AFTER server starts
+  (async () => {
+    try {
+      // 1. Run migrations
+      await runMigrations();
+      
+      // 2. Start workers
+      const { db } = await import('./db.js');
+      const hasDatabase = process.env.DATABASE_URL && db;
+      const hasSupabase = isSupabaseAdminConfigured();
+
+      if (hasDatabase && hasSupabase && supabaseAdmin) {
+        console.log('🤖 Starting AI workers...');
+        workerHealthMonitor.registerWorker('follow-up-worker');
+        workerHealthMonitor.registerWorker('video-comment-monitor');
+        workerHealthMonitor.registerWorker('lead-learning');
+        workerHealthMonitor.registerWorker('oauth-token-refresh');
+        workerHealthMonitor.start();
+
+        followUpWorker.start();
+        startVideoCommentMonitoring();
+
+        const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
+        startLeadLearning();
+
+        const { GmailOAuth } = await import('./lib/oauth/gmail.js');
+        setInterval(() => {
+          GmailOAuth.refreshExpiredTokens()
+            .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
+            .catch((err) => {
+              console.error(err);
+              workerHealthMonitor.recordError('oauth-token-refresh', err.message);
+            });
+        }, 30 * 60 * 1000);
+      }
+
+      if (hasDatabase) {
+        paymentAutoApprovalWorker.start();
+      }
+    } catch (error: any) {
+      console.error('⚠️ Background worker/migration status:', error.message);
+    }
+  })();
 })();

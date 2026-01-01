@@ -13,6 +13,9 @@ if (process.env.DATABASE_URL) {
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+      connectionTimeoutMillis: 30000, // Wait up to 30 seconds for a connection
+      idleTimeoutMillis: 10000,      // Close idle connections after 10 seconds
+      max: 10,                        // Maximum number of connections in the pool
     });
     db = drizzle(pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon)');
