@@ -22,7 +22,7 @@ router.get('/rules', requireAuth, async (req: Request, res: Response): Promise<v
       .where(eq(automationRules.userId, userId))
       .orderBy(desc(automationRules.createdAt));
     
-    const formattedRules = rules.map(r => ({
+    const formattedRules = rules.map((r: any) => ({
       id: r.id,
       name: r.name,
       ruleType: r.ruleType || 'follow_up',
@@ -160,10 +160,10 @@ router.get('/content', requireAuth, async (req: Request, res: Response): Promise
     const content = await query;
     
     const filtered = type 
-      ? content.filter(c => c.type === type)
+      ? content.filter((c: any) => c.type === type)
       : content;
     
-    const formattedContent = filtered.map(c => ({
+    const formattedContent = filtered.map((c: any) => ({
       id: c.id,
       contentType: c.type,
       name: c.name,
@@ -290,7 +290,7 @@ router.get('/decisions', requireAuth, async (req: Request, res: Response): Promi
       .orderBy(desc(aiActionLogs.createdAt))
       .limit(limit);
     
-    const formattedDecisions = decisions.map(d => ({
+    const formattedDecisions = decisions.map((d: any) => ({
       id: d.id,
       actionType: d.actionType,
       decision: d.decision,

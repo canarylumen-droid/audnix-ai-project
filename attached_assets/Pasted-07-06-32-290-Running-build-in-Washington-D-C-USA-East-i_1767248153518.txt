@@ -1,0 +1,79 @@
+07:06:32.290 Running build in Washington, D.C., USA (East) – iad1
+07:06:32.291 Build machine configuration: 2 cores, 8 GB
+07:06:32.606 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: 55ff064)
+07:06:36.121 Cloning completed: 3.514s
+07:06:36.440 Found .vercelignore
+07:06:36.452 Removed 1 ignored files defined in .vercelignore
+07:06:36.453   /.replit
+07:06:36.608 Restored build cache from previous deployment (DEby6A3QtUL1A8u6jWJfrsVZ4R2a)
+07:06:37.633 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+07:06:37.633 Running "vercel build"
+07:06:38.064 Vercel CLI 50.1.3
+07:06:38.246 WARN! Due to `builds` existing in your configuration file, the Build and Development Settings defined in your Project Settings will not apply. Learn More: https://vercel.link/unused-build-settings
+07:06:38.838 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+07:06:38.852 Installing dependencies...
+07:06:39.008 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+07:06:39.009 npm warn config `--include=optional` to include them.
+07:06:39.009 npm warn config
+07:06:39.009 npm warn config       Default value does install optional deps unless otherwise omitted.
+07:06:41.010 
+07:06:41.011 up to date in 2s
+07:06:41.011 
+07:06:41.011 110 packages are looking for funding
+07:06:41.011   run `npm fund` for details
+07:06:41.025 Running "npm run build"
+07:06:41.123 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+07:06:41.124 npm warn config `--include=optional` to include them.
+07:06:41.124 npm warn config
+07:06:41.124 npm warn config       Default value does install optional deps unless otherwise omitted.
+07:06:41.153 
+07:06:41.153 > rest-express@1.0.0 build
+07:06:41.154 > vite build
+07:06:41.154 
+07:06:41.452 [36mvite v6.4.1 [32mbuilding for production...[36m[39m
+07:06:41.840 transforming...
+07:06:43.676 
+07:06:43.676 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+07:06:54.434 [32m✓[39m 3264 modules transformed.
+07:06:55.246 rendering chunks...
+07:06:56.178 [33m[plugin vite:reporter] 
+07:06:56.179 (!) /vercel/path0/client/src/pages/dashboard/pricing.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+07:06:56.180 [39m
+07:06:56.180 [33m[plugin vite:reporter] 
+07:06:56.180 (!) /vercel/path0/client/src/pages/dashboard/settings.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+07:06:56.180 [39m
+07:06:56.181 [33m[plugin vite:reporter] 
+07:06:56.181 (!) /vercel/path0/client/src/pages/dashboard/lead-import.tsx is dynamically imported by /vercel/path0/client/src/App.tsx but also statically imported by /vercel/path0/client/src/pages/dashboard/index.tsx, dynamic import will not move module into another chunk.
+07:06:56.181 [39m
+07:06:56.301 computing gzip size...
+07:06:56.416 [2m../dist/public/[22m[32mindex.html                           [39m[1m[2m    5.01 kB[22m[1m[22m[2m │ gzip:     1.82 kB[22m
+07:06:56.417 [2m../dist/public/[22m[2massets/[22m[35mindex-CNP3OWQz.css            [39m[1m[2m  154.13 kB[22m[1m[22m[2m │ gzip:    21.93 kB[22m
+07:06:56.418 [2m../dist/public/[22m[2massets/[22m[36mtable-BG5urxr8.js             [39m[1m[2m    4.80 kB[22m[1m[22m[2m │ gzip:     1.50 kB[22m
+07:06:56.418 [2m../dist/public/[22m[2massets/[22m[36mAdminLayout-5JNV_I-z.js       [39m[1m[2m    7.27 kB[22m[1m[22m[2m │ gzip:     1.61 kB[22m
+07:06:56.418 [2m../dist/public/[22m[2massets/[22m[36manalytics-B5RKi__y.js         [39m[1m[2m   11.74 kB[22m[1m[22m[2m │ gzip:     1.94 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36mleads-C4s5-pTl.js             [39m[1m[2m   12.18 kB[22m[1m[22m[2m │ gzip:     1.99 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36mindex-CdcvXso2.js             [39m[1m[2m   15.45 kB[22m[1m[22m[2m │ gzip:     2.45 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36msettings-DlHUGz3s.js          [39m[1m[2m   19.32 kB[22m[1m[22m[2m │ gzip:     4.29 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36musers-DmoT0at0.js             [39m[1m[2m   21.39 kB[22m[1m[22m[2m │ gzip:     3.31 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36mLiveCallModeDemo-u0VHPNwZ.js  [39m[1m[2m  113.00 kB[22m[1m[22m[2m │ gzip:    14.21 kB[22m
+07:06:56.419 [2m../dist/public/[22m[2massets/[22m[36mindex-BNqHfWKd.js             [39m[1m[33m4,080.02 kB[39m[22m[2m │ gzip: 1,355.07 kB[22m
+07:06:56.420 [32m✓ built in 14.94s[39m
+07:06:56.420 [33m
+07:06:56.420 (!) Some chunks are larger than 500 kB after minification. Consider:
+07:06:56.420 - Using dynamic import() to code-split the application
+07:06:56.420 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+07:06:56.420 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+07:06:56.522 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: http://vercel.link/node-version
+07:06:56.808 Using TypeScript 5.6.3 (local user-provided)
+07:07:30.782 server/routes/automation-rules-routes.ts(25,38): error TS7006: Parameter 'r' implicitly has an 'any' type.
+07:07:30.783 server/routes/automation-rules-routes.ts(163,24): error TS7006: Parameter 'c' implicitly has an 'any' type.
+07:07:30.783 server/routes/automation-rules-routes.ts(166,43): error TS7006: Parameter 'c' implicitly has an 'any' type.
+07:07:30.783 server/routes/automation-rules-routes.ts(293,46): error TS7006: Parameter 'd' implicitly has an 'any' type.
+07:07:30.783 
+07:08:14.988 Build Completed in /vercel/output [2m]
+07:08:15.905 Deploying outputs...
+07:08:29.691 Deployment completed
+07:08:30.670 Creating build cache...
+07:09:18.463 Created build cache: 47.790s
+07:09:18.464 Uploading build cache [316.49 MB]
+07:09:22.396 Build cache uploaded: 3.934s
