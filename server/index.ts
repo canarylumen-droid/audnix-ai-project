@@ -389,6 +389,7 @@ async function runMigrations() {
   
   // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
   app.get('/health', (_req, res) => res.status(200).send('OK'));
+  app.get('/api/health', (_req, res) => res.status(200).send('OK'));
   
   const serverInstance = server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
