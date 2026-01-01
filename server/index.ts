@@ -37,7 +37,7 @@ function log(message: string, source = "express") {
 const nodeEnv = process.env.NODE_ENV || 'development';
 app.set("env", nodeEnv);
 
-// CRITICAL: Trust proxy for Vercel/production environments
+// CRITICAL: Trust proxy for production environments
 // This fixes X-Forwarded-For header validation for rate limiting
 app.set('trust proxy', 1);
 
