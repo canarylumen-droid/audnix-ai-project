@@ -386,10 +386,13 @@ async function runMigrations() {
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
+  
+  // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
+  app.get('/health', (_req, res) => res.status(200).send('OK'));
+  
   server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
-    log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    log(`✅ Ready for production traffic`);
+    log(`✅ Healthcheck endpoint active at /health`);
   });
 
   // Run migrations and start workers in background AFTER server starts
