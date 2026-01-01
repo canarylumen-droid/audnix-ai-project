@@ -84,11 +84,27 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Only serve static files (JS, CSS, images, etc), NOT index.html for everything
+  // Serve static files with a wider range of allowed extensions
   app.use(express.static(distPath, { 
-    extensions: ['js', 'css', 'png', 'jpg', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'eot'],
-    index: false // Disable automatic index.html serving
+    extensions: ['js', 'css', 'png', 'jpg', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'json', 'webmanifest', 'ico'],
+    index: false,
+    maxAge: '1d', // Cache for a day
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      }
+    }
   }));
+
+  // Explicitly serve service worker and manifest to prevent 404/502
+  app.get(['/sw.js', '/manifest.json', '/favicon.ico'], (req, res) => {
+    const filePath = path.resolve(distPath, req.path.substring(1));
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).end();
+    }
+  });
 
   // EXPLICIT route handlers - API/webhook routes are NOT caught here
   // Only serve index.html for actual page requests (not API calls)
