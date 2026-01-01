@@ -390,10 +390,32 @@ async function runMigrations() {
   // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
   app.get('/health', (_req, res) => res.status(200).send('OK'));
   
-  server.listen(PORT, "0.0.0.0", () => {
+  const serverInstance = server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
     log(`✅ Healthcheck endpoint active at /health`);
   });
+
+  // Keep-alive configuration for long-running connections
+  serverInstance.keepAliveTimeout = 65000;
+  serverInstance.headersTimeout = 66000;
+
+  // Graceful shutdown handler
+  const shutdown = (signal: string) => {
+    log(`Received ${signal}, shutting down gracefully...`, "system");
+    serverInstance.close(() => {
+      log("HTTP server closed.", "system");
+      process.exit(0);
+    });
+    
+    // Force close if it takes too long
+    setTimeout(() => {
+      log("Could not close connections in time, forcefully shutting down", "system");
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
   // Run migrations and start workers in background AFTER server starts
   (async () => {
