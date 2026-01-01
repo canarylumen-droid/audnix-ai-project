@@ -19,13 +19,13 @@ if (process.env.DATABASE_URL) {
     console.log('📊 Database:', process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown');
   } catch (error) {
     console.error('❌ Database connection failed:', error);
-    console.error('💡 Check your DATABASE_URL in Replit Secrets');
+    console.error('💡 Check your DATABASE_URL in Vercel environment variables');
     db = null;
     pool = null;
   }
 } else {
   console.error('❌ DATABASE_URL not set');
-  console.error('💡 Add DATABASE_URL to Replit Secrets');
+  console.error('💡 Add DATABASE_URL to Vercel environment variables');
 }
 
 export { db, pool };
