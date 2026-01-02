@@ -138,20 +138,19 @@ app.use('/api/instagram/callback', express.json({
 
   const sessionConfig: session.SessionOptions = {
     secret: sessionSecret,
-    resave: false, // Changed to false for better performance and to avoid race conditions
+    resave: false,
     saveUninitialized: false,
     name: 'audnix.sid',
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax', // Changed from 'none' to 'lax' for better compatibility
-      domain: process.env.NODE_ENV === 'production' && !req.get('host')?.includes('railway.app') ? '.audnixai.com' : undefined,
+      sameSite: 'lax',
       path: '/',
     },
     store: sessionStore,
     rolling: true,
-    proxy: true, // Always true since we're behind Railway/Vercel proxy
+    proxy: true,
   };
 
 app.use(session(sessionConfig));
