@@ -75,7 +75,6 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Fix: dist/public is at project root, not in server directory
   const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
@@ -84,40 +83,39 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Serve static files with a wider range of allowed extensions
+  // Optimized static serving for production
   app.use(express.static(distPath, { 
-    extensions: ['js', 'css', 'png', 'jpg', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'json', 'webmanifest', 'ico'],
+    dotfiles: 'allow',
     index: false,
-    maxAge: '1d', // Cache for a day
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
-      }
+    maxAge: '1h',
+    setHeaders: (res, filePath) => {
+      // Explicit Content-Type for critical assets
+      if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
+      if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css');
+      if (filePath.endsWith('.json') || filePath.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/json');
+      // Prevent caching of critical assets in production to allow quick updates
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
   }));
 
-  // Explicitly serve service worker and manifest to prevent 404/502
-  app.get(['/sw.js', '/manifest.json', '/favicon.ico'], (req, res) => {
+  // Explicit route handlers for PWA/Manifest files
+  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt'], (req, res) => {
     const filePath = path.resolve(distPath, req.path.substring(1));
     if (fs.existsSync(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(filePath);
     } else {
       res.status(404).end();
     }
   });
 
-  // EXPLICIT route handlers - API/webhook routes are NOT caught here
-  // Only serve index.html for actual page requests (not API calls)
-  app.get('/', (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-
-  // Catch-all for React Router - serves index.html for all other non-API routes
+  // Handle all other routes by serving index.html (SPA)
   app.get('*', (req, res) => {
-    // CRITICAL: Never serve index.html for API routes
+    // CRITICAL: Never serve index.html for API or Webhook routes
     if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
       return res.status(404).json({ error: "Not found" });
     }
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

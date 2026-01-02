@@ -92,9 +92,27 @@ app.use('/api/instagram/callback', express.json({
   }
 }));
 
-// For all other routes, use JSON parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+  // For all other routes, use JSON parsing
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+
+  // Trust proxy for Railway/Vercel/Cloudflare
+  app.set("trust proxy", 1);
+
+  // Optimized Logging Middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path = req.path;
+
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path.startsWith("/api") && (res.statusCode >= 400 || duration > 1000)) {
+        log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+      }
+    });
+
+    next();
+  });
 
 // Configure session - ensure secret is set
 // Note: Replit auto-generates SESSION_SECRET, but we validate it's present
