@@ -87,14 +87,18 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath, { 
     dotfiles: 'allow',
     index: false,
-    maxAge: '1h',
+    maxAge: '1d',
     setHeaders: (res, filePath) => {
       // Explicit Content-Type for critical assets
       if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
       if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css');
       if (filePath.endsWith('.json') || filePath.endsWith('.webmanifest')) res.setHeader('Content-Type', 'application/json');
-      // Prevent caching of critical assets in production to allow quick updates
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      // Set permissive cache for assets but no-cache for index/sw
+      if (filePath.endsWith('index.html') || filePath.endsWith('sw.js')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
     }
   }));
 

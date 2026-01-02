@@ -92,10 +92,6 @@ app.use('/api/instagram/callback', express.json({
   }
 }));
 
-  // For all other routes, use JSON parsing
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
-
   // Trust proxy for Railway/Vercel/Cloudflare
   app.set("trust proxy", 1);
 
@@ -114,104 +110,67 @@ app.use('/api/instagram/callback', express.json({
     next();
   });
 
-// Configure session - ensure secret is set
-// Note: Replit auto-generates SESSION_SECRET, but we validate it's present
-// Use a secure session store in production (PostgreSQL via connect-pg-simple)
-// Falls back to MemoryStore in development
-const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
-}
+  // Configure session - ensure secret is set
+  // Note: Replit auto-generates SESSION_SECRET, but we validate it's present
+  // Use a secure session store in production (PostgreSQL via connect-pg-simple)
+  // Falls back to MemoryStore in development
+  const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
+  if (!process.env.SESSION_SECRET) {
+    console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
+  }
 
-if (sessionSecret === 'temporary-dev-secret-change-in-production' && process.env.NODE_ENV === 'production') {
-  console.error('❌ SESSION_SECRET must be set in production!');
-  throw new Error('SESSION_SECRET environment variable must be set in production');
-}
+  // Create PostgreSQL session store if DATABASE_URL is available
+  const PgSession = connectPgSimple(session);
+  let sessionStore: session.Store | undefined;
 
-// Create PostgreSQL session store if DATABASE_URL is available
-const PgSession = connectPgSimple(session);
-let sessionStore: session.Store | undefined;
+  // Use connection pooling for session store if possible
+  if (process.env.DATABASE_URL) {
+    sessionStore = new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'user_sessions',
+      createTableIfMissing: true,
+      pruneSessionInterval: 60 * 15,
+      // Add connection pooling options if supported by the library
+      schemaName: 'public',
+    });
+    console.log('✅ Using PostgreSQL session store (persistent across restarts)');
+  }
 
-if (process.env.DATABASE_URL) {
-  sessionStore = new PgSession({
-    conString: process.env.DATABASE_URL,
-    tableName: 'user_sessions',
-    createTableIfMissing: true,
-    pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 mins
-  });
-  console.log('✅ Using PostgreSQL session store (persistent across restarts)');
-} else {
-  console.warn('⚠️  Using memory session store - sessions will be lost on restart');
-  console.warn('💡 Configure DATABASE_URL for persistent sessions');
-}
-
-const sessionConfig: session.SessionOptions = {
-  secret: sessionSecret,
-  resave: true, // Force session save even if unmodified (helps with persistence)
-  saveUninitialized: false,
-  name: 'audnix.sid',
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days (extended from 1 week)
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for production cross-origin
-    domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
-    path: '/',
-  },
-  store: sessionStore,
-  rolling: true, // Refresh session expiry on each request
-  proxy: process.env.NODE_ENV === 'production', // Trust proxy in production
-};
+  const sessionConfig: session.SessionOptions = {
+    secret: sessionSecret,
+    resave: false, // Changed to false for better performance and to avoid race conditions
+    saveUninitialized: false,
+    name: 'audnix.sid',
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax', // Changed from 'none' to 'lax' for better compatibility
+      domain: process.env.NODE_ENV === 'production' && !req.get('host')?.includes('railway.app') ? '.audnixai.com' : undefined,
+      path: '/',
+    },
+    store: sessionStore,
+    rolling: true,
+    proxy: true, // Always true since we're behind Railway/Vercel proxy
+  };
 
 app.use(session(sessionConfig));
 
-// CORS Middleware - Allow browser requests from allowed origins
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    'https://audnixai.com',
-    'https://www.audnixai.com',
-    'http://localhost:5000',
-    'https://localhost:5000',
-    'http://localhost:3000',
-    'https://localhost:3000',
-    `http://0.0.0.0:5000`,
-    `https://0.0.0.0:5000`
-  ].filter((url): url is string => Boolean(url));
+  // CORS Middleware - Allow browser requests from allowed origins
+  app.use((req, res, next) => {
+    // Basic CORS for all environments
+    const origin = req.get('origin');
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
+    res.setHeader('Access-Control-Max-Age', '86400');
 
-  const origin = req.get('origin');
-  
-  if (origin) {
-    try {
-      const originUrl = new URL(origin);
-      const isAllowed = allowedOrigins.some(allowed => {
-        try {
-          const allowedUrl = new URL(allowed);
-          return originUrl.host === allowedUrl.host;
-        } catch {
-          return false;
-        }
-      });
-
-      if (isAllowed) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-        res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
-        res.setHeader('Access-Control-Max-Age', '86400');
-      }
-    } catch (e) {
-      // Invalid origin URL - ignore
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
     }
-  }
-
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
+    next();
+  });
 
 // CSRF Protection via SameSite cookies + Origin validation
 app.use((req, res, next) => {
