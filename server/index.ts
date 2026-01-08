@@ -98,12 +98,12 @@ app.use('/api/instagram/callback', express.json({
   // Optimized Logging Middleware
   app.use((req, res, next) => {
     const start = Date.now();
-    const path = req.path;
+    const currentPath = req.path;
 
     res.on("finish", () => {
       const duration = Date.now() - start;
-      if (res.statusCode >= 400 || duration > 1000 || path.startsWith("/api")) {
-        log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+      if (res.statusCode >= 400 || duration > 1000 || currentPath.startsWith("/api")) {
+        log(`${req.method} ${currentPath} ${res.statusCode} in ${duration}ms`);
       }
     });
 
