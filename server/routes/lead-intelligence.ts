@@ -99,7 +99,7 @@ interface GenerateMessageRequestBody {
 }
 
 // ============ LEAD SCORING ============
-router.post("/score", requireAuth, async (req: Request<object, object, ScoreRequestBody>, res: Response): Promise<void> => {
+router.post("/score", requireAuth, async (req: Request<any, any, ScoreRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const score = await calculateLeadScore(lead, messages);
@@ -117,7 +117,7 @@ router.post("/score", requireAuth, async (req: Request<object, object, ScoreRequ
 });
 
 // ============ LEAD INTENT DETECTION ============
-router.post("/intent", requireAuth, async (req: Request<object, object, IntentRequestBody>, res: Response): Promise<void> => {
+router.post("/intent", requireAuth, async (req: Request<any, any, IntentRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const intent = await detectLeadIntent(messages || [], lead);
@@ -134,7 +134,7 @@ router.post("/intent", requireAuth, async (req: Request<object, object, IntentRe
 });
 
 // ============ SMART REPLY SUGGESTIONS ============
-router.post("/smart-reply", requireAuth, async (req: Request<object, object, SmartReplyRequestBody>, res: Response): Promise<void> => {
+router.post("/smart-reply", requireAuth, async (req: Request<any, any, SmartReplyRequestBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req);
     const { lead, lastMessageFromLead, conversationHistory } = req.body;
@@ -167,7 +167,7 @@ router.post("/smart-reply", requireAuth, async (req: Request<object, object, Sma
 });
 
 // ============ OBJECTION DETECTION ============
-router.post("/detect-objection", async (req: Request<object, object, ObjectionRequestBody>, res: Response): Promise<void> => {
+router.post("/detect-objection", async (req: Request<any, any, ObjectionRequestBody>, res: Response): Promise<void> => {
   try {
     const { messageText, leadId } = req.body;
     const objection = await detectObjection(messageText);
@@ -184,7 +184,7 @@ router.post("/detect-objection", async (req: Request<object, object, ObjectionRe
 });
 
 // ============ DEAL AMOUNT PREDICTION ============
-router.post("/predict-deal", async (req: Request<object, object, DealPredictionRequestBody>, res: Response): Promise<void> => {
+router.post("/predict-deal", async (req: Request<any, any, DealPredictionRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const prediction = await predictDealAmount(lead, messages || []);
@@ -202,7 +202,7 @@ router.post("/predict-deal", async (req: Request<object, object, DealPredictionR
 });
 
 // ============ CHURN RISK ASSESSMENT ============
-router.post("/churn-risk", async (req: Request<object, object, ChurnRiskRequestBody>, res: Response): Promise<void> => {
+router.post("/churn-risk", async (req: Request<any, any, ChurnRiskRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages, daysAsCustomer } = req.body;
     const churnRisk = await assessChurnRisk(lead, messages || [], daysAsCustomer || 0);
@@ -219,7 +219,7 @@ router.post("/churn-risk", async (req: Request<object, object, ChurnRiskRequestB
 });
 
 // ============ COMPLETE LEAD INTELLIGENCE DASHBOARD ============
-router.post("/intelligence-dashboard", requireAuth, async (req: Request<object, object, IntelligenceDashboardRequestBody>, res: Response): Promise<void> => {
+router.post("/intelligence-dashboard", requireAuth, async (req: Request<any, any, IntelligenceDashboardRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const dashboard = await generateLeadIntelligenceDashboard(lead, messages || []);
@@ -235,7 +235,7 @@ router.post("/intelligence-dashboard", requireAuth, async (req: Request<object, 
 });
 
 // ============ FIND DUPLICATES ============
-router.post("/find-duplicates", async (req: Request<object, object, DuplicatesRequestBody>, res: Response): Promise<void> => {
+router.post("/find-duplicates", async (req: Request<any, any, DuplicatesRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, userLeads } = req.body;
     const duplicates = await findDuplicateLeads(lead, userLeads || []);
@@ -257,7 +257,7 @@ router.post("/find-duplicates", async (req: Request<object, object, DuplicatesRe
 });
 
 // ============ COMPANY ENRICHMENT ============
-router.post("/enrich-company", async (req: Request<object, object, EnrichCompanyRequestBody>, res: Response): Promise<void> => {
+router.post("/enrich-company", async (req: Request<any, any, EnrichCompanyRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead } = req.body;
     const enrichment = await enrichLeadCompany(lead);
@@ -274,7 +274,7 @@ router.post("/enrich-company", async (req: Request<object, object, EnrichCompany
 });
 
 // ============ ADD TAG ============
-router.post("/tag", async (req: Request<object, object, TagRequestBody>, res: Response): Promise<void> => {
+router.post("/tag", async (req: Request<any, any, TagRequestBody>, res: Response): Promise<void> => {
   try {
     const { leadId, tagName } = req.body;
     await addLeadTag(leadId, tagName);
@@ -291,7 +291,7 @@ router.post("/tag", async (req: Request<object, object, TagRequestBody>, res: Re
 });
 
 // ============ SET CUSTOM FIELD ============
-router.post("/custom-field", async (req: Request<object, object, CustomFieldRequestBody>, res: Response): Promise<void> => {
+router.post("/custom-field", async (req: Request<any, any, CustomFieldRequestBody>, res: Response): Promise<void> => {
   try {
     const { leadId, fieldName, value } = req.body;
     await setCustomFieldValue(leadId, fieldName, value);
@@ -309,7 +309,7 @@ router.post("/custom-field", async (req: Request<object, object, CustomFieldRequ
 });
 
 // ============ LOG TIMELINE EVENT ============
-router.post("/timeline-event", async (req: Request<object, object, TimelineEventRequestBody>, res: Response): Promise<void> => {
+router.post("/timeline-event", async (req: Request<any, any, TimelineEventRequestBody>, res: Response): Promise<void> => {
   try {
     const { leadId, actionType, actionData, actorId } = req.body;
     await addTimelineEvent(leadId, actionType, actionData, actorId);
@@ -326,7 +326,7 @@ router.post("/timeline-event", async (req: Request<object, object, TimelineEvent
 });
 
 // ============ GENERATE OPTIMIZED MESSAGE WITH INTELLIGENCE ============
-router.post("/generate-message-with-intelligence", requireAuth, async (req: Request<object, object, GenerateMessageRequestBody>, res: Response): Promise<void> => {
+router.post("/generate-message-with-intelligence", requireAuth, async (req: Request<any, any, GenerateMessageRequestBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req);
     const { lead, testimonials, stage } = req.body;

@@ -116,7 +116,7 @@ class ImapIdleManager {
     }
 
     private openInbox(userId: string, imap: Imap): void {
-        imap.openBox('INBOX', false, (err) => {
+        imap.openBox('INBOX', false, (err: any) => {
             if (err) {
                 console.error(`Failed to open INBOX for user ${userId}:`, err.message);
                 return;
@@ -127,7 +127,7 @@ class ImapIdleManager {
             // Initial sync on connection
             this.fetchNewEmails(userId, imap);
 
-            imap.on('mail', (numNewMsgs) => {
+            imap.on('mail', (numNewMsgs: number) => {
                 console.log(`📬 User ${userId} received ${numNewMsgs} new messages`);
                 this.fetchNewEmails(userId, imap);
             });
@@ -146,9 +146,9 @@ class ImapIdleManager {
 
         const emails: any[] = [];
 
-        fetch.on('message', (msg) => {
-            msg.on('body', (stream) => {
-                simpleParser(stream, async (err, parsed) => {
+        fetch.on('message', (msg: any) => {
+            msg.on('body', (stream: any) => {
+                simpleParser(stream, async (err: any, parsed: any) => {
                     if (!err && parsed) {
                         emails.push({
                             from: parsed.from?.text,
