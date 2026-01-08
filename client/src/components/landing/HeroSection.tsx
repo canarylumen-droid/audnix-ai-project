@@ -1,171 +1,130 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowRight, Sparkles, Brain, Clock, Target } from "lucide-react";
+import { ArrowRight, Sparkles, Brain, Zap, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: [0.25, 0.46, 0.45, 0.94]
-    }
-  }
-};
-
-const features = [
-  { icon: Clock, text: "Smart timing — knows when each lead responds best" },
-  { icon: Brain, text: "Learns from conversations — never one-size-fits-all" },
-  { icon: Target, text: "Predicts ROI — only follows up when it matters" }
-];
+import { useEffect, useState } from "react";
 
 export function HeroSection() {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-8 py-24 mt-16 overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-1/4 -left-48 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+    <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 pb-20 px-4 overflow-hidden bg-[#020409]">
+      {/* Background Layers */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-grid opacity-20 mask-radial" />
+        <div
+          className="absolute inset-0 spotlight opacity-40 transition-opacity duration-500"
+          style={{ '--x': `${mousePos.x}px`, '--y': `${mousePos.y}px` } as any}
         />
-        <motion.div
-          className="absolute bottom-1/4 -right-48 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"
-          animate={{
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[800px] max-h-[800px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 max-w-7xl mx-auto text-center"
-      >
-        <motion.div variants={itemVariants} className="flex justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-primary/20 backdrop-blur-sm">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-white/90">
-              AI Sales Closer with Predictive Intelligence
+      <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col items-center text-center">
+        {/* Floating AI Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-8"
+        >
+          <div className="glass px-4 py-2 rounded-full flex items-center gap-2 border-white/10 group cursor-default">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+            <span className="text-xs font-black uppercase tracking-widest text-white/60">
+              The World's Most <span className="text-white">Relentless</span> AI Sales Closer
             </span>
           </div>
         </motion.div>
 
-        <motion.h1 
-          variants={itemVariants}
-          className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight text-white px-4 sm:px-6 md:px-0"
+        {/* Main Title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="text-6xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.9] text-white mb-8"
         >
-          Stop Letting Warm Leads<br className="hidden xs:block" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-            {" "}Go Cold
-          </span>
+          CONVERT<br />
+          <span className="text-gradient-cyan">WHILE YOU SLEEP</span>
         </motion.h1>
-        
-        <motion.p 
-          variants={itemVariants}
-          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white mb-4 max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-6 md:px-0"
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="text-lg md:text-2xl text-white/50 max-w-2xl font-medium mb-12"
         >
-          AI that learns each lead's behavior, predicts the perfect follow-up time,{" "}
-          <br className="hidden md:block" />
-          and only reaches out when it'll actually convert.
+          Audnix syncs with your DMs and Email, identifies buying intent,
+          and handles objections instantly. <span className="text-white">Your new top-performing closer works 24/7.</span>
         </motion.p>
 
-        <motion.p 
-          variants={itemVariants}
-          className="text-sm sm:text-base md:text-lg text-white/70 mb-10 max-w-3xl mx-auto leading-relaxed px-4 sm:px-6 md:px-0"
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="flex flex-col sm:flex-row items-center gap-4"
         >
-          No spam. No pushy timing. Just intelligent outreach that{" "}
-          <span className="text-emerald-400 font-semibold">feels human</span> because it{" "}
-          <span className="text-cyan-400 font-semibold">thinks like one</span>.
-        </motion.p>
+          <Link href="/auth">
+            <Button size="lg" className="h-16 px-12 rounded-full bg-white text-black text-lg font-black hover:scale-105 transition-transform">
+              Start Closing Now
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+          </Link>
+          <div className="flex items-center gap-4 px-6">
+            <div className="flex -space-x-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="w-10 h-10 rounded-full border-2 border-black bg-white/10 overflow-hidden backdrop-blur-md">
+                  <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="avatar" />
+                </div>
+              ))}
+            </div>
+            <div className="text-left">
+              <div className="text-white text-sm font-bold">500+ Closers</div>
+              <div className="text-white/40 text-xs uppercase tracking-widest font-bold">Scaling with Audnix</div>
+            </div>
+          </div>
+        </motion.div>
 
-        <motion.div 
-          variants={itemVariants}
-          className="flex flex-wrap gap-3 justify-center mb-10"
+        {/* Feature Highlights Grid */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8 }}
+          className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-4xl"
         >
-          {features.map((feature, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ scale: 1.05, y: -2 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm group hover:border-primary/50 transition-all"
-            >
-              <feature.icon className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-              <span className="text-white/90 text-sm sm:text-base">{feature.text}</span>
-            </motion.div>
+          {[
+            { icon: Brain, title: "Deep Memory", desc: "Remembers every lead across all channels." },
+            { icon: Zap, title: "Instant Reply", desc: "Average response time under 4 minutes." },
+            { icon: ShieldCheck, title: "TOS Secure", desc: "100% compliant with IG & Email protocols." }
+          ].map((feat, i) => (
+            <div key={i} className="glass-card p-6 rounded-[2rem] flex items-center gap-4 text-left border-white/5 bg-white/[0.02]">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-primary border border-white/10 shadow-inner">
+                <feat.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-sm tracking-tight">{feat.title}</h3>
+                <p className="text-white/40 text-xs font-medium">{feat.desc}</p>
+              </div>
+            </div>
           ))}
         </motion.div>
+      </div>
 
-        <motion.div 
-          variants={itemVariants}
-          className="mb-8 p-4 rounded-xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 max-w-2xl mx-auto"
-        >
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Brain className="w-5 h-5 text-emerald-400" />
-            <span className="text-white font-semibold">Intelligence Layer</span>
-          </div>
-          <p className="text-white/80 text-sm">
-            Analyzes conversation history, detects buying signals, predicts optimal timing,{" "}
-            and decides if following up now will actually get ROI — all automatically.
-          </p>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Link href="/auth">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-bold text-base sm:text-lg px-8 sm:px-12 py-6 sm:py-7 rounded-full shadow-2xl shadow-red-500/25 hover:shadow-red-500/40 transition-all duration-300 group relative overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  Recover My Lost Clients
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  initial={false}
-                />
-              </Button>
-            </motion.div>
-          </Link>
-          <motion.p 
-            variants={itemVariants}
-            className="text-white/50 text-sm mt-4"
-          >
-            Start free — 500 leads included — no card required
-          </motion.p>
-        </motion.div>
-      </motion.div>
+      {/* Hero Visual - Floating Dashboard Fragment */}
+      <motion.div
+        initial={{ opacity: 0, y: 100 }}
+        animate={{ opacity: 0.2, y: 0 }}
+        transition={{ duration: 1.5, delay: 1, ease: [0.16, 1, 0.3, 1] }}
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[120%] h-[400px] bg-gradient-to-t from-primary/20 to-transparent blur-[100px] -z-10"
+      />
     </section>
   );
 }

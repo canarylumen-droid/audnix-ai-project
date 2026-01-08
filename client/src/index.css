@@ -10,6 +10,7 @@
 
 /* GPU acceleration for animations */
 @media (prefers-reduced-motion: no-preference) {
+
   [data-vaul-drawer],
   [data-radix-dialog-overlay],
   [data-radix-dialog-content] {
@@ -20,6 +21,7 @@
 
 /* Reduce animations on low-end devices */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -38,15 +40,16 @@
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0, 0, 0, .10);
+  --badge-outline: rgba(0, 0, 0, .05);
 
   /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -8;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0, 0, 0, .03);
+  --elevate-2: rgba(0, 0, 0, .08);
 
   --background: 220 5% 96%;
 
@@ -110,18 +113,20 @@
   --chart-4: 280 70% 45%;
   --chart-5: 340 80% 48%;
 
-  --font-sans: Inter, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: .5rem; /* 8px */
+  --radius: 1.25rem;
+  /* 20px - more modern, softer corners */
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 10% / 0.02);
   --shadow-xs: 0px 2px 0px 0px hsl(220 10% 10% / 0.03);
   --shadow-sm: 0px 2px 0px 0px hsl(220 10% 10% / 0.04), 0px 1px 2px -1px hsl(220 10% 10% / 0.05);
-  --shadow: 0px 2px 0px 0px hsl(220 10% 10% / 0.04), 0px 1px 2px -1px hsl(220 10% 10% / 0.06);
-  --shadow-md: 0px 2px 0px 0px hsl(220 10% 10% / 0.05), 0px 2px 4px -1px hsl(220 10% 10% / 0.08);
-  --shadow-lg: 0px 2px 0px 0px hsl(220 10% 10% / 0.06), 0px 4px 6px -1px hsl(220 10% 10% / 0.10);
-  --shadow-xl: 0px 2px 0px 0px hsl(220 10% 10% / 0.08), 0px 8px 10px -1px hsl(220 10% 10% / 0.12);
-  --shadow-2xl: 0px 2px 0px 0px hsl(220 10% 10% / 0.15);
+  --shadow: 0px 4px 12px -2px hsl(220 10% 10% / 0.06), 0px 2px 4px -1px hsl(220 10% 10% / 0.04);
+  --shadow-md: 0px 8px 16px -4px hsl(220 10% 10% / 0.08), 0px 4px 8px -2px hsl(220 10% 10% / 0.06);
+  --shadow-lg: 0px 12px 24px -8px hsl(220 10% 10% / 0.12), 0px 8px 16px -4px hsl(220 10% 10% / 0.08);
+  --shadow-xl: 0px 20px 32px -12px hsl(220 10% 10% / 0.16), 0px 12px 24px -8px hsl(220 10% 10% / 0.10);
+  --shadow-2xl: 0px 32px 48px -16px hsl(220 10% 10% / 0.20);
+  --tracking-tight: -0.02em;
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -157,14 +162,15 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, .10);
+  --badge-outline: rgba(255, 255, 255, .05);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 9;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, .04);
+  --elevate-2: rgba(255, 255, 255, .09);
 
   --background: 230 35% 7%;
 
@@ -232,11 +238,11 @@
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 2% / 0.20);
   --shadow-xs: 0px 2px 0px 0px hsl(220 10% 2% / 0.25);
   --shadow-sm: 0px 2px 0px 0px hsl(220 10% 2% / 0.30), 0px 1px 2px -1px hsl(220 10% 2% / 0.35);
-  --shadow: 0px 2px 0px 0px hsl(220 10% 2% / 0.30), 0px 1px 2px -1px hsl(220 10% 2% / 0.40);
-  --shadow-md: 0px 2px 0px 0px hsl(220 10% 2% / 0.35), 0px 2px 4px -1px hsl(220 10% 2% / 0.45);
-  --shadow-lg: 0px 2px 0px 0px hsl(220 10% 2% / 0.40), 0px 4px 6px -1px hsl(220 10% 2% / 0.50);
-  --shadow-xl: 0px 2px 0px 0px hsl(220 10% 2% / 0.50), 0px 8px 10px -1px hsl(220 10% 2% / 0.60);
-  --shadow-2xl: 0px 2px 0px 0px hsl(220 10% 2% / 0.70);
+  --shadow: 0px 8px 24px -4px hsl(220 10% 2% / 0.60), 0px 4px 12px -2px hsl(220 10% 2% / 0.40);
+  --shadow-md: 0px 12px 32px -8px hsl(220 10% 2% / 0.70), 0px 8px 16px -4px hsl(220 10% 2% / 0.50);
+  --shadow-lg: 0px 20px 48px -12px hsl(220 10% 2% / 0.80), 0px 12px 32px -8px hsl(220 10% 2% / 0.60);
+  --shadow-xl: 0px 32px 64px -16px hsl(0 0% 0% / 0.90), 0px 20px 48px -12px hsl(0 0% 0% / 0.70);
+  --shadow-2xl: 0px 48px 96px -24px hsl(0 0% 0% / 1);
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -297,26 +303,54 @@
 /* Glassmorphism utility classes */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(13, 20, 40, 0.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .glass-card {
-    background: linear-gradient(135deg, rgba(30, 40, 80, 0.8), rgba(20, 30, 60, 0.9));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(0, 200, 255, 0.3);
-    box-shadow: 0 8px 32px rgba(0, 170, 255, 0.1);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(10, 15, 30, 0.8));
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgba(0, 217, 255, 0.1);
+    box-shadow: 0 8px 64px -12px rgba(0, 0, 0, 0.6);
   }
 
-  .glow {
-    box-shadow: 0 0 20px rgba(0, 170, 255, 0.3);
+  .premium-border {
+    border: 1px solid transparent;
+    background-image: linear-gradient(var(--card), var(--card)), linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(147, 51, 234, 0.2));
+    background-origin: border-box;
+    background-clip: content-box, border-box;
   }
 
-  .glow-text {
-    text-shadow: 0 0 30px rgba(0, 170, 255, 0.5);
+  .text-gradient-cyan {
+    background: linear-gradient(to bottom right, #fff 30%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-cyan-glow {
+    color: #00D9FF;
+    text-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+  }
+
+  .bg-grid {
+    background-size: 40px 40px;
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  }
+
+  .mask-radial {
+    mask-image: radial-gradient(circle at center, black, transparent 80%);
+  }
+
+  .spotlight {
+    background: radial-gradient(600px circle at var(--x) var(--y),
+        rgba(0, 217, 255, 0.1),
+        transparent 40%);
   }
 }
 

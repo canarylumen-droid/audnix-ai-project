@@ -1,129 +1,89 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Mail, MessageSquare } from "lucide-react";
+import { Check, Zap, Sparkles } from "lucide-react";
 import { Link } from "wouter";
-import { AnimatedCard } from "@/components/ui/animated-card";
 import { getSortedPricingTiers } from "@shared/plan-utils";
 
 export function PricingSection() {
   const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial' && tier.id !== 'free');
 
   return (
-    <section id="pricing" className="py-20 px-4 bg-gradient-to-b from-white/[0.02] to-transparent">
+    <section id="pricing" className="py-32 px-4 relative overflow-hidden bg-[#020409]">
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Simple, Transparent<br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-              No Surprises
-            </span>
-          </h2>
-          <p className="text-xl text-white/70 max-w-2xl mx-auto">
-            Start free. Add voice to reach more leads on Instagram. Scale as you close deals.
-          </p>
-        </motion.div>
+        <div className="text-center mb-24">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-primary/10 border border-primary/20 mb-6"
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-xs font-black uppercase tracking-widest text-primary">Scalable Pricing</span>
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl md:text-7xl font-black tracking-tight text-white mb-6"
+          >
+            PICK YOUR PACE.<br />
+            <span className="text-white/40">NO SURPRISES.</span>
+          </motion.h2>
+        </div>
 
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {pricingTiers.map((tier, index) => {
             const isPopular = tier.id === 'pro';
-            const isEnterprise = tier.id === 'enterprise';
-
             return (
-              <AnimatedCard
+              <motion.div
                 key={tier.id}
-                delay={index * 0.1}
-                className={`bg-gradient-to-b ${
-                  isPopular 
-                    ? 'from-primary/10 to-primary/5 border-primary shadow-lg shadow-primary/20' 
-                    : 'from-black/80 to-black/60 border-white/20'
-                } overflow-hidden`}
-                glowColor={isPopular ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)"}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`glass-card p-10 rounded-[3rem] border-white/5 relative flex flex-col h-full ${isPopular ? "bg-white/[0.04] border-primary/20 shadow-primary/10" : "bg-white/[0.01]"
+                  }`}
               >
-                <div className="p-6 relative">
-                  {isPopular && (
-                    <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ delay: 0.3 }}
-                      className="absolute -top-3 left-1/2 -translate-x-1/2"
-                    >
-                      <div className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-xs font-bold px-4 py-1.5 rounded-full flex items-center gap-1 shadow-lg">
-                        <Zap className="w-3 h-3" />
-                        Most Popular
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <h3 className="text-2xl font-bold mb-2 text-white">{tier.name}</h3>
-                  
-                  <div className="mb-4">
-                    <motion.span 
-                      className="text-5xl font-bold text-white"
-                      whileHover={{ scale: 1.05 }}
-                    >
-                      ${tier.price}
-                    </motion.span>
-                    <span className="text-white/60 text-lg">/{tier.period}</span>
+                {isPopular && (
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-black px-6 py-1.5 rounded-full text-xs font-black tracking-widest uppercase shadow-lg">
+                    Most Popular
                   </div>
+                )}
 
-                  <p className="text-white/70 mb-6 min-h-[3rem]">{tier.description}</p>
-
-                  <ul className="space-y-3 mb-6">
-                    {tier.features.map((feature, i) => (
-                      <motion.li
-                        key={i}
-                        initial={{ opacity: 0, x: -10 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: i * 0.05 }}
-                        className="flex items-start gap-2.5 text-sm group"
-                      >
-                        <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        <span className="text-white/80 group-hover:text-white transition-colors">{feature}</span>
-                      </motion.li>
-                    ))}
-                  </ul>
-
-                  <Link href="/auth">
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Button
-                        className={`w-full rounded-full font-bold ${
-                          isPopular
-                            ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/25'
-                            : 'bg-black hover:bg-black/80 text-white border border-white/30 hover:border-white/50 shadow-lg'
-                        } transition-all duration-300`}
-                        size="lg"
-                      >
-                        {isPopular ? "Recover Lost Revenue →" : "Start Free →"}
-                      </Button>
-                    </motion.div>
-                  </Link>
+                <div className="mb-8">
+                  <h3 className="text-white/40 text-xs font-black uppercase tracking-widest mb-2">{tier.name}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-6xl font-black text-white tracking-tighter">${tier.price}</span>
+                    <span className="text-white/40 font-bold uppercase tracking-widest text-xs">/ {tier.period}</span>
+                  </div>
                 </div>
-              </AnimatedCard>
+
+                <div className="space-y-4 mb-12 flex-1">
+                  {tier.features.slice(0, 6).map((feat, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                        <Check className="w-3 h-3 text-primary" />
+                      </div>
+                      <span className="text-white/70 text-sm font-semibold">{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Link href="/auth">
+                  <Button
+                    className={`h-16 w-full rounded-full text-lg font-black tracking-tight transition-transform active:scale-95 ${isPopular
+                        ? "bg-primary text-black shadow-xl shadow-primary/20 hover:bg-primary/90"
+                        : "bg-white/10 text-white hover:bg-white/20 border-white/10"
+                      }`}
+                  >
+                    {isPopular ? "Scale My Revenue" : "Get Started"}
+                    <Zap className="w-5 h-5 ml-2 fill-current" />
+                  </Button>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center"
-        >
-          <p className="text-white/60 text-sm">
-            Add-ons (paid plans only): Voice top-ups • Advanced analytics
-          </p>
-        </motion.div>
       </div>
     </section>
   );

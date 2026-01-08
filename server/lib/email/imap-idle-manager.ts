@@ -133,7 +133,7 @@ class ImapIdleManager {
             });
 
             // Start IDLE
-            imap.idle();
+            (imap as any).idle();
         });
     }
 
@@ -180,7 +180,7 @@ class ImapIdleManager {
             }
 
             // Resume IDLE after fetching
-            imap.idle();
+            (imap as any).idle();
         });
     }
 

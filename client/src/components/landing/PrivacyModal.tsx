@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, ShieldCheck } from "lucide-react";
 
 export function PrivacyModal() {
   const closeModal = () => {
@@ -9,107 +9,87 @@ export function PrivacyModal() {
     }
   };
 
+  const sections = [
+    {
+      title: "1. Information We Collect",
+      content: "We collect information you provide directly, including email, business details, and connection tokens. We also track interaction metrics to optimize your closer's performance."
+    },
+    {
+      title: "2. Precision Usage",
+      content: "Your data is used strictly to power your AI sales engine. We never sell your leads or conversation history to third parties."
+    },
+    {
+      title: "3. Enterprise-Grade Security",
+      content: "We implement industry-standard security measures including AES-256 encryption, secure OAuth sessions for Meta/Google, and automated rate limiting."
+    },
+    {
+      title: "4. Your Control",
+      content: "You maintain 100% ownership of your leads. Disconnect any integration or delete your entire data imprint with a single click in settings."
+    }
+  ];
+
   return (
-    <AnimatePresence>
-      <div
-        id="privacy-modal"
-        className="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        onClick={closeModal}
+    <div
+      id="privacy-modal"
+      className="hidden fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center z-[100] p-4"
+      onClick={closeModal}
+    >
+      <motion.div
+        className="glass-card rounded-[2.5rem] max-w-2xl w-full border-white/10 bg-[#0d1117] overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
       >
-        <motion.div
-          className="bg-gradient-to-b from-gray-900 to-black border border-cyan-500/30 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-cyan-600/20 via-purple-600/20 to-cyan-600/20 border-b border-cyan-500/20 p-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Privacy Policy</h2>
-            <button
-              onClick={closeModal}
-              className="text-foreground/60 hover:text-foreground transition-colors"
+        <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <ShieldCheck className="w-6 h-6 text-primary" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tight text-white uppercase">Privacy Protocol</h2>
+          </div>
+          <button
+            onClick={closeModal}
+            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 text-white/40 hover:text-white transition-all"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          {sections.map((sec, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1 }}
+              viewport={{ once: true }}
+              className="group"
             >
-              <X className="w-6 h-6" />
-            </button>
+              <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-3">{sec.title}</h3>
+              <p className="text-white/50 font-medium leading-relaxed group-hover:text-white/80 transition-colors">
+                {sec.content}
+              </p>
+            </motion.div>
+          ))}
+
+          <div className="pt-8 mt-8 border-t border-white/5">
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">
+              Last updated: January 2026 • support@audnixai.com
+            </p>
           </div>
+        </div>
 
-          {/* Content */}
-          <div className="p-6 space-y-6 text-white/80">
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">1. Information We Collect</h3>
-              <p className="leading-relaxed">
-                We collect information you provide directly, including email, phone number, and business details. We also collect usage data to improve our service.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">2. How We Use Your Information</h3>
-              <p className="leading-relaxed mb-3">
-                Your information is used to:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>Provide and improve our services</li>
-                <li>Send transactional emails and notifications</li>
-                <li>Process payments and billing</li>
-                <li>Analyze usage patterns and optimize features</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">3. Data Security</h3>
-              <p className="leading-relaxed">
-                We implement industry-standard security measures including encryption (AES-256), secure sessions, and rate limiting to protect your information.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">4. Third-Party Integrations</h3>
-              <p className="leading-relaxed">
-                You control which services (Instagram, Email, Calendly, Stripe) connect to your account. We never access your credentials without permission.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">5. Your Rights</h3>
-              <p className="leading-relaxed mb-3">
-                You have the right to:
-              </p>
-              <ul className="list-disc list-inside space-y-2 ml-2">
-                <li>Access your data anytime</li>
-                <li>Request data deletion</li>
-                <li>Disconnect integrations</li>
-                <li>Cancel your subscription</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">6. Changes to This Policy</h3>
-              <p className="leading-relaxed">
-                We may update this policy periodically. We'll notify you of significant changes via email.
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-xl font-semibold text-white mb-3">7. Contact Us</h3>
-              <p className="leading-relaxed">
-                Questions about privacy? Email us at <span className="text-cyan-400">privacy@audnixai.com</span>
-              </p>
-            </section>
-          </div>
-
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-gray-900/50 border-t border-cyan-500/20 p-6 flex justify-end">
-            <button
-              onClick={closeModal}
-              className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-semibold rounded-lg transition-all"
-            >
-              Close
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        <div className="p-8 bg-white/[0.02] border-t border-white/5 flex justify-end">
+          <button
+            onClick={closeModal}
+            className="px-10 py-4 bg-white text-black font-black rounded-full hover:scale-105 transition-transform active:scale-95"
+          >
+            Acknowledge
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
   );
 }

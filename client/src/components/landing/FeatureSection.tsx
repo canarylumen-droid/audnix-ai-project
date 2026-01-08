@@ -1,170 +1,119 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
-import { ChevronDown, MessageSquare, Mic, Calendar, Phone, Check, Zap } from "lucide-react";
-import { AnimatedCard } from "@/components/ui/animated-card";
+import { motion } from "framer-motion";
+import { MessageSquare, Mic, Calendar, Check, Zap, Smartphone, Target, Layers } from "lucide-react";
 
-const features = [
+const capabilities = [
   {
-    number: 1,
-    title: "Lead Import & Management",
-    desc: "Connect business email, Instagram DMs, and CSV contacts",
-    icon: Phone,
-    details: [
-      "Business email sync via SMTP",
-      "Instagram DM automation with Meta API",
-      "Bulk CSV upload with auto-mapping",
-      "Real-time contact deduplication",
-      "Lead scoring and segmentation"
-    ]
+    title: "Intelligence Layer",
+    desc: "AI that remembers lead history and predicts buying intent.",
+    icon: Target,
+    color: "from-blue-500 to-cyan-500",
+    features: ["Context-aware memory", "Behavior tracking", "Intent scoring"]
   },
   {
-    number: 2,
-    title: "AI-Powered Conversations",
-    desc: "Natural dialogue that understands context and your brand voice",
-    icon: MessageSquare,
-    details: [
-      "Learns from your PDFs and documentation",
-      "Remembers conversation history",
-      "Adapts tone based on lead behavior",
-      "Handles multi-turn objections naturally"
-    ]
+    title: "Omnichannel Sync",
+    desc: "Respond to Instagram DMs and Emails from one central brain.",
+    icon: Layers,
+    color: "from-purple-500 to-blue-500",
+    features: ["Instagram Meta API", "Real-time Email sync", "Unified interface"]
   },
   {
-    number: 3,
-    title: "Smart Objection Handling",
-    desc: "AI handles price, trust, urgency objections — 24/7",
-    icon: Check,
-    details: [
-      "Price objections → value reframing",
-      "Stalling tactics → urgency creation",
-      "Competitor comparisons → differentiation",
-      "Trust-building micro-commitments",
-      "Automatic re-engagement for cold leads"
-    ]
-  },
-  {
-    number: 4,
-    title: "Voice Notes (Instagram)",
-    desc: "AI clones your voice for authentic outreach on Instagram DMs",
+    title: "Voice Cloning",
+    desc: "scale your authenticity with AI voice notes in your exact tone.",
     icon: Mic,
-    details: [
-      "Upload 30-second voice sample once",
-      "AI generates natural voice messages",
-      "Instagram DMs with voice automation",
-      "80%+ leads prefer voice over text",
-      "Personalization at massive scale"
-    ]
+    color: "from-cyan-500 to-emerald-500",
+    features: ["1-click voice setup", "Emotional nuances", "Instagram DM ready"]
   },
   {
-    number: 5,
-    title: "Automated Meeting Booking",
-    desc: "Seamlessly schedules calls when leads show buying intent",
+    title: "Automated Booking",
+    desc: "Seamlessly transition from objection handling to booked meeting.",
     icon: Calendar,
-    details: [
-      "Calendar integration (Google, Microsoft 365)",
-      "Timezone detection and conversion",
-      "Buffer time and availability rules",
-      "Confirmation + reminder sequences"
-    ]
+    color: "from-emerald-500 to-teal-500",
+    features: ["Calendly integration", "Timezone handling", "Soft-close logic"]
   },
   {
-    number: 6,
-    title: "Intelligent Lead Scoring",
-    desc: "Prioritizes hot leads so you focus on closable deals",
-    icon: Zap,
-    details: [
-      "Real-time engagement tracking",
-      "Intent signals (questions, urgency)",
-      "Auto-tagging based on behavior",
-      "Alert system for high-value prospects"
-    ]
+    title: "Dynamic Objections",
+    desc: "Never lose a lead to 'price' or 'timing' again. AI explains value.",
+    icon: MessageSquare,
+    color: "from-blue-500 to-indigo-500",
+    features: ["Price reframing", "Competitor analysis", "Risk reversal"]
+  },
+  {
+    title: "Mobile First",
+    desc: "Control your entire sales engine from your pocket or desktop.",
+    icon: Smartphone,
+    color: "from-indigo-500 to-purple-500",
+    features: ["Native app feel", "Real-time alerts", "Push notifications"]
   }
 ];
 
 export function FeatureSection() {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-
   return (
-    <section className="py-20 px-4">
-      <div className="max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            What Audnix Does
-          </h2>
-          <p className="text-xl text-white/70 max-w-2xl mx-auto">
-            The complete AI sales automation suite that works 24/7
-          </p>
-        </motion.div>
+    <section id="features" className="py-32 px-4 relative overflow-hidden bg-[#020409]">
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex flex-col items-center text-center mb-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="glass px-4 py-1.5 rounded-full border-white/10 mb-6"
+          >
+            <span className="text-xs font-black uppercase tracking-widest text-primary">Capabilities</span>
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6"
+          >
+            NOT JUST A BOT.<br />
+            <span className="text-white/40">AN ELITE SALES ENGINE.</span>
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="text-xl text-white/50 max-w-2xl font-medium"
+          >
+            We've replaced standard automations with a tiered intelligence layer
+            that thinks, learns, and converts.
+          </motion.p>
+        </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <AnimatedCard 
-              key={feature.number} 
-              delay={index * 0.1}
-              className="bg-white/5 border-white/10 overflow-hidden"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {capabilities.map((cap, i) => (
+            <motion.div
+              key={cap.title}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.5 }}
+              whileHover={{ y: -10 }}
+              className="glass-card group p-8 rounded-[2.5rem] border-white/5 hover:border-white/10 transition-all cursor-default relative overflow-hidden h-full"
             >
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center border border-primary/30">
-                    <span className="text-lg font-bold text-primary">
-                      {feature.number}
-                    </span>
-                  </div>
-                  <feature.icon className="w-7 h-7 text-primary" />
-                </div>
-                
-                <h3 className="text-xl font-bold mb-2 text-white">
-                  {feature.title}
-                </h3>
-                <p className="text-white/70 mb-4">{feature.desc}</p>
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${cap.color} opacity-5 blur-3xl group-hover:opacity-15 transition-opacity`} />
 
-                <button
-                  onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
-                  className="flex items-center justify-between w-full text-sm font-medium text-primary hover:text-primary/80 transition-colors group"
-                >
-                  <span>See details</span>
-                  <motion.div
-                    animate={{ rotate: expandedIndex === index ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-                  </motion.div>
-                </button>
-
-                <AnimatePresence>
-                  {expandedIndex === index && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                        {feature.details.map((detail, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="flex items-start gap-2 text-sm text-white/80"
-                          >
-                            <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                            <span>{detail}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-8 shadow-inner">
+                <cap.icon className="w-7 h-7 text-white group-hover:text-primary transition-colors" />
               </div>
-            </AnimatedCard>
+
+              <h3 className="text-2xl font-bold text-white mb-4 tracking-tight">
+                {cap.title}
+              </h3>
+              <p className="text-white/50 font-medium mb-8 leading-relaxed">
+                {cap.desc}
+              </p>
+
+              <div className="space-y-3 mt-auto">
+                {cap.features.map((feat) => (
+                  <div key={feat} className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="text-sm font-bold text-white/70">{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>

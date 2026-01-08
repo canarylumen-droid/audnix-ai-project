@@ -118,11 +118,11 @@ const mobileNavItems: Array<{
   icon: React.ComponentType<{ className?: string }>;
   path: string;
 }> = [
-  { label: "Home", icon: Home, path: "/dashboard" },
-  { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
-  { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
-  { label: "Profile", icon: User, path: "/dashboard/settings" },
-];
+    { label: "Home", icon: Home, path: "/dashboard" },
+    { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
+    { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
+    { label: "Profile", icon: User, path: "/dashboard/settings" },
+  ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -298,17 +298,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
       <Link key={item.path} href={item.path}>
         <motion.div
-          className={`mx-2 mb-1 rounded-md transition-colors hover:bg-primary/10 ${
-            isActive ? "bg-primary/10 text-primary" : "text-white/80 hover:text-white"
-          }`}
+          className={`mx-3 mb-1.5 rounded-full transition-all duration-200 ${isActive
+            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+            : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
           whileHover={prefersReducedMotion ? {} : { x: 4 }}
           transition={{ duration: 0.2 }}
           data-testid={`nav-item-${item.label.toLowerCase()}`}
         >
-          <div className="flex items-center gap-3 px-3 py-2.5">
-            <Icon className="h-4 w-4 flex-shrink-0" />
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            <Icon className={`h-4.5 w-4.5 flex-shrink-0 ${isActive ? "text-white" : "text-white/60"}`} />
             {!sidebarCollapsed && (
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-medium tracking-tight">{item.label}</span>
             )}
           </div>
         </motion.div>
@@ -327,34 +328,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <DropdownMenu key={group.label}>
           <DropdownMenuTrigger asChild>
             <div
-              className={`mx-2 mb-1 rounded-md transition-colors cursor-pointer hover:bg-primary/10 ${
-                isCloserEngine ? "bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 shadow-lg shadow-cyan-500/10" : ""
-              } ${hasActiveItem ? "bg-primary/10 text-primary" : "text-white/80"}`}
+              className={`mx-3 mb-2 rounded-full transition-all duration-200 cursor-pointer hover:bg-white/5 ${isCloserEngine ? "bg-primary/10 border border-primary/20" : ""
+                } ${hasActiveItem ? "bg-primary text-white shadow-lg shadow-primary/25" : "text-white/60"}`}
             >
-              <div className="flex items-center justify-center px-3 py-2.5">
-                <GroupIcon className={`h-5 w-5 ${isCloserEngine ? "text-cyan-400" : ""}`} />
+              <div className="flex items-center justify-center px-4 py-3">
+                <GroupIcon className={`h-5 w-5 ${isCloserEngine && !hasActiveItem ? "text-primary" : ""}`} />
               </div>
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start" className="w-48 bg-[#1a2744] border-cyan-500/30">
-            <DropdownMenuLabel className="text-white/70">{group.label}</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-white/10" />
+          <DropdownMenuContent side="right" align="start" className="w-56 bg-[#0f172a] border-white/10 shadow-2xl rounded-xl p-1.5">
+            <DropdownMenuLabel className="text-white/40 text-[10px] uppercase tracking-widest px-2 py-1.5">{group.label}</DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-white/5 mx-1" />
             {group.items.map(item => {
               const Icon = item.icon;
               const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
               return (
                 <DropdownMenuItem
                   key={item.path}
-                  className={`cursor-pointer ${isLocked ? "opacity-50" : ""}`}
+                  className={`cursor-pointer rounded-lg mb-0.5 focus:bg-primary/10 focus:text-primary ${isLocked ? "opacity-40" : ""}`}
                   disabled={isLocked}
                   onClick={() => !isLocked && setLocation(item.path)}
                 >
                   {isLocked ? (
-                    <Lock className="h-4 w-4 mr-2" />
+                    <Lock className="h-4 w-4 mr-3 opacity-60" />
                   ) : (
-                    <Icon className="h-4 w-4 mr-2" />
+                    <Icon className="h-4 w-4 mr-3 opacity-60" />
                   )}
-                  {item.label}
+                  <span className="text-sm font-medium">{item.label}</span>
                 </DropdownMenuItem>
               );
             })}
@@ -368,43 +368,42 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         key={group.label}
         open={isExpanded}
         onOpenChange={() => toggleGroup(group.label)}
-        className={`mb-1 ${isCloserEngine ? "relative" : ""}`}
+        className="mb-1.5"
       >
-        {isCloserEngine && (
-          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5 rounded-xl pointer-events-none" />
-        )}
         <CollapsibleTrigger asChild>
           <div
-            className={`mx-2 rounded-md transition-colors cursor-pointer hover:bg-white/5 ${
-              isCloserEngine 
-                ? "bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 hover:border-cyan-500/40 shadow-lg shadow-cyan-500/5" 
-                : hasActiveItem && !isExpanded ? "bg-primary/10" : ""
-            }`}
+            className={`mx-3 rounded-full transition-all duration-200 cursor-pointer group ${isCloserEngine
+                ? "bg-primary/5 border border-primary/10 hover:border-primary/30"
+                : hasActiveItem && !isExpanded ? "bg-primary/10" : "hover:bg-white/5"
+              }`}
           >
-            <div className="flex items-center justify-between px-3 py-2.5">
+            <div className="flex items-center justify-between px-4 py-2.5">
               <div className="flex items-center gap-3">
-                <GroupIcon className={`h-4 w-4 flex-shrink-0 ${isCloserEngine ? "text-cyan-400" : hasActiveItem ? "text-primary" : "text-white/60"}`} />
-                <span className={`text-sm font-semibold ${isCloserEngine ? "text-cyan-300" : hasActiveItem ? "text-primary" : "text-white/70"}`}>
+                <GroupIcon className={`h-4.5 w-4.5 flex-shrink-0 transition-colors ${isCloserEngine ? "text-primary" : hasActiveItem ? "text-primary" : "text-white/40 group-hover:text-white/70"
+                  }`} />
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${isCloserEngine ? "text-primary" : hasActiveItem ? "text-primary" : "text-white/50 group-hover:text-white/80"
+                  }`}>
                   {group.label}
                 </span>
                 {isCloserEngine && (
-                  <Badge className="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0 h-4">
-                    PRO
+                  <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black px-1.5 py-0 h-4 rounded-full">
+                    AI
                   </Badge>
                 )}
               </div>
               <ChevronDown
-                className={`h-4 w-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-all duration-300 ${isExpanded ? "rotate-180 opacity-100" : "opacity-30 group-hover:opacity-60"
+                  } ${hasActiveItem ? "text-primary" : "text-white"}`}
               />
             </div>
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="pl-4 mt-1"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="mt-1"
           >
             {group.items.map(item => {
               const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
@@ -426,16 +425,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <ActivationChecklist isOpen={showChecklist} onClose={closeChecklist} onComplete={handleComplete} />
 
       <motion.aside
-        className="hidden md:flex flex-col border-r bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] border-cyan-500/20"
+        className="hidden md:flex flex-col border-r bg-[#0b1120] border-white/5"
         initial={false}
-        animate={{ width: sidebarCollapsed ? "4rem" : "16rem" }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: "easeInOut" }}
+        animate={{ width: sidebarCollapsed ? "5rem" : "18rem" }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: [0.4, 0, 0.2, 1] }}
         data-testid="sidebar-desktop"
         style={{
-          boxShadow: "0 0 40px rgba(0, 200, 255, 0.1)",
+          boxShadow: "4px 0 24px rgba(0, 0, 0, 0.25)",
         }}
       >
-        <div className="h-16 flex items-center justify-between px-4 border-b border-cyan-500/20">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.div
@@ -477,35 +476,35 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             data-testid="button-toggle-sidebar"
           >
             <ChevronLeft
-              className={`h-4 w-4 transition-transform ${
-                sidebarCollapsed ? "rotate-180" : ""
-              }`}
+              className={`h-4 w-4 transition-transform ${sidebarCollapsed ? "rotate-180" : ""
+                }`}
             />
           </Button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4" data-testid="nav-desktop">
+        <nav className="flex-1 overflow-y-auto py-6" data-testid="nav-desktop">
           <Link href="/dashboard">
             <motion.div
-              className={`mx-2 mb-3 rounded-md transition-colors hover:bg-primary/10 ${
-                location === "/dashboard" ? "bg-primary/10 text-primary" : "text-white"
-              }`}
+              className={`mx-3 mb-4 rounded-full transition-all duration-200 ${location === "/dashboard"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                : "text-white/80 hover:text-white hover:bg-white/5"
+                }`}
               whileHover={prefersReducedMotion ? {} : { x: 4 }}
               transition={{ duration: 0.2 }}
               data-testid="nav-item-home"
             >
-              <div className="flex items-center gap-3 px-3 py-2.5">
+              <div className="flex items-center gap-3 px-4 py-3">
                 <Home className="h-5 w-5 flex-shrink-0" />
                 {!sidebarCollapsed && (
-                  <span className="text-sm font-semibold">Home</span>
+                  <span className="text-sm font-bold tracking-tight">Home</span>
                 )}
               </div>
             </motion.div>
           </Link>
 
-          <div className="px-3 mb-2">
+          <div className="px-6 mb-4">
             {!sidebarCollapsed && (
-              <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+              <div className="h-px bg-white/5" />
             )}
           </div>
 
@@ -513,24 +512,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           {user?.role === "admin" && (
             <>
-              <div className="px-3 my-2">
+              <div className="px-6 my-4">
                 {!sidebarCollapsed && (
-                  <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+                  <div className="h-px bg-white/5" />
                 )}
               </div>
               <Link href={adminSecretPath}>
                 <motion.div
-                  className={`mx-2 mb-1 rounded-md transition-colors hover:bg-primary/10 ${
-                    location === adminSecretPath ? "bg-primary/10 text-primary" : "text-white/80"
-                  }`}
+                  className={`mx-3 mb-1.5 rounded-full transition-all duration-200 ${location === adminSecretPath ? "bg-primary/10 text-primary" : "text-white/60 hover:text-white"
+                    }`}
                   whileHover={prefersReducedMotion ? {} : { x: 4 }}
                   transition={{ duration: 0.2 }}
                   data-testid="nav-item-admin"
                 >
-                  <div className="flex items-center gap-3 px-3 py-2.5">
-                    <Shield className="h-4 w-4 flex-shrink-0" />
+                  <div className="flex items-center gap-3 px-4 py-2.5">
+                    <Shield className="h-4.5 w-4.5 flex-shrink-0" />
                     {!sidebarCollapsed && (
-                      <span className="text-sm font-medium">Admin Panel</span>
+                      <span className="text-sm font-medium tracking-tight">Admin Panel</span>
                     )}
                   </div>
                 </motion.div>
@@ -540,13 +538,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {!sidebarCollapsed && (
-          <div className="p-3 border-t border-cyan-500/20">
+          <div className="p-4 border-t border-white/5 bg-white/[0.02]">
             <div className="flex gap-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={replayTour}
-                className="flex-1 text-xs text-white/60 hover:text-white hover:bg-white/5"
+                className="flex-1 text-xs text-white/50 hover:text-white hover:bg-white/10 rounded-full"
               >
                 <Play className="h-3 w-3 mr-1" />
                 Tour
@@ -555,9 +553,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 variant="ghost"
                 size="sm"
                 onClick={openChecklist}
-                className={`flex-1 text-xs hover:bg-white/5 ${
-                  activationComplete ? "text-emerald-400" : "text-cyan-400"
-                }`}
+                className={`flex-1 text-xs hover:bg-white/10 rounded-full ${activationComplete ? "text-emerald-400" : "text-cyan-400"
+                  }`}
               >
                 {activationComplete ? (
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -571,8 +568,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         )}
       </motion.aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 border-b border-cyan-500/20 bg-gradient-to-r from-[#0d1428] via-[#0a0f1f] to-[#0d1428] flex items-center justify-between px-4 md:px-6" data-testid="navbar-top">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0f1e]">
+        <header className="h-16 border-b border-white/5 bg-[#0b1120]/80 backdrop-blur-md flex items-center justify-between px-6 md:px-8 z-20" data-testid="navbar-top">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button
@@ -595,9 +592,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
                 <nav className="flex-1 overflow-y-auto -mx-2">
                   <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <div className={`mx-2 mb-3 rounded-md transition-colors ${
-                      location === "/dashboard" ? "bg-primary/10 text-primary" : "text-white"
-                    }`}>
+                    <div className={`mx-2 mb-3 rounded-md transition-colors ${location === "/dashboard" ? "bg-primary/10 text-primary" : "text-white"
+                      }`}>
                       <div className="flex items-center gap-3 px-3 py-2.5">
                         <Home className="h-5 w-5 flex-shrink-0" />
                         <span className="text-sm font-semibold">Home</span>
@@ -617,9 +613,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     return (
                       <div key={group.label} className="mb-1">
                         <div
-                          className={`mx-2 rounded-md transition-colors cursor-pointer hover:bg-white/5 ${
-                            hasActiveItem && !isExpanded ? "bg-primary/10" : ""
-                          }`}
+                          className={`mx-2 rounded-md transition-colors cursor-pointer hover:bg-white/5 ${hasActiveItem && !isExpanded ? "bg-primary/10" : ""
+                            }`}
                           onClick={() => toggleGroup(group.label)}
                         >
                           <div className="flex items-center justify-between px-3 py-2.5">
@@ -664,9 +659,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                                 return (
                                   <Link key={item.path} href={item.path} onClick={() => setMobileMenuOpen(false)}>
                                     <div
-                                      className={`mx-2 mb-1 rounded-md transition-colors ${
-                                        isActive ? "bg-primary/10 text-primary" : "text-white/80"
-                                      }`}
+                                      className={`mx-2 mb-1 rounded-md transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-white/80"
+                                        }`}
                                     >
                                       <div className="flex items-center gap-3 px-3 py-2.5">
                                         <Icon className="h-4 w-4 flex-shrink-0" />
@@ -705,9 +699,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                         setMobileMenuOpen(false);
                         openChecklist();
                       }}
-                      className={`flex-1 text-xs hover:bg-white/5 ${
-                        activationComplete ? "text-emerald-400" : "text-cyan-400"
-                      }`}
+                      className={`flex-1 text-xs hover:bg-white/5 ${activationComplete ? "text-emerald-400" : "text-cyan-400"
+                        }`}
                     >
                       {activationComplete ? (
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -842,9 +835,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             return (
               <Link key={item.path} href={item.path}>
                 <motion.div
-                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${isActive ? "text-primary" : "text-muted-foreground"
+                    }`}
                   whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                   data-testid={`mobile-nav-${item.label.toLowerCase()}`}
                 >
