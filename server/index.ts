@@ -102,7 +102,7 @@ app.use('/api/instagram/callback', express.json({
 
     res.on("finish", () => {
       const duration = Date.now() - start;
-      if (path.startsWith("/api") && (res.statusCode >= 400 || duration > 1000)) {
+      if (res.statusCode >= 400 || duration > 1000 || path.startsWith("/api")) {
         log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
       }
     });
