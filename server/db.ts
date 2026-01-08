@@ -21,7 +21,9 @@ if (process.env.DATABASE_URL) {
     });
     db = drizzle(pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon)');
-    console.log('📊 Database:', process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown');
+    console.log(`📊 Database: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown'}`);
+    // EXPLICIT CONNECTION TEST
+    pool.query('SELECT NOW()').then(() => console.log('🚀 Database Query Test: SUCCESS')).catch((e: any) => console.error('❌ Database Query Test: FAILED', e));
   } catch (error) {
     console.error('❌ Database connection failed:', error);
     console.error('💡 Check your DATABASE_URL in Vercel environment variables');
