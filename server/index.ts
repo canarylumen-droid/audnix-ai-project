@@ -92,84 +92,84 @@ app.use('/api/instagram/callback', express.json({
   }
 }));
 
-  // Trust proxy for Railway/Vercel/Cloudflare
-  app.set("trust proxy", 1);
+// Trust proxy for Railway/Vercel/Cloudflare
+app.set("trust proxy", 1);
 
-  // Optimized Logging Middleware
-  app.use((req, res, next) => {
-    const start = Date.now();
-    const currentPath = req.path;
+// Optimized Logging Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const currentPath = req.path;
 
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      if (res.statusCode >= 400 || duration > 1000 || currentPath.startsWith("/api")) {
-        log(`${req.method} ${currentPath} ${res.statusCode} in ${duration}ms`);
-      }
-    });
-
-    next();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (res.statusCode >= 400 || duration > 1000 || currentPath.startsWith("/api")) {
+      log(`${req.method} ${currentPath} ${res.statusCode} in ${duration}ms`);
+    }
   });
 
-  // Configure session - ensure secret is set
-  // Note: Replit auto-generates SESSION_SECRET, but we validate it's present
-  // Use a secure session store in production (PostgreSQL via connect-pg-simple)
-  // Falls back to MemoryStore in development
-  const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
-  if (!process.env.SESSION_SECRET) {
-    console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
-  }
+  next();
+});
 
-  // Create PostgreSQL session store if DATABASE_URL is available
-  const PgSession = connectPgSimple(session);
-  let sessionStore: session.Store | undefined;
+// Configure session - ensure secret is set
+// Note: Replit auto-generates SESSION_SECRET, but we validate it's present
+// Use a secure session store in production (PostgreSQL via connect-pg-simple)
+// Falls back to MemoryStore in development
+const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
+}
 
-  // Use connection pooling for session store if possible
-  if (process.env.DATABASE_URL) {
-    sessionStore = new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'user_sessions',
-      createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15,
-      // Add connection pooling options if supported by the library
-      schemaName: 'public',
-    });
-    console.log('✅ Using PostgreSQL session store (persistent across restarts)');
-  }
+// Create PostgreSQL session store if DATABASE_URL is available
+const PgSession = connectPgSimple(session);
+let sessionStore: session.Store | undefined;
 
-  const sessionConfig: session.SessionOptions = {
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    name: 'audnix.sid',
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-      sameSite: 'lax',
-      path: '/',
-    },
-    store: sessionStore,
-    rolling: true,
-    proxy: true,
-  };
+// Use connection pooling for session store if possible
+if (process.env.DATABASE_URL) {
+  sessionStore = new PgSession({
+    conString: process.env.DATABASE_URL,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 15,
+    // Add connection pooling options if supported by the library
+    schemaName: 'public',
+  });
+  console.log('✅ Using PostgreSQL session store (persistent across restarts)');
+}
+
+const sessionConfig: session.SessionOptions = {
+  secret: sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+  name: 'audnix.sid',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+    sameSite: 'lax',
+    path: '/',
+  },
+  store: sessionStore,
+  rolling: true,
+  proxy: true,
+};
 
 app.use(session(sessionConfig));
 
-  // CORS Middleware - Allow browser requests from allowed origins
-  app.use((req, res, next) => {
-    // Basic CORS for all environments
-    const origin = req.get('origin');
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
-    res.setHeader('Access-Control-Max-Age', '86400');
+// CORS Middleware - Allow browser requests from allowed origins
+app.use((req, res, next) => {
+  // Basic CORS for all environments
+  const origin = req.get('origin');
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(204);
-    }
-    next();
-  });
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // CSRF Protection via SameSite cookies + Origin validation
 app.use((req, res, next) => {
@@ -367,7 +367,7 @@ async function runMigrations() {
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
-  
+
   // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
   app.get('/health', (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -377,7 +377,7 @@ async function runMigrations() {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
   });
-  
+
   const serverInstance = server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
     log(`✅ Healthcheck endpoint active at /health`);
@@ -394,7 +394,7 @@ async function runMigrations() {
       log("HTTP server closed.", "system");
       process.exit(0);
     });
-    
+
     // Force close if it takes too long
     setTimeout(() => {
       log("Could not close connections in time, forcefully shutting down", "system");
@@ -410,7 +410,7 @@ async function runMigrations() {
     try {
       // 1. Run migrations
       await runMigrations();
-      
+
       // 2. Start workers
       const { db } = await import('./db.js');
       const hasDatabase = process.env.DATABASE_URL && db;
@@ -442,6 +442,17 @@ async function runMigrations() {
       }
 
       if (hasDatabase) {
+        console.log('📬 Starting email workers...');
+        emailSyncWorker.start();
+
+        // Start real-time IMAP IDLE if available
+        try {
+          const { imapIdleManager } = await import('./lib/email/imap-idle-manager.js');
+          imapIdleManager.start();
+        } catch (err) {
+          console.warn('⚠️ Could not start IMAP IDLE manager:', err);
+        }
+
         paymentAutoApprovalWorker.start();
       }
     } catch (error: any) {

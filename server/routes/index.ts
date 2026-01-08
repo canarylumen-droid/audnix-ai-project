@@ -67,6 +67,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/messages", messagesRoutes);
   app.use("/api/brand-pdf", adminPdfRoutes);
   app.use("/api/admin", adminPdfRoutes);
+  app.use("/api/admin", adminPdfRoutesV2); // Added to support /api/admin/analyze-pdf-v2
   app.use("/api/pdf", adminPdfRoutes); // Alias for /api/pdf/upload calls
   app.use("/api/oauth", oauthRoutes);
   app.use("/api/otp", otpRoutes);

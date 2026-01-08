@@ -38,11 +38,11 @@ export class TwilioEmailOTP {
 
   isConfigured(): boolean {
     const isFullyConfigured = !!this.sendgridApiKey;
-    
+
     if (!isFullyConfigured) {
       console.error(`❌ SendGrid OTP not configured. Missing: TWILIO_SENDGRID_API_KEY`);
     }
-    
+
     return isFullyConfigured;
   }
 
@@ -115,7 +115,7 @@ export class TwilioEmailOTP {
         const errorText = await response.text();
         const statusCode = response.status;
         console.error(`❌ SendGrid API Error [${statusCode}]: ${errorText}`);
-        
+
         let errorMsg = 'Failed to send OTP email';
         try {
           const errorJson: SendGridErrorResponse = JSON.parse(errorText);
@@ -125,7 +125,7 @@ export class TwilioEmailOTP {
         } catch {
           // Keep default error message
         }
-        
+
         return { success: false, error: errorMsg };
       }
 
@@ -140,7 +140,7 @@ export class TwilioEmailOTP {
   async verifyEmailOTP(email: string, otp: string): Promise<OTPVerificationResult> {
     try {
       const normalizedEmail = email.toLowerCase();
-      
+
       // Get latest OTP from database
       const otpRecord = await storage.getLatestOtpCode(normalizedEmail);
 
@@ -155,7 +155,7 @@ export class TwilioEmailOTP {
       const maxAttempts = 5;
       const currentAttempts = (otpRecord.attempts || 0) + 1;
       const remainingAttempts = maxAttempts - currentAttempts;
-      
+
       if (currentAttempts > maxAttempts) {
         return { success: false, error: 'Too many attempts. Request a new code.', remainingAttempts: 0 };
       }
@@ -164,8 +164,8 @@ export class TwilioEmailOTP {
       await storage.incrementOtpAttempts(otpRecord.id);
 
       if (otpRecord.code !== otp) {
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: 'Invalid OTP. Please try again.',
           remainingAttempts,
           expiresAt: new Date(otpRecord.expiresAt)
@@ -281,7 +281,7 @@ export class TwilioEmailOTP {
   async verifySignupOTP(email: string, otp: string): Promise<OTPVerificationResult & { passwordHash?: string }> {
     try {
       const normalizedEmail = email.toLowerCase();
-      
+
       console.log(`🔍 [OTP Verify] Looking up OTP for ${normalizedEmail}`);
 
       // Get latest signup OTP from database
@@ -309,7 +309,7 @@ export class TwilioEmailOTP {
       const maxAttempts = 5;
       const currentAttempts = (otpRecord.attempts || 0) + 1;
       const remainingAttempts = maxAttempts - currentAttempts;
-      
+
       if (currentAttempts > maxAttempts) {
         console.error(`❌ [OTP Verify] Too many attempts for ${normalizedEmail}`);
         return { success: false, error: 'Too many attempts. Please start signup again.', remainingAttempts: 0 };
@@ -320,8 +320,8 @@ export class TwilioEmailOTP {
 
       if (otpRecord.code !== otp) {
         console.warn(`⚠️  [OTP Verify] Invalid OTP attempt for ${normalizedEmail}`);
-        return { 
-          success: false, 
+        return {
+          success: false,
           error: 'Invalid OTP. Please try again.',
           remainingAttempts,
           expiresAt: new Date(otpRecord.expiresAt)
@@ -332,14 +332,14 @@ export class TwilioEmailOTP {
       await storage.markOtpVerified(otpRecord.id);
 
       console.log(`✅ [OTP Verify] OTP verified successfully for ${normalizedEmail}`);
-      
+
       if (!otpRecord.passwordHash) {
         console.error(`❌ [OTP Verify] Password hash missing for ${normalizedEmail} - cannot complete signup!`);
       }
 
-      return { 
+      return {
         success: true,
-        passwordHash: otpRecord.passwordHash 
+        passwordHash: otpRecord.passwordHash
       };
     } catch (error: unknown) {
       console.error('Error verifying signup OTP:', error);

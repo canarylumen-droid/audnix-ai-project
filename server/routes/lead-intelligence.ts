@@ -4,6 +4,8 @@ import type { LeadProfile, ConversationMessage, BrandContext } from "../../share
 import { calculateLeadScore, findDuplicateLeads, enrichLeadCompany, addTimelineEvent, addLeadTag, setCustomFieldValue } from "../lib/ai/lead-management.js";
 import { detectLeadIntent, suggestSmartReply, detectObjection, predictDealAmount, assessChurnRisk, generateLeadIntelligenceDashboard } from "../lib/ai/lead-intelligence.js";
 import { generateOptimizedMessage } from "../lib/ai/universal-sales-agent.js";
+import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+import { storage } from "../storage.js";
 
 const router: Router = express.Router();
 
@@ -97,11 +99,11 @@ interface GenerateMessageRequestBody {
 }
 
 // ============ LEAD SCORING ============
-router.post("/score", async (req: Request<object, object, ScoreRequestBody>, res: Response): Promise<void> => {
+router.post("/score", requireAuth, async (req: Request<object, object, ScoreRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const score = await calculateLeadScore(lead, messages);
-    
+
     res.json({
       lead_id: lead.id,
       score,
@@ -115,11 +117,11 @@ router.post("/score", async (req: Request<object, object, ScoreRequestBody>, res
 });
 
 // ============ LEAD INTENT DETECTION ============
-router.post("/intent", async (req: Request<object, object, IntentRequestBody>, res: Response): Promise<void> => {
+router.post("/intent", requireAuth, async (req: Request<object, object, IntentRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const intent = await detectLeadIntent(messages || [], lead);
-    
+
     res.json({
       lead_id: lead.id,
       ...intent,
@@ -132,16 +134,27 @@ router.post("/intent", async (req: Request<object, object, IntentRequestBody>, r
 });
 
 // ============ SMART REPLY SUGGESTIONS ============
-router.post("/smart-reply", async (req: Request<object, object, SmartReplyRequestBody>, res: Response): Promise<void> => {
+router.post("/smart-reply", requireAuth, async (req: Request<object, object, SmartReplyRequestBody>, res: Response): Promise<void> => {
   try {
-    const { lead, lastMessageFromLead, brandContext, conversationHistory } = req.body;
+    const userId = getCurrentUserId(req);
+    const { lead, lastMessageFromLead, conversationHistory } = req.body;
+    let { brandContext } = req.body;
+
+    // Fallback: Fetch brand context from user metadata if not provided
+    if (!brandContext && userId) {
+      const user = await storage.getUser(userId);
+      if (user?.metadata) {
+        brandContext = user.metadata as BrandContext;
+      }
+    }
+
     const suggestions = await suggestSmartReply(
       lastMessageFromLead,
       lead,
       brandContext || {} as BrandContext,
       conversationHistory || []
     );
-    
+
     res.json({
       lead_id: lead.id,
       suggestions,
@@ -158,7 +171,7 @@ router.post("/detect-objection", async (req: Request<object, object, ObjectionRe
   try {
     const { messageText, leadId } = req.body;
     const objection = await detectObjection(messageText);
-    
+
     res.json({
       lead_id: leadId,
       ...objection,
@@ -175,7 +188,7 @@ router.post("/predict-deal", async (req: Request<object, object, DealPredictionR
   try {
     const { lead, messages } = req.body;
     const prediction = await predictDealAmount(lead, messages || []);
-    
+
     res.json({
       lead_id: lead.id,
       ...prediction,
@@ -193,7 +206,7 @@ router.post("/churn-risk", async (req: Request<object, object, ChurnRiskRequestB
   try {
     const { lead, messages, daysAsCustomer } = req.body;
     const churnRisk = await assessChurnRisk(lead, messages || [], daysAsCustomer || 0);
-    
+
     res.json({
       lead_id: lead.id,
       ...churnRisk,
@@ -206,11 +219,11 @@ router.post("/churn-risk", async (req: Request<object, object, ChurnRiskRequestB
 });
 
 // ============ COMPLETE LEAD INTELLIGENCE DASHBOARD ============
-router.post("/intelligence-dashboard", async (req: Request<object, object, IntelligenceDashboardRequestBody>, res: Response): Promise<void> => {
+router.post("/intelligence-dashboard", requireAuth, async (req: Request<object, object, IntelligenceDashboardRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
     const dashboard = await generateLeadIntelligenceDashboard(lead, messages || []);
-    
+
     res.json({
       lead_id: lead.id,
       ...dashboard,
@@ -226,7 +239,7 @@ router.post("/find-duplicates", async (req: Request<object, object, DuplicatesRe
   try {
     const { lead, userLeads } = req.body;
     const duplicates = await findDuplicateLeads(lead, userLeads || []);
-    
+
     res.json({
       lead_id: lead.id,
       duplicates_found: duplicates.length,
@@ -248,7 +261,7 @@ router.post("/enrich-company", async (req: Request<object, object, EnrichCompany
   try {
     const { lead } = req.body;
     const enrichment = await enrichLeadCompany(lead);
-    
+
     res.json({
       lead_id: lead.id,
       enrichment,
@@ -265,7 +278,7 @@ router.post("/tag", async (req: Request<object, object, TagRequestBody>, res: Re
   try {
     const { leadId, tagName } = req.body;
     await addLeadTag(leadId, tagName);
-    
+
     res.json({
       lead_id: leadId,
       tag_added: tagName,
@@ -282,7 +295,7 @@ router.post("/custom-field", async (req: Request<object, object, CustomFieldRequ
   try {
     const { leadId, fieldName, value } = req.body;
     await setCustomFieldValue(leadId, fieldName, value);
-    
+
     res.json({
       lead_id: leadId,
       field_set: fieldName,
@@ -300,7 +313,7 @@ router.post("/timeline-event", async (req: Request<object, object, TimelineEvent
   try {
     const { leadId, actionType, actionData, actorId } = req.body;
     await addTimelineEvent(leadId, actionType, actionData, actorId);
-    
+
     res.json({
       lead_id: leadId,
       action_logged: actionType,
@@ -313,9 +326,19 @@ router.post("/timeline-event", async (req: Request<object, object, TimelineEvent
 });
 
 // ============ GENERATE OPTIMIZED MESSAGE WITH INTELLIGENCE ============
-router.post("/generate-message-with-intelligence", async (req: Request<object, object, GenerateMessageRequestBody>, res: Response): Promise<void> => {
+router.post("/generate-message-with-intelligence", requireAuth, async (req: Request<object, object, GenerateMessageRequestBody>, res: Response): Promise<void> => {
   try {
-    const { lead, brandContext, testimonials, stage } = req.body;
+    const userId = getCurrentUserId(req);
+    const { lead, testimonials, stage } = req.body;
+    let { brandContext } = req.body;
+
+    // Fallback: Fetch brand context from user metadata if not provided
+    if (!brandContext && userId) {
+      const user = await storage.getUser(userId);
+      if (user?.metadata) {
+        brandContext = user.metadata as BrandContext;
+      }
+    }
 
     const intelligence = await generateLeadIntelligenceDashboard(lead, []);
 

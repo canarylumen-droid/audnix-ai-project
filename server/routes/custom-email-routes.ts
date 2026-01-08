@@ -60,7 +60,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       res.status(400).json({ error: 'Missing required fields (SMTP host, email, password)' });
       return;
     }
-    
+
     const effectiveImapHost = imapHost || smtpHost.replace('smtp.', 'imap.');
     console.log(`[Email Connect] Connecting ${email} via SMTP ${smtpHost}:${smtpPort || 587}`);
 
@@ -104,7 +104,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     // Try to import emails, but don't fail the connection if import fails
     let importResults: any = null;
     let importError: string | null = null;
-    
+
     try {
       console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
       const { importCustomEmails } = await import('../lib/channels/email.js');
@@ -132,6 +132,15 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       console.warn(`[Email Connect] Auto-import failed (non-critical): ${errorMsg}`);
     }
 
+    // Trigger real-time sync manager to pick up new connection
+    try {
+      const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+      // @ts-ignore - call is async but we don't need to wait for full connection to respond
+      imapIdleManager.syncConnections();
+    } catch (idleErr) {
+      console.warn('[Email Connect] Could not trigger IDLE sync:', idleErr);
+    }
+
     // Always return success if email was saved, even if import failed
     res.json({
       success: true,
@@ -143,9 +152,9 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Email Connect] Fatal error:`, error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to connect custom email',
-      details: errorMsg 
+      details: errorMsg
     });
   }
 });
@@ -156,7 +165,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 router.post('/import', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const abuseCheck = await smtpAbuseProtection.canSendEmail(userId);
     if (!abuseCheck.allowed) {
       res.status(429).json({
@@ -167,7 +176,7 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
     }
 
     const integration = await storage.getIntegration(userId, 'custom_email');
-    
+
     if (!integration) {
       res.status(400).json({ error: 'Custom email not connected' });
       return;
@@ -228,7 +237,7 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
 
     // Import nodemailer to test connection
     const nodemailer = await import('nodemailer');
-    
+
     const transporter = nodemailer.createTransport({
       host: smtpHost,
       port: parseInt(smtpPort) || 587,
@@ -242,9 +251,9 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
 
     // Verify connection
     await transporter.verify();
-    
+
     console.log(`[Email Test] SMTP connection successful for ${email}`);
-    
+
     res.json({
       success: true,
       message: 'SMTP connection verified successfully'
@@ -252,9 +261,9 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`[Email Test] Connection failed:`, errorMsg);
-    res.status(400).json({ 
+    res.status(400).json({
       error: 'SMTP connection failed',
-      details: errorMsg 
+      details: errorMsg
     });
   }
 });
@@ -265,7 +274,7 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
 router.post('/disconnect', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     await storage.deleteIntegration(userId, 'custom_email');
 
     res.json({
@@ -312,14 +321,14 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
     }
 
     const integration = await storage.getIntegration(userId, 'custom_email');
-    
+
     if (!integration?.connected) {
       res.status(400).json({ error: 'Email not connected. Please connect your email first.' });
       return;
     }
 
     const { sendEmail } = await import('../lib/channels/email.js');
-    
+
     await sendEmail(
       userId,
       recipientEmail,
@@ -335,9 +344,9 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : 'Send failed';
     console.error('[Email Send Test] Failed:', error);
-    res.status(500).json({ 
-      error: 'Failed to send test email', 
-      details: errorMsg 
+    res.status(500).json({
+      error: 'Failed to send test email',
+      details: errorMsg
     });
   }
 });
