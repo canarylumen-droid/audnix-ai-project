@@ -116,7 +116,10 @@ export function serveStatic(app: Express) {
   // Handle all other routes by serving index.html (SPA)
   app.get('*', (req, res) => {
     // CRITICAL: Never serve index.html for API or Webhook routes
-    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/')) {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health') {
+      if (req.path === '/health') {
+        return res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+      }
       return res.status(404).json({ error: "Not found" });
     }
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
