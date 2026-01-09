@@ -13,7 +13,7 @@ export function getPlanTier(planId: string): PricingTier | undefined {
 
 export function getPlanCapabilities(planId: string) {
   const tier = getPlanTier(planId);
-  
+
   if (!tier) {
     return {
       leadsLimit: 0,
@@ -47,13 +47,12 @@ export function getPlanCapabilities(planId: string) {
     hasAPIAccess: isEnterprise,
     hasPrioritySupport: isProOrAbove,
     hasVideoAutomation: true, // Video automation FREE for all plans
-    hasInstagramDM: true, // Instagram DM automation available to ALL users
     hasWhatsApp: isPaid, // WhatsApp only for paid plans
     hasEmail: true // Email available to ALL users including free/trial
   };
 }
 
-export type FeatureKey = 
+export type FeatureKey =
   | 'voiceNotes'
   | 'analytics'
   | 'fullAnalytics'
@@ -64,13 +63,12 @@ export type FeatureKey =
   | 'apiAccess'
   | 'prioritySupport'
   | 'videoAutomation'
-  | 'instagramDM'
   | 'whatsApp'
   | 'email';
 
 export function canAccessFeature(featureKey: FeatureKey, planId: string): boolean {
   const capabilities = getPlanCapabilities(planId);
-  
+
   const featureMap: Record<FeatureKey, boolean> = {
     voiceNotes: capabilities.hasVoiceNotes,
     analytics: capabilities.hasAnalytics,
@@ -82,11 +80,10 @@ export function canAccessFeature(featureKey: FeatureKey, planId: string): boolea
     apiAccess: capabilities.hasAPIAccess,
     prioritySupport: capabilities.hasPrioritySupport,
     videoAutomation: capabilities.hasVideoAutomation,
-    instagramDM: capabilities.hasInstagramDM,
     whatsApp: capabilities.hasWhatsApp,
     email: capabilities.hasEmail
   };
-  
+
   return featureMap[featureKey] || false;
 }
 
@@ -102,6 +99,6 @@ export function shouldShowUpgradePrompt(planId: string, leadCount: number, voice
   const capabilities = getPlanCapabilities(planId);
   const leadsNearLimit = capabilities.leadsLimit > 0 && leadCount >= capabilities.leadsLimit * 0.9;
   const voiceNearLimit = capabilities.voiceMinutes > 0 && voiceMinutesUsed >= capabilities.voiceMinutes * 0.9;
-  
+
   return leadsNearLimit || voiceNearLimit || (!isPaidPlan(planId) && planId !== 'free');
 }

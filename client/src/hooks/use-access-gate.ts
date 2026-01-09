@@ -9,7 +9,7 @@ export interface AccessGate {
 
 export function useAccessGate(featureKey?: FeatureKey): AccessGate {
   const { user } = useUser();
-  
+
   if (!user) {
     return {
       canAccess: false,
@@ -20,7 +20,7 @@ export function useAccessGate(featureKey?: FeatureKey): AccessGate {
 
   const plan = user.plan || 'free';
   const capabilities = getPlanCapabilities(plan);
-  
+
   if (featureKey && !canAccessFeature(featureKey, plan)) {
     return {
       canAccess: false,
@@ -31,10 +31,10 @@ export function useAccessGate(featureKey?: FeatureKey): AccessGate {
 
   const leadCount = user.leadCount || 0;
   const voiceMinutesUsed = user.voiceMinutesUsed || 0;
-  
+
   const leadsExceeded = capabilities.leadsLimit > 0 && leadCount >= capabilities.leadsLimit;
   const voiceExceeded = capabilities.voiceMinutes > 0 && voiceMinutesUsed >= capabilities.voiceMinutes;
-  
+
   if (leadsExceeded || voiceExceeded) {
     return {
       canAccess: false,
@@ -51,7 +51,7 @@ export function useAccessGate(featureKey?: FeatureKey): AccessGate {
 
 export function useCanSendMessages(): AccessGate {
   const { user } = useUser();
-  
+
   if (!user) {
     return { canAccess: false, showUpgradePrompt: false };
   }
@@ -87,9 +87,7 @@ export function useCanAccessVideoAutomation(): AccessGate {
   return useAccessGate('videoAutomation');
 }
 
-export function useCanAccessInstagramDM(): AccessGate {
-  return useAccessGate('instagramDM');
-}
+// Instagram DM hook removed - not supported yet
 
 export function useCanAccessWhatsApp(): AccessGate {
   return useAccessGate('whatsApp');

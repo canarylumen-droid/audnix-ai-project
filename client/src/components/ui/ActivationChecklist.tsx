@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   User,
   Mail,
@@ -13,9 +12,16 @@ import {
   Lock,
   X,
   Sparkles,
+  ShieldAlert,
+  Terminal,
+  Cpu,
+  Activity,
+  ZapOff
 } from "lucide-react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
+import { apiRequest } from "@/lib/queryClient";
 
 export interface ActivationState {
   profile: boolean;
@@ -36,34 +42,34 @@ interface ChecklistItem {
 const CHECKLIST_ITEMS: ChecklistItem[] = [
   {
     id: "profile",
-    title: "Complete your onboarding profile",
-    description: "Tell the AI who you are so it adapts its tone, industry and closing patterns.",
+    title: "OPERATOR IDENTITY",
+    description: "Align neural tone and closing patterns with core brand parameters.",
     icon: <User className="w-5 h-5" />,
-    buttonText: "Complete Profile",
+    buttonText: "Execute Protocol",
     href: "/dashboard/settings",
   },
   {
     id: "smtp",
-    title: "Connect your email (SMTP)",
-    description: "This allows your AI to send follow-ups, recover leads, and close deals automatically.",
+    title: "COMMUNICATION LINK",
+    description: "Initialize SMTP bridge for zero-latency lead recovery.",
     icon: <Mail className="w-5 h-5" />,
-    buttonText: "Connect Email",
+    buttonText: "Establish Link",
     href: "/dashboard/integrations",
   },
   {
     id: "leads",
-    title: "Import your first leads",
-    description: "Upload your CSV or PDF so the AI can analyze, prioritize, and score your pipeline.",
+    title: "PIPELINE INGESTION",
+    description: "Securely vectorise intelligence data for prioritized scoring.",
     icon: <Upload className="w-5 h-5" />,
-    buttonText: "Import Leads",
+    buttonText: "Initialize Ingestion",
     href: "/dashboard/lead-import",
   },
   {
     id: "engine",
-    title: "Activate your Sales Engine",
-    description: "Turn on the AI to start sending sequences, re-engaging cold leads, and handling objections.",
+    title: "NEURAL ACTIVATION",
+    description: "Authorize the engine to execute deterministic engagement sequences.",
     icon: <Zap className="w-5 h-5" />,
-    buttonText: "Activate Engine",
+    buttonText: "Trigger Final Phase",
     href: "/dashboard/conversations",
   },
 ];
@@ -73,11 +79,8 @@ const STORAGE_KEY = "audnixActivation";
 function getActivationState(): ActivationState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-  }
+    if (stored) return JSON.parse(stored);
+  } catch (e) { }
   return { profile: false, smtp: false, leads: false, engine: false };
 }
 
@@ -85,40 +88,52 @@ function setActivationState(state: ActivationState): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-interface ActivationChecklistProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onComplete?: () => void;
-}
+const ProgressRing = ({ progress }: { progress: number }) => {
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-export function ActivationChecklist({ isOpen, onClose, onComplete }: ActivationChecklistProps) {
+  return (
+    <div className="relative w-14 h-14">
+      <svg className="w-full h-full -rotate-90">
+        <circle cx="28" cy="28" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-white/5" />
+        <motion.circle
+          cx="28"
+          cy="28"
+          r={radius}
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="transparent"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1.5, ease: "circOut" }}
+          className="text-primary"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white italic">
+        {Math.round(progress)}%
+      </div>
+    </div>
+  );
+};
+
+export function ActivationChecklist({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [state, setState] = useState<ActivationState>(getActivationState);
   const [expanded, setExpanded] = useState(true);
+  const hasTriggeredConfetti = useRef(false);
 
-  const { data: user } = useQuery<any>({
-    queryKey: ["/api/user/profile"],
-    retry: false,
-  });
-
-  const { data: dashboardStats } = useQuery<any>({
-    queryKey: ["/api/dashboard/stats"],
-    retry: false,
-  });
+  const { data: user } = useQuery<any>({ queryKey: ["/api/user/profile"] });
+  const { data: dashboardStats } = useQuery<any>({ queryKey: ["/api/dashboard/stats"] });
 
   useEffect(() => {
     if (user) {
-      const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
-      const hasEmailConnected = user.smtpConfigured || user.metadata?.smtpConnected || false;
-      const hasLeads = (dashboardStats?.leads || 0) > 0 || (dashboardStats?.totalLeads || 0) > 0;
-      const hasEngineActive = user.automationEnabled || hasLeads;
-
       const newState: ActivationState = {
-        profile: hasCompletedOnboarding,
-        smtp: hasEmailConnected,
-        leads: hasLeads,
-        engine: hasEngineActive,
+        profile: user.metadata?.onboardingCompleted || false,
+        smtp: user.smtpConfigured || user.metadata?.smtpConnected || false,
+        leads: (dashboardStats?.leads || 0) > 0 || (dashboardStats?.totalLeads || 0) > 0,
+        engine: user.automationEnabled || false,
       };
-
       setState(newState);
       setActivationState(newState);
     }
@@ -126,156 +141,85 @@ export function ActivationChecklist({ isOpen, onClose, onComplete }: ActivationC
 
   const completedCount = Object.values(state).filter(Boolean).length;
   const progress = (completedCount / 4) * 100;
-  const isComplete = completedCount === 4;
 
   useEffect(() => {
-    if (isComplete && onComplete) {
-      onComplete();
+    if (progress === 100 && !hasTriggeredConfetti.current) {
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.8 }, colors: ['#00D9FF', '#ffffff'] });
+      hasTriggeredConfetti.current = true;
     }
-  }, [isComplete, onComplete]);
-
-  const markComplete = useCallback((id: keyof ActivationState) => {
-    setState((prev) => {
-      const newState = { ...prev, [id]: true };
-      setActivationState(newState);
-      return newState;
-    });
-  }, []);
+  }, [progress]);
 
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed right-4 top-20 z-50 w-[380px] max-w-[calc(100vw-2rem)]"
-        initial={{ opacity: 0, x: 100 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 100 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="fixed right-8 bottom-8 z-[100] w-[450px] max-w-[calc(100vw-4rem)]"
+        initial={{ y: 100, opacity: 0, scale: 0.9 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 100, opacity: 0, scale: 0.9 }}
+        transition={{ type: "spring", damping: 30, stiffness: 200 }}
       >
-        <div className="bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl overflow-hidden">
-          <div className="p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-b border-white/10">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-cyan-500/20">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
+        <div className="glass-card rounded-[3rem] border-white/10 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-3xl bg-black/80 flex flex-col premium-glow">
+          <div className="p-10 border-b border-white/5">
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-2xl">
+                  <Activity className="w-7 h-7 text-primary animate-pulse" />
                 </div>
-                <h3 className="font-semibold text-white">Activation Checklist</h3>
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-tighter italic uppercase">NEURAL PROTOCOL</h3>
+                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mt-1 italic">V4.0 Initialization</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="p-1 hover:bg-white/10 rounded transition-colors"
-                >
-                  {expanded ? (
-                    <ChevronUp className="w-4 h-4 text-white/60" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-white/60" />
-                  )}
-                </button>
-                <button
-                  onClick={onClose}
-                  className="p-1 hover:bg-white/10 rounded transition-colors"
-                >
-                  <X className="w-4 h-4 text-white/60" />
-                </button>
-              </div>
+              <button onClick={onClose} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-all">
+                <X className="w-4 h-4 text-white/30" />
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-white/70">Progress</span>
-                <span className="text-cyan-400 font-medium">{completedCount} of 4 complete</span>
+            <div className="flex items-center justify-between p-6 rounded-[2rem] bg-white/[0.03] border border-white/5">
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">System Integrity</span>
+                <span className="text-3xl font-black text-white italic tracking-tighter">0{completedCount} / 04 UNITS</span>
               </div>
-              <Progress value={progress} className="h-2 bg-white/10" />
+              <ProgressRing progress={progress} />
             </div>
           </div>
 
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: "auto" }}
-                exit={{ height: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4 space-y-3">
-                  {CHECKLIST_ITEMS.map((item, index) => {
-                    const isCompleted = state[item.id];
-                    const isLocked = index > 0 && !state[CHECKLIST_ITEMS[index - 1].id];
-
-                    return (
-                      <motion.div
-                        key={item.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`p-4 rounded-xl border transition-all ${
-                          isCompleted
-                            ? "bg-emerald-500/10 border-emerald-500/30"
-                            : isLocked
-                            ? "bg-white/5 border-white/10 opacity-60"
-                            : "bg-white/5 border-white/20 hover:border-cyan-500/30"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div
-                            className={`p-2 rounded-lg flex-shrink-0 ${
-                              isCompleted
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : isLocked
-                                ? "bg-white/10 text-white/40"
-                                : "bg-cyan-500/20 text-cyan-400"
-                            }`}
-                          >
-                            {isCompleted ? <Check className="w-5 h-5" /> : isLocked ? <Lock className="w-5 h-5" /> : item.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4
-                              className={`font-medium text-sm ${
-                                isCompleted ? "text-emerald-300 line-through" : "text-white"
-                              }`}
-                            >
-                              {item.title}
-                            </h4>
-                            <p className="text-xs text-white/60 mt-1 line-clamp-2">{item.description}</p>
-                            {!isCompleted && !isLocked && (
-                              <Link href={item.href}>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="mt-2 h-7 text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 p-0"
-                                  onClick={() => markComplete(item.id)}
-                                >
-                                  {item.buttonText} →
-                                </Button>
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {isComplete && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="p-4 pt-0"
-                  >
-                    <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-center">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-3">
-                        <Check className="w-6 h-6 text-emerald-400" />
-                      </div>
-                      <h4 className="font-semibold text-white mb-1">All set!</h4>
-                      <p className="text-sm text-white/70">Your AI sales engine is fully activated.</p>
+          <div className="p-10 space-y-4">
+            {CHECKLIST_ITEMS.map((item, i) => {
+              const active = state[item.id];
+              const locked = i > 0 && !state[CHECKLIST_ITEMS[i - 1].id];
+              return (
+                <div key={item.id} className={`flex items-start gap-6 p-6 rounded-[2rem] border transition-all duration-700 ${active ? "bg-primary/[0.03] border-primary/20" : "bg-white/[0.01] border-white/5"} ${locked ? "opacity-20 pointer-events-none" : ""}`}>
+                  <div className={`mt-1 h-3 w-3 rounded-full flex-shrink-0 transition-all duration-1000 ${active ? "bg-primary shadow-[0_0_15px_rgba(34,211,238,0.8)]" : "border-2 border-white/10"}`} />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className={`text-sm font-black uppercase tracking-widest italic ${active ? "text-primary" : "text-white/40"}`}>{item.title}</h4>
+                      {locked && <Lock className="w-3 h-3 text-white/10" />}
                     </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    <p className="text-[11px] font-bold text-white/20 italic leading-relaxed mb-6">{item.description}</p>
+                    {!active && !locked && (
+                      <Link href={item.href}>
+                        <Button className="h-10 px-6 rounded-xl bg-white text-black font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
+                          Execute Protocol
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="px-10 pb-10">
+            <div className="p-6 rounded-[2rem] border border-primary/20 bg-primary/5 flex items-center gap-4 group">
+              <ShieldAlert className="w-5 h-5 text-primary group-hover:scale-125 transition-transform" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 italic leading-relaxed">
+                Authorization pending. Verify all units to unlock <span className="text-white">Deterministic Autonomy.</span>
+              </p>
+            </div>
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
@@ -284,130 +228,50 @@ export function ActivationChecklist({ isOpen, onClose, onComplete }: ActivationC
 
 export function useActivationChecklist() {
   const [showChecklist, setShowChecklist] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
   const [activationState, setActivationStateLocal] = useState<ActivationState>(getActivationState);
+  const queryClient = useQueryClient();
 
-  const { data: user } = useQuery<any>({
-    queryKey: ["/api/user/profile"],
-    retry: false,
-    staleTime: 30000,
-  });
+  const { data: user } = useQuery<any>({ queryKey: ["/api/user/profile"] });
+  const { data: dashboardStats } = useQuery<any>({ queryKey: ["/api/dashboard/stats"] });
 
-  const { data: dashboardStats } = useQuery<any>({
-    queryKey: ["/api/dashboard/stats"],
-    retry: false,
-    staleTime: 30000,
+  const updateMetadata = useMutation({
+    mutationFn: (metadata: any) => apiRequest("POST", "/api/user/auth/metadata", { metadata }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] })
   });
 
   useEffect(() => {
-    // Check if checklist was already permanently completed/dismissed
-    const permanentlyComplete = localStorage.getItem("audnixActivationComplete");
-    if (permanentlyComplete === "true") {
-      setIsComplete(true);
-      setShowChecklist(false);
-      return;
-    }
-
     if (user) {
-      const hasCompletedOnboarding = user.metadata?.onboardingCompleted || false;
-      const hasEmailConnected = user.smtpConfigured || user.metadata?.smtpConnected || false;
-      const hasLeads = (dashboardStats?.leads || 0) > 0 || (dashboardStats?.totalLeads || 0) > 0;
-      const hasEngineActive = user.automationEnabled || hasLeads;
-
       const newState: ActivationState = {
-        profile: hasCompletedOnboarding,
-        smtp: hasEmailConnected,
-        leads: hasLeads,
-        engine: hasEngineActive,
+        profile: user.metadata?.onboardingCompleted || false,
+        smtp: user.smtpConfigured || user.metadata?.smtpConnected || false,
+        leads: (dashboardStats?.leads || 0) > 0 || (dashboardStats?.totalLeads || 0) > 0,
+        engine: user.automationEnabled || false,
       };
-
       setActivationStateLocal(newState);
-      setActivationState(newState);
+      const allComplete = Object.values(newState).every(Boolean);
+      const alreadyCompleteMarked = user.metadata?.activationChecklistComplete === true;
 
-      const completedCount = Object.values(newState).filter(Boolean).length;
-      const allComplete = completedCount === 4;
-      setIsComplete(allComplete);
-
-      if (allComplete) {
-        // Permanently mark as complete
-        localStorage.setItem("audnixActivationComplete", "true");
-        localStorage.setItem("audnixChecklistDismissed", "true");
-        setShowChecklist(false);
-        return;
+      const dismissed = localStorage.getItem("audnixChecklistDismissed") === "true";
+      if (!allComplete && !dismissed && !alreadyCompleteMarked) {
+        setShowChecklist(true);
       }
 
-      // Don't auto-show checklist - user must click to open
-      // const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
-      // if (!checklistDismissed) {
-      //   const timer = setTimeout(() => {
-      //     setShowChecklist(true);
-      //   }, 2000);
-      //   return () => clearTimeout(timer);
-      // }
-    } else {
-      const state = getActivationState();
-      setActivationStateLocal(state);
-      const completedCount = Object.values(state).filter(Boolean).length;
-      const allComplete = completedCount === 4;
-      setIsComplete(allComplete);
-      
-      if (allComplete) {
-        localStorage.setItem("audnixActivationComplete", "true");
+      if (allComplete && !alreadyCompleteMarked) {
+        updateMetadata.mutate({ activationChecklistComplete: true });
         localStorage.setItem("audnixChecklistDismissed", "true");
-        setShowChecklist(false);
-        return;
-      }
-      
-      const checklistDismissed = localStorage.getItem("audnixChecklistDismissed");
-      if (checklistDismissed) {
-        setShowChecklist(false);
-        return;
+        setTimeout(() => setShowChecklist(false), 3000);
       }
     }
   }, [user, dashboardStats]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const state = getActivationState();
-      setActivationStateLocal(state);
-      const completedCount = Object.values(state).filter(Boolean).length;
-      const allComplete = completedCount === 4;
-      setIsComplete(allComplete);
-      if (allComplete) {
-        setShowChecklist(false);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const closeChecklist = useCallback(() => {
-    setShowChecklist(false);
-    // Permanently dismiss when all complete
-    if (isComplete) {
-      localStorage.setItem("audnixChecklistDismissed", "true");
-    }
-  }, [isComplete]);
-
-  const openChecklist = useCallback(() => {
-    setShowChecklist(true);
-  }, []);
-
-  const handleComplete = useCallback(() => {
-    setIsComplete(true);
-    // Permanently dismiss checklist when completed
-    localStorage.setItem("audnixChecklistDismissed", "true");
-    localStorage.setItem("audnixActivationComplete", "true");
-    setTimeout(() => {
-      setShowChecklist(false);
-    }, 2000);
-  }, []);
-
   return {
     showChecklist,
-    isComplete,
     activationState,
-    closeChecklist,
-    openChecklist,
-    handleComplete,
+    closeChecklist: () => {
+      setShowChecklist(false);
+      localStorage.setItem("audnixChecklistDismissed", "true");
+    },
+    openChecklist: () => setShowChecklist(true),
+    handleComplete: () => { }
   };
 }

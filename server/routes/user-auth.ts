@@ -33,7 +33,7 @@ router.get('/otp-configured', async (_req: Request, res: Response): Promise<void
 router.post('/signup/request-otp', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     console.log('🔍 [OTP Request] Received request to /api/user/auth/signup/request-otp');
-    
+
     const { email, password } = req.body as { email?: string; password?: string };
     console.log('🔍 [OTP Request] Body - Email:', email ? '✓' : '✗', 'Password:', password ? '✓' : '✗');
 
@@ -55,13 +55,13 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       existing = await storage.getUserByEmail(email);
     } catch (dbError: any) {
       console.error('❌ [OTP] Database error checking existing user:', dbError.message);
-      res.status(503).json({ 
+      res.status(503).json({
         error: 'Database temporarily unavailable',
         details: 'Please try again in a moment'
       });
       return;
     }
-    
+
     if (existing) {
       // Check if account setup was incomplete
       const isTemporaryUsername = existing.username && /\d{13}$/.test(existing.username);
@@ -71,7 +71,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       if (isTemporaryUsername || !hasCompletedOnboarding) {
         // Allow them to continue - they can login with their password to restore state
         console.log(`ℹ️ [OTP] User ${email} has incomplete account - directing to login`);
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Account exists but setup incomplete. Please login to continue setup.',
           incompleteSetup: true,
           useLogin: true
@@ -89,10 +89,10 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 
     if (!twilioEmailOTP.isConfigured()) {
       console.error(`❌ [OTP] SendGrid NOT configured. Missing: TWILIO_SENDGRID_API_KEY`);
-      res.status(503).json({ 
+      res.status(503).json({
         error: 'Email service not configured',
         details: 'Missing required SendGrid API key: TWILIO_SENDGRID_API_KEY (from SendGrid, not Twilio)',
-        configured: false 
+        configured: false
       });
       return;
     }
@@ -104,7 +104,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
       result = await twilioEmailOTP.sendSignupOTP(email, hashedPassword);
     } catch (emailError: any) {
       console.error(`❌ [OTP] Email service error:`, emailError.message);
-      res.status(503).json({ 
+      res.status(503).json({
         error: 'Email service temporarily unavailable',
         details: 'Please try again in a moment'
       });
@@ -113,9 +113,9 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
 
     if (!result.success) {
       console.error(`❌ [OTP FAILED] ${email} - Error: ${result.error}`);
-      res.status(400).json({ 
+      res.status(400).json({
         error: result.error || 'Failed to send OTP',
-        reason: result.error 
+        reason: result.error
       });
       return;
     }
@@ -129,7 +129,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('🚨 [OTP CRASH]', errorMessage, error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'A server error occurred',
       details: 'Please try again later'
     });
@@ -179,7 +179,7 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       email: normalizedEmail,
       isAdmin: false,
     };
-    
+
     console.log(`📝 [OTP Verify] Setting session data:`, JSON.stringify(sessionData));
 
     // Regenerate session ID for security (prevents session fixation)
@@ -190,7 +190,7 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
           console.error('Session regenerate error:', err);
           reject(err);
         } else {
-          console.log(`✅ Session regenerated: ${oldSessionId.slice(0,8)}... -> ${req.sessionID.slice(0,8)}...`);
+          console.log(`✅ Session regenerated: ${oldSessionId.slice(0, 8)}... -> ${req.sessionID.slice(0, 8)}...`);
           resolve();
         }
       });
@@ -270,9 +270,9 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     }
 
     if (user.role === 'admin') {
-      res.status(403).json({ 
+      res.status(403).json({
         error: 'Admin accounts use separate login',
-        adminOnly: true 
+        adminOnly: true
       });
       return;
     }
@@ -491,7 +491,7 @@ router.post('/reset-account', async (req: Request, res: Response): Promise<void>
 
     // Reset user to initial state
     const tempUsername = email.split('@')[0] + Date.now();
-    
+
     await storage.updateUser(user.id, {
       username: tempUsername,
       metadata: {
@@ -510,7 +510,7 @@ router.post('/reset-account', async (req: Request, res: Response): Promise<void>
     }
 
     // Destroy any existing sessions for this user
-    req.session.destroy(() => {});
+    req.session.destroy(() => { });
 
     console.log(`🔄 User account reset for: ${email}`);
 
@@ -532,7 +532,7 @@ router.post('/reset-account', async (req: Request, res: Response): Promise<void>
 router.get('/me', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.session?.userId;
-    
+
     if (!userId) {
       res.status(401).json({ error: 'Not authenticated' });
       return;
@@ -578,7 +578,7 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
 router.post('/logout', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.session?.userId;
-    
+
     req.session.destroy((err) => {
       if (err) {
         console.error('Session destroy error:', err);
@@ -672,21 +672,61 @@ router.post('/notifications/:id/read', async (req: Request, res: Response): Prom
     }
 
     const { id } = req.params;
-    
+
     // Verify ownership before marking as read
     const notifications = await storage.getNotifications(userId);
     const notification = notifications.find(n => n.id === id);
-    
+
     if (!notification) {
       res.status(404).json({ error: 'Notification not found' });
       return;
     }
-    
+
     await storage.markNotificationRead(id);
     res.json({ success: true });
   } catch (error: unknown) {
     console.error('Mark notification read error:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+/**
+ * POST /api/user/auth/metadata
+ * Update current user's metadata JSON
+ */
+router.post('/metadata', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { metadata } = req.body as { metadata: Record<string, any> };
+    if (!metadata) {
+      res.status(400).json({ error: 'Metadata required' });
+      return;
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const currentMetadata = (user.metadata as Record<string, any>) || {};
+    const updatedMetadata = { ...currentMetadata, ...metadata };
+
+    await storage.updateUser(userId, { metadata: updatedMetadata });
+
+    res.json({
+      success: true,
+      metadata: updatedMetadata,
+      message: 'Metadata updated successfully'
+    });
+  } catch (error: unknown) {
+    console.error('Update metadata error:', error);
+    res.status(500).json({ error: 'Failed to update metadata' });
   }
 });
 

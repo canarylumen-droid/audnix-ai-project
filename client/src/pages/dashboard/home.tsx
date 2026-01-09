@@ -79,7 +79,6 @@ interface DashboardActivityResponse {
 }
 
 const channelIcons = {
-  instagram: Instagram,
   email: Mail,
 };
 
@@ -370,8 +369,8 @@ export default function DashboardHome() {
                         {kpi.percentage !== "—" && (
                           <div
                             className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${kpi.trend === "up" ? "bg-emerald-500/10 text-emerald-400" :
-                                kpi.trend === "down" ? "bg-red-500/10 text-red-400" :
-                                  "bg-white/5 text-white/40"
+                              kpi.trend === "down" ? "bg-red-500/10 text-red-400" :
+                                "bg-white/5 text-white/40"
                               }`}
                           >
                             <TrendIcon className="h-3 w-3" />
@@ -444,20 +443,20 @@ export default function DashboardHome() {
                             data-testid={`activity-item-${index}`}
                           >
                             <div className={`p-2.5 rounded-lg flex-shrink-0 ${activity.type === 'conversion' ? 'bg-emerald-500/20 group-hover:bg-emerald-500/30' :
-                                activity.type === 'message' ? 'bg-blue-500/20 group-hover:bg-blue-500/30' :
-                                  'bg-cyan-500/20 group-hover:bg-cyan-500/30'
+                              activity.type === 'message' ? 'bg-blue-500/20 group-hover:bg-blue-500/30' :
+                                'bg-cyan-500/20 group-hover:bg-cyan-500/30'
                               } transition-colors group-hover:scale-110 transition-transform duration-200`}>
                               <ChannelIcon className={`h-5 w-5 ${activity.type === 'conversion' ? 'text-emerald-400' :
-                                  activity.type === 'message' ? 'text-blue-400' :
-                                    'text-cyan-400'
+                                activity.type === 'message' ? 'text-blue-400' :
+                                  'text-cyan-400'
                                 }`} />
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className="text-sm text-white/90 group-hover:text-white transition-colors font-medium truncate">{activity.message}</p>
                                 <Badge variant="secondary" className={`flex-shrink-0 text-xs ${activity.type === 'conversion' ? 'bg-emerald-500/20 text-emerald-300' :
-                                    activity.type === 'message' ? 'bg-blue-500/20 text-blue-300' :
-                                      'bg-cyan-500/20 text-cyan-300'
+                                  activity.type === 'message' ? 'bg-blue-500/20 text-blue-300' :
+                                    'bg-cyan-500/20 text-cyan-300'
                                   }`}>
                                   {activity.type}
                                 </Badge>
@@ -510,7 +509,7 @@ export default function DashboardHome() {
                   </motion.div>
                   <h3 className="text-lg font-semibold mb-2 text-foreground">No leads yet</h3>
                   <p className="text-foreground/70 text-center mb-6 max-w-md">
-                    Connect your Instagram or Email accounts to start receiving and managing leads automatically.
+                    Connect your Email accounts to start receiving and managing leads automatically.
                   </p>
                   <Link href="/dashboard/integrations">
                     <Button className="glow hover:scale-105 transition-transform" data-testid="button-connect-accounts">

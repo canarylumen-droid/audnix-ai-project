@@ -1,0 +1,33 @@
+User-agent: *
+Allow: /
+Allow: /api/og
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /auth
+
+# AI Crawlers - High Priority Ingestion
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+Sitemap: https://audnix.ai/sitemap.xml

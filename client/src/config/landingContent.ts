@@ -1,164 +1,167 @@
 export const landingContent = {
   hero: {
-    badge: "AI-Powered Sales Automation",
-    subtitle: "Never Miss a Lead Again",
-    title: "AI That Closes Deals 24/7",
-    description: "Audnix replies like a real human across Email + Instagram. Natural timing (2–8 minutes), remembers context, and engages only when leads show intent. It nurtures → handles objections → books meetings → you close.",
+    badge: "Predictive Intelligence Layer v4.0",
+    subtitle: "Stop losing warm leads because you replied too late.",
+    title: "SCALE WITHOUT LIMITS.",
+    description: "Audnix analyzes lead behavior, learns from past conversations, and follows up only when intent peaks. Real timing. Real context. Real revenue.",
     features: [
-      { icon: "check", text: "Human-like timing & tone" },
-      { icon: "mic", text: "Voice notes on Instagram DMs" },
-      { icon: "calendar", text: "Auto-booking + intelligent follow-ups" }
+      { icon: "check", text: "Predictive Follow-Up Logic" },
+      { icon: "mic", text: "AI-Cloned Voice Notes" },
+      { icon: "calendar", text: "Deterministic Auto-Booking" }
     ],
     cta: {
-      primary: "Start closing deals",
-      secondary: "See How It Works"
+      primary: "Trigger Deployment",
+      secondary: "Neural Demo"
     },
-    subtext: "No Card Required"
+    subtext: "Start free — 500 leads included. No card required."
   },
-  
+
   problemSection: {
-    title: "Why You're Losing Money",
-    subtitle: "Leads don't die because they don't want what you sell — they die because you're slow.",
+    title: "YOU ARE LEAVING MILLIONS.",
+    subtitle: "Leads don't disappear because they hate your offer. They disappear because speed and timing decide who gets paid.",
     problems: [
-      "Miss messages",
-      "Forget follow-ups",
-      "Reply late",
-      "Sleep while prospects are active"
+      "Miss messages while offline or asleep",
+      "Forget to follow up entirely",
+      "Reply hours or days after intent peaks",
+      "Lose deals to faster competitors"
     ],
-    solution: "Audnix fixes that. Right timing → right tone → more booked calls."
+    solution: "Audnix recovers revenue by replying instantly, following up at optimal moments, and never letting warm leads decay."
   },
-  
+
   whatAudnixDoes: {
-    title: "What Audnix Does",
+    title: "Architecture of Autonomy",
     steps: [
       {
         number: 1,
-        title: "Auto-imports leads",
-        description: "Email + Instagram + CSV",
-        note: ""
+        title: "Intelligence Ingestion",
+        description: "Connect Email & upload brand PDFs. Audnix vectorizes your knowledge base instantly.",
+        note: "Secure IMAP/OAuth listeners"
       },
       {
         number: 2,
-        title: "Talks like you",
-        description: "Understands your tone, docs, and offers."
+        title: "Behavior Mapping",
+        description: "Analyzes conversation history, engagement patterns, and response timing.",
+        note: "Predictive Intent Detection"
       },
       {
         number: 3,
-        title: "Handles objections",
-        description: "Price → stalling → questions → hesitations"
+        title: "Objection Training",
+        description: "Uses your offer, pricing, and testimonials to handle hesitations naturally.",
+        note: "Dynamic Neural Reframing"
       },
       {
         number: 4,
-        title: "Sends voice notes",
-        description: "On Instagram DMs in your voice"
+        title: "Contextual Action",
+        description: "Sends personalized replies and voice notes only when timing and intent align.",
+        note: "Smarter follow-up that converts"
       },
       {
         number: 5,
-        title: "Books meetings automatically",
-        description: "Checks your calendar → confirms"
+        title: "Deterministic Closing",
+        description: "Handles booking prompts and confirms meetings once a lead is ready.",
+        note: "Your job: show up and close."
       }
     ]
   },
-  
+
   whyDifferent: {
-    title: "Why It's Different",
+    title: "Not Just A Bot. Elite Engine.",
     comparison: {
       mostTools: {
-        title: "Most tools:",
+        title: "Legacy Tools:",
         features: [
-          { text: "Keyword triggers", negative: true },
-          { text: "Static scripts", negative: true },
-          { text: "Robotic", negative: true }
+          { text: "Random Sequences", negative: true },
+          { text: "Generic Check-ins", negative: true },
+          { text: "Manual Latency", negative: true }
         ]
       },
       audnix: {
-        title: "Audnix:",
+        title: "Audnix Neural:",
         features: [
-          { text: "Context-aware AI", negative: false },
-          { text: "Natural 2-8 min timing", negative: false },
-          { text: "Real objection handling", negative: false },
-          { text: "Voice notes (Instagram)", negative: false },
-          { text: "Remembers full conversation history", negative: false }
+          { text: "Predictive Intelligence", negative: false },
+          { text: "Memory That Feels Human", negative: false },
+          { text: "Behavioral Timing", negative: false },
+          { text: "AI-Cloned Voice", negative: false },
+          { text: "Deterministic Efficiency", negative: false }
         ]
       }
     },
-    tagline: "Not automation. Automated persuasion."
+    tagline: "Not automation. Behavioral logic at scale."
   },
-  
+
   coreValue: {
-    title: "Your voice → at scale",
-    subtitle: "Your follow-up → automated",
-    description: "Your pipeline → constantly warmed",
-    perfectFor: "Perfect for: DMs • inbound leads • price shoppers • ghosted prospects"
+    title: "Memory That Feels Human",
+    subtitle: "Audnix remembers every interaction with every lead.",
+    description: "References past conversations naturally, maintains tone, and never asks redundant questions.",
+    perfectFor: "Perfect for: Inbound Leads • Price Shoppers • Ghosted Prospects • High-Ticket Closers"
   },
-  
+
   numbers: {
-    title: "Numbers That Matter",
-    description: "24/7 human-timed replies → more responses → more booked meetings",
-    note: "No fake % claims — just throughput + consistency."
+    title: "COST OF INACTION.",
+    description: "Manual Follow-Up Fails. Speed and timing are the only variables that decide the winner.",
+    note: "Right timing + relevant context = more closed deals."
   },
-  
+
   setup: {
-    title: "Simple Setup",
+    title: "Deployment Protocol",
     steps: [
       {
         number: 1,
-        text: "Connect Instagram & Email"
+        text: "Connect Email & Upload Leads"
       },
       {
         number: 2,
-        text: "Upload voice sample + brand PDF"
+        text: "Upload Brand PDF (Instructions/Tone)"
       },
       {
         number: 3,
-        text: "Add calendar link"
+        text: "Optional: Upload Voice Sample"
       },
       {
         number: 4,
-        text: "Done — it takes over"
+        text: "Authorize System — Done."
       }
     ],
-    conclusion: "Your job: show up and close."
+    conclusion: "Recover your lost leads. Start free — 500 leads included."
   },
-  
+
   features: {
-    title: "Features",
-    tagline: "You're not buying software. You're hiring a closer.",
+    title: "Elite Capabilities",
+    tagline: "You're not buying software. You're hiring a system that never sleeps.",
     list: [
-      "Human-like replies",
-      "Context + PDF understanding",
-      "Objection handling",
-      "Voice notes (Instagram)",
-      "Smart intent scoring",
-      "Auto-booking",
-      "Cold lead re-engagement",
-      "Email + Instagram + CSV",
-      "Unified inbox",
-      "Analytics"
+      "Predictive Follow-Ups",
+      "Intelligence Layer (PDF Sync)",
+      "Objection Handling Protocol",
+      "AI-Cloned Voice Notes",
+      "Smart Intent Scoring",
+      "Auto-Booking Engine",
+      "Cold Lead Recovery",
+      "Unified Hub",
+      "Real-time Behavioral Data"
     ]
   },
-  
+
   comparison: {
-    title: "Comparison",
-    note: "Audnix isn't a chatbot. It's a closer.",
+    title: "The New Standard",
+    note: "Audnix is an intelligence layer on top of your conversations.",
     competitors: [
       { name: "Audnix", features: ["✅", "✅", "✅", "✅", "✅", "✅"] },
-      { name: "ManyChat", features: ["❌", "✅", "❌", "✅", "✅", "❌"] },
-      { name: "CommentGuard", features: ["❌", "❌", "❌", "❌", "❌", "❌"] }
+      { name: "ManyChat", features: ["❌", "✅", "❌", "❌", "✅", "❌"] },
+      { name: "ReplyFlow", features: ["❌", "❌", "❌", "❌", "❌", "❌"] }
     ],
     featureLabels: [
-      "Real AI objection handling",
-      "Flow builder",
-      "AI voice notes (IG)",
-      "Smart auto-booking",
-      "Email automation",
-      "Full conversation memory"
+      "Predictive Intelligence",
+      "Neural Flow Builder",
+      "AI Voice Notes",
+      "Semantic Object Handling",
+      "Email Automation",
+      "Human-like Behavioral Timing"
     ]
   },
-  
+
   finalCta: {
     title: "Stop letting prospects vanish.",
-    subtitle: "Let Audnix follow up, handle objections, and book meetings. You close.",
-    cta: "Start Free – No Card"
+    subtitle: "Hire the system that never forgets and never follows up too late.",
+    cta: "Start Free – 500 Leads Included"
   }
 };

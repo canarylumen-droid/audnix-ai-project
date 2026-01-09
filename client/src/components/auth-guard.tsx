@@ -71,7 +71,7 @@ export function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   // Show loading while checking auth
   if (isChecking) {
     return (
-      <Dialog open={true} onOpenChange={() => {}}>
+      <Dialog open={true} onOpenChange={() => { }}>
         <DialogContent className="sm:max-w-md border-0">
           <div className="flex flex-col items-center justify-center space-y-4 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

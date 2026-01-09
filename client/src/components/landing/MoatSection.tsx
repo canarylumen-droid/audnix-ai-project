@@ -69,7 +69,7 @@ export function MoatSection() {
                                     { icon: Brain, t: "Behavioral Intelligence", d: "Learns exactly how your brand speaks." },
                                     { icon: Clock, t: "Smart Delay Logic", d: "Waits 4-12 mins to feel like a real human." },
                                     { icon: Shield, t: "Risk Aware", d: "Detects anger or confusion & alerts you." },
-                                    { icon: Check, t: "Infinite Memory", d: "Recalls a DM from 6 months ago naturally." },
+                                    { icon: Check, t: "Infinite Memory", d: "Recalls a thread from 6 months ago naturally." },
                                     { icon: Zap, t: "Value Reframing", d: "Turns 'Too expensive' into a ROI discussion." }
                                 ].map((item, i) => (
                                     <motion.li

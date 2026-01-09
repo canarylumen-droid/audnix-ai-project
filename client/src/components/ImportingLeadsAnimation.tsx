@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Instagram, Mail, Loader2, Sparkles, CheckCircle2, Brain, Filter, Zap, Users } from "lucide-react";
+import { Mail, Loader2, Sparkles, CheckCircle2, Brain, Filter, Zap, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useCallback } from "react";
 import { Progress } from "@/components/ui/progress";
 
 interface ImportingLeadsAnimationProps {
-  channel: "instagram" | "email";
+  channel: "email" | "crm";
   onComplete?: () => void;
   isImporting: boolean;
   planLimit?: number;
@@ -15,20 +15,9 @@ interface ImportingLeadsAnimationProps {
 type ImportStage = "connecting" | "scanning" | "filtering" | "importing" | "complete";
 
 const channelConfig = {
-  instagram: {
-    icon: Instagram,
-    name: "Instagram DMs",
-    color: "from-pink-500 to-purple-600",
-    bgColor: "bg-gradient-to-r from-pink-500/10 to-purple-600/10",
-    borderColor: "border-pink-500/30",
-    textColor: "text-pink-500",
-    scanText: "Scanning Instagram conversations...",
-    filterText: "AI filtering high-quality leads...",
-    importText: "Importing qualified leads...",
-  },
   email: {
     icon: Mail,
-    name: "Email",
+    name: "Business Email",
     color: "from-blue-500 to-cyan-600",
     bgColor: "bg-gradient-to-r from-blue-500/10 to-cyan-600/10",
     borderColor: "border-blue-500/30",
@@ -36,6 +25,17 @@ const channelConfig = {
     scanText: "Scanning email inbox...",
     filterText: "AI analyzing lead quality...",
     importText: "Importing verified leads...",
+  },
+  crm: {
+    icon: Users,
+    name: "CRM Hub",
+    color: "from-purple-500 to-indigo-600",
+    bgColor: "bg-gradient-to-r from-purple-500/10 to-indigo-600/10",
+    borderColor: "border-purple-500/30",
+    textColor: "text-purple-500",
+    scanText: "Syncing with ecosystem...",
+    filterText: "AI mapping datasets...",
+    importText: "Importing ecosystem leads...",
   },
 };
 
@@ -63,26 +63,19 @@ export function ImportingLeadsAnimation({
   const [importedCount, setImportedCount] = useState(0);
   const [aiMessages, setAiMessages] = useState<string[]>([]);
 
-  const aiFilteringMessages = channel === "instagram" ? [
-    "Reading conversation context...",
-    "Detecting buying intent...",
-    "Filtering low-quality messages...",
-    "Analyzing engagement patterns...",
-    "Identifying warm leads...",
-    "Scoring lead quality...",
-  ] : [
-    "Parsing email threads...",
+  const aiFilteringMessages = [
+    "Parsing communication threads...",
     "Detecting inquiry intent...",
     "Filtering spam and promotions...",
     "Analyzing response patterns...",
     "Identifying decision makers...",
-    "Scoring email engagement...",
+    "Scoring ecosystem engagement...",
   ];
 
   const updateAiMessage = useCallback(() => {
     const randomMessage = aiFilteringMessages[Math.floor(Math.random() * aiFilteringMessages.length)];
     setAiMessages(prev => [...prev.slice(-2), randomMessage]);
-  }, [channel]);
+  }, []);
 
   useEffect(() => {
     if (!isImporting) return;
@@ -94,11 +87,11 @@ export function ImportingLeadsAnimation({
     const startSequence = async () => {
       setStage("connecting");
       await new Promise(r => setTimeout(r, 800));
-      
+
       setStage("scanning");
       scanInterval = setInterval(() => {
         setScannedCount(prev => {
-          const increment = channel === "instagram" ? Math.floor(Math.random() * 15) + 5 : Math.floor(Math.random() * 10) + 3;
+          const increment = Math.floor(Math.random() * 10) + 3;
           return Math.min(prev + increment, 500);
         });
       }, 200);
@@ -111,7 +104,7 @@ export function ImportingLeadsAnimation({
             clearInterval(aiMessageInterval);
             return 100;
           }
-          
+
           if (prev >= 25 && stage === "scanning") {
             setStage("filtering");
             aiMessageInterval = setInterval(updateAiMessage, 1500);
@@ -127,8 +120,8 @@ export function ImportingLeadsAnimation({
               onComplete?.();
             }, 2500);
           }
-          
-          return prev + (channel === "instagram" ? 1.8 : 2.2);
+
+          return prev + 2.2;
         });
       }, 150);
     };
@@ -181,27 +174,17 @@ export function ImportingLeadsAnimation({
                     }}
                   >
                     <ChannelIcon className={`h-12 w-12 ${config.textColor}`} />
-                    
-                    {channel === "instagram" && (
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-t from-pink-500/20 to-transparent"
-                        animate={{ y: ["100%", "-100%"] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      />
-                    )}
-                    
-                    {channel === "email" && (
-                      <motion.div
-                        className="absolute inset-0"
-                        style={{
-                          background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
-                        }}
-                        animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                      />
-                    )}
+
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{
+                        background: "radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)",
+                      }}
+                      animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    />
                   </motion.div>
-                  
+
                   <motion.div
                     className="absolute -right-2 -bottom-2 bg-background rounded-full p-2 shadow-lg border"
                     animate={{ rotate: stage === "filtering" ? 360 : 0 }}
@@ -218,7 +201,7 @@ export function ImportingLeadsAnimation({
                     {stage === "filtering" && config.filterText}
                     {stage === "importing" && config.importText}
                   </h3>
-                  
+
                   <AnimatePresence mode="wait">
                     {stage === "filtering" && aiMessages.length > 0 && (
                       <motion.p
@@ -236,7 +219,7 @@ export function ImportingLeadsAnimation({
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 w-full text-center">
-                  <motion.div 
+                  <motion.div
                     className="bg-muted/50 rounded-lg p-3"
                     animate={{ scale: stage === "scanning" ? [1, 1.02, 1] : 1 }}
                     transition={{ duration: 0.5, repeat: stage === "scanning" ? Infinity : 0 }}
@@ -245,11 +228,11 @@ export function ImportingLeadsAnimation({
                       {scannedCount}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {channel === "instagram" ? "DMs Scanned" : "Emails Scanned"}
+                      Leads Scanned
                     </div>
                   </motion.div>
-                  
-                  <motion.div 
+
+                  <motion.div
                     className="bg-muted/50 rounded-lg p-3"
                     animate={{ scale: stage === "filtering" ? [1, 1.02, 1] : 1 }}
                     transition={{ duration: 0.5, repeat: stage === "filtering" ? Infinity : 0 }}
@@ -259,8 +242,8 @@ export function ImportingLeadsAnimation({
                     </div>
                     <div className="text-xs text-muted-foreground">AI Filtered</div>
                   </motion.div>
-                  
-                  <motion.div 
+
+                  <motion.div
                     className="bg-muted/50 rounded-lg p-3"
                     animate={{ scale: stage === "importing" ? [1, 1.02, 1] : 1 }}
                     transition={{ duration: 0.5, repeat: stage === "importing" ? Infinity : 0 }}

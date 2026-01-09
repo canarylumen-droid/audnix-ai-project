@@ -4,11 +4,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { 
-  Sparkles, 
-  Rocket, 
-  Users, 
-  Code, 
+import {
+  Sparkles,
+  Rocket,
+  Users,
+  Code,
   Briefcase,
   Building,
   Search,
@@ -29,7 +29,6 @@ const USER_ROLES = [
 ];
 
 const SOURCES = [
-  'Instagram',
   'Twitter/X',
   'LinkedIn',
   'YouTube',
@@ -46,7 +45,7 @@ const SOURCES = [
 const USE_CASES = [
   'Automate lead follow-ups',
   'Close more deals',
-  'Save time on DMs',
+  'Automate conversations',
   'Never miss a lead',
   'Scale my outreach',
   'Improve response time',
@@ -92,8 +91,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
   };
 
   const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
+    setSelectedTags(prev =>
+      prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
@@ -128,7 +127,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
   const handleComplete = async () => {
     setLoading(true);
-    
+
     try {
       // Call the backend to save onboarding profile and mark as complete
       await apiClient.post('/api/onboarding', {
@@ -152,15 +151,15 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
       console.error('Onboarding error:', error);
       const errorMessage = error?.response?.data?.error || error?.message || "Unknown error";
       const isAuthError = errorMessage.includes("Session") || errorMessage.includes("log in") || error?.response?.status === 401;
-      
+
       toast({
         title: isAuthError ? "Session expired" : "Onboarding saved",
-        description: isAuthError 
-          ? "Please refresh the page and log in again." 
+        description: isAuthError
+          ? "Please refresh the page and log in again."
           : "Your preferences have been noted. Continuing to dashboard...",
         variant: isAuthError ? "destructive" : "default",
       });
-      
+
       if (!isAuthError) {
         setTimeout(() => {
           onComplete();
@@ -189,7 +188,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={isOpen} onOpenChange={() => { }}>
       <style>{`[class*="onboarding-modal"] button.absolute { display: none !important; }`}</style>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto p-0 onboarding-modal">
         <div className="relative">
@@ -227,9 +226,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       <motion.button
                         key={role.value}
                         onClick={() => handleRoleSelect(role.value)}
-                        className={`relative p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${
-                          userRole === role.value ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
+                        className={`relative p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${userRole === role.value ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
                         whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
                         whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                       >
@@ -274,9 +272,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       <motion.button
                         key={src}
                         onClick={() => handleSourceSelect(src)}
-                        className={`p-4 rounded-lg border-2 text-center transition-all hover:border-primary hover:shadow-md ${
-                          source === src ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
+                        className={`p-4 rounded-lg border-2 text-center transition-all hover:border-primary hover:shadow-md ${source === src ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
                         whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
                         whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                       >
@@ -336,9 +333,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       <motion.button
                         key={tag}
                         onClick={() => handleTagToggle(tag)}
-                        className={`p-4 rounded-lg border-2 text-left transition-all hover:border-primary hover:shadow-md ${
-                          selectedTags.includes(tag) ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
+                        className={`p-4 rounded-lg border-2 text-left transition-all hover:border-primary hover:shadow-md ${selectedTags.includes(tag) ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
                         whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
                         whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                       >
@@ -397,9 +393,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       <motion.button
                         key={size.value}
                         onClick={() => handleBusinessSizeSelect(size.value)}
-                        className={`p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${
-                          businessSize === size.value ? 'border-primary bg-primary/5' : 'border-border'
-                        }`}
+                        className={`p-6 rounded-xl border-2 text-left transition-all group hover:border-primary hover:shadow-lg ${businessSize === size.value ? 'border-primary bg-primary/5' : 'border-border'
+                          }`}
                         whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
                         whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                         disabled={loading}

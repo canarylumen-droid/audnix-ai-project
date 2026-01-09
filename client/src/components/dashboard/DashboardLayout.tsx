@@ -18,7 +18,6 @@ import {
   Calendar,
   Plug,
   BarChart3,
-  CreditCard,
   Settings,
   Shield,
   Menu,
@@ -28,23 +27,25 @@ import {
   User,
   ChevronLeft,
   ChevronDown,
-  ChevronRight,
   LogOut,
   Video,
   Upload,
-  Phone,
-  Users,
   Zap,
-  Wrench,
-  LineChart,
-  Receipt,
-  Sparkles,
-  Play,
-  CheckCircle,
-  Lock,
   Brain,
   FileText,
+  HelpCircle,
+  Layers,
+  PieChart,
+  Activity,
+  Sun,
+  Moon,
+  BookMarked,
+  Lock,
+  Globe,
+  Database
 } from "lucide-react";
+
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,11 +56,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -70,6 +66,7 @@ interface NavItem {
   path: string;
   adminOnly?: boolean;
   requiresStep?: keyof ActivationState;
+  badge?: React.ReactNode;
 }
 
 interface NavGroup {
@@ -113,16 +110,41 @@ interface NotificationsData {
   unreadCount: number;
 }
 
-const mobileNavItems: Array<{
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  path: string;
-}> = [
-    { label: "Home", icon: Home, path: "/dashboard" },
-    { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
-    { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
-    { label: "Profile", icon: User, path: "/dashboard/settings" },
-  ];
+const BadgeWithDot = ({ color, children }: { color: 'success' | 'warning' | 'primary', children: React.ReactNode }) => {
+  const colors = {
+    success: 'bg-emerald-500',
+    warning: 'bg-amber-500',
+    primary: 'bg-primary'
+  };
+  const borderColors = {
+    success: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500',
+    warning: 'border-amber-500/20 bg-amber-500/10 text-amber-500',
+    primary: 'border-primary/20 bg-primary/10 text-primary'
+  };
+
+  return (
+    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${borderColors[color]}`}>
+      <span className={`w-1 h-1 rounded-full ${colors[color]} animate-pulse`} />
+      {children}
+    </span>
+  );
+};
+
+const ThemeSwitcher = () => {
+  const { theme, setTheme } = useTheme();
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-10 w-10 border border-white/10 rounded-xl hover:bg-white/5 transition-all duration-300"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-white/40" />
+      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-white/40" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+};
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -130,13 +152,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    "Leads": true,
-    "Closer Engine Live": true,
-    "Automation & Deals": false,
-    "Insights": false,
-    "Account & Billing": false,
+    "Framework": true,
+    "Neural Engine": true,
+    "Operations": true,
   });
-  const adminSecretPath = useAdminSecretPath();
 
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -149,50 +168,31 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const navGroups: NavGroup[] = [
     {
-      label: "Leads",
-      icon: Users,
-      defaultOpen: true,
+      label: "Neural Engine",
+      icon: Database,
       items: [
-        { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
-        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
+        { label: "Neural Flows", icon: Brain, path: "/dashboard/automation" },
+        { label: "Deal Pipeline", icon: Briefcase, path: "/dashboard/deals" },
+        { label: "Ecosystem Sync", icon: Plug, path: "/dashboard/integrations" },
       ],
     },
     {
-      label: "Closer Engine Live",
-      icon: Zap,
-      defaultOpen: true,
+      label: "Operations",
+      icon: Layers,
       items: [
-        { label: "Objection Handler", icon: Phone, path: "/dashboard/closer-engine" },
-        { label: "Objections Library", icon: FileText, path: "/dashboard/objections" },
-        { label: "Sales Assistant", icon: Sparkles, path: "/dashboard/sales-assistant" },
+        { label: "Lead Ingestion", icon: Upload, path: "/dashboard/lead-import" },
+        { label: "Brand Memory", icon: BookMarked, path: "/dashboard/content-library" },
+        { label: "Objection Training", icon: Shield, path: "/dashboard/objections" },
+        { label: "Neural Logs", icon: MessageSquare, path: "/dashboard/conversations" },
       ],
     },
     {
-      label: "Automation & Deals",
-      icon: Wrench,
+      label: "Analytics Hub",
+      icon: PieChart,
       items: [
-        { label: "Automation Builder", icon: Brain, path: "/dashboard/automation" },
-        { label: "Content Library", icon: FileText, path: "/dashboard/content-library" },
-        { label: "Deals", icon: Briefcase, path: "/dashboard/deals" },
-        { label: "Calendar", icon: Calendar, path: "/dashboard/calendar" },
-        { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
-      ],
-    },
-    {
-      label: "Insights",
-      icon: LineChart,
-      items: [
-        { label: "AI Decisions", icon: Brain, path: "/dashboard/ai-decisions" },
-        { label: "Analytics", icon: BarChart3, path: "/dashboard/insights" },
-        { label: "Video Automation", icon: Video, path: "/dashboard/video-automation" },
-      ],
-    },
-    {
-      label: "Account & Billing",
-      icon: Receipt,
-      items: [
-        { label: "Pricing & Plans", icon: CreditCard, path: "/dashboard/pricing" },
-        { label: "Profile & Preferences", icon: Settings, path: "/dashboard/settings" },
+        { label: "AI Decision Audit", icon: Activity, path: "/dashboard/ai-decisions" },
+        { label: "Revenue Insights", icon: BarChart3, path: "/dashboard/insights" },
+        { label: "Execution Map", icon: Globe, path: "/dashboard/video-automation" },
       ],
     },
   ];
@@ -201,14 +201,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     if (!step) return true;
     return activationState[step] || false;
   }, [activationState]);
-
-  const getTrialDaysLeft = (user: UserProfile | null | undefined): number => {
-    if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
-    const now = new Date();
-    const expiryDate = new Date(user.trialExpiresAt);
-    const daysLeft = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(0, daysLeft);
-  };
 
   const { data: user } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
@@ -221,56 +213,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
     refetchInterval: 60000,
-    refetchOnWindowFocus: false,
   });
 
-  const notifications = notificationsData?.notifications || [];
   const unreadNotifications = notificationsData?.unreadCount || 0;
 
-  const markAsReadMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      return await apiRequest('POST', `/api/user/notifications/${notificationId}/read`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
-    },
-  });
-
-  const handleNotificationClick = (notificationId: string) => {
-    markAsReadMutation.mutate(notificationId);
-  };
-
-  const signOutMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('POST', '/api/auth/signout');
-    },
-    onSuccess: () => {
-      queryClient.clear();
-      window.location.href = '/';
-    },
-  });
-
-  const handleSignOut = () => {
-    signOutMutation.mutate();
+  const handleSignOut = async () => {
+    await apiRequest('POST', '/api/auth/signout');
+    queryClient.clear();
+    window.location.href = '/';
   };
 
   const toggleGroup = useCallback((groupLabel: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupLabel]: !prev[groupLabel],
-    }));
+    setExpandedGroups(prev => ({ ...prev, [groupLabel]: !prev[groupLabel] }));
   }, []);
 
-  const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
-
-  const prefersReducedMotion = useState(() => {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  })[0];
-
   const isPathActive = (path: string) => {
-    if (path === "/dashboard") {
-      return location === "/dashboard";
-    }
+    if (path === "/dashboard") return location === "/dashboard";
     return location.startsWith(path);
   };
 
@@ -280,16 +238,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     if (isLocked) {
       return (
-        <div
-          key={item.path}
-          className="mx-2 mb-1 rounded-md bg-white/5 cursor-not-allowed opacity-50"
-          title="Complete activation to unlock"
-        >
-          <div className="flex items-center gap-3 px-3 py-2.5">
-            <Lock className="h-4 w-4 flex-shrink-0 text-white/40" />
-            {!sidebarCollapsed && (
-              <span className="text-sm font-medium text-white/40">{item.label}</span>
-            )}
+        <div key={item.path} className="px-3 mb-1 opactiy-20">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.02] cursor-not-allowed border border-transparent">
+            <Lock className="h-4 w-4 opacity-30" />
+            {!sidebarCollapsed && <span className="text-xs font-black uppercase tracking-widest text-white/20">{item.label}</span>}
           </div>
         </div>
       );
@@ -297,556 +249,144 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     return (
       <Link key={item.path} href={item.path}>
-        <motion.div
-          className={`mx-3 mb-1.5 rounded-full transition-all duration-200 ${isActive
-            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-            : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
-          whileHover={prefersReducedMotion ? {} : { x: 4 }}
-          transition={{ duration: 0.2 }}
-          data-testid={`nav-item-${item.label.toLowerCase()}`}
-        >
-          <div className="flex items-center gap-3 px-4 py-2.5">
-            <Icon className={`h-4.5 w-4.5 flex-shrink-0 ${isActive ? "text-white" : "text-white/60"}`} />
-            {!sidebarCollapsed && (
-              <span className="text-sm font-medium tracking-tight">{item.label}</span>
-            )}
+        <div className="relative group px-3 mb-1">
+          {isActive && (
+            <motion.div layoutId="nav-pill" className="absolute inset-x-3 inset-y-0 bg-primary/10 border border-primary/20 rounded-2xl" />
+          )}
+          <div className={`relative flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-500 ${isActive ? "text-primary italic" : "text-white/30 hover:text-white"}`}>
+            <div className="flex items-center gap-4">
+              <Icon className={`h-5 w-5 transition-all ${isActive ? "text-primary scale-110" : "opacity-40"}`} />
+              {!sidebarCollapsed && (
+                <span className="text-xs font-black uppercase tracking-[0.15em] whitespace-nowrap">
+                  {item.label}
+                </span>
+              )}
+            </div>
+            {!sidebarCollapsed && item.badge && <div>{item.badge}</div>}
           </div>
-        </motion.div>
+        </div>
       </Link>
     );
   };
 
-  const renderNavGroup = (group: NavGroup) => {
-    const isExpanded = expandedGroups[group.label];
-    const GroupIcon = group.icon;
-    const hasActiveItem = group.items.some(item => isPathActive(item.path));
-    const isCloserEngine = group.label === "Closer Engine Live";
-
-    if (sidebarCollapsed) {
-      return (
-        <DropdownMenu key={group.label}>
-          <DropdownMenuTrigger asChild>
-            <div
-              className={`mx-3 mb-2 rounded-full transition-all duration-200 cursor-pointer hover:bg-white/5 ${isCloserEngine ? "bg-primary/10 border border-primary/20" : ""
-                } ${hasActiveItem ? "bg-primary text-white shadow-lg shadow-primary/25" : "text-white/60"}`}
-            >
-              <div className="flex items-center justify-center px-4 py-3">
-                <GroupIcon className={`h-5 w-5 ${isCloserEngine && !hasActiveItem ? "text-primary" : ""}`} />
-              </div>
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start" className="w-56 bg-[#0f172a] border-white/10 shadow-2xl rounded-xl p-1.5">
-            <DropdownMenuLabel className="text-white/40 text-[10px] uppercase tracking-widest px-2 py-1.5">{group.label}</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-white/5 mx-1" />
-            {group.items.map(item => {
-              const Icon = item.icon;
-              const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
-              return (
-                <DropdownMenuItem
-                  key={item.path}
-                  className={`cursor-pointer rounded-lg mb-0.5 focus:bg-primary/10 focus:text-primary ${isLocked ? "opacity-40" : ""}`}
-                  disabled={isLocked}
-                  onClick={() => !isLocked && setLocation(item.path)}
-                >
-                  {isLocked ? (
-                    <Lock className="h-4 w-4 mr-3 opacity-60" />
-                  ) : (
-                    <Icon className="h-4 w-4 mr-3 opacity-60" />
-                  )}
-                  <span className="text-sm font-medium">{item.label}</span>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
-    return (
-      <Collapsible
-        key={group.label}
-        open={isExpanded}
-        onOpenChange={() => toggleGroup(group.label)}
-        className="mb-1.5"
-      >
-        <CollapsibleTrigger asChild>
-          <div
-            className={`mx-3 rounded-full transition-all duration-200 cursor-pointer group ${isCloserEngine
-                ? "bg-primary/5 border border-primary/10 hover:border-primary/30"
-                : hasActiveItem && !isExpanded ? "bg-primary/10" : "hover:bg-white/5"
-              }`}
-          >
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <div className="flex items-center gap-3">
-                <GroupIcon className={`h-4.5 w-4.5 flex-shrink-0 transition-colors ${isCloserEngine ? "text-primary" : hasActiveItem ? "text-primary" : "text-white/40 group-hover:text-white/70"
-                  }`} />
-                <span className={`text-[11px] font-bold uppercase tracking-wider ${isCloserEngine ? "text-primary" : hasActiveItem ? "text-primary" : "text-white/50 group-hover:text-white/80"
-                  }`}>
-                  {group.label}
-                </span>
-                {isCloserEngine && (
-                  <Badge className="bg-primary/20 text-primary border-none text-[9px] font-black px-1.5 py-0 h-4 rounded-full">
-                    AI
-                  </Badge>
-                )}
-              </div>
-              <ChevronDown
-                className={`h-4 w-4 transition-all duration-300 ${isExpanded ? "rotate-180 opacity-100" : "opacity-30 group-hover:opacity-60"
-                  } ${hasActiveItem ? "text-primary" : "text-white"}`}
-              />
-            </div>
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            className="mt-1"
-          >
-            {group.items.map(item => {
-              const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
-              return renderNavItem(item, isLocked);
-            })}
-          </motion.div>
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  };
-
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-black overflow-hidden selection:bg-primary/30 font-sans">
       <InternetConnectionBanner />
       <InstallPWAPrompt />
-      <TrialExpiredOverlay daysLeft={trialDaysLeft} plan={user?.plan || ""} />
-
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
       <ActivationChecklist isOpen={showChecklist} onClose={closeChecklist} onComplete={handleComplete} />
 
       <motion.aside
-        className="hidden md:flex flex-col border-r bg-[#0b1120] border-white/5"
-        initial={false}
-        animate={{ width: sidebarCollapsed ? "5rem" : "18rem" }}
-        transition={{ duration: prefersReducedMotion ? 0 : 0.3, ease: [0.4, 0, 0.2, 1] }}
-        data-testid="sidebar-desktop"
-        style={{
-          boxShadow: "4px 0 24px rgba(0, 0, 0, 0.25)",
-        }}
+        className="hidden md:flex flex-col border-r bg-black/40 backdrop-blur-3xl border-white/5 relative z-50"
+        animate={{ width: sidebarCollapsed ? "6rem" : "20rem" }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/5">
-          <AnimatePresence>
+        <div className="h-24 flex items-center justify-between px-8 border-b border-white/5">
+          <AnimatePresence mode="wait">
             {!sidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                className="flex items-center gap-2"
-                data-testid="logo-text"
-              >
-                <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
-                  <img
-                    src="/logo.png"
-                    alt="Audnix AI"
-                    className="h-8 w-auto object-contain"
-                  />
+              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-xl border border-primary/20 shadow-2xl">
+                  <img src="/logo.png" alt="Audnix" className="h-6 w-6 object-contain grayscale brightness-200" />
                 </div>
-                <span className="font-bold text-xl text-primary">Audnix</span>
+                <span className="font-black text-xl tracking-tighter text-white uppercase italic">Audnix<span className="text-primary not-italic">.AI</span></span>
               </motion.div>
             )}
             {sidebarCollapsed && (
-              <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
-                <motion.img
-                  src="/logo.png"
-                  alt="Audnix AI"
-                  className="h-8 w-8 object-contain"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
-                />
-              </div>
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="mx-auto">
+                <img src="/logo.png" alt="Audnix" className="h-6 w-6 grayscale brightness-200" />
+              </motion.div>
             )}
           </AnimatePresence>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            data-testid="button-toggle-sidebar"
-          >
-            <ChevronLeft
-              className={`h-4 w-4 transition-transform ${sidebarCollapsed ? "rotate-180" : ""
-                }`}
-            />
-          </Button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-6" data-testid="nav-desktop">
-          <Link href="/dashboard">
-            <motion.div
-              className={`mx-3 mb-4 rounded-full transition-all duration-200 ${location === "/dashboard"
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                : "text-white/80 hover:text-white hover:bg-white/5"
-                }`}
-              whileHover={prefersReducedMotion ? {} : { x: 4 }}
-              transition={{ duration: 0.2 }}
-              data-testid="nav-item-home"
-            >
-              <div className="flex items-center gap-3 px-4 py-3">
-                <Home className="h-5 w-5 flex-shrink-0" />
-                {!sidebarCollapsed && (
-                  <span className="text-sm font-bold tracking-tight">Home</span>
+        <nav className="flex-1 overflow-y-auto py-8 custom-scrollbar px-3">
+          {renderNavItem({ label: "Command Center", icon: Home, path: "/dashboard" })}
+          {renderNavItem({ label: "Neural Nodes", icon: Inbox, path: "/dashboard/inbox" })}
+
+          <div className="px-6 my-8 border-t border-white/5" />
+
+          {navGroups.map(group => (
+            <div key={group.label} className="mb-6">
+              {!sidebarCollapsed && (
+                <div className="px-6 py-2 mb-2 flex items-center justify-between cursor-pointer group" onClick={() => toggleGroup(group.label)}>
+                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] group-hover:text-white/50 transition-colors uppercase italic">{group.label}</span>
+                  <ChevronDown className={`h-3 w-3 text-white/10 transition-transform ${expandedGroups[group.label] ? "rotate-180" : ""}`} />
+                </div>
+              )}
+              <AnimatePresence initial={false}>
+                {(expandedGroups[group.label] || sidebarCollapsed) && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                    {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                  </motion.div>
                 )}
-              </div>
-            </motion.div>
-          </Link>
+              </AnimatePresence>
+            </div>
+          ))}
 
-          <div className="px-6 mb-4">
-            {!sidebarCollapsed && (
-              <div className="h-px bg-white/5" />
-            )}
-          </div>
-
-          {navGroups.map(renderNavGroup)}
-
-          {user?.role === "admin" && (
-            <>
-              <div className="px-6 my-4">
-                {!sidebarCollapsed && (
-                  <div className="h-px bg-white/5" />
-                )}
-              </div>
-              <Link href={adminSecretPath}>
-                <motion.div
-                  className={`mx-3 mb-1.5 rounded-full transition-all duration-200 ${location === adminSecretPath ? "bg-primary/10 text-primary" : "text-white/60 hover:text-white"
-                    }`}
-                  whileHover={prefersReducedMotion ? {} : { x: 4 }}
-                  transition={{ duration: 0.2 }}
-                  data-testid="nav-item-admin"
-                >
-                  <div className="flex items-center gap-3 px-4 py-2.5">
-                    <Shield className="h-4.5 w-4.5 flex-shrink-0" />
-                    {!sidebarCollapsed && (
-                      <span className="text-sm font-medium tracking-tight">Admin Panel</span>
-                    )}
-                  </div>
-                </motion.div>
-              </Link>
-            </>
-          )}
+          <div className="px-6 my-8 border-t border-white/5" />
+          {renderNavItem({ label: "Operator Settings", icon: Settings, path: "/dashboard/settings" })}
         </nav>
 
-        {!sidebarCollapsed && (
-          <div className="p-4 border-t border-white/5 bg-white/[0.02]">
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={replayTour}
-                className="flex-1 text-xs text-white/50 hover:text-white hover:bg-white/10 rounded-full"
-              >
-                <Play className="h-3 w-3 mr-1" />
-                Tour
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={openChecklist}
-                className={`flex-1 text-xs hover:bg-white/10 rounded-full ${activationComplete ? "text-emerald-400" : "text-cyan-400"
-                  }`}
-              >
-                {activationComplete ? (
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                ) : (
-                  <Sparkles className="h-3 w-3 mr-1" />
-                )}
-                {activationComplete ? "Done" : "Activate"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </motion.aside>
-
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0f1e]">
-        <header className="h-16 border-b border-white/5 bg-[#0b1120]/80 backdrop-blur-md flex items-center justify-between px-6 md:px-8 z-20" data-testid="navbar-top">
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden text-foreground hover:text-foreground"
-                data-testid="button-mobile-menu"
-              >
-                <Menu className="h-5 w-5 text-foreground" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-0 bg-gradient-to-b from-[#0d1428] to-[#0a0f1f] border-cyan-500/20">
-              <div className="p-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
-                    <img src="/logo.png" alt="Audnix AI" className="h-8 w-auto object-contain" />
-                  </div>
-                  <span className="font-bold text-xl text-primary">Audnix</span>
-                </div>
-
-                <nav className="flex-1 overflow-y-auto -mx-2">
-                  <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <div className={`mx-2 mb-3 rounded-md transition-colors ${location === "/dashboard" ? "bg-primary/10 text-primary" : "text-white"
-                      }`}>
-                      <div className="flex items-center gap-3 px-3 py-2.5">
-                        <Home className="h-5 w-5 flex-shrink-0" />
-                        <span className="text-sm font-semibold">Home</span>
-                      </div>
-                    </div>
-                  </Link>
-
-                  <div className="px-3 mb-2">
-                    <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-                  </div>
-
-                  {navGroups.map(group => {
-                    const GroupIcon = group.icon;
-                    const isExpanded = expandedGroups[group.label];
-                    const hasActiveItem = group.items.some(item => isPathActive(item.path));
-
-                    return (
-                      <div key={group.label} className="mb-1">
-                        <div
-                          className={`mx-2 rounded-md transition-colors cursor-pointer hover:bg-white/5 ${hasActiveItem && !isExpanded ? "bg-primary/10" : ""
-                            }`}
-                          onClick={() => toggleGroup(group.label)}
-                        >
-                          <div className="flex items-center justify-between px-3 py-2.5">
-                            <div className="flex items-center gap-3">
-                              <GroupIcon className={`h-4 w-4 flex-shrink-0 ${hasActiveItem ? "text-primary" : "text-white/60"}`} />
-                              <span className={`text-sm font-semibold ${hasActiveItem ? "text-primary" : "text-white/70"}`}>
-                                {group.label}
-                              </span>
-                            </div>
-                            <ChevronDown
-                              className={`h-4 w-4 text-white/40 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                            />
-                          </div>
-                        </div>
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="pl-4 mt-1 overflow-hidden"
-                            >
-                              {group.items.map(item => {
-                                const Icon = item.icon;
-                                const isActive = isPathActive(item.path);
-                                const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
-
-                                if (isLocked) {
-                                  return (
-                                    <div
-                                      key={item.path}
-                                      className="mx-2 mb-1 rounded-md bg-white/5 cursor-not-allowed opacity-50"
-                                    >
-                                      <div className="flex items-center gap-3 px-3 py-2.5">
-                                        <Lock className="h-4 w-4 flex-shrink-0 text-white/40" />
-                                        <span className="text-sm font-medium text-white/40">{item.label}</span>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <Link key={item.path} href={item.path} onClick={() => setMobileMenuOpen(false)}>
-                                    <div
-                                      className={`mx-2 mb-1 rounded-md transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-white/80"
-                                        }`}
-                                    >
-                                      <div className="flex items-center gap-3 px-3 py-2.5">
-                                        <Icon className="h-4 w-4 flex-shrink-0" />
-                                        <span className="text-sm font-medium">{item.label}</span>
-                                      </div>
-                                    </div>
-                                  </Link>
-                                );
-                              })}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  })}
-                </nav>
-
-                <div className="pt-4 border-t border-cyan-500/20">
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        replayTour();
-                      }}
-                      className="flex-1 text-xs text-white/60 hover:text-white hover:bg-white/5"
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      Tour
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        openChecklist();
-                      }}
-                      className={`flex-1 text-xs hover:bg-white/5 ${activationComplete ? "text-emerald-400" : "text-cyan-400"
-                        }`}
-                    >
-                      {activationComplete ? (
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                      ) : (
-                        <Sparkles className="h-3 w-3 mr-1" />
-                      )}
-                      {activationComplete ? "Done" : "Activate"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <div className="hidden md:flex flex-1 max-w-md">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search leads, messages... (press Enter)"
-                className="pl-10 bg-muted/50 border-border"
-                data-testid="input-search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 md:gap-4">
-            <PlanBadgeBanner plan={user?.plan || ""} />
-
+        <div className="p-6 mt-auto border-t border-white/5">
+          <div className={`p-4 rounded-3xl bg-white/[0.03] border border-white/5 flex items-center gap-4 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
-                  <Bell className="h-5 w-5" />
-                  {unreadNotifications > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs" data-testid="badge-notifications">
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </Badge>
+                <div className="flex items-center gap-4 cursor-pointer">
+                  <Avatar className="h-10 w-10 rounded-2xl border border-primary/20 shadow-2xl">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-black rounded-2xl uppercase">{(user?.name || "U").charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  {!sidebarCollapsed && (
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black text-white italic truncate uppercase">{user?.name || "Neural Operator"}</span>
+                      <span className="text-[9px] text-white/30 font-bold uppercase tracking-widest mt-0.5">Systems Active</span>
+                    </div>
                   )}
-                </Button>
+                </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {notifications.length > 0 ? (
-                  notifications.slice(0, 5).map((notification) => (
-                    <DropdownMenuItem
-                      key={notification.id}
-                      className="flex flex-col items-start gap-1 cursor-pointer"
-                      onClick={() => handleNotificationClick(notification.id)}
-                      data-testid={`notification-item-${notification.id}`}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <span className={`font-medium ${notification.read ? 'text-muted-foreground' : ''}`}>
-                          {notification.title}
-                        </span>
-                        {!notification.read && (
-                          <Badge variant="secondary" className="ml-auto">New</Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {notification.message}
-                      </p>
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground">
-                    No notifications
-                  </div>
-                )}
+              <DropdownMenuContent side="right" align="end" className="w-64 bg-black/90 backdrop-blur-3xl border-white/10 rounded-[2rem] p-3 shadow-2xl">
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-400 font-black uppercase text-[10px] tracking-widest rounded-2xl p-4 cursor-pointer focus:bg-red-400/10">
+                  <LogOut className="w-4 h-4 mr-3" />
+                  Terminate Session
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+        </div>
+      </motion.aside>
 
+      <div className="flex-1 flex flex-col overflow-hidden bg-black">
+        <header className="h-24 border-b border-white/5 bg-black/40 backdrop-blur-3xl flex items-center justify-between px-8 z-40">
+          <div className="flex items-center gap-8 flex-1">
+            <Button variant="ghost" size="icon" className="md:hidden text-white/40" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="w-6 h-6" />
+            </Button>
+            <div className="hidden md:flex max-w-md w-full relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary" />
+              <Input className="h-12 pl-12 bg-white/[0.03] border-white/5 rounded-2xl text-sm font-bold placeholder:text-white/10 focus:ring-1 focus:ring-primary/20" placeholder="Neural Query Engine..." />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <ThemeSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full" data-testid="button-user-menu">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.avatar} alt={user?.name || user?.username || "User"} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {(user?.name || user?.username || user?.email || "U").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.03] relative group">
+                  <Bell className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
+                  {unreadNotifications > 0 && <span className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user?.name || user?.username || "User"}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setLocation("/dashboard/settings")} data-testid="menu-item-settings">
-                  <User className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive" data-testid="menu-item-signout">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#0d1428] to-[#080c18]" data-testid="main-content">
-          {children}
+        <main className="flex-1 overflow-y-auto p-12 custom-scrollbar scroll-smooth">
+          <div className="max-w-7xl mx-auto min-h-full">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+              {children}
+            </motion.div>
+          </div>
         </main>
-
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0d1428] to-[#0a0f1f] border-t border-cyan-500/20 flex items-center justify-around px-2" data-testid="nav-mobile-bottom">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            const isLocked = item.requiresStep && !isFeatureUnlocked(item.requiresStep);
-
-            if (isLocked) {
-              return (
-                <div
-                  key={item.path}
-                  className="flex flex-col items-center justify-center p-2 rounded-lg cursor-not-allowed opacity-50"
-                  title="Complete activation to unlock"
-                  data-testid={`mobile-nav-${item.label.toLowerCase()}`}
-                >
-                  <Lock className="h-5 w-5 mb-1 text-muted-foreground" />
-                  <span className="text-[10px] font-medium text-muted-foreground">{item.label}</span>
-                </div>
-              );
-            }
-
-            return (
-              <Link key={item.path} href={item.path}>
-                <motion.div
-                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${isActive ? "text-primary" : "text-muted-foreground"
-                    }`}
-                  whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
-                  data-testid={`mobile-nav-${item.label.toLowerCase()}`}
-                >
-                  <Icon className="h-5 w-5 mb-1" />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </motion.div>
-              </Link>
-            );
-          })}
-        </nav>
       </div>
     </div>
   );

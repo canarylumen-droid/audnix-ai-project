@@ -113,9 +113,10 @@
   --chart-4: 280 70% 45%;
   --chart-5: 340 80% 48%;
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Premium SaaS Font Stack */
+  --font-sans: 'Geist', 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --font-mono: 'JetBrains Mono', Menlo, monospace;
   --radius: 1.25rem;
   /* 20px - more modern, softer corners */
   --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 10% / 0.02);
@@ -207,6 +208,7 @@
   --popover-border: 220 6% 22%;
 
   --primary: 195 100% 60%;
+  --primary-glow: 195 100% 60% / 0.15;
 
   --primary-foreground: 0 0% 100%;
 
@@ -317,6 +319,51 @@
     box-shadow: 0 8px 64px -12px rgba(0, 0, 0, 0.6);
   }
 
+  /* Apple-style Perspective Tilt */
+  .perspective-tilt {
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-style: preserve-3d;
+  }
+
+  .perspective-tilt:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(1deg) scale(1.01);
+  }
+
+  .premium-glow {
+    position: relative;
+  }
+
+  .premium-glow::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, #00D9FF, #9333EA, #0066FF);
+    filter: blur(20px);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: -1;
+    border-radius: inherit;
+  }
+
+  .premium-glow:hover::before {
+    opacity: 0.3;
+  }
+
+  /* Animated Shimmer for Buttons */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
+  }
+
   .premium-border {
     border: 1px solid transparent;
     background-image: linear-gradient(var(--card), var(--card)), linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(147, 51, 234, 0.2));
@@ -337,10 +384,10 @@
   }
 
   .bg-grid {
-    background-size: 40px 40px;
+    background-size: 60px 60px;
     background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   }
 
   .mask-radial {
@@ -351,6 +398,18 @@
     background: radial-gradient(600px circle at var(--x) var(--y),
         rgba(0, 217, 255, 0.1),
         transparent 40%);
+  }
+
+  /* Typing cursor animation */
+  .cursor-blink::after {
+    content: '|';
+    animation: blink 1s infinite step-start;
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
   }
 }
 

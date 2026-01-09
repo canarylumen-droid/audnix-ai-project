@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
 import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
-import { useCanAccessInstagramDM, useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
+import { useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
 import {
   Instagram,
   Mail,
@@ -80,7 +80,6 @@ interface ImportResult {
 }
 
 const channelIcons = {
-  instagram: Instagram,
   gmail: SiGoogle,
 };
 
@@ -88,7 +87,7 @@ export default function IntegrationsPage() {
   const [voiceConsent, setVoiceConsent] = useState(false);
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  const [importingChannel, setImportingChannel] = useState<"instagram" | "email" | null>(null);
+  const [importingChannel, setImportingChannel] = useState<"email" | null>(null);
   const [showAllSetDialog, setShowAllSetDialog] = useState(false);
   const [allSetChannel, setAllSetChannel] = useState<string>("");
   const [customEmailConfig, setCustomEmailConfig] = useState({
@@ -108,9 +107,8 @@ export default function IntegrationsPage() {
   const pdfInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Access control hooks
-  const { canAccess: canAccessInstagram } = useCanAccessInstagramDM();
   const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
 
   // Fetch user data to check plan
@@ -342,7 +340,6 @@ export default function IntegrationsPage() {
     },
     onSuccess: (data, provider) => {
       const channelMap: Record<string, string> = {
-        instagram: "Instagram",
         gmail: "Email"
       };
 
@@ -358,11 +355,11 @@ export default function IntegrationsPage() {
 
       toast({
         title: "Import Complete",
-        description: hitFreeLimit 
+        description: hitFreeLimit
           ? `🎉 Imported ${data.leadsImported} leads! You've reached your 500 free leads. Upgrade to import unlimited!`
           : nearLimit
-          ? `Imported ${data.leadsImported} leads (${newTotal}/500 total). ${500 - newTotal} remaining on free trial!`
-          : `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
+            ? `Imported ${data.leadsImported} leads (${newTotal}/500 total). ${500 - newTotal} remaining on free trial!`
+            : `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
@@ -533,14 +530,12 @@ export default function IntegrationsPage() {
   };
 
   const handleSyncNow = (provider: string) => {
-    const channelMap: Record<string, "instagram" | "email"> = {
-      instagram: "instagram",
+    const channelMap: Record<string, "email"> = {
       gmail: "email"
     };
 
     // Map provider to backend endpoint
     const providerToEndpoint: Record<string, string> = {
-      instagram: "instagram",
       gmail: "gmail"
     };
 
@@ -598,7 +593,7 @@ export default function IntegrationsPage() {
                       {isAtLimit ? 'Free Trial Limit Reached' : isNearLimit ? 'Almost at limit' : 'Free Trial'}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {isAtLimit 
+                      {isAtLimit
                         ? `You've imported ${currentLeadCount} leads on us! Upgrade to continue importing.`
                         : `${currentLeadCount} / ${leadsLimit} leads imported • ${leadsLimit - currentLeadCount} remaining`
                       }
@@ -606,8 +601,8 @@ export default function IntegrationsPage() {
                   </div>
                 </div>
                 {(isAtLimit || isNearLimit) && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => window.location.href = '/dashboard/pricing'}
                     className={isAtLimit ? 'bg-amber-500 hover:bg-amber-600' : ''}
                   >
@@ -615,11 +610,11 @@ export default function IntegrationsPage() {
                   </Button>
                 )}
               </div>
-              
+
               {/* Progress Bar */}
               <div>
-                <Progress 
-                  value={leadUsagePercentage} 
+                <Progress
+                  value={leadUsagePercentage}
                   className={`h-2 ${isAtLimit ? 'bg-amber-500/20' : isNearLimit ? 'bg-blue-500/20' : 'bg-emerald-500/20'}`}
                 />
               </div>
@@ -650,7 +645,7 @@ export default function IntegrationsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["instagram", "gmail"].map((providerId, index) => {
+            {["gmail"].map((providerId, index) => {
               const integration = integrations.find((i) => i.provider === providerId);
               const isConnected = !!integration;
               const Icon = channelIcons[providerId as keyof typeof channelIcons];
@@ -662,101 +657,6 @@ export default function IntegrationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  {/* Instagram - OAuth connection */}
-                  {providerId === "instagram" && (
-                    <Card
-                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : "border-pink-500/30 bg-pink-500/5"}`}
-                      data-testid={`card-integration-${providerId}`}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-pink-500/10">
-                              <Instagram className="h-6 w-6 text-pink-500" data-testid={`icon-${providerId}`} />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <CardTitle className="text-base" data-testid={`text-name-${providerId}`}>
-                                  Instagram
-                                </CardTitle>
-                              </div>
-                              <CardDescription className="text-sm">
-                                AI monitors and responds to DMs
-                              </CardDescription>
-                            </div>
-                          </div>
-                          {isConnected && (
-                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                              <Check className="h-3 w-3 mr-1" />
-                              Connected
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {isConnected ? (
-                          <>
-                            <div className="text-sm">
-                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">DM automation active</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleDisconnect(providerId)}
-                                disabled={disconnectProviderMutation.isPending}
-                                data-testid={`button-disconnect-${providerId}`}
-                              >
-                                {disconnectProviderMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Disconnect"
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleSyncNow(providerId)}
-                                disabled={importLeadsMutation.isPending}
-                                data-testid={`button-sync-${providerId}`}
-                              >
-                                {importLeadsMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Sync Now"
-                                )}
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-                              onClick={() => handleConnect(providerId)}
-                              disabled={connectProviderMutation.isPending}
-                              data-testid={`button-connect-${providerId}`}
-                            >
-                              {connectProviderMutation.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              ) : (
-                                <Instagram className="h-4 w-4 mr-2" />
-                              )}
-                              Connect Instagram
-                            </Button>
-                            <p className="text-xs text-muted-foreground text-center">
-                              Connect with Meta OAuth
-                            </p>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                  
                   {/* Email - Available to all users */}
                   {providerId === "gmail" && (
                     <Card
@@ -1002,11 +902,10 @@ export default function IntegrationsPage() {
                 </div>
 
                 {emailTestResult && (
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${
-                    emailTestResult.success 
-                      ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800" 
-                      : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
-                  }`}>
+                  <div className={`p-3 rounded-lg flex items-center gap-2 ${emailTestResult.success
+                    ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
+                    : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
+                    }`}>
                     {emailTestResult.success ? (
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
                     ) : (
@@ -1019,7 +918,7 @@ export default function IntegrationsPage() {
                 )}
 
                 <div className="flex gap-2">
-                  <Button 
+                  <Button
                     variant="outline"
                     className="flex-1"
                     onClick={testEmailConnection}
@@ -1031,8 +930,8 @@ export default function IntegrationsPage() {
                     ) : null}
                     Test Connection
                   </Button>
-                  <Button 
-                    className="flex-1" 
+                  <Button
+                    className="flex-1"
                     onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
                     disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || connectCustomEmailMutation.isPending}
                     data-testid="button-connect-custom-email"
@@ -1045,7 +944,7 @@ export default function IntegrationsPage() {
                     {connectCustomEmailMutation.isPending ? 'Connecting...' : isEditingCustomEmail ? 'Update Email' : 'Connect Email'}
                   </Button>
                   {isEditingCustomEmail && (
-                    <Button 
+                    <Button
                       variant="outline"
                       onClick={() => {
                         setIsEditingCustomEmail(false);
@@ -1077,8 +976,8 @@ export default function IntegrationsPage() {
                   <Lock className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                   <h3 className="font-semibold mb-1">Voice Notes</h3>
                   <p className="text-xs text-muted-foreground mb-3">Upgrade to unlock AI voice cloning</p>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={() => window.location.href = '/dashboard/pricing'}
                     className="w-full"
                   >
@@ -1087,114 +986,114 @@ export default function IntegrationsPage() {
                 </div>
               </div>
             )}
-          <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
-            <CardTitle>AI Voice Messaging</CardTitle>
-            <CardDescription>Clone your voice for Instagram DMs</CardDescription>
-          </CardHeader>
-          <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
-            {/* Voice Minutes Widget - Real-time data */}
-            <VoiceMinutesWidget />
+            <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
+              <CardTitle>AI Voice Messaging</CardTitle>
+              <CardDescription>Clone your voice for Instagram DMs</CardDescription>
+            </CardHeader>
+            <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
+              {/* Voice Minutes Widget - Real-time data */}
+              <VoiceMinutesWidget />
 
-            {/* Upload Section */}
-            <div className="space-y-4">
-              <input
-                ref={voiceInputRef}
-                type="file"
-                accept="audio/mpeg,audio/wav,audio/x-m4a,audio/mp4,.mp3,.wav,.m4a"
-                onChange={handleVoiceFileSelect}
-                className="hidden"
-                data-testid="input-voice-file"
-                disabled={!canAccessVoiceNotes}
-              />
-
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                {hasVoiceSample && !isUploadingVoice ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-center gap-2 text-emerald-500">
-                      <Check className="h-5 w-5" />
-                      <span className="font-medium" data-testid="text-voice-uploaded">Voice sample uploaded</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-3">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => voiceInputRef.current?.click()}
-                        data-testid="button-upload-new"
-                        disabled={!canAccessVoiceNotes}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload New
-                      </Button>
-                    </div>
-                  </div>
-                ) : isUploadingVoice ? (
-                  <div className="space-y-3">
-                    <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
-                    <p className="font-medium">Uploading voice sample...</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Mic className="h-12 w-12 mx-auto text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Upload voice sample</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Record or upload a 30-60 second audio clip (MP3, WAV, or M4A)
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => voiceInputRef.current?.click()}
-                      disabled={isVoiceLocked || !canAccessVoiceNotes}
-                      data-testid="button-upload-voice"
-                    >
-                      {isVoiceLocked ? <Lock className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                      {isVoiceLocked ? "Top Up Required" : "Upload Audio"}
-                    </Button>
-                    {isVoiceLocked && (
-                      <p className="text-xs text-red-500 text-center mt-2">
-                        Voice minutes depleted. Top up to upload voice samples.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Consent */}
-              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-                <Checkbox
-                  id="voice-consent"
-                  checked={voiceConsent}
-                  onCheckedChange={(checked) => setVoiceConsent(checked as boolean)}
-                  data-testid="checkbox-voice-consent"
+              {/* Upload Section */}
+              <div className="space-y-4">
+                <input
+                  ref={voiceInputRef}
+                  type="file"
+                  accept="audio/mpeg,audio/wav,audio/x-m4a,audio/mp4,.mp3,.wav,.m4a"
+                  onChange={handleVoiceFileSelect}
+                  className="hidden"
+                  data-testid="input-voice-file"
                   disabled={!canAccessVoiceNotes}
                 />
-                <label
-                  htmlFor="voice-consent"
-                  className="text-sm text-muted-foreground cursor-pointer"
+
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  {hasVoiceSample && !isUploadingVoice ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-center gap-2 text-emerald-500">
+                        <Check className="h-5 w-5" />
+                        <span className="font-medium" data-testid="text-voice-uploaded">Voice sample uploaded</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => voiceInputRef.current?.click()}
+                          data-testid="button-upload-new"
+                          disabled={!canAccessVoiceNotes}
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload New
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isUploadingVoice ? (
+                    <div className="space-y-3">
+                      <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
+                      <p className="font-medium">Uploading voice sample...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <Mic className="h-12 w-12 mx-auto text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">Upload voice sample</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Record or upload a 30-60 second audio clip (MP3, WAV, or M4A)
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => voiceInputRef.current?.click()}
+                        disabled={isVoiceLocked || !canAccessVoiceNotes}
+                        data-testid="button-upload-voice"
+                      >
+                        {isVoiceLocked ? <Lock className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                        {isVoiceLocked ? "Top Up Required" : "Upload Audio"}
+                      </Button>
+                      {isVoiceLocked && (
+                        <p className="text-xs text-red-500 text-center mt-2">
+                          Voice minutes depleted. Top up to upload voice samples.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Consent */}
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
+                  <Checkbox
+                    id="voice-consent"
+                    checked={voiceConsent}
+                    onCheckedChange={(checked) => setVoiceConsent(checked as boolean)}
+                    data-testid="checkbox-voice-consent"
+                    disabled={!canAccessVoiceNotes}
+                  />
+                  <label
+                    htmlFor="voice-consent"
+                    className="text-sm text-muted-foreground cursor-pointer"
+                  >
+                    I consent to AI voice cloning for lead follow-ups
+                  </label>
+                </div>
+
+                {/* Activate */}
+                <Button
+                  className="w-full"
+                  disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked || !canAccessVoiceNotes}
+                  data-testid="button-activate-voice"
                 >
-                  I consent to AI voice cloning for lead follow-ups
-                </label>
+                  {isVoiceLocked ? "Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
+                </Button>
               </div>
 
-              {/* Activate */}
-              <Button
-                className="w-full"
-                disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked || !canAccessVoiceNotes}
-                data-testid="button-activate-voice"
-              >
-                {isVoiceLocked ? "Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
-              </Button>
-            </div>
-
-            {/* Info */}
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-muted-foreground">
-                Voice cloning uses advanced AI to replicate your natural speaking patterns and tone.
-                For best results, speak clearly and naturally in your recording.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              {/* Info */}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  Voice cloning uses advanced AI to replicate your natural speaking patterns and tone.
+                  For best results, speak clearly and naturally in your recording.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Voice Minutes Tracker */}
@@ -1309,8 +1208,8 @@ export default function IntegrationsPage() {
                   </p>
                 )}
                 {(isAtLimit || isNearLimit) && (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant={isAtLimit ? "default" : "outline"}
                     onClick={() => {
                       setShowAllSetDialog(false);

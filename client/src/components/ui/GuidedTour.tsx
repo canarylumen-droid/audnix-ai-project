@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X, ChevronLeft, ChevronRight, Sparkles, Navigation, Upload, MessageSquare, Brain, BarChart3, Check } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Sparkles, Navigation, Upload, MessageSquare, Brain, BarChart3, Check, Terminal, Cpu, Database, Activity } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TourStep {
   id: string;
@@ -10,62 +12,62 @@ interface TourStep {
   description: string;
   targetSelector?: string;
   icon?: React.ReactNode;
-  position?: "center" | "left" | "right" | "top" | "bottom";
+  position?: "left" | "right" | "top" | "bottom" | "center";
 }
 
 const TOUR_STEPS: TourStep[] = [
   {
     id: "welcome",
-    title: "Welcome to Audnix AI",
-    description: "This quick 1-minute tour will show you exactly how your AI closes deals, sends follow-ups, and handles your leads.",
-    icon: <Sparkles className="w-8 h-8 text-cyan-400" />,
+    title: "Audnix Intelligence Node",
+    description: "Welcome to the ecosystem. This brief protocol will calibrate your interface for deterministic revenue recovery.",
+    icon: <Sparkles className="w-6 h-6 text-primary" />,
     position: "center",
   },
   {
     id: "sidebar",
-    title: "Your command center",
-    description: "This is where you'll access leads, automation, insights, and all your activation tools.",
+    title: "Sovereign Control",
+    description: "Your primary navigation surface. Access core engagement nodes, intelligence logs, and system scaling tools.",
     targetSelector: "[data-testid='sidebar-desktop'], [data-testid='nav-desktop']",
-    icon: <Navigation className="w-8 h-8 text-cyan-400" />,
+    icon: <Navigation className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "import-leads",
-    title: "Start here: Import your leads",
-    description: "Upload your CSV or PDF to let your AI begin analyzing, warming up, and reconnecting your prospects.",
+    title: "Intelligence Ingestion",
+    description: "The protocol starts here. Upload raw data (CSV/PDF) for the neural engine to analyze and prioritize.",
     targetSelector: "[data-testid='nav-item-import leads']",
-    icon: <Upload className="w-8 h-8 text-cyan-400" />,
+    icon: <Upload className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "conversations",
-    title: "Your AI inbox",
-    description: "Every reply, follow-up, recovery, and objection handling shows up here. This is where you watch the AI work.",
+    title: "Active Engagement Node",
+    description: "Real-time auditing of every handle, objection, and close executed by the Audnix Sales Engine.",
     targetSelector: "[data-testid='nav-item-conversations']",
-    icon: <MessageSquare className="w-8 h-8 text-cyan-400" />,
+    icon: <MessageSquare className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "sales-assistant",
-    title: "Your Intelligent Closer",
-    description: "Paste what your prospect said, and get instant AI-powered responses to handle objections, adapt tone, and close the deal.",
+    title: "Objection Handler",
+    description: "Deploy manual precision. Feed the AI prospect inputs to generate high-status, conversion-optimized responses.",
     targetSelector: "[data-testid='nav-item-objection handler']",
-    icon: <Brain className="w-8 h-8 text-cyan-400" />,
+    icon: <Brain className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "analytics",
-    title: "Performance analytics",
-    description: "Track conversions, recovery rate, response timing, and everything your AI is doing behind the scenes.",
+    title: "Economic Yield",
+    description: "Visualize recovered capital and engine efficiency. Track the ROI of your autonomous engagements.",
     targetSelector: "[data-testid='nav-item-analytics']",
-    icon: <BarChart3 className="w-8 h-8 text-cyan-400" />,
+    icon: <BarChart3 className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "done",
-    title: "You're good to go",
-    description: "You now understand every key part of Audnix AI. Let's activate your first leads.",
-    icon: <Check className="w-8 h-8 text-emerald-400" />,
+    title: "Protocol Complete",
+    description: "System calibration finished. You are now authorized to initiate full pipeline recovery.",
+    icon: <Check className="w-6 h-6 text-emerald-400" />,
     position: "center",
   },
 ];
@@ -99,9 +101,12 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
   useEffect(() => {
     if (isOpen) {
       updateTargetRect();
+      const observer = new MutationObserver(updateTargetRect);
+      observer.observe(document.body, { attributes: true, childList: true, subtree: true });
       window.addEventListener("resize", updateTargetRect);
       window.addEventListener("scroll", updateTargetRect);
       return () => {
+        observer.disconnect();
         window.removeEventListener("resize", updateTargetRect);
         window.removeEventListener("scroll", updateTargetRect);
       };
@@ -122,174 +127,116 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
     }
   };
 
-  const handleSkip = () => {
-    onSkip();
-  };
-
   if (!isOpen) return null;
-
-  const getModalPosition = () => {
-    if (!targetRect || step.position === "center") {
-      return {
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-      };
-    }
-
-    const padding = 20;
-    const modalWidth = 400;
-    const modalHeight = 250;
-
-    switch (step.position) {
-      case "right":
-        return {
-          top: `${Math.max(padding, Math.min(targetRect.top, window.innerHeight - modalHeight - padding))}px`,
-          left: `${targetRect.right + padding}px`,
-        };
-      case "left":
-        return {
-          top: `${Math.max(padding, Math.min(targetRect.top, window.innerHeight - modalHeight - padding))}px`,
-          left: `${targetRect.left - modalWidth - padding}px`,
-        };
-      case "bottom":
-        return {
-          top: `${targetRect.bottom + padding}px`,
-          left: `${targetRect.left}px`,
-        };
-      case "top":
-        return {
-          top: `${targetRect.top - modalHeight - padding}px`,
-          left: `${targetRect.left}px`,
-        };
-      default:
-        return {
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-        };
-    }
-  };
-
-  const modalStyle = getModalPosition();
 
   return createPortal(
     <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9998]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-          />
+      <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden">
+        {/* SVG Spotlight Overlay */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 pointer-events-auto bg-black/40 backdrop-blur-[2px]"
+          style={{
+            maskImage: targetRect && step.position !== "center"
+              ? `radial-gradient(circle ${Math.max(targetRect.width, targetRect.height) / 2 + 30}px at ${targetRect.left + targetRect.width / 2}px ${targetRect.top + targetRect.height / 2}px, transparent 100%, black 100%)`
+              : 'none',
+            WebkitMaskImage: targetRect && step.position !== "center"
+              ? `radial-gradient(circle ${Math.max(targetRect.width, targetRect.height) / 2 + 30}px at ${targetRect.left + targetRect.width / 2}px ${targetRect.top + targetRect.height / 2}px, transparent 100%, black 100%)`
+              : 'none'
+          }}
+        />
 
-          {targetRect && step.position !== "center" && (
-            <motion.div
-              className="fixed z-[9999] pointer-events-none"
-              style={{
-                top: targetRect.top - 4,
-                left: targetRect.left - 4,
-                width: targetRect.width + 8,
-                height: targetRect.height + 8,
-                boxShadow: "0 0 0 4000px rgba(0, 0, 0, 0.7), 0 0 20px 4px rgba(0, 200, 255, 0.5)",
-                borderRadius: "12px",
-                border: "2px solid rgba(0, 200, 255, 0.6)",
-              }}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            />
-          )}
-
+        {/* Pulsating Border */}
+        {targetRect && step.position !== "center" && (
           <motion.div
-            className="fixed z-[10000] w-[calc(100vw-32px)] max-w-[360px] md:max-w-[400px] bg-gradient-to-b from-[#1a2744] to-[#0d1428] rounded-2xl border border-cyan-500/30 shadow-2xl"
+            layoutId="spotlight-border"
+            className="fixed pointer-events-none z-[10000]"
             style={{
-              top: 'auto',
-              bottom: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              top: targetRect.top - 10,
+              left: targetRect.left - 10,
+              width: targetRect.width + 20,
+              height: targetRect.height + 20,
+              borderRadius: '24px',
+              border: '2px solid rgba(0, 217, 255, 0.5)',
+              boxShadow: '0 0 20px rgba(0, 217, 255, 0.3)'
             }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+              boxShadow: ['0 0 20px rgba(0, 217, 255, 0.3)', '0 0 40px rgba(0, 217, 255, 0.5)', '0 0 20px rgba(0, 217, 255, 0.3)']
+            }}
+            transition={{
+              boxShadow: { duration: 2, repeat: Infinity },
+              layout: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+            }}
+          />
+        )}
+
+        {/* Tour Modal */}
+        <div className={`fixed z-[10001] pointer-events-auto flex items-center justify-center inset-0 ${step.position === 'center' ? '' : 'sm:inset-auto sm:right-12 sm:bottom-12'}`}>
+          <motion.div
+            key={currentStep}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="w-full max-w-[400px] mx-4 glass-card rounded-[2.5rem] border-white/10 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.8)] p-8 bg-black/80"
           >
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 hidden md:block">
-              <div className="px-4 py-1.5 bg-cyan-500/20 rounded-full border border-cyan-500/30 text-xs text-cyan-300 font-medium">
-                Step {currentStep + 1} of {TOUR_STEPS.length}
-              </div>
-            </div>
-
-            <button
-              onClick={handleSkip}
-              className="absolute top-3 right-3 md:top-4 md:right-4 text-white/50 hover:text-white transition-colors text-xs md:text-sm"
-            >
-              Skip Tour
-            </button>
-
-            <div className="p-4 md:p-8">
-              <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4 md:mb-6 border border-cyan-500/20">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
                   {step.icon}
                 </div>
-                <div className="md:hidden mb-2">
-                  <span className="px-3 py-1 bg-cyan-500/20 rounded-full border border-cyan-500/30 text-xs text-cyan-300 font-medium">
-                    {currentStep + 1} / {TOUR_STEPS.length}
-                  </span>
+                <div>
+                  <h4 className="font-bold text-white tracking-tight">{step.title}</h4>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none mt-1">
+                    Node Calibration {currentStep + 1} / {TOUR_STEPS.length}
+                  </p>
                 </div>
-                <h3 className="text-lg md:text-2xl font-bold text-white mb-2 md:mb-3">{step.title}</h3>
-                <p className="text-white/70 text-sm md:text-base leading-relaxed">{step.description}</p>
               </div>
+              <button onClick={onSkip} className="p-2 hover:bg-white/5 rounded-full transition-all group">
+                <X className="w-4 h-4 text-white/20 group-hover:text-white" />
+              </button>
+            </div>
 
-              <div className="flex items-center justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-white/10">
+            <p className="text-white/60 text-sm font-medium leading-relaxed mb-10">
+              {step.description}
+            </p>
+
+            <div className="flex items-center justify-between pt-6 border-t border-white/5">
+              <div className="flex gap-1.5">
+                {TOUR_STEPS.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 rounded-full transition-all duration-500 ${i === currentStep ? 'w-6 bg-primary' : 'w-2 bg-white/10'}`}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-3">
                 <Button
                   variant="ghost"
+                  size="sm"
                   onClick={handleBack}
                   disabled={currentStep === 0}
-                  className="text-white/70 hover:text-white disabled:opacity-30 text-sm px-2 md:px-4"
+                  className="rounded-xl text-white/40 hover:text-white hover:bg-white/5"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Back
                 </Button>
-
-                <div className="hidden md:flex gap-1.5">
-                  {TOUR_STEPS.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentStep
-                          ? "bg-cyan-400"
-                          : index < currentStep
-                          ? "bg-cyan-400/50"
-                          : "bg-white/20"
-                      }`}
-                    />
-                  ))}
-                </div>
-
                 <Button
                   onClick={handleNext}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white text-sm px-3 md:px-4"
+                  className="h-10 px-6 rounded-xl bg-white text-black font-black hover:scale-105 active:scale-95 transition-all shadow-xl"
                 >
-                  {currentStep === TOUR_STEPS.length - 1 ? (
-                    <>
-                      Finish
-                      <Check className="w-4 h-4 ml-1" />
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </>
-                  )}
+                  {currentStep === TOUR_STEPS.length - 1 ? 'Execute' : 'Proceed'}
+                  <ChevronRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
             </div>
           </motion.div>
-        </>
-      )}
+        </div>
+      </div>
     </AnimatePresence>,
     document.body
   );
@@ -297,31 +244,49 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
 
 export function useTour(onboardingCompleted: boolean = false) {
   const [showTour, setShowTour] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: user } = useQuery<any>({
+    queryKey: ["/api/user/profile"],
+    enabled: !!onboardingCompleted,
+  });
+
+  const updateMetadata = useMutation({
+    mutationFn: async (metadata: any) => {
+      return await apiRequest("POST", "/api/user/auth/metadata", { metadata });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    }
+  });
 
   useEffect(() => {
     if (!onboardingCompleted) {
       setShowTour(false);
       return;
     }
-    
-    const tourCompleted = localStorage.getItem("audnixTourCompleted");
+
+    const tourCompleted = localStorage.getItem("audnixTourCompleted") === "true" || user?.metadata?.tourCompleted === true;
+
     if (!tourCompleted) {
       const timer = setTimeout(() => {
         setShowTour(true);
       }, 1500);
       return () => clearTimeout(timer);
     }
-  }, [onboardingCompleted]);
+  }, [onboardingCompleted, user]);
 
   const completeTour = useCallback(() => {
     localStorage.setItem("audnixTourCompleted", "true");
+    updateMetadata.mutate({ tourCompleted: true });
     setShowTour(false);
-  }, []);
+  }, [updateMetadata]);
 
   const skipTour = useCallback(() => {
     localStorage.setItem("audnixTourCompleted", "true");
+    updateMetadata.mutate({ tourCompleted: true });
     setShowTour(false);
-  }, []);
+  }, [updateMetadata]);
 
   const replayTour = useCallback(() => {
     localStorage.removeItem("audnixTourCompleted");
