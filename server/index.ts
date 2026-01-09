@@ -301,9 +301,12 @@ async function runMigrations() {
     const migrationFiles = fs.readdirSync(migrationsDir)
       .filter(f => f.endsWith('.sql'))
       .filter(f => {
-        // Skip Supabase-specific migrations if not using Supabase
+        // Core schema is in 000 or 002. Ensure it runs on non-Supabase too if needed.
+        // Actually, 000_SETUP_SUPABASE suggests it's standard Postgres.
+        // Let's just run everything that isn't explicitly 002 if not on Supabase,
+        // OR better yet, let's just run all migrations and let 'CREATE TABLE IF NOT EXISTS' handle it.
         if (f.startsWith('002_') && !isSupabaseDB) {
-          console.log(`  ⏭️  Skipping ${f} (Supabase-only migration, using ${isSupabaseDB ? 'Supabase' : 'Neon/PostgreSQL'})`);
+          console.log(`  ⏭️  Skipping ${f} (Supabase-only migration, using Neon/PostgreSQL)`);
           return false;
         }
         return true;
@@ -315,6 +318,8 @@ async function runMigrations() {
       return;
     }
 
+    console.log(`📦 Found ${migrationFiles.length} migration(s) to process`);
+
     for (const file of migrationFiles) {
       const migrationPath = path.join(migrationsDir, file);
       const sql = fs.readFileSync(migrationPath, 'utf-8');
@@ -322,8 +327,14 @@ async function runMigrations() {
       console.log(`  ⏳ Running ${file}...`);
 
       try {
-        // Execute SQL directly using Drizzle's execute method
-        await db.execute(sql as any);
+        // Use raw pool query if available for multi-statement execution
+        const { pool } = await import('./db.js');
+        if (pool) {
+          await pool.query(sql);
+        } else {
+          // Fallback to Drizzle execute for single statements or if pool missing
+          await db.execute(sql as any);
+        }
         console.log(`  ✅ ${file} complete`);
       } catch (error: any) {
         // Ignore "already exists" errors
