@@ -18,7 +18,7 @@ import {
 } from '../lib/ai/conversation-ai.js';
 import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
 import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
-import { importInstagramLeads, importGmailLeads, importWhatsAppLeads, importManychatLeads } from "../lib/imports/lead-importer.js";
+import { importInstagramLeads, importGmailLeads, importManychatLeads } from "../lib/imports/lead-importer.js";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar.js";
 import { generateSmartReplies } from '../lib/ai/smart-replies.js';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
@@ -124,9 +124,9 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
       direction: "outbound",
       body: messageBody,
       audioUrl: null,
-      metadata: { 
+      metadata: {
         ai_generated: !manualMessage,
-        should_use_voice: aiResponse.useVoice 
+        should_use_voice: aiResponse.useVoice
       }
     });
 
@@ -255,9 +255,7 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
       case 'gmail':
         results = await importGmailLeads(userId);
         break;
-      case 'whatsapp':
-        results = await importWhatsAppLeads(userId);
-        break;
+
       case 'manychat':
         results = await importManychatLeads(userId);
         break;
@@ -287,9 +285,9 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 router.post("/import-csv", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leads: leadsData, channel = 'email' } = req.body as { 
+    const { leads: leadsData, channel = 'email' } = req.body as {
       leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
-      channel?: 'email' | 'whatsapp' | 'instagram';
+      channel?: 'email' | 'instagram';
     };
 
     if (!Array.isArray(leadsData) || leadsData.length === 0) {
@@ -311,7 +309,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
         limitReached: true
       });
@@ -324,12 +322,12 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     };
 
     const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
-    
+
     const importedIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsToImport; i++) {
       const leadData = leadsData[i];
-      
+
       try {
         const identifier = leadData.email || leadData.phone;
         if (!identifier) {
@@ -342,7 +340,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           continue;
         }
 
-        const existingLead = existingLeads.find(l => 
+        const existingLead = existingLeads.find(l =>
           (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase()) ||
           (leadData.phone && l.phone === leadData.phone)
         );
@@ -357,7 +355,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           name: leadData.name || identifier.split('@')[0] || 'Unknown',
           email: leadData.email || null,
           phone: leadData.phone || null,
-          channel: channel as 'email' | 'whatsapp' | 'instagram',
+          channel: channel as 'email' | 'instagram',
           status: 'new',
           metadata: {
             imported_from_csv: true,
@@ -456,7 +454,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
                 provider: lead.channel as ProviderType,
                 direction: "outbound",
                 body: availabilityCheck.message,
-                metadata: { 
+                metadata: {
                   rescheduled: true,
                   originalTime: requestedStart.toISOString(),
                   newTime: availabilityCheck.suggestedStart.toISOString()
@@ -498,7 +496,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         provider: lead.channel as ProviderType,
         direction: "outbound",
         body: messageText,
-        metadata: { 
+        metadata: {
           booking_link: bookingLink,
           event_id: eventData?.id,
           event_link: eventData?.htmlLink
@@ -835,7 +833,7 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
 router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     if (!req.file) {
       res.status(400).json({ error: "No CSV file provided" });
       return;
@@ -855,7 +853,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
         limitReached: true
       });
@@ -868,7 +866,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
     };
 
     const leadsData: Array<Record<string, string>> = [];
-    
+
     await new Promise<void>((resolve, reject) => {
       const stream = Readable.from(req.file!.buffer);
       stream
@@ -885,13 +883,13 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
 
     for (let i = 0; i < leadsToImport; i++) {
       const row = leadsData[i];
-      
+
       try {
         const email = row.email || row.Email || row.EMAIL;
         const phone = row.phone || row.Phone || row.PHONE || row.mobile || row.Mobile;
         const name = row.name || row.Name || row.NAME || row.full_name || row.fullName || 'Unknown';
         const company = row.company || row.Company || row.COMPANY || row.organization;
-        
+
         const identifier = email || phone;
         if (!identifier) {
           results.errors.push(`Row ${i + 1}: Missing email or phone`);
@@ -899,8 +897,8 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
         }
 
         if (importedIdentifiers.has(identifier.toLowerCase()) ||
-            (email && existingEmails.has(email.toLowerCase())) ||
-            (phone && existingPhones.has(phone))) {
+          (email && existingEmails.has(email.toLowerCase())) ||
+          (phone && existingPhones.has(phone))) {
           results.errors.push(`Row ${i + 1}: Duplicate lead ${identifier}`);
           continue;
         }
@@ -952,7 +950,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
 router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     if (!req.file) {
       res.status(400).json({ error: "No PDF file provided" });
       return;
@@ -972,7 +970,7 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
     const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
 
     if (currentLeadCount >= maxLeads) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
         limitReached: true
       });

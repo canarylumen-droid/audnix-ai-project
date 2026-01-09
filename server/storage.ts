@@ -146,7 +146,6 @@ export class MemStorage implements IStorage {
       voiceMinutesTopup: insertUser.voiceMinutesTopup || 0,
       businessName: insertUser.businessName || null,
       voiceRules: insertUser.voiceRules || null,
-      whatsappConnected: insertUser.whatsappConnected || false,
       pdfConfidenceThreshold: insertUser.pdfConfidenceThreshold || 0.7,
       lastInsightGeneratedAt: insertUser.lastInsightGeneratedAt || null,
       paymentStatus: insertUser.paymentStatus || "none",
@@ -293,17 +292,17 @@ export class MemStorage implements IStorage {
   async getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]> {
     let msgs = Array.from(this.messages.values())
       .filter((msg) => msg.userId === userId);
-    
+
     if (options?.channel) {
       msgs = msgs.filter((msg) => msg.provider === options.channel);
     }
-    
+
     msgs = msgs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     if (options?.limit) {
       msgs = msgs.slice(0, options.limit);
     }
-    
+
     return msgs;
   }
 

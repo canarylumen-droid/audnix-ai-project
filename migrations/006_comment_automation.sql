@@ -42,7 +42,7 @@ BEGIN
       WHERE table_name = 'deals' AND column_name = 'source'
     ) THEN
       ALTER TABLE deals ADD COLUMN source TEXT DEFAULT 'manual' 
-        CHECK (source IN ('manual', 'instagram', 'whatsapp', 'email', 'comment_automation'));
+        CHECK (source IN ('manual', 'instagram', 'email', 'comment_automation'));
     END IF;
     
     -- Add closed_at column if it doesn't exist

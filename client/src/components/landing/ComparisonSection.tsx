@@ -36,7 +36,7 @@ export function ComparisonSection() {
                         <span className="text-primary not-italic tracking-[-0.08em]">STANDARD.</span>
                     </motion.h2>
                     <p className="text-white/40 font-bold italic text-2xl md:text-3xl max-w-3xl mx-auto leading-tight tracking-tight">
-                        Why settle for legacy tools that just <span className="text-white decoration-primary/40 underline">organize leads</span> when you can have a neural protocol that <span className="text-white italic cursor-blink">closes them</span> autonomously?
+                        Why settle for legacy tools that just <span className="text-white decoration-primary/40 underline">organize leads</span> when you can have an intelligence protocol that <span className="text-white italic cursor-blink">closes them</span> autonomously?
                     </p>
                 </div>
 
@@ -49,13 +49,13 @@ export function ComparisonSection() {
                                 <tr className="border-b border-white/5">
                                     <th className="py-12 px-8 text-[10px] font-black uppercase tracking-[0.5em] text-white/20 italic">Intelligence Map</th>
                                     <th className="py-12 px-8 text-[10px] font-black uppercase tracking-[0.5em] text-white/20 italic">Legacy CRMs</th>
-                                    <th className="py-12 px-8 text-[10px] font-black uppercase tracking-[0.5em] text-primary italic text-center">Audnix Neural Protocol</th>
+                                    <th className="py-12 px-8 text-[10px] font-black uppercase tracking-[0.5em] text-primary italic text-center">Audnix Intelligence Protocol</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {[
                                     { name: "Autonomous Response Latency", old: "Never (Human required)", new: "< 2 Minutes (24/7)", icon: Zap },
-                                    { name: "Objection Handling Logic", old: "Manual Reframing", new: "Dynamic Neural Reframing", icon: Brain },
+                                    { name: "Objection Handling Logic", old: "Manual Reframing", new: "Dynamic Intelligence Flow", icon: Brain },
                                     { name: "Knowledge Base Integration", old: "Manual Search", new: "Vector PDF Ingestion", icon: Search },
                                     { name: "Predictive Follow-Up", old: "Linear Sequences", new: "Intent-Based Signals", icon: Globe },
                                     { name: "Safety & Compliance", old: "High Risk Threshold", new: "Official API Protected", icon: Shield },

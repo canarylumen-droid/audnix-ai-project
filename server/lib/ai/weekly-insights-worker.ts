@@ -96,7 +96,6 @@ export class WeeklyInsightsWorker {
               newLeads: leads.filter((lead: Lead) => lead.status === 'new').length,
               channelBreakdown: {
                 email: leads.filter((lead: Lead) => lead.channel === 'email').length,
-                whatsapp: leads.filter((lead: Lead) => lead.channel === 'whatsapp').length,
                 instagram: leads.filter((lead: Lead) => lead.channel === 'instagram').length,
               },
             };
@@ -105,7 +104,7 @@ export class WeeklyInsightsWorker {
             const insightsPrompt = `Generate a brief weekly performance summary for a sales user. 
             Highlight key metrics, trends, and actionable recommendations.
             Focus on lead conversion, response times, and channel effectiveness.`;
-            
+
             const insights: string = await generateInsights(insightsData, insightsPrompt);
 
             // Create notification for the user

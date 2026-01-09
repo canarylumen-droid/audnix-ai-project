@@ -19,7 +19,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     const user = await storage.getUserById(userId);
     const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
-    
+
     // OPTIMIZATION: Skip message loading to prevent timeout - calculate from leads data only
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -27,7 +27,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const newLeads = leads.filter(l => new Date(l.createdAt) > sevenDaysAgo).length;
     const activeLeads = leads.filter(l => l.status === 'open').length;
     const convertedLeads = leads.filter(l => l.status === 'converted').length;
-    
+
     // Use lead count as message estimate (avoid timeout)
     const totalMessages = leads.length * 2;
 
@@ -40,7 +40,6 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       totalMessages,
       averageResponseTime: '2.5h',
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
-      whatsappThisMonth: leads.filter(l => l.channel === 'whatsapp').length,
       instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
       plan: user?.plan || 'trial',
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
@@ -184,7 +183,7 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
     const onboardingProfile = await storage.getOnboardingProfile(userId);
     const metadata = user.metadata as Record<string, unknown> | null;
     const voiceNotesEnabled = metadata?.voiceNotesEnabled !== false;
-    
+
     const hasCompletedOnboarding = onboardingProfile?.completed || (metadata?.onboardingCompleted as boolean) || false;
 
     res.json({
@@ -242,9 +241,9 @@ router.put('/user/voice-settings', requireAuth, async (req: Request, res: Respon
       },
     });
 
-    res.json({ 
-      success: true, 
-      voiceNotesEnabled: voiceNotesEnabled === true 
+    res.json({
+      success: true,
+      voiceNotesEnabled: voiceNotesEnabled === true
     });
   } catch (error) {
     console.error('Voice settings error:', error);
@@ -279,7 +278,7 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
     if (username !== undefined) updates.username = username;
     if (company !== undefined) updates.businessName = company;
     if (timezone !== undefined) updates.timezone = timezone;
-    
+
     // Store CTA settings in metadata
     if (defaultCtaLink !== undefined || defaultCtaText !== undefined) {
       updates.metadata = {

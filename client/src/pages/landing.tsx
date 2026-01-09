@@ -8,14 +8,16 @@ import { ProblemSection } from "@/components/landing/ProblemSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
-import { LethalROICalculator } from "@/components/landing/LethalROICalculator";
-import { PrivacyModal } from "@/components/landing/PrivacyModal";
-import { CookieConsent } from "@/components/landing/CookieConsent";
-import { motion, useScroll, useSpring } from "framer-motion";
+import { ROICalculator } from "@/components/landing/ROICalculator";
+import { Logo } from "@/components/ui/Logo";
+import { Twitter, Linkedin, Github } from "lucide-react";
+import { useScroll, useSpring, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { PrivacyModal } from "@/components/landing/PrivacyModal";
+import { CookieConsent } from "@/components/landing/CookieConsent";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { MessageSquare, Twitter, Linkedin, Github } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -34,10 +36,10 @@ export default function Landing() {
       const sections = gsap.utils.toArray('.reveal-section');
       sections.forEach((section: any) => {
         gsap.from(section, {
-          y: 60,
+          y: 40,
           opacity: 0,
-          duration: 1.2,
-          ease: "expo.out",
+          duration: 1,
+          ease: "power2.out",
           scrollTrigger: {
             trigger: section,
             start: "top 90%",
@@ -51,10 +53,10 @@ export default function Landing() {
   }, []);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white selection:bg-primary selection:text-black overflow-x-hidden font-sans">
-      {/* Premium Progress Bar */}
+    <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
+      {/* Progress Bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary via-purple-500 to-primary z-[200] origin-left shadow-[0_0_10px_rgba(34,211,238,0.5)]"
+        className="fixed top-0 left-0 right-0 h-[3px] bg-primary z-[200] origin-left"
         style={{ scaleX }}
       />
 
@@ -77,13 +79,13 @@ export default function Landing() {
         </section>
 
         {/* HOW IT WORKS */}
-        <section id="framework" className="reveal-section">
+        <section id="how-it-works" className="reveal-section">
           <HowItWorksSection />
         </section>
 
         {/* ROI CALCULATOR */}
         <section id="calc" className="reveal-section">
-          <LethalROICalculator />
+          <ROICalculator />
         </section>
 
         {/* FEATURES */}
@@ -106,125 +108,116 @@ export default function Landing() {
           <FAQSection />
         </section>
 
-        {/* FINAL HIGH-IMPACT CTA */}
-        <section className="py-80 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden bg-black">
-          <div className="absolute inset-0 bg-primary/10 blur-[200px] rounded-full translate-y-1/2 scale-150 -z-10 animate-pulse" />
+        {/* FINAL CTA */}
+        <section className="py-32 md:py-48 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden border-t">
+          <div className="absolute inset-0 bg-primary/5 blur-[150px] rounded-full translate-y-1/2 -z-10" />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="max-w-6xl"
+            className="max-w-4xl"
           >
-            <div className="inline-block px-8 py-3 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.6em] mb-16 italic">
-              FINAL CALL FOR DEPLOYMENT
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest mb-10">
+              Ready to scale?
             </div>
 
-            <h2 className="text-7xl md:text-[12rem] font-black tracking-[-0.06em] leading-[0.8] mb-16 uppercase italic">
-              STOP GHOSTING<br />
-              <span className="text-primary not-italic tracking-[-0.08em] drop-shadow-[0_0_50px_rgba(34,211,238,0.3)]">YOUR GROWTH.</span>
+            <h2 className="text-5xl md:text-8xl font-bold tracking-tight mb-8">
+              Start closing more <br />
+              <span className="text-primary">deals today.</span>
             </h2>
 
-            <p className="text-white/40 text-2xl md:text-4xl font-medium mb-24 max-w-4xl mx-auto leading-relaxed italic tracking-tight">
-              Join 500+ high-performance founders who have automated their revenue recovery. <span className="text-white">Raw outcomes only.</span>
+            <p className="text-muted-foreground text-lg md:text-xl font-medium mb-12 max-w-2xl mx-auto leading-relaxed">
+              Join hundreds of high-growth companies using Audnix to automate their sales outreach and recovery.
             </p>
 
             <Link href="/auth">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-                className="h-28 px-24 bg-white text-black text-2xl font-black rounded-[3rem] shadow-2xl transition-all hover:bg-primary hover:text-white group relative overflow-hidden uppercase tracking-widest"
+              <Button
+                size="lg"
+                className="h-16 px-12 rounded-full font-bold uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-105 transition-all duration-300"
               >
-                <span className="relative z-10">INITIALIZE ECOSYSTEM</span>
-                <div className="absolute top-0 -inset-full h-full w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent rotate-12 group-hover:animate-shimmer" />
-              </motion.button>
+                Start Scalable Growth
+              </Button>
             </Link>
 
-            <div className="mt-20 flex flex-wrap justify-center gap-12 items-center text-[10px] font-black uppercase tracking-[0.4em] text-white/20 italic">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                500 Leads Included
+            <div className="mt-12 flex flex-wrap justify-center gap-8 items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Free 500 leads included
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                No Credit Card Required
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                No credit card required
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                SSL 256-Bit Encrypted
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Cancel anytime
               </div>
             </div>
           </motion.div>
         </section>
       </main>
 
-      {/* High-Status Modern Footer */}
-      <footer className="py-40 px-8 border-t border-white/5 bg-black relative overflow-hidden">
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/10 to-transparent" />
-
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-20">
-          <div className="col-span-2">
-            <div className="flex items-center gap-4 mb-10 group cursor-default">
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 group-hover:border-primary/50 transition-colors relative overflow-hidden">
-                <img src="/logo.png" alt="Audnix" className="h-8 w-8 grayscale brightness-200" />
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <span className="text-3xl font-black tracking-tighter uppercase italic">AUDNIX<span className="text-primary">.AI</span></span>
+      <footer className="py-24 px-8 border-t border-border/50 bg-muted/5 selection:bg-primary/10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-16 md:gap-8">
+          <div className="col-span-1 md:col-span-2">
+            <div className="flex items-center gap-3 mb-8">
+              <Logo />
             </div>
-            <p className="text-white/40 font-bold italic max-w-sm leading-relaxed text-xl mb-12">
-              The world's first predictive intelligence engine for high-status sales.
-              We don't automate conversations; we scale deterministic relationships.
+            <p className="text-muted-foreground font-medium max-w-xs leading-relaxed text-base mb-8">
+              Architecting the next generation of sales engagement.
+              Autonomous intelligence designed for high-growth operations.
             </p>
             <div className="flex gap-4">
               {[Twitter, Linkedin, Github].map((Icon, i) => (
-                <div key={i} className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:border-primary hover:text-primary transition-all cursor-pointer group/social">
-                  <Icon className="w-5 h-5 opacity-40 group-hover:opacity-100 transition-opacity" />
-                </div>
+                <Link key={i} href="#" className="w-10 h-10 rounded-xl bg-muted border border-border/50 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-colors text-muted-foreground hover:text-primary">
+                  <Icon className="w-4 h-4" />
+                </Link>
               ))}
             </div>
           </div>
 
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 mb-10 italic">Join Movement</h4>
-            <ul className="space-y-6 text-sm font-black uppercase tracking-widest text-white/40 italic">
-              <li><Link href="#pricing" className="hover:text-primary transition-colors">See Pricing</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Try Audnix Free</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Login Admin</Link></li>
-              <li className="text-primary/60">Expert Program</li>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Product</h4>
+            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
+              <li><Link href="#features" className="hover:text-primary transition-colors">Features</Link></li>
+              <li><Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
+              <li><Link href="#calc" className="hover:text-primary transition-colors">ROI Calculator</Link></li>
+              <li><Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 mb-10 italic">Product Node</h4>
-            <ul className="space-y-6 text-sm font-black uppercase tracking-widest text-white/40 italic">
-              <li><Link href="#features" className="hover:text-primary transition-colors">Capabilities</Link></li>
-              <li><Link href="#framework" className="hover:text-primary transition-colors">Deployment</Link></li>
-              <li><Link href="#calc" className="hover:text-primary transition-colors">ROI Oracle</Link></li>
-              <li className="text-white/20">Roadmap 2026</li>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Company</h4>
+            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
+              <li><Link href="/auth" className="hover:text-primary transition-colors">Login</Link></li>
+              <li><Link href="/auth" className="hover:text-primary transition-colors">Get Started</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Blog</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20 mb-10 italic">Governance</h4>
-            <ul className="space-y-6 text-sm font-black uppercase tracking-widest text-white/40 italic">
-              <li className="hover:text-white cursor-pointer" onClick={() => document.getElementById('privacy-modal')?.classList.remove('hidden')}>Privacy Hub</li>
-              <li className="hover:text-white cursor-pointer">Terms Protocol</li>
-              <li className="hover:text-white cursor-pointer">Data Deletion</li>
-              <li className="text-emerald-500/50 flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Status: Up
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Legal</h4>
+            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
+              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Deletion</Link></li>
+              <li className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                System Status
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto mt-40 pt-16 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">
-            © 2026 AUDNIX OPERATIONS CO. REGISTERED IN DELAWARE. SYSTEM AUTHORIZED.
+        <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-[11px] font-medium text-muted-foreground/60">
+            © 2026 Audnix Operations Co. All rights reserved.
           </p>
-          <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">
-            <span className="hover:text-white cursor-pointer transition-colors">TERMINAL ACCESS</span>
-            <span className="hover:text-white cursor-pointer transition-colors">API DOCS</span>
+          <div className="flex gap-8 text-[11px] font-medium text-muted-foreground/60">
+            <Link href="#" className="hover:text-foreground transition-colors">Status</Link>
+            <Link href="#" className="hover:text-foreground transition-colors">API</Link>
           </div>
         </div>
       </footer>

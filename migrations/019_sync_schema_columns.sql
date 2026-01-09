@@ -1,5 +1,5 @@
 -- Sync users table with schema.ts
-ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_connected BOOLEAN NOT NULL DEFAULT false;
+-- whatsapp_connected removed
 ALTER TABLE users ADD COLUMN IF NOT EXISTS pdf_confidence_threshold REAL DEFAULT 0.7;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_insight_generated_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'none';

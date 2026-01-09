@@ -5,27 +5,27 @@ import { AlertCircle, Clock, Ghost, TrendingDown, DollarSign, UserX } from "luci
 const PAIN_POINTS = [
     {
         icon: Ghost,
-        title: "The DM Ghost Town",
-        desc: "71% of leads ghost because of slow response times. While you sleep, your best prospects are buying from competitors who replied in seconds.",
-        impact: "-40% Revenue Leak"
+        title: "Response Latency",
+        desc: "Over 70% of leads engage with competitors simply because of delay. Slow response times lead to immediate revenue leaks while your team is offline.",
+        impact: "Lower Conversion"
     },
     {
         icon: Clock,
-        title: "Manual Grunt Work",
-        desc: "Spending 4 hours a day manually replying to 'How much?' and 'Tell me more'. Your time is worth $500/hr, but you're doing $15/hr tasks.",
+        title: "Operational Overhead",
+        desc: "Managing high-volume outreach manually consumes hours of productive time daily. High-value founders spend too much time on repetitive tasks.",
         impact: "20+ Hours Lost/Week"
     },
     {
         icon: UserX,
-        title: "Human Inconsistency",
-        desc: "Your team forgets to follow up, skips the 4th touchpoint, and loses the lead. Consistency is the secret to 7-figure scale.",
+        title: "Process Gaps",
+        desc: "Manual follow-ups are inconsistent. Missing critical touchpoints often results in losing high-intent leads that required multiple interactions.",
         impact: "Missing 80% of Sales"
     },
     {
         icon: TrendingDown,
-        title: "The Lead Decay",
-        desc: "A lead's intent drops by 10x after just 5 minutes. If you aren't there instantly, you're just burning ad budget.",
-        impact: "Burned Ad Budget"
+        title: "Lead Interest Decay",
+        desc: "Lead intent drops significantly after the first few minutes of contact. Without instant engagement, marketing budgets are underutilized.",
+        impact: "Inefficient Spend"
     }
 ];
 
@@ -37,88 +37,86 @@ export function ProblemSection() {
     });
 
     const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-    const scale = useTransform(scrollYProgress, [0, 0.2], [0.8, 1]);
+    const scale = useTransform(scrollYProgress, [0, 0.2], [0.95, 1]);
 
     return (
-        <section ref={containerRef} className="py-40 px-4 relative overflow-hidden bg-black">
-            {/* Dynamic Red Glow */}
+        <section ref={containerRef} className="py-32 px-4 relative overflow-hidden bg-background font-sans">
+            {/* Subtle Gradient Atmosphere */}
             <motion.div
-                style={{ opacity: useTransform(scrollYProgress, [0.1, 0.3], [0, 0.1]) }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-red-600 blur-[150px] rounded-full pointer-events-none"
+                style={{ opacity: useTransform(scrollYProgress, [0.1, 0.3], [0, 0.05]) }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary blur-[150px] rounded-full pointer-events-none"
             />
 
             <div className="max-w-7xl mx-auto relative z-10">
-                <div className="text-center mb-32">
+                <div className="text-center mb-24">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-black uppercase tracking-[0.3em] mb-12"
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-10"
                     >
-                        <AlertCircle className="w-4 h-4" />
-                        The Silent Killer of Scale
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        The Challenge of Scaling Outreach
                     </motion.div>
 
                     <motion.h2
                         style={{ opacity, scale }}
-                        className="text-5xl md:text-[12rem] font-black tracking-[-0.06em] text-white mb-12 leading-[0.8] uppercase italic"
+                        className="text-4xl md:text-8xl font-bold tracking-tight text-foreground mb-10 leading-tight"
                     >
-                        YOU ARE LEAVING <br />
-                        <span className="text-red-500 tracking-[-0.08em] not-italic drop-shadow-[0_0_30px_rgba(239,68,68,0.3)]">MILLIONS.</span>
+                        Hidden Efficiency <br />
+                        <span className="text-muted-foreground">in your pipeline.</span>
                     </motion.h2>
 
                     <motion.p
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
-                        className="text-white/40 text-2xl md:text-4xl max-w-4xl mx-auto font-medium tracking-tighter leading-tight"
+                        className="text-muted-foreground text-lg md:text-2xl max-w-3xl mx-auto font-medium leading-relaxed"
                     >
-                        Most founders think they have a "lead gen" problem. The truth? You have a <span className="text-white cursor-blink italic underline decoration-red-500/40 px-2">speed-to-lead and follow-up problem.</span>
+                        Most organizations face a <span className="text-foreground border-b-2 border-primary/20 pb-0.5">bottleneck in response time</span> and follow-up consistency. Audnix solves this by automating the engagement layer.
                     </motion.p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {PAIN_POINTS.map((point, i) => (
                         <motion.div
                             key={i}
-                            initial={{ opacity: 0, y: 50 }}
+                            initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.1, duration: 0.8 }}
-                            className="p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:border-red-500/20 hover:bg-white/[0.04] transition-all group perspective-tilt premium-glow"
+                            transition={{ delay: i * 0.1, duration: 0.6 }}
+                            className="p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/30 transition-all group shadow-sm"
                         >
-                            <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-10 group-hover:scale-125 transition-transform duration-700 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
-                                <point.icon className="w-8 h-8" />
+                            <div className="w-14 h-14 rounded-2xl bg-muted border border-border/50 flex items-center justify-center text-foreground mb-8 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
+                                <point.icon className="w-6 h-6" />
                             </div>
-                            <h3 className="text-2xl font-black text-white mb-6 tracking-tighter uppercase">{point.title}</h3>
-                            <p className="text-white/40 text-base leading-relaxed mb-10 font-bold italic">
+                            <h3 className="text-xl font-bold text-foreground mb-4 tracking-tight">{point.title}</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed mb-8 font-medium">
                                 {point.desc}
                             </p>
-                            <div className="pt-8 border-t border-white/5 flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Protocol Impact</span>
-                                <span className="text-sm font-black text-red-500 leading-none">{point.impact}</span>
+                            <div className="pt-6 border-t border-border/40 flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">Performance Impact</span>
+                                <span className="text-xs font-bold text-primary">{point.impact}</span>
                             </div>
                         </motion.div>
                     ))}
                 </div>
 
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.98 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
-                    className="mt-32 p-20 rounded-[4rem] bg-gradient-to-br from-red-600/10 to-transparent border border-red-500/20 text-center relative overflow-hidden group"
+                    className="mt-24 p-12 md:p-20 rounded-[3rem] bg-muted/30 border border-border/50 text-center relative overflow-hidden group shadow-sm"
                 >
-                    <div className="absolute inset-0 bg-grid opacity-10" />
+                    <div className="absolute inset-0 bg-grid opacity-5" />
                     <div className="relative z-10">
-                        <div className="flex items-center justify-center gap-4 mb-8">
-                            <div className="w-1 h-20 bg-gradient-to-b from-red-500 to-transparent" />
-                            <div className="flex flex-col items-center">
-                                <DollarSign className="w-12 h-12 text-red-500 mb-4 animate-bounce" />
-                                <span className="text-7xl md:text-[10rem] font-black tracking-tighter text-white drop-shadow-[0_0_50px_rgba(255,255,255,0.1)] transition-transform group-hover:scale-110 duration-1000">$142,000</span>
+                        <div className="flex flex-col items-center">
+                            <div className="p-3 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
+                                <DollarSign className="w-6 h-6 text-primary" />
                             </div>
-                            <div className="w-1 h-20 bg-gradient-to-b from-red-500 to-transparent" />
+                            <span className="text-6xl md:text-9xl font-bold tracking-tighter text-foreground mb-6">$142,000</span>
                         </div>
-                        <p className="text-white/60 font-black uppercase tracking-[0.2em] max-w-2xl mx-auto italic text-lg leading-relaxed">
-                            The average annual revenue lost by founders with 50+ monthly leads due to <span className="text-red-500">Manual Latency Error.</span>
+                        <p className="text-muted-foreground font-bold uppercase tracking-[0.2em] max-w-2xl mx-auto text-xs md:text-sm leading-relaxed">
+                            Mean annual revenue loss for companies with 50+ monthly leads due to <span className="text-foreground">manual latency and follow-up errors.</span>
                         </p>
                     </div>
                 </motion.div>

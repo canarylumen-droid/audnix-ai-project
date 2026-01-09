@@ -27,7 +27,7 @@ interface Deal {
   leadId: string;
   userId: string;
   brand: string;
-  channel: "instagram" | "whatsapp" | "email" | "gmail" | "manual";
+  channel: "instagram" | "email" | "gmail" | "manual";
   value: number;
   status: "open" | "closed_won" | "closed_lost" | "pending" | "converted";
   notes?: string | null;

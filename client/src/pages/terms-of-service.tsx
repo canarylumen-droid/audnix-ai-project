@@ -412,7 +412,7 @@ export default function TermsOfService() {
                 <ol className="list-decimal list-inside space-y-1 ml-4">
                   <li><strong>Informal Negotiation:</strong> Contact <strong>legal@audnixai.com</strong> to attempt resolution (30-day good-faith period)</li>
                   <li><strong>Binding Arbitration:</strong> If negotiation fails, disputes shall be resolved through binding arbitration in accordance with
-                  the American Arbitration Association (AAA) rules, except where prohibited by law. BY USING THE SERVICE YOU WAIVE YOUR RIGHT TO A JURY TRIAL.</li>
+                    the American Arbitration Association (AAA) rules, except where prohibited by law. BY USING THE SERVICE YOU WAIVE YOUR RIGHT TO A JURY TRIAL.</li>
                   <li><strong>Class Action Waiver:</strong> You agree to resolve disputes individually, not as part of a class action lawsuit</li>
                 </ol>
                 <p className="mt-2 text-sm">
@@ -428,9 +428,9 @@ export default function TermsOfService() {
               </h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  <strong>Important:</strong> Audnix AI uses artificial intelligence to generate and send automated messages on your behalf (email, WhatsApp, SMS, voice). Please understand the following:
+                  <strong>Important:</strong> Audnix AI uses artificial intelligence to generate and send automated messages on your behalf (email, Instagram, voice). Please understand the following:
                 </p>
-                
+
                 <div className="bg-background/50 p-4 rounded-lg border border-amber-500/20">
                   <h3 className="font-semibold text-foreground mb-2">AI Messages Are Not Legally Binding</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm">

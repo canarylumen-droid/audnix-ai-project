@@ -20,6 +20,7 @@ import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
 import { AuthGuard } from "@/components/auth-guard";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 
 const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
 
@@ -144,7 +145,7 @@ function Router() {
           </AuthGuard>
         )}
       </Route>
-      
+
       {/* Keep old /admin path for backward compatibility - redirects to secret path */}
       <Route path="/admin">
         {() => {
@@ -181,7 +182,7 @@ function Router() {
           </AuthGuard>
         )}
       </Route>
-      
+
       {/* Mockup Demo - Isolated, no auth, for investor/marketing screenshots */}
       <Route path="/mockup-demo">
         {() => (
@@ -190,7 +191,7 @@ function Router() {
           </Suspense>
         )}
       </Route>
-      
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -204,6 +205,7 @@ function App() {
           <TooltipProvider>
             <InternetConnectionBanner />
             <Toaster />
+            <CustomCursor />
             <Router />
           </TooltipProvider>
         </QueryClientProvider>

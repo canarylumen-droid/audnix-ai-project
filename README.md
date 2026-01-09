@@ -1,16 +1,16 @@
-# AUDNIX AI: Predictive Intelligence Protocol v4.0
+# AUDNIX AI: Intelligent Sales Automation
 
-The world's first predictive intelligence engine for high-status sales optimization. Audnix is not just automation; it is a behavioral logic layer designed to eliminate lead decay and maximize revenue recovery.
+Audnix is an intelligent sales automation platform designed to optimize lead engagement and maximize revenue recovery. It provides a behavioral engagement layer that eliminates response latency and ensures no lead is left behind.
 
-## Core Architecture
-- **Neural Behavior Mapping**: Real-time analysis of lead intent and communication sentiment.
-- **Deterministic Outcome Logic**: Intelligent follow-up that adapts to peak engagement windows.
-- **Enterprise-Grade Privacy**: Secure OAuth 2.0 and AES-256 encrypted communication logs.
+## Core Features
+- **Lead Engagement Analysis**: Real-time analysis of lead behavior and engagement patterns.
+- **Automated Follow-up Logic**: Intelligent outreach that scales with your business needs.
+- **Secure Integration**: Professional OAuth 2.0 and encrypted communication sync.
 
 ## Quickstart
-1. Connect Ecosystem (Email/CRM).
-2. Upload Brand Intelligence (PDF/JSON).
-3. Authorize Neural Protocol.
+1. Connect your accounts (Email/Instagram).
+2. Upload your brand guidelines/materials.
+3. Start automating your engagement.
 
 ---
 © 2026 AUDNIX OPERATIONS CO.

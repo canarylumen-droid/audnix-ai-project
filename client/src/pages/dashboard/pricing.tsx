@@ -57,43 +57,42 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen pb-20 bg-black text-white selection:bg-primary selection:text-black mt-[-4rem] pt-32 px-4 scroll-smooth">
+    <div className="min-h-screen pb-20 bg-background text-foreground mt-[-4rem] pt-32 px-4 scroll-smooth">
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Background Ambience */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-primary/5 blur-[200px] rounded-full pointer-events-none -z-10" />
 
         {/* Header Section */}
-        <div className="text-center mb-32 relative">
+        <div className="text-center mb-24 relative">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-12"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-8"
           >
-            <ShieldCheck className="w-4 h-4" />
-            Flexible Ecosystem Access
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Simple, Transparent Pricing
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-6xl md:text-[8rem] font-black tracking-[-0.05em] leading-[0.85] uppercase italic mb-12"
+            className="text-5xl md:text-7xl font-bold tracking-tight mb-8"
           >
-            THE YIELD <br />
-            <span className="text-primary not-italic tracking-[-0.08em]">TIERS.</span>
+            Scale your <span className="text-primary">outreach.</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-white/40 font-bold italic text-2xl max-w-2xl mx-auto tracking-tight"
+            className="text-muted-foreground font-medium text-xl max-w-2xl mx-auto"
           >
-            Transparent pricing for <span className="text-white">high-performance operators</span>. No hidden tax, just raw growth.
+            Choose the plan that fits your business goals. No hidden fees, just pure growth.
           </motion.p>
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className={`grid gap-10 ${isPaidUser ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+        <div className={`grid gap-8 ${isPaidUser ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
           {pricingTiers.filter(tier => isPaidUser ? tier.id !== 'trial' : true).map((tier, index) => {
             const isPopular = tier.id === 'pro';
             const isCurrentPlan = currentPlan === tier.id;
@@ -102,104 +101,82 @@ export default function PricingPage() {
             return (
               <motion.div
                 key={tier.id}
-                initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: index * 0.1, duration: 0.8 }}
-                className={`p-10 md:p-14 rounded-[3.5rem] border relative flex flex-col h-full perspective-tilt premium-glow transition-all duration-700 ${isCurrentPlan
-                  ? "bg-primary/[0.03] border-primary/40 shadow-2xl scale-[1.02] z-10"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`p-10 rounded-3xl border flex flex-col h-full transition-all duration-300 ${isCurrentPlan
+                  ? "bg-primary/[0.03] border-primary/40 ring-1 ring-primary/20"
                   : isPopular
-                    ? "bg-white/[0.03] border-primary/20 shadow-2xl scale-105 z-10"
-                    : "bg-white/[0.01] border-white/5"
+                    ? "bg-muted/10 border-primary/20 shadow-xl"
+                    : "bg-muted/5 border-border/50"
                   }`}
               >
                 {isCurrentPlan && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-10 py-2.5 rounded-full text-[10px] font-black tracking-[0.3em] uppercase shadow-[0_20px_40px_-10px_rgba(16,185,129,0.5)]">
-                    Active Protocol
-                  </div>
+                  <Badge className="self-center -mt-14 mb-4 bg-emerald-500 text-white border-0 font-bold px-4 py-1 rounded-full uppercase text-[10px] tracking-wider">
+                    Current Plan
+                  </Badge>
                 )}
                 {!isCurrentPlan && isPopular && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-black px-10 py-2.5 rounded-full text-[10px] font-black tracking-[0.3em] uppercase shadow-[0_20px_40px_-10px_rgba(34,211,238,0.5)]">
+                  <Badge className="self-center -mt-14 mb-4 bg-primary text-primary-foreground border-0 font-bold px-4 py-1 rounded-full uppercase text-[10px] tracking-wider">
                     Most Popular
-                  </div>
+                  </Badge>
                 )}
 
-                <div className="mb-14">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-white/20 text-xs font-black uppercase tracking-[0.5em] italic">{tier.name}</h3>
-                    {(isPopular || isCurrentPlan) && <Activity className="w-4 h-4 text-primary animate-pulse" />}
+                <div className="mb-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{tier.name}</h3>
+                    {isPopular && <Zap className="w-4 h-4 text-primary" />}
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl md:text-7xl font-black text-white tracking-tighter italic">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-5xl font-bold tracking-tight">
                       ${tier.price}
                     </span>
-                    <span className="text-white/20 font-black uppercase tracking-[0.2em] text-[10px]">/ {tier.period}</span>
+                    <span className="text-muted-foreground font-semibold text-xs lowercase">/ {tier.period}</span>
                   </div>
                 </div>
 
-                <div className="space-y-6 mb-14 flex-1">
+                <div className="space-y-4 mb-10 flex-1">
                   {tier.features.map((feature, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: (index * 0.1) + (i * 0.05) }}
-                      className="flex items-start gap-4 group/item"
-                    >
-                      <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover/item:border-primary/50 transition-colors">
-                        <Check className="w-3 h-3 text-primary" />
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="mt-1 flex-shrink-0 w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-primary" />
                       </div>
-                      <span className="text-white/40 font-bold italic text-base group-hover/item:text-white transition-colors leading-tight">
+                      <span className="text-muted-foreground font-medium text-sm leading-snug">
                         {feature}
                       </span>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
 
-                <div className="mt-auto pt-6 border-t border-white/5 space-y-6">
-                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-white/20">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-3 h-3 text-primary/40" />
+                <div className="mt-auto pt-6 border-t border-border/50 space-y-6">
+                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5" />
                       <span>{tier.leadsLimit.toLocaleString()} Leads</span>
                     </div>
                     {tier.voiceMinutes > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-3 h-3 text-primary/40" />
+                      <div className="flex items-center gap-1.5">
+                        <Activity className="w-3.5 h-3.5" />
                         <span>{tier.voiceMinutes} Voice Mins</span>
                       </div>
                     )}
                   </div>
 
                   <Button
-                    className={`h-20 w-full rounded-[2rem] text-sm font-black uppercase tracking-[0.2em] transition-all duration-700 active:scale-95 group relative overflow-hidden ${isCurrentPlan
-                      ? "bg-primary/10 text-primary border border-primary/20 cursor-default"
+                    className={`h-14 w-full rounded-2xl text-sm font-semibold transition-all ${isCurrentPlan
+                      ? "bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 pointer-events-none"
                       : isPopular
-                        ? "bg-white text-black shadow-2xl shadow-primary/20"
-                        : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10 border-white/10"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background border-border/50 hover:bg-muted"
                       }`}
+                    variant={isCurrentPlan ? "outline" : isPopular ? "default" : "outline"}
                     onClick={() => isPaidPlan ? handleUpgrade(tier.id) : null}
                     disabled={isCurrentPlan || (loadingPlan === tier.id)}
                   >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {loadingPlan === tier.id ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Processing
-                        </>
-                      ) : isCurrentPlan ? (
-                        "Current Node"
-                      ) : isPopular ? (
-                        "Initialize Pro"
-                      ) : (
-                        "Select Node"
-                      )}
-                      {!isCurrentPlan && !loadingPlan && <Zap className={`w-4 h-4 ${isPopular ? "fill-current" : ""}`} />}
-                    </span>
-                    {!isCurrentPlan && isPopular && (
-                      <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    )}
-                    {!isCurrentPlan && (
-                      <div className="absolute inset-x-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                    )}
+                    {loadingPlan === tier.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    {isCurrentPlan ? "Active Plan" : isPopular ? "Get Started" : "Choose Plan"}
                   </Button>
                 </div>
               </motion.div>
@@ -210,20 +187,20 @@ export default function PricingPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-24 text-center space-y-6"
+          transition={{ delay: 0.5 }}
+          className="mt-20 text-center space-y-6"
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/10 italic">
-            SECURE CHECKOUT VIA STRIPE PROTOCOL. AES-256 ENCRYPTED.
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40">
+            Secure checkout powered by Stripe. All transactions are encrypted.
           </p>
-          <div className="flex justify-center gap-12 opacity-20 filter grayscale hover:grayscale-0 transition-all duration-500">
-            <div className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px]">
+          <div className="flex justify-center gap-10 opacity-30">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
               <ShieldCheck className="w-4 h-4" />
-              Enterprise Ready
+              Secure Data
             </div>
-            <div className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px]">
+            <div className="flex items-center gap-2 font-bold uppercase tracking-widest text-[10px]">
               <Activity className="w-4 h-4" />
-              99.9% Uptime
+              Priority Support
             </div>
           </div>
         </motion.div>

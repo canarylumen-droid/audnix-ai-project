@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS admin_whitelist (
 CREATE TABLE IF NOT EXISTS integrations (
  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
- provider TEXT NOT NULL CHECK (provider IN ('instagram', 'whatsapp', 'gmail', 'outlook', 'manychat')),
+ provider TEXT NOT NULL CHECK (provider IN ('instagram', 'gmail', 'outlook', 'manychat')),
  encrypted_meta TEXT NOT NULL, -- encrypted tokens and metadata as string (iv:tag:ciphertext)
  connected BOOLEAN DEFAULT false,
  account_type TEXT CHECK (account_type IN ('personal', 'creator', 'business')),
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS leads (
  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
  external_id TEXT,
  name TEXT NOT NULL,
- channel TEXT NOT NULL CHECK (channel IN ('instagram', 'whatsapp', 'email')),
+ channel TEXT NOT NULL CHECK (channel IN ('instagram', 'email')),
  email TEXT,
  phone TEXT,
  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'open', 'replied', 'converted', 'not_interested', 'cold')),
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS followup_jobs (
  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
  scheduled_at TIMESTAMPTZ NOT NULL,
  attempt INTEGER DEFAULT 0,
- channel TEXT NOT NULL CHECK (channel IN ('instagram', 'whatsapp', 'email')),
+ channel TEXT NOT NULL CHECK (channel IN ('instagram', 'email')),
  stage INTEGER DEFAULT 0,
  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'sent', 'failed', 'cancelled')),
  params JSONB DEFAULT '{}',

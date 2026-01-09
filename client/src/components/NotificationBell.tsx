@@ -16,12 +16,12 @@ interface NotificationResponse {
 
 export function NotificationBell() {
   const [count, setCount] = useState<number>(0);
-  const [newNotification, setNewNotification] = useState<boolean>(false);
+  const [isWiggling, setIsWiggling] = useState<boolean>(false);
 
   // Fetch notifications count
   const { data: notifications } = useQuery<NotificationResponse>({
     queryKey: ["/api/notifications"],
-    refetchInterval: 5000, // Check every 5 seconds
+    refetchInterval: 5000,
   });
 
   // Play notification sound
@@ -29,26 +29,23 @@ export function NotificationBell() {
     const audio = new Audio('/notification.mp3');
     audio.volume = 0.6;
     audio.play().catch(() => {
-      // Fallback: try web audio API for browser sound
-      console.log('Notification received (audio failed, browser may be muted)');
+      // Browser might block auto-play
     });
   };
 
-  // Monitor for new notifications
+  // Monitor for changes
   useEffect(() => {
     if (notifications && notifications.unreadCount) {
       if (notifications.unreadCount > count) {
-        // New notification received
-        setNewNotification(true);
+        // New notification came in
+        setIsWiggling(true);
         playNotificationSound();
-        
-        // Vibrate if available
+
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
         }
 
-        // Reset animation after 1 second
-        setTimeout(() => setNewNotification(false), 1000);
+        setTimeout(() => setIsWiggling(false), 1000); // Stop wiggle after 1s
       }
       setCount(notifications.unreadCount);
     }
@@ -56,36 +53,28 @@ export function NotificationBell() {
 
   return (
     <motion.button
-      className="relative p-2 text-gray-400 hover:text-white transition-colors"
+      className="relative p-2 text-muted-foreground hover:text-foreground transition-colors outline-none"
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
     >
-      <Bell className="w-6 h-6" />
-      
-      {/* Notification Counter Badge */}
+      <motion.div
+        animate={isWiggling ? { rotate: [0, -20, 20, -10, 10, 0] } : { rotate: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Bell className="w-6 h-6" />
+      </motion.div>
+
+      {/* Numeric Badge */}
       <AnimatePresence>
         {count > 0 && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
+            className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 border border-background shadow-sm"
           >
             {count > 99 ? '99+' : count}
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Pulse animation on new notification */}
-      <AnimatePresence>
-        {newNotification && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 1 }}
-            animate={{ scale: 1.3, opacity: 0 }}
-            exit={{ scale: 1, opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0 bg-red-500 rounded-full"
-          />
         )}
       </AnimatePresence>
     </motion.button>

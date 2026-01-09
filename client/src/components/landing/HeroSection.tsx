@@ -3,166 +3,108 @@ import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { NeuralFlowMockup } from "./NeuralFlowMockup";
+import { AutomationFlowMockup } from "./NeuralFlowMockup";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
 
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center justify-center pt-32 pb-20 px-4 overflow-hidden bg-black text-white"
-      onMouseMove={handleMouseMove}
+      className="relative min-h-[90vh] flex items-center justify-center pt-32 pb-20 px-4 overflow-hidden bg-background"
     >
-      {/* Spotlight Effect Background */}
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition duration-300 group-hover:opacity-100"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              650px circle at ${mouseX}px ${mouseY}px,
-              rgba(14, 165, 233, 0.15),
-              transparent 80%
-            )
-          `,
-        }}
-      />
-
-      {/* Static Background Elements */}
+      {/* Subtle Background Ambience */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[150px] mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[150px] mix-blend-screen" />
-        <div className="absolute inset-0 bg-grid opacity-20 mask-radial" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] mix-blend-screen" />
+        <div className="absolute inset-0 bg-grid opacity-[0.03]" />
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10 w-full">
-        <div className="flex flex-col items-center text-center max-w-5xl mx-auto mb-20">
+        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
 
           {/* Status Chip */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6 }}
             className="mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md hover:border-primary/50 transition-colors">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border/50 bg-muted/30 backdrop-blur-sm">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
-              <span className="text-xs font-medium tracking-wide text-gray-300">
-                AI PREDICTIVE ENGINE V4.0
+              <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                SALES AUTOMATION 4.0
               </span>
             </div>
           </motion.div>
 
-          {/* Interactive Hero Text */}
+          {/* Clean Hero Text */}
           <motion.h1
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="text-6xl md:text-[10rem] font-black tracking-[-0.04em] leading-[0.85] italic mb-12 uppercase drop-shadow-2xl relative group cursor-default"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="text-5xl md:text-8xl font-bold tracking-tight mb-8"
           >
-            <span className="relative z-10 mix-blend-overlay">STOP LEAD<br />DECAY</span>
-
-            {/* Cursor Follow Mask on Text */}
-            <motion.div
-              className="absolute inset-0 z-20 pointer-events-none mix-blend-overlay"
-              style={{
-                maskImage: useMotionTemplate`
-                    radial-gradient(
-                      200px circle at ${mouseX}px ${mouseY}px,
-                      black,
-                      transparent
-                    )
-                 `,
-                WebkitMaskImage: useMotionTemplate`
-                    radial-gradient(
-                      200px circle at ${mouseX}px ${mouseY}px,
-                      black,
-                      transparent
-                    )
-                 `
-              }}
-            >
-              <span className="text-primary">STOP LEAD<br />DECAY</span>
-            </motion.div>
+            Turn every lead into a <span className="text-primary">closed deal.</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-white/60 text-xl md:text-3xl font-medium max-w-3xl leading-snug mb-16 tracking-tight"
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-muted-foreground text-lg md:text-xl font-medium max-w-2xl leading-relaxed mb-12"
           >
-            Audnix analyzes behaviors, automates follow-ups, and <span className="text-white">closes deals</span> when intent peaks.
+            Stop losing potential revenue to slow response times. Audnix is architected for teams that scale—automating personalized engagement across <span className="text-foreground">Email and Instagram</span> so you can focus on closing.
           </motion.p>
 
-          {/* CTA Buttons - Anchors */}
+          {/* CTA Buttons */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="flex flex-col sm:flex-row items-center gap-6 mb-24"
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center gap-4 mb-20"
           >
             <Link href="/auth">
-              <Button size="lg" className="h-16 px-10 rounded-full bg-white text-black text-lg font-bold hover:bg-primary hover:text-white transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]">
-                Initialize System <ArrowRight className="ml-2 w-5 h-5" />
+              <Button size="lg" className="h-14 px-10 rounded-full font-semibold text-base shadow-lg shadow-primary/20">
+                Start Free Trial <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
 
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-16 px-8 rounded-full border-white/20 bg-transparent text-white hover:bg-white/10"
-                onClick={() => {
-                  document.getElementById('calc')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                Privacy ROI
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="lg"
-                className="h-16 px-8 rounded-full text-white/70 hover:text-white"
-                onClick={() => {
-                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                View Pricing
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="lg"
+              className="h-14 px-10 rounded-full font-semibold text-base bg-background/50"
+              onClick={() => {
+                document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              View Pricing
+            </Button>
           </motion.div>
 
-          {/* Neural Flow Section */}
+          {/* Visual Mockup Container */}
           <motion.div
-            initial={{ opacity: 0, y: 100 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.5, delay: 0.8 }}
-            className="w-full relative py-20"
+            transition={{ duration: 1, delay: 0.4 }}
+            className="w-full relative rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden shadow-2xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent blur-3xl opacity-50" />
-            <NeuralFlowMockup />
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+            <div className="p-4 md:p-8">
+              <AutomationFlowMockup />
+            </div>
           </motion.div>
 
           {/* Trust Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-12 mt-10 opacity-40">
+          <div className="flex flex-wrap items-center justify-center gap-8 mt-16 opacity-40">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5" />
-              <span className="text-xs font-bold uppercase tracking-widest">Enterprise Ready</span>
+              <ShieldCheck className="w-4 h-4" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Enterprise Ready</span>
             </div>
             {['SOC2 Type II', 'GDPR Compliant', 'ISO 27001'].map(badge => (
-              <span key={badge} className="text-sm font-bold uppercase tracking-wider">{badge}</span>
+              <span key={badge} className="text-[10px] font-bold uppercase tracking-widest">{badge}</span>
             ))}
           </div>
         </div>

@@ -6,15 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, FileText, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 
 export default function LeadImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [importResults, setImportResults] = useState<{imported: number; skipped: number} | null>(null);
+  const [importResults, setImportResults] = useState<{ imported: number; skipped: number } | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -43,9 +44,9 @@ export default function LeadImportPage() {
     setImporting(true);
     setProgress(10);
     const formData = new FormData();
-    
+
     const isPDF = file.name.toLowerCase().endsWith('.pdf');
-    
+
     if (isPDF) {
       formData.append('pdf', file);
     } else {
@@ -70,7 +71,7 @@ export default function LeadImportPage() {
 
       const result = await response.json();
       setProgress(100);
-      
+
       setImportResults({
         imported: result.leadsImported || result.imported || 0,
         skipped: result.duplicates || result.skipped || 0
@@ -78,7 +79,7 @@ export default function LeadImportPage() {
 
       toast({
         title: "Import Complete",
-        description: isPDF 
+        description: isPDF
           ? `Extracted ${result.leadsImported || 0} leads from PDF`
           : `Imported ${result.imported || 0} leads, ${result.skipped || 0} duplicates skipped`
       });
@@ -100,26 +101,26 @@ export default function LeadImportPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Import Leads</h1>
-        <p className="text-muted-foreground">
-          Upload your contacts and AI will start engaging them automatically
+    <div className="p-4 md:p-8 space-y-8 max-w-4xl mx-auto">
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Lead Import</h1>
+        <p className="text-muted-foreground text-lg">
+          Upload your contact lists to begin automated outreach.
         </p>
       </div>
 
-      <Card>
+      <Card className="border-border/50 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
-            Upload File
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Upload className="h-5 w-5 text-primary" />
+            Direct Upload
           </CardTitle>
           <CardDescription>
-            Supports CSV, Excel, and PDF files
+            Selected file will be analyzed for contact information.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+        <CardContent className="space-y-6">
+          <div className="border-2 border-dashed border-border rounded-2xl p-12 text-center hover:bg-muted/30 transition-all cursor-pointer group">
             <Input
               type="file"
               accept=".csv,.xlsx,.xls,.pdf"
@@ -129,94 +130,97 @@ export default function LeadImportPage() {
               id="file-upload"
             />
             <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-              <p className="font-medium mb-1">
-                {file ? file.name : 'Click to upload or drag & drop'}
+              <div className="mb-6 flex justify-center">
+                {file ? (
+                  file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />
+                ) : (
+                  <div className="p-4 rounded-xl bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                    <Upload className="h-10 w-10 text-primary" />
+                  </div>
+                )}
+              </div>
+              <p className="text-lg font-semibold mb-2">
+                {file ? file.name : 'Click to select or drag & drop'}
               </p>
               <p className="text-sm text-muted-foreground">
-                CSV, Excel (.xlsx, .xls), or PDF
+                Supports CSV, Excel, and PDF formats
               </p>
             </label>
           </div>
-          
+
           {file && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-4 p-4 bg-muted/50 border border-border rounded-xl"
             >
-              {file.name.toLowerCase().endsWith('.pdf') ? (
-                <FileText className="h-5 w-5 text-green-600" />
-              ) : (
-                <FileSpreadsheet className="h-5 w-5 text-green-600" />
-              )}
+              <div className="w-10 h-10 flex items-center justify-center">
+                {file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />}
+              </div>
               <div className="flex-1">
-                <p className="font-medium text-green-800 dark:text-green-200 text-sm">
+                <p className="font-semibold text-sm">
                   {file.name}
                 </p>
                 {importResults && (
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    {importResults.imported} imported, {importResults.skipped} skipped
+                  <p className="text-xs text-muted-foreground">
+                    {importResults.imported} entries imported • {importResults.skipped} duplicates
                   </p>
                 )}
               </div>
               {importResults && (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
               )}
             </motion.div>
           )}
 
           {importing && progress > 0 && (
-            <div className="space-y-2">
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-center text-muted-foreground">
-                {progress < 30 ? 'Uploading...' : progress < 70 ? 'AI processing...' : 'Creating leads...'}
+            <div className="space-y-3">
+              <Progress value={progress} className="h-1.5" />
+              <p className="text-xs font-medium text-center text-muted-foreground">
+                {progress < 30 ? 'Uploading file...' : progress < 70 ? 'Processing engagement data...' : 'Finalizing leads...'}
               </p>
             </div>
           )}
 
-          <Button 
-            onClick={handleImport} 
+          <Button
+            onClick={handleImport}
             disabled={!file || importing}
-            className="w-full"
-            size="lg"
+            className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/10"
           >
             {importing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {file?.name.toLowerCase().endsWith('.pdf') ? 'Extracting...' : 'Importing...'}
+                Processing...
               </>
             ) : (
-              <>
-                <Upload className="h-4 w-4 mr-2" />
-                Import Leads
-              </>
+              'Start Import'
             )}
           </Button>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-primary mb-1">CSV</div>
-          <p className="text-xs text-muted-foreground">Name, Email, Phone</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-primary mb-1">Excel</div>
-          <p className="text-xs text-muted-foreground">.xlsx, .xls files</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-2xl font-bold text-primary mb-1">PDF</div>
-          <p className="text-xs text-muted-foreground">AI extracts contacts</p>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { label: 'CSV', desc: 'Standard contact export', icon: <CsvIcon /> },
+          { label: 'Excel', desc: 'SaaS & CRM exports', icon: <CsvIcon /> },
+          { label: 'PDF', desc: 'Reports and brand lists', icon: <PdfIcon /> },
+        ].map((type) => (
+          <Card key={type.label} className="p-6 border-border/50 shadow-sm flex flex-col items-center text-center">
+            <div className="mb-4">
+              {type.icon}
+            </div>
+            <div className="font-bold text-lg mb-1">{type.label}</div>
+            <p className="text-xs text-muted-foreground">{type.desc}</p>
+          </Card>
+        ))}
       </div>
 
-      <Card className="bg-muted/30">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Badge variant="outline" className="mt-0.5">Tip</Badge>
-            <p className="text-sm text-muted-foreground">
-              Using Apollo.io or similar tools? Export as CSV, upload here, and AI will auto-detect columns and start outreach.
+      <Card className="bg-primary/5 border-primary/10 rounded-2xl">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <Badge variant="outline" className="mt-1 bg-background">Pro Tip</Badge>
+            <p className="text-sm text-balance leading-relaxed font-medium">
+              Importing from Apollo, LinkedIn, or HubSpot? Our intelligent system automatically maps columns for instant outreach synchronization.
             </p>
           </div>
         </CardContent>

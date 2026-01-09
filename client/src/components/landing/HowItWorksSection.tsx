@@ -1,44 +1,44 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { Database, Brain, Zap, MessageSquare, ArrowRight, CheckCircle2, Terminal, Cpu } from "lucide-react";
+import { Database, Activity, Zap, MessageSquare, ArrowRight, CheckCircle2, Terminal, Cpu } from "lucide-react";
 import { Link } from "wouter";
 
 const STEPS = [
     {
-        title: "Intelligence Ingestion",
-        desc: "Upload brand PDFs or URLs. Our neural engine vectorizes your entire knowledge base, learning your tone and closing logic instantly.",
+        title: "Knowledge Sync",
+        desc: "Upload brand data or URLs. Our system processes your information to understand your tone and engagement requirements instantly.",
         icon: Database,
         color: "text-blue-500",
         bg: "bg-blue-500/10",
         border: "border-blue-500/20",
-        tags: ["PDF Analysis", "Vector DB", "Tone Sync"]
+        tags: ["Data Analysis", "Vector Processing", "Tone Sync"]
     },
     {
-        title: "Ecosystem Bridge",
-        desc: "Link your Email channels and CRM. Audnix deploys persistent IMAP listeners for zero-latency response the moment a lead enters.",
+        title: "Direct Integration",
+        desc: "Link your communication channels and CRM. Audnix maintains active listeners for instant response the moment a lead enters your pipeline.",
         icon: Zap,
         color: "text-primary",
         bg: "bg-primary/10",
         border: "border-primary/20",
-        tags: ["OAuth 2.0", "Zero Latency", "CRM Sync"]
+        tags: ["Secure OAuth", "Real-time Sync", "CRM Bridge"]
     },
     {
-        title: "Autonomous Calibration",
-        desc: "Define 'Status Level' and logic triggers. 'If intent > 70%, book call; else provide value PDF'. You scale while it thinks.",
-        icon: Brain,
+        title: "Rule Configuration",
+        desc: "Define your engagement logic and triggers. Set intent thresholds to automate follow-ups or book meetings on your behalf.",
+        icon: Activity,
         color: "text-purple-500",
         bg: "bg-purple-500/10",
         border: "border-purple-500/20",
         tags: ["Intent Scoring", "Logic Trees", "Safety Rails"]
     },
     {
-        title: "Deterministic Closing",
-        desc: "The system goes live. It identifies objections and applies high-status reframes to move prospects towards a conversion autonomously.",
+        title: "Scale Engagement",
+        desc: "The system goes live. It manages interactions, handles objections, and ensures every lead receives a consistent, high-quality response.",
         icon: MessageSquare,
         color: "text-emerald-500",
         bg: "bg-emerald-500/10",
         border: "border-emerald-500/20",
-        tags: ["High Status Sales", "Conversion Log", "24/7 Ops"]
+        tags: ["Engagement Monitoring", "Conversion Tracking", "24/7 Operations"]
     }
 ];
 
@@ -50,120 +50,116 @@ export function HowItWorksSection() {
     });
 
     return (
-        <section ref={containerRef} id="how-it-works" className="py-40 px-4 relative bg-black overflow-hidden">
+        <section ref={containerRef} id="how-it-works" className="py-32 px-4 relative bg-background overflow-hidden">
             {/* Background Decorative Elements */}
-            <div className="absolute top-0 left-0 w-full h-full bg-grid opacity-10 pointer-events-none" />
+            <div className="absolute top-0 left-0 w-full h-full bg-grid opacity-5 pointer-events-none" />
             <motion.div
                 style={{ y: useTransform(scrollYProgress, [0, 1], [0, -200]) }}
                 className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-primary/5 blur-[150px] rounded-full pointer-events-none"
             />
 
             <div className="max-w-7xl mx-auto relative z-10">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-32 gap-12">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12">
                     <div className="max-w-3xl">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
-                            className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] inline-block mb-10"
+                            className="px-5 py-2 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.3em] inline-block mb-8"
                         >
-                            The Architecture of Autonomy
+                            Implementation Workflow
                         </motion.div>
                         <motion.h2
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="text-6xl md:text-[8rem] font-black tracking-[-0.05em] leading-[0.85] text-white uppercase italic"
+                            className="text-5xl md:text-8xl font-bold tracking-tight leading-[0.9] text-foreground"
                         >
-                            DEPLOYMENT <br />
-                            <span className="text-primary not-italic tracking-[-0.08em]">PROTOCOL.</span>
+                            Seamless <br />
+                            <span className="text-primary">Onboarding.</span>
                         </motion.h2>
                     </div>
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-white/40 text-xl max-w-sm font-medium leading-relaxed pb-8 italic border-l-2 border-primary/20 pl-8"
+                        className="text-muted-foreground text-lg max-w-sm font-medium leading-relaxed pb-6 border-l-2 border-primary/20 pl-8"
                     >
-                        A four-step integration process that takes you from lead-leakage to deterministic scaling in under 20 minutes.
+                        A direct four-step process to transition from manual overhead to automated engagement in minutes.
                     </motion.p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {STEPS.map((step, i) => (
                         <motion.div
                             key={i}
-                            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                            initial={{ opacity: 0, scale: 0.95, y: 40 }}
                             whileInView={{ opacity: 1, scale: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: i * 0.15, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                            className={`p-12 rounded-[4rem] border ${step.border} bg-white/[0.01] hover:bg-white/[0.03] transition-all group relative overflow-hidden perspective-tilt premium-glow`}
+                            transition={{ delay: i * 0.1, duration: 0.6 }}
+                            className={`p-10 rounded-3xl border ${step.border} bg-card/40 hover:bg-card/60 transition-all group relative overflow-hidden shadow-sm`}
                         >
                             <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-12">
-                                    <div className={`w-20 h-20 rounded-[2rem] ${step.bg} flex items-center justify-center ${step.color} shadow-lg transition-transform duration-700 group-hover:scale-110 group-hover:rotate-6`}>
-                                        <step.icon className="w-10 h-10" />
+                                <div className="flex items-center justify-between mb-10">
+                                    <div className={`w-16 h-16 rounded-2xl ${step.bg} flex items-center justify-center ${step.color} shadow-sm transition-transform duration-500 group-hover:scale-110`}>
+                                        <step.icon className="w-8 h-8" />
                                     </div>
-                                    <span className="text-[120px] font-black text-white/[0.03] leading-none select-none italic tracking-tighter">0{i + 1}</span>
+                                    <span className="text-8xl font-bold text-muted-foreground/5 leading-none select-none tracking-tighter">0{i + 1}</span>
                                 </div>
 
-                                <h3 className="text-3xl font-black text-white mb-8 uppercase tracking-tighter flex items-center gap-4">
+                                <h3 className="text-2xl font-bold text-foreground mb-6 tracking-tight">
                                     {step.title}
                                 </h3>
 
-                                <p className="text-white/40 text-lg leading-relaxed font-bold italic mb-12">
+                                <p className="text-muted-foreground text-sm leading-relaxed font-medium mb-10">
                                     {step.desc}
                                 </p>
 
-                                <div className="flex flex-wrap gap-3 mb-10">
+                                <div className="flex flex-wrap gap-2 mb-10">
                                     {step.tags.map(tag => (
-                                        <span key={tag} className="px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-primary transition-colors">
+                                        <span key={tag} className="px-3 py-1 rounded-full bg-muted border border-border/50 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 group-hover:text-primary transition-colors">
                                             {tag}
                                         </span>
                                     ))}
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-6 pt-10 border-t border-white/5">
-                                    <div className="flex flex-col gap-2">
-                                        <Cpu className={`w-4 h-4 ${step.color} opacity-40`} />
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Processing</span>
+                                <div className="grid grid-cols-3 gap-6 pt-8 border-t border-border/40">
+                                    <div className="flex flex-col gap-1.5">
+                                        <Cpu className={`w-3.5 h-3.5 ${step.color} opacity-40`} />
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/40">Processing</span>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Terminal className={`w-4 h-4 ${step.color} opacity-40`} />
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Log Stream</span>
+                                    <div className="flex flex-col gap-1.5">
+                                        <Terminal className={`w-3.5 h-3.5 ${step.color} opacity-40`} />
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/40">Log Stream</span>
                                     </div>
-                                    <div className="flex flex-col gap-2 text-right">
-                                        <CheckCircle2 className={`w-4 h-4 ${step.color} opacity-40 ml-auto`} />
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Verified</span>
+                                    <div className="flex flex-col gap-1.5 text-right">
+                                        <CheckCircle2 className={`w-3.5 h-3.5 ${step.color} opacity-40 ml-auto`} />
+                                        <span className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/40">Verified</span>
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Step background number hover effect */}
-                            <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Final Flow Arrow & CTA */}
-                <div className="mt-40 flex flex-col items-center justify-center">
+                <div className="mt-32 flex flex-col items-center justify-center">
                     <motion.div
-                        animate={{ y: [0, 20, 0], scaleY: [1, 1.2, 1] }}
+                        animate={{ y: [0, 15, 0] }}
                         transition={{ duration: 3, repeat: Infinity }}
-                        className="w-0.5 h-32 bg-gradient-to-b from-primary via-primary/50 to-transparent mb-12"
+                        className="w-px h-24 bg-gradient-to-b from-primary to-transparent mb-10"
                     />
                     <Link href="/auth">
                         <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="group flex flex-col items-center gap-6"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="group flex flex-col items-center gap-4"
                         >
                             <div className="text-center">
-                                <p className="text-primary text-[10px] font-black uppercase tracking-[0.6em] mb-4">Final Protocol Step</p>
-                                <h4 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter mb-8 italic">Trigger Deployment.</h4>
+                                <p className="text-primary text-[10px] font-bold uppercase tracking-[0.4em] mb-4">Start Growing</p>
+                                <h4 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mb-8">Deploy your workspace.</h4>
                             </div>
-                            <div className="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/5 transition-all duration-700 shadow-2xl">
-                                <ArrowRight className="w-8 h-8 group-hover:translate-x-3 transition-transform duration-700" />
+                            <div className="w-20 h-20 rounded-full border border-border/50 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/5 transition-all duration-500 shadow-md">
+                                <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform duration-500" />
                             </div>
                         </motion.button>
                     </Link>

@@ -88,8 +88,6 @@ export default function AdminLeads() {
     switch (channel) {
       case "instagram":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400";
-      case "whatsapp":
-        return "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400";
       case "email":
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400";
       default:
@@ -136,7 +134,7 @@ export default function AdminLeads() {
               </div>
 
               {(status || channel) && (
-                <Button 
+                <Button
                   variant="outline"
                   onClick={() => {
                     setStatus("");

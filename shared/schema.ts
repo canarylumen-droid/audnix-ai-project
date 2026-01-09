@@ -27,7 +27,6 @@ export const users = pgTable("users", {
   voiceMinutesTopup: real("voice_minutes_topup").notNull().default(0),
   businessName: text("business_name"),
   voiceRules: text("voice_rules"),
-  whatsappConnected: boolean("whatsapp_connected").notNull().default(false),
   pdfConfidenceThreshold: real("pdf_confidence_threshold").default(0.7),
   lastInsightGeneratedAt: timestamp("last_insight_generated_at"),
   paymentStatus: text("payment_status").default("none"),
@@ -48,7 +47,7 @@ export const leads = pgTable("leads", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   externalId: text("external_id"),
   name: text("name").notNull(),
-  channel: text("channel", { enum: ["instagram", "whatsapp", "email"] }).notNull(),
+  channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
   email: text("email"),
   phone: text("phone"),
   status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold"] }).notNull().default("new"),
@@ -67,7 +66,7 @@ export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["instagram", "whatsapp", "gmail", "email", "system"] }).notNull(),
+  provider: text("provider", { enum: ["instagram", "gmail", "email", "system"] }).notNull(),
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
   body: text("body").notNull(),
   audioUrl: text("audio_url"),
@@ -78,7 +77,7 @@ export const messages = pgTable("messages", {
 export const integrations = pgTable("integrations", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["instagram", "whatsapp", "gmail", "outlook", "manychat", "custom_email", "google_calendar", "calendly"] }).notNull(),
+  provider: text("provider", { enum: ["instagram", "gmail", "outlook", "manychat", "custom_email", "google_calendar", "calendly"] }).notNull(),
   encryptedMeta: text("encrypted_meta").notNull(),
   connected: boolean("connected").notNull().default(false),
   accountType: text("account_type", { enum: ["personal", "creator", "business"] }),
@@ -91,7 +90,7 @@ export const deals = pgTable("deals", {
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   brand: text("brand").notNull(),
-  channel: text("channel", { enum: ["instagram", "whatsapp", "email", "gmail", "manual"] }).notNull(),
+  channel: text("channel", { enum: ["instagram", "email", "gmail", "manual"] }).notNull(),
   value: real("value").notNull(),
   status: text("status", { enum: ["open", "closed_won", "closed_lost", "pending"] }).notNull().default("open"),
   notes: text("notes"),
@@ -124,7 +123,7 @@ export const automations = pgTable("automations", {
   schedule: jsonb("schedule").$type<Array<{
     delay: string;
     action: string;
-    channel: "instagram" | "whatsapp" | "email" | null;
+    channel: "instagram" | "email" | null;
     randomizationWindow: number;
   }>>().notNull().default(sql`'[]'::jsonb`),
   triggers: jsonb("triggers").$type<Array<{ condition: string; value: string }>>().notNull().default(sql`'[]'::jsonb`),
@@ -219,7 +218,7 @@ export const followUpQueue = pgTable("follow_up_queue", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  channel: text("channel", { enum: ["instagram", "whatsapp", "email"] }).notNull(),
+  channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
   scheduledAt: timestamp("scheduled_at").notNull(),
   status: text("status", { enum: ["pending", "processing", "completed", "failed"] }).notNull().default("pending"),
   processedAt: timestamp("processed_at"),
@@ -305,7 +304,7 @@ export const onboardingProfiles = pgTable("onboarding_profiles", {
 export const oauthAccounts = pgTable("oauth_accounts", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["github", "google", "linkedin", "whatsapp", "instagram", "facebook"] }).notNull(),
+  provider: text("provider", { enum: ["github", "google", "linkedin", "instagram", "facebook"] }).notNull(),
   providerAccountId: text("provider_account_id").notNull(),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
@@ -616,7 +615,7 @@ export const leadSchema = z.object({
   userId: z.string().uuid(),
   externalId: z.string().nullable(),
   name: z.string(),
-  channel: z.enum(["instagram", "whatsapp", "email"]),
+  channel: z.enum(["instagram", "email"]),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
   status: z.enum(["new", "open", "replied", "converted", "not_interested", "cold"]).default("new"),
@@ -634,7 +633,7 @@ export const messageSchema = z.object({
   id: z.string().uuid(),
   leadId: z.string().uuid(),
   userId: z.string().uuid(),
-  provider: z.enum(["instagram", "whatsapp", "gmail"]),
+  provider: z.enum(["instagram", "gmail"]),
   direction: z.enum(["inbound", "outbound"]),
   body: z.string(),
   audioUrl: z.string().url().nullable(),
@@ -648,7 +647,7 @@ export const dealSchema = z.object({
   leadId: z.string().uuid(),
   userId: z.string().uuid(),
   brand: z.string(),
-  channel: z.enum(["instagram", "whatsapp", "email"]),
+  channel: z.enum(["instagram", "email"]),
   value: z.number(),
   status: z.enum(["converted", "lost", "pending"]).default("pending"),
   notes: z.string().nullable(),
@@ -662,7 +661,7 @@ export const dealSchema = z.object({
 export const integrationSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  provider: z.enum(["instagram", "whatsapp", "gmail", "outlook", "manychat", "custom_email"]),
+  provider: z.enum(["instagram", "gmail", "outlook", "manychat", "custom_email"]),
   encryptedMeta: z.string(), // Encrypted credentials as string (iv:tag:ciphertext)
   connected: z.boolean().default(false),
   accountType: z.enum(["personal", "creator", "business"]).nullable(),
@@ -695,7 +694,7 @@ export const automationSchema = z.object({
   schedule: z.array(z.object({
     delay: z.string(), // "12h", "24h", "48h", "72h", "7d"
     action: z.string(), // "send_message", "escalate_channel", "send_voice"
-    channel: z.enum(["instagram", "whatsapp", "email"]).nullable(),
+    channel: z.enum(["instagram", "email"]).nullable(),
     randomizationWindow: z.number().default(0), // Minutes of variance
   })).default([]),
   triggers: z.array(z.object({

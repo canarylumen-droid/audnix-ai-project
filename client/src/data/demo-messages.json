@@ -16,7 +16,7 @@
       "leadId": "lead-1",
       "channel": "instagram",
       "direction": "outbound",
-      "content": "Thanks for reaching out! Audnix helps you automate lead follow-ups across Instagram, WhatsApp, and Email with AI that sounds human. Would you like to see how it works?",
+      "content": "Thanks for reaching out! Audnix helps you automate lead follow-ups across Instagram and Email with AI that sounds human. Would you like to see how it works?",
       "isAiGenerated": true,
       "hasVoiceNote": false,
       "status": "read",
@@ -60,7 +60,7 @@
     {
       "id": "msg-6",
       "leadId": "lead-2",
-      "channel": "whatsapp",
+      "channel": "email",
       "direction": "inbound",
       "content": "Hey, I'm interested in your platform. How does pricing work?",
       "isAiGenerated": false,
@@ -71,7 +71,7 @@
     {
       "id": "msg-7",
       "leadId": "lead-2",
-      "channel": "whatsapp",
+      "channel": "email",
       "direction": "outbound",
       "content": "Great question! We have three plans: Starter ($49.99/mo), Pro ($99.99/mo), and Enterprise ($199.99/mo). All include a 3-day free trial. Which features are most important to you?",
       "isAiGenerated": true,
@@ -82,7 +82,7 @@
     {
       "id": "msg-8",
       "leadId": "lead-2",
-      "channel": "whatsapp",
+      "channel": "email",
       "direction": "inbound",
       "content": "Can you send me more information about pricing?",
       "isAiGenerated": false,

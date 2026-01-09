@@ -8,7 +8,10 @@
     "channel": "instagram",
     "status": "converted",
     "leadScore": 95,
-    "tags": ["hot-lead", "interested"],
+    "tags": [
+      "hot-lead",
+      "interested"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-20T10:30:00Z",
     "lastMessageSnippet": "That sounds perfect! When can we schedule a call?",
@@ -22,15 +25,18 @@
     "name": "Marcus Chen",
     "email": "marcus.chen@example.com",
     "phone": "+1234567891",
-    "channel": "whatsapp",
+    "channel": "email",
     "status": "replied",
     "leadScore": 78,
-    "tags": ["interested", "follow-up"],
+    "tags": [
+      "interested",
+      "follow-up"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-21T14:20:00Z",
     "lastMessageSnippet": "Can you send me more information about pricing?",
     "dealValue": null,
-    "source": "WhatsApp",
+    "source": "Email Outreach",
     "createdAt": "2026-01-18T11:30:00Z"
   },
   {
@@ -42,7 +48,9 @@
     "channel": "email",
     "status": "open",
     "leadScore": 62,
-    "tags": ["new"],
+    "tags": [
+      "new"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-22T08:15:00Z",
     "lastMessageSnippet": "I saw your ad and I'm curious about your services.",
@@ -56,15 +64,18 @@
     "name": "David Park",
     "email": "david.park@business.com",
     "phone": "+1234567892",
-    "channel": "whatsapp",
+    "channel": "instagram",
     "status": "converted",
     "leadScore": 88,
-    "tags": ["hot-lead", "enterprise"],
+    "tags": [
+      "hot-lead",
+      "enterprise"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-19T16:45:00Z",
     "lastMessageSnippet": "Let's schedule a demo for next week!",
     "dealValue": 15000,
-    "source": "WhatsApp Business",
+    "source": "Instagram Business",
     "createdAt": "2026-01-16T13:20:00Z"
   },
   {
@@ -76,7 +87,10 @@
     "channel": "instagram",
     "status": "replied",
     "leadScore": 71,
-    "tags": ["startup", "interested"],
+    "tags": [
+      "startup",
+      "interested"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-21T11:00:00Z",
     "lastMessageSnippet": "This looks really interesting! How does the AI work?",
@@ -93,7 +107,9 @@
     "channel": "email",
     "status": "paused",
     "leadScore": 45,
-    "tags": ["cold"],
+    "tags": [
+      "cold"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-10T10:00:00Z",
     "lastMessageSnippet": "Not interested right now, maybe later.",
@@ -107,15 +123,18 @@
     "name": "Amanda Foster",
     "email": "amanda.foster@email.com",
     "phone": "+1234567894",
-    "channel": "whatsapp",
+    "channel": "email",
     "status": "open",
     "leadScore": 58,
-    "tags": ["new", "follow-up"],
+    "tags": [
+      "new",
+      "follow-up"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-22T09:30:00Z",
     "lastMessageSnippet": "Hi! I'd like to learn more about your platform.",
     "dealValue": null,
-    "source": "WhatsApp",
+    "source": "Email Inquiry",
     "createdAt": "2026-01-22T09:30:00Z"
   },
   {
@@ -127,7 +146,10 @@
     "channel": "instagram",
     "status": "replied",
     "leadScore": 82,
-    "tags": ["hot-lead", "tech"],
+    "tags": [
+      "hot-lead",
+      "tech"
+    ],
     "assignedTo": null,
     "lastMessageAt": "2026-01-21T15:30:00Z",
     "lastMessageSnippet": "Impressive! Can we hop on a call to discuss integration?",
