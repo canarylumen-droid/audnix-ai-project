@@ -1,5 +1,4 @@
 import { InstagramProvider } from '../providers/instagram.js';
-import { WhatsAppProvider } from '../providers/whatsapp.js';
 import { ElevenLabsProvider } from '../providers/elevenlabs.js';
 import { storage } from '../../storage.js';
 import { generateVoiceScript, assessLeadWarmth, detectConversationStatus } from './conversation-ai.js';
@@ -50,12 +49,6 @@ interface DecryptedInstagramMeta {
   pageId?: string;
 }
 
-interface DecryptedWhatsAppMeta {
-  accountSid?: string;
-  authToken?: string;
-  fromNumber?: string;
-}
-
 type PlanWithVoice = 'trial' | 'starter' | 'pro' | 'enterprise';
 
 const PLAN_VOICE_LIMITS: Record<PlanWithVoice, number> = {
@@ -68,7 +61,7 @@ const PLAN_VOICE_LIMITS: Record<PlanWithVoice, number> = {
 /**
  * Voice AI Service
  * Intelligently generates and sends AI voice notes to warm leads
- * on Instagram and WhatsApp, respecting plan limits
+ * on Instagram, respecting plan limits
  */
 export class VoiceAIService {
   private elevenlabs: ElevenLabsProvider;
@@ -129,8 +122,8 @@ export class VoiceAIService {
     lead: Lead,
     messages: Message[]
   ): Promise<VoiceDecision> {
-    // Only Instagram and WhatsApp support voice
-    if (lead.channel !== 'instagram' && lead.channel !== 'whatsapp') {
+    // Only Instagram supports voice
+    if (lead.channel !== 'instagram') {
       return { shouldSend: false, reason: 'Channel does not support voice messages' };
     }
 
@@ -196,9 +189,9 @@ export class VoiceAIService {
       // Check voice limit with estimated duration
       const limitCheck = await this.checkVoiceLimit(userId, estimatedDuration);
       if (!limitCheck.allowed) {
-        return { 
-          success: false, 
-          error: `Voice limit exceeded. Remaining: ${limitCheck.remaining.toFixed(1)} minutes. Top up or upgrade plan for more.` 
+        return {
+          success: false,
+          error: `Voice limit exceeded. Remaining: ${limitCheck.remaining.toFixed(1)} minutes. Top up or upgrade plan for more.`
         };
       }
 
@@ -211,9 +204,9 @@ export class VoiceAIService {
       // Verify actual duration doesn't exceed remaining limit
       const finalLimitCheck = await this.checkVoiceLimit(userId, voiceData.duration);
       if (!finalLimitCheck.allowed) {
-        return { 
-          success: false, 
-          error: `Voice generation exceeded limit. Generated ${(voiceData.duration / 60).toFixed(2)} minutes but only ${finalLimitCheck.remaining.toFixed(1)} minutes remaining.` 
+        return {
+          success: false,
+          error: `Voice generation exceeded limit. Generated ${(voiceData.duration / 60).toFixed(2)} minutes but only ${finalLimitCheck.remaining.toFixed(1)} minutes remaining.`
         };
       }
 
@@ -246,41 +239,12 @@ export class VoiceAIService {
         const result = await instagram.sendAudioMessage(lead.externalId || '', audioUrl);
         messageId = result.messageId;
       } else {
-        // WhatsApp via Twilio
-        const integrations = await storage.getIntegrations(userId);
-        const waIntegration = integrations.find(i => i.provider === 'whatsapp' && i.connected);
-
-        if (!waIntegration) {
-          return { success: false, error: 'WhatsApp not connected' };
-        }
-
-        // Decrypt credentials from integration
-        const decryptedMetaJson = decrypt(waIntegration.encryptedMeta);
-        const decryptedMeta: DecryptedWhatsAppMeta = JSON.parse(decryptedMetaJson);
-        const accountSid = decryptedMeta.accountSid;
-        const authToken = decryptedMeta.authToken;
-        const fromNumber = decryptedMeta.fromNumber;
-
-        if (!accountSid || !authToken || !fromNumber) {
-          return { success: false, error: 'WhatsApp/Twilio credentials incomplete' };
-        }
-
-        const whatsapp = new WhatsAppProvider({
-          phoneNumberId: accountSid || '',
-          accessToken: authToken || '',
-          accountSid,
-          authToken,
-          fromNumber
-        });
-
-        const result = await whatsapp.sendAudioMessage(lead.phone || '', audioUrl);
-        messageId = result.messageId;
+        return { success: false, error: 'Unsupported channel for voice notes' };
       }
 
       // Map channel to provider type
       const providerMap: Record<string, ProviderType> = {
         'instagram': 'instagram',
-        'whatsapp': 'whatsapp',
         'email': 'email'
       };
       const provider = providerMap[lead.channel] || 'system';
@@ -293,11 +257,11 @@ export class VoiceAIService {
         direction: 'outbound',
         body: `[Voice Note] ${aiResponse}`,
         audioUrl,
-        metadata: { 
-          isAiGenerated: true, 
+        metadata: {
+          isAiGenerated: true,
           voiceNote: true,
           duration: voiceData.duration,
-          messageId 
+          messageId
         }
       });
 
@@ -325,17 +289,17 @@ export class VoiceAIService {
 
       console.log(`🎙️ Voice note sent to ${lead.name} on ${lead.channel} (${voiceData.duration}s)`);
 
-      return { 
-        success: true, 
-        audioUrl, 
-        secondsUsed: voiceData.duration 
+      return {
+        success: true,
+        audioUrl,
+        secondsUsed: voiceData.duration
       };
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate and send voice note';
       console.error('Voice AI Service error:', error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: errorMessage
       };
     }
@@ -349,7 +313,7 @@ export class VoiceAIService {
     // Analyze conversation mood
     const recentMessages = history.slice(-3).map(m => m.body.toLowerCase()).join(' ');
     const isSerious = /problem|issue|concern|worried|upset/.test(recentMessages);
-    
+
     const prompt = `
       You are a calm, conversational business professional speaking to ${lead.name || 'there'} on ${lead.channel}.
       Think of this as a genuine one-on-one conversation, not a sales pitch.
@@ -376,7 +340,7 @@ export class VoiceAIService {
       
       Generate conversational voice script (plain text, natural breathing):
     `;
-    
+
     return await generateVoiceScript(lead, history);
   }
 
@@ -384,7 +348,7 @@ export class VoiceAIService {
    * Clone user's voice from uploaded samples
    */
   async cloneUserVoice(
-    userId: string, 
+    userId: string,
     audioBuffers: Buffer[]
   ): Promise<VoiceCloneResult> {
     try {
@@ -395,7 +359,7 @@ export class VoiceAIService {
 
       // Clone voice with ElevenLabs
       const result = await this.elevenlabs.cloneVoice(
-        `${user.name || user.email}'s Voice`, 
+        `${user.name || user.email}'s Voice`,
         audioBuffers
       );
 
@@ -455,7 +419,7 @@ export class VoiceAIService {
           // Check lead status again to ensure they haven't opted out
           const updatedLead = await storage.getLeadById(lead.id);
           const updatedMessages = await storage.getMessages(lead.id);
-          
+
           if (!updatedLead) {
             results.skipped++;
             continue;

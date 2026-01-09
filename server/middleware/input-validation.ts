@@ -49,12 +49,12 @@ export const validatePlanKey = body("planKey")
 
 export const validateChannel = body("channel")
   .trim()
-  .isIn(["instagram", "whatsapp", "email"])
+  .isIn(["instagram", "email"])
   .withMessage("Invalid channel");
 
 export const validateProvider = param("provider")
   .trim()
-  .isIn(["instagram", "whatsapp", "gmail", "outlook", "manychat"])
+  .isIn(["instagram", "gmail", "outlook", "manychat"])
   .withMessage("Invalid provider");
 
 export const validateWebhookUrl = body("url")
@@ -67,10 +67,10 @@ export const validateWebhookUrl = body("url")
  */
 export function handleValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     // Security: Don't expose internal validation details
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: "Invalid input",
       details: errors.array().map(err => ({
         field: err.type === 'field' ? (err as any).path : 'unknown',
@@ -78,7 +78,7 @@ export function handleValidationErrors(req: Request, res: Response, next: NextFu
       }))
     });
   }
-  
+
   next();
 }
 
@@ -92,17 +92,17 @@ export function sanitizeObject(obj: any): any {
 
   // Remove dangerous properties
   const sanitized = Array.isArray(obj) ? [] : {};
-  
+
   for (const key in obj) {
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       continue; // Skip dangerous properties
     }
-    
+
     if (obj.hasOwnProperty(key)) {
       (sanitized as any)[key] = sanitizeObject(obj[key]);
     }
   }
-  
+
   return sanitized;
 }
 

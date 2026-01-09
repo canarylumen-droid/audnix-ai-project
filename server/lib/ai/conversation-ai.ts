@@ -145,7 +145,7 @@ export function assessLeadWarmth(messages: Message[], lead: Lead): boolean {
 
   const lastMessage = messages[messages.length - 1];
   if (!lastMessage) return false;
-  
+
   const hoursSinceLastMessage = (Date.now() - new Date(lastMessage.createdAt).getTime()) / (1000 * 60 * 60);
 
   if (hoursSinceLastMessage < 24 && inboundCount >= 1) return true;
@@ -256,10 +256,10 @@ export function detectConversationStatus(messages: Message[]): ConversationStatu
 export async function generateAIReply(
   lead: Lead,
   conversationHistory: Message[],
-  platform: 'instagram' | 'whatsapp' | 'email',
+  platform: 'instagram' | 'email',
   userContext?: { businessName?: string; brandVoice?: string }
 ): Promise<AIReplyResult> {
-  
+
   const brandContext = await getBrandContext(lead.userId);
   const brandPromptSection = formatBrandContextForPrompt(brandContext);
 
@@ -294,7 +294,6 @@ export async function generateAIReply(
 
   const platformTone: Record<string, string> = {
     instagram: 'casual, friendly, and conversational with emojis',
-    whatsapp: 'warm, personal, and direct',
     email: 'professional yet approachable, well-structured'
   };
 
@@ -311,7 +310,7 @@ How You Talk:
 - Like you text your friends - natural, relaxed, no corporate BS
 - Use contractions (you're, don't, let's, can't) - it sounds real
 - No "I appreciate your interest" or "kindly" or "as per" - talk normal
-- Short sentences. Especially on WhatsApp/Instagram. Keep it snappy.
+- Short sentences. Especially on Instagram. Keep it snappy.
 - 2-3 sentences max for DMs, a short paragraph for email
 - Use their name only if it feels organic - don't overdo it
 - Emojis? Only if they fit the vibe. Max 1-2. No emoji spam.
@@ -452,7 +451,7 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
   try {
     // First check if lead is requesting a meeting, payment, or app link
     const linkIntent = await detectAndGenerateLinkResponse(lead.userId, lastMessage.body);
-    
+
     // If strong intent detected with available link, use that response
     if (linkIntent.detected && linkIntent.confidence >= 0.5 && linkIntent.suggestedResponse) {
       console.log(`🔗 Auto-detected ${linkIntent.intentType} intent - sending link`);
@@ -474,7 +473,7 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     });
 
     let responseText = completion.choices[0]?.message?.content || "";
-    
+
     // Append meeting/payment/app link if detected with lower confidence
     responseText = await appendLinkIfNeeded(lead.userId, lastMessage.body, responseText);
 
@@ -649,7 +648,7 @@ export async function getConversationContext(
           id: `memory-${Date.now()}-${Math.random()}`,
           leadId,
           userId,
-          provider: (conv.content.channel as 'instagram' | 'whatsapp' | 'gmail' | 'email' | 'system') || 'instagram',
+          provider: (conv.content.channel as 'instagram' | 'gmail' | 'email' | 'system') || 'instagram',
           direction: msg.role === 'user' ? 'inbound' : 'outbound',
           body: msg.content,
           audioUrl: null,

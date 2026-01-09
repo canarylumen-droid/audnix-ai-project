@@ -15,7 +15,7 @@ import { eq, and, lt } from 'drizzle-orm';
 export interface FollowUpSchedule {
   leadId: string;
   userId: string;
-  channel: 'email' | 'whatsapp' | 'instagram';
+  channel: 'email' | 'instagram';
   scheduledFor: Date;
   sequenceNumber: number;
   conditions?: {
@@ -51,13 +51,13 @@ export class MultiChannelOrchestrator {
         const scheduledDate = new Date(campaignDayCreated);
         scheduledDate.setDate(scheduledDate.getDate() + schedule.day);
         // Add random hours (18-24 for day 1, 48-72 for day 2, etc.)
-        const randomHours = schedule.day === 0 ? 
+        const randomHours = schedule.day === 0 ?
           Math.random() * 4 : // Initial: 0-4 hours after campaign
-          schedule.day === 1 ? 
-          18 + Math.random() * 6 : // Day 1: 18-24 hours
-          schedule.day === 2 ? 
-          48 + Math.random() * 24 : // Day 2: 48-72 hours
-          Math.random() * 24; // Other days: random within day
+          schedule.day === 1 ?
+            18 + Math.random() * 6 : // Day 1: 18-24 hours
+            schedule.day === 2 ?
+              48 + Math.random() * 24 : // Day 2: 48-72 hours
+              Math.random() * 24; // Other days: random within day
 
         scheduledDate.setHours(scheduledDate.getHours() + randomHours);
 
@@ -71,38 +71,11 @@ export class MultiChannelOrchestrator {
       }
     }
 
-    // WHATSAPP SEQUENCE (only after day 3, and only if email opened/clicked or has been ignored twice)
+    // INSTAGRAM DM SEQUENCE (only after day 3, if email failed)
     if (daysSinceCampaignStart >= 3) {
-      const whatsappSchedules = [
-        { day: 3, sequenceNumber: 1, label: 'soft_ping' },      // Day 3: Soft ping
-        { day: 6, sequenceNumber: 2, label: 'final_check' },    // Day 6: Final check
-      ];
-
-      for (const schedule of whatsappSchedules) {
-        if (daysSinceCampaignStart >= schedule.day) {
-          const scheduledDate = new Date(campaignDayCreated);
-          scheduledDate.setDate(scheduledDate.getDate() + schedule.day);
-          scheduledDate.setHours(scheduledDate.getHours() + Math.random() * 4); // Random 0-4 hours
-
-          schedules.push({
-            leadId,
-            userId: '',
-            channel: 'whatsapp',
-            scheduledFor: scheduledDate,
-            sequenceNumber: schedule.sequenceNumber,
-            conditions: {
-              onlyIfEmailIgnored: true, // Only send if email has been ignored
-            },
-          });
-        }
-      }
-    }
-
-    // INSTAGRAM DM SEQUENCE (only after day 5, if email + WhatsApp both failed)
-    if (daysSinceCampaignStart >= 5) {
       const igSchedules = [
-        { day: 5, sequenceNumber: 1, label: 'social_nudge' },   // Day 5: Social nudge
-        { day: 8, sequenceNumber: 2, label: 'final_push' },     // Day 8: Final push
+        { day: 3, sequenceNumber: 1, label: 'social_nudge' },   // Day 3: Social nudge
+        { day: 6, sequenceNumber: 2, label: 'final_push' },     // Day 6: Final push
       ];
 
       for (const schedule of igSchedules) {
@@ -154,9 +127,9 @@ export class MultiChannelOrchestrator {
   }
 
   /**
-   * Check if a lead is ready for next channel (e.g., email didn't work, try WhatsApp)
+   * Check if a lead is ready for next channel (e.g., email didn't work, try Instagram)
    */
-  static async shouldEscalateChannel(leadId: string): Promise<'email' | 'whatsapp' | 'instagram' | null> {
+  static async shouldEscalateChannel(leadId: string): Promise<'email' | 'instagram' | null> {
     // Check last few email sends
     const recentEmails = await db
       .select()
@@ -170,25 +143,9 @@ export class MultiChannelOrchestrator {
       .orderBy(followUpQueue.scheduledAt)
       .limit(3);
 
-    // If last 2 emails were ignored (no opens/clicks), escalate to WhatsApp
+    // If last 2 emails were ignored (no opens/clicks), escalate to Instagram
     const allIgnored = recentEmails.length >= 2;
     if (allIgnored) {
-      return 'whatsapp';
-    }
-
-    // If WhatsApp also failed, try Instagram
-    const whatsappFailed = await db
-      .select()
-      .from(followUpQueue)
-      .where(
-        and(
-          eq(followUpQueue.leadId, leadId),
-          eq(followUpQueue.channel, 'whatsapp'),
-          eq(followUpQueue.status, 'failed')
-        )
-      );
-
-    if (whatsappFailed.length >= 2) {
       return 'instagram';
     }
 

@@ -61,7 +61,7 @@ Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }
     });
 
     const analysis = JSON.parse(response.choices[0].message.content || '{}');
-    
+
     return {
       wantsDM: analysis.wantsDM || false,
       intent: analysis.intent || 'general',
@@ -131,7 +131,7 @@ Generate the DM:`;
     });
 
     const aiMessage = response.choices[0].message.content || `Hey ${leadName}! Thanks for reaching out.`;
-    
+
     if (ctaButton) {
       return formatDMWithButton(aiMessage, ctaButton);
     }
@@ -162,16 +162,16 @@ export async function generateFollowUpDM(
   }
 
   try {
-    const engagementStatus = !messageOpened 
+    const engagementStatus = !messageOpened
       ? 'never opened the message'
-      : linkClicked 
-      ? 'opened and clicked' 
-      : 'opened but didn\'t click the link';
+      : linkClicked
+        ? 'opened and clicked'
+        : 'opened but didn\'t click the link';
 
     const historyContext = conversationHistory && conversationHistory.length > 0
-      ? `\n\nPrevious conversation:\n${conversationHistory.slice(-5).map(m => 
-          `${m.direction === 'outbound' ? 'You' : 'Lead'}: ${m.body.substring(0, 200)}`
-        ).join('\n')}`
+      ? `\n\nPrevious conversation:\n${conversationHistory.slice(-5).map(m =>
+        `${m.direction === 'outbound' ? 'You' : 'Lead'}: ${m.body.substring(0, 200)}`
+      ).join('\n')}`
       : '';
 
     const prompt = `Generate a context-aware follow-up DM for someone who commented 6 hours ago.
@@ -284,7 +284,7 @@ export async function processCommentAutomation(
   userId: string,
   comment: string,
   username: string,
-  channel: 'instagram' | 'whatsapp' | 'email',
+  channel: 'instagram' | 'email',
   postContext: string,
   commentId?: string // Optional: for replying to specific comment
 ): Promise<{
@@ -304,7 +304,7 @@ export async function processCommentAutomation(
 
     // Step 1: Detect if this comment wants a DM
     const intent = await detectCommentIntent(comment);
-    
+
     if (!intent.wantsDM) {
       console.log(`Comment from ${username} doesn't indicate DM intent - skipping automation`);
       return { success: false, followUpScheduled: false, commentReplied: false };
@@ -313,7 +313,7 @@ export async function processCommentAutomation(
     // Step 2: REPLY TO COMMENT FIRST with short message (ManyChat style)
     const shortReply = formatCommentReply(intent.intent);
     let commentReplied = false;
-    
+
     if (channel === 'instagram' && commentId) {
       try {
         // Reply to the comment with short message like "Check DMs!"
@@ -340,7 +340,7 @@ export async function processCommentAutomation(
 
     // Step 3: Create or get lead
     let lead = await storage.getLeadByUsername(username, channel);
-    
+
     if (!lead) {
       lead = await storage.createLead({
         userId,
@@ -362,7 +362,7 @@ export async function processCommentAutomation(
     const user = await storage.getUser(userId);
     const ctaLink = user?.metadata?.ctaLink || null;
     const ctaText = user?.metadata?.ctaText || 'Get Access';
-    
+
     const ctaButton: DMButton | undefined = ctaLink ? {
       text: ctaText,
       url: ctaLink
@@ -370,11 +370,11 @@ export async function processCommentAutomation(
 
     // Step 5: Generate initial DM with ManyChat-style CTA button
     const initialDM = await generateInitialDM(username, intent, postContext, ctaButton);
-    
+
     // Step 6: Schedule DM for 2-8 minutes later (human-like timing)
     const delayMinutes = Math.floor(Math.random() * 6) + 2; // Random 2-8 minutes
     const dmTime = new Date(Date.now() + delayMinutes * 60 * 1000);
-    
+
     await storage.createNotification({
       userId,
       title: '⏰ DM Scheduled',
@@ -413,13 +413,13 @@ export async function processCommentAutomation(
 export async function executeCommentFollowUps(): Promise<void> {
   try {
     const now = new Date();
-    
+
     // Get all notifications for comment follow-ups that are due
     const allUsers = await storage.getAllUsers().catch(() => []);
-    
+
     for (const user of allUsers) {
       const notifications = await storage.getNotifications(user.id);
-      
+
       for (const notification of notifications) {
         if (
           notification.type === 'info' &&
@@ -427,30 +427,30 @@ export async function executeCommentFollowUps(): Promise<void> {
           notification.metadata?.scheduledFor
         ) {
           const scheduledTime = new Date(notification.metadata.scheduledFor);
-          
+
           if (now >= scheduledTime) {
             const leadId = notification.metadata.leadId;
             const intent = notification.metadata.intent;
             const postContext = notification.metadata.postContext || '';
-            
+
             // Get lead and check engagement
             const lead = await storage.getLeadById(leadId);
             if (!lead) continue;
-            
+
             const messages = await storage.getMessagesByLeadId(leadId);
             const lastMessage = messages[messages.length - 1];
-            
+
             // Check if message was opened/clicked (simplified - would need real tracking)
             const messageOpened = lastMessage?.metadata?.opened || false;
             const linkClicked = lastMessage?.metadata?.clicked || false;
-            
+
             // Build conversation history for context-aware follow-up
             const conversationHistory = messages.map(m => ({
               direction: m.direction as 'inbound' | 'outbound',
               body: m.body,
               createdAt: m.createdAt
             }));
-            
+
             // Generate and send context-aware follow-up
             const followUpDM = await generateFollowUpDM(
               lead.name,
@@ -460,7 +460,7 @@ export async function executeCommentFollowUps(): Promise<void> {
               postContext,
               conversationHistory
             );
-            
+
             await storage.createMessage({
               leadId: lead.id,
               userId: user.id,
@@ -474,10 +474,10 @@ export async function executeCommentFollowUps(): Promise<void> {
                 hours_after_initial: 6
               }
             });
-            
+
             // Mark notification as read
             await storage.markNotificationRead(notification.id);
-            
+
             console.log(`✓ Sent 6-hour follow-up to ${lead.name}`);
           }
         }

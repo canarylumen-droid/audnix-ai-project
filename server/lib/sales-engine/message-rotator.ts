@@ -12,7 +12,7 @@ export interface MessageTemplate {
   body: string;
   tone: 'professional' | 'casual' | 'urgent' | 'friendly';
   personalizationFields: string[]; // [name], [company], [challenge]
-  channel: 'email' | 'whatsapp' | 'instagram';
+  channel: 'email' | 'instagram';
 }
 
 /**
@@ -76,7 +76,7 @@ Most teams miss this because [reason].
 I help them find it. Quick call?`,
     tone: 'urgent',
     personalizationFields: ['name', 'company', 'industry', 'reason'],
-    channel: 'whatsapp',
+    channel: 'instagram',
   },
   {
     id: 'hook_5',
@@ -86,7 +86,7 @@ I help them find it. Quick call?`,
 Interested in a quick walkthrough?`,
     tone: 'friendly',
     personalizationFields: ['name', 'similar_company', 'result'],
-    channel: 'whatsapp',
+    channel: 'instagram',
   },
 ];
 
@@ -129,7 +129,7 @@ Our approach: [effort_reduced], [time_reduced], [cost_savings]
 We guarantee [benefit] or money back. Worth a conversation?`,
     tone: 'urgent',
     personalizationFields: ['your_goal', 'effort', 'time', 'cost', 'benefit'],
-    channel: 'whatsapp',
+    channel: 'instagram',
   },
 ];
 
@@ -171,7 +171,7 @@ You're looking at the same potential. Proof is in the walkthrough.`,
 Curious what they're seeing? I'll show you.`,
     tone: 'urgent',
     personalizationFields: ['name', 'name_2'],
-    channel: 'whatsapp',
+    channel: 'instagram',
   },
 ];
 
@@ -207,7 +207,7 @@ I want to make sure [company] gets the same priority. Can I book you in tomorrow
     body: `Pricing goes up [date]. Want to lock in the current rate?`,
     tone: 'urgent',
     personalizationFields: ['date'],
-    channel: 'whatsapp',
+    channel: 'instagram',
   },
 ];
 

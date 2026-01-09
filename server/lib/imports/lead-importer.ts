@@ -1,4 +1,4 @@
-import { storage } from '../../storage.js';
+
 import { db } from '../../db.js';
 import { followUpQueue } from '../../../shared/schema.js';
 import { InstagramOAuth } from "../oauth/instagram.js";
@@ -97,7 +97,7 @@ export async function importInstagramLeads(userId: string): Promise<{
             for (const msg of allMessages) {
               // Check if message already exists
               const existingMessages = await storage.getMessages(lead.id);
-              const exists = existingMessages.some(m => 
+              const exists = existingMessages.some(m =>
                 (m.metadata as any)?.ig_message_id === msg.id
               );
 
@@ -109,7 +109,7 @@ export async function importInstagramLeads(userId: string): Promise<{
                   direction: msg.from?.id === conversation.participants?.[0]?.id ? 'inbound' as const : 'outbound' as const,
                   body: msg.message || '',
                   audioUrl: msg.audio_url || null,
-                  metadata: { 
+                  metadata: {
                     ig_message_id: msg.id,
                     timestamp: msg.created_time,
                     has_media: !!msg.attachments?.length,
@@ -303,209 +303,7 @@ export async function importGmailLeads(userId: string): Promise<{
   }
 }
 
-/**
- * Import leads from CSV/manual entry for cold outreach
- */
-export async function importManualWhatsAppLeads(
-  userId: string, 
-  leadsData: Array<{ name: string; phone: string; email?: string; company?: string }>
-): Promise<{
-  leadsImported: number;
-  errors: string[];
-}> {
-  const results = {
-    leadsImported: 0,
-    errors: [] as string[]
-  };
 
-  try {
-    const user = await storage.getUserById(userId);
-    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-    const currentLeadCount = existingLeads.length;
-
-    const planLimits: Record<string, number> = {
-      'free': 500,
-      'trial': 500,
-      'starter': 2500,
-      'pro': 7000,
-      'enterprise': 20000
-    };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
-
-    if (currentLeadCount >= maxLeads) {
-      results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
-      return results;
-    }
-
-    for (const leadData of leadsData) {
-      // Check if lead already exists
-      const existingLead = await storage.getLeadByPhone(userId, leadData.phone);
-      if (existingLead) {
-        results.errors.push(`Phone ${leadData.phone} already exists`);
-        continue;
-      }
-
-      // Create new lead (allows cold outreach)
-      await storage.createLead({
-        userId,
-        name: leadData.name,
-        phone: leadData.phone,
-        email: leadData.email || null,
-        channel: 'whatsapp',
-        status: 'new',
-        metadata: {
-          imported_from_csv: true,
-          company: leadData.company,
-          cold_lead: true // Mark as cold lead for tracking
-        }
-      });
-
-      results.leadsImported++;
-    }
-
-    return results;
-  } catch (error: any) {
-    results.errors.push(`Import failed: ${error.message}`);
-    return results;
-  }
-}
-
-/**
- * Import leads from WhatsApp contacts (via WhatsApp Web)
- */
-export async function importWhatsAppLeads(userId: string): Promise<{
-  leadsImported: number;
-  messagesImported: number;
-  errors: string[];
-}> {
-  const results = {
-    leadsImported: 0,
-    messagesImported: 0,
-    errors: [] as string[]
-  };
-
-  try {
-    // Check user's plan and existing lead count
-    const user = await storage.getUserById(userId);
-    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-    const currentLeadCount = existingLeads.length;
-
-    // Plan-based limits
-    const planLimits: Record<string, number> = {
-      'free': 500,
-      'trial': 500,
-      'starter': 2500,
-      'pro': 7000,
-      'enterprise': 20000
-    };
-    const maxLeads = planLimits[user?.subscriptionTier || 'free'] || 500;
-
-    if (currentLeadCount >= maxLeads) {
-      results.errors.push(`Lead limit reached (${maxLeads} leads). Upgrade to import more.`);
-      return results;
-    }
-
-    const integrations = await storage.getIntegrations(userId);
-    const waIntegration = integrations.find(i => i.provider === 'whatsapp' && i.connected);
-
-    if (!waIntegration) {
-      results.errors.push('WhatsApp not connected. Please scan QR code first.');
-      return results;
-    }
-
-    // Get WhatsApp session
-    const { whatsAppService } = await import('../integrations/whatsapp-web.js');
-    const session = whatsAppService.getSession(userId);
-
-    if (!session || session.status !== 'ready') {
-      results.errors.push('WhatsApp not ready. Please reconnect and try again.');
-      return results;
-    }
-
-    // Fetch all WhatsApp chats/contacts
-    const chats = await session.client.getChats();
-    const leadsToImport = Math.min(chats.length, maxLeads - currentLeadCount);
-
-    for (let i = 0; i < leadsToImport; i++) {
-      const chat = chats[i];
-
-      // Skip group chats
-      if (chat.isGroup) continue;
-
-      try {
-        const contact = await chat.getContact();
-        const phoneNumber = contact.id.user;
-
-        // Check if lead already exists
-        const existingLead = await storage.getLeadByPhone(userId, phoneNumber);
-        if (existingLead) {
-          continue; // Skip duplicates
-        }
-
-        // Create new lead
-        const lead = await storage.createLead({
-          userId,
-          externalId: chat.id._serialized,
-          name: contact.pushname || contact.name || phoneNumber,
-          phone: phoneNumber,
-          channel: 'whatsapp',
-          status: 'new',
-          lastMessageAt: chat.lastMessage?.timestamp ? new Date(chat.lastMessage.timestamp * 1000) : null,
-          metadata: {
-            whatsapp_contact_id: contact.id._serialized,
-            is_business: contact.isBusiness || false,
-            imported_from_contacts: true
-          }
-        });
-
-        results.leadsImported++;
-
-        // Import last 50 messages from this chat
-        const messages = await chat.fetchMessages({ limit: 50 });
-
-        for (const msg of messages) {
-          const messageData = {
-            leadId: lead.id,
-            userId,
-            provider: 'whatsapp' as const,
-            direction: msg.fromMe ? 'outbound' as const : 'inbound' as const,
-            body: msg.body || '',
-            audioUrl: msg.hasMedia && msg.type === 'audio' ? 'pending' : null,
-            metadata: {
-              message_id: msg.id._serialized,
-              timestamp: msg.timestamp,
-              has_media: msg.hasMedia
-            }
-          };
-
-          await storage.createMessage(messageData);
-          results.messagesImported++;
-
-          // Add to follow-up queue if it's an inbound message and not from a business
-          if (!msg.fromMe && !contact.isBusiness) {
-            await db.insert(followUpQueue).values({
-              userId,
-              leadId: lead.id,
-              messageId: lead.id, // Using leadId as a placeholder, should be message ID
-              createdAt: new Date(msg.timestamp * 1000),
-              nextFollowUpAt: new Date(msg.timestamp * 1000 + 24 * 60 * 60 * 1000), // Default 24 hours
-              status: 'pending',
-            });
-          }
-        }
-
-      } catch (error: any) {
-        results.errors.push(`Failed to import ${chat.name}: ${error.message}`);
-      }
-    }
-
-    return results;
-  } catch (error: any) {
-    console.error('WhatsApp import error:', error);
-    results.errors.push(`Import failed: ${error.message}`);
-    return results;
-  }
-}
 
 /**
  * Import leads from Manychat
@@ -578,8 +376,8 @@ export async function importManychatLeads(userId: string): Promise<{
 
       try {
         // Check if lead already exists
-        const existingLead = existingLeads.find(l => 
-          l.externalId === subscriber.id || 
+        const existingLead = existingLeads.find(l =>
+          l.externalId === subscriber.id ||
           l.email === subscriber.email
         );
 

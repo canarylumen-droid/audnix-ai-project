@@ -30,7 +30,6 @@ function getErrorMessage(error: unknown): string {
 
 function channelToProvider(channel: ChannelType): ProviderType {
   if (channel === 'instagram') return 'instagram';
-  if (channel === 'whatsapp') return 'whatsapp';
   return 'email';
 }
 
@@ -225,7 +224,7 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response): Pr
         }
 
         const scoreData = await calculateLeadScore(leadId);
-        
+
         await storage.updateLead(leadId, {
           score: scoreData.score,
           warm: scoreData.temperature !== 'cold',
@@ -237,9 +236,9 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response): Pr
           }
         });
 
-        results.push({ 
-          leadId, 
-          success: true, 
+        results.push({
+          leadId,
+          success: true,
           score: scoreData.score,
           temperature: scoreData.temperature
         });
@@ -286,11 +285,11 @@ router.post('/delete', requireAuth, async (req: Request, res: Response): Promise
           continue;
         }
 
-        await storage.updateLead(leadId, { 
+        await storage.updateLead(leadId, {
           status: 'cold',
           tags: [...(lead.tags || []), 'archived']
         });
-        
+
         results.push({ leadId, success: true });
       } catch (error: unknown) {
         errors.push({ leadId, error: getErrorMessage(error) });

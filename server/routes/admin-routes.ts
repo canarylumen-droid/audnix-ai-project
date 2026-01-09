@@ -62,7 +62,7 @@ router.get("/metrics", async (req: Request, res: Response): Promise<void> => {
     // Get active users (logged in last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const activeUsersResult = await db
       .select({ count: count() })
       .from(users)
@@ -254,7 +254,7 @@ router.get("/overview", async (req: Request, res: Response): Promise<void> => {
     // Get active users (logged in last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const activeUsersResult = await db
       .select({ count: count() })
       .from(users)
@@ -314,7 +314,7 @@ router.get("/overview", async (req: Request, res: Response): Promise<void> => {
 router.get("/analytics/user-growth", async (req: Request, res: Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
-    
+
     // Get daily user registrations
     const userGrowth = await db.execute(sql`
       SELECT 
@@ -338,7 +338,7 @@ router.get("/analytics/user-growth", async (req: Request, res: Response): Promis
 router.get("/analytics/revenue", async (req: Request, res: Response): Promise<void> => {
   try {
     const days = parseInt(req.query.days as string) || 30;
-    
+
     // Calculate daily revenue based on subscriptions
     const planPrices: PlanPrices = {
       starter: 49,
@@ -363,7 +363,7 @@ router.get("/analytics/revenue", async (req: Request, res: Response): Promise<vo
     const revenueData = (subscriptionsByDate.rows as SubscriptionRow[]).reduce((acc: RevenueDataItem[], row: SubscriptionRow) => {
       const existingDay = acc.find(d => d.date === row.date);
       const revenue = (planPrices[row.plan] || 0) * parseInt(row.subscriptions);
-      
+
       if (existingDay) {
         existingDay.revenue += revenue;
       } else {
@@ -404,7 +404,7 @@ router.get("/analytics/channels", async (req: Request, res: Response): Promise<v
 router.get("/analytics/onboarding", async (req: Request, res: Response): Promise<void> => {
   try {
     const { onboardingProfiles } = await import("../../shared/schema.js");
-    
+
     // Get user role breakdown
     const roleStats = await db.execute(sql`
       SELECT 
@@ -652,7 +652,7 @@ router.get("/leads", async (req: Request, res: Response): Promise<void> => {
 
     const conditions = [];
     if (status) conditions.push(eq(leads.status, status as "new" | "open" | "replied" | "converted" | "not_interested" | "cold"));
-    if (channel) conditions.push(eq(leads.channel, channel as "instagram" | "whatsapp" | "email"));
+    if (channel) conditions.push(eq(leads.channel, channel as "instagram" | "email"));
 
     if (conditions.length > 0) {
       query = query.where(and(...conditions)) as typeof query;
@@ -694,9 +694,9 @@ router.post("/users/:userId/upgrade", async (req: Request, res: Response): Promi
     // Validate plan
     const validPlans = ['free', 'trial', 'starter', 'pro', 'enterprise'];
     if (!plan || !validPlans.includes(plan)) {
-      res.status(400).json({ 
+      res.status(400).json({
         error: "Invalid plan",
-        validPlans 
+        validPlans
       });
       return;
     }
@@ -848,10 +848,10 @@ router.delete("/whitelist/:email", async (req: Request, res: Response): Promise<
 router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("[ADMIN] Starting limbo user reset...");
-    
+
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    
+
     const limboUsersResult = await db.execute(sql`
       SELECT u.* FROM users u
       WHERE (
@@ -867,12 +867,12 @@ router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<v
         )
       )
     `);
-    
+
     const limboUsers = limboUsersResult.rows as any[];
     console.log(`[ADMIN] Found ${limboUsers.length} limbo users`);
-    
+
     let deletedCount = 0;
-    
+
     for (const user of limboUsers) {
       try {
         await db.execute(sql`DELETE FROM onboarding_profiles WHERE user_id = ${user.id}`);
@@ -883,13 +883,13 @@ router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<v
         console.error(`[ADMIN] Error deleting user ${user.email}:`, err);
       }
     }
-    
+
     const expiredOtpsResult = await db.execute(sql`
       DELETE FROM otp_codes WHERE expires_at < ${now} RETURNING *
     `);
-    
+
     console.log(`[ADMIN] Cleaned ${expiredOtpsResult.rows.length} expired OTPs`);
-    
+
     res.json({
       success: true,
       usersReset: deletedCount,
@@ -905,23 +905,23 @@ router.post("/reset-limbo-users", async (req: Request, res: Response): Promise<v
 router.post("/reset-all-users", async (req: Request, res: Response): Promise<void> => {
   try {
     const { confirmReset } = req.body;
-    
+
     if (confirmReset !== "CONFIRM_RESET_ALL_USERS") {
-      res.status(400).json({ 
+      res.status(400).json({
         error: "Confirmation required",
         message: "Send { confirmReset: 'CONFIRM_RESET_ALL_USERS' } to proceed"
       });
       return;
     }
-    
+
     console.log("[ADMIN] ⚠️ RESETTING ALL USERS - This is a destructive operation");
-    
+
     await db.execute(sql`DELETE FROM onboarding_profiles`);
     await db.execute(sql`DELETE FROM otp_codes`);
     await db.execute(sql`DELETE FROM users WHERE role != 'admin'`);
-    
+
     console.log("[ADMIN] ✅ All non-admin users reset complete");
-    
+
     res.json({
       success: true,
       message: "All non-admin users have been reset. Users can now sign up fresh."

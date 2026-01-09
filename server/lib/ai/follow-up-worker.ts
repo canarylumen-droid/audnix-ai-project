@@ -4,7 +4,7 @@ import { eq, and, lte, asc } from 'drizzle-orm';
 import { generateReply } from './openai.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
-import { sendWhatsAppMessage } from '../channels/whatsapp.js';
+
 import { sendEmail } from '../channels/email.js';
 import { executeCommentFollowUps } from './comment-detection.js';
 import { storage } from '../../storage.js';
@@ -14,12 +14,12 @@ import { getMessageScript, personalizeScript } from './message-scripts.js';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization.js';
 import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
 import { decrypt } from '../crypto/encryption.js';
-import type { 
-  BrandContext, 
-  ChannelType, 
+import type {
+  BrandContext,
+  ChannelType,
   LeadStatus,
   MessageDirection,
-  ProviderType 
+  ProviderType
 } from '../../../shared/types.js';
 
 interface FollowUpJob {
@@ -227,7 +227,7 @@ export class FollowUpWorker {
         // Mark job as completed without sending
         await db
           .update(followUpQueue)
-          .set({ 
+          .set({
             status: 'completed',
             processedAt: new Date()
           })
@@ -254,7 +254,7 @@ export class FollowUpWorker {
         const { prependDisclaimerToMessage } = await import('./disclaimer-generator.js');
         const { messageWithDisclaimer } = prependDisclaimerToMessage(
           aiReply,
-          job.channel as 'email' | 'whatsapp' | 'sms' | 'voice',
+          job.channel as 'email' | 'sms' | 'voice',
           brandContext?.businessName || 'Audnix'
         );
         aiReply = messageWithDisclaimer;
@@ -301,7 +301,7 @@ export class FollowUpWorker {
         // Mark job as completed
         await db
           .update(followUpQueue)
-          .set({ 
+          .set({
             status: 'completed',
             processedAt: new Date()
           })
@@ -336,16 +336,16 @@ export class FollowUpWorker {
    * Generate AI follow-up message with day-aware context and brand personalization
    */
   private async generateFollowUp(
-    lead: Lead, 
-    history: Message[], 
+    lead: Lead,
+    history: Message[],
     brandContext: BrandContext,
     campaignDay: number = 0,
     campaignDayCreated: Date = new Date(),
     userId?: string
   ): Promise<string> {
     // Get message script for this stage
-    const script = getMessageScript(lead.channel as 'email' | 'whatsapp' | 'instagram', campaignDay);
-    
+    const script = getMessageScript(lead.channel as 'email' | 'instagram', campaignDay);
+
     // Get brand personalization
     let personalizationContext = null;
     if (userId) {
@@ -382,7 +382,7 @@ export class FollowUpWorker {
     // Format with brand personalization
     let finalMessage = result.text;
     if (personalizationContext) {
-      finalMessage = await formatChannelMessage(finalMessage, lead.channel as 'email' | 'whatsapp' | 'instagram', userId || '', lead.channel === 'email');
+      finalMessage = await formatChannelMessage(finalMessage, lead.channel as 'email' | 'instagram', userId || '', lead.channel === 'email');
     }
 
     return finalMessage;
@@ -394,7 +394,7 @@ export class FollowUpWorker {
   private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }): string {
     const firstName = lead.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
-    
+
     // Include message script guidelines if available
     let scriptGuidance = '';
     if (script) {
@@ -450,13 +450,13 @@ ${channelContext}${scriptGuidance}
 RULES:
 1. ALWAYS address the lead by their first name (${firstName})
 2. For email, generate a subject line using brand info and conversation context. Example: "Subject: ${emailSubject}"
-3. Keep message under 150 characters for SMS/WhatsApp, under 200 for Instagram. Emails can be longer but concise.
+3. Keep message under 200 for Instagram. Emails can be longer but concise.
 4. Be conversational and human-like.
 5. If this is follow-up #1, introduce yourself briefly.
 6. If this is follow-up #3+, consider being more direct or offering something specific.
 7. Never mention you're an AI.
 8. End with a soft call-to-action or question.
-9. Match the tone to the channel (Instagram: casual, WhatsApp: friendly professional, Email: professional).
+9. Match the tone to the channel (Instagram: casual, Email: professional).
 10. For emails, use the provided brand colors for styling (e.g., button backgrounds, links).
 
 Generate a natural follow-up message:`;
@@ -469,8 +469,7 @@ Generate a natural follow-up message:`;
     switch (channel) {
       case 'instagram':
         return 'CHANNEL: Instagram DM - Be casual, use emojis sparingly, keep it brief';
-      case 'whatsapp':
-        return 'CHANNEL: WhatsApp - Be friendly but professional, okay to use 1-2 emojis';
+
       case 'email':
         return 'CHANNEL: Email - More formal, can be slightly longer, include subject line and professional branding';
       default:
@@ -576,43 +575,7 @@ Generate a natural follow-up message:`;
             }
             break;
 
-          case 'whatsapp':
-            if (lead.phone) {
-              try {
-                // Try to send message - the channel handler will check permissions
-                await sendWhatsAppMessage(userId, lead.phone, content);
-                console.log(`✅ WhatsApp message sent to ${lead.name} (${lead.phone})`);
-                return true;
-              } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error);
-                // Handle specific messaging window errors
-                if (errorMessage.includes('24 hours') || errorMessage.includes('not messaged you')) {
-                  console.warn(`⚠️ WhatsApp follow-up blocked for ${lead.name}: ${errorMessage}`);
-                  
-                  // Update lead metadata
-                  if (db) {
-                    await db
-                      .update(leads)
-                      .set({
-                        metadata: {
-                          ...(lead.metadata || {}),
-                          last_follow_up_failed: new Date().toISOString(),
-                          follow_up_failure_reason: 'messaging_window_restriction',
-                          needs_manual_outreach: true
-                        }
-                      })
-                      .where(eq(leads.id, lead.id));
-                  }
-                  
-                  // Try next channel instead of failing
-                  continue;
-                }
-                
-                // Re-throw other errors
-                throw error;
-              }
-            }
-            break;
+
 
           case 'email':
             if (lead.email) {
@@ -626,25 +589,7 @@ Generate a natural follow-up message:`;
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to send via ${channel}:`, error);
         // WhatsApp specific error handling for 24-hour window
-        if (channel === 'whatsapp' && errorMessage.includes('24 hours')) {
-          console.warn(`⚠️ WhatsApp API error for ${lead.name} (${lead.phone}): ${errorMessage}`);
-          // Update lead metadata to indicate the need for a template message
-          if (db) {
-            await db
-              .update(leads)
-              .set({
-                metadata: {
-                  ...(lead.metadata || {}),
-                  last_follow_up_failed: new Date().toISOString(),
-                  follow_up_failure_reason: '24_hour_window_expired',
-                  needs_template_message: true
-                }
-              })
-              .where(eq(leads.id, lead.id));
-          }
-          // Continue to the next channel if available, or this job will eventually fail
-          continue;
-        }
+
         // Re-throw other errors to mark the job as failed after retries
         throw error;
       }
@@ -660,7 +605,6 @@ Generate a natural follow-up message:`;
     const channels = [preferred];
 
     // Add fallback channels
-    if (preferred !== 'whatsapp' && lead.phone) channels.push('whatsapp');
     if (preferred !== 'email' && lead.email) channels.push('email');
     if (preferred !== 'instagram' && lead.externalId) channels.push('instagram');
 
@@ -672,7 +616,7 @@ Generate a natural follow-up message:`;
    */
   private async getInstagramAccountId(userId: string): Promise<string | null> {
     if (!db) return null;
-    
+
     try {
       const userIntegrations = await db
         .select()
@@ -683,12 +627,12 @@ Generate a natural follow-up message:`;
           eq(integrations.connected, true)
         ))
         .limit(1);
-      
+
       const integration = userIntegrations[0];
       if (!integration || !integration.encryptedMeta) {
         return null;
       }
-      
+
       const decrypted = decrypt(integration.encryptedMeta);
       const meta = JSON.parse(decrypted) as { instagramBusinessAccountId?: string; pageId?: string };
       return meta.instagramBusinessAccountId || meta.pageId || null;
@@ -727,8 +671,7 @@ Generate a natural follow-up message:`;
    * 
    * Human-like timing:
    * - Email: Day 1 (24h), Day 2 (48h), Day 5, Day 7
-   * - WhatsApp: Day 3, Day 6 (only if email opened or ignored)
-   * - Instagram: Day 5, Day 8 (failover if email + WhatsApp failed)
+   * - Instagram: Day 5, Day 8 (failover if email failed)
    */
   private async scheduleNextFollowUp(
     userId: string,
@@ -899,7 +842,7 @@ export async function scheduleInitialFollowUp(
   try {
     // Map channel to proper follow-up channel
     const followUpChannel = channel === 'manual' ? 'email' : channel;
-    
+
     // Schedule first follow-up in 2-4 hours (gives time for immediate manual review)
     const initialDelay = (2 + Math.random() * 2) * 60 * 60 * 1000; // 2-4 hours
     const scheduledTime = new Date(Date.now() + initialDelay);

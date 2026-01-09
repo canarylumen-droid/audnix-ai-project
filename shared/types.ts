@@ -1,8 +1,8 @@
 // ========== COMMON TYPE ALIASES ==========
 export type SubscriptionTier = 'free' | 'trial' | 'starter' | 'pro' | 'enterprise';
 export type PlanType = 'trial' | 'starter' | 'pro' | 'enterprise';
-export type ChannelType = 'email' | 'whatsapp' | 'instagram';
-export type ProviderType = 'instagram' | 'whatsapp' | 'gmail' | 'email' | 'system';
+export type ChannelType = 'email' | 'instagram';
+export type ProviderType = 'instagram' | 'gmail' | 'email' | 'system';
 export type LeadStatus = 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
 export type MessageDirection = 'inbound' | 'outbound';
 export type DealStatus = 'open' | 'closed_won' | 'closed_lost' | 'pending';
