@@ -21,7 +21,7 @@ export function ComponentShowcase() {
     return (
         <div
             className="p-8 space-y-12 min-h-screen bg-background/50"
-            onContextMenu={handleContextMenu}
+            onContextMenu={(e) => handleContextMenu(e, 'dashboard')}
         >
 
             {/* Header */}
@@ -102,12 +102,16 @@ export function ComponentShowcase() {
                     <VideoAutomationGrid
                         loading={loadingVideos}
                         onSelect={(v) => console.log('Selected video:', v.title)}
+                        onContextMenu={(e, video) => handleContextMenu(e, 'video', video)}
                     />
                 </div>
             </section>
 
             {/* 3. Inbox Loading State */}
-            <section className="space-y-4">
+            <section
+                className="space-y-4"
+                onContextMenu={(e) => handleContextMenu(e, 'inbox')}
+            >
                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                     <MessageSquare className="w-5 h-5 text-primary" />
                     <h2 className="text-xl font-semibold">3. Inbox Skeleton Loader</h2>

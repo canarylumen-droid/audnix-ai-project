@@ -7,6 +7,8 @@ interface ContextMenuConfig {
     x: number;
     y: number;
     visible: boolean;
+    type?: 'default' | 'video' | 'inbox' | 'dashboard';
+    data?: any;
 }
 
 interface CustomContextMenuProps {
@@ -31,16 +33,38 @@ export function CustomContextMenu({
 
     if (!config.visible) return null;
 
-    const menuItems = [
+    // Default items
+    let menuItems = [
         { icon: Scissors, label: 'Cut', shortcut: '⌘X', id: 'cut' },
         { icon: Copy, label: 'Copy', shortcut: '⌘C', id: 'copy' },
         { icon: ClipboardPaste, label: 'Paste', shortcut: '⌘V', id: 'paste' },
-        { type: 'divider' },
-        { icon: Link2, label: 'Copy Link', id: 'copy_link' },
-        { icon: Download, label: 'Save Media', id: 'save' },
-        { type: 'divider' },
-        { icon: Trash2, label: 'Delete', id: 'delete', variant: 'destructive' },
     ];
+
+    // Context-specific items
+    if (config.type === 'video') {
+        const videoItems = [
+            { type: 'divider' },
+            { icon: Link2, label: 'Copy Video URL', id: 'copy_link' },
+            { icon: Download, label: 'Automate Processing', id: 'automate_video' }, // Specific to video
+            { icon: Download, label: 'Download Thumbnail', id: 'save_thumbnail' },
+        ];
+        menuItems = [...menuItems, ...videoItems as any];
+    } else if (config.type === 'inbox') {
+        const inboxItems = [
+            { type: 'divider' },
+            { icon: Link2, label: 'Mark as Unread', id: 'mark_unread' },
+            { icon: Trash2, label: 'Archive Thread', id: 'archive', variant: 'destructive' },
+        ];
+        menuItems = [...menuItems, ...inboxItems as any];
+    } else {
+        // Default / Dashboard
+        const defaultExtras = [
+            { type: 'divider' },
+            { icon: Link2, label: 'Copy Page Link', id: 'copy_link' },
+            { icon: Download, label: 'Export Data', id: 'export' },
+        ];
+        menuItems = [...menuItems, ...defaultExtras as any];
+    }
 
     return (
         <AnimatePresence>
@@ -104,12 +128,19 @@ export function useContextMenu() {
         visible: false
     });
 
-    const handleContextMenu = (e: React.MouseEvent) => {
+    const handleContextMenu = (
+        e: React.MouseEvent,
+        type: 'default' | 'video' | 'inbox' | 'dashboard' = 'default',
+        data?: any
+    ) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent bubbling to parent menus
         setContextConfig({
             x: e.clientX,
             y: e.clientY,
-            visible: true
+            visible: true,
+            type,
+            data
         });
     };
 

@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { storage } from '../storage.js';
 import { requireAuth } from '../middleware/auth.js';
 import type { Lead, Message } from '../../shared/schema.js';
+import { InstagramOAuth } from '../lib/oauth/instagram.js';
+import { decrypt } from '../lib/crypto/encryption.js';
 
 const router = Router();
 
@@ -294,6 +296,49 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
   } catch (error) {
     console.error('Profile update error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+/**
+ * GET /api/dashboard/instagram/media
+ * Get user's recent Instagram media for video automation
+ */
+router.get('/instagram/media', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    // Get Instagram integration
+    const integrations = await storage.getIntegrations(userId);
+    const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
+
+    if (!igIntegration) {
+      // Return empty list if not connected (frontend handles empty state)
+      res.json({ media: [] });
+      return;
+    }
+
+    // Decrypt token
+    const decryptedMetaJson = decrypt(igIntegration.encryptedMeta);
+    const decryptedMeta = JSON.parse(decryptedMetaJson);
+    const accessToken = decryptedMeta.tokens?.access_token;
+
+    if (!accessToken) {
+      res.json({ media: [] });
+      return;
+    }
+
+    // Fetch media
+    const oauth = new InstagramOAuth();
+    const media = await oauth.getMedia(accessToken, 20);
+
+    res.json({ media });
+  } catch (error) {
+    console.error('Instagram media fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch media' });
   }
 });
 

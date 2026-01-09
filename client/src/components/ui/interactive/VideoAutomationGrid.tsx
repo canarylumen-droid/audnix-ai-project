@@ -39,6 +39,7 @@ interface VideoAutomationGridProps {
     loading?: boolean;
     videos?: VideoMetadata[];
     onSelect?: (video: VideoMetadata) => void;
+    onContextMenu?: (e: React.MouseEvent, video: VideoMetadata) => void;
 }
 
 const DEMO_VIDEOS: VideoMetadata[] = [
@@ -89,6 +90,12 @@ export function VideoAutomationGrid({
                         onClick={() => {
                             setSelectedVideo(video);
                             onSelect?.(video);
+                        }}
+                        onContextMenu={(e) => {
+                            // If parent provided onContextMenu, use it effectively preventing default
+                            if (onContextMenu) {
+                                onContextMenu(e, video);
+                            }
                         }}
                     >
                         {/* Thumbnail Container */}

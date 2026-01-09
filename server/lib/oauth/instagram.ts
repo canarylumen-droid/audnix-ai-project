@@ -315,6 +315,37 @@ export class InstagramOAuth {
   }
 
   /**
+   * Get Instagram media (posts/reels) for a user
+   */
+  async getMedia(accessToken: string, limit: number = 20): Promise<Array<{
+    id: string;
+    caption?: string;
+    media_type: string;
+    media_url: string;
+    thumbnail_url?: string;
+    permalink: string;
+    timestamp: string;
+    username: string;
+    like_count?: number;
+    comments_count?: number;
+  }>> {
+    try {
+      const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,username,like_count,comments_count';
+      const response = await fetch(
+        `https://graph.instagram.com/me/media?fields=${fields}&limit=${limit}&access_token=${accessToken}`
+      );
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error.message || 'Failed to get media');
+      }
+      return data.data || [];
+    } catch (error) {
+      console.error('Failed to get Instagram media:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get all messages from a conversation thread
    */
   async getAllMessages(accessToken: string, conversationId: string): Promise<Array<{
