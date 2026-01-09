@@ -271,141 +271,138 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <PanelLeftClose className="h-4 w-4" />
           </Button>
         )}
-    </div>
+        {sidebarCollapsed && (
+          <div className="flex justify-center py-4 border-b border-border/40">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSidebarCollapsed(false)}>
+              <PanelLeftOpen className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
-        {
-    sidebarCollapsed && (
-      <div className="flex justify-center py-4 border-b border-border/40">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSidebarCollapsed(false)}>
-          <PanelLeftOpen className="h-4 w-4" />
-        </Button>
-      </div>
-    )
-  }
 
-  {/* Navigation */ }
-  <ScrollArea className="flex-1 px-4 py-8">
-    <div className="space-y-8">
-      <div>
-        {!sidebarCollapsed && <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3 font-sans">Platform</h4>}
-        {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
-        {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
-      </div>
-
-      {navGroups.map(group => (
-        <div key={group.label} className="space-y-2">
-          {!sidebarCollapsed ? (
-            <button
-              onClick={() => toggleGroup(group.label)}
-              className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] hover:text-foreground transition-colors group font-sans"
-            >
-              {group.label}
-              <ChevronDown className={`h-3 w-3 transition-transform opacity-50 group-hover:opacity-100 ${expandedGroups[group.label] ? "" : "-rotate-90"}`} />
-            </button>
-          ) : (
-            <Separator className="my-4 bg-border/40" />
-          )}
-
-          <AnimatePresence initial={false}>
-            {(expandedGroups[group.label] || sidebarCollapsed) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden space-y-1"
-              >
-                {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      ))}
-
-      <div className="pt-8">
-        {sidebarCollapsed && <Separator className="my-4 bg-border/40" />}
-        {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
-      </div>
-    </div>
-  </ScrollArea>
-
-  {/* Sidebar Footer */ }
-  <div className="p-6 border-t border-border/40">
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-muted/50 transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
-          <Avatar className="h-10 w-10 rounded-xl border border-border/40 shadow-sm">
-            <AvatarImage src={user?.avatar} />
-            <AvatarFallback className="rounded-xl bg-muted font-bold text-sm">
-              {(user?.name || "U").charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate text-foreground">{user?.name || "Member"}</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{user?.plan || "Free"} Plan</p>
-            </div>
-          )}
-          {!sidebarCollapsed && <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground transition-colors" />}
-        </div>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-1 rounded-2xl" side={sidebarCollapsed ? "right" : "top"} sideOffset={12}>
-        <div className="p-4 border-b border-border/40 bg-muted/20 rounded-t-xl mb-1">
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-xl">
-              <AvatarImage src={user?.avatar} />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-xl">
-                {(user?.name || "U").charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+        {/* Navigation */}
+        <ScrollArea className="flex-1 px-4 py-8">
+          <div className="space-y-8">
             <div>
-              <p className="text-sm font-bold text-foreground mb-0.5">{user?.name}</p>
-              <p className="text-[10px] font-bold text-muted-foreground truncate w-40">{user?.email}</p>
+              {!sidebarCollapsed && <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3 font-sans">Platform</h4>}
+              {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+              {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+            </div>
+
+            {navGroups.map(group => (
+              <div key={group.label} className="space-y-2">
+                {!sidebarCollapsed ? (
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] hover:text-foreground transition-colors group font-sans"
+                  >
+                    {group.label}
+                    <ChevronDown className={`h-3 w-3 transition-transform opacity-50 group-hover:opacity-100 ${expandedGroups[group.label] ? "" : "-rotate-90"}`} />
+                  </button>
+                ) : (
+                  <Separator className="my-4 bg-border/40" />
+                )}
+
+                <AnimatePresence initial={false}>
+                  {(expandedGroups[group.label] || sidebarCollapsed) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-1"
+                    >
+                      {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+
+            <div className="pt-8">
+              {sidebarCollapsed && <Separator className="my-4 bg-border/40" />}
+              {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
             </div>
           </div>
+        </ScrollArea>
 
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
-                <span>Leads Processed</span>
-                <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
+        {/* Sidebar Footer */}
+        <div className="p-6 border-t border-border/40">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-muted/50 transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
+                <Avatar className="h-10 w-10 rounded-xl border border-border/40 shadow-sm">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="rounded-xl bg-muted font-bold text-sm">
+                    {(user?.name || "U").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {!sidebarCollapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate text-foreground">{user?.name || "Member"}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{user?.plan || "Free"} Plan</p>
+                  </div>
+                )}
+                {!sidebarCollapsed && <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground transition-colors" />}
               </div>
-              <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
-                  className="h-full bg-primary"
-                />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-1 rounded-2xl" side={sidebarCollapsed ? "right" : "top"} sideOffset={12}>
+              <div className="p-4 border-b border-border/40 bg-muted/20 rounded-t-xl mb-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-xl">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-xl">
+                      {(user?.name || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-bold text-foreground mb-0.5">{user?.name}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground truncate w-40">{user?.email}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
+                      <span>Leads Processed</span>
+                      <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
+                    </div>
+                    <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
+                        className="h-full bg-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="p-1">
-          <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-              <User className="mr-3 h-4 w-4" />
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-              <CreditCard className="mr-3 h-4 w-4" />
-              Subscription
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuSeparator className="my-1 mx-2" />
-          <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-            <LogOut className="mr-3 h-4 w-4" />
-            Sign out
-          </DropdownMenuItem>
+              <div className="p-1">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                    <User className="mr-3 h-4 w-4" />
+                    Profile Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                    <CreditCard className="mr-3 h-4 w-4" />
+                    Subscription
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="my-1 mx-2" />
+                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                  <LogOut className="mr-3 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </div>
-      </motion.aside >
+      </motion.aside>
 
-    {/* Main Content Area */ }
-    < div className = "flex-1 flex flex-col min-w-0 bg-background relative z-10" >
-      {/* Top Header */ }
-      < header className = "h-20 border-b border-border/40 bg-background/40 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-40" >
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10">
+        {/* Top Header */}
+        <header className="h-20 border-b border-border/40 bg-background/40 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-40">
           <div className="flex items-center gap-4 flex-1">
             <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-muted-foreground" onClick={() => setMobileMenuOpen(true)}>
               <Menu className="h-5 w-5" />
@@ -483,15 +480,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </Avatar>
             </div>
           </div>
-        </header >
+        </header>
 
-    {/* Page Content */ }
-    < main className = "flex-1 overflow-auto bg-muted/5" >
-      <div className="max-w-7xl mx-auto p-6 md:p-10">
-        {children}
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto bg-muted/5">
+          <div className="max-w-7xl mx-auto p-6 md:p-10">
+            {children}
+          </div>
+        </main>
       </div>
-        </main >
-      </div >
-    </div >
+    </div>
   );
 }
