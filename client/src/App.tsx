@@ -20,7 +20,7 @@ import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
 import { ComponentShowcase } from '@/pages/dashboard/component-test';
-import { AuthGuard } from '@/components/auth/AuthGuard';
+import { AuthGuard } from '@/components/auth-guard';
 import { CustomCursor } from "@/components/ui/CustomCursor";
 
 const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
