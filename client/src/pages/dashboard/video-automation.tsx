@@ -6,53 +6,36 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCanAccessVideoAutomation } from "@/hooks/use-access-gate";
-import { FeatureLock } from "@/components/upgrade/FeatureLock";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Video,
-  MessageSquare,
-  TrendingUp,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  Play,
-  Pause,
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Activity,
-  Timer,
   Trash2,
-  Link as LinkIcon,
-  UserPlus,
   Save,
   Edit2,
-  Eye,
-  Users,
-  Target,
-  Brain,
   Zap,
-  DollarSign,
-  Globe,
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
   Instagram,
-  Settings,
-  FileText,
-  Send,
-  ToggleLeft,
-  ToggleRight,
+  RefreshCw,
+  Filter,
+  Play,
+  Pause,
+  Link as LinkIcon,
   Search,
-  RefreshCw
+  Brain,
+  Sparkles,
+  Loader
 } from "lucide-react";
 
 interface VideoMonitorStats {
@@ -112,7 +95,6 @@ function useCountdown(targetDate: Date | null) {
 
   useEffect(() => {
     if (!targetDate) return;
-
     const interval = setInterval(() => {
       const now = new Date().getTime();
       const target = new Date(targetDate).getTime();
@@ -147,10 +129,6 @@ function IntentDetectionDemo() {
     { text: "This is cool! 🔥", type: "high_interest", lang: "EN" },
     { text: "How much does this cost?", type: "price_question", lang: "EN" },
     { text: "¿Cuánto cuesta esto?", type: "price_question", lang: "ES" },
-    { text: "Wow amazing 😍", type: "high_interest", lang: "EN" },
-    { text: "Is this worth the money?", type: "price_objection", lang: "EN" },
-    { text: "Tell me more about this", type: "curious", lang: "EN" },
-    { text: "C'est trop cher", type: "price_objection", lang: "FR" }
   ];
 
   const analyzeComment = async (comment: string) => {
@@ -167,209 +145,78 @@ function IntentDetectionDemo() {
   };
 
   return (
-    <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-      <CardHeader>
+    <Card className="border-border/60 bg-gradient-to-br from-card to-muted/20">
+      <CardHeader className="pb-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20">
-            <Brain className="h-6 w-6 text-primary" />
+          <div className="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+            <Brain className="h-5 w-5" />
           </div>
           <div>
-            <CardTitle className="text-lg">Intent Detection</CardTitle>
-            <CardDescription>
-              Understands buying signals in any language
+            <CardTitle className="text-base font-semibold">Intent Engine Preview</CardTitle>
+            <CardDescription className="text-xs">
+              Test how AI interprets buying signals
             </CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Demo Examples */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm text-muted-foreground">
-            Test Examples
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-2">
             {demoComments.map((demo, idx) => (
-              <motion.button
+              <Badge
                 key={idx}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                variant="outline"
+                className="cursor-pointer hover:bg-muted transition-colors font-normal text-xs py-1"
                 onClick={() => {
                   setTestComment(demo.text);
                   analyzeComment(demo.text);
                 }}
-                className="text-left p-3 rounded-lg bg-muted/50 hover:bg-muted border border-white/10 hover:border-primary/30 transition-all group"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <Badge variant="outline" className="text-xs">
-                    {demo.lang}
-                  </Badge>
-                  <Badge 
-                    className={`text-xs ${
-                      demo.type === 'high_interest' ? 'bg-green-500' :
-                      demo.type === 'price_objection' ? 'bg-red-500' :
-                      demo.type === 'price_question' ? 'bg-orange-500' :
-                      'bg-blue-500'
-                    }`}
-                  >
-                    {demo.type.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <p className="text-sm font-medium group-hover:text-primary transition-colors">
-                  "{demo.text}"
-                </p>
-              </motion.button>
+                {demo.text}
+              </Badge>
             ))}
           </div>
         </div>
 
-        {/* Custom Input */}
-        <div className="space-y-3">
-          <Label className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Or Test Your Own Comment
-          </Label>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter any comment in any language..."
-              value={testComment}
-              onChange={(e) => setTestComment(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && testComment.trim()) {
-                  analyzeComment(testComment);
-                }
-              }}
-            />
-            <Button 
-              onClick={() => analyzeComment(testComment)}
-              disabled={!testComment.trim() || analyzing}
-            >
-              {analyzing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 mr-1" />
-                  Analyze
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex gap-2">
+          <Input
+            placeholder="Type a test comment..."
+            value={testComment}
+            onChange={(e) => setTestComment(e.target.value)}
+            className="bg-background/50 border-input shadow-sm"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && testComment.trim()) analyzeComment(testComment);
+            }}
+          />
+          <Button
+            onClick={() => analyzeComment(testComment)}
+            disabled={!testComment.trim() || analyzing}
+            className="min-w-[100px]"
+            size="sm"
+          >
+            {analyzing ? <Loader className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            {analyzing ? "" : "Analyze"}
+          </Button>
         </div>
 
-        {/* Results Display */}
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-muted/50 to-transparent border border-white/10"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="rounded-lg bg-background border border-border/50 p-4 space-y-3 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  AI Analysis Results
-                </h4>
-                <Badge 
-                  variant={result.intent?.shouldDM ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {result.intent?.shouldDM ? "✅ SEND DM" : "❌ SKIP"}
+                <Badge variant={result.intent?.shouldDM ? "default" : "secondary"} className={result.intent?.shouldDM ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/20" : ""}>
+                  {result.intent?.shouldDM ? "Active Lead" : "Passive"}
                 </Badge>
+                <span className="text-xs font-mono text-muted-foreground">Confidence: {Math.round((result.intent?.confidence || 0) * 100)}%</span>
               </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Intent Type</p>
-                  <Badge className="w-full justify-center">
-                    {result.intent?.intentType}
-                  </Badge>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Confidence</p>
-                  <div className="flex items-center gap-2">
-                    <Progress 
-                      value={result.intent?.confidence * 100} 
-                      className="h-2"
-                    />
-                    <span className="text-xs font-medium">
-                      {Math.round(result.intent?.confidence * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Detected Interest</p>
-                  <p className="text-xs font-medium text-primary">
-                    {result.intent?.detectedInterest || "General curiosity"}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Action</p>
-                  <p className="text-xs font-medium">
-                    {result.recommendation}
-                  </p>
-                </div>
-              </div>
-
-              {/* What AI Detected */}
-              <div className="p-3 rounded-lg bg-muted/30 border border-white/5">
-                <h5 className="text-xs font-semibold mb-2 text-muted-foreground">
-                  🎯 What AI Detected:
-                </h5>
-                <div className="space-y-1 text-xs">
-                  {result.intent?.hasBuyingIntent && (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-3 w-3 text-green-500" />
-                      <span>Buying interest detected</span>
-                    </div>
-                  )}
-                  {result.intent?.detectedInterest && (
-                    <div className="flex items-center gap-2">
-                      <Brain className="h-3 w-3 text-blue-500" />
-                      <span>Interested in: {result.intent.detectedInterest}</span>
-                    </div>
-                  )}
-                  {result.intent?.intentType === 'price_objection' && (
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-3 w-3 text-orange-500" />
-                      <span>Price concern - AI will reframe value</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <p className="text-sm font-medium text-foreground">{result.recommendation}</p>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Premium Features Showcase */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/10">
-          <div className="p-3 rounded-lg bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Globe className="h-4 w-4 text-green-500" />
-              <span className="text-xs font-semibold">Multi-Language</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Detects intent in English, Spanish, French, German, Portuguese, and 50+ more
-            </p>
-          </div>
-          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Brain className="h-4 w-4 text-blue-500" />
-              <span className="text-xs font-semibold">Context-Aware</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Understands "wow" means different things based on video context
-            </p>
-          </div>
-          <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-4 w-4 text-orange-500" />
-              <span className="text-xs font-semibold">Objection Handler</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Detects price objections and automatically reframes value
-            </p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -396,169 +243,59 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
-      toast({ title: "✅ Link updated", description: "Changes apply immediately to new DMs" });
+      toast({ title: "Link updated", description: "Changes apply immediately" });
       setIsEditingLink(false);
     },
-    onError: () => {
-      toast({ title: "Failed to update link", variant: "destructive" });
-    }
   });
 
-  const handleSaveLink = () => {
-    if (ctaLink !== monitor.productLink) {
-      updateLinkMutation.mutate(ctaLink);
-    } else {
-      setIsEditingLink(false);
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader>
+    <Card className="group hover:shadow-md transition-all duration-300 border-border/60 bg-card">
+      <CardHeader className="pb-3 px-4 pt-4">
         <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
+          <div className="space-y-1.5 flex-1 min-w-0 pr-4">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">Video Monitor</CardTitle>
-              <Badge variant={monitor.isActive ? "default" : "secondary"}>
-                {monitor.isActive ? "Active" : "Paused"}
+              <Badge variant={monitor.isActive ? "default" : "secondary"} className={monitor.isActive ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20" : ""}>
+                {monitor.isActive ? "Monitoring" : "Paused"}
               </Badge>
             </div>
-            <CardDescription className="break-all">
-              {monitor.videoUrl}
-            </CardDescription>
+            <a href={monitor.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-muted-foreground hover:text-primary truncate block hover:underline">
+              View Instagram Post ↗
+            </a>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggle}
-              disabled={isToggling}
-            >
-              {monitor.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggle} disabled={isToggling}>
+              {monitor.isActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={onDelete} disabled={isDeleting}>
+              <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Comments Checked</p>
-            <p className="font-semibold">{monitor.stats?.commentsChecked || 0}</p>
+      <CardContent className="px-4 pb-4 space-y-4">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-2 py-3 border-y border-border/40">
+          <div className="text-center">
+            <div className="text-lg font-bold">{monitor.stats?.commentsChecked || 0}</div>
+            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Scanned</div>
           </div>
-          <div>
-            <p className="text-muted-foreground">DMs Sent</p>
-            <p className="font-semibold">{monitor.stats?.dmsSent || 0}</p>
+          <div className="text-center border-l border-border/40">
+            <div className="text-lg font-bold text-primary">{monitor.stats?.dmsSent || 0}</div>
+            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Sent</div>
           </div>
-          <div>
-            <p className="text-muted-foreground">Conversions</p>
-            <p className="font-semibold text-green-600">{monitor.stats?.conversions || 0}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Follow Requests</p>
-            <p className="font-semibold">{monitor.stats?.followRequests || 0}</p>
+          <div className="text-center border-l border-border/40">
+            <div className="text-lg font-bold text-emerald-500">{monitor.stats?.conversions || 0}</div>
+            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Leads</div>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>CTA Button Link</Label>
-            {!isEditingLink && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditingLink(true)}
-              >
-                <Edit2 className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
-            )}
+        {/* Sync Status */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1"><Activity className="h-3 w-3" /> Syncing...</span>
+            <span className="font-mono">{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
           </div>
-          {isEditingLink ? (
-            <div className="flex gap-2">
-              <Input
-                value={ctaLink}
-                onChange={(e) => setCtaLink(e.target.value)}
-                placeholder="https://yourbrand.com/product"
-                className="flex-1"
-              />
-              <Button
-                size="icon"
-                onClick={handleSaveLink}
-                disabled={updateLinkMutation.isPending}
-              >
-                {updateLinkMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
-              <LinkIcon className="h-4 w-4 text-muted-foreground" />
-              <code className="text-sm flex-1 truncate">{monitor.productLink || "No link set"}</code>
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <h4 className="font-semibold text-sm flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              Lead Status Breakdown
-            </h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Hot Leads</span>
-                <Badge variant="destructive" className="h-5">
-                  {monitor.stats?.hotLeads || 0}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Warm Leads</span>
-                <Badge className="h-5 bg-orange-500">
-                  {monitor.stats?.warmLeads || 0}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Replied</span>
-                <Badge className="h-5 bg-blue-500">
-                  {monitor.stats?.replied || 0}
-                </Badge>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <h4 className="font-semibold text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Sync Status
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-muted-foreground">Next Sync</span>
-                  {timeLeft.total > 0 ? (
-                    <span className="font-semibold flex items-center gap-1">
-                      <Timer className="h-3 w-3 text-blue-500" />
-                      {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-blue-500 animate-pulse">Syncing...</span>
-                  )}
-                </div>
-                <Progress value={syncProgress} className="w-full h-2" />
-              </div>
-            </div>
-          </div>
+          <Progress value={syncProgress} className="h-1 bg-muted" />
         </div>
       </CardContent>
     </Card>
@@ -569,35 +306,19 @@ export default function VideoAutomationPage() {
   const { toast } = useToast();
   const { canAccess: canAccessVideo } = useCanAccessVideoAutomation();
   const [videoUrl, setVideoUrl] = useState("");
-  const [ctaLink, setCtaLink] = useState("");
-  const [customMessage, setCustomMessage] = useState("");
-  const [askFollowOnConvert, setAskFollowOnConvert] = useState(true);
-  const [askFollowOnDecline, setAskFollowOnDecline] = useState(true);
-  const [selectedReel, setSelectedReel] = useState<any>(null);
-  const [brandKnowledge, setBrandKnowledge] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "detail">("grid");
-  const [commentMonitoringEnabled, setCommentMonitoringEnabled] = useState(true);
-  const [dmAutomationEnabled, setDmAutomationEnabled] = useState(true);
-  const [ctaLinkEnabled, setCtaLinkEnabled] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [hoveredReel, setHoveredReel] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  const [mounted, setMounted] = useState(false);
 
-  const handleSelectReel = (reel: any) => {
-    setSelectedReel(reel);
-    setVideoUrl(reel.url);
-    setViewMode("detail");
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const handleBackToGrid = () => {
-    setViewMode("grid");
-    setSelectedReel(null);
-  };
-
-  const { data: monitors, isLoading } = useQuery<VideoMonitor[]>({
+  const { data: monitors, isLoading: monitorsLoading } = useQuery<VideoMonitor[]>({
     queryKey: ["/api/video/monitors"],
   });
 
-  // Fetch user's Instagram reels when component loads
   const { data: instagramReels, isLoading: reelsLoading } = useQuery({
     queryKey: ["/api/video/reels"],
     enabled: canAccessVideo,
@@ -609,351 +330,220 @@ export default function VideoAutomationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
-      toast({
-        title: "✅ Video Monitor Created",
-        description: "AI will now detect buying intent in comments 24/7",
-      });
+      toast({ title: "Monitor activated", description: "Audnix is now watching this post" });
       setVideoUrl("");
-      setCtaLink("");
-      setCustomMessage("");
     },
-    onError: () => {
-      toast({
-        title: "Failed to create monitor",
-        description: "Please check your video URL and try again",
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Failed to create monitor", variant: "destructive" }),
   });
 
   const toggleMonitor = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       return apiRequest("PATCH", `/api/video/monitors/${id}`, { isActive });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] }),
   });
 
   const deleteMonitor = useMutation({
-    mutationFn: async (id: string) => {
-      return apiRequest("DELETE", `/api/video/monitors/${id}`);
-    },
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/video/monitors/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
-      toast({ title: "Monitor deleted" });
+      toast({ title: "Monitor removed" });
     },
   });
 
-  const handleCreateMonitor = () => {
-    if (!videoUrl) {
-      toast({ title: "Please enter a video URL", variant: "destructive" });
-      return;
-    }
+  // Filter and Pagination Logic
+  const filteredReels = instagramReels?.reels?.filter((reel: any) =>
+    !searchQuery || reel.caption?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
-    createMonitor.mutate({
-      videoUrl,
-      ctaLink,
-      customMessage: customMessage || undefined,
-      followUpConfig: {
-        askFollowOnConvert,
-        askFollowOnDecline,
-      },
-    });
-  };
+  const totalPages = Math.ceil(filteredReels.length / itemsPerPage);
+  const currentReels = filteredReels.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Video automation is FREE for all plans - no lock needed
+  const ReelsSkeleton = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in duration-700">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="aspect-[9/16] rounded-xl overflow-hidden relative border border-white/5 bg-muted/5 group">
+          {/* Top gradient */}
+          <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-black/20 to-transparent" />
+
+          {/* Central Spinner/Glitch Effect */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader className="w-8 h-8 text-pink-500/20 animate-spin" />
+          </div>
+
+          {/* Bottom bar skeleton */}
+          <div className="absolute bottom-0 inset-x-0 p-3 space-y-2 bg-gradient-to-t from-black/80 to-transparent">
+            <Skeleton className="h-3 w-3/4 bg-white/10" />
+            <Skeleton className="h-2 w-1/2 bg-white/5" />
+          </div>
+
+          {/* Scanline Effect */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-pink-500/5 to-transparent bg-[length:100%_200%] animate-scan" />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-6xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-          Instagram Video Automation
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          AI-powered sales engine that converts comments into booked meetings
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent inline-flex items-center gap-2">
+            Instagram Automation <Instagram className="h-6 w-6 text-rose-500" />
+          </h1>
+          <p className="text-muted-foreground mt-1 text-lg">
+            Convert comments into sales automatically.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/video/reels"] })}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Sync
+          </Button>
+          <Button>
+            <Instagram className="mr-2 h-4 w-4" />
+            Connect Account
+          </Button>
+        </div>
       </div>
 
-      {/* Intent Detection Demo */}
-      <IntentDetectionDemo />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Active Monitors & Demo */}
+        <div className="lg:col-span-1 space-y-6">
+          <IntentDetectionDemo />
 
-      {/* Feature Pills */}
-      <div className="flex flex-wrap gap-2">
-        <Badge variant="secondary" className="py-1.5 px-3">
-          <Brain className="h-3.5 w-3.5 mr-1.5" />
-          No keywords needed
-        </Badge>
-        <Badge variant="secondary" className="py-1.5 px-3">
-          <DollarSign className="h-3.5 w-3.5 mr-1.5" />
-          Handles objections
-        </Badge>
-        <Badge variant="secondary" className="py-1.5 px-3">
-          <Users className="h-3.5 w-3.5 mr-1.5" />
-          Personalized DMs
-        </Badge>
-        <Badge variant="secondary" className="py-1.5 px-3">
-          <Globe className="h-3.5 w-3.5 mr-1.5" />
-          Any language
-        </Badge>
-      </div>
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              active automations ({monitors?.length || 0})
+            </h3>
 
-      {/* Skeleton Loading State */}
-      {reelsLoading && (
-        <Card className="border-2 border-primary/20">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <Skeleton className="h-6 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-              <Skeleton className="h-9 w-24" />
-            </div>
-            <Skeleton className="h-10 w-full mt-4" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="rounded-lg overflow-hidden border-2 border-white/10"
-                >
-                  <Skeleton className="aspect-[9/16] w-full" />
-                  <div className="p-2 bg-muted/50 space-y-1">
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-2/3" />
+            <ScrollArea className="h-[600px] pr-4">
+              <div className="space-y-4">
+                {monitorsLoading ? (
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <Skeleton key={i} className="h-32 w-full rounded-xl bg-muted/10" />
+                    ))}
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Instagram Reels Gallery with Search + Hover Preview */}
-      {!reelsLoading && instagramReels?.reels?.length > 0 && (
-        <Card className="border-2 border-primary/20">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Instagram className="h-5 w-5 text-primary" />
-                  Your Reels ({instagramReels.reels.length})
-                </CardTitle>
-                <CardDescription>
-                  Select a reel to monitor - hover to preview
-                </CardDescription>
+                ) : monitors?.length === 0 ? (
+                  <Card className="border-dashed bg-muted/20">
+                    <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+                      <Zap className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                      <p className="text-sm text-muted-foreground">Select a reel to start monitoring</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  monitors?.map((monitor) => (
+                    <MonitorCard
+                      key={monitor.id}
+                      monitor={monitor}
+                      nextSync={monitor.lastSync ? new Date(new Date(monitor.lastSync).getTime() + 5 * 60000) : null}
+                      onToggle={() => toggleMonitor.mutate({ id: monitor.id, isActive: !monitor.isActive })}
+                      onDelete={() => deleteMonitor.mutate(monitor.id)}
+                      isToggling={toggleMonitor.isPending}
+                      isDeleting={deleteMonitor.isPending}
+                    />
+                  ))
+                )}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/video/reels"] })}
-                disabled={reelsLoading}
-              >
-                {reelsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-2 hidden sm:inline">Refresh</span>
-              </Button>
-            </div>
-            <div className="relative mt-4">
+            </ScrollArea>
+          </div>
+        </div>
+
+        {/* Right Column: Media Grid */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between bg-card p-2 rounded-xl border border-border/50 shadow-sm">
+            <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search reels by caption..."
+                placeholder="Search reels..."
+                className="pl-9 bg-transparent border-none shadow-none focus-visible:ring-0"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
               />
             </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-96">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {instagramReels.reels
-                  .filter((reel: any) => 
-                    !searchQuery || 
-                    reel.caption?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((reel: any) => (
-                  <motion.div
-                    key={reel.id}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    onMouseEnter={() => setHoveredReel(reel.id)}
-                    onMouseLeave={() => setHoveredReel(null)}
-                    onClick={() => {
-                      setSelectedReel(reel);
-                      setVideoUrl(reel.url);
-                    }}
-                    className={`cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedReel?.id === reel.id
-                        ? "border-primary shadow-lg shadow-primary/20"
-                        : "border-white/10 hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="aspect-[9/16] bg-muted relative group">
-                      {hoveredReel === reel.id && reel.mediaUrl ? (
-                        <video
-                          src={reel.mediaUrl}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
-                      ) : reel.thumbnailUrl ? (
-                        <img
-                          src={reel.thumbnailUrl}
-                          alt={reel.caption?.substring(0, 50) || "Reel"}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full">
-                          <Video className="h-12 w-12 text-muted-foreground" />
+            <div className="flex items-center gap-2 text-xs font-medium px-3 text-muted-foreground border-l border-border/50">
+              {filteredReels.length} Reels
+            </div>
+          </div>
+
+          {reelsLoading || !mounted ? (
+            <ReelsSkeleton />
+          ) : (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <AnimatePresence>
+                  {currentReels.map((reel: any) => (
+                    <motion.div
+                      key={reel.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-black border border-border/20 shadow-sm hover:shadow-xl transition-all cursor-pointer ring-offset-background hover:ring-2 hover:ring-pink-500/50 hover:ring-offset-2"
+                      onClick={() => {
+                        if (!videoUrl) setVideoUrl(reel.url);
+                        createMonitor.mutate({
+                          videoUrl: reel.permalink || reel.url,
+                          ctaLink: "https://audnix.ai",
+                          followUpConfig: { askFollowOnConvert: true, askFollowOnDecline: true }
+                        });
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground">
+                        {reel.mediaUrl ? (
+                          <video src={reel.mediaUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" muted loop onMouseEnter={e => e.currentTarget.play()} onMouseLeave={e => e.currentTarget.pause()} />
+                        ) : (
+                          <Instagram className="h-8 w-8 opacity-20" />
+                        )}
+                      </div>
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+
+                      <div className="absolute bottom-0 inset-x-0 p-3 text-white">
+                        <p className="text-[10px] line-clamp-2 mb-2 opacity-90 leading-tight">{reel.caption || "No caption"}</p>
+                        <div className="flex items-center justify-between text-[9px] font-medium opacity-75 uppercase tracking-wider">
+                          <span className="flex items-center gap-1"><Play className="h-2 w-2" /> REEL</span>
+                          <span className="bg-white/20 px-1.5 py-0.5 rounded backdrop-blur-sm group-hover:bg-pink-500 group-hover:text-white transition-colors">Select</span>
                         </div>
-                      )}
-                      {selectedReel?.id === reel.id && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                          <CheckCircle2 className="h-12 w-12 text-primary" />
-                        </div>
-                      )}
-                      {hoveredReel !== reel.id && (
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                          <Play className="h-10 w-10 text-white opacity-0 group-hover:opacity-80 transition-opacity" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 bg-muted/50">
-                      <p className="text-xs line-clamp-2">
-                        {reel.caption || "No caption"}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-              {instagramReels.reels.filter((reel: any) => 
-                !searchQuery || reel.caption?.toLowerCase().includes(searchQuery.toLowerCase())
-              ).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No reels match "{searchQuery}"</p>
-                </div>
+
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={currentPage === i + 1}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className="cursor-pointer"
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Create Monitor */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Configure Video Monitor</CardTitle>
-          <CardDescription>
-            {selectedReel ? "AI will analyze your selected reel" : "Or paste any Instagram video URL"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="video-url">Instagram Video URL</Label>
-            <Input
-              id="video-url"
-              placeholder="https://www.instagram.com/p/ABC123..."
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              disabled={!!selectedReel}
-            />
-            {selectedReel && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Reel selected - AI will auto-extract brand knowledge</span>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cta-link">CTA Button Link (Optional)</Label>
-            <Input
-              id="cta-link"
-              placeholder="https://yourbrand.com/product"
-              value={ctaLink}
-              onChange={(e) => setCtaLink(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="brand-knowledge">Brand Knowledge (Optional)</Label>
-            <Textarea
-              id="brand-knowledge"
-              placeholder="AI will auto-extract from video caption, or paste your own brand info here..."
-              value={brandKnowledge}
-              onChange={(e) => setBrandKnowledge(e.target.value)}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">
-              {selectedReel?.caption 
-                ? "✅ AI detected from caption: " + selectedReel.caption.substring(0, 100) + "..."
-                : "AI will analyze video and extract product/service details"}
-            </p>
-          </div>
-
-          <Button
-            onClick={handleCreateMonitor}
-            disabled={createMonitor.isPending}
-            className="w-full"
-          >
-            {createMonitor.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating Monitor...
-              </>
-            ) : (
-              <>
-                <Video className="h-4 w-4 mr-2" />
-                Start Monitoring Video
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Active Monitors */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Active Monitors</h2>
-        {isLoading ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-            </CardContent>
-          </Card>
-        ) : monitors?.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No monitors yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {monitors?.map((monitor) => {
-              const nextSync = monitor.lastSync
-                ? new Date(new Date(monitor.lastSync).getTime() + 30000)
-                : null;
-
-              return (
-                <MonitorCard
-                  key={monitor.id}
-                  monitor={monitor}
-                  nextSync={nextSync}
-                  onToggle={() => toggleMonitor.mutate({ id: monitor.id, isActive: !monitor.isActive })}
-                  onDelete={() => deleteMonitor.mutate(monitor.id)}
-                  isToggling={toggleMonitor.isPending}
-                  isDeleting={deleteMonitor.isPending}
-                />
-              );
-            })}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

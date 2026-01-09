@@ -12,7 +12,7 @@ export function NeuralFlowMockup() {
     return (
         <div className="relative w-full h-full min-h-[500px] flex items-center justify-center p-8 group overflow-hidden">
             {/* Background Animated Grids */}
-            <div className="absolute inset-0 bg-grid opacity-20 mask-radial scale-150 group-hover:scale-100 transition-transform duration-[2s]" />
+            <div className="absolute inset-0 bg-grid opacity-20 mask-radial scale-150 group-hover:scale-100 transition-transform duration-[2000ms]" />
 
             {/* Connecting Path SVG */}
             <svg className="absolute w-full h-full pointer-events-none">

@@ -1,5 +1,7 @@
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,20 +22,25 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription
 } from "@/components/ui/dialog";
-import { 
-  FileText, 
-  Video, 
-  Link2, 
+import {
+  FileText,
+  Video,
+  Link2,
   Plus,
   Trash2,
   Loader2,
   Edit2,
   Tag,
-  MessageSquare
+  MessageSquare,
+  Sparkles,
+  Zap,
+  Box
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { PremiumLoader } from "@/components/ui/premium-loader";
 
 interface ContentItem {
   id: string;
@@ -48,10 +55,10 @@ interface ContentItem {
 }
 
 const CONTENT_TYPES = [
-  { value: 'reply_template', label: 'Reply Template', icon: MessageSquare },
-  { value: 'cta', label: 'Call to Action', icon: Link2 },
-  { value: 'video', label: 'Video Asset', icon: Video },
-  { value: 'script', label: 'Script', icon: FileText },
+  { value: 'reply_template', label: 'Reply Template', icon: MessageSquare, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  { value: 'cta', label: 'Call to Action', icon: Link2, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+  { value: 'video', label: 'Video Asset', icon: Video, color: 'text-pink-500', bg: 'bg-pink-500/10' },
+  { value: 'script', label: 'Script', icon: FileText, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
 ];
 
 const INTENT_TAGS = [
@@ -131,32 +138,34 @@ export default function ContentLibraryPage() {
   const filteredContent = contentItems?.filter(item => item.contentType === activeTab) || [];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-500" />
-            Content Library
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
+            Content Library <Box className="h-6 w-6 text-indigo-500" />
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Store templates, videos, and CTAs that AI can choose from based on intent
+          <p className="text-muted-foreground mt-1 text-lg">
+            Manage your AI's arsenal of templates, scripts, and media.
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Content
+            <Button className="shadow-lg shadow-blue-500/20">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Resource
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Add Content to Library</DialogTitle>
+              <DialogTitle>Add to Library</DialogTitle>
+              <DialogDescription>
+                AI will pick the right content based on lead intent.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Content Type</Label>
+                  <Label>Type</Label>
                   <Select
                     value={newContent.contentType}
                     onValueChange={(value) => setNewContent({ ...newContent, contentType: value })}
@@ -167,7 +176,9 @@ export default function ContentLibraryPage() {
                     <SelectContent>
                       {CONTENT_TYPES.map((type) => (
                         <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                          <div className="flex items-center gap-2">
+                            <type.icon className="h-4 w-4 opacity-70" /> {type.label}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -194,26 +205,31 @@ export default function ContentLibraryPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>Internal Name</Label>
                 <Input
-                  placeholder="e.g., Pricing Objection Response"
+                  placeholder="e.g., Pricing Objection Handler (High Ticket)"
                   value={newContent.name}
                   onChange={(e) => setNewContent({ ...newContent, name: e.target.value })}
+                  className="bg-muted/30 border-border/50"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Content</Label>
+                <Label>Content / Value</Label>
                 <Textarea
-                  placeholder="Enter your template, script, or CTA link..."
+                  placeholder={newContent.contentType === 'cta' ? "https://your-link.com" : "Enter the message body or script here..."}
                   value={newContent.content}
                   onChange={(e) => setNewContent({ ...newContent, content: e.target.value })}
-                  rows={4}
+                  rows={5}
+                  className="bg-muted/30 border-border/50 resize-none"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Intent Tags (AI uses these to select content)</Label>
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2">
+                  <Tag className="h-3 w-3" /> Intent Triggers
+                  <span className="text-xs font-normal text-muted-foreground">(When should AI use this?)</span>
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {INTENT_TAGS.map((tag) => {
                     const isSelected = newContent.intentTags.includes(tag);
@@ -221,9 +237,10 @@ export default function ContentLibraryPage() {
                       <Badge
                         key={tag}
                         variant={isSelected ? 'default' : 'outline'}
-                        className="cursor-pointer"
+                        className={`cursor-pointer transition-all ${isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}
                         onClick={() => toggleTag(tag)}
                       >
+                        {isSelected && <Zap className="h-3 w-3 mr-1" />}
                         {tag}
                       </Badge>
                     );
@@ -231,8 +248,8 @@ export default function ContentLibraryPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+                <Button variant="ghost" onClick={() => setShowCreateDialog(false)}>
                   Cancel
                 </Button>
                 <Button
@@ -240,7 +257,7 @@ export default function ContentLibraryPage() {
                   disabled={!newContent.name || !newContent.content || createMutation.isPending}
                 >
                   {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Save Content
+                  Save Resource
                 </Button>
               </div>
             </div>
@@ -248,125 +265,148 @@ export default function ContentLibraryPage() {
         </Dialog>
       </div>
 
-      <Card className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-500/20 rounded-lg">
-              <Tag className="h-6 w-6 text-blue-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Intent-Based Content Selection</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                AI automatically selects the best content from your library based on lead intent signals. 
-                Tag your content with intent labels so AI knows when to use each piece.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          {CONTENT_TYPES.map((type) => (
-            <TabsTrigger key={type.value} value={type.value} className="gap-2">
-              <type.icon className="h-4 w-4" />
-              {type.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {CONTENT_TYPES.map((type) => (
-          <TabsContent key={type.value} value={type.value} className="space-y-4">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : !filteredContent.length ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <type.icon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-semibold mb-2">No {type.label}s Yet</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Add your first {type.label.toLowerCase()} to the library
-                  </p>
-                  <Button onClick={() => {
-                    setNewContent({ ...newContent, contentType: type.value });
-                    setShowCreateDialog(true);
-                  }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add {type.label}
+      <div className="grid lg:grid-cols-4 gap-6">
+        {/* Sidebar Tabs */}
+        <div className="lg:col-span-1">
+          <Card className="border-border/40 bg-card/50 backdrop-blur-sm sticky top-6">
+            <CardContent className="p-3">
+              <div className="flex flex-col space-y-1">
+                {CONTENT_TYPES.map((type) => (
+                  <Button
+                    key={type.value}
+                    variant={activeTab === type.value ? 'secondary' : 'ghost'}
+                    className="justify-start h-10 px-3"
+                    onClick={() => setActiveTab(type.value)}
+                  >
+                    <div className={`mr-3 p-1 rounded-md ${type.bg}`}>
+                      <type.icon className={`h-4 w-4 ${type.color}`} />
+                    </div>
+                    {type.label}
+                    {contentItems && (
+                      <span className="ml-auto text-xs text-muted-foreground/60">
+                        {contentItems.filter(i => i.contentType === type.value).length}
+                      </span>
+                    )}
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {filteredContent.map((item) => (
-                  <ContentCard
-                    key={item.id}
-                    item={item}
-                    onDelete={() => deleteMutation.mutate(item.id)}
-                  />
                 ))}
               </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4 border-dashed border-border/60 bg-transparent hover:bg-muted/10 transition-colors cursor-pointer group" onClick={() => setShowCreateDialog(true)}>
+            <CardContent className="p-6 text-center text-muted-foreground group-hover:text-foreground transition-colors">
+              <Sparkles className="h-6 w-6 mx-auto mb-2 opacity-50" />
+              <p className="text-xs font-medium">AI uses these assets to close deals automatically.</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Content Info */}
+        <div className="lg:col-span-3">
+          <Tabs value={activeTab} className="space-y-6">
+            {CONTENT_TYPES.map((type) => (
+              <TabsContent key={type.value} value={type.value} className="space-y-4 focus-visible:ring-0 mt-0">
+                {isLoading ? (
+                  <div className="py-20 flex justify-center"><PremiumLoader text={`Loading ${type.label}s...`} /></div>
+                ) : !filteredContent.length ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-border/40 rounded-xl bg-muted/5">
+                    <div className={`p-4 rounded-full ${type.bg} mb-4`}>
+                      <type.icon className={`h-8 w-8 ${type.color}`} />
+                    </div>
+                    <h3 className="text-lg font-semibold">No {type.label}s found</h3>
+                    <p className="text-muted-foreground max-w-sm mt-1 mb-6">
+                      Add templates or assets to help your AI handle leads more effectively.
+                    </p>
+                    <Button onClick={() => {
+                      setNewContent({ ...newContent, contentType: type.value });
+                      setShowCreateDialog(true);
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create First {type.label}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AnimatePresence>
+                      {filteredContent.map((item) => (
+                        <ContentCard
+                          key={item.id}
+                          item={item}
+                          typeInfo={type}
+                          onDelete={() => deleteMutation.mutate(item.id)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
 
 function ContentCard({
   item,
+  typeInfo,
   onDelete,
 }: {
   item: ContentItem;
+  typeInfo: any;
   onDelete: () => void;
 }) {
-  const typeInfo = CONTENT_TYPES.find(t => t.value === item.contentType);
-  const TypeIcon = typeInfo?.icon || FileText;
-
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4 flex-1">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <TypeIcon className="h-5 w-5 text-blue-500" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">{item.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {item.content}
-              </p>
-              <div className="flex items-center gap-2 mt-3">
-                <Badge variant="secondary" className="text-xs">
-                  {item.channel === 'all' ? 'All Channels' : item.channel}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  Used {item.usageCount || 0} times
-                </span>
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+    >
+      <Card className="group hover:shadow-lg transition-all border-border/50 hover:border-primary/20 bg-card h-full flex flex-col">
+        <CardHeader className="p-4 pb-2">
+          <div className="flex justify-between items-start gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${typeInfo.bg}`}>
+                <typeInfo.icon className={`h-4 w-4 ${typeInfo.color}`} />
               </div>
-              <div className="flex flex-wrap gap-1 mt-2">
-                {item.intentTags?.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
+              <div>
+                <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors cursor-pointer">{item.name}</CardTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 h-5 font-normal uppercase tracking-wider text-muted-foreground">
+                    {item.channel === 'all' ? 'Global' : item.channel}
                   </Badge>
-                ))}
+                </div>
               </div>
             </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 pt-2 flex-1 flex flex-col">
+          <div className="bg-muted/30 rounded-lg p-3 text-sm text-foreground/80 font-mono text-xs line-clamp-4 flex-1 mb-4 border border-border/50">
+            {item.content}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon">
-              <Edit2 className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete}>
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
+          <div className="flex items-center justify-between mt-auto">
+            <div className="flex gap-1 flex-wrap">
+              {item.intentTags?.slice(0, 2).map(tag => (
+                <Badge key={tag} variant="outline" className="text-[10px] bg-background">#{tag}</Badge>
+              ))}
+              {item.intentTags?.length > 2 && (
+                <Badge variant="outline" className="text-[10px] bg-background">+{item.intentTags.length - 2}</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +9,11 @@ import {
   Instagram,
   Mail,
   BarChart,
-  Loader2,
-  ChartBar,
   Download,
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
-import { SiWhatsapp } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import { AnimatedNumber } from "@/hooks/use-count-up";
 import {
   ChartContainer,
@@ -33,12 +32,10 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
-  Tooltip,
 } from "recharts";
 import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-access-gate";
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
-import { useUser } from "@/hooks/use-user";
+import { PremiumLoader } from "@/components/ui/premium-loader";
 
 interface ChannelData {
   channel: string;
@@ -73,13 +70,10 @@ interface InsightsApiResponse {
 }
 
 export default function InsightsPage() {
-  const { canAccess: canAccessAnalytics } = useCanAccessAnalytics();
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
-  const { data: user } = useUser();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
     queryKey: ["/api/insights"],
     refetchInterval: 10000,
-    refetchOnWindowFocus: true,
     retry: false,
   });
 
@@ -88,25 +82,6 @@ export default function InsightsPage() {
   const conversionFunnel = insightsData?.funnel || [];
   const hasData = insightsData?.hasData || false;
   const timeSeriesData = insightsData?.timeSeries || [];
-
-  const handleRegenerate = async () => {
-    await refetch();
-  };
-
-  const handleDownloadPDF = () => {
-    window.print();
-  };
-
-  const getChannelIcon = (channel: string) => {
-    switch (channel.toLowerCase()) {
-      case 'instagram':
-        return Instagram;
-      case 'email':
-        return Mail;
-      default:
-        return ChartBar;
-    }
-  };
 
   const COLORS = {
     Instagram: '#E1306C',
@@ -127,536 +102,156 @@ export default function InsightsPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 lg:p-8 flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col items-center gap-4"
-        >
-          {/* Animated brain/thinking indicator */}
-          <div className="relative w-16 h-16">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1], rotate: [0, 360] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40 rounded-full"
-            />
-            <motion.div
-              animate={{ scale: [1.2, 1, 1.2] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="absolute inset-2 bg-gradient-to-r from-primary to-primary/60 rounded-full flex items-center justify-center"
-            >
-              <BarChart className="h-6 w-6 text-white" />
-            </motion.div>
-          </div>
-          
-          {/* Animated text */}
-          <div className="text-center space-y-2">
-            <p className="text-lg font-semibold text-foreground">
-              🤖 AI is working...
-            </p>
-            <motion.p
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-sm text-muted-foreground"
-            >
-              Deep reasoning • Analyzing patterns • Building insights
-            </motion.p>
-          </div>
-
-          {/* Animated progress dots */}
-          <div className="flex gap-1">
-            {[0, 1, 2, 3].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.2, delay: i * 0.2, repeat: Infinity }}
-                className="w-2 h-2 rounded-full bg-primary"
-              />
-            ))}
-          </div>
-        </motion.div>
+      <div className="h-[60vh] flex items-center justify-center">
+        <PremiumLoader text="Synthesizing Insights..." />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 md:p-6 lg:p-8">
-        <div className="text-center py-12">
-          <BarChart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Unable to load insights</h2>
-          <p className="text-muted-foreground">
-            Please check your connection and try again.
-          </p>
-        </div>
+      <div className="p-8 text-center text-muted-foreground">
+        <p>Unable to load insights. Please check your connection.</p>
+        <Button variant="outline" className="mt-4" onClick={() => refetch()}>Try Again</Button>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold" data-testid="heading-insights">
-            Insights & Analytics
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent inline-flex items-center gap-2">
+            AI Insights <Sparkles className="h-6 w-6 text-purple-400" />
           </h1>
-          <p className="text-sm md:text-base text-muted-foreground mt-1">
-            {hasData
-              ? "AI-generated insights from your lead data"
-              : "Analytics will appear here once you have data"}
+          <p className="text-muted-foreground mt-1">
+            Real-time analysis to optimize your outreach strategy.
           </p>
         </div>
         {hasData && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleDownloadPDF}
-              data-testid="button-download-pdf"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => window.print()}>
+              <Download className="mr-2 h-4 w-4" /> Export
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleRegenerate}
-              disabled={isFetching}
-              data-testid="button-regenerate"
-              className="relative overflow-hidden"
-            >
-              {isFetching ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    className="inline-block"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  </motion.div>
-                  <span className="opacity-70">Generating...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </>
-              )}
+            <Button onClick={() => refetch()} disabled={isFetching}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
         )}
       </div>
 
       {!hasData ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5" data-testid="card-empty-state">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <motion.div
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="relative mb-6"
-              >
-                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
-                <div className="relative p-6 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/30">
-                  <TrendingUp className="h-12 w-12 text-primary" />
-                </div>
-              </motion.div>
-              
-              <h3 className="text-2xl font-bold mb-3 text-center">Start Your First Automation</h3>
-              <p className="text-muted-foreground text-center mb-8 max-w-lg">
-                Real-time analytics and AI insights will appear here once your automations are running.
-                Connect your accounts to start seeing data flow in.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                <Button 
-                  className="flex-1 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700" 
-                  data-testid="button-connect-accounts" 
-                  asChild
-                >
-                  <a href="/dashboard/integrations">
-                    <Instagram className="h-4 w-4 mr-2" />
-                    Connect Instagram
-                  </a>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-primary/30 hover:bg-primary/10" 
-                  asChild
-                >
-                  <a href="/dashboard/video-automation">
-                    <BarChart className="h-4 w-4 mr-2" />
-                    Video Automation
-                  </a>
+        <div className="grid gap-6">
+          <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-purple-500/5">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-6">
+              <div className="h-20 w-20 bg-background rounded-full shadow-lg flex items-center justify-center text-primary border border-border/50">
+                <TrendingUp className="h-10 w-10" />
+              </div>
+              <div className="max-w-md space-y-2">
+                <h3 className="text-xl font-semibold">Awaiting Data</h3>
+                <p className="text-muted-foreground">
+                  Audnix is ready to analyze your traffic. Connect an integration or start an automation to generate insights.
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <Button onClick={() => window.location.href = '/dashboard/integrations'}>
+                  Connect Instagram <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { icon: TrendingUp, title: "Conversion Tracking", desc: "See which messages convert leads to deals" },
-              { icon: BarChart, title: "Channel Analytics", desc: "Compare Instagram vs Email performance" },
-              { icon: RefreshCw, title: "Real-time Updates", desc: "Data updates automatically every 10 seconds" },
-            ].map((feature, idx) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * (idx + 1) }}
-              >
-                <Card className="bg-muted/30 border-white/5">
-                  <CardContent className="p-4 flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <feature.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm">{feature.title}</h4>
-                      <p className="text-xs text-muted-foreground">{feature.desc}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50 pointer-events-none grayscale-[0.5]">
+            {/* Mock cards to show potential */}
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="h-32 bg-muted/20" />
             ))}
           </div>
-        </motion.div>
+        </div>
       ) : (
         <>
-          {/* AI Insights - FREE for all users! Show preview for trial users */}
+          {/* AI Summary Card */}
           {insights && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <Card className="border-transparent bg-gradient-to-br from-cyan-500/10 via-purple-500/5 to-transparent" data-testid="card-ai-summary">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-3 justify-between">
-                    <div className="flex items-center gap-3">
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                        className="p-2 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full"
-                      >
-                        <TrendingUp className="h-5 w-5 text-white" />
-                      </motion.div>
-                      <div>
-                        <CardTitle className="text-lg">🤖 AI Insights</CardTitle>
-                        <CardDescription className="text-xs">Live analysis of your campaigns</CardDescription>
-                      </div>
-                    </div>
-                    {!canAccessFullAnalytics && (
-                      <Badge className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
-                        FREE Preview
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-base leading-relaxed text-foreground font-medium" 
-                    data-testid="text-ai-summary"
-                  >
-                    {insights}
-                  </motion.p>
-                  
-                  {!canAccessFullAnalytics && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="mt-4 p-4 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-lg space-y-3"
-                    >
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-cyan-300">
-                          ✨ Upgrade to unlock full analytics:
-                        </p>
-                        <ul className="text-xs text-gray-300 space-y-1 ml-2">
-                          <li>✓ Detailed channel breakdowns (Instagram, Email)</li>
-                          <li>✓ Conversion rates & engagement scores</li>
-                          <li>✓ Real-time performance charts</li>
-                          <li>✓ AI-powered recommendations</li>
-                        </ul>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => window.location.href = '/dashboard/pricing'}
-                        className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
-                      >
-                        See Full Analytics → Upgrade Now
-                      </Button>
-                    </motion.div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="h-5 w-5 text-indigo-400" />
+                  Performance Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-lg leading-relaxed font-medium text-foreground/90">
+                  {insights}
+                </p>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Wrap analytics in FeatureLock for free/trial users */}
-          {canAccessFullAnalytics ? (
-            <>
-              {/* Metrics Grid with Animations */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                  <Card data-testid="card-metric-response" className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Avg Response Time
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">
-                        {insightsData?.metrics?.avgResponseTime || "—"}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+          {/* Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <MetricCard title="Avg Response Time" value={insightsData?.metrics?.avgResponseTime || "--"} color="text-cyan-500" />
+            <MetricCard title="Conversion Rate" value={parseFloat(insightsData?.metrics?.conversionRate || "0") + "%"} color="text-emerald-500" />
+            <MetricCard title="Engagement Score" value={parseFloat(insightsData?.metrics?.engagementScore || "0") + "%"} color="text-purple-500" />
+          </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.2 }}
-                >
-                  <Card data-testid="card-metric-conversion" className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Conversion Rate
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                        <AnimatedNumber 
-                          value={parseFloat(insightsData?.metrics?.conversionRate ?? '0') || 0} 
-                          decimals={1}
-                          suffix="%"
-                          duration={1200}
-                          delay={300}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <Card data-testid="card-metric-engagement" className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        Engagement Score
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                        <AnimatedNumber 
-                          value={parseFloat(insightsData?.metrics?.engagementScore ?? '0') || 0} 
-                          decimals={1}
-                          suffix="%"
-                          duration={1200}
-                          delay={400}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </div>
-
+          {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {channelData.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                <Card data-testid="card-channel-chart">
-                  <CardHeader>
-                    <CardTitle>Lead Sources Distribution</CardTitle>
-                    <CardDescription>
-                      Breakdown by channel
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={channelData}
-                            dataKey="count"
-                            nameKey="channel"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            label={(entry) => `${entry.channel}: ${entry.percentage}%`}
-                          >
-                            {channelData.map((entry: ChannelData, index: number) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
-                              />
-                            ))}
-                          </Pie>
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              <Card>
+                <CardHeader><CardTitle>Channel Distribution</CardTitle></CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={channelData} dataKey="count" nameKey="channel" cx="50%" cy="50%" outerRadius={80} label>
+                        {channelData.map((e, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[e.channel as keyof typeof COLORS] || COLORS.primary} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
             )}
 
-            {channelData.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-              >
-                <Card data-testid="card-channel-breakdown">
-                  <CardHeader>
-                    <CardTitle>Lead Volume by Channel</CardTitle>
-                    <CardDescription>
-                      Total leads per channel
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsBarChart data={channelData}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis dataKey="channel" className="text-xs" />
-                          <YAxis className="text-xs" />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar
-                            dataKey="count"
-                            radius={[8, 8, 0, 0]}
-                          >
-                            {channelData.map((entry: ChannelData, index: number) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[entry.channel as keyof typeof COLORS] || COLORS.primary}
-                              />
-                            ))}
-                          </Bar>
-                        </RechartsBarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </CardContent>
-                </Card>
-              </motion.div>
+            {timeSeriesData.length > 0 && (
+              <Card>
+                <CardHeader><CardTitle>Lead Volume</CardTitle></CardHeader>
+                <CardContent className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={timeSeriesData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+                      <XAxis dataKey="date" className="text-xs text-muted-foreground" axisLine={false} tickLine={false} />
+                      <YAxis className="text-xs text-muted-foreground" axisLine={false} tickLine={false} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey="leads" strokeWidth={3} stroke="hsl(var(--primary))" dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
             )}
           </div>
 
-          {timeSeriesData.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card data-testid="card-trends">
-                <CardHeader>
-                  <CardTitle>Lead Trends</CardTitle>
-                  <CardDescription>
-                    Daily lead activity over the past week
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ChartContainer config={chartConfig} className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={timeSeriesData}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="date" className="text-xs" />
-                        <YAxis className="text-xs" />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Line
-                          type="monotone"
-                          dataKey="leads"
-                          stroke={COLORS.primary}
-                          strokeWidth={2}
-                          dot={{ fill: COLORS.primary }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {conversionFunnel.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-            >
-              <Card data-testid="card-conversion-funnel">
-                <CardHeader>
-                  <CardTitle>Conversion Funnel</CardTitle>
-                  <CardDescription>
-                    Lead progression through your sales process
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    {conversionFunnel.map((stage: FunnelStage, index: number) => (
-                      <div key={stage.stage} data-testid={`funnel-stage-${index}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium">{stage.stage}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {stage.count} ({stage.percentage}%)
-                          </span>
-                        </div>
-                        <div className="relative">
-                          <div className="w-full bg-muted rounded-full h-8">
-                            <div
-                              className="h-8 rounded-full bg-gradient-to-r from-primary to-primary/60 flex items-center justify-end pr-3"
-                              style={{ width: `${stage.percentage}%` }}
-                            >
-                              <span className="text-xs text-primary-foreground font-medium">
-                                {stage.percentage}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-            </>
-          ) : (
-            /* Show Feature Lock for free/trial users */
-            <FeatureLock
-              featureName="Advanced Analytics"
-              description="Detailed charts, funnels, & channel performance metrics"
-              requiredPlan="Starter"
-              variant="card"
-              className="min-h-[400px]"
-            >
-              <div className="blur-sm opacity-50 pointer-events-none">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
-                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
-                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
-                  <Card><CardContent className="p-6 h-32"></CardContent></Card>
-                </div>
-              </div>
-            </FeatureLock>
+          {/* Feature Lock for advanced if needed */}
+          {!canAccessFullAnalytics && (
+            <FeatureLock featureName="Advanced Analytics" description="Unlock deep channel analysis." requiredPlan="Pro" />
           )}
         </>
       )}
     </div>
+  );
+}
+
+function MetricCard({ title, value, color }: { title: string, value: string, color: string }) {
+  return (
+    <Card className="border-border/60 hover:border-border transition-colors">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-3xl font-bold ${color}`}>{value}</div>
+      </CardContent>
+    </Card>
   );
 }

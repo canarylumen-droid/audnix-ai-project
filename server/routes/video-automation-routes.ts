@@ -151,17 +151,24 @@ router.post('/monitors', requireAuth, async (req: Request, res: Response): Promi
     };
 
     if (!videoId || !productLink || !ctaText) {
-      res.status(400).json({ 
-        error: 'Missing required fields: videoId, productLink, ctaText' 
+      res.status(400).json({
+        error: 'Missing required fields: videoId, productLink, ctaText'
       });
       return;
     }
 
-    // Check if user has paid plan
+    // Check for active subscription or valid trial
     const user = await storage.getUserById(userId);
-    if (!user || user.plan === 'trial') {
-      res.status(403).json({ 
-        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+
+    const isTrialExpired = user.plan === 'trial' && (!user.trialExpiresAt || new Date() > new Date(user.trialExpiresAt));
+
+    if (isTrialExpired) {
+      res.status(403).json({
+        error: 'Trial expired - Upgrade to a paid plan to continue using Video Comment Automation'
       });
       return;
     }
@@ -215,11 +222,18 @@ router.patch('/monitors/:id', requireAuth, async (req: Request, res: Response): 
     const userId = getCurrentUserId(req)!;
     const updates = req.body as Record<string, unknown>;
 
-    // Check if user has paid plan
+    // Check for active subscription or valid trial
     const user = await storage.getUserById(userId);
-    if (!user || user.plan === 'trial') {
-      res.status(403).json({ 
-        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+
+    const isTrialExpired = user.plan === 'trial' && (!user.trialExpiresAt || new Date() > new Date(user.trialExpiresAt));
+
+    if (isTrialExpired) {
+      res.status(403).json({
+        error: 'Trial expired - Upgrade to a paid plan to continue using Video Comment Automation'
       });
       return;
     }
@@ -257,11 +271,18 @@ router.delete('/monitors/:id', requireAuth, async (req: Request, res: Response):
     const { id } = req.params;
     const userId = getCurrentUserId(req)!;
 
-    // Check if user has paid plan
+    // Check for active subscription or valid trial
     const user = await storage.getUserById(userId);
-    if (!user || user.plan === 'trial') {
-      res.status(403).json({ 
-        error: 'Premium feature - Upgrade to a paid plan to access Video Comment Automation' 
+    if (!user) {
+      res.status(401).json({ error: 'User not found' });
+      return;
+    }
+
+    const isTrialExpired = user.plan === 'trial' && (!user.trialExpiresAt || new Date() > new Date(user.trialExpiresAt));
+
+    if (isTrialExpired) {
+      res.status(403).json({
+        error: 'Trial expired - Upgrade to a paid plan to continue using Video Comment Automation'
       });
       return;
     }
@@ -292,7 +313,7 @@ router.post('/test-intent', requireAuth, async (req: Request, res: Response): Pr
 
     res.json({
       intent,
-      recommendation: intent.shouldDM 
+      recommendation: intent.shouldDM
         ? `AI will DM this lead with personalized sales message`
         : `No action needed - ${intent.intentType}`
     });
@@ -310,14 +331,14 @@ router.post('/test-intent', requireAuth, async (req: Request, res: Response): Pr
 router.get('/assets', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const assets = await db
       .select()
       .from(videoAssets)
       .where(eq(videoAssets.userId, userId))
       .orderBy(desc(videoAssets.createdAt))
       .limit(50);
-    
+
     res.json({ assets });
   } catch (error: any) {
     console.error('Error getting video assets:', error.message);
@@ -332,31 +353,31 @@ router.get('/assets', requireAuth, async (req: Request, res: Response): Promise<
 router.post('/assets/sync', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const integrations = await storage.getIntegrations(userId);
     const igIntegration = integrations.find(i => i.provider === 'instagram' && i.connected);
-    
+
     if (!igIntegration) {
       res.status(400).json({ error: 'Instagram not connected' });
       return;
     }
-    
+
     const { decrypt } = await import('../lib/crypto/encryption.js');
     const meta = JSON.parse(decrypt(igIntegration.encryptedMeta)) as { pageId: string; accessToken: string };
-    
+
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${meta.pageId}/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp,permalink&limit=30`,
       { headers: { Authorization: `Bearer ${meta.accessToken}` } }
     );
-    
+
     if (!response.ok) {
       res.status(500).json({ error: 'Failed to fetch from Instagram' });
       return;
     }
-    
+
     const data = await response.json() as InstagramMediaResponse;
     const videos = data.data.filter(item => item.media_type === 'VIDEO' || item.media_type === 'CAROUSEL_ALBUM');
-    
+
     let synced = 0;
     for (const video of videos) {
       const existing = await db
@@ -364,7 +385,7 @@ router.post('/assets/sync', requireAuth, async (req: Request, res: Response): Pr
         .from(videoAssets)
         .where(and(eq(videoAssets.userId, userId), eq(videoAssets.externalId, video.id)))
         .limit(1);
-      
+
       if (existing.length === 0) {
         await db.insert(videoAssets).values({
           userId,
@@ -378,7 +399,7 @@ router.post('/assets/sync', requireAuth, async (req: Request, res: Response): Pr
         synced++;
       }
     }
-    
+
     res.json({ success: true, synced, total: videos.length });
   } catch (error: any) {
     console.error('Error syncing video assets:', error.message);
@@ -395,7 +416,7 @@ router.patch('/assets/:id', requireAuth, async (req: Request, res: Response): Pr
     const userId = getCurrentUserId(req)!;
     const { id } = req.params;
     const { purpose, ctaLink, aiContext, enabled } = req.body;
-    
+
     const [updated] = await db
       .update(videoAssets)
       .set({
@@ -407,12 +428,12 @@ router.patch('/assets/:id', requireAuth, async (req: Request, res: Response): Pr
       })
       .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
       .returning();
-    
+
     if (!updated) {
       res.status(404).json({ error: 'Asset not found' });
       return;
     }
-    
+
     res.json({ asset: updated });
   } catch (error: any) {
     console.error('Error updating video asset:', error.message);
@@ -428,18 +449,18 @@ router.get('/assets/:id', requireAuth, async (req: Request, res: Response): Prom
   try {
     const userId = getCurrentUserId(req)!;
     const { id } = req.params;
-    
+
     const [asset] = await db
       .select()
       .from(videoAssets)
       .where(and(eq(videoAssets.id, id), eq(videoAssets.userId, userId)))
       .limit(1);
-    
+
     if (!asset) {
       res.status(404).json({ error: 'Asset not found' });
       return;
     }
-    
+
     res.json({ asset });
   } catch (error: any) {
     console.error('Error getting video asset:', error.message);
@@ -454,7 +475,7 @@ router.get('/assets/:id', requireAuth, async (req: Request, res: Response): Prom
 router.get('/ai-logs', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const logs = await db
       .select()
       .from(aiActionLogs)
@@ -464,7 +485,7 @@ router.get('/ai-logs', requireAuth, async (req: Request, res: Response): Promise
       ))
       .orderBy(desc(aiActionLogs.createdAt))
       .limit(20);
-    
+
     res.json({ logs });
   } catch (error: any) {
     console.error('Error getting AI logs:', error.message);

@@ -107,7 +107,7 @@ export function ComparisonSection() {
                                 className="group relative cursor-default"
                             >
                                 <div className="absolute -inset-10 bg-white/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                <span className="text-4xl font-black tracking-[-0.1em] text-white/20 group-hover:text-white transition-all duration-[0.5s] lowercase italic relative z-10">
+                                <span className="text-4xl font-black tracking-[-0.1em] text-white/20 group-hover:text-white transition-all duration-500 lowercase italic relative z-10">
                                     {brand.name}<span className="text-primary group-hover:text-white transition-colors">.co</span>
                                 </span>
                                 <div className="absolute -bottom-2 left-0 w-0 h-px bg-white/40 group-hover:w-full transition-all duration-500" />

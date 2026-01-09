@@ -24,6 +24,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useRealtime } from "@/hooks/use-realtime";
+import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 
 interface Lead {
   id: string;
@@ -80,6 +81,7 @@ export default function ConversationsPage() {
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [messageOffset, setMessageOffset] = useState(0);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [showIntelligence, setShowIntelligence] = useState(false);
 
   // Get user for real-time subscriptions
   const { data: user } = useQuery({
@@ -252,9 +254,8 @@ export default function ConversationsPage() {
         <div className="overflow-y-auto flex-1 p-4 space-y-2">
           {/* Example Lead Item - replace with actual lead data */}
           <Card
-            className={`p-3 cursor-pointer hover:bg-accent ${
-              selectedLead?.id === lead.id ? "bg-accent" : ""
-            }`}
+            className={`p-3 cursor-pointer hover:bg-accent ${selectedLead?.id === lead.id ? "bg-accent" : ""
+              }`}
             onClick={() => setSelectedLead(lead)}
           >
             <div className="flex items-center gap-3">
@@ -342,19 +343,17 @@ export default function ConversationsPage() {
                       data-testid={`message-${index}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                          msg.sender === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted"
-                        }`}
+                        className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.sender === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                          }`}
                       >
                         <p className="text-sm">{msg.content}</p>
                         <p
-                          className={`text-xs mt-1 ${
-                            msg.sender === "user"
-                              ? "text-primary-foreground/70"
-                              : "text-muted-foreground"
-                          }`}
+                          className={`text-xs mt-1 ${msg.sender === "user"
+                            ? "text-primary-foreground/70"
+                            : "text-muted-foreground"
+                            }`}
                         >
                           {formatTime(msg.timestamp)}
                         </p>
@@ -493,7 +492,23 @@ export default function ConversationsPage() {
             </div>
           </div>
         </CardContent>
+        <div className="p-4 border-t mt-auto">
+          <Button
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md border-0"
+            onClick={() => setShowIntelligence(true)}
+          >
+            <Sparkles className="h-4 w-4 mr-2" /> View AI Dossier
+          </Button>
+        </div>
       </Card>
+
+      {lead && (
+        <LeadIntelligenceModal
+          isOpen={showIntelligence}
+          onOpenChange={setShowIntelligence}
+          lead={lead}
+        />
+      )}
     </div>
   );
 }

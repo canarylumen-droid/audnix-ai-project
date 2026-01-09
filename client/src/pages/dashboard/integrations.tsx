@@ -1,49 +1,44 @@
+
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ImportingLeadsAnimation } from "@/components/ImportingLeadsAnimation";
-import { VoiceMinutesWidget } from "@/components/VoiceMinutesWidget";
 import { useCanAccessVoiceNotes } from "@/hooks/use-access-gate";
 import {
   Instagram,
   Mail,
   Check,
-  AlertCircle,
-  Upload,
-  Play,
-  Mic,
   Shield,
   Loader2,
-  FileText,
-  Sparkles,
-  Lock,
   CheckCircle2,
   Pencil,
-  Unlink,
-  Eye,
-  EyeOff,
-  XCircle,
+  Sparkles,
+  Zap,
+  Globe,
+  Upload,
+  FileText,
+  AlertCircle,
+  Plus
 } from "lucide-react";
+import { SiGoogle, SiShopify, SiHubspot, SiSlack } from "react-icons/si";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { SiGoogle } from "react-icons/si";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 interface Integration {
   provider: string;
@@ -68,28 +63,51 @@ interface UserData {
   };
 }
 
-interface VoiceBalance {
-  locked: boolean;
-  balance?: number;
-  used?: number;
-}
-
-interface ImportResult {
-  leadsImported: number;
-  messagesImported: number;
-}
-
-const channelIcons = {
-  gmail: SiGoogle,
-};
+const integrationCards = [
+  {
+    do: "email",
+    id: "gmail",
+    name: "Google Workspace",
+    description: "Sync emails, calendar, and contacts.",
+    icon: SiGoogle,
+    color: "text-red-500",
+    bg: "bg-red-500/10",
+  },
+  {
+    do: "store",
+    id: "shopify",
+    name: "Shopify",
+    description: "Connect store data for product insights.",
+    icon: SiShopify,
+    color: "text-green-500",
+    bg: "bg-green-500/10",
+    badge: "Coming Soon"
+  },
+  {
+    do: "crm",
+    id: "hubspot",
+    name: "HubSpot",
+    description: "Bi-directional CRM sync for leads.",
+    icon: SiHubspot,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+    badge: "Coming Soon"
+  },
+  {
+    do: "notify",
+    id: "slack",
+    name: "Slack",
+    description: "Get real-time alerts for hot leads.",
+    icon: SiSlack,
+    color: "text-purple-500",
+    bg: "bg-purple-500/10",
+    badge: "Coming Soon"
+  }
+];
 
 export default function IntegrationsPage() {
-  const [voiceConsent, setVoiceConsent] = useState(false);
-  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
-  const [isUploadingPDF, setIsUploadingPDF] = useState(false);
-  const [importingChannel, setImportingChannel] = useState<"email" | null>(null);
-  const [showAllSetDialog, setShowAllSetDialog] = useState(false);
-  const [allSetChannel, setAllSetChannel] = useState<string>("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [customEmailConfig, setCustomEmailConfig] = useState({
     smtpHost: '',
     smtpPort: '587',
@@ -100,1135 +118,321 @@ export default function IntegrationsPage() {
     fromName: ''
   });
   const [isEditingCustomEmail, setIsEditingCustomEmail] = useState(false);
-  const [showEmailPassword, setShowEmailPassword] = useState(false);
-  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  // Access control hooks
-  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
-
-  // Fetch user data to check plan
-  const { data: userData } = useQuery<UserData | null>({
-    queryKey: ["/api/user"],
-  });
-
-  // Fetch integrations from backend
-  const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({
-    queryKey: ["/api/integrations"],
-  });
+  const { data: userData } = useQuery<UserData | null>({ queryKey: ["/api/user"] });
+  const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({ queryKey: ["/api/integrations"] });
+  const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({ queryKey: ["/api/custom-email/status"] });
 
   const integrations = integrationsData?.integrations ?? [];
-
-  // Get user's plan and lead limits
-  const userPlan = userData?.user?.subscriptionTier || 'free';
-  const isFreeTrial = userPlan === 'free' || !userData?.user?.subscriptionTier;
-  const currentLeadCount = userData?.user?.totalLeads || 0;
-  const leadsLimit = isFreeTrial ? 500 : (userPlan === 'starter' ? 2500 : userPlan === 'pro' ? 7000 : 20000);
-  const leadUsagePercentage = (currentLeadCount / leadsLimit) * 100;
-  const isNearLimit = leadUsagePercentage >= 80; // 80% threshold
-  const isAtLimit = currentLeadCount >= leadsLimit;
-
-  // Fetch voice balance to check if locked
-  const { data: voiceBalance } = useQuery<VoiceBalance>({
-    queryKey: ["/api/voice/balance"],
-    refetchInterval: 30000,
-  });
-
-  const isVoiceLocked = voiceBalance?.locked || false;
-
-  // Fetch custom email status
-  const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({
-    queryKey: ["/api/custom-email/status"],
-  });
-
   const isCustomEmailConnected = customEmailStatus?.connected || false;
-  const connectedCustomEmail = customEmailStatus?.email || '';
 
-  // Voice upload mutation
-  const uploadVoiceMutation = useMutation({
-    mutationFn: async (file: File) => {
-      // Check if voice is locked before upload
-      if (isVoiceLocked) {
-        throw new Error("Voice minutes depleted. Please top up to continue.");
-      }
+  // Access control
+  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
 
-      const formData = new FormData();
-      formData.append("voice", file);
-
-      const response = await fetch("/api/uploads/voice", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
-
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Voice sample uploaded",
-        description: `Successfully uploaded ${data.fileName}`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // PDF upload mutation
-  const uploadPDFMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("pdf", file);
-
-      const response = await fetch("/api/uploads/pdf", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Upload failed");
-      }
-
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "PDF uploaded",
-        description: `Processing ${data.fileName} for brand knowledge`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Upload failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Connect provider mutation
   const connectProviderMutation = useMutation({
-    mutationFn: async ({ provider, credentials }: { provider: string; credentials: Record<string, unknown> }) => {
-      const response = await apiRequest("POST", `/api/integrations/${provider}/connect`, credentials);
-      return response.json();
+    mutationFn: async ({ provider, credentials }: { provider: string; credentials?: Record<string, unknown> }) => {
+      // OAuth flow usually triggered via browser redirect, but keeping this structure 
+      return {};
     },
-    onSuccess: (_, variables) => {
-      toast({
-        title: "Connected successfully",
-        description: `${variables.provider} has been connected`,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Connection failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    // ... (logic handled via handleConnect)
   });
 
-  // Disconnect provider mutation
   const disconnectProviderMutation = useMutation({
     mutationFn: async (provider: string) => {
       const response = await apiRequest("POST", `/api/integrations/${provider}/disconnect`);
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Disconnected",
-        description: "Integration has been disconnected",
-      });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-    },
+      toast({ title: "Disconnected successfully" });
+    }
   });
 
-  // Connect custom email mutation
   const connectCustomEmailMutation = useMutation({
     mutationFn: async (config: typeof customEmailConfig) => {
       const response = await apiRequest("POST", "/api/custom-email/connect", config);
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Custom Email Connected",
-        description: "Your business email has been connected successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
-      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
       setIsEditingCustomEmail(false);
-      setEmailTestResult(null);
+      setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
+      toast({ title: "SMTP Connected", description: "Email automation is now active." });
     },
     onError: (error: Error) => {
-      let errorMessage = error.message;
-      if (errorMessage.includes('IMAP') || errorMessage.includes('imap')) {
-        errorMessage = 'IMAP connection failed. Check your email host and port settings. Common ports: IMAP=993, SMTP=587';
-      }
-      toast({
-        title: "Connection failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    },
+      toast({ title: "Connection Failed", description: error.message, variant: "destructive" });
+    }
   });
 
-  // Disconnect custom email mutation
   const disconnectCustomEmailMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/custom-email/disconnect");
+    mutationFn: async () => apiRequest("POST", "/api/custom-email/disconnect"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
+      toast({ title: "Email Disconnected" });
+    }
+  });
+
+  // Voice upload mutation (Simplified for this view)
+  const uploadVoiceMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("voice", file);
+      const response = await fetch("/api/uploads/voice", { method: "POST", body: formData });
+      if (!response.ok) throw new Error("Upload failed");
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Email Disconnected",
-        description: "Your business email has been disconnected",
-      });
+      toast({ title: "Voice profile created", description: "AI can now replicate your voice." });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/custom-email/status"] });
-      setIsEditingCustomEmail(false);
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Disconnect failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
+    onError: () => toast({ title: "Upload failed", variant: "destructive" })
   });
 
-  // Test custom email connection
-  const testEmailConnection = async () => {
-    setIsTestingEmail(true);
-    setEmailTestResult(null);
+  const handleConnect = async (provider: string) => {
     try {
-      const response = await apiRequest("POST", "/api/custom-email/test", {
-        smtpHost: customEmailConfig.smtpHost,
-        smtpPort: customEmailConfig.smtpPort,
-        email: customEmailConfig.email,
-        password: customEmailConfig.password,
-      });
-      setEmailTestResult({ success: true, message: "SMTP connection successful!" });
-      toast({ title: "Connection test passed" });
-    } catch (error: any) {
-      setEmailTestResult({ success: false, message: error.message || "Connection failed" });
-      toast({ title: "Connection test failed", variant: "destructive" });
-    } finally {
-      setIsTestingEmail(false);
+      const response = await fetch(`/api/connect/${provider}`);
+      const { authUrl } = await response.json();
+      if (authUrl) window.location.href = authUrl;
+    } catch (e) {
+      toast({ title: "Connection Error", description: "Could not initiate OAuth flow.", variant: "destructive" });
     }
   };
-
-  // Import leads mutation
-  const importLeadsMutation = useMutation<ImportResult, Error, string>({
-    mutationFn: async (provider: string) => {
-      const response = await apiRequest("POST", `/api/ai/import/${provider}`);
-      return response.json();
-    },
-    onSuccess: (data, provider) => {
-      const channelMap: Record<string, string> = {
-        gmail: "Email"
-      };
-
-      setImportingChannel(null);
-      setAllSetChannel(channelMap[provider] || provider);
-      setShowAllSetDialog(true);
-
-      // Check if user is on free trial and approaching/hit limit
-      const isFreeTrial = !userData?.user?.subscriptionTier || userData?.user?.subscriptionTier === 'free';
-      const newTotal = (userData?.user?.totalLeads || 0) + data.leadsImported;
-      const hitFreeLimit = isFreeTrial && newTotal >= 500;
-      const nearLimit = isFreeTrial && newTotal >= 400 && newTotal < 500;
-
-      toast({
-        title: "Import Complete",
-        description: hitFreeLimit
-          ? `🎉 Imported ${data.leadsImported} leads! You've reached your 500 free leads. Upgrade to import unlimited!`
-          : nearLimit
-            ? `Imported ${data.leadsImported} leads (${newTotal}/500 total). ${500 - newTotal} remaining on free trial!`
-            : `Imported ${data.leadsImported} leads and ${data.messagesImported} messages from ${channelMap[provider] || provider}`,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-    },
-    onError: (error: Error) => {
-      setImportingChannel(null);
-      toast({
-        title: "Import Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleVoiceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    const validTypes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an MP3, WAV, or M4A file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Voice samples must be under 10MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploadingVoice(true);
     try {
       await uploadVoiceMutation.mutateAsync(file);
     } finally {
       setIsUploadingVoice(false);
-      if (voiceInputRef.current) voiceInputRef.current.value = "";
     }
   };
-
-  const handlePDFFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (file.size > 50 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "PDFs must be under 50MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploadingPDF(true);
-    try {
-      await uploadPDFMutation.mutateAsync(file);
-    } finally {
-      setIsUploadingPDF(false);
-      if (pdfInputRef.current) pdfInputRef.current.value = "";
-    }
-  };
-
-  const handleConnect = async (provider: string) => {
-    try {
-      // Get OAuth URL from backend for all providers
-      const response = await fetch(`/api/connect/${provider}`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Failed to connect ${provider}`);
-      }
-
-      const { authUrl } = await response.json();
-
-      if (!authUrl) {
-        throw new Error(`No authorization URL received for ${provider}`);
-      }
-
-      // Open OAuth URL in popup
-      const width = 600;
-      const height = 700;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
-
-      const popup = window.open(
-        authUrl,
-        `${provider}-oauth`,
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=yes,status=yes`
-      );
-
-      // Check if popup was blocked
-      if (!popup) {
-        // Fallback to redirect in same window
-        if (confirm(`Popup was blocked. Open ${provider} authorization in this window?`)) {
-          window.location.href = authUrl;
-        }
-        return;
-      }
-
-      // Poll to check if popup is closed and refresh data
-      const checkInterval = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkInterval);
-          // Refresh integrations data after a short delay
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
-            // Also check connection status
-            checkProviderStatus(provider);
-          }, 1500);
-        }
-      }, 1000);
-    } catch (error) {
-      toast({
-        title: "Connection failed",
-        description: error instanceof Error ? error.message : `Failed to connect ${provider}`,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const checkProviderStatus = async (provider: string) => {
-    try {
-      const response = await fetch(`/api/oauth/${provider}/status`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.connected) {
-          toast({
-            title: `${provider} Connected`,
-            description: data.email || data.username || `Successfully connected to ${provider}`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error checking ${provider} status:`, error);
-    }
-  };
-
-  const handleDisconnect = (provider: string) => {
-    if (confirm(`Are you sure you want to disconnect ${provider}?`)) {
-      disconnectProviderMutation.mutate(provider);
-    }
-  };
-
-  const handleSyncNow = (provider: string) => {
-    const channelMap: Record<string, "email"> = {
-      gmail: "email"
-    };
-
-    // Map provider to backend endpoint
-    const providerToEndpoint: Record<string, string> = {
-      gmail: "gmail"
-    };
-
-    // Check if the channel is actually connected
-    const integration = integrations.find((i) => i.provider === provider);
-    if (!integration || !integration.connected) {
-      toast({
-        title: "Channel Not Connected",
-        description: `⚠️ Please connect your ${provider === 'gmail' ? 'Email' : provider.charAt(0).toUpperCase() + provider.slice(1)} account first before importing leads. Click "Connect" above to get started.`,
-        variant: "default",
-        duration: 5000,
-      });
-      return;
-    }
-
-    setImportingChannel(channelMap[provider]);
-    importLeadsMutation.mutate(providerToEndpoint[provider]);
-  };
-
-  // Check if voice sample has been uploaded
-  const hasVoiceSample = integrations.some((i) =>
-    i.provider === "voice" || uploadVoiceMutation.isSuccess
-  );
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold" data-testid="heading-integrations">
-          Integrations
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Connect your channels and set up voice cloning
-        </p>
+    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+          <p className="text-muted-foreground mt-1 text-lg">
+            Supercharge your workspace by connecting your favorite tools.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="hidden sm:flex">
+            <FileText className="mr-2 h-4 w-4" />
+            Documentation
+          </Button>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Request Integration
+          </Button>
+        </div>
       </div>
 
-      {/* Security Notice */}
-      <Card className="border-primary/20 bg-primary/5" data-testid="card-security-notice">
-        <CardContent className="flex items-center gap-3 p-3">
-          <Shield className="h-4 w-4 text-primary flex-shrink-0" />
-          <p className="text-sm text-primary">Encrypted & secure. Revoke anytime.</p>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="connected" className="w-full">
+        <TabsList className="w-full justify-start border-b bg-transparent p-0 rounded-none h-auto gap-6">
+          <TabsTrigger value="connected" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-3">
+            All Apps
+          </TabsTrigger>
+          <TabsTrigger value="voice" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-0 py-3">
+            Voice & AI
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Free Trial Lead Limit Banner */}
-      {isFreeTrial && (
-        <Card className={`${isAtLimit ? 'border-amber-500/50 bg-amber-500/5' : isNearLimit ? 'border-blue-500/50 bg-blue-500/5' : 'border-emerald-500/50 bg-emerald-500/5'}`} data-testid="card-lead-limit">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1">
-                  <Sparkles className={`h-5 w-5 flex-shrink-0 mt-0.5 ${isAtLimit ? 'text-amber-500' : isNearLimit ? 'text-blue-500' : 'text-emerald-500'}`} />
-                  <div className="flex-1">
-                    <p className={`font-semibold ${isAtLimit ? 'text-amber-700 dark:text-amber-300' : isNearLimit ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                      {isAtLimit ? 'Free Trial Limit Reached' : isNearLimit ? 'Almost at limit' : 'Free Trial'}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {isAtLimit
-                        ? `You've imported ${currentLeadCount} leads on us! Upgrade to continue importing.`
-                        : `${currentLeadCount} / ${leadsLimit} leads imported • ${leadsLimit - currentLeadCount} remaining`
-                      }
-                    </p>
-                  </div>
-                </div>
-                {(isAtLimit || isNearLimit) && (
-                  <Button
-                    size="sm"
-                    onClick={() => window.location.href = '/dashboard/pricing'}
-                    className={isAtLimit ? 'bg-amber-500 hover:bg-amber-600' : ''}
-                  >
-                    {isAtLimit ? 'Upgrade Now' : 'View Plans'}
-                  </Button>
-                )}
-              </div>
-
-              {/* Progress Bar */}
-              <div>
-                <Progress
-                  value={leadUsagePercentage}
-                  className={`h-2 ${isAtLimit ? 'bg-amber-500/20' : isNearLimit ? 'bg-blue-500/20' : 'bg-emerald-500/20'}`}
-                />
-              </div>
-
-              {!isAtLimit && (
-                <p className="text-xs text-muted-foreground">
-                  Upgrade for more leads + voice minutes
-                </p>
-              )}
-
-              {isAtLimit && (
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  Upgrade to keep leads + import more
-                </p>
-              )}
+        <TabsContent value="connected" className="mt-8 space-y-8">
+          {/* Custom SMTP Card - High Priority */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Mail className="h-5 w-5" /> Email Infrastucture
+              </h2>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Channel Integrations */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Connected Channels</h2>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["gmail"].map((providerId, index) => {
-              const integration = integrations.find((i) => i.provider === providerId);
-              const isConnected = !!integration;
-              const Icon = channelIcons[providerId as keyof typeof channelIcons];
-
-              return (
-                <motion.div
-                  key={providerId}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  {/* Email - Available to all users */}
-                  {providerId === "gmail" && (
-                    <Card
-                      className={`hover-elevate ${isConnected ? "border-emerald-500/50" : ""}`}
-                      data-testid={`card-integration-${providerId}`}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-primary/10">
-                              <Icon className="h-6 w-6 text-primary" data-testid={`icon-${providerId}`} />
-                            </div>
-                            <div className="flex-1">
-                              <CardTitle className="text-base capitalize" data-testid={`text-name-${providerId}`}>
-                                Business Email
-                              </CardTitle>
-                              <CardDescription className="text-sm">
-                                Automated follow-ups via SMTP
-                              </CardDescription>
-                            </div>
-                          </div>
-                          {isConnected && (
-                            <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0" data-testid={`badge-connected-${providerId}`}>
-                              <Check className="h-3 w-3 mr-1" />
-                              Connected
-                            </Badge>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {isConnected ? (
-                          <>
-                            <div className="text-sm">
-                              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span className="font-medium">Email sync active</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleDisconnect(providerId)}
-                                disabled={disconnectProviderMutation.isPending}
-                                data-testid={`button-disconnect-${providerId}`}
-                              >
-                                {disconnectProviderMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Disconnect"
-                                )}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => handleSyncNow(providerId)}
-                                disabled={importLeadsMutation.isPending}
-                                data-testid={`button-sync-${providerId}`}
-                              >
-                                {importLeadsMutation.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  "Sync Now"
-                                )}
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <Button
-                            className="w-full"
-                            onClick={() => handleConnect(providerId)}
-                            disabled={connectProviderMutation.isPending}
-                            data-testid={`button-connect-${providerId}`}
-                          >
-                            {connectProviderMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            ) : null}
-                            Connect Email
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Custom Email - Available to all users (Free & Paid) */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Email Integration</h2>
-        <Card data-testid="card-custom-email" className={isCustomEmailConnected ? "border-emerald-500/50" : ""}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle>Business Email</CardTitle>
-                <CardDescription>
-                  Connect via SMTP/IMAP
-                </CardDescription>
-              </div>
-              {isCustomEmailConnected && (
-                <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 flex-shrink-0">
-                  <Check className="h-3 w-3 mr-1" />
-                  Connected
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isCustomEmailConnected && !isEditingCustomEmail ? (
-              <>
-                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                    <span className="font-medium text-emerald-700 dark:text-emerald-400">Email Connected</span>
-                  </div>
-                  <p className="text-sm font-mono text-muted-foreground">{connectedCustomEmail}</p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Sending automated follow-ups
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setIsEditingCustomEmail(true)}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Edit Settings
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    onClick={() => {
-                      if (confirm('Disconnect your business email? This will stop all email automation.')) {
-                        disconnectCustomEmailMutation.mutate();
-                      }
-                    }}
-                    disabled={disconnectCustomEmailMutation.isPending}
-                  >
-                    {disconnectCustomEmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Unlink className="h-4 w-4 mr-2" />
-                        Disconnect
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Card className={`border ${isCustomEmailConnected ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border'}`}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
                   <div>
-                    <Label htmlFor="smtp-host">SMTP Server</Label>
-                    <Input
-                      id="smtp-host"
-                      type="text"
-                      placeholder="smtp.yourdomain.com"
-                      value={customEmailConfig.smtpHost}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpHost: e.target.value })}
-                      data-testid="input-smtp-host"
-                    />
+                    <CardTitle>Custom SMTP/IMAP</CardTitle>
+                    <CardDescription>Connect your own email provider for unrestricted sending.</CardDescription>
                   </div>
-                  <div>
-                    <Label htmlFor="smtp-port">SMTP Port</Label>
-                    <Select
-                      value={customEmailConfig.smtpPort}
-                      onValueChange={(value) => setCustomEmailConfig({ ...customEmailConfig, smtpPort: value })}
-                    >
-                      <SelectTrigger id="smtp-port">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="587">587 (TLS - Recommended)</SelectItem>
-                        <SelectItem value="465">465 (SSL)</SelectItem>
-                        <SelectItem value="25">25 (Unencrypted)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="smtp-email">Email Address</Label>
-                    <Input
-                      id="smtp-email"
-                      type="email"
-                      placeholder="you@yourbusiness.com"
-                      value={customEmailConfig.email}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })}
-                      data-testid="input-smtp-email"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="smtp-password">App Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="smtp-password"
-                        type={showEmailPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={customEmailConfig.password}
-                        onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })}
-                        data-testid="input-smtp-password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
-                        onClick={() => setShowEmailPassword(!showEmailPassword)}
-                      >
-                        {showEmailPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="from-name">From Name</Label>
-                    <Input
-                      id="from-name"
-                      type="text"
-                      placeholder="Your Business Name"
-                      value={customEmailConfig.fromName}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
-                      data-testid="input-from-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="imap-host">IMAP Server (optional)</Label>
-                    <Input
-                      id="imap-host"
-                      type="text"
-                      placeholder="imap.yourdomain.com"
-                      value={customEmailConfig.imapHost}
-                      onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, imapHost: e.target.value })}
-                      data-testid="input-imap-host"
-                    />
-                  </div>
-                </div>
-
-                {emailTestResult && (
-                  <div className={`p-3 rounded-lg flex items-center gap-2 ${emailTestResult.success
-                    ? "bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800"
-                    }`}>
-                    {emailTestResult.success ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <XCircle className="h-5 w-5 text-red-600" />
-                    )}
-                    <p className={`text-sm ${emailTestResult.success ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"}`}>
-                      {emailTestResult.message}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={testEmailConnection}
-                    disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || isTestingEmail}
-                    data-testid="button-test-email"
-                  >
-                    {isTestingEmail ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : null}
-                    Test Connection
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
-                    disabled={!customEmailConfig.smtpHost || !customEmailConfig.email || !customEmailConfig.password || connectCustomEmailMutation.isPending}
-                    data-testid="button-connect-custom-email"
-                  >
-                    {connectCustomEmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4 mr-2" />
-                    )}
-                    {connectCustomEmailMutation.isPending ? 'Connecting...' : isEditingCustomEmail ? 'Update Email' : 'Connect Email'}
-                  </Button>
-                  {isEditingCustomEmail && (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditingCustomEmail(false);
-                        setEmailTestResult(null);
-                        setCustomEmailConfig({ smtpHost: '', smtpPort: '587', imapHost: '', imapPort: '993', email: '', password: '', fromName: '' });
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </div>
-
-                <p className="text-xs text-muted-foreground text-center">For Gmail, use an App Password. Credentials encrypted.</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Voice Clone Setup */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Voice Clone Setup</h2>
-          <Card data-testid="card-voice-setup" className={!canAccessVoiceNotes ? "relative" : ""}>
-            {/* Upgrade overlay for free/trial users */}
-            {!canAccessVoiceNotes && (
-              <div className="absolute inset-0 z-10 backdrop-blur-[2px] bg-black/5 rounded-lg flex items-center justify-center">
-                <div className="text-center p-4 bg-background/95 rounded-xl border shadow-lg max-w-xs mx-4">
-                  <Lock className="h-8 w-8 text-purple-500 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1">Voice Notes</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Upgrade to unlock AI voice cloning</p>
-                  <Button
-                    size="sm"
-                    onClick={() => window.location.href = '/dashboard/pricing'}
-                    className="w-full"
-                  >
-                    Upgrade
-                  </Button>
-                </div>
-              </div>
-            )}
-            <CardHeader className={!canAccessVoiceNotes ? "opacity-50" : ""}>
-              <CardTitle>AI Voice Messaging</CardTitle>
-              <CardDescription>Clone your voice for Instagram DMs</CardDescription>
-            </CardHeader>
-            <CardContent className={`space-y-6 ${!canAccessVoiceNotes ? "opacity-50" : ""}`}>
-              {/* Voice Minutes Widget - Real-time data */}
-              <VoiceMinutesWidget />
-
-              {/* Upload Section */}
-              <div className="space-y-4">
-                <input
-                  ref={voiceInputRef}
-                  type="file"
-                  accept="audio/mpeg,audio/wav,audio/x-m4a,audio/mp4,.mp3,.wav,.m4a"
-                  onChange={handleVoiceFileSelect}
-                  className="hidden"
-                  data-testid="input-voice-file"
-                  disabled={!canAccessVoiceNotes}
-                />
-
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  {hasVoiceSample && !isUploadingVoice ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-center gap-2 text-emerald-500">
-                        <Check className="h-5 w-5" />
-                        <span className="font-medium" data-testid="text-voice-uploaded">Voice sample uploaded</span>
-                      </div>
-                      <div className="flex items-center justify-center gap-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => voiceInputRef.current?.click()}
-                          data-testid="button-upload-new"
-                          disabled={!canAccessVoiceNotes}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload New
-                        </Button>
-                      </div>
-                    </div>
-                  ) : isUploadingVoice ? (
-                    <div className="space-y-3">
-                      <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
-                      <p className="font-medium">Uploading voice sample...</p>
-                    </div>
+                  {isCustomEmailConnected ? (
+                    <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/25">Connected</Badge>
                   ) : (
-                    <div className="space-y-3">
-                      <Mic className="h-12 w-12 mx-auto text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Upload voice sample</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Record or upload a 30-60 second audio clip (MP3, WAV, or M4A)
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => voiceInputRef.current?.click()}
-                        disabled={isVoiceLocked || !canAccessVoiceNotes}
-                        data-testid="button-upload-voice"
-                      >
-                        {isVoiceLocked ? <Lock className="h-4 w-4 mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                        {isVoiceLocked ? "Top Up Required" : "Upload Audio"}
-                      </Button>
-                      {isVoiceLocked && (
-                        <p className="text-xs text-red-500 text-center mt-2">
-                          Voice minutes depleted. Top up to upload voice samples.
-                        </p>
-                      )}
-                    </div>
+                    <Badge variant="outline">Disconnected</Badge>
                   )}
                 </div>
+              </CardHeader>
+              <CardContent>
+                {isCustomEmailConnected && !isEditingCustomEmail ? (
+                  <div className="flex items-center justify-between bg-background/50 p-4 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{customEmailStatus?.email || "Email Connected"}</p>
+                        <p className="text-sm text-muted-foreground">Ready to send automated follow-ups.</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditingCustomEmail(true)}>
+                        <Pencil className="h-4 w-4 mr-2" /> Configure
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => disconnectCustomEmailMutation.mutate()}>
+                        Disconnect
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 max-w-2xl">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>SMTP Host</Label>
+                        <Input placeholder="smtp.gmail.com" value={customEmailConfig.smtpHost} onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpHost: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>SMTP Port</Label>
+                        <Input placeholder="587" value={customEmailConfig.smtpPort} onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, smtpPort: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input placeholder="you@company.com" value={customEmailConfig.email} onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, email: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Password</Label>
+                        <Input type="password" placeholder="••••••••" value={customEmailConfig.password} onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, password: e.target.value })} />
+                      </div>
+                    </div>
+                    <Button
+                      className="w-fit"
+                      disabled={connectCustomEmailMutation.isPending}
+                      onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
+                    >
+                      {connectCustomEmailMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                      Connect SMTP
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </section>
 
-                {/* Consent */}
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-muted">
-                  <Checkbox
-                    id="voice-consent"
-                    checked={voiceConsent}
-                    onCheckedChange={(checked) => setVoiceConsent(checked as boolean)}
-                    data-testid="checkbox-voice-consent"
-                    disabled={!canAccessVoiceNotes}
-                  />
-                  <label
-                    htmlFor="voice-consent"
-                    className="text-sm text-muted-foreground cursor-pointer"
-                  >
-                    I consent to AI voice cloning for lead follow-ups
-                  </label>
+          {/* Standard Integrations Grid */}
+          <section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {integrationCards.map((card) => {
+                const integration = integrations.find(i => i.provider === card.id);
+                const isConnected = !!integration;
+
+                return (
+                  <Card key={card.id} className={`group hover:shadow-md transition-all duration-300 border-border/60 ${isConnected ? 'border-primary/20 bg-primary/5' : ''}`}>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className={`p-3 rounded-xl ${card.bg} ${card.color}`}>
+                          <card.icon className="h-6 w-6" />
+                        </div>
+                        {card.badge ? (
+                          <Badge variant="secondary" className="text-xs">{card.badge}</Badge>
+                        ) : isConnected ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/20">Active</Badge>
+                        ) : (
+                          <SwitchIcon connected={false} />
+                        )}
+                      </div>
+                      <CardTitle className="mt-4">{card.name}</CardTitle>
+                      <CardDescription>{card.description}</CardDescription>
+                    </CardHeader>
+                    <CardFooter>
+                      {isConnected ? (
+                        <Button
+                          variant="outline"
+                          className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                          onClick={() => disconnectProviderMutation.mutate(card.id)}
+                        >
+                          Disconnect
+                        </Button>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          variant={card.badge ? "ghost" : "default"}
+                          disabled={!!card.badge}
+                          onClick={() => handleConnect(card.id)}
+                        >
+                          {card.badge ? "Coming Soon" : "Connect"}
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </Card>
+                )
+              })}
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="voice" className="mt-8">
+          <Card className="border-border/60 overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-32 bg-primary/5 rounded-full blur-3xl -z-10" />
+
+            <CardHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                  <Sparkles className="h-5 w-5" />
                 </div>
-
-                {/* Activate */}
-                <Button
-                  className="w-full"
-                  disabled={!voiceConsent || !hasVoiceSample || isVoiceLocked || !canAccessVoiceNotes}
-                  data-testid="button-activate-voice"
-                >
-                  {isVoiceLocked ? "Top Up Required" : hasVoiceSample && voiceConsent ? "Voice Clone Active" : "Activate Voice Clone"}
-                </Button>
+                <CardTitle>AI Voice Cloning</CardTitle>
               </div>
-
-              {/* Info */}
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <AlertCircle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-muted-foreground">
-                  Voice cloning uses advanced AI to replicate your natural speaking patterns and tone.
-                  For best results, speak clearly and naturally in your recording.
-                </p>
+              <CardDescription>
+                Upload a voice sample to enable your AI assistant to send hyper-personalized voice notes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col md:flex-row gap-8 items-center">
+                <div className="flex-1 space-y-4">
+                  <div className="p-4 border rounded-xl bg-card/50 space-y-2">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Check className="h-4 w-4 text-emerald-500" />
+                      Requirements
+                    </h4>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                      <li>Clear audio, no background noise</li>
+                      <li>Natural speaking pace</li>
+                      <li>Minimum 30 seconds length</li>
+                      <li>MP3 or WAV format</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex-1 w-full">
+                  <div
+                    className="border-2 border-dashed border-border hover:border-primary/50 transition-colors rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-muted/20"
+                    onClick={() => voiceInputRef.current?.click()}
+                  >
+                    <input
+                      ref={voiceInputRef}
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={handleVoiceFileSelect}
+                    />
+                    <div className="h-12 w-12 rounded-full bg-background border shadow-sm flex items-center justify-center mb-4 text-primary">
+                      {isUploadingVoice ? <Loader2 className="h-6 w-6 animate-spin" /> : <Upload className="h-6 w-6" />}
+                    </div>
+                    <h3 className="font-semibold mb-1">Upload Voice Sample</h3>
+                    <p className="text-sm text-muted-foreground">Click to browse or drag & drop</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Voice Minutes Tracker */}
-        <div className="lg:col-span-1">
-          <h2 className="text-xl font-semibold mb-4">Usage Tracking</h2>
-          <VoiceMinutesWidget />
-        </div>
-      </div>
-
-      {/* PDF Upload for Brand Knowledge */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Brand Knowledge</h2>
-        <Card data-testid="card-pdf-upload">
-          <CardHeader>
-            <CardTitle>Upload Brand Documents</CardTitle>
-            <CardDescription>
-              Upload PDFs to teach the AI about your brand, products, and services
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input
-              ref={pdfInputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              onChange={handlePDFFileSelect}
-              className="hidden"
-              data-testid="input-pdf-file"
-            />
-
-            <div className="border-2 border-dashed rounded-lg p-8 text-center">
-              {isUploadingPDF ? (
-                <div className="space-y-3">
-                  <Loader2 className="h-12 w-12 mx-auto text-primary animate-spin" />
-                  <p className="font-medium">Processing PDF...</p>
-                  <p className="text-sm text-muted-foreground">
-                    Extracting text and generating embeddings
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Upload PDF Documents</p>
-                    <p className="text-sm text-muted-foreground mt-1">Max 50MB</p>
-                  </div>
-                  <Button
-                    onClick={() => pdfInputRef.current?.click()}
-                    data-testid="button-upload-pdf"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload PDF
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Importing Leads Animation */}
-      <AnimatePresence>
-        {importingChannel && (
-          <ImportingLeadsAnimation
-            channel={importingChannel}
-            isImporting={!!importingChannel}
-            onComplete={() => setImportingChannel(null)}
-            planLimit={leadsLimit}
-            currentLeads={currentLeadCount}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* All Set Dialog */}
-      <Dialog open={showAllSetDialog} onOpenChange={setShowAllSetDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex flex-col items-center text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 10 }}
-                className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center"
-              >
-                <Sparkles className="h-10 w-10 text-emerald-500" />
-              </motion.div>
-              <div>
-                <DialogTitle className="text-2xl font-bold">All Set!</DialogTitle>
-                <DialogDescription className="text-lg mt-2">
-                  AI will start working on your {allSetChannel} leads
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="text-center space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Intelligent follow-ups and engagement analysis are now active
-            </p>
-            {isFreeTrial && (
-              <div className="space-y-2">
-                {isAtLimit ? (
-                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                      🎉 You've imported {currentLeadCount} leads on us!
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                      Upgrade to import more leads
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    💡 Free trial: {currentLeadCount}/{leadsLimit} leads imported • {leadsLimit - currentLeadCount} remaining
-                  </p>
-                )}
-                {(isAtLimit || isNearLimit) && (
-                  <Button
-                    size="sm"
-                    variant={isAtLimit ? "default" : "outline"}
-                    onClick={() => {
-                      setShowAllSetDialog(false);
-                      window.location.href = '/dashboard/pricing';
-                    }}
-                    className="w-full"
-                  >
-                    {isAtLimit ? 'Upgrade to Import More' : 'View Upgrade Options'}
-                  </Button>
-                )}
-              </div>
-            )}
-            <Button onClick={() => setShowAllSetDialog(false)} className="w-full" variant={isAtLimit ? "outline" : "default"}>
-              {isAtLimit ? 'Continue' : 'Got it!'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
+        </TabsContent>
+      </Tabs>
     </div>
+  );
+}
+
+function SwitchIcon({ connected }: { connected: boolean }) {
+  return (
+    <div className={`w-3 h-3 rounded-full ${connected ? 'bg-emerald-500' : 'bg-muted-foreground/30'}`} />
   );
 }

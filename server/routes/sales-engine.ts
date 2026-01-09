@@ -1,6 +1,11 @@
 import { Router, Request, Response } from 'express';
 import ObjectionHandler from '../lib/sales-engine/objection-handler.js';
 import { requireAuth } from '../middleware/auth.js';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+});
 
 const router = Router();
 
@@ -41,6 +46,51 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
       return res.status(400).json({ error: 'Objection text required' });
     }
 
+    // If OpenAI key is available, use GPT-4o for superior analysis
+    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are a world-class sales objection handler (Alex Hormozi style but professional).
+              Analyze the objection and return a JSON object with:
+              - category: (timing, price, competitor, trust, authority, fit, social, decision, or general)
+              - hiddenObjection: What they really mean (psychological subtext)
+              - reframes: Array of 3 powerful reframes that shift perspective
+              - powerQuestion: The single best question to ask next
+              - closingTactic: A direct closing line to move the deal forward
+              - story: A brief 2-sentence success story relevant to this objection
+              - identityUpgrade: A statement appealing to their aspirational identity
+              - competitorAngle: How to position against competitors (if relevant)
+              - nextMove: The calculated next step in the sales process
+              - confidence: Number between 80-99 (AI confidence score)
+              
+              Industry context: ${industry}
+              Brand context: Your Brand
+              `
+            },
+            {
+              role: "user",
+              content: `Objection: "${objectionText}"`
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+        });
+
+        const aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
+        return res.json({
+          objection: objectionText,
+          ...aiResponse
+        });
+      } catch (error) {
+        console.error("GPT-4o analysis failed, falling back to rule engine:", error);
+      }
+    }
+
+    // Fallback to Rule Engine
     const analysis = ObjectionHandler.analyzeObjection(
       objectionText,
       industry,

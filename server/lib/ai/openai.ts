@@ -1,16 +1,13 @@
-// Default model is gpt-4o-mini for cost-effective AI features
+// Flagship model is gpt-4o for high-performance sales intelligence
 import OpenAI from "openai";
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY not set. Using fallback responses.");
-}
-
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "mock-key"
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 });
 
-const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true";
-const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true" || !process.env.OPENAI_API_KEY;
+export const AI_MODEL = process.env.OPENAI_MODEL || "gpt-4o"; // Latest flagship for production
+const model = AI_MODEL;
 
 /**
  * Generate embeddings for text (for pgvector storage)
@@ -127,7 +124,7 @@ export async function classify(
 
   try {
     const systemPrompt = `You are a text classification expert. Classify the following text into one of these categories: ${categories.join(", ")}. Respond with JSON: { "category": "...", "confidence": 0.0-1.0 }`;
-    
+
     const response = await openai.chat.completions.create({
       model,
       messages: [
@@ -139,7 +136,7 @@ export async function classify(
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
-    
+
     return {
       category: result.category || "unknown",
       confidence: Math.max(0, Math.min(1, result.confidence || 0))
@@ -158,7 +155,7 @@ export async function classify(
  */
 export async function generateInsights(data: any, prompt: string): Promise<string> {
   if (isDemoMode) {
-    return "62% of leads came from Instagram, with highest conversion rates between 6-9 PM. WhatsApp engagement is up 45% this week.";
+    return "62% of revenue recovery originated from early-stage intent signals, with peak conversion velocity detected in high-status email threads. Sentiment engagement is up 45% this week.";
   }
 
   try {

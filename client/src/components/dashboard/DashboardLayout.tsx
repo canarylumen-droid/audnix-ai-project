@@ -1,12 +1,11 @@
-import { useState, useCallback, KeyboardEvent } from "react";
+
+import { useState, useCallback, KeyboardEvent, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAdminSecretPath } from "@/hooks/useAdminSecretPath";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
-import { PlanBadgeBanner } from "@/components/PlanBadgeBanner";
 import { InstallPWAPrompt } from "@/components/InstallPWAPrompt";
 import { GuidedTour, useTour } from "@/components/ui/GuidedTour";
 import { ActivationChecklist, useActivationChecklist, ActivationState } from "@/components/ui/ActivationChecklist";
@@ -15,7 +14,6 @@ import {
   Inbox,
   MessageSquare,
   Briefcase,
-  Calendar,
   Plug,
   BarChart3,
   Settings,
@@ -24,25 +22,24 @@ import {
   X,
   Search,
   Bell,
-  User,
-  ChevronLeft,
   ChevronDown,
   LogOut,
-  Video,
   Upload,
   Zap,
-  Brain,
-  FileText,
-  HelpCircle,
-  Layers,
-  PieChart,
+  BookMarked,
   Activity,
   Sun,
   Moon,
-  BookMarked,
-  Lock,
   Globe,
-  Database
+  Lock,
+  ChevronRight,
+  Brain,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Command,
+  CreditCard,
+  User,
+  Check
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -55,10 +52,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { PremiumLoader } from "@/components/ui/premium-loader";
 
 interface NavItem {
   label: string;
@@ -71,9 +71,7 @@ interface NavItem {
 
 interface NavGroup {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
-  defaultOpen?: boolean;
 }
 
 interface UserProfile {
@@ -94,15 +92,9 @@ interface UserProfile {
 interface Notification {
   id: string;
   title: string;
-  message: string;
-  timestamp: string | Date;
+  description?: string;
   read: boolean;
-  metadata?: {
-    activityType?: string;
-    oldStatus?: string;
-    newStatus?: string;
-    reason?: string;
-  };
+  createdAt: string;
 }
 
 interface NotificationsData {
@@ -110,37 +102,17 @@ interface NotificationsData {
   unreadCount: number;
 }
 
-const BadgeWithDot = ({ color, children }: { color: 'success' | 'warning' | 'primary', children: React.ReactNode }) => {
-  const colors = {
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    primary: 'bg-primary'
-  };
-  const borderColors = {
-    success: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-500',
-    warning: 'border-amber-500/20 bg-amber-500/10 text-amber-500',
-    primary: 'border-primary/20 bg-primary/10 text-primary'
-  };
-
-  return (
-    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${borderColors[color]}`}>
-      <span className={`w-1 h-1 rounded-full ${colors[color]} animate-pulse`} />
-      {children}
-    </span>
-  );
-};
-
 const ThemeSwitcher = () => {
   const { theme, setTheme } = useTheme();
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="h-10 w-10 border border-white/10 rounded-xl hover:bg-white/5 transition-all duration-300"
+      className="rounded-full w-9 h-9 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted/50"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
     >
-      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-white/40" />
-      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-white/40" />
+      <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
       <span className="sr-only">Toggle theme</span>
     </Button>
   );
@@ -155,6 +127,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     "Framework": true,
     "Neural Engine": true,
     "Operations": true,
+    "Intelligence": true,
+    "Analytics": true
   });
 
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -164,35 +138,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const { showChecklist, isComplete: activationComplete, closeChecklist, openChecklist, handleComplete, activationState } = useActivationChecklist();
+  const { showChecklist, isComplete: activationComplete, closeChecklist, handleComplete, activationState } = useActivationChecklist();
 
   const navGroups: NavGroup[] = [
     {
-      label: "Neural Engine",
-      icon: Database,
+      label: "Intelligence",
       items: [
-        { label: "Neural Flows", icon: Brain, path: "/dashboard/automation" },
-        { label: "Deal Pipeline", icon: Briefcase, path: "/dashboard/deals" },
-        { label: "Ecosystem Sync", icon: Plug, path: "/dashboard/integrations" },
+        { label: "Automation", icon: Zap, path: "/dashboard/automation" },
+        { label: "Pipeline", icon: Briefcase, path: "/dashboard/deals" },
+        { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
       ],
     },
     {
       label: "Operations",
-      icon: Layers,
       items: [
-        { label: "Lead Ingestion", icon: Upload, path: "/dashboard/lead-import" },
+        { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
         { label: "Brand Memory", icon: BookMarked, path: "/dashboard/content-library" },
-        { label: "Objection Training", icon: Shield, path: "/dashboard/objections" },
-        { label: "Neural Logs", icon: MessageSquare, path: "/dashboard/conversations" },
+        { label: "Objections", icon: Shield, path: "/dashboard/objections" },
+        { label: "Conversations", icon: MessageSquare, path: "/dashboard/conversations" },
       ],
     },
     {
-      label: "Analytics Hub",
-      icon: PieChart,
+      label: "Analytics",
       items: [
-        { label: "AI Decision Audit", icon: Activity, path: "/dashboard/ai-decisions" },
-        { label: "Revenue Insights", icon: BarChart3, path: "/dashboard/insights" },
-        { label: "Execution Map", icon: Globe, path: "/dashboard/video-automation" },
+        { label: "AI Audit", icon: Activity, path: "/dashboard/ai-decisions" },
+        { label: "Insights", icon: BarChart3, path: "/dashboard/insights" },
+        { label: "Video Automation", icon: Globe, path: "/dashboard/video-automation" },
       ],
     },
   ];
@@ -202,13 +173,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return activationState[step] || false;
   }, [activationState]);
 
-  const { data: user } = useQuery<UserProfile | null>({
+  const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
     staleTime: Infinity,
   });
 
   const onboardingCompleted = user?.metadata?.onboardingCompleted || false;
-  const { showTour, completeTour, skipTour, replayTour } = useTour(onboardingCompleted);
+  const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
@@ -216,6 +187,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;
+  const recentNotifications = notificationsData?.notifications.slice(0, 5) || [];
 
   const handleSignOut = async () => {
     await apiRequest('POST', '/api/auth/signout');
@@ -238,153 +210,324 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     if (isLocked) {
       return (
-        <div key={item.path} className="px-3 mb-1 opactiy-20">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-white/[0.02] cursor-not-allowed border border-transparent">
-            <Lock className="h-4 w-4 opacity-30" />
-            {!sidebarCollapsed && <span className="text-xs font-black uppercase tracking-widest text-white/20">{item.label}</span>}
+        <div key={item.path} className="px-2 mb-1 opacity-50 cursor-not-allowed group relative">
+          <div className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all`}>
+            <Lock className="h-4 w-4 text-muted-foreground" />
+            {!sidebarCollapsed && <span className="text-sm font-medium text-muted-foreground">{item.label}</span>}
           </div>
+          {/* Tooltip for locked items could go here */}
         </div>
       );
     }
 
     return (
       <Link key={item.path} href={item.path}>
-        <div className="relative group px-3 mb-1">
-          {isActive && (
-            <motion.div layoutId="nav-pill" className="absolute inset-x-3 inset-y-0 bg-primary/10 border border-primary/20 rounded-2xl" />
+        <div className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer group mb-1 ${isActive
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          }`}>
+          <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+          {!sidebarCollapsed && (
+            <span className="text-sm truncate flex-1">
+              {item.label}
+            </span>
           )}
-          <div className={`relative flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-500 ${isActive ? "text-primary italic" : "text-white/30 hover:text-white"}`}>
-            <div className="flex items-center gap-4">
-              <Icon className={`h-5 w-5 transition-all ${isActive ? "text-primary scale-110" : "opacity-40"}`} />
-              {!sidebarCollapsed && (
-                <span className="text-xs font-black uppercase tracking-[0.15em] whitespace-nowrap">
-                  {item.label}
-                </span>
-              )}
-            </div>
-            {!sidebarCollapsed && item.badge && <div>{item.badge}</div>}
-          </div>
+          {isActive && !sidebarCollapsed && (
+            <motion.div layoutId="active-pill" className="absolute right-2 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+          )}
         </div>
       </Link>
     );
   };
 
+  if (isUserLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-background">
+        <PremiumLoader text="Initializing Workspace..." />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-black overflow-hidden selection:bg-primary/30 font-sans">
+    <div className="flex h-screen bg-background font-sans text-foreground overflow-hidden">
       <InternetConnectionBanner />
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
       <ActivationChecklist isOpen={showChecklist} onClose={closeChecklist} onComplete={handleComplete} />
 
+      {/* Desktop Sidebar */}
       <motion.aside
-        className="hidden md:flex flex-col border-r bg-black/40 backdrop-blur-3xl border-white/5 relative z-50"
-        animate={{ width: sidebarCollapsed ? "6rem" : "20rem" }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="hidden md:flex flex-col border-r border-border/40 bg-card/30 backdrop-blur-xl z-50 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        animate={{ width: sidebarCollapsed ? "5rem" : "18rem" }}
       >
-        <div className="h-24 flex items-center justify-between px-8 border-b border-white/5">
-          <AnimatePresence mode="wait">
+        {/* Sidebar Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border/40">
+          <div className={`flex items-center gap-3 ${sidebarCollapsed ? "justify-center w-full" : ""}`}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-primary to-purple-600 text-white shadow-lg shadow-primary/20">
+              <Brain className="h-5 w-5" />
+            </div>
             {!sidebarCollapsed && (
-              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-xl border border-primary/20 shadow-2xl">
-                  <img src="/logo.png" alt="Audnix" className="h-6 w-6 object-contain grayscale brightness-200" />
-                </div>
-                <span className="font-black text-xl tracking-tighter text-white uppercase italic">Audnix<span className="text-primary not-italic">.AI</span></span>
-              </motion.div>
+              <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                Audnix
+              </span>
             )}
-            {sidebarCollapsed && (
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="mx-auto">
-                <img src="/logo.png" alt="Audnix" className="h-6 w-6 grayscale brightness-200" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          </div>
+          {!sidebarCollapsed && (
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => setSidebarCollapsed(true)}>
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-8 custom-scrollbar px-3">
-          {renderNavItem({ label: "Command Center", icon: Home, path: "/dashboard" })}
-          {renderNavItem({ label: "Neural Nodes", icon: Inbox, path: "/dashboard/inbox" })}
-
-          <div className="px-6 my-8 border-t border-white/5" />
-
-          {navGroups.map(group => (
-            <div key={group.label} className="mb-6">
-              {!sidebarCollapsed && (
-                <div className="px-6 py-2 mb-2 flex items-center justify-between cursor-pointer group" onClick={() => toggleGroup(group.label)}>
-                  <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] group-hover:text-white/50 transition-colors uppercase italic">{group.label}</span>
-                  <ChevronDown className={`h-3 w-3 text-white/10 transition-transform ${expandedGroups[group.label] ? "rotate-180" : ""}`} />
-                </div>
-              )}
-              <AnimatePresence initial={false}>
-                {(expandedGroups[group.label] || sidebarCollapsed) && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ))}
-
-          <div className="px-6 my-8 border-t border-white/5" />
-          {renderNavItem({ label: "Operator Settings", icon: Settings, path: "/dashboard/settings" })}
-        </nav>
-
-        <div className="p-6 mt-auto border-t border-white/5">
-          <div className={`p-4 rounded-3xl bg-white/[0.03] border border-white/5 flex items-center gap-4 ${sidebarCollapsed ? "justify-center" : "justify-between"}`}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-4 cursor-pointer">
-                  <Avatar className="h-10 w-10 rounded-2xl border border-primary/20 shadow-2xl">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-black rounded-2xl uppercase">{(user?.name || "U").charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  {!sidebarCollapsed && (
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-black text-white italic truncate uppercase">{user?.name || "Neural Operator"}</span>
-                      <span className="text-[9px] text-white/30 font-bold uppercase tracking-widest mt-0.5">Systems Active</span>
-                    </div>
-                  )}
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" align="end" className="w-64 bg-black/90 backdrop-blur-3xl border-white/10 rounded-[2rem] p-3 shadow-2xl">
-                <DropdownMenuItem onClick={handleSignOut} className="text-red-400 font-black uppercase text-[10px] tracking-widest rounded-2xl p-4 cursor-pointer focus:bg-red-400/10">
-                  <LogOut className="w-4 h-4 mr-3" />
-                  Terminate Session
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        {sidebarCollapsed && (
+          <div className="flex justify-center py-2 border-b border-border/40">
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={() => setSidebarCollapsed(false)}>
+              <PanelLeftOpen className="h-4 w-4" />
+            </Button>
           </div>
+        )}
+
+        {/* Navigation */}
+        <ScrollArea className="flex-1 px-3 py-6">
+          <div className="space-y-6">
+            <div>
+              {!sidebarCollapsed && <h4 className="px-4 text-xs font-semibold text-muted-foreground/50 uppercase tracking-widest mb-2">Platform</h4>}
+              {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+              {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+            </div>
+
+            {navGroups.map(group => (
+              <div key={group.label} className="space-y-1">
+                {!sidebarCollapsed ? (
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className="flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold text-muted-foreground/50 uppercase tracking-widest hover:text-foreground transition-colors group"
+                  >
+                    {group.label}
+                    <ChevronDown className={`h-3 w-3 transition-transform opacity-50 group-hover:opacity-100 ${expandedGroups[group.label] ? "" : "-rotate-90"}`} />
+                  </button>
+                ) : (
+                  <Separator className="my-2 bg-border/40" />
+                )}
+
+                <AnimatePresence initial={false}>
+                  {(expandedGroups[group.label] || sidebarCollapsed) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden space-y-0.5"
+                    >
+                      {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+
+            <div className="pt-4">
+              {sidebarCollapsed && <Separator className="my-2 bg-border/40" />}
+              {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-border/40 bg-background/30 backdrop-blur-md">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-sidebar-accent transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
+                <Avatar className="h-9 w-9 rounded-lg border border-border/50 shadow-sm transition-transform group-hover:scale-105">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="rounded-lg bg-gradient-to-br from-muted to-muted/50 font-medium text-xs">
+                    {(user?.name || "U").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {!sidebarCollapsed && (
+                  <div className="flex-1 min-w-0 flex flex-col items-start text-left">
+                    <p className="text-sm font-semibold truncate text-foreground">{user?.name || "User"}</p>
+                    <p className="text-xs text-muted-foreground truncate w-full">{user?.plan || "Free Plan"}</p>
+                  </div>
+                )}
+                {!sidebarCollapsed && <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground transition-colors" />}
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-56" side={sidebarCollapsed ? "right" : "top"} sideOffset={8}>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.name}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem onClick={() => window.location.href = '/dashboard/settings'}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = '/dashboard/pricing'}>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Subscription
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </motion.aside>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-black">
-        <header className="h-24 border-b border-white/5 bg-black/40 backdrop-blur-3xl flex items-center justify-between px-8 z-40">
-          <div className="flex items-center gap-8 flex-1">
-            <Button variant="ghost" size="icon" className="md:hidden text-white/40" onClick={() => setMobileMenuOpen(true)}>
-              <Menu className="w-6 h-6" />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
+        {/* Top Header */}
+        <header className="h-16 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-40 transition-all">
+          <div className="flex items-center gap-4 flex-1">
+            <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-muted-foreground" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="h-5 w-5" />
             </Button>
-            <div className="hidden md:flex max-w-md w-full relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-primary" />
-              <Input className="h-12 pl-12 bg-white/[0.03] border-white/5 rounded-2xl text-sm font-bold placeholder:text-white/10 focus:ring-1 focus:ring-primary/20" placeholder="Neural Query Engine..." />
+
+            {/* Global Search - Apple Spotlight Style */}
+            <div className="relative max-w-md w-full hidden md:block group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Search leads, deals, or commands..."
+                className="h-10 pl-10 bg-muted/40 border-transparent focus:bg-background focus:border-primary/20 focus:ring-2 focus:ring-primary/10 transition-all rounded-xl"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                <kbd className="inline-flex items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                  <span className="text-xs">⌘</span>K
+                </kbd>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <ThemeSwitcher />
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.03] relative group">
-                  <Bell className="w-5 h-5 text-white/40 group-hover:text-white transition-colors" />
-                  {unreadNotifications > 0 && <span className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full animate-pulse" />}
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50">
+                  <Bell className="h-5 w-5" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background animate-pulse" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0">
+                <div className="p-4 border-b border-border/50 flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Notifications</h4>
+                  {unreadNotifications > 0 && <Badge variant="secondary" className="text-xs bg-muted/50">{unreadNotifications} new</Badge>}
+                </div>
+                <ScrollArea className="h-[300px]">
+                  {recentNotifications.length > 0 ? (
+                    <div className="divide-y divide-border/30">
+                      {recentNotifications.map(notification => (
+                        <div key={notification.id} className={`p-4 hover:bg-muted/30 transition-colors cursor-pointer flex gap-3 ${!notification.read ? 'bg-primary/5' : ''}`}>
+                          <div className={`mt-1 h-2 w-2 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-transparent'}`} />
+                          <div className="space-y-1">
+                            <p className={`text-sm ${!notification.read ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{notification.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{notification.description}</p>
+                            <p className="text-[10px] text-muted-foreground/70">{new Date(notification.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground">
+                      <Inbox className="h-8 w-8 mb-2 opacity-50" />
+                      <p className="text-sm">No new notifications</p>
+                    </div>
+                  )}
+                </ScrollArea>
+                <div className="p-2 border-t border-border/50 bg-muted/10">
+                  <Button variant="ghost" size="sm" className="w-full text-xs h-8">View all notifications</Button>
+                </div>
+              </DropdownMenuContent>
             </DropdownMenu>
+
+            <Separator orientation="vertical" className="h-6 mx-1 bg-border/40" />
+
+            {/* Mobile Header Profile */}
+            <div className="md:hidden">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback>{(user?.name || "U")[0]}</AvatarFallback>
+              </Avatar>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-12 custom-scrollbar scroll-smooth">
-          <div className="max-w-7xl mx-auto min-h-full">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-              {children}
-            </motion.div>
+        {/* Mobile Sidebar */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm md:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="fixed inset-y-0 left-0 z-50 w-72 bg-background border-r border-border shadow-2xl md:hidden"
+              >
+                <div className="flex items-center justify-between p-4 border-b border-border/40">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-primary/10 rounded-lg text-primary"><Brain className="h-5 w-5" /></div>
+                    <span className="font-bold text-lg">Audnix</span>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+                <ScrollArea className="h-full px-4 py-6">
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-widest mb-3 px-2">Navigation</h4>
+                      {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+                      {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+                    </div>
+                    {navGroups.map(group => (
+                      <div key={group.label} className="mb-6">
+                        <h4 className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-widest mb-3 px-2">{group.label}</h4>
+                        <div className="space-y-1">
+                          {group.items.map(item => renderNavItem(item))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <div className="p-4 border-t border-border/40 bg-muted/5">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border border-border">
+                      <AvatarImage src={user?.avatar} />
+                      <AvatarFallback>{(user?.name || "U")[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{user?.name}</p>
+                      <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground" onClick={handleSignOut}>Sign out</Button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto bg-muted/5 p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in py-2">
+            {children}
           </div>
         </main>
       </div>
