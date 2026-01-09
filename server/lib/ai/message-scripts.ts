@@ -22,10 +22,7 @@ export interface EmailScripts {
   day7: EmailMessageScript;
 }
 
-export interface WhatsAppScripts {
-  day3: SocialMessageScript;
-  day6: SocialMessageScript;
-}
+
 
 export interface InstagramScripts {
   day5: SocialMessageScript;
@@ -34,20 +31,20 @@ export interface InstagramScripts {
 
 export interface ChannelScripts {
   email: EmailScripts;
-  whatsapp: WhatsAppScripts;
+
   instagram: InstagramScripts;
 }
 
 export interface PersonalizeScriptContext {
-  lead: { 
-    name: string; 
-    firstName: string; 
-    company?: string; 
-    metadata?: Record<string, unknown>; 
+  lead: {
+    name: string;
+    firstName: string;
+    company?: string;
+    metadata?: Record<string, unknown>;
   };
-  sender: { 
-    name: string; 
-    email?: string; 
+  sender: {
+    name: string;
+    email?: string;
   };
   observation?: string;
   question?: string;
@@ -114,24 +111,7 @@ All the best,
     }
   },
 
-  whatsapp: {
-    day3: {
-      tone: 'casual, conversational, friendly',
-      structure: 'Casual greeting → Specific mention → Question or update',
-      example: `Hey {{lead.name}}! 👋
 
-Saw {{specific_thing}} and thought of you. How are things going with {{context}}?
-
-No pressure, just checking in 😊`
-    },
-    day6: {
-      tone: 'helpful, value-first, quick',
-      structure: 'Quick value add → Open door → Light ask',
-      example: `{{lead.name}} - found this and thought you might like it: {{link_or_brief_value}}
-
-Curious what you think 🤔`
-    }
-  },
 
   instagram: {
     day5: {
@@ -164,13 +144,9 @@ export function getMessageScript(
     if (campaignDay <= 6) return emailScripts.day5;
     return emailScripts.day7;
   }
-  
-  if (channel === 'whatsapp') {
-    const whatsappScripts = messageScripts.whatsapp;
-    if (campaignDay <= 3) return whatsappScripts.day3;
-    return whatsappScripts.day6;
-  }
-  
+
+
+
   if (channel === 'instagram') {
     const instagramScripts = messageScripts.instagram;
     if (campaignDay <= 5) return instagramScripts.day5;

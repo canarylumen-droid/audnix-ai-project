@@ -28,14 +28,14 @@ interface BrandPersonalizationContext {
 export async function getBrandPersonalization(userId: string): Promise<BrandPersonalizationContext> {
   try {
     const user = await storage.getUserById(userId);
-    
+
     if (!user) {
       return getDefaultContext();
     }
 
     const metadata = user.metadata as Record<string, unknown> | undefined;
-    const closingLine = typeof metadata?.closingLine === 'string' 
-      ? metadata.closingLine 
+    const closingLine = typeof metadata?.closingLine === 'string'
+      ? metadata.closingLine
       : `All the best,\n{{senderName}}`;
 
     return {
@@ -75,7 +75,7 @@ export function personalizeBrandContext(
 
   personalized = personalized.replace(/{{sender\.name}}/g, context.senderName);
   personalized = personalized.replace(/{{senderName}}/g, context.senderName);
-  
+
   personalized = personalized.replace(/{{company\.name}}/g, context.companyName);
   personalized = personalized.replace(/{{companyName}}/g, context.companyName);
 
@@ -87,10 +87,10 @@ export function personalizeBrandContext(
  */
 export function buildEmailSignature(context: BrandPersonalizationContext): string {
   const signatureLine = context.closingLine ?? `Best regards,\n${context.senderName}`;
-  
+
   const emailLine = context.senderEmail ? `${context.senderEmail}` : '';
   const companyLine = context.companyName ? `${context.companyName}` : '';
-  
+
   return `
 ---
 ${signatureLine}
@@ -136,11 +136,7 @@ export async function formatChannelMessage(
       }
       break;
 
-    case 'whatsapp':
-      if (includeSignature && context.senderName !== 'Team') {
-        formatted += `\n\n- ${context.senderName}`;
-      }
-      break;
+
 
     case 'instagram':
       formatted = formatted.trim();

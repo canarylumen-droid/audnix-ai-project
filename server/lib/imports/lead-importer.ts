@@ -1,5 +1,6 @@
 
 import { db } from '../../db.js';
+import { storage } from '../../storage.js';
 import { followUpQueue } from '../../../shared/schema.js';
 import { InstagramOAuth } from "../oauth/instagram.js";
 import { decrypt } from "../crypto/encryption.js";

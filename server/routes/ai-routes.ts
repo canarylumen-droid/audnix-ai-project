@@ -908,7 +908,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
           name: name || 'Unknown Lead',
           email: email || undefined,
           phone: phone || undefined,
-          channel: email ? 'email' : 'whatsapp',
+          channel: 'email',
           status: 'new',
           metadata: {
             imported_from_csv: true,
@@ -1022,6 +1022,7 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
       }
     }
 
+    /* Phone import removed as WhatsApp is disabled
     // Import phone leads
     for (const phone of phones) {
       if (currentLeadCount + results.leadsImported >= maxLeads) break;
@@ -1032,7 +1033,7 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
           userId,
           name: 'Lead ' + phone.slice(-4),
           phone,
-          channel: 'whatsapp',
+          channel: 'instagram', // Fallback to instagram? Or just skip.
           status: 'new',
           metadata: {
             imported_from_pdf: true,
@@ -1040,11 +1041,12 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
           }
         });
         importedIdentifiers.add(phone);
-        results.leadsImported++;
+        // results.leadsImported++; // Skip count
       } catch (error) {
         results.errors.push(`Failed to import ${phone}`);
       }
     }
+    */
 
     res.json({
       success: results.leadsImported > 0,
