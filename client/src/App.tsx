@@ -19,7 +19,8 @@ import VideoAutomationPage from "./pages/dashboard/video-automation";
 import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
-import { AuthGuard } from "@/components/auth-guard";
+import { ComponentShowcase } from '@/pages/dashboard/component-test';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { CustomCursor } from "@/components/ui/CustomCursor";
 
 const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
@@ -45,6 +46,20 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/data-deletion" component={DataDeletion} />
+      <Route path="/leads/prospecting">
+        {() => (
+          <AuthGuard>
+            <ProspectingTools />
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/components">
+        {() => (
+          <AuthGuard>
+            <ComponentShowcase />
+          </AuthGuard>
+        )}
+      </Route>
       <Route path="/dashboard">
         {() => (
           <AuthGuard>
