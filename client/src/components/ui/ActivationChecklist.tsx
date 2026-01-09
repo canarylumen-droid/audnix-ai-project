@@ -257,6 +257,12 @@ export function useActivationChecklist() {
       }
 
       if (allComplete && !alreadyCompleteMarked) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#22d3ee', '#818cf8', '#ffffff']
+        });
         updateMetadata.mutate({ activationChecklistComplete: true });
         localStorage.setItem("audnixChecklistDismissed", "true");
         setTimeout(() => setShowChecklist(false), 3000);

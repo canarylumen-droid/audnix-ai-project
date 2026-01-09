@@ -1,7 +1,7 @@
 
 import { useState, useCallback, KeyboardEvent, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
@@ -186,6 +186,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     refetchInterval: 60000,
   });
 
+  const { data: dashboardStats } = useQuery<any>({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
   const unreadNotifications = notificationsData?.unreadCount || 0;
   const recentNotifications = notificationsData?.notifications.slice(0, 5) || [];
 
@@ -221,22 +225,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
 
     return (
-      <Link key={item.path} href={item.path}>
-        <div className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer group mb-1 ${isActive
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          }`}>
-          <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
-          {!sidebarCollapsed && (
-            <span className="text-sm truncate flex-1">
-              {item.label}
-            </span>
-          )}
-          {isActive && !sidebarCollapsed && (
-            <motion.div layoutId="active-pill" className="absolute right-2 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-          )}
-        </div>
-      </Link>
+      <div
+        key={item.path}
+        onClick={() => setLocation(item.path)}
+        className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all cursor-pointer group mb-1 ${isActive
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          }`}
+      >
+        <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
+        {!sidebarCollapsed && (
+          <span className="text-sm truncate flex-1">
+            {item.label}
+          </span>
+        )}
+        {isActive && !sidebarCollapsed && (
+          <motion.div layoutId="active-pill" className="absolute right-2 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+        )}
+      </div>
     );
   };
 
@@ -352,29 +358,67 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 {!sidebarCollapsed && <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-foreground transition-colors" />}
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-56" side={sidebarCollapsed ? "right" : "top"} sideOffset={8}>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+            <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-0" side={sidebarCollapsed ? "right" : "top"} sideOffset={8}>
+              <div className="p-4 border-b border-border/50 bg-muted/20">
+                <div className="flex items-center gap-3 mb-3">
+                  <Avatar className="h-10 w-10 border border-primary/20">
+                    <AvatarImage src={user?.avatar} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {(user?.name || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <p className="text-sm font-bold text-foreground leading-none mb-1">{user?.name}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground leading-none truncate w-40">{user?.email}</p>
+                  </div>
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => window.location.href = '/dashboard/settings'}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
+
+                {/* Usage Limits */}
+                <div className="space-y-3 mt-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 italic">
+                      <span>Leads Usage</span>
+                      <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted/50 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
+                        className="h-full bg-primary"
+                      />
+                    </div>
+                  </div>
+
+                  {user?.plan === 'trial' && (
+                    <div className="p-2 rounded-xl bg-primary/5 border border-primary/20 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-3 w-3 text-primary animate-pulse" />
+                        <span className="text-[10px] font-black uppercase text-primary italic">Trial Active</span>
+                      </div>
+                      <span className="text-[10px] font-black text-primary italic">{dashboardStats?.trialDaysLeft || 0}d left</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-2">
+                <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Actions</DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span className="text-sm font-medium">Profile Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span className="text-sm font-medium">Subscription</span>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="my-2" />
+                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span className="text-sm font-bold">Sign out Protocol</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.location.href = '/dashboard/pricing'}>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Subscription
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -515,7 +559,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-medium text-sm">{user?.name}</p>
-                      <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground" onClick={handleSignOut}>Sign out</Button>
+                      <Button variant="ghost" className="p-0 h-auto text-xs text-muted-foreground hover:bg-transparent hover:text-foreground" onClick={handleSignOut}>Sign out</Button>
                     </div>
                   </div>
                 </div>

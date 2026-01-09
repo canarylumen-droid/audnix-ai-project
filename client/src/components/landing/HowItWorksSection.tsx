@@ -1,6 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { Database, Brain, Zap, MessageSquare, ArrowRight, CheckCircle2, Terminal, Cpu } from "lucide-react";
+import { Link } from "wouter";
 
 const STEPS = [
     {
