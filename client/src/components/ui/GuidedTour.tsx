@@ -137,7 +137,7 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 pointer-events-auto bg-black/40 backdrop-blur-[2px]"
+          className="absolute inset-0 pointer-events-auto bg-black/60 backdrop-blur-[8px]"
           style={{
             maskImage: targetRect && step.position !== "center"
               ? `radial-gradient(circle ${Math.max(targetRect.width, targetRect.height) / 2 + 30}px at ${targetRect.left + targetRect.width / 2}px ${targetRect.top + targetRect.height / 2}px, transparent 100%, black 100%)`

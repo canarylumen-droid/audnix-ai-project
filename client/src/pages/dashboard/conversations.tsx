@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import { useParams } from "wouter";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,6 +83,24 @@ export default function ConversationsPage() {
   const [messageOffset, setMessageOffset] = useState(0);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [showIntelligence, setShowIntelligence] = useState(false);
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
+  const handleMenuAction = useCallback(async (action: string, data: any) => {
+    if (action === 'archive') {
+      try {
+        await apiRequest("POST", "/api/bulk/update-status", {
+          leadIds: [data.id],
+          status: 'cold'
+        });
+        toast({ title: "Thread Archived", description: "Lead has been moved to cold" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to archive thread", variant: "destructive" });
+      }
+    } else if (action === 'mark_unread') {
+      toast({ title: "Marked as Unread", description: "Action simulated for UI demo" });
+    }
+  }, [toast]);
 
   // Get user for real-time subscriptions
   const { data: user } = useQuery({
@@ -254,16 +273,20 @@ export default function ConversationsPage() {
         <div className="overflow-y-auto flex-1 p-4 space-y-2">
           {/* Example Lead Item - replace with actual lead data */}
           <Card
-            className={`p-3 cursor-pointer hover:bg-accent ${selectedLead?.id === lead.id ? "bg-accent" : ""
+            className={`p-3 cursor-pointer hover:bg-accent transition-all duration-200 ${selectedLead?.id === lead.id ? "bg-accent border-l-4 border-l-primary" : ""
               }`}
             onClick={() => setSelectedLead(lead)}
+            onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
           >
             <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{lead.name?.charAt(0) || "L"}</AvatarFallback>
+              <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">{lead.name?.charAt(0) || "L"}</AvatarFallback>
               </Avatar>
-              <div>
-                <h3 className="text-sm font-semibold">{lead.name}</h3>
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-sm font-semibold truncate">{lead.name}</h3>
+                  {lead.status === 'new' && <div className="w-2 h-2 rounded-full bg-primary mt-1" />}
+                </div>
                 <p className="text-xs text-muted-foreground truncate w-36">
                   Last message content...
                 </p>
@@ -502,13 +525,20 @@ export default function ConversationsPage() {
         </div>
       </Card>
 
-      {lead && (
-        <LeadIntelligenceModal
-          isOpen={showIntelligence}
-          onOpenChange={setShowIntelligence}
-          lead={lead}
-        />
-      )}
-    </div>
+      {
+        lead && (
+          <LeadIntelligenceModal
+            isOpen={showIntelligence}
+            onOpenChange={setShowIntelligence}
+            lead={lead}
+          />
+        )
+      }
+      <CustomContextMenu
+        config={contextConfig}
+        onClose={closeMenu}
+        onAction={handleMenuAction}
+      />
+    </div >
   );
 }

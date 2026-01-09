@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -316,20 +317,34 @@ export default function VideoAutomationPage() {
   }, []);
 
   const { data: monitors, isLoading: monitorsLoading } = useQuery<VideoMonitor[]>({
-    queryKey: ["/api/video/monitors"],
+    queryKey: ["/api/video-automation/monitors"],
   });
 
-  const { data: instagramReels, isLoading: reelsLoading } = useQuery({
-    queryKey: ["/api/video/reels"],
+  const { data: instagramMedia, isLoading: reelsLoading } = useQuery({
+    queryKey: ["/api/dashboard/instagram/media"],
     enabled: canAccessVideo,
   });
 
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
+  // Map backend media to the format expected by the UI
+  const instagramReels = {
+    reels: (instagramMedia as any)?.media?.map((item: any) => ({
+      id: item.id,
+      url: item.permalink,
+      mediaUrl: item.media_url,
+      thumbnailUrl: item.thumbnail_url || item.media_url,
+      caption: item.caption || '',
+      timestamp: item.timestamp,
+    })) || []
+  };
+
   const createMonitor = useMutation({
-    mutationFn: async (data: CreateMonitorPayload) => {
-      return apiRequest("POST", "/api/video/monitors", data);
+    mutationFn: async (data: any) => {
+      return apiRequest("POST", "/api/video-automation/monitors", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
       toast({ title: "Monitor activated", description: "Audnix is now watching this post" });
       setVideoUrl("");
     },
@@ -338,18 +353,37 @@ export default function VideoAutomationPage() {
 
   const toggleMonitor = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      return apiRequest("PATCH", `/api/video/monitors/${id}`, { isActive });
+      return apiRequest("PATCH", `/api/video-automation/monitors/${id}`, { isActive });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] }),
   });
 
   const deleteMonitor = useMutation({
-    mutationFn: async (id: string) => apiRequest("DELETE", `/api/video/monitors/${id}`),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/video-automation/monitors/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/video/monitors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
       toast({ title: "Monitor removed" });
     },
   });
+
+  const handleMenuAction = useCallback((action: string, data: any) => {
+    switch (action) {
+      case 'automate_video':
+        createMonitor.mutate({
+          videoId: data.id,
+          videoUrl: data.url,
+          productLink: "https://audnix.ai/demo",
+          ctaText: "Get Started",
+        });
+        break;
+      case 'copy_link':
+        toast({ title: "Link Copied", description: "Video URL saved to clipboard" });
+        break;
+      case 'save_thumbnail':
+        window.open(data.thumbnailUrl, '_blank');
+        break;
+    }
+  }, [createMonitor, toast]);
 
   // Filter and Pagination Logic
   const filteredReels = instagramReels?.reels?.filter((reel: any) =>
@@ -480,12 +514,15 @@ export default function VideoAutomationPage() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
+                      onContextMenu={(e) => handleContextMenu(e, 'video', reel)}
                       className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-black border border-border/20 shadow-sm hover:shadow-xl transition-all cursor-pointer ring-offset-background hover:ring-2 hover:ring-pink-500/50 hover:ring-offset-2"
                       onClick={() => {
                         if (!videoUrl) setVideoUrl(reel.url);
                         createMonitor.mutate({
+                          videoId: reel.id,
                           videoUrl: reel.permalink || reel.url,
-                          ctaLink: "https://audnix.ai",
+                          productLink: "https://audnix.ai",
+                          ctaText: "Get Started",
                           followUpConfig: { askFollowOnConvert: true, askFollowOnDecline: true }
                         });
                       }}
@@ -545,6 +582,12 @@ export default function VideoAutomationPage() {
           )}
         </div>
       </div>
+
+      <CustomContextMenu
+        config={contextConfig}
+        onClose={closeMenu}
+        onAction={handleMenuAction}
+      />
     </div>
   );
 }

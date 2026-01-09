@@ -15,7 +15,7 @@ interface CustomContextMenuProps {
     targetId?: string; // Optional: ID of container to attach to. If null, global.
     onClose: () => void;
     config: ContextMenuConfig;
-    onAction?: (action: string) => void;
+    onAction?: (action: string, data?: any) => void;
 }
 
 export function CustomContextMenu({
@@ -92,7 +92,11 @@ export function CustomContextMenu({
                             <button
                                 key={item.id}
                                 onClick={() => {
-                                    onAction?.(item.id!);
+                                    if (item.id === 'copy_link') {
+                                        const linkToCopy = config.data?.url || window.location.href;
+                                        navigator.clipboard.writeText(linkToCopy);
+                                    }
+                                    onAction?.(item.id!, config.data);
                                     onClose();
                                 }}
                                 className={cn(

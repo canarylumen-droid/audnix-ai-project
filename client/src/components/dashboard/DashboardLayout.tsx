@@ -223,6 +223,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
       <div
         key={item.path}
+        data-testid={`nav-item-${item.label.toLowerCase()}`}
         onClick={() => setLocation(item.path)}
         className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group mb-1 ${isActive
           ? "bg-primary/10 text-primary font-bold shadow-sm"
