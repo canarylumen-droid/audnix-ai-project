@@ -36,7 +36,7 @@ export function ComparisonSection() {
                         <span className="text-primary tracking-[-0.08em] block drop-shadow-[0_0_40px_rgba(var(--primary),0.3)]">STANDARD.</span>
                     </motion.h2>
                     <p className="text-white/40 font-bold text-2xl md:text-3xl max-w-3xl mx-auto leading-tight tracking-tight">
-                        Why settle for legacy tools that just <span className="text-white decoration-primary/40 underline underline-offset-8 decoration-2">organize leads</span> when you can have an intelligence protocol that <span className="text-white italic cursor-blink">closes them</span> autonomously?
+                        Why settle for legacy tools that just <span className="text-white decoration-primary/40 underline underline-offset-8 decoration-2">organize leads</span> when you can have an intelligence protocol that <span className="text-white cursor-blink">closes them</span> autonomously?
                     </p>
                 </div>
 
@@ -104,7 +104,7 @@ export function ComparisonSection() {
                             <motion.div
                                 key={brand.name}
                                 whileHover={{ scale: 1.15, rotate: 2 }}
-                                className="group relative cursor-none"
+                                className="group relative"
                             >
                                 <div className="absolute -inset-10 bg-primary/10 blur-[40px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 <span className="text-3xl md:text-5xl font-black tracking-[-0.08em] text-white/30 group-hover:text-white transition-all duration-500 relative z-10">

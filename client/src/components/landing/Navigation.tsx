@@ -88,7 +88,7 @@ export function Navigation() {
                     <div className="grid gap-1">
                       {SOLUTIONS.map((sol) => (
                         <Link key={sol.name} href={sol.href}>
-                          <div className="flex items-start gap-4 p-4 rounded-xl cursor-none hover:bg-white/5 transition-colors group/item">
+                          <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group/item">
                             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary transition-colors">
                               <sol.icon className="w-5 h-5" />
                             </div>

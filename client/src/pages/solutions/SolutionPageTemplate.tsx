@@ -129,9 +129,8 @@ export function SolutionPageTemplate({ title, subtitle, description, features, u
                     </div>
                 </section>
 
-                {/* Final CTA */}
                 <section className="py-40 px-6 text-center space-y-12">
-                    <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9]">Start Your <br /> <span className="text-primary italic text-6xl md:text-9xl">Evolution.</span></h2>
+                    <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase leading-[0.9]">Start Your <br /> <span className="text-primary text-6xl md:text-9xl">Evolution.</span></h2>
                     <Link href="/auth">
                         <Button size="lg" className="h-20 px-16 rounded-3xl bg-white text-black font-black uppercase tracking-widest hover:bg-white/90 transition-all text-lg shadow-[0_30px_60px_rgba(0,0,0,0.5)]">
                             Initialize Access

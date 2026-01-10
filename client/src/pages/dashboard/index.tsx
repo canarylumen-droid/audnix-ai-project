@@ -1,13 +1,13 @@
 import { Route, Switch } from "wouter";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { lazy, Suspense } from "react";
-import DashboardHome from "./home";
-import InboxPage from "./inbox";
-import ConversationsPage from "./conversations";
-import DealsPage from "./deals";
-import CalendarPage from "./calendar";
-import IntegrationsPage from "./integrations";
-import InsightsPage from "./insights";
+const DashboardHome = lazy(() => import("./home"));
+const InboxPage = lazy(() => import("./inbox"));
+const ConversationsPage = lazy(() => import("./conversations"));
+const DealsPage = lazy(() => import("./deals"));
+const CalendarPage = lazy(() => import("./calendar"));
+const IntegrationsPage = lazy(() => import("./integrations"));
+const InsightsPage = lazy(() => import("./insights"));
 
 // Lazy load pages that might be large or are duplicated in App.tsx
 const PricingPage = lazy(() => import("./pricing"));

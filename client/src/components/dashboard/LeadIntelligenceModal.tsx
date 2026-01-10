@@ -34,6 +34,7 @@ interface IntelligenceData {
     lead_id: string;
     intent: {
         intentLevel: "high" | "medium" | "low";
+        intentScore: number;
         confidence: number;
         signals: string[];
     };
@@ -44,7 +45,7 @@ interface IntelligenceData {
     };
     churnRisk: {
         churnRiskLevel: "high" | "medium" | "low";
-        riskFactors: string[];
+        indicators: string[];
     };
     nextBestAction: string;
 }
@@ -89,15 +90,15 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
     });
 
     const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-emerald-500";
-        if (score >= 50) return "text-yellow-500";
+        if (score >= 80) return "text-blue-500";
+        if (score >= 50) return "text-primary";
         return "text-muted-foreground";
     };
 
     const getRiskColor = (risk: string) => {
         if (risk === "high") return "text-red-500 bg-red-500/10 border-red-500/20";
         if (risk === "medium") return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
-        return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
+        return "text-blue-500 bg-blue-500/10 border-blue-500/20";
     };
 
     return (
@@ -105,7 +106,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-background to-muted/20 border-border/60">
                 <DialogHeader className="pb-4 border-b border-border/40">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-primary flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                             <Brain className="h-6 w-6" />
                         </div>
                         <div>
@@ -132,9 +133,9 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     <div className="mx-auto h-20 w-20 relative flex items-center justify-center">
                                         <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
                                             <path className="text-muted/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                                            <path className={getScoreColor(lead?.score || 0)} strokeDasharray={`${lead?.score || 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                                            <path className={getScoreColor(intelligence.intent.intentScore)} strokeDasharray={`${intelligence.intent.intentScore}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
                                         </svg>
-                                        <span className="absolute text-2xl font-bold">{lead?.score || 0}</span>
+                                        <span className="absolute text-2xl font-bold">{intelligence.intent.intentScore}</span>
                                     </div>
                                     <p className="text-sm font-medium">Lead Score</p>
                                     <p className="text-xs text-muted-foreground">Based on engagement & firmographics</p>
@@ -144,13 +145,13 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                             {/* Predicted Deal Value */}
                             <Card className="bg-card/50 border-border/60">
                                 <CardContent className="p-4 pt-6 text-center space-y-2">
-                                    <div className="mx-auto h-16 w-16 rounded-full bg-emerald-500/10 flex items-center justify-center mb-2">
-                                        <DollarSign className="h-8 w-8 text-emerald-500" />
+                                    <div className="mx-auto h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center mb-2">
+                                        <DollarSign className="h-8 w-8 text-blue-500" />
                                     </div>
                                     <div className="text-2xl font-bold text-foreground">
                                         ${intelligence.predictions.predictedAmount.toLocaleString()}
                                     </div>
-                                    <p className="text-sm font-medium text-emerald-500">Predicted Deal Value</p>
+                                    <p className="text-sm font-medium text-blue-500">Predicted Deal Value</p>
                                     <p className="text-xs text-muted-foreground">
                                         {intelligence.predictions.confidence}% confidence
                                     </p>
@@ -165,7 +166,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     </Badge>
                                     <div className="text-sm font-medium pt-2">Retention Analysis</div>
                                     <div className="flex flex-wrap gap-1 justify-center mt-2">
-                                        {intelligence.churnRisk.riskFactors.length ? intelligence.churnRisk.riskFactors.map((r, i) => (
+                                        {intelligence.churnRisk.indicators.length ? intelligence.churnRisk.indicators.map((r, i) => (
                                             <span key={i} className="text-[10px] bg-muted/50 px-1.5 py-0.5 rounded border border-border/50 text-muted-foreground">{r}</span>
                                         )) : <span className="text-xs text-muted-foreground">No risk factors detected</span>}
                                     </div>
@@ -183,9 +184,9 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     <div>
                                         <div className="font-medium flex items-center gap-2">
                                             {lead?.email || "No Email"}
-                                            {lead?.email && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                                            {lead?.email && <CheckCircle2 className="h-3 w-3 text-blue-500" />}
                                         </div>
-                                        <div className="text-xs text-muted-foreground">Email Reputation: <span className="text-emerald-500 font-medium">Verified Safe</span></div>
+                                        <div className="text-xs text-muted-foreground">Email Reputation: <span className="text-blue-500 font-medium">Verified Safe</span></div>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -221,7 +222,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                                 </li>
                                             ))}
                                             {!intelligence.intent.signals.length && (
-                                                <li className="text-xs text-muted-foreground italic">No strong signlas yet</li>
+                                                <li className="text-xs text-muted-foreground">No strong signals yet</li>
                                             )}
                                         </ul>
                                     </div>
@@ -232,11 +233,11 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 <h4 className="text-sm font-semibold flex items-center gap-2">
                                     <Activity className="h-4 w-4 text-primary" /> Next Best Action
                                 </h4>
-                                <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 h-full flex flex-col justify-center text-center space-y-3">
+                                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 h-full flex flex-col justify-center text-center space-y-3">
                                     <p className="font-medium text-lg text-foreground">
                                         {intelligence.nextBestAction}
                                     </p>
-                                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20">
+                                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20">
                                         Execute Strategy <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>

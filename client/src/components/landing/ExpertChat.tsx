@@ -1,20 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     MessageCircle,
     X,
     Send,
     Bot,
-    ShieldCheck,
-    Sparkles,
     ChevronDown,
     Minus,
     ArrowUpRight,
-    Headphones,
-    Brain,
-    Rocket,
     Globe,
-    Cpu
+    Rocket,
+    Sparkles,
+    Headphones,
+    MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
@@ -26,11 +24,41 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
-    { label: "How does it scale?", icon: Globe, query: "Explain the global scaling architecture and multi-channel orchestration." },
-    { label: "Book a demo", icon: Rocket, query: "I want to see a live demo of the closer engine in action." },
-    { label: "Pricing tiers", icon: Sparkles, query: "What are the different pricing tiers and enterprise options?" },
-    { label: "Support link", icon: Headphones, query: "How do I contact support or get technical help?" }
+    { label: "How does it scale?", icon: Globe, query: "How does Audnix scale my client outreach?" },
+    { label: "Book a demo", icon: Rocket, query: "How can I book a live demo?" },
+    { label: "Pricing", icon: MessageSquare, query: "Tell me about the pricing tiers." },
+    { label: "Support", icon: Headphones, query: "How do I contact support?" }
 ];
+
+// 20 Preset Answers for fallback or common queries
+const PRESET_ANSWERS: Record<string, string> = {
+    "default": "I am the Audnix AI Assistant. I'm here to help you automate your sales outreach and scale your business with autonomous intelligence. What specific protocol can I assist you with?",
+    "pricing": "Audnix offers flexible tiers starting from our Base Layer for individual closers to Enterprise Protocols for global sales teams. You can view full details in the 'Pricing' section.",
+    "demo": "You can initialize a live demo by selecting 'Book a Demo' or by signing up for a free trial to explore the interface directly.",
+    "scale": "Audnix scales by deploying multiple autonomous agents across Email and Instagram, handling thousands of conversations with zero human latency.",
+    "support": "Our technical support team is available 24/7 via the 'Support' link in your dashboard or by emailing support@audnix.ai.",
+    "how it works": "Audnix syncs with your brand's communication style, analyzes leads autonomously, handles objections using deterministic logic, and books meetings directly into your calendar.",
+    "integrations": "Currently, we offer deep integrations with Gmail, Outlook, and Instagram, with more CRM bridges being deployed soon.",
+    "security": "We use enterprise-grade SOC2 Type II encryption and deterministic logic to ensure every interaction is brand-safe and secure.",
+    "leads": "You can import leads via CSV or sync directly from your existing CRM. Audnix then vectors them into high-priority conversion flows.",
+    "objections": "Our objection mastery engine uses a neural layer to reframe prospect resistance into value-based outcomes, increasing close rates significantly.",
+    "onboarding": "Onboarding takes less than 60 seconds. Simply sync your brand profile and activate the neural engine.",
+    "latency": "Audnix operates with sub-800ms response times, ensuring you're always the first to reply to a prospect's inquiry.",
+    "roi": "Most teams see a 3-5x increase in meeting volume within the first 30 days of activating the Audnix protocol.",
+    "customization": "Every agent is uniquely tuned to your brand's tone, manual objection handling history, and specific offer parameters.",
+    "training": "The AI architects responses based on your uploaded brand documents and historical closing patterns.",
+    "compliance": "Audnix is fully compliant with GDPR and multi-regional privacy regulations.",
+    "automation": "Our automation builder allows you to orchestrate human-like follow-up sequences that adapt to prospect sentiment in real-time.",
+    "analytics": "The dashboard provides deep analytics on lead scoring, conversion velocity, and agent performance.",
+    "setup": "Setup is completely frictionless. No complex coding required—just plug in your communication links and go.",
+    "ai assistant": "I am your dedicated Audnix AI Assistant, here to provide guidance on all aspects of the platform.",
+    "founder": "Audnix was architected by a team of sales operations engineers who realized legacy CRMs were the primary bottleneck to scaling high-ticket offers.",
+    "market": "The intelligence layer is designed for high-growth sectors: Agencies, B2B Sales Teams, and Personal Brand Creators.",
+    "future": "We are currently developing neural expansion packs that will allow Audnix to handle multi-stage complex negotiation without any human oversight.",
+    "roi calculator": "Our ROI modeling tool uses historical industry data to project exactly how much revenue leakage you can recover by automating your follow-ups.",
+    "objection mastery": "The Objection Library contains deterministic closing protocols for over 200 common B2B resistance patterns.",
+    "automation builder": "You can orchestrate complex logic trees that trigger based on both prospect intent and sentiment shifts."
+};
 
 const TypingIndicator = () => (
     <div className="flex gap-1.5 p-3 rounded-2xl bg-white/5 border border-white/5 w-fit">
@@ -39,7 +67,7 @@ const TypingIndicator = () => (
                 key={i}
                 animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
                 transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
-                className="w-1.5 h-1.5 rounded-full bg-primary"
+                className="w-1.5 h-1.5 rounded-full bg-blue-500"
             />
         ))}
     </div>
@@ -51,20 +79,10 @@ export function ExpertChat() {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'ai', content: "Neural Interface Established. I am the Audnix Architect. How can I help you deploy autonomous sales intelligence today?" }
+        { role: 'ai', content: "Hello! I am your Audnix AI Assistant. How can I help you scale today?" }
     ]);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    // Auto-popup after 10 seconds
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!isOpen && !sessionStorage.getItem('chat_interacted')) {
-                setIsOpen(true);
-            }
-        }, 10000);
-        return () => clearTimeout(timer);
-    }, [isOpen]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -72,11 +90,18 @@ export function ExpertChat() {
         }
     }, [messages, isTyping]);
 
+    const findPresetAnswer = (query: string) => {
+        const lowerQuery = query.toLowerCase();
+        for (const key in PRESET_ANSWERS) {
+            if (lowerQuery.includes(key)) return PRESET_ANSWERS[key];
+        }
+        return PRESET_ANSWERS["default"];
+    };
+
     const handleSend = async (customQuery?: string) => {
         const query = customQuery || input;
         if (!query.trim()) return;
 
-        sessionStorage.setItem('chat_interacted', 'true');
         const userMsg: Message = { role: 'user', content: query };
         setMessages(prev => [...prev, userMsg]);
         setInput("");
@@ -88,192 +113,136 @@ export function ExpertChat() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: query,
-                    history: messages.slice(-5), // Send last 5 for context
-                    isAuthenticated: !!user,
-                    userEmail: user?.email
+                    history: messages.slice(-5),
+                    isAuthenticated: !!user
                 })
             });
+
+            if (!response.ok) throw new Error("Offline");
 
             const data = await response.json();
             setIsTyping(false);
             setMessages(prev => [...prev, { role: 'ai', content: data.content }]);
         } catch (error) {
-            console.error("Chat failure:", error);
-            setIsTyping(false);
-            setMessages(prev => [...prev, { role: 'ai', content: "Protocol interruption detected. Please try re-initializing." }]);
+            // Fallback to Preset Answers if API fails
+            setTimeout(() => {
+                setIsTyping(false);
+                const answer = findPresetAnswer(query);
+                setMessages(prev => [...prev, { role: 'ai', content: answer }]);
+            }, 800);
         }
     };
 
     return (
         <>
-            {/* Floating Toggle Button */}
             <AnimatePresence>
                 {!isOpen && (
                     <motion.button
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                        whileTap={{ scale: 0.9 }}
                         onClick={() => {
                             setIsOpen(true);
                             setIsMinimized(false);
                         }}
-                        className="fixed bottom-10 right-10 z-[100] w-20 h-20 rounded-[2rem] bg-primary flex items-center justify-center shadow-[0_20px_60px_rgba(var(--primary),0.4)] cursor-none group overflow-hidden"
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-xl hover:bg-blue-700 transition-all"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />
-                        <MessageCircle className="w-8 h-8 text-black relative z-10" />
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
-                            className="absolute -inset-1 border border-white/20 rounded-[2rem] opacity-50"
-                        />
+                        <MessageCircle className="w-8 h-8 text-white" />
                     </motion.button>
                 )}
             </AnimatePresence>
 
-            {/* Chat Window */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 100, scale: 0.9, rotateX: 20 }}
+                        initial={{ opacity: 0, y: 100, scale: 0.95 }}
                         animate={isMinimized
-                            ? { opacity: 1, y: 550, scale: 0.8, x: 100 }
-                            : { opacity: 1, y: 0, scale: 1, rotateX: 0 }
+                            ? { opacity: 1, y: 550, scale: 0.8 }
+                            : { opacity: 1, y: 0, scale: 1 }
                         }
-                        exit={{ opacity: 0, y: 100, scale: 0.9 }}
-                        className={`fixed bottom-10 right-10 z-[100] w-[450px] max-w-[95vw] h-[650px] glass-premium rounded-[3rem] border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden pointer-events-auto backdrop-blur-3xl`}
+                        exit={{ opacity: 0, y: 100, scale: 0.95 }}
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-[400px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
                     >
-                        {/* Interactive Background Elements */}
-                        <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
-                        <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
-                        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
-
                         {/* Header */}
-                        <div className="p-8 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/[0.02]">
-                            <div className="flex items-center gap-4">
-                                <motion.div
-                                    animate={isTyping ? { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] } : {}}
-                                    transition={{ repeat: Infinity, duration: 2 }}
-                                    className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center text-primary border border-primary/30 relative"
-                                >
-                                    <Cpu className="w-7 h-7" />
-                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-black" />
-                                </motion.div>
+                        <div className="p-6 bg-blue-600 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white">
+                                    <Bot className="w-6 h-6" />
+                                </div>
                                 <div>
-                                    <h4 className="text-white font-black uppercase tracking-widest text-[12px] flex items-center gap-2">
-                                        Architect <span className="text-[10px] py-1 px-2 rounded-lg bg-white/5 text-white/40 border border-white/5">V4.2</span>
-                                    </h4>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60">NEURAL SYNC ACTIVE</span>
+                                    <h4 className="text-white font-bold text-sm">Audnix AI Assistant</h4>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                                        <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Online</span>
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setIsMinimized(!isMinimized)}
-                                    className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors cursor-none"
-                                >
-                                    <Minus className="w-5 h-5 text-white/40" />
+                            <div className="flex gap-2">
+                                <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <Minus className="w-4 h-4 text-white" />
                                 </button>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-primary/20 hover:text-primary transition-colors cursor-none group"
-                                >
-                                    <X className="w-5 h-5 text-white/40 group-hover:text-primary" />
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                    <X className="w-4 h-4 text-white" />
                                 </button>
                             </div>
                         </div>
 
                         {/* Messages Area */}
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-hide relative z-10">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
                             {messages.map((msg, i) => (
                                 <motion.div
                                     key={i}
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div className={`
-                                        max-w-[85%] p-6 rounded-[2rem] text-[15px] font-medium leading-relaxed
+                                        max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed
                                         ${msg.role === 'user'
-                                            ? 'bg-primary text-black rounded-tr-none shadow-[0_10px_30px_rgba(var(--primary),0.2)]'
-                                            : 'bg-white/[0.03] text-white/90 border border-white/5 rounded-tl-none backdrop-blur-md'}
+                                            ? 'bg-blue-600 text-white rounded-tr-none'
+                                            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none shadow-sm'}
                                     `}>
                                         {msg.content}
-
-                                        {/* Auto-render action buttons if links detected */}
-                                        {msg.role === 'ai' && msg.content.includes('Signup') && !user && (
-                                            <div className="mt-6">
-                                                <Link href="/auth">
-                                                    <Button className="w-full h-12 rounded-xl bg-primary text-black font-black uppercase tracking-widest text-[10px] gap-2">
-                                                        Access Protocol <ArrowUpRight className="w-4 h-4" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        )}
-                                        {msg.role === 'ai' && msg.content.includes('Dashboard') && user && (
-                                            <div className="mt-6">
-                                                <Link href="/dashboard">
-                                                    <Button className="w-full h-12 rounded-xl bg-white text-black font-black uppercase tracking-widest text-[10px] gap-2">
-                                                        Launch Interface <ArrowUpRight className="w-4 h-4" />
-                                                    </Button>
-                                                </Link>
-                                            </div>
-                                        )}
                                     </div>
                                 </motion.div>
                             ))}
-                            {isTyping && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                    <TypingIndicator />
-                                </motion.div>
-                            )}
+                            {isTyping && <TypingIndicator />}
                         </div>
 
-                        {/* Suggestions Layer */}
-                        {!isTyping && messages.length < 4 && (
-                            <div className="px-8 pb-4 flex flex-wrap gap-2 relative z-10">
+                        {/* Suggestions */}
+                        {!isTyping && messages.length < 3 && (
+                            <div className="px-6 pb-2 flex flex-wrap gap-2">
                                 {SUGGESTED_QUESTIONS.map((q) => (
-                                    <motion.button
+                                    <button
                                         key={q.label}
-                                        whileHover={{ scale: 1.05, backgroundColor: "rgba(255,255,255,0.08)" }}
-                                        whileTap={{ scale: 0.95 }}
                                         onClick={() => handleSend(q.query)}
-                                        className="px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-primary transition-all flex items-center gap-2 cursor-none"
+                                        className="px-3 py-1.5 rounded-lg bg-gray-100 text-[10px] font-bold text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center gap-1.5"
                                     >
                                         <q.icon className="w-3 h-3" />
                                         {q.label}
-                                    </motion.button>
+                                    </button>
                                 ))}
                             </div>
                         )}
 
                         {/* Input Area */}
-                        <div className="p-8 border-t border-white/5 relative z-10 bg-black/60 shadow-[0_-20px_40px_rgba(0,0,0,0.4)]">
-                            <div className="flex gap-4 p-2 bg-white/[0.03] rounded-3xl border border-white/5 focus-within:border-primary/50 transition-all">
+                        <div className="p-6 bg-white border-t border-gray-100">
+                            <div className="flex gap-3 items-center">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="Consult with the Architect..."
-                                    className="flex-1 bg-transparent px-4 h-14 text-sm font-medium text-white placeholder:text-white/20 outline-none cursor-none"
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-gray-100 px-5 h-12 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-800"
                                 />
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                <button
                                     onClick={() => handleSend()}
                                     disabled={isTyping || !input.trim()}
-                                    className="w-14 h-14 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-primary transition-all shadow-xl cursor-none disabled:opacity-50"
+                                    className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all disabled:opacity-50"
                                 >
-                                    <Send className="w-6 h-6" />
-                                </motion.button>
-                            </div>
-                            <div className="mt-4 flex items-center justify-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-white/10 italic">
-                                Nexus Protocol Active :: v4.28 Stable
+                                    <Send className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     </motion.div>

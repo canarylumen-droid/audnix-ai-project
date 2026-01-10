@@ -525,10 +525,10 @@ export default function ConversationsPage() {
         </CardContent>
         <div className="p-4 border-t mt-auto">
           <Button
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md border-0"
+            className="w-full bg-gradient-to-r from-blue-500 to-primary hover:from-blue-600 hover:to-primary/90 text-white shadow-md border-0"
             onClick={() => setShowIntelligence(true)}
           >
-            <Sparkles className="h-4 w-4 mr-2" /> View AI Dossier
+            <Sparkles className="h-4 w-4 mr-2" /> View Intelligence Dossier
           </Button>
         </div>
       </Card>

@@ -87,7 +87,7 @@ export function ROICalculator() {
           </motion.div>
           <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter uppercase leading-[0.9]">
             Architect your <br />
-            <span className="text-primary italic">Revenue Engine.</span>
+            <span className="text-primary">Revenue Engine.</span>
           </h2>
           <p className="text-xl text-white/50 max-w-2xl mx-auto font-medium">
             Most legacy CRMs track leads. Audnix converts them. Use our deterministic model to see exactly how much revenue you're leaving on the table.
@@ -116,7 +116,7 @@ export function ROICalculator() {
                   min={50}
                   max={10000}
                   step={50}
-                  className="cursor-none"
+                  className=""
                 />
               </div>
 
@@ -137,7 +137,7 @@ export function ROICalculator() {
                   min={100}
                   max={25000}
                   step={100}
-                  className="cursor-none"
+                  className=""
                 />
               </div>
 
@@ -158,7 +158,7 @@ export function ROICalculator() {
                   min={1}
                   max={10}
                   step={0.5}
-                  className="cursor-none"
+                  className=""
                 />
               </div>
             </div>

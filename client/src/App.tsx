@@ -18,10 +18,10 @@ const SalesTeamsPage = lazy(() => import("./pages/solutions/SalesTeams"));
 const CreatorsPage = lazy(() => import("./pages/solutions/Creators"));
 
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
-import ConversationsPage from "./pages/dashboard/conversations";
-import CalendarPage from "./pages/dashboard/calendar";
-import InsightsPage from "./pages/dashboard/insights";
-import VideoAutomationPage from "./pages/dashboard/video-automation";
+const ConversationsPage = lazy(() => import("./pages/dashboard/conversations"));
+const CalendarPage = lazy(() => import("./pages/dashboard/calendar"));
+const InsightsPage = lazy(() => import("./pages/dashboard/insights"));
+const VideoAutomationPage = lazy(() => import("./pages/dashboard/video-automation"));
 import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes } from "react-router-dom";
@@ -94,14 +94,14 @@ function Router() {
       <Route path="/dashboard/conversations/:id?">
         {() => (
           <AuthGuard>
-            <ConversationsPage />
+            <Suspense fallback={null}><ConversationsPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
       <Route path="/dashboard/video-automation">
         {() => (
           <AuthGuard>
-            <VideoAutomationPage />
+            <Suspense fallback={null}><VideoAutomationPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
@@ -115,28 +115,28 @@ function Router() {
       <Route path="/dashboard/pricing">
         {() => (
           <AuthGuard>
-            <PricingPage />
+            <Suspense fallback={null}><PricingPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
       <Route path="/dashboard/settings">
         {() => (
           <AuthGuard>
-            <SettingsPage />
+            <Suspense fallback={null}><SettingsPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
       <Route path="/dashboard/calendar">
         {() => (
           <AuthGuard>
-            <CalendarPage />
+            <Suspense fallback={null}><CalendarPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
       <Route path="/dashboard/insights">
         {() => (
           <AuthGuard>
-            <InsightsPage />
+            <Suspense fallback={null}><InsightsPage /></Suspense>
           </AuthGuard>
         )}
       </Route>

@@ -18,8 +18,8 @@ interface UpgradePromptProps {
   isBlocking?: boolean;
 }
 
-const contentMap: Record<UpgradeVariant, { 
-  title: string; 
+const contentMap: Record<UpgradeVariant, {
+  title: string;
   description: string;
   benefits: string[];
   cta: string;
@@ -69,17 +69,17 @@ const contentMap: Record<UpgradeVariant, {
   }
 };
 
-export function UpgradePrompt({ 
-  variant, 
-  daysLeft, 
+export function UpgradePrompt({
+  variant,
+  daysLeft,
   limitType,
-  onClose, 
-  isBlocking = false 
+  onClose,
+  isBlocking = false
 }: UpgradePromptProps) {
   const content = contentMap[variant];
   const [, setLocation] = useLocation();
   const [isDismissed, setIsDismissed] = useState(false);
-  
+
   useEffect(() => {
     const dismissedAt = localStorage.getItem(UPGRADE_DISMISSED_KEY);
     if (dismissedAt) {
@@ -91,12 +91,12 @@ export function UpgradePrompt({
       }
     }
   }, []);
-  
+
   const handleUpgrade = () => {
     setLocation('/dashboard/pricing');
     onClose?.();
   };
-  
+
   const handleDismiss = () => {
     localStorage.setItem(UPGRADE_DISMISSED_KEY, Date.now().toString());
     setIsDismissed(true);
@@ -105,7 +105,7 @@ export function UpgradePrompt({
 
   const showDaysLeft = variant === 'trialReminder' && daysLeft !== undefined;
   const showLimitType = variant === 'planLimit' && limitType;
-  
+
   if (isDismissed && !isBlocking) {
     return null;
   }
@@ -121,7 +121,7 @@ export function UpgradePrompt({
           onClick={onClose}
         />
       )}
-      
+
       <motion.div
         className={`${isBlocking ? 'fixed' : 'relative'} ${isBlocking ? 'inset-0 flex items-center justify-center z-50' : ''}`}
         initial={{ scale: 0.9, opacity: 0 }}
@@ -139,7 +139,7 @@ export function UpgradePrompt({
                 <X className="w-4 h-4" />
               </button>
             )}
-            
+
             <motion.div
               className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center"
               animate={isBlocking ? {
@@ -153,18 +153,18 @@ export function UpgradePrompt({
             >
               <Lock className="w-8 h-8 text-primary" />
             </motion.div>
-            
+
             <CardTitle className="text-2xl font-bold">
               {content.title}
               {showDaysLeft && ` (${daysLeft}d left)`}
             </CardTitle>
-            
+
             <CardDescription className="text-base">
               {content.description}
               {showLimitType && ` (${limitType === 'leads' ? 'Lead' : 'Voice minutes'} limit)`}
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             <div className="space-y-2">
               {content.benefits.map((benefit, index) => (
@@ -174,14 +174,14 @@ export function UpgradePrompt({
                 </div>
               ))}
             </div>
-            
+
             {content.microcopy && (
-              <p className="text-xs text-muted-foreground italic border-l-2 border-primary/50 pl-3 py-2">
+              <p className="text-xs text-muted-foreground border-l-2 border-primary/50 pl-3 py-2">
                 {content.microcopy}
               </p>
             )}
           </CardContent>
-          
+
           <CardFooter className="flex gap-2">
             <Button
               onClick={handleUpgrade}

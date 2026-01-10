@@ -53,7 +53,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white selection:bg-primary selection:text-black overflow-x-hidden font-sans cursor-none">
+    <div ref={containerRef} className="min-h-screen bg-black text-white selection:bg-primary selection:text-black overflow-x-hidden font-sans">
       {/* Progress Bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-[3px] bg-primary z-[200] origin-left"
@@ -115,10 +115,10 @@ export default function Landing() {
 
             <h2 className="text-6xl md:text-[9rem] font-black tracking-tighter mb-10 leading-[0.85] uppercase">
               Start your <br />
-              <span className="text-primary italic">Final Evolution.</span>
+              <span className="text-primary">Final Evolution.</span>
             </h2>
 
-            <p className="text-white/40 text-xl md:text-2xl font-bold mb-16 max-w-3xl mx-auto leading-tight italic">
+            <p className="text-white/40 text-xl md:text-2xl font-bold mb-16 max-w-3xl mx-auto leading-tight">
               Legacy CRMs track history. Audnix architects the future. Join the elite top 1% of sales operations today.
             </p>
 
@@ -163,7 +163,7 @@ export default function Landing() {
             </p>
             <div className="flex gap-6">
               {[Twitter, Linkedin, Github, Instagram].map((Icon, i) => (
-                <Link key={i} href="#" className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group cursor-none">
+                <Link key={i} href="#" className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group">
                   <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </Link>
               ))}
@@ -173,29 +173,29 @@ export default function Landing() {
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Solutions</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/solutions/agencies" className="hover:text-primary transition-colors cursor-none">Agencies</Link></li>
-              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors cursor-none">Sales Teams</Link></li>
-              <li><Link href="/solutions/creators" className="hover:text-primary transition-colors cursor-none">Personal Brands</Link></li>
-              <li><Link href="/#calc" className="hover:text-primary transition-colors cursor-none">ROI Modeling</Link></li>
+              <li><Link href="/solutions/agencies" className="hover:text-primary transition-colors">Agencies</Link></li>
+              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors">Sales Teams</Link></li>
+              <li><Link href="/solutions/creators" className="hover:text-primary transition-colors">Personal Brands</Link></li>
+              <li><Link href="/#calc" className="hover:text-primary transition-colors">ROI Modeling</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Intelligence</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="#features" className="hover:text-primary transition-colors cursor-none">Neural Core</Link></li>
-              <li><Link href="#how-it-works" className="hover:text-primary transition-colors cursor-none">Automation Flow</Link></li>
-              <li><Link href="#pricing" className="hover:text-primary transition-colors cursor-none">Cloud Pricing</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors cursor-none">Access Console</Link></li>
+              <li><Link href="#features" className="hover:text-primary transition-colors">Neural Core</Link></li>
+              <li><Link href="#how-it-works" className="hover:text-primary transition-colors">Automation Flow</Link></li>
+              <li><Link href="#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
+              <li><Link href="/auth" className="hover:text-primary transition-colors">Access Console</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Security</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors cursor-none">Privacy Protocol</Link></li>
-              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors cursor-none">Terms of Growth</Link></li>
-              <li><Link href="/data-deletion" className="hover:text-primary transition-colors cursor-none">Data Erasure</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
+              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Growth</Link></li>
+              <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Erasure</Link></li>
               <li className="flex items-center gap-3 text-emerald-500">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Operational
@@ -209,8 +209,8 @@ export default function Landing() {
             © 2026 AUDNIX OPERATIONS CO. ALL RIGHTS RESERVED.
           </p>
           <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-white/10">
-            <Link href="#" className="hover:text-white transition-colors cursor-none">Global Status</Link>
-            <Link href="#" className="hover:text-white transition-colors cursor-none">API Documentation</Link>
+            <Link href="#" className="hover:text-white transition-colors">Global Status</Link>
+            <Link href="#" className="hover:text-white transition-colors">API Documentation</Link>
           </div>
         </div>
       </footer>

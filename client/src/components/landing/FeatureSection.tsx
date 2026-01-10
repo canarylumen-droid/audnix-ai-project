@@ -64,7 +64,7 @@ const FeatureCard = ({ cap, index }: { cap: any; index: number }) => {
       viewport={{ once: true }}
       transition={{ delay: index * 0.1, duration: 0.8, ease: "circOut" }}
       onMouseMove={onMouseMove}
-      className="group relative p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-700 overflow-hidden cursor-none"
+      className="group relative p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-700 overflow-hidden"
     >
       <motion.div
         className="pointer-events-none absolute -inset-px rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -89,7 +89,7 @@ const FeatureCard = ({ cap, index }: { cap: any; index: number }) => {
         <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 group-hover:translate-x-1 transition-transform duration-500">
           {cap.title}
         </h3>
-        <p className="text-white/40 font-bold text-md leading-tight italic mb-10 min-h-[4rem]">
+        <p className="text-white/40 font-bold text-md leading-tight mb-10 min-h-[4rem]">
           {cap.desc}
         </p>
 
@@ -136,13 +136,13 @@ export function FeatureSection() {
             className="text-6xl md:text-9xl font-black tracking-[calc(-0.04em)] mb-12 leading-[0.85] text-white uppercase"
           >
             The New Core of <br />
-            <span className="text-primary italic">High-Performance.</span>
+            <span className="text-primary">High-Performance.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-white/40 text-xl md:text-2xl max-w-3xl font-bold leading-tight italic"
+            className="text-white/40 text-xl md:text-2xl max-w-3xl font-bold leading-tight"
           >
             We don't provide features. We deploy autonomous protocols that transform raw opportunity into confirmed revenue.
           </motion.p>

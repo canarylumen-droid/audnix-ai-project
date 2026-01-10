@@ -262,12 +262,12 @@ export default function CloserEngineLive() {
           <div className="space-y-4">
             <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full border border-white/10 bg-white/5">
               <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Live Nexus Active</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Live Intelligence Active</span>
             </div>
             <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">
-              Closer Engine <br /> <span className="text-primary italic">Live.</span>
+              Closer Engine <br /> <span className="text-primary">Live.</span>
             </h1>
-            <p className="text-white/40 font-bold text-xl md:text-2xl max-w-xl leading-tight italic">
+            <p className="text-white/40 font-bold text-xl md:text-2xl max-w-xl leading-tight">
               Input prospect resistance. Receive <span className="text-white">deterministic</span> closing protocols.
             </p>
           </div>
@@ -434,7 +434,7 @@ export default function CloserEngineLive() {
                   </div>
                   <div className="space-y-4">
                     <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Awaiting Signal.</h3>
-                    <p className="text-white/40 font-medium text-lg max-w-sm mx-auto leading-tight italic">
+                    <p className="text-white/40 font-medium text-lg max-w-sm mx-auto leading-tight">
                       Protocol initialized. Paste the exact verbatim from your call to extract the tactical advantage.
                     </p>
                   </div>

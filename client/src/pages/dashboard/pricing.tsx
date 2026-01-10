@@ -90,7 +90,7 @@ export default function PricingPage() {
             className="text-white/40 font-bold text-2xl max-w-2xl mx-auto leading-tight"
           >
             Deploy autonomous agents that handle outreach, objection mastery, and closed revenue.
-            <span className="text-white ml-2 italic underline underline-offset-8 decoration-primary/40">Zero setup fees.</span>
+            <span className="text-white ml-2 underline underline-offset-8 decoration-primary/40">Zero setup fees.</span>
           </motion.p>
         </div>
 
@@ -198,7 +198,7 @@ export default function PricingPage() {
           transition={{ delay: 0.5 }}
           className="mt-32 text-center"
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/10 mb-12 italic">
+          <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/10 mb-12">
             Secure Infrastructure powered by Stripe PCI-DSS Level 1
           </p>
           <div className="flex justify-center flex-wrap gap-12 text-white/30">

@@ -111,7 +111,7 @@ const ProgressRing = ({ progress }: { progress: number }) => {
           className="text-primary"
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white italic">
+      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">
         {Math.round(progress)}%
       </div>
     </div>
@@ -168,8 +168,8 @@ export function ActivationChecklist({ isOpen, onClose }: { isOpen: boolean; onCl
                   <Activity className="w-7 h-7 text-primary animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white tracking-tighter italic uppercase">NEURAL PROTOCOL</h3>
-                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mt-1 italic">V4.0 Initialization</p>
+                  <h3 className="text-xl font-black text-white tracking-tighter uppercase">NEURAL PROTOCOL</h3>
+                  <p className="text-[10px] text-white/20 font-black uppercase tracking-[0.4em] mt-1">V4.0 Initialization</p>
                 </div>
               </div>
               <button onClick={onClose} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-all">
@@ -179,8 +179,8 @@ export function ActivationChecklist({ isOpen, onClose }: { isOpen: boolean; onCl
 
             <div className="flex items-center justify-between p-6 rounded-[2rem] bg-white/[0.03] border border-white/5">
               <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 italic">System Integrity</span>
-                <span className="text-3xl font-black text-white italic tracking-tighter">0{completedCount} / 04 UNITS</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">System Integrity</span>
+                <span className="text-3xl font-black text-white tracking-tighter">0{completedCount} / 04 UNITS</span>
               </div>
               <ProgressRing progress={progress} />
             </div>
@@ -195,10 +195,10 @@ export function ActivationChecklist({ isOpen, onClose }: { isOpen: boolean; onCl
                   <div className={`mt-1 h-3 w-3 rounded-full flex-shrink-0 transition-all duration-1000 ${active ? "bg-primary shadow-[0_0_15px_rgba(34,211,238,0.8)]" : "border-2 border-white/10"}`} />
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className={`text-sm font-black uppercase tracking-widest italic ${active ? "text-primary" : "text-white/40"}`}>{item.title}</h4>
+                      <h4 className={`text-sm font-black uppercase tracking-widest ${active ? "text-primary" : "text-white/40"}`}>{item.title}</h4>
                       {locked && <Lock className="w-3 h-3 text-white/10" />}
                     </div>
-                    <p className="text-[11px] font-bold text-white/20 italic leading-relaxed mb-6">{item.description}</p>
+                    <p className="text-[11px] font-bold text-white/20 leading-relaxed mb-6">{item.description}</p>
                     {!active && !locked && (
                       <Link href={item.href}>
                         <Button className="h-10 px-6 rounded-xl bg-white text-black font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all">
@@ -215,7 +215,7 @@ export function ActivationChecklist({ isOpen, onClose }: { isOpen: boolean; onCl
           <div className="px-10 pb-10">
             <div className="p-6 rounded-[2rem] border border-primary/20 bg-primary/5 flex items-center gap-4 group">
               <ShieldAlert className="w-5 h-5 text-primary group-hover:scale-125 transition-transform" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 italic leading-relaxed">
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 leading-relaxed">
                 Authorization pending. Verify all units to unlock <span className="text-white">Deterministic Autonomy.</span>
               </p>
             </div>
