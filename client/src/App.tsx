@@ -66,7 +66,7 @@ function Router() {
       <Route path="/leads/prospecting">
         {() => (
           <AuthGuard>
-            <ProspectingTools />
+            <Suspense fallback={null}><LeadImportPage /></Suspense>
           </AuthGuard>
         )}
       </Route>

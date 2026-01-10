@@ -24,7 +24,8 @@ export const CustomCursor = () => {
             mouseY.set(e.clientY);
 
             const target = e.target as HTMLElement;
-            setIsPointer(window.getComputedStyle(target).cursor === 'pointer');
+            const computedCursor = window.getComputedStyle(target).cursor;
+            setIsPointer(computedCursor === 'pointer');
 
             if (!isVisible) setIsVisible(true);
         };
@@ -34,6 +35,9 @@ export const CustomCursor = () => {
         const handleMouseDown = () => setIsHovered(true);
         const handleMouseUp = () => setIsHovered(false);
 
+        // Standard Apple/PC behavior: hide default cursor via body style
+        document.body.style.cursor = 'none';
+
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
         document.body.addEventListener("mouseleave", handleMouseLeave);
         document.body.addEventListener("mouseenter", handleMouseEnter);
@@ -41,6 +45,7 @@ export const CustomCursor = () => {
         window.addEventListener("mouseup", handleMouseUp);
 
         return () => {
+            document.body.style.cursor = 'auto'; // Restore on cleanup
             window.removeEventListener("mousemove", handleMouseMove);
             document.body.removeEventListener("mouseleave", handleMouseLeave);
             document.body.removeEventListener("mouseenter", handleMouseEnter);
@@ -63,50 +68,52 @@ export const CustomCursor = () => {
                 }}
             >
                 {isDashboard ? (
-                    // Dashboard Cursor: Apple/Mac style clean pointer
+                    // Dashboard Cursor: Apple Clean Pointer
                     <motion.div
                         initial={{ scale: 0.5, opacity: 0 }}
                         animate={{
                             scale: isHovered ? 0.8 : 1,
                             opacity: 1,
-                            rotate: isPointer ? 10 : 0
                         }}
                         exit={{ scale: 0.5, opacity: 0 }}
-                        className="text-white drop-shadow-lg"
+                        className="text-white drop-shadow-xl"
                     >
-                        <CursorIcon className="w-6 h-6 fill-black stroke-white stroke-[1.5px]" />
+                        {/* A clean, sharp pointer like macOS */}
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="filter drop-shadow-md">
+                            <path d="M5.65376 4.41503C3.9584 3.73689 2.5 4.5 2.5 6.5V18.5C2.5 20.5 3.5 21.5 5.5 20.5L10.5 17.5L14.5 22.5C15.5 23.5 17 23.5 18 22.5L20.5 20C21.5 19 21.5 17.5 20.5 16.5L16.5 11.5L20.5 9.5C22.5 8.5 22.5 7 20.5 6L5.65376 4.41503Z" fill="white" stroke="black" strokeWidth="1.5" />
+                        </svg>
+
                         {isPointer && (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_var(--primary)]"
+                                className="absolute top-2 left-2 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_var(--primary)]"
                             />
                         )}
                     </motion.div>
                 ) : (
-                    // Landing Page Cursor: Modern Glow Circle
+                    // Landing Page Cursor: Premium Blue Glow Circle
                     <motion.div
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{
                             scale: isPointer ? 2.5 : 1,
                             opacity: 0.8,
-                            backgroundColor: isPointer ? "rgba(var(--primary), 0.15)" : "transparent"
                         }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="relative flex items-center justify-center transition-colors duration-300"
+                        className="relative flex items-center justify-center"
                     >
-                        <div className={`w-8 h-8 rounded-full border border-primary/40 flex items-center justify-center ${isPointer ? 'backdrop-blur-sm' : ''}`}>
-                            <div className="w-1 h-1 bg-primary rounded-full shadow-[0_0_10px_var(--primary)]" />
+                        <div className={`w-8 h-8 rounded-full border border-primary/40 flex items-center justify-center ${isPointer ? 'bg-primary/10 backdrop-blur-sm' : ''}`}>
+                            <div className="w-1 h-1 bg-primary rounded-full shadow-[0_0_12px_var(--primary)]" />
                         </div>
 
                         {/* Interactive Aura */}
                         <motion.div
                             animate={{
-                                scale: [1, 1.2, 1],
-                                opacity: [0.1, 0.2, 0.1]
+                                scale: [1, 1.3, 1],
+                                opacity: [0.1, 0.3, 0.1]
                             }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute inset-0 bg-primary rounded-full blur-xl -z-10"
+                            className="absolute inset-0 bg-primary rounded-full blur-2xl -z-10"
                         />
                     </motion.div>
                 )}
