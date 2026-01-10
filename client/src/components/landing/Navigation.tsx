@@ -52,7 +52,7 @@ export function Navigation() {
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center p-4 pointer-events-none">
       <motion.nav
         className={`pointer-events-auto flex items-center justify-between px-8 py-3 transition-all duration-500 rounded-2xl border border-white/5 shadow-2xl ${scrolled
-          ? "bg-background/30 backdrop-blur-md w-full max-w-7xl border-white/5 shadow-premium"
+          ? "bg-[#030712]/90 backdrop-blur-md w-full max-w-7xl border-white/5 shadow-premium"
           : "bg-transparent backdrop-blur-none w-full md:w-[95%] lg:w-[85%] border-transparent"
           }`}
         initial={{ y: -50, opacity: 0 }}

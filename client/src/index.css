@@ -6,18 +6,9 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  cursor: none !important;
 }
 
-/* Re-enable cursor for interactive elements if custom cursor fails, but preferred via CustomCursor */
-a,
-button,
-[role="button"],
-input,
-select,
-textarea {
-  cursor: none !important;
-}
+/* Re-enable cursor for interactive elements is handled by CustomCursor per-route */
 
 /* GPU acceleration for animations */
 @media (prefers-reduced-motion: no-preference) {

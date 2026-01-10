@@ -40,6 +40,7 @@ import integrationsRoutes from "./integrations-routes.js";
 import objectionsRoutes from "./objections-routes.js";
 import expertChatRoutes from "./expert-chat.js";
 import userSettingsRoutes from "./user-settings-routes.js";
+import prospectingRoutes from "./prospecting.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -91,6 +92,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/settings", userSettingsRoutes);
   app.use("/api/sales-engine", salesEngine);
   app.use("/api/expert-chat", expertChatRoutes);
+  app.use("/api/prospecting", prospectingRoutes);
 
   // Create HTTP server
   const server = http.createServer(app);

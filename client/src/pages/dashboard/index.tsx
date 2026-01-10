@@ -20,6 +20,7 @@ const AutomationBuilderPage = lazy(() => import("./automation-builder"));
 const ContentLibraryPage = lazy(() => import("./content-library"));
 const AIDecisionsPage = lazy(() => import("./ai-decisions"));
 const ObjectionsLibraryPage = lazy(() => import("./objections-library"));
+const ProspectingPage = lazy(() => import("./prospecting"));
 
 export default function DashboardRoutes() {
   return (
@@ -44,6 +45,7 @@ export default function DashboardRoutes() {
           <Route path="/dashboard/content-library" component={ContentLibraryPage} />
           <Route path="/dashboard/ai-decisions" component={AIDecisionsPage} />
           <Route path="/dashboard/objections" component={ObjectionsLibraryPage} />
+          <Route path="/dashboard/prospecting" component={ProspectingPage} />
         </Switch>
       </Suspense>
     </DashboardLayout>

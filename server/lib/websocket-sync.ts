@@ -7,7 +7,7 @@ interface WebSocketClient extends WebSocket {
   isAlive?: boolean;
 }
 
-type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong';
+type MessageType = 'leads_updated' | 'messages_updated' | 'deals_updated' | 'settings_updated' | 'ping' | 'pong' | 'PROSPECTING_LOG' | 'PROSPECT_FOUND' | 'PROSPECT_UPDATED';
 
 interface SyncMessage {
   type: MessageType;
@@ -21,7 +21,7 @@ class WebSocketSyncServer {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   initialize(server: http.Server) {
-    this.wss = new WebSocketServer({ 
+    this.wss = new WebSocketServer({
       server,
       path: '/ws/sync'
     });
@@ -111,7 +111,7 @@ class WebSocketSyncServer {
     };
 
     const messageStr = JSON.stringify(fullMessage);
-    
+
     userClients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(messageStr);
@@ -148,6 +148,10 @@ class WebSocketSyncServer {
 
   notifySettingsUpdated(userId: string, data?: any) {
     this.broadcast(userId, { type: 'settings_updated', data });
+  }
+
+  broadcastToUser(userId: string, message: { type: string, payload: any }) {
+    this.broadcast(userId, { type: message.type as MessageType, data: message.payload });
   }
 
   getConnectedUsers(): string[] {

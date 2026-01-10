@@ -1,9 +1,7 @@
 import { Router, Request, Response } from 'express';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY || "mock-key",
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const router = Router();
 
@@ -51,32 +49,32 @@ router.post('/chat', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Message is required' });
         }
 
-        if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "mock-key") {
+        if (!process.env.GEMINI_API_KEY) {
             return res.json({
                 content: "I am currently in disconnected mode (Missing API Key). However, I can still tell you that Audnix is the world's most advanced autonomous sales engine. You should visit the Access Protocol (Signup) to get started."
             });
         }
 
-        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-            { role: "system", content: AUDNIX_KNOWLEDGE },
-            ...history.map((m: any) => ({
-                role: m.role === 'user' ? 'user' : 'assistant',
-                content: m.content
-            })),
-            {
-                role: "user",
-                content: `User Context: Authenticated=${isAuthenticated}, Email=${userEmail || 'Guest'}. \n\nMessage: ${message}`
-            }
-        ];
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages,
-            temperature: 0.5,
-            max_tokens: 300,
-        });
+        // Build conversation history
+        const conversationHistory = history.map((m: any) =>
+            `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
+        ).join('\n');
 
-        const content = completion.choices[0].message.content || "I'm having trouble retrieving the protocol response. Please try again.";
+        const prompt = `${AUDNIX_KNOWLEDGE}
+
+CONVERSATION HISTORY:
+${conversationHistory}
+
+USER CONTEXT: Authenticated=${isAuthenticated}, Email=${userEmail || 'Guest'}
+
+USER MESSAGE: ${message}
+
+RESPOND AS THE AUDNIX NEURAL ASSISTANT (Keep it under 250 words, direct and professional):`;
+
+        const result = await model.generateContent(prompt);
+        const content = result.response.text() || "I'm having trouble retrieving the protocol response. Please try again.";
 
         res.json({ content });
     } catch (error) {

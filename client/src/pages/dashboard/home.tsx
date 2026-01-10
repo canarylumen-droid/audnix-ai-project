@@ -368,7 +368,7 @@ export default function DashboardHome() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  { label: "Import Leads", icon: Users, path: "/dashboard/lead-import" },
+                  { label: "Find Prospects", icon: Users, path: "/dashboard/prospecting" },
                   { label: "Create Automation", icon: Zap, path: "/dashboard/video-automation" },
                   { label: "Connect Channels", icon: Mail, path: "/dashboard/integrations" },
                 ].map((action) => (

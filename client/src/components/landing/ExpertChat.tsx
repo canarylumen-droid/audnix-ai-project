@@ -136,7 +136,7 @@ export function ExpertChat() {
     return (
         <>
             <AnimatePresence>
-                {!isOpen && (
+                {(!isOpen || isMinimized) && (
                     <motion.button
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}

@@ -34,6 +34,8 @@ const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
 const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
 const LeadImportPage = lazy(() => import("./pages/dashboard/lead-import"));
+const ProspectingPage = lazy(() => import("./pages/dashboard/prospecting"));
+
 
 const AdminDashboard = lazy(() => import("./pages/admin"));
 const AdminUsers = lazy(() => import("./pages/admin/users"));
@@ -66,7 +68,7 @@ function Router() {
       <Route path="/leads/prospecting">
         {() => (
           <AuthGuard>
-            <Suspense fallback={null}><LeadImportPage /></Suspense>
+            <Suspense fallback={null}><ProspectingPage /></Suspense>
           </AuthGuard>
         )}
       </Route>

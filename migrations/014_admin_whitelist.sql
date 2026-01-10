@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS admin_whitelist (
 INSERT INTO admin_whitelist (email, status) 
 VALUES 
   ('admin@audnixai.com', 'active'),
-  ('canarylumen@gmail.com', 'active'),
+  ('admin@audnixai.com', 'active'),
   ('ceo@audnixai.com', 'active')
 ON CONFLICT (email) DO NOTHING;
 
