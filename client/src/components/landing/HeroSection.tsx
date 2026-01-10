@@ -1,45 +1,49 @@
-import { useRef, useState, useEffect, useMemo } from "react";
-import { motion, useMotionTemplate, useMotionValue, AnimatePresence, useSpring } from "framer-motion";
+import { useRef, useState, useEffect, useMemo, Suspense } from "react";
+import { motion, useMotionTemplate, useMotionValue, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowRight, ShieldCheck, Sparkles as SparkleIcon, Globe } from "lucide-react";
-import { AutomationFlowMockup } from "./NeuralFlowMockup";
+import { ArrowRight, Globe, Sparkles } from "lucide-react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Float, Sphere, MeshDistortMaterial, Stars } from "@react-three/drei";
+import * as THREE from "three";
 
-const StarField = () => {
-  const stars = useMemo(() => {
-    return Array.from({ length: 150 }).map(() => ({
-      top: `${Math.random() * 100}%`,
-      left: `${Math.random() * 100}%`,
-      size: Math.random() * 2 + 1,
-      duration: Math.random() * 3 + 2,
-      delay: Math.random() * 5
-    }));
-  }, []);
-
+// 3D Animated Background Component
+const NebulaScene = () => {
   return (
-    <div className="absolute inset-0 pointer-events-none">
-      {stars.map((star, i) => (
-        <motion.div
-          key={i}
-          className="absolute bg-white rounded-full opacity-20"
-          style={{
-            top: star.top,
-            left: star.left,
-            width: star.size,
-            height: star.size,
-          }}
-          animate={{
-            opacity: [0.2, 0.8, 0.2],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: star.duration,
-            repeat: Infinity,
-            delay: star.delay,
-            ease: "easeInOut"
-          }}
-        />
-      ))}
+    <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
+      <Canvas camera={{ position: [0, 0, 5], fov: 75 }}>
+        <ambientLight intensity={0.5} />
+        <pointLight position={[10, 10, 10]} intensity={1} color="#00D9FF" />
+        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        <Float speed={2} rotationIntensity={1} floatIntensity={1}>
+          <Sphere args={[1.5, 64, 64]} position={[2, 0, -2]}>
+            <MeshDistortMaterial
+              color="#00D9FF"
+              attach="material"
+              distort={0.4}
+              speed={1.5}
+              roughness={0}
+              metalness={1}
+              opacity={0.1}
+              transparent
+            />
+          </Sphere>
+        </Float>
+        <Float speed={3} rotationIntensity={2} floatIntensity={2}>
+          <Sphere args={[1, 64, 64]} position={[-2, 1, -1]}>
+            <MeshDistortMaterial
+              color="#3b82f6"
+              attach="material"
+              distort={0.5}
+              speed={2}
+              roughness={0}
+              metalness={1}
+              opacity={0.1}
+              transparent
+            />
+          </Sphere>
+        </Float>
+      </Canvas>
     </div>
   );
 };
@@ -49,12 +53,9 @@ export function HeroSection() {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
-  // Spring for smoother mouse following elements (nebula)
-  const springConfig = { damping: 30, stiffness: 100 };
+  const springConfig = { damping: 40, stiffness: 200 };
   const smoothX = useSpring(mouseX, springConfig);
   const smoothY = useSpring(mouseY, springConfig);
-
-  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -70,134 +71,116 @@ export function HeroSection() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
 
-  const maskImage = useMotionTemplate`radial-gradient(450px circle at ${mouseX}px ${mouseY}px, white, transparent)`;
-  const mouseGlow = useMotionTemplate`radial-gradient(600px circle at ${mouseX}px ${mouseY}px, hsla(var(--primary) / 0.15), transparent)`;
+  // Mask for the "AUDNIX" reveal effect
+  const maskImage = useMotionTemplate`radial-gradient(400px circle at ${mouseX}px ${mouseY}px, white, transparent)`;
+  const mouseGlow = useMotionTemplate`radial-gradient(800px circle at ${mouseX}px ${mouseY}px, rgba(0, 217, 255, 0.08), transparent)`;
 
   return (
     <section
       ref={containerRef}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="relative min-h-screen flex items-center justify-center pt-40 pb-32 px-4 overflow-hidden bg-black selection:bg-primary selection:text-black cursor-none"
+      className="relative min-h-screen flex items-center justify-center pt-32 pb-20 px-4 overflow-hidden bg-black font-sans cursor-none"
     >
-      {/* Galaxy Background */}
-      <StarField />
+      {/* 1. 3D Background Vibes */}
+      <Suspense fallback={null}>
+        <NebulaScene />
+      </Suspense>
 
-      {/* Nebula Spheres */}
+      {/* 2. Hidden "AUDNIX" Reveal Layer (Background) */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
+        {/* Static base (extremely faint) */}
+        <h2 className="text-[25vw] font-extralight tracking-tighter text-white/5 opacity-20 blur-[2px]">
+          AUDNIX
+        </h2>
+
+        {/* Revealed Layer on Hover */}
+        <motion.div
+          style={{ maskImage, WebkitMaskImage: maskImage }}
+          className="absolute inset-0 flex items-center justify-center z-10"
+        >
+          <h2 className="text-[25vw] font-light tracking-tighter text-primary/10 blur-[10px]">
+            AUDNIX
+          </h2>
+        </motion.div>
+      </div>
+
+      {/* 2.5 Dynamic Background Glows (Gemini/Apple style) */}
       <motion.div
-        style={{ x: smoothX, y: smoothY, translateX: "-50%", translateY: "-50%" }}
-        className="absolute top-0 left-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none mix-blend-screen opacity-40 transition-opacity duration-1000"
-      />
-      <motion.div
-        style={{ x: smoothX, y: smoothY, translateX: "-30%", translateY: "-70%" }}
-        className="absolute top-0 left-0 w-[600px] h-[600px] bg-blue-500/5 blur-[150px] rounded-full pointer-events-none mix-blend-screen opacity-30"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-30"
+        style={{
+          background: useMotionTemplate`radial-gradient(circle at ${mouseX}px ${mouseY}px, rgba(34, 211, 238, 0.1), transparent 60%)`
+        }}
       />
 
-      {/* Main Ambient Glow */}
-      <div className="absolute inset-0 z-0 mesh-gradient-bg opacity-30 pointer-events-none" />
+      <div className="max-w-7xl mx-auto relative z-20 w-full">
+        <div className="flex flex-col items-center text-center">
 
-      {/* Interactive Mouse Glow */}
-      <motion.div
-        className="absolute inset-0 z-0 pointer-events-none opacity-40 bg-black/40"
-        style={{ background: mouseGlow }}
-      />
-
-      <div className="max-w-7xl mx-auto relative z-10 w-full">
-        <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
-
-          {/* Premium Branding Reveal */}
-          <div className="relative mb-16 group cursor-none perspective-1000">
-            <motion.div
-              style={{ maskImage, WebkitMaskImage: maskImage }}
-              className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none mix-blend-overlay"
-            >
-              <h2 className="text-9xl md:text-[16rem] font-black tracking-tighter text-white opacity-100 uppercase select-none drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">
-                AUDNIX <span className="text-primary">AI</span>
-              </h2>
-            </motion.div>
-
-            <h2 className="text-9xl md:text-[16rem] font-black tracking-tighter text-white/5 uppercase select-none transition-all duration-1000 blur-[2px] group-hover:blur-0 group-hover:text-white/10">
-              AUDNIX <span className="text-white/5">AI</span>
-            </h2>
-
-            {/* Glowing Accent */}
-            <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-                rotate: [0, 90, 180, 270, 360],
-              }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-[60px] rounded-full mix-blend-screen pointer-events-none"
-            />
-          </div>
-
-          {/* Status Protocol Chip */}
+          {/* Protocol Chip */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "circOut" }}
-            className="mb-12 relative"
+            className="mb-8"
           >
-            <div className="relative z-10 inline-flex items-center gap-4 px-8 py-3 rounded-full border border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_0_50px_rgba(var(--primary),0.1)] group hover:border-primary/40 transition-all duration-500">
-              <div className="relative w-2 h-2">
-                <div className="absolute inset-0 bg-primary rounded-full animate-ping" />
-                <div className="absolute inset-0 bg-primary rounded-full" />
-              </div>
-              <span className="text-[10px] font-black tracking-[0.6em] text-white/60 group-hover:text-primary transition-colors uppercase">
-                Protocol: Active / Neural Sync Stable
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-medium">
+                Neural Sync Active v4.2
               </span>
             </div>
           </motion.div>
 
-          {/* Hero Content */}
+          {/* New "Clean" Content Section */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, ease: "expoOut" }}
-            className="space-y-10"
+            transition={{ duration: 1.2, ease: "circOut" }}
+            className="space-y-8"
           >
-            <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] uppercase">
-              The Sovereign <br />
-              <span className="text-primary italic">Intelligence.</span>
+            <h1 className="text-5xl md:text-8xl font-medium tracking-tight text-white leading-[1.1] max-w-4xl mx-auto">
+              The next evolution of <br />
+              <span className="text-white/40 italic">autonomous intelligence.</span>
             </h1>
 
-            <p className="text-white/40 text-xl md:text-3xl font-bold max-w-3xl mx-auto leading-tight italic tracking-tight">
-              Architecting a future where <span className="text-white underline decoration-primary/30 underline-offset-8">zero latency</span> meets human-grade empathy.
-              Deploy your first autonomous closer in <span className="text-white">60 Seconds.</span>
+            <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto font-normal leading-relaxed">
+              Deploy surgical-grade AI agents that architect revenue while you sleep.
+              Zero latency. Zero friction. Total dominance.
             </p>
 
-            {/* CTA Container */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-10">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-10">
               <Link href="/auth">
-                <Button size="lg" className="h-24 px-16 rounded-[2.5rem] bg-white text-black font-black uppercase tracking-[0.3em] text-xs shadow-[0_40px_80px_rgba(255,255,255,0.1)] hover:scale-105 transition-all duration-700 group hover:shadow-[0_0_100px_rgba(var(--primary),0.3)]">
-                  Launch Nexus <ArrowRight className="ml-3 w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                <Button size="lg" className="h-16 px-10 rounded-2xl bg-white text-black font-semibold uppercase tracking-widest text-[11px] shadow-2xl hover:scale-105 transition-all duration-300">
+                  Initialize Control <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="#pricing">
-                <Button variant="ghost" className="h-24 px-12 rounded-[2.5rem] border border-white/5 bg-white/5 backdrop-blur-xl text-white font-black uppercase tracking-[0.3em] text-xs hover:bg-white/10 transition-all">
-                  View Models
+              <Link href="#features">
+                <Button variant="ghost" className="h-16 px-10 rounded-2xl border border-white/5 text-white/60 font-semibold uppercase tracking-widest text-[11px] hover:bg-white/5 hover:text-white transition-all">
+                  Explore Architecture
                 </Button>
               </Link>
             </div>
           </motion.div>
 
-          {/* Unified Trust Section */}
-          <div className="mt-32 w-full max-w-5xl border-t border-white/5 pt-12 flex flex-col md:flex-row items-center justify-between gap-10 text-[9px] font-black uppercase tracking-[0.5em] text-white/20">
-            <div className="flex items-center gap-4 group cursor-none">
-              <Globe className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
-              Global Infrastructure Scale: 99.99%
+          {/* Footer Trust Bar - Clean */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1.5 }}
+            className="mt-32 w-full max-w-3xl flex flex-wrap justify-center items-center gap-10 text-[10px] font-medium uppercase tracking-[0.2em] text-white/10"
+          >
+            <div className="flex items-center gap-2">
+              <Globe className="w-3 h-3" />
+              Global Infrastructure
             </div>
-            <div className="flex items-center gap-10">
-              <span className="hover:text-white transition-colors">SOC2 TYPE II</span>
-              <span className="hover:text-white transition-colors">GDPR READY</span>
-              <span className="hover:text-white transition-colors">ISO 27001</span>
-            </div>
-          </div>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+            <div>Enterprise Encryption</div>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+            <div>Deterministic Logic</div>
+          </motion.div>
         </div>
       </div>
 
-      {/* Extreme Bottom Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-black to-transparent pointer-events-none z-20" />
+      {/* Bottom Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black to-transparent pointer-events-none z-30" />
     </section>
   );
 }
