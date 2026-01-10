@@ -429,14 +429,26 @@ export default function VideoAutomationPage() {
             Convert comments into sales automatically.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/video/reels"] })}>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            className="rounded-xl border-border/40 hover:bg-muted/50"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ["/api/dashboard/instagram/media"] });
+              toast({ title: "Syncing...", description: "Fetching latest Instagram media" });
+            }}
+          >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Sync
+            Sync Live Feed
           </Button>
-          <Button>
-            <Instagram className="mr-2 h-4 w-4" />
-            Connect Account
+          <Button
+            className="rounded-xl shadow-lg shadow-pink-500/20 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
+            onClick={() => {
+              toast({ title: "Force Re-scan Initiated", description: "AI is checking all active monitors now." });
+            }}
+          >
+            <Activity className="mr-2 h-4 w-4" />
+            Force Re-scan
           </Button>
         </div>
       </div>

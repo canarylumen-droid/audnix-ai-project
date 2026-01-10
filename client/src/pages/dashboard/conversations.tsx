@@ -267,8 +267,16 @@ export default function ConversationsPage() {
       {/* Leads Sidebar */}
       <div className={`${selectedLead ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r bg-card flex-col`}>
         {/* This is a placeholder for the leads list. In a real app, this would fetch and display leads. */}
-        <div className="p-4 border-b">
-          <Input placeholder="Search leads..." className="w-full" />
+        <div className="p-4 border-b flex items-center gap-2">
+          <Input placeholder="Search leads..." className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 shrink-0"
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/leads"] })}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         <div className="overflow-y-auto flex-1 p-4 space-y-2">
           {/* Example Lead Item - replace with actual lead data */}

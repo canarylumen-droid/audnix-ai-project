@@ -24,6 +24,7 @@ import {
   ChevronUp,
   Lightbulb,
   AlertCircle,
+  Check,
 } from "lucide-react";
 
 interface ObjectionAnalysis {
@@ -108,14 +109,44 @@ export default function SalesAssistant() {
     });
   };
 
-  const CopyButton = ({ text, label }: { text: string; label: string }) => (
-    <button
-      onClick={() => copyToClipboard(text, label)}
-      className="flex-shrink-0 p-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors group"
-    >
-      <Copy className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
-    </button>
-  );
+  const CopyButton = ({ text, label }: { text: string; label: string }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+      copyToClipboard(text, label);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+      <button
+        onClick={handleCopy}
+        className={`flex-shrink-0 p-2 rounded-lg transition-all duration-300 ${copied ? 'bg-emerald-500/20' : 'bg-cyan-500/10 hover:bg-cyan-500/20'} group`}
+      >
+        <AnimatePresence mode="wait">
+          {copied ? (
+            <motion.div
+              key="check"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+            >
+              <Check className="w-4 h-4 text-emerald-400" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="copy"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+            >
+              <Copy className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </button>
+    );
+  };
 
   const CollapsibleSection = ({
     id,

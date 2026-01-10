@@ -11,7 +11,7 @@ import {
   BarChart,
   Download,
   ArrowRight,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatedNumber } from "@/hooks/use-count-up";
@@ -130,8 +130,8 @@ export default function InsightsPage() {
         </div>
         {hasData && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.print()}>
-              <Download className="mr-2 h-4 w-4" /> Export
+            <Button variant="outline" onClick={() => window.location.href = '/api/bulk/export'}>
+              <Download className="mr-2 h-4 w-4" /> Export CSV
             </Button>
             <Button onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
@@ -180,6 +180,7 @@ export default function InsightsPage() {
                   Performance Summary
                 </CardTitle>
               </CardHeader>
+
               <CardContent>
                 <p className="text-lg leading-relaxed font-medium text-foreground/90">
                   {insights}
@@ -245,12 +246,24 @@ export default function InsightsPage() {
 
 function MetricCard({ title, value, color }: { title: string, value: string, color: string }) {
   return (
-    <Card className="border-border/60 hover:border-border transition-colors">
+    <Card className="border-border/60 hover:border-border transition-colors group relative overflow-hidden">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
+            <RefreshCw className="h-3 w-3" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className={`text-3xl font-bold ${color}`}>{value}</div>
+        <div className="h-1 w-full bg-muted mt-2 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: parseInt(value) > 100 ? '100%' : value }}
+            className={`h-full ${color.replace('text-', 'bg-')}`}
+          />
+        </div>
       </CardContent>
     </Card>
   );

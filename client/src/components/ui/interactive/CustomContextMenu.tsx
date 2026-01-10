@@ -61,7 +61,8 @@ export function CustomContextMenu({
         const defaultExtras = [
             { type: 'divider' },
             { icon: Link2, label: 'Copy Page Link', id: 'copy_link' },
-            { icon: Download, label: 'Export Data', id: 'export' },
+            { icon: Download, label: 'Export Leads (CSV)', id: 'export_data' },
+            { icon: Scissors, label: 'Refresh Feed', id: 'refresh' },
         ];
         menuItems = [...menuItems, ...defaultExtras as any];
     }
@@ -92,9 +93,15 @@ export function CustomContextMenu({
                             <button
                                 key={item.id}
                                 onClick={() => {
+                                    if (item.id === 'export_data') {
+                                        window.location.href = '/api/bulk/export';
+                                    }
                                     if (item.id === 'copy_link') {
                                         const linkToCopy = config.data?.url || window.location.href;
                                         navigator.clipboard.writeText(linkToCopy);
+                                    }
+                                    if (item.id === 'refresh') {
+                                        window.location.reload();
                                     }
                                     onAction?.(item.id!, config.data);
                                     onClose();

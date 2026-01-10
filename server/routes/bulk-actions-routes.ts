@@ -309,4 +309,45 @@ router.post('/delete', requireAuth, async (req: Request, res: Response): Promise
   }
 });
 
+/**
+ * Export all leads as CSV
+ * GET /api/bulk/export
+ */
+router.get('/export', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const leads = await storage.getLeads({ userId, limit: 10000 });
+
+    if (leads.length === 0) {
+      res.status(404).json({ error: 'No data to export' });
+      return;
+    }
+
+    const headers = ['ID', 'Name', 'Email', 'Phone', 'Channel', 'Status', 'Score', 'Warm', 'Created At'];
+    const rows = leads.map(l => [
+      l.id,
+      l.name,
+      l.email || '',
+      l.phone || '',
+      l.channel,
+      l.status,
+      l.score || 0,
+      l.warm ? 'Yes' : 'No',
+      new Date(l.createdAt).toLocaleString()
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=audnix_leads_${new Date().toISOString().split('T')[0]}.csv`);
+    res.status(200).send(csvContent);
+  } catch (error: unknown) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
 export default router;

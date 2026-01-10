@@ -15,9 +15,11 @@ import {
   Minus,
   Sparkles,
   ArrowRight,
-  Activity
+  Activity,
+  RefreshCw,
+  Download
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
@@ -86,6 +88,7 @@ export default function DashboardHome() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   // Fetch real user profile
   const { data: user } = useQuery<UserProfile>({
@@ -236,12 +239,25 @@ export default function DashboardHome() {
               {hasAnyActivity ? "Here's your latest automation performance." : "Ready to scale your outreach. Connect an account to begin."}
             </p>
           </div>
-          {trialDaysLeft > 0 && (
-            <Badge variant="outline" className="px-4 py-2 bg-primary/5 text-primary border-primary/20 rounded-full font-medium">
-              <Sparkles className="w-4 h-4 mr-2" />
-              {trialDaysLeft} days left in trial
-            </Badge>
-          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl border-border/40 hover:bg-muted/50 transition-all font-semibold uppercase tracking-wider text-[10px]"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+              }}
+            >
+              <RefreshCw className="mr-2 h-3 w-3" /> Sync Live Data
+            </Button>
+            {trialDaysLeft > 0 && (
+              <Badge variant="outline" className="px-4 py-2 bg-primary/5 text-primary border-primary/20 rounded-full font-medium">
+                <Sparkles className="w-4 h-4 mr-2" />
+                {trialDaysLeft} days left in trial
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* KPI Grid */}
@@ -271,7 +287,20 @@ export default function DashboardHome() {
                         </span>
                         <span className="text-xs text-muted-foreground">vs last month</span>
                       </div>
-                    )}
+                    <div className="flex items-center justify-between mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-[10px] font-bold uppercase tracking-tighter p-0 hover:bg-transparent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.location.href = '/api/bulk/export';
+                        }}
+                      >
+                        <Download className="h-3 w-3 mr-1" /> Download Report
+                      </Button>
+                      <ArrowRight className="h-3 w-3 text-primary opacity-50" />
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
