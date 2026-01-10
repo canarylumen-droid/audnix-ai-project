@@ -5,7 +5,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calculator, TrendingUp, DollarSign, Users, ArrowRight, Zap, Target } from "lucide-react";
+import { Calculator, TrendingUp, DollarSign, Users, ArrowRight, Zap, Target, X } from "lucide-react";
 
 // Helper for counting animation
 const Counter = ({ value, prefix = "", suffix = "" }: { value: number, prefix?: string, suffix?: string }) => {

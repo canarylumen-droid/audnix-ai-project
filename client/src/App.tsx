@@ -108,7 +108,7 @@ function Router() {
       <Route path="/dashboard/lead-import">
         {() => (
           <AuthGuard>
-            <LeadImportPage />
+            <Suspense fallback={null}><LeadImportPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
