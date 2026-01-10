@@ -60,7 +60,7 @@ export function SolutionPageTemplate({ title, subtitle, description, features, u
                                     <Shield className="w-4 h-4" /> Official Meta API
                                 </div>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
-                                    <Zap className="w-4 h-4" /> < 2m Response Latency
+                                    <Zap className="w-4 h-4" /> &lt; 2m Response Latency
                                 </div>
                             </div>
                         </motion.div>
