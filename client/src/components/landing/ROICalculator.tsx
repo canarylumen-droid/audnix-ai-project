@@ -1,219 +1,247 @@
-import { useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Calculator, TrendingUp, DollarSign, Users, ArrowRight, Zap } from "lucide-react";
+import { Calculator, TrendingUp, DollarSign, Users, ArrowRight, Zap, Target } from "lucide-react";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 }
-  }
-};
+// Helper for counting animation
+const Counter = ({ value, prefix = "", suffix = "" }: { value: number, prefix?: string, suffix?: string }) => {
+  const [displayValue, setDisplayValue] = useState(0);
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  useEffect(() => {
+    let start = displayValue;
+    const end = value;
+    const duration = 1000;
+    let startTime: number | null = null;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const current = Math.floor(progress * (end - start) + start);
+      setDisplayValue(current);
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return <span>{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 };
 
 export function ROICalculator() {
   const [leadsPerMonth, setLeadsPerMonth] = useState(100);
   const [avgDealValue, setAvgDealValue] = useState(500);
-  
+  const [currentConvRate, setCurrentConvRate] = useState(2);
+
   const calculations = useMemo(() => {
-    const industryConversionRate = 0.02;
-    const audnixConversionRate = 0.18;
-    
+    const industryConversionRate = currentConvRate / 100;
+    // Audnix typically performs 8-12x better, but we'll cap it at 30% for realism
+    const audnixConversionRate = Math.min(industryConversionRate * 9, 0.35);
+
     const manualClosedDeals = Math.round(leadsPerMonth * industryConversionRate);
     const audnixClosedDeals = Math.round(leadsPerMonth * audnixConversionRate);
-    
+
     const manualRevenue = manualClosedDeals * avgDealValue;
     const audnixRevenue = audnixClosedDeals * avgDealValue;
-    
+
     const additionalRevenue = audnixRevenue - manualRevenue;
-    const multiplier = manualRevenue > 0 ? (audnixRevenue / manualRevenue).toFixed(1) : "9";
-    
+    const multiplier = manualRevenue > 0 ? (audnixRevenue / manualRevenue).toFixed(1) : "9.0";
+
     return {
       manualClosedDeals,
       audnixClosedDeals,
       manualRevenue,
       audnixRevenue,
       additionalRevenue,
-      multiplier
+      multiplier,
+      audnixPercent: (audnixConversionRate * 100).toFixed(1)
     };
-  }, [leadsPerMonth, avgDealValue]);
+  }, [leadsPerMonth, avgDealValue, currentConvRate]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
     return `$${value.toLocaleString()}`;
   };
 
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity }}
-        />
+    <section className="py-40 px-4 relative overflow-hidden bg-black">
+      {/* Background Ambience */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[600px] bg-primary/5 blur-[120px] rounded-full" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent z-10" />
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-100px" }}
-        className="max-w-5xl mx-auto relative z-10"
-      >
-        <motion.div variants={itemVariants} className="text-center mb-12">
-          <Badge className="mb-4 bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-            <Calculator className="w-3 h-3 mr-1" />
-            Revenue Calculator
-          </Badge>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            See Your Revenue with{" "}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-              AI Intelligence
-            </span>
+      <div className="max-w-6xl mx-auto relative z-20">
+        <div className="text-center mb-24">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12 inline-block shadow-[0_0_20px_rgba(var(--primary),0.1)]"
+          >
+            Profitability Projection
+          </motion.div>
+          <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter uppercase leading-[0.9]">
+            Architect your <br />
+            <span className="text-primary italic">Revenue Engine.</span>
           </h2>
-          <p className="text-lg text-white/70 max-w-2xl mx-auto">
-            Our AI learns each lead's behavior and only reaches out when they're ready to buy.
-            Most creators see 8-12x more conversions.
+          <p className="text-xl text-white/50 max-w-2xl mx-auto font-medium">
+            Most legacy CRMs track leads. Audnix converts them. Use our deterministic model to see exactly how much revenue you're leaving on the table.
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div variants={itemVariants}>
-          <Card className="bg-slate-900/80 border-white/10 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-emerald-400" />
-                Calculate Your Revenue Potential
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="text-white/80 font-medium flex items-center gap-2">
-                        <Users className="w-4 h-4 text-cyan-400" />
-                        Warm leads per month
-                      </label>
-                      <span className="text-2xl font-bold text-white">{leadsPerMonth}</span>
-                    </div>
-                    <Slider
-                      value={[leadsPerMonth]}
-                      onValueChange={([val]) => setLeadsPerMonth(val)}
-                      min={50}
-                      max={10000}
-                      step={50}
-                      className="cursor-pointer"
-                    />
-                    <div className="flex justify-between text-xs text-white/50">
-                      <span>50</span>
-                      <span>10,000</span>
-                    </div>
-                  </div>
+        <div className="grid lg:grid-cols-12 gap-12 items-start">
+          {/* Controls */}
+          <div className="lg:col-span-5 space-y-10">
+            <div className="glass-premium p-10 rounded-[2.5rem] border-white/5 space-y-12">
 
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <label className="text-white/80 font-medium flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-emerald-400" />
-                        Average deal value
-                      </label>
-                      <span className="text-2xl font-bold text-white">${avgDealValue}</span>
-                    </div>
-                    <Slider
-                      value={[avgDealValue]}
-                      onValueChange={([val]) => setAvgDealValue(val)}
-                      min={100}
-                      max={5000}
-                      step={100}
-                      className="cursor-pointer"
-                    />
-                    <div className="flex justify-between text-xs text-white/50">
-                      <span>$100</span>
-                      <span>$5,000</span>
-                    </div>
+              {/* Leads Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Users className="w-3 h-3 text-primary" /> Monthly Leads
+                    </label>
+                    <p className="text-white text-sm font-bold">Volume of inbound prospects</p>
                   </div>
+                  <span className="text-4xl font-black text-white tracking-tighter">{leadsPerMonth}</span>
                 </div>
-
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                    <p className="text-red-400 text-sm font-medium mb-1">Without AI (2% industry avg)</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-white">{formatCurrency(calculations.manualRevenue)}</span>
-                      <span className="text-white/50">/month</span>
-                    </div>
-                    <p className="text-white/50 text-sm mt-1">{calculations.manualClosedDeals} deals closed</p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-emerald-400 text-sm font-medium">With Audnix AI (18% conversion)</p>
-                      <Badge className="bg-emerald-500 text-white">{calculations.multiplier}x</Badge>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">
-                        {formatCurrency(calculations.audnixRevenue)}
-                      </span>
-                      <span className="text-white/50">/month</span>
-                    </div>
-                    <p className="text-white/50 text-sm mt-1">{calculations.audnixClosedDeals} deals closed</p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                    <div className="flex items-center justify-between">
-                      <p className="text-white/70 text-sm">Additional revenue</p>
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-yellow-400" />
-                        <span className="text-xl font-bold text-emerald-400">
-                          +{formatCurrency(calculations.additionalRevenue)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Slider
+                  value={[leadsPerMonth]}
+                  onValueChange={([val]) => setLeadsPerMonth(val)}
+                  min={50}
+                  max={10000}
+                  step={50}
+                  className="cursor-none"
+                />
               </div>
 
-              <div className="pt-4 border-t border-white/10">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-white/60 text-sm text-center sm:text-left">
-                    Based on AI that predicts optimal timing, handles objections, and only follows up when leads are ready to buy.
-                  </p>
-                  <Link href="/auth">
-                    <Button className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold px-8 py-6 rounded-full group whitespace-nowrap">
-                      Start Closing More Deals
-                      <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
+              {/* Deal Value Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <DollarSign className="w-3 h-3 text-primary" /> Avg Ticket Size
+                    </label>
+                    <p className="text-white text-sm font-bold">Mean value of a closed deal</p>
+                  </div>
+                  <span className="text-4xl font-black text-white tracking-tighter">${avgDealValue}</span>
                 </div>
+                <Slider
+                  value={[avgDealValue]}
+                  onValueChange={([val]) => setAvgDealValue(val)}
+                  min={100}
+                  max={25000}
+                  step={100}
+                  className="cursor-none"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
 
-        <motion.div variants={itemVariants} className="mt-8 text-center space-y-4">
-          <p className="text-white/50 text-sm">
-            Why 8-12x? Our AI learns from every conversation. It knows when leads open emails, 
-            what objections they have, and the exact moment they're ready to buy.
-          </p>
-          <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-2xl mx-auto">
-            <p className="text-white/70 text-sm">
-              <span className="text-emerald-400 font-semibold">How we achieve 18% conversion:</span>{" "}
-              Industry average is 2% because most follow-ups happen at the wrong time. 
-              Audnix AI analyzes engagement signals (email opens, link clicks, response patterns) 
-              and only reaches out when leads show buying intent. This timing precision, combined with 
-              personalized objection handling, has helped our users close 8-12x more deals consistently.
-            </p>
+              {/* Conversion Rate Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Target className="w-3 h-3 text-primary" /> Current Conv. Rate
+                    </label>
+                    <p className="text-white text-sm font-bold">Your current human-only baseline</p>
+                  </div>
+                  <span className="text-4xl font-black text-white tracking-tighter">{currentConvRate}%</span>
+                </div>
+                <Slider
+                  value={[currentConvRate]}
+                  onValueChange={([val]) => setCurrentConvRate(val)}
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  className="cursor-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 px-8 py-6 rounded-[2rem] bg-primary/5 border border-primary/10">
+              <Zap className="w-5 h-5 text-primary" />
+              <p className="text-primary/80 text-xs font-bold uppercase tracking-widest leading-relaxed">
+                ROI based on real-time neural engagement optimization.
+              </p>
+            </div>
           </div>
-        </motion.div>
-      </motion.div>
+
+          {/* Results Display */}
+          <div className="lg:col-span-7 space-y-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Legacy Result */}
+              <div className="glass-premium p-10 rounded-[3rem] border-white/5 space-y-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <X className="w-12 h-12 text-red-500" />
+                </div>
+                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Manual Baseline ({currentConvRate}%)</h4>
+                <div className="space-y-1">
+                  <p className="text-5xl font-black text-white tracking-tighter">
+                    <Counter value={calculations.manualRevenue} prefix="$" />
+                  </p>
+                  <p className="text-white/40 text-sm font-bold">Revenue Per Month</p>
+                </div>
+                <div className="pt-6 border-t border-white/5">
+                  <p className="text-white/60 font-medium text-sm">
+                    Total Deals: <span className="text-white font-black">{calculations.manualClosedDeals}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Audnix Result */}
+              <div className="p-10 rounded-[3rem] bg-primary border border-primary/20 space-y-6 relative overflow-hidden group shadow-[0_40px_80px_rgba(var(--primary),0.25)]">
+                <div className="absolute top-0 right-0 p-6 opacity-20">
+                  <Zap className="w-12 h-12 text-white fill-white" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Audnix Protocol ({calculations.audnixPercent}%)</h4>
+                  <Badge className="bg-white text-primary font-black px-3 py-1 rounded-full">{calculations.multiplier}x</Badge>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-5xl font-black text-white tracking-tighter">
+                    <Counter value={calculations.audnixRevenue} prefix="$" />
+                  </p>
+                  <p className="text-white/80 text-sm font-bold">Revenue Per Month</p>
+                </div>
+                <div className="pt-6 border-t border-white/20">
+                  <p className="text-white/90 font-medium text-sm">
+                    Total Deals: <span className="text-white font-black">{calculations.audnixClosedDeals}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Summary Card */}
+            <div className="glass-premium p-12 rounded-[3.5rem] border-white/10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
+
+              <div className="space-y-4 text-center md:text-left">
+                <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">Potential Incremental Yield</p>
+                <p className="text-6xl md:text-7xl font-black text-white tracking-tighter">
+                  +<Counter value={calculations.additionalRevenue} prefix="$" />
+                </p>
+                <p className="text-white/40 text-sm font-medium max-w-sm">
+                  Additional revenue reclaimed from "lost" leads using autonomous follow-up and objection mastery.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-4 w-full md:w-auto">
+                <Link href="/auth">
+                  <Button size="lg" className="h-16 px-10 rounded-2xl font-bold bg-white text-black hover:bg-white/90 transition-all w-full">
+                    Claim This Revenue <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
+                <p className="text-[10px] text-white/20 font-black uppercase tracking-widest text-center">No upfront cost to start</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

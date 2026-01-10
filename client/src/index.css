@@ -6,6 +6,17 @@
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  cursor: none !important;
+}
+
+/* Re-enable cursor for interactive elements if custom cursor fails, but preferred via CustomCursor */
+a,
+button,
+[role="button"],
+input,
+select,
+textarea {
+  cursor: none !important;
 }
 
 /* GPU acceleration for animations */
@@ -342,6 +353,39 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Mesh Gradient for Premium Hero */
+.mesh-gradient-bg {
+  background-color: hsla(230, 35%, 7%, 1);
+  background-image:
+    radial-gradient(at 0% 0%, hsla(195, 100%, 60%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(280, 60%, 60%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(195, 100%, 60%, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(280, 60%, 60%, 0.1) 0px, transparent 50%);
+}
+
+.mask-reveal-text {
+  background: white;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Scanline Effect */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animate-scan {
+  animation: scanline 8s linear infinite;
 }
 
 /* Refined Lightweight Glass */

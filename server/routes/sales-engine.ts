@@ -2,12 +2,19 @@ import { Router, Request, Response } from 'express';
 import ObjectionHandler from '../lib/sales-engine/objection-handler.js';
 import { requireAuth } from '../middleware/auth.js';
 import OpenAI from 'openai';
+import { LRUCache } from 'lru-cache';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "mock-key",
 });
 
 const router = Router();
+
+// Scale: LRU Cache for no-latency responses on common objections
+const analysisCache = new LRUCache<string, any>({
+  max: 500, // Store 500 most common objections
+  ttl: 1000 * 60 * 60 * 24, // 24 hour cache
+});
 
 const HIDDEN_OBJECTION_MAP: Record<string, string> = {
   timing: "Fear of commitment or current priorities taking precedence",
@@ -38,15 +45,25 @@ const IDENTITY_UPGRADE_MAP: Record<string, string> = {
  * Analyze prospect objection and return response strategy
  */
 router.post('/analyze-objection', requireAuth, async (req: Request, res: Response) => {
+  const startTime = Date.now();
   try {
     const { objection, prospectMessage, industry = 'all' } = req.body;
-    const objectionText = objection || prospectMessage;
+    const objectionText = (objection || prospectMessage)?.trim();
 
     if (!objectionText || typeof objectionText !== 'string') {
       return res.status(400).json({ error: 'Objection text required' });
     }
 
-    // If OpenAI key is available, use GPT-4o for superior analysis
+    // Scaling: Check cache first for instant response
+    const cacheKey = `${industry}:${objectionText.toLowerCase()}`;
+    const cachedResult = analysisCache.get(cacheKey);
+    if (cachedResult) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+      return res.json(cachedResult);
+    }
+
+    // High Preference: AI Engine (GPT-4o)
     if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
       try {
         const completion = await openai.chat.completions.create({
@@ -68,7 +85,7 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
               - confidence: Number between 80-99 (AI confidence score)
               
               Industry context: ${industry}
-              Brand context: Your Brand
+              Brand context: Audnix AI
               `
             },
             {
@@ -77,30 +94,37 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
             }
           ],
           response_format: { type: "json_object" },
-          temperature: 0.7,
+          temperature: 0.5, // Lower temperature for more consistent sales logic
         });
 
         const aiResponse = JSON.parse(completion.choices[0].message.content || "{}");
-        return res.json({
+        const finalResponse = {
           objection: objectionText,
           ...aiResponse
-        });
+        };
+
+        // Cache the successful AI outcome
+        analysisCache.set(cacheKey, finalResponse);
+
+        res.setHeader('X-Cache', 'MISS');
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+        return res.json(finalResponse);
       } catch (error) {
         console.error("GPT-4o analysis failed, falling back to rule engine:", error);
       }
     }
 
-    // Fallback to Rule Engine
+    // Zero-Latency Fallback: Deterministic Rule Engine
     const analysis = ObjectionHandler.analyzeObjection(
       objectionText,
       industry,
-      'your brand'
+      'Audnix AI'
     );
 
     const category = analysis.matchedObjection?.category || 'general';
     const confidencePercent = Math.round(analysis.confidence * 100);
 
-    return res.json({
+    const fallbackResponse = {
       objection: objectionText,
       category,
       hiddenObjection: HIDDEN_OBJECTION_MAP[category] || HIDDEN_OBJECTION_MAP.general,
@@ -114,7 +138,11 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
       questions: analysis.questions,
       closingTactics: analysis.closingTactics,
       confidence: confidencePercent,
-    });
+    };
+
+    res.setHeader('X-Cache', 'FALLBACK');
+    res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`);
+    return res.json(fallbackResponse);
   } catch (error: any) {
     console.error('Error analyzing objection:', error);
     return res.status(500).json({ error: 'Failed to analyze objection' });

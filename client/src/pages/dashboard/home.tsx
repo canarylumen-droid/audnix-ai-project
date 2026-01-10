@@ -287,10 +287,11 @@ export default function DashboardHome() {
                         </span>
                         <span className="text-xs text-muted-foreground">vs last month</span>
                       </div>
+                    )}
                     <div className="flex items-center justify-between mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-7 text-[10px] font-bold uppercase tracking-tighter p-0 hover:bg-transparent"
                         onClick={(e) => {
                           e.stopPropagation();

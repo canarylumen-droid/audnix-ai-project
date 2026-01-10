@@ -7,8 +7,9 @@ export function CookieConsent() {
 
     useEffect(() => {
         const consent = localStorage.getItem("audnix_cookie_consent");
-        if (!consent) {
-            const timer = setTimeout(() => setIsVisible(true), 2000);
+        const declined = sessionStorage.getItem("audnix_cookie_declined");
+        if (!consent && !declined) {
+            const timer = setTimeout(() => setIsVisible(true), 2500);
             return () => clearTimeout(timer);
         }
     }, []);
@@ -18,51 +19,56 @@ export function CookieConsent() {
         setIsVisible(false);
     };
 
+    const decline = () => {
+        sessionStorage.setItem("audnix_cookie_declined", "true");
+        setIsVisible(false);
+    };
+
     return (
         <AnimatePresence>
             {isVisible && (
                 <motion.div
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: 100, opacity: 0 }}
-                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[200] w-full max-w-2xl px-6"
+                    initial={{ y: 100, x: "-50%", opacity: 0 }}
+                    animate={{ y: 0, x: "-50%", opacity: 1 }}
+                    exit={{ y: 100, x: "-50%", opacity: 0 }}
+                    transition={{ type: "spring", damping: 30, stiffness: 200 }}
+                    className="fixed bottom-10 left-1/2 z-[99999] w-full max-w-3xl px-6 pointer-events-none"
                 >
-                    <div className="glass-premium p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                    <div className="glass-premium p-8 rounded-[2rem] border-white/10 shadow-[0_50px_100px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center gap-10 relative overflow-hidden group pointer-events-auto">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50" />
 
-                        <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-                            <ShieldCheck className="w-8 h-8 text-primary" />
+                        <div className="relative flex-shrink-0 w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-sm group-hover:border-primary/50 transition-colors duration-500">
+                            <ShieldCheck className="w-10 h-10 text-primary drop-shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
                         </div>
 
-                        <div className="flex-1 text-center md:text-left">
-                            <h4 className="text-foreground font-bold uppercase tracking-[0.2em] text-[10px] mb-2">Respecting Your Privacy</h4>
-                            <p className="text-muted-foreground text-xs font-medium leading-relaxed">
-                                We use essential cookies to maintain your session security and optimize your engagement analytics.
-                                By continuing, you agree to our <span className="text-foreground underline cursor-pointer hover:text-primary transition-colors">Data Processing Agreement</span>.
+                        <div className="relative flex-1 text-center md:text-left space-y-2">
+                            <h4 className="text-white font-black uppercase tracking-[0.4em] text-[11px]">Privacy Protocol Active</h4>
+                            <p className="text-white/50 text-xs font-medium leading-relaxed max-w-md">
+                                We utilize secure behavioral cookies to optimize your revenue projection models and maintain session integrity.
+                                <span className="text-white hover:text-primary transition-colors cursor-none ml-1 underline underline-offset-4 decoration-primary/40">Read Intelligence Disclosure</span>.
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-3 min-w-[160px]">
+                        <div className="relative flex flex-col gap-3 min-w-[200px]">
                             <button
                                 onClick={accept}
-                                className="h-11 px-8 rounded-xl bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-widest hover:brightness-110 transition-all duration-300 shadow-lg active:scale-95"
+                                className="h-14 px-10 rounded-2xl bg-white text-black text-[11px] font-black uppercase tracking-widest hover:bg-white/90 transition-all shadow-[0_10px_20px_rgba(0,0,0,0.2)] active:scale-95 cursor-none"
                             >
-                                Accept & Continue
+                                Accept & Synchronize
                             </button>
                             <button
-                                onClick={() => setIsVisible(false)}
-                                className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/50 hover:text-foreground transition-colors"
+                                onClick={decline}
+                                className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 hover:text-white transition-colors cursor-none h-8"
                             >
-                                Decline
+                                Decline Access
                             </button>
                         </div>
 
                         <button
-                            onClick={() => setIsVisible(false)}
-                            className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/5 transition-colors"
+                            onClick={decline}
+                            className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/5 transition-colors cursor-none"
                         >
-                            <X className="w-4 h-4 text-muted-foreground/20" />
+                            <X className="w-5 h-5 text-white/10" />
                         </button>
                     </div>
                 </motion.div>

@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Navigation } from "@/components/landing/Navigation";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FeatureSection } from "@/components/landing/FeatureSection";
@@ -10,12 +10,13 @@ import { FAQSection } from "@/components/landing/FAQSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { ROICalculator } from "@/components/landing/ROICalculator";
 import { Logo } from "@/components/ui/Logo";
-import { Twitter, Linkedin, Github } from "lucide-react";
+import { Twitter, Linkedin, Github, ShieldCheck, Zap, ArrowRight, Instagram } from "lucide-react";
 import { useScroll, useSpring, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { CookieConsent } from "@/components/landing/CookieConsent";
+import { ExpertChat } from "@/components/landing/ExpertChat";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -31,18 +32,17 @@ export default function Landing() {
   });
 
   useEffect(() => {
-    // GSAP Reveal Animations for all sections
     const ctx = gsap.context(() => {
       const sections = gsap.utils.toArray('.reveal-section');
       sections.forEach((section: any) => {
         gsap.from(section, {
-          y: 40,
+          y: 60,
           opacity: 0,
-          duration: 1,
-          ease: "power2.out",
+          duration: 1.2,
+          ease: "expo.out",
           scrollTrigger: {
             trigger: section,
-            start: "top 90%",
+            start: "top 85%",
             toggleActions: "play none none reverse"
           }
         });
@@ -53,7 +53,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-background text-foreground overflow-x-hidden font-sans">
+    <div ref={containerRef} className="min-h-screen bg-black text-white selection:bg-primary selection:text-black overflow-x-hidden font-sans cursor-none">
       {/* Progress Bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-[3px] bg-primary z-[200] origin-left"
@@ -63,165 +63,159 @@ export default function Landing() {
       <Navigation />
 
       <main>
-        {/* HERO */}
         <section id="hero" className="reveal-section">
           <HeroSection />
         </section>
 
-        {/* PROBLEM */}
         <section id="problem" className="reveal-section">
           <ProblemSection />
         </section>
 
-        {/* MOAT / COMPARISON */}
         <section id="moat" className="reveal-section">
           <MoatSection />
         </section>
 
-        {/* HOW IT WORKS */}
         <section id="how-it-works" className="reveal-section">
           <HowItWorksSection />
         </section>
 
-        {/* ROI CALCULATOR */}
         <section id="calc" className="reveal-section">
           <ROICalculator />
         </section>
 
-        {/* FEATURES */}
         <section id="features" className="reveal-section">
           <FeatureSection />
         </section>
 
-        {/* COMPARISON TABLE */}
         <section id="comparison" className="reveal-section">
           <ComparisonSection />
         </section>
 
-        {/* PRICING */}
         <section id="pricing" className="reveal-section">
           <PricingSection />
         </section>
 
-        {/* FAQ */}
         <section id="faq" className="reveal-section">
           <FAQSection />
         </section>
 
         {/* FINAL CTA */}
-        <section className="py-32 md:py-48 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden border-t">
-          <div className="absolute inset-0 bg-primary/5 blur-[150px] rounded-full translate-y-1/2 -z-10" />
+        <section className="py-60 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden border-t border-white/5">
+          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-primary/5 blur-[120px] rounded-full -z-10" />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="max-w-4xl"
+            className="max-w-5xl"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-widest mb-10">
-              Ready to scale?
+            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12 shadow-[0_0_20px_rgba(var(--primary),0.1)]">
+              Initialization Complete
             </div>
 
-            <h2 className="text-5xl md:text-8xl font-bold tracking-tight mb-8">
-              Start closing more <br />
-              <span className="text-primary">deals today.</span>
+            <h2 className="text-6xl md:text-[9rem] font-black tracking-tighter mb-10 leading-[0.85] uppercase">
+              Start your <br />
+              <span className="text-primary italic">Final Evolution.</span>
             </h2>
 
-            <p className="text-muted-foreground text-lg md:text-xl font-medium mb-12 max-w-2xl mx-auto leading-relaxed">
-              Join hundreds of high-growth companies using Audnix to automate their sales outreach and recovery.
+            <p className="text-white/40 text-xl md:text-2xl font-bold mb-16 max-w-3xl mx-auto leading-tight italic">
+              Legacy CRMs track history. Audnix architects the future. Join the elite top 1% of sales operations today.
             </p>
 
             <Link href="/auth">
               <Button
                 size="lg"
-                className="h-16 px-12 rounded-full font-bold uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-105 transition-all duration-300"
+                className="h-20 px-16 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm bg-primary text-black hover:bg-primary/90 shadow-[0_30px_60px_rgba(var(--primary),0.25)] hover:scale-105 transition-all duration-500"
               >
-                Start Scalable Growth
+                Access Protocol Now <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
 
-            <div className="mt-12 flex flex-wrap justify-center gap-8 items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+            <div className="mt-16 flex flex-wrap justify-center gap-12 items-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Free 500 leads included
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                Live Deployment Ready
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                No credit card required
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                No Credit Card Required
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Cancel anytime
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                Deterministic Output Guarantee
               </div>
             </div>
           </motion.div>
         </section>
       </main>
 
-      <footer className="py-24 px-8 border-t border-border/50 bg-muted/5 selection:bg-primary/10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-16 md:gap-8">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-3 mb-8">
+      <footer className="py-40 px-8 border-t border-white/5 bg-black relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 blur-[150px] rounded-full -z-10" />
+
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
+          <div className="lg:col-span-2 space-y-10">
+            <Link href="/">
               <Logo />
-            </div>
-            <p className="text-muted-foreground font-medium max-w-xs leading-relaxed text-base mb-8">
-              Architecting the next generation of sales engagement.
-              Autonomous intelligence designed for high-growth operations.
+            </Link>
+            <p className="text-white/40 font-bold max-w-sm leading-relaxed text-xl tracking-tight">
+              Architecting the next generation of sales intelligence.
+              Autonomous agents designed for high-growth operations.
             </p>
-            <div className="flex gap-4">
-              {[Twitter, Linkedin, Github].map((Icon, i) => (
-                <Link key={i} href="#" className="w-10 h-10 rounded-xl bg-muted border border-border/50 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-colors text-muted-foreground hover:text-primary">
-                  <Icon className="w-4 h-4" />
+            <div className="flex gap-6">
+              {[Twitter, Linkedin, Github, Instagram].map((Icon, i) => (
+                <Link key={i} href="#" className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group cursor-none">
+                  <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 </Link>
               ))}
             </div>
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Product</h4>
-            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
-              <li><Link href="#features" className="hover:text-primary transition-colors">Features</Link></li>
-              <li><Link href="#pricing" className="hover:text-primary transition-colors">Pricing</Link></li>
-              <li><Link href="#calc" className="hover:text-primary transition-colors">ROI Calculator</Link></li>
-              <li><Link href="#faq" className="hover:text-primary transition-colors">FAQ</Link></li>
+            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Solutions</h4>
+            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
+              <li><Link href="/solutions/agencies" className="hover:text-primary transition-colors cursor-none">Agencies</Link></li>
+              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors cursor-none">Sales Teams</Link></li>
+              <li><Link href="/solutions/creators" className="hover:text-primary transition-colors cursor-none">Personal Brands</Link></li>
+              <li><Link href="/#calc" className="hover:text-primary transition-colors cursor-none">ROI Modeling</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Company</h4>
-            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Login</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Get Started</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Blog</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
+            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Intelligence</h4>
+            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
+              <li><Link href="#features" className="hover:text-primary transition-colors cursor-none">Neural Core</Link></li>
+              <li><Link href="#how-it-works" className="hover:text-primary transition-colors cursor-none">Automation Flow</Link></li>
+              <li><Link href="#pricing" className="hover:text-primary transition-colors cursor-none">Cloud Pricing</Link></li>
+              <li><Link href="/auth" className="hover:text-primary transition-colors cursor-none">Access Console</Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="text-[11px] font-bold uppercase tracking-widest text-foreground mb-6">Legal</h4>
-            <ul className="space-y-4 text-sm font-medium text-muted-foreground">
-              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-              <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Deletion</Link></li>
-              <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                System Status
+            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Security</h4>
+            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
+              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors cursor-none">Privacy Protocol</Link></li>
+              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors cursor-none">Terms of Growth</Link></li>
+              <li><Link href="/data-deletion" className="hover:text-primary transition-colors cursor-none">Data Erasure</Link></li>
+              <li className="flex items-center gap-3 text-emerald-500">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Operational
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[11px] font-medium text-muted-foreground/60">
-            © 2026 Audnix Operations Co. All rights reserved.
+        <div className="max-w-7xl mx-auto mt-40 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/10">
+            © 2026 AUDNIX OPERATIONS CO. ALL RIGHTS RESERVED.
           </p>
-          <div className="flex gap-8 text-[11px] font-medium text-muted-foreground/60">
-            <Link href="#" className="hover:text-foreground transition-colors">Status</Link>
-            <Link href="#" className="hover:text-foreground transition-colors">API</Link>
+          <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-white/10">
+            <Link href="#" className="hover:text-white transition-colors cursor-none">Global Status</Link>
+            <Link href="#" className="hover:text-white transition-colors cursor-none">API Documentation</Link>
           </div>
         </div>
       </footer>
 
+      <ExpertChat />
       <PrivacyModal />
       <CookieConsent />
     </div>

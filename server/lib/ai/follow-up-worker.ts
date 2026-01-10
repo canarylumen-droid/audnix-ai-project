@@ -158,19 +158,32 @@ export class FollowUpWorker {
 
       console.log(`Processing ${jobs.length} follow-up jobs...`);
 
-      // Process jobs in parallel with proper typing
-      await Promise.all(jobs.map((job: typeof jobs[0]) => {
-        const ctx = job.context as Record<string, unknown>;
-        const typedJob: FollowUpJob = {
-          id: job.id,
-          userId: job.userId,
-          leadId: job.leadId,
-          channel: job.channel,
-          context: ctx,
-          retryCount: typeof ctx?.retryCount === 'number' ? ctx.retryCount : 0
-        };
-        return this.processJob(typedJob);
-      }));
+      // Scaling: Use controlled concurrency to avoid saturating OpenAI / Database
+      const CONCURRENCY_LIMIT = 5;
+      const results = [];
+
+      for (let i = 0; i < jobs.length; i += CONCURRENCY_LIMIT) {
+        const batch = jobs.slice(i, i + CONCURRENCY_LIMIT);
+        const batchStartTime = Date.now();
+
+        console.log(`🚀 Executing batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1} (${batch.length} jobs)`);
+
+        const batchResults = await Promise.all(batch.map(async (job: typeof jobs[0]) => {
+          const ctx = job.context as Record<string, unknown>;
+          const typedJob: FollowUpJob = {
+            id: job.id,
+            userId: job.userId,
+            leadId: job.leadId,
+            channel: job.channel,
+            context: ctx,
+            retryCount: typeof ctx?.retryCount === 'number' ? ctx.retryCount : 0
+          };
+          return this.processJob(typedJob);
+        }));
+
+        results.push(...batchResults);
+        console.log(`✅ Batch complete in ${Date.now() - batchStartTime}ms`);
+      }
     } catch (error) {
       console.error('Queue processing error:', error);
     }

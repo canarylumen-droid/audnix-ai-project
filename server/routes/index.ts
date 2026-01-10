@@ -38,6 +38,7 @@ import channelStatusRoutes from "./channel-status-routes.js";
 import dealsRoutes from "./deals-routes.js";
 import integrationsRoutes from "./integrations-routes.js";
 import objectionsRoutes from "./objections-routes.js";
+import expertChatRoutes from "./expert-chat.js";
 import userSettingsRoutes from "./user-settings-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
@@ -89,6 +90,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/objections", objectionsRoutes);
   app.use("/api/settings", userSettingsRoutes);
   app.use("/api/sales-engine", salesEngine);
+  app.use("/api/expert-chat", expertChatRoutes);
 
   // Create HTTP server
   const server = http.createServer(app);

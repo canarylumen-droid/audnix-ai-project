@@ -10,19 +10,22 @@ const SOLUTIONS = [
     name: "For Agencies",
     desc: "Scale your client outreach without increasing headcount.",
     icon: LayoutGrid,
-    badge: "Scale"
+    badge: "Scale",
+    href: "/solutions/agencies"
   },
   {
     name: "For Sales Teams",
     desc: "Close more deals with autonomous objection handling.",
     icon: Zap,
-    badge: "Velocity"
+    badge: "Velocity",
+    href: "/solutions/sales-teams"
   },
   {
     name: "For Creators",
     desc: "Monetize your audience with 24/7 AI engagement.",
     icon: Brain,
-    badge: "New"
+    badge: "New",
+    href: "/solutions/creators"
   }
 ];
 
@@ -84,23 +87,22 @@ export function Navigation() {
                   >
                     <div className="grid gap-1">
                       {SOLUTIONS.map((sol) => (
-                        <div
-                          key={sol.name}
-                          className="flex items-start gap-4 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-colors group/item"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary transition-colors">
-                            <sol.icon className="w-5 h-5" />
-                          </div>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-foreground">{sol.name}</span>
-                              <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-bold uppercase tracking-wider">
-                                {sol.badge}
-                              </span>
+                        <Link key={sol.name} href={sol.href}>
+                          <div className="flex items-start gap-4 p-4 rounded-xl cursor-none hover:bg-white/5 transition-colors group/item">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary transition-colors">
+                              <sol.icon className="w-5 h-5" />
                             </div>
-                            <span className="text-xs text-muted-foreground font-medium mt-0.5">{sol.desc}</span>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-foreground">{sol.name}</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-bold uppercase tracking-wider">
+                                  {sol.badge}
+                                </span>
+                              </div>
+                              <span className="text-xs text-muted-foreground font-medium mt-0.5">{sol.desc}</span>
+                            </div>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </motion.div>

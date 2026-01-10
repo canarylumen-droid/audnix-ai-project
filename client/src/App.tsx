@@ -11,6 +11,12 @@ import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import DataDeletion from "@/pages/data-deletion";
+
+// Solutions
+const AgenciesPage = lazy(() => import("./pages/solutions/Agencies"));
+const SalesTeamsPage = lazy(() => import("./pages/solutions/SalesTeams"));
+const CreatorsPage = lazy(() => import("./pages/solutions/Creators"));
+
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import ConversationsPage from "./pages/dashboard/conversations";
 import CalendarPage from "./pages/dashboard/calendar";
@@ -46,6 +52,17 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/data-deletion" component={DataDeletion} />
+
+      {/* Solutions */}
+      <Route path="/solutions/agencies">
+        {() => <Suspense fallback={null}><AgenciesPage /></Suspense>}
+      </Route>
+      <Route path="/solutions/sales-teams">
+        {() => <Suspense fallback={null}><SalesTeamsPage /></Suspense>}
+      </Route>
+      <Route path="/solutions/creators">
+        {() => <Suspense fallback={null}><CreatorsPage /></Suspense>}
+      </Route>
       <Route path="/leads/prospecting">
         {() => (
           <AuthGuard>

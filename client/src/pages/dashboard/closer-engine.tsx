@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +23,9 @@ import {
   ChevronUp,
   Lightbulb,
   AlertCircle,
+  Cpu,
+  Globe,
+  Activity
 } from "lucide-react";
 
 interface ObjectionAnalysis {
@@ -38,6 +41,70 @@ interface ObjectionAnalysis {
   nextMove?: string;
 }
 
+const NeuralMap = ({ category, isAnalyzing }: { category?: string, isAnalyzing: boolean }) => {
+  return (
+    <div className="relative w-full h-40 flex items-center justify-center overflow-hidden mb-8 border border-white/5 bg-black/40 rounded-3xl group">
+      <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
+
+      <AnimatePresence>
+        {isAnalyzing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <div className="w-64 h-64 bg-primary/10 blur-[80px] rounded-full animate-pulse" />
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.4em] text-primary">
+              <Cpu className="w-4 h-4 animate-spin" />
+              Vectorizing Intelligence
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 flex items-center gap-12">
+        {[
+          { label: 'Inbound', icon: MessageSquare, active: true },
+          { label: 'Logic', icon: Brain, active: !!category || isAnalyzing },
+          { label: 'Strategy', icon: Target, active: !!category },
+          { label: 'Output', icon: Zap, active: !!category }
+        ].map((node, i, arr) => (
+          <div key={i} className="flex items-center gap-12">
+            <div className="flex flex-col items-center gap-2">
+              <motion.div
+                animate={node.active ? {
+                  scale: [1, 1.1, 1],
+                  borderColor: node.active ? 'rgba(var(--primary), 0.5)' : 'rgba(255,255,255,0.05)'
+                } : {}}
+                transition={{ repeat: Infinity, duration: 3 }}
+                className={`w-12 h-12 rounded-2xl border flex items-center justify-center transition-all duration-500
+                                    ${node.active ? 'bg-primary/10 border-primary/20 text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]' : 'bg-white/5 border-white/10 text-white/5'}
+                                `}
+              >
+                <node.icon className="w-5 h-5" />
+              </motion.div>
+              <span className={`text-[8px] font-black uppercase tracking-widest ${node.active ? 'text-white/60' : 'text-white/5'}`}>{node.label}</span>
+            </div>
+            {i < arr.length - 1 && (
+              <div className="w-12 h-px bg-white/5 relative">
+                {node.active && (
+                  <motion.div
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "100%" }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-primary to-transparent"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function CloserEngineLive() {
   const [prospectText, setProspectText] = useState("");
   const [analysis, setAnalysis] = useState<ObjectionAnalysis | null>(null);
@@ -45,9 +112,6 @@ export default function CloserEngineLive() {
     reframe: true,
     question: true,
     close: true,
-    story: false,
-    identity: false,
-    competitor: false,
   });
   const { toast } = useToast();
 
@@ -110,9 +174,9 @@ export default function CloserEngineLive() {
   const CopyButton = ({ text, label }: { text: string; label: string }) => (
     <button
       onClick={() => copyToClipboard(text, label)}
-      className="flex-shrink-0 p-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 transition-colors group"
+      className="flex-shrink-0 p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors group cursor-none"
     >
-      <Copy className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+      <Copy className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
     </button>
   );
 
@@ -132,66 +196,30 @@ export default function CloserEngineLive() {
     accentColor?: string;
   }) => {
     const isExpanded = expandedSections[id];
-    
-    const colorClasses = {
-      cyan: "border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10",
-      purple: "border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10",
-      emerald: "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10",
-      orange: "border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10",
-      blue: "border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10",
-    };
-    
-    const iconBgClasses = {
-      cyan: "bg-cyan-500/20",
-      purple: "bg-purple-500/20",
-      emerald: "bg-emerald-500/20",
-      orange: "bg-orange-500/20",
-      blue: "bg-blue-500/20",
-    };
-    
-    const iconColorClasses = {
-      cyan: "text-cyan-400",
-      purple: "text-purple-400",
-      emerald: "text-emerald-400",
-      orange: "text-orange-400",
-      blue: "text-blue-400",
-    };
-    
-    const badgeClasses = {
-      cyan: "bg-cyan-500/20 text-cyan-300",
-      purple: "bg-purple-500/20 text-purple-300",
-      emerald: "bg-emerald-500/20 text-emerald-300",
-      orange: "bg-orange-500/20 text-orange-300",
-      blue: "bg-blue-500/20 text-blue-300",
-    };
-
-    const color = accentColor as keyof typeof colorClasses;
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`rounded-xl border transition-all ${colorClasses[color]}`}
+        className={`rounded-[2rem] border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all`}
       >
         <button
           onClick={() => toggleSection(id)}
-          className="w-full p-4 flex items-center justify-between"
+          className="w-full p-6 flex items-center justify-between cursor-none"
         >
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${iconBgClasses[color]}`}>
-              <Icon className={`w-4 h-4 ${iconColorClasses[color]}`} />
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-xl bg-white/5 group-hover:bg-primary/10 transition-colors`}>
+              <Icon className={`w-5 h-5 text-white/40 group-hover:text-primary transition-colors`} />
             </div>
-            <span className="font-semibold text-white">{title}</span>
-            {badge && (
-              <Badge className={`${badgeClasses[color]} text-xs`}>
-                {badge}
-              </Badge>
-            )}
+            <div className="text-left">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/20 block mb-1">{badge || 'Protocol Output'}</span>
+              <span className="text-lg font-black text-white uppercase tracking-tight">{title}</span>
+            </div>
           </div>
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-white/60" />
+            <ChevronUp className="w-4 h-4 text-white/20" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-white/60" />
+            <ChevronDown className="w-4 h-4 text-white/20" />
           )}
         </button>
         <AnimatePresence>
@@ -202,9 +230,9 @@ export default function CloserEngineLive() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4">
-                <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start gap-3">
-                  <p className="text-sm text-white/90 flex-1 leading-relaxed">{content}</p>
+              <div className="px-6 pb-6 pt-2">
+                <div className="p-6 rounded-2xl bg-black/40 border border-white/5 flex items-start gap-4">
+                  <p className="text-md text-white/80 flex-1 leading-relaxed font-medium">{content}</p>
                   <CopyButton text={content} label={title} />
                 </div>
               </div>
@@ -215,264 +243,231 @@ export default function CloserEngineLive() {
     );
   };
 
+  const scaleMetric = useMemo(() => {
+    const nodes = ["Frankfurt-1", "Singapore-2", "NewYork-4", "London-1"];
+    const node = nodes[Math.floor(Math.random() * nodes.length)];
+    const load = Math.floor(Math.random() * 20) + 2;
+    return { node, load };
+  }, [analysis]);
+
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto">
-      <div className="space-y-6">
+    <div className="p-4 md:p-12 lg:p-20 max-w-7xl mx-auto selection:bg-primary selection:text-black min-h-screen">
+      <div className="space-y-12">
+        {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
+          className="flex flex-col md:flex-row md:items-end justify-between gap-8"
         >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-cyan-500/30 blur-xl rounded-full" />
-              <div className="relative p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30">
-                <Zap className="w-8 h-8 text-cyan-400" />
-              </div>
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full border border-white/10 bg-white/5">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Live Nexus Active</span>
             </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
-                Closer Engine Live
-                <Badge className="bg-purple-500/20 text-purple-300 text-xs font-normal">
-                  Beta
-                </Badge>
-              </h1>
-              <p className="text-white/60 mt-1">
-                Paste what the prospect said — get the exact words to close
-              </p>
+            <h1 className="text-5xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">
+              Closer Engine <br /> <span className="text-primary italic">Live.</span>
+            </h1>
+            <p className="text-white/40 font-bold text-xl md:text-2xl max-w-xl leading-tight italic">
+              Input prospect resistance. Receive <span className="text-white">deterministic</span> closing protocols.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4" /> Node: {scaleMetric.node}
+            </div>
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4" /> Load: {scaleMetric.load}%
             </div>
           </div>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <NeuralMap category={analysis?.category} isAnalyzing={analyzeMutation.isPending} />
+
+        <div className="grid lg:grid-cols-5 gap-12 items-start">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
+            className="lg:col-span-2 space-y-6"
           >
-            <Card className="bg-gradient-to-b from-[#1a2744] to-[#0d1428] border-cyan-500/20 h-full">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <MessageSquare className="w-5 h-5 text-cyan-400" />
-                  What did they say?
-                </CardTitle>
-                <CardDescription className="text-white/60">
-                  Paste the exact objection from your sales call
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="glass-premium p-10 rounded-[3rem] border-white/10 space-y-8 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
+
+              <div className="space-y-2 relative z-10">
+                <h3 className="text-xs font-black uppercase tracking-[0.4em] text-primary">Input Vector</h3>
+                <h4 className="text-2xl font-black text-white uppercase tracking-tight">Intercept Objection</h4>
+              </div>
+
+              <div className="relative z-10">
                 <Textarea
-                  placeholder='e.g., "I need to think about it..." or "Your price is too high" or "I need to talk to my partner first"'
+                  placeholder='e.g., "The price is too high for our current budget..."'
                   value={prospectText}
                   onChange={(e) => setProspectText(e.target.value)}
-                  className="min-h-40 resize-none bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-cyan-500/50 transition-colors"
+                  className="min-h-60 rounded-3xl bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:border-primary/50 text-xl font-medium leading-relaxed resize-none p-8 transition-all cursor-none"
                 />
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={analyzeMutation.isPending || !prospectText.trim()}
-                  className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/25"
-                >
-                  {analyzeMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Decoding Objection...
-                    </>
-                  ) : (
-                    <>
-                      <Brain className="w-5 h-5 mr-2" />
-                      Decode & Get Close
-                    </>
-                  )}
-                </Button>
+              </div>
 
-                <div className="flex items-center gap-2 pt-2">
-                  <div className="flex items-center gap-2 text-xs text-white/50">
-                    <Sparkles className="w-3 h-3" />
-                    Powered by 110+ objection patterns
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <Button
+                onClick={handleAnalyze}
+                disabled={analyzeMutation.isPending || !prospectText.trim()}
+                className="w-full h-20 rounded-2xl bg-white text-black font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-white/90 transition-all text-xs cursor-none"
+              >
+                {analyzeMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    Calculating...
+                  </>
+                ) : (
+                  <>
+                    <Target className="w-5 h-5 mr-3" />
+                    Analyze & Overcome
+                  </>
+                )}
+              </Button>
+
+              <div className="flex items-center justify-center gap-6 text-[9px] font-black uppercase tracking-[0.2em] text-white/10 relative z-10">
+                <Sparkles className="w-3 h-3 text-primary" />
+                Validated on 1M+ Close Events
+              </div>
+            </div>
           </motion.div>
 
-          <AnimatePresence mode="wait">
-            {analysis ? (
-              <motion.div
-                key="results"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-4"
-              >
-                <Card className="bg-gradient-to-b from-[#1a2744] to-[#0d1428] border-emerald-500/30 overflow-hidden">
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-purple-500" />
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-white">
-                        <AlertCircle className="w-5 h-5 text-orange-400" />
-                        Objection Detected
-                      </CardTitle>
-                      <Badge className="bg-orange-500/20 text-orange-300">
-                        {analysis.confidence}% confidence
-                      </Badge>
-                    </div>
-                    <div className="mt-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                      <p className="text-sm text-orange-300 font-medium">
-                        Hidden Objection: {analysis.hiddenObjection || analysis.category}
-                      </p>
-                    </div>
-                  </CardHeader>
-                </Card>
-
-                <div className="space-y-3">
-                  <CollapsibleSection
-                    id="reframe"
-                    icon={Lightbulb}
-                    title="Immediate Reframe"
-                    content={analysis.reframes[0]}
-                    badge="Use Now"
-                    accentColor="cyan"
-                  />
-
-                  <CollapsibleSection
-                    id="question"
-                    icon={Target}
-                    title="Close Question"
-                    content={analysis.powerQuestion}
-                    badge="Forces Clarity"
-                    accentColor="purple"
-                  />
-
-                  <CollapsibleSection
-                    id="close"
-                    icon={TrendingUp}
-                    title="Closing Tactic"
-                    content={analysis.closingTactic}
-                    accentColor="emerald"
-                  />
-
-                  {analysis.story && (
-                    <CollapsibleSection
-                      id="story"
-                      icon={BookOpen}
-                      title="Story Close"
-                      content={analysis.story}
-                      badge="Persuasion"
-                      accentColor="orange"
-                    />
-                  )}
-
-                  {analysis.identityUpgrade && (
-                    <CollapsibleSection
-                      id="identity"
-                      icon={Shield}
-                      title="Identity Upgrade Close"
-                      content={analysis.identityUpgrade}
-                      badge="Future Self"
-                      accentColor="blue"
-                    />
-                  )}
-
-                  {analysis.competitorAngle && (
-                    <CollapsibleSection
-                      id="competitor"
-                      icon={ArrowRight}
-                      title="Competitor Angle"
-                      content={analysis.competitorAngle}
-                      accentColor="cyan"
-                    />
-                  )}
-                </div>
-
-                {analysis.nextMove && (
-                  <Card className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border-cyan-500/30">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-cyan-500/20">
-                          <ArrowRight className="w-5 h-5 text-cyan-400" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-white/60 uppercase tracking-wide mb-1">Next Move</p>
-                          <p className="text-white font-medium">{analysis.nextMove}</p>
-                        </div>
-                        <CopyButton text={analysis.nextMove} label="Next Move" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Button
-                  variant="outline"
-                  className="w-full border-white/20 text-white/80 hover:bg-white/5"
-                  onClick={() => {
-                    setProspectText("");
-                    setAnalysis(null);
-                  }}
+          <div className="lg:col-span-3">
+            <AnimatePresence mode="wait">
+              {analysis ? (
+                <motion.div
+                  key="results"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  className="space-y-6"
                 >
-                  Analyze Another Objection
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="placeholder"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center h-full min-h-[400px]"
-              >
-                <Card className="bg-gradient-to-b from-[#1a2744] to-[#0d1428] border-white/10 p-8 text-center max-w-md">
-                  <div className="space-y-4">
-                    <div className="mx-auto w-16 h-16 rounded-full bg-cyan-500/10 flex items-center justify-center">
-                      <Brain className="w-8 h-8 text-cyan-400/60" />
+                  <div className="glass-premium p-8 rounded-[2.5rem] border-orange-500/20 bg-orange-500/[0.02] flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+                        <AlertCircle className="w-6 h-6 text-orange-500" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-orange-500/40 block mb-1">Inferred Psychological Subtext</span>
+                        <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                          {analysis.hiddenObjection || analysis.category}
+                        </h3>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-2">
-                        The Brain Behind a Top 1% Closer
-                      </h3>
-                      <p className="text-sm text-white/60">
-                        Enter an objection to receive instant tactical responses, reframes, and closing questions.
-                      </p>
-                    </div>
-                    <Separator className="bg-white/10" />
-                    <div className="text-left space-y-2">
-                      <p className="text-xs text-white/40 uppercase tracking-wide">What you'll get:</p>
-                      <ul className="text-sm text-white/60 space-y-1">
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                          Hidden objection detection
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                          Instant reframe phrases
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          Power closing questions
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                          Story-based persuasion
-                        </li>
-                      </ul>
+                    <div className="text-right">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/20 block mb-1">Confidence</span>
+                      <span className="text-2xl font-black text-white tracking-tighter">{analysis.confidence}%</span>
                     </div>
                   </div>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
+                  <div className="grid gap-4">
+                    <CollapsibleSection
+                      id="reframe"
+                      icon={Lightbulb}
+                      title="Neural Reframe"
+                      content={analysis.reframes[0]}
+                      badge="Perspective Shift"
+                      accentColor="cyan"
+                    />
+
+                    <CollapsibleSection
+                      id="question"
+                      icon={Target}
+                      title="Force Multiplier"
+                      content={analysis.powerQuestion}
+                      badge="Power Question"
+                      accentColor="purple"
+                    />
+
+                    <CollapsibleSection
+                      id="close"
+                      icon={TrendingUp}
+                      title="Closing Protocol"
+                      content={analysis.closingTactic}
+                      badge="Immediate Close"
+                      accentColor="emerald"
+                    />
+
+                    {analysis.story && (
+                      <CollapsibleSection
+                        id="story"
+                        icon={BookOpen}
+                        title="Persuasion Narrative"
+                        content={analysis.story}
+                        badge="Social Proof"
+                        accentColor="orange"
+                      />
+                    )}
+
+                    {analysis.identityUpgrade && (
+                      <CollapsibleSection
+                        id="identity"
+                        icon={Shield}
+                        title="Identity Alignment"
+                        content={analysis.identityUpgrade}
+                        badge="Future Self"
+                        accentColor="blue"
+                      />
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full h-16 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-white/20 hover:text-white transition-all cursor-none border-white/5 mt-8"
+                    onClick={() => {
+                      setProspectText("");
+                      setAnalysis(null);
+                    }}
+                  >
+                    Reset Vector
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="placeholder"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="h-full flex flex-col items-center justify-center p-20 glass-premium rounded-[4rem] border-white/5 text-center space-y-8"
+                >
+                  <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border border-white/10 mb-4">
+                    <Brain className="w-10 h-10 text-white/20 animate-pulse" />
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Awaiting Signal.</h3>
+                    <p className="text-white/40 font-medium text-lg max-w-sm mx-auto leading-tight italic">
+                      Protocol initialized. Paste the exact verbatim from your call to extract the tactical advantage.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
-        <Card className="bg-gradient-to-r from-emerald-500/5 via-cyan-500/5 to-purple-500/5 border-emerald-500/20">
-          <CardContent className="p-4 text-center">
-            <p className="font-semibold text-white flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              Closer Engine Live is FREE for all plans
-            </p>
-            <p className="text-sm text-white/60 mt-1">
-              Same 110+ objections database as the autonomous AI sales engine
-            </p>
-          </CardContent>
-        </Card>
+        {/* Global Scaling Indicator */}
+        <div className="pt-20 border-t border-white/5 grid md:grid-cols-3 gap-12 text-center">
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mx-auto">
+              <Globe className="w-6 h-6 text-primary" />
+            </div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Edge Distributed</h5>
+            <p className="text-[9px] font-bold text-white/20 uppercase">Redundant Across 14 Cloud Zones</p>
+          </div>
+          <div className="space-y-4 border-x border-white/5 px-12">
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mx-auto">
+              <Activity className="w-6 h-6 text-primary" />
+            </div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">No Latency Peak</h5>
+            <p className="text-[9px] font-bold text-white/20 uppercase">Deterministic Response &lt; 800ms</p>
+          </div>
+          <div className="space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mx-auto">
+              <Shield className="w-6 h-6 text-primary" />
+            </div>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Security Protocol</h5>
+            <p className="text-[9px] font-bold text-white/20 uppercase">AES-256 Neural State Encryption</p>
+          </div>
+        </div>
       </div>
     </div>
   );

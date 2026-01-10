@@ -1,122 +1,182 @@
-import { motion } from "framer-motion";
-import { MessageSquare, Calendar, Target, Smartphone, Sparkles, Activity, Bookmark } from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { MessageSquare, Calendar, Target, Smartphone, Sparkles, Activity, Bookmark, MousePointer2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 
 const capabilities = [
   {
     title: "Lead Scoring",
-    desc: "Stop chasing dead ends. Audnix identifies your highest-value prospects by analyzing intent signals in real-time.",
+    desc: "Predictive intent analysis that surfaces high-value conversion opportunities autonomously.",
     icon: Target,
-    color: "from-blue-500/20 to-cyan-500/20",
+    badge: "Vector Logic",
     features: ["Strategic prioritization", "Behavioral tracking", "Intent detection"]
   },
   {
     title: "Brand Intelligence",
-    desc: "Your AI doesn't just reply; it represents. It learns your unique voice to build deep, consistent trust with every lead.",
+    desc: "A neural layer that mirrors your business's cognitive patterns and communication ethos.",
     icon: Bookmark,
-    color: "from-purple-500/20 to-blue-500/20",
+    badge: "Identity Sync",
     features: ["Tone synchronization", "Detailed knowledge", "Brand-safe logic"]
   },
   {
     title: "Live Audit Trail",
-    desc: "Total transparency. Watch your AI navigate complex sales conversations and handle objections with surgical precision.",
+    desc: "A deterministic log of every psychological shift and tactical decision made by your agents.",
     icon: Activity,
-    color: "from-cyan-500/20 to-emerald-500/20",
+    badge: "Real-time Insight",
     features: ["Conversation logs", "Decision transparency", "Real-time oversight"]
   },
   {
-    title: "Seamless Booking",
-    desc: "Turn interest into revenue instantly. Audnix handles the back-and-forth to get meetings on your calendar while you sleep.",
+    title: "Atomic Booking",
+    desc: "Automated finalization and meeting orchestration without human latency or friction.",
     icon: Calendar,
-    color: "from-emerald-500/20 to-teal-500/20",
+    badge: "Calendar Core",
     features: ["Calendar sync", "Timezone master", "Soft-close expertise"]
   },
   {
     title: "Objection Mastery",
-    desc: "Price concerns? Timing issues? Audnix uses your proven sales logic to reframe objections into ROI-focused discussions.",
+    desc: "Deterministic reframing of prospect resistance into ROI-calculated pathwards.",
     icon: MessageSquare,
-    color: "from-blue-500/20 to-indigo-500/20",
+    badge: "Tactical Response",
     features: ["Value reframing", "Signal detection", "Risk reversal"]
   },
   {
-    title: "Omni-Channel Flow",
-    desc: "Dominate the inbox. From Instagram DMs to professional Email threads, your presence is felt everywhere, 24/7.",
+    title: "Omni-Flow DMs",
+    desc: "Unified presence across platforms that transitions seamlessly with prospect movement.",
     icon: Smartphone,
-    color: "from-indigo-500/20 to-purple-500/20",
+    badge: "Channel Unity",
     features: ["Instagram Native", "Email Automation", "Unified Sync"]
   }
 ];
 
+const FeatureCard = ({ cap, index }: { cap: any; index: number }) => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function onMouseMove({ currentTarget, clientX, clientY }: any) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.1, duration: 0.8, ease: "circOut" }}
+      onMouseMove={onMouseMove}
+      className="group relative p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-700 overflow-hidden cursor-none"
+    >
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: useTransform(
+            [mouseX, mouseY],
+            ([x, y]) => `radial-gradient(600px circle at ${x}px ${y}px, rgba(var(--primary), 0.15), transparent 80%)`
+          ),
+        }}
+      />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-10">
+          <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/30 transition-all duration-500">
+            <cap.icon className="w-6 h-6 text-white/40 group-hover:text-primary transition-colors" />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-primary/50 transition-colors">
+            {cap.badge}
+          </span>
+        </div>
+
+        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 group-hover:translate-x-1 transition-transform duration-500">
+          {cap.title}
+        </h3>
+        <p className="text-white/40 font-bold text-md leading-tight italic mb-10 min-h-[4rem]">
+          {cap.desc}
+        </p>
+
+        <div className="space-y-4 pt-8 border-t border-white/5">
+          {cap.features.map((feat: string) => (
+            <div key={feat} className="flex items-center gap-3">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/10 group-hover:bg-primary transition-colors duration-500" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 group-hover:text-white/60 transition-colors">
+                {feat}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 export function FeatureSection() {
   return (
-    <section id="features" className="py-32 px-4 relative overflow-hidden bg-background">
-      {/* Background Ambience */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+    <section id="features" className="py-40 px-4 relative overflow-hidden bg-black">
+      {/* Structural Grid Background */}
+      <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent)]" />
+
+      {/* Epic Ambient Glows */}
+      <div className="absolute top-1/2 left-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col items-center text-center mb-32">
+        <div className="flex flex-col items-center text-center mb-40">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="px-5 py-2 rounded-full bg-primary/5 border border-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.3em] mb-10 flex items-center gap-2"
+            className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-12 flex items-center gap-3 shadow-[0_0_30px_rgba(var(--primary),0.1)]"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            Designed for the 1% of high-growth teams
+            <Sparkles className="w-4 h-4" />
+            Deterministic Intelligence Layers
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-5xl md:text-8xl font-bold tracking-tight mb-10 leading-[0.95]"
+            className="text-6xl md:text-9xl font-black tracking-[calc(-0.04em)] mb-12 leading-[0.85] text-white uppercase"
           >
-            Scale without the <br />
-            <span className="text-muted-foreground">operational noise.</span>
+            The New Core of <br />
+            <span className="text-primary italic">High-Performance.</span>
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-muted-foreground text-lg md:text-xl max-w-2xl font-medium leading-relaxed"
+            className="text-white/40 text-xl md:text-2xl max-w-3xl font-bold leading-tight italic"
           >
-            We've built the intelligent layer that bridges the gap between raw leads and confirmed revenue.
+            We don't provide features. We deploy autonomous protocols that transform raw opportunity into confirmed revenue.
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {capabilities.map((cap, i) => (
-            <motion.div
-              key={cap.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.6 }}
-              className="animated-border-card p-10 rounded-3xl bg-card border border-border/40 hover:bg-muted/30 transition-all group relative overflow-hidden flex flex-col h-full shadow-sm"
-            >
-              {/* Subtle Corner Accent */}
-              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${cap.color} opacity-0 group-hover:opacity-100 blur-[60px] transition-opacity duration-500`} />
-
-              <div className="w-16 h-16 rounded-2xl bg-muted border border-border/40 flex items-center justify-center mb-10 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-500">
-                <cap.icon className="w-8 h-8 text-foreground/40 group-hover:text-primary transition-colors" />
-              </div>
-
-              <h3 className="text-2xl font-bold mb-6 tracking-tight">
-                {cap.title}
-              </h3>
-              <p className="text-muted-foreground font-medium mb-12 leading-relaxed text-sm">
-                {cap.desc}
-              </p>
-
-              <div className="space-y-4 mt-auto">
-                {cap.features.map((feat) => (
-                  <div key={feat} className="flex items-center gap-3">
-                    <div className="w-1 h-1 rounded-full bg-primary/20 group-hover:bg-primary transition-all duration-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 group-hover:text-foreground transition-colors">{feat}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+            <FeatureCard key={cap.title} cap={cap} index={i} />
           ))}
         </div>
+
+        {/* Global Scaling Indicator Block */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          className="mt-32 p-12 rounded-[4rem] border border-white/5 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent text-center"
+        >
+          <div className="flex flex-col md:flex-row items-center justify-center gap-16 md:gap-32">
+            <div className="space-y-4">
+              <h4 className="text-4xl font-black text-white tracking-tighter">99.98%</h4>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Operational Availability</p>
+            </div>
+            <div className="w-px h-12 bg-white/5 hidden md:block" />
+            <div className="space-y-4">
+              <h4 className="text-4xl font-black text-white tracking-tighter">&lt; 800ms</h4>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Neural Response Latency</p>
+            </div>
+            <div className="w-px h-12 bg-white/5 hidden md:block" />
+            <div className="space-y-4">
+              <h4 className="text-4xl font-black text-white tracking-tighter">14 Zones</h4>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Edge Processing Capacity</p>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
