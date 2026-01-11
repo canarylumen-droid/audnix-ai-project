@@ -148,6 +148,7 @@ export class MemStorage implements IStorage {
       voiceRules: insertUser.voiceRules || null,
       pdfConfidenceThreshold: insertUser.pdfConfidenceThreshold || 0.7,
       lastInsightGeneratedAt: insertUser.lastInsightGeneratedAt || null,
+      lastProspectScanAt: insertUser.lastProspectScanAt || null,
       paymentStatus: insertUser.paymentStatus || "none",
       pendingPaymentPlan: insertUser.pendingPaymentPlan || null,
       pendingPaymentAmount: insertUser.pendingPaymentAmount || null,

@@ -140,7 +140,7 @@ export default function SalesAssistant() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
             >
-              <Copy className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <Copy className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -167,7 +167,7 @@ export default function SalesAssistant() {
 
     // Map theme colors
     const themes = {
-      cyan: { border: "border-cyan-500/20", bg: "bg-cyan-500/5", text: "text-cyan-500", icon: "text-cyan-400", badge: "bg-cyan-500/10" },
+      primary: { border: "border-primary/20", bg: "bg-primary/5", text: "text-primary", icon: "text-primary", badge: "bg-primary/10" },
       purple: { border: "border-purple-500/20", bg: "bg-purple-500/5", text: "text-purple-500", icon: "text-purple-400", badge: "bg-purple-500/10" },
       emerald: { border: "border-emerald-500/20", bg: "bg-emerald-500/5", text: "text-emerald-500", icon: "text-emerald-400", badge: "bg-emerald-500/10" },
       orange: { border: "border-orange-500/20", bg: "bg-orange-500/5", text: "text-orange-500", icon: "text-orange-400", badge: "bg-orange-500/10" },
@@ -230,14 +230,14 @@ export default function SalesAssistant() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-2">
-            Sales Assistant <Brain className="h-8 w-8 text-cyan-500" />
+          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent flex items-center gap-2">
+            Sales Assistant <Brain className="h-8 w-8 text-primary" />
           </h1>
           <p className="text-muted-foreground text-lg">
             Your AI partner for objection handling and closing.
           </p>
         </div>
-        <Badge variant="outline" className="w-fit border-cyan-500/30 text-cyan-500 gap-2 px-3 py-1">
+        <Badge variant="outline" className="w-fit border-primary/30 text-primary gap-2 px-3 py-1">
           <Sparkles className="h-3 w-3" /> Powered by GPT-4o
         </Badge>
       </div>
@@ -338,7 +338,7 @@ export default function SalesAssistant() {
                   title="Reframe Strategy"
                   content={analysis.reframes[0]}
                   badge="Say This First"
-                  accentColor="cyan"
+                  accentColor="primary"
                 />
 
                 <CollapsibleSection
@@ -386,7 +386,7 @@ export default function SalesAssistant() {
                     icon={ArrowRight}
                     title="Competitor Kill Shot"
                     content={analysis.competitorAngle}
-                    accentColor="cyan"
+                    accentColor="primary"
                   />
                 )}
               </div>

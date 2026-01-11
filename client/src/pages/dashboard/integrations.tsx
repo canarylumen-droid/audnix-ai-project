@@ -201,7 +201,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">

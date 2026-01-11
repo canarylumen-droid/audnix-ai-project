@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Sparkles, ChevronDown, Shield, FileText, LayoutGrid, Zap, Brain } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { Magnetic } from "@/components/ui/Magnetic";
 
 const SOLUTIONS = [
   {
@@ -60,9 +61,11 @@ export function Navigation() {
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="flex items-center gap-12">
-          <Link href="/">
-            <Logo />
-          </Link>
+          <Magnetic>
+            <Link href="/">
+              <Logo />
+            </Link>
+          </Magnetic>
 
           <div className="hidden lg:flex items-center gap-10">
             {/* Solutions Dropdown */}
@@ -176,13 +179,15 @@ export function Navigation() {
               Log in
             </Button>
           </Link>
-          <Link href="/auth">
-            <Button
-              className="h-10 px-6 rounded-full text-[11px] font-semibold uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow"
-            >
-              Get Started
-            </Button>
-          </Link>
+          <Magnetic>
+            <Link href="/auth">
+              <Button
+                className="h-10 px-6 rounded-full text-[11px] font-semibold uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow"
+              >
+                Get Started
+              </Button>
+            </Link>
+          </Magnetic>
 
           {/* Mobile Menu Toggle */}
           <button

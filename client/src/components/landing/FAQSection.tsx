@@ -117,7 +117,10 @@ export function FAQSection() {
                         <h4 className="text-2xl font-bold text-foreground mb-3">Still need clarity?</h4>
                         <p className="text-muted-foreground font-medium text-sm">Our strategy team is available 24/7 to help you <span className="text-foreground font-bold underline">architect your flow</span>.</p>
                     </div>
-                    <button className="relative z-10 h-14 px-10 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] hover:brightness-110 transition-all duration-300 flex items-center gap-3 shadow-lg shadow-primary/10 active:scale-95">
+                    <button
+                        onClick={() => document.getElementById('expert-chat-trigger')?.click()}
+                        className="relative z-10 h-14 px-10 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] hover:brightness-110 transition-all duration-300 flex items-center gap-3 shadow-lg shadow-primary/10 active:scale-95"
+                    >
                         <MessageCircle className="w-5 h-5 font-bold" />
                         Chat with an expert
                     </button>

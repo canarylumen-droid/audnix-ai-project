@@ -264,8 +264,8 @@ export default function CalendarPage() {
     <div className="p-4 md:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent inline-flex items-center gap-2">
-            <CalendarDays className="h-8 w-8 text-blue-500" />
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
+            <CalendarDays className="h-8 w-8 text-primary" />
             Calendar
           </h1>
           <p className="text-muted-foreground mt-1 text-lg">
@@ -302,8 +302,8 @@ export default function CalendarPage() {
                   <Card className="border-border/40 bg-card/50">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                          <CalendarIcon className="h-5 w-5 text-blue-500" />
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <CalendarIcon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <p className="font-medium">Calendly</p>
@@ -344,7 +344,7 @@ export default function CalendarPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {[
-          { title: "Today", value: todayEvents.length, icon: CalendarDays, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { title: "Today", value: todayEvents.length, icon: CalendarDays, color: "text-primary", bg: "bg-primary/10" },
           { title: "This Week", value: upcomingEvents.length, icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
           { title: "AI Scheduled", value: aiScheduledCount, icon: Bot, color: "text-emerald-500", bg: "bg-emerald-500/10" },
           { title: "Auto-Pilot", value: settings?.autoBookingEnabled ? "ON" : "OFF", icon: Zap, color: "text-amber-500", bg: "bg-amber-500/10" }

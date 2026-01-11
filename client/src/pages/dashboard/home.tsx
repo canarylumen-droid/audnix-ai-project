@@ -184,6 +184,8 @@ export default function DashboardHome() {
       icon: Users,
       percentage: calculatePercentageChange(stats?.leads || 0, previousStats?.leads),
       trend: previousStats ? ((stats?.leads || 0) > (previousStats?.leads || 0) ? "up" : (stats?.leads || 0) < (previousStats?.leads || 0) ? "down" : "neutral") : "neutral",
+      color: "text-primary",
+      glow: "group-hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
     {
       label: "TOTAL MESSAGES",
@@ -191,6 +193,8 @@ export default function DashboardHome() {
       icon: MessageSquare,
       percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
       trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
+      color: "text-indigo-500",
+      glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
     {
       label: "AI REPLIES",
@@ -198,6 +202,8 @@ export default function DashboardHome() {
       icon: Zap,
       percentage: calculatePercentageChange(stats?.aiReplies || 0, previousStats?.aiReplies),
       trend: previousStats ? ((stats?.aiReplies || 0) > (previousStats?.aiReplies || 0) ? "up" : (stats?.aiReplies || 0) < (previousStats?.aiReplies || 0) ? "down" : "neutral") : "neutral",
+      color: "text-amber-500",
+      glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
     },
     {
       label: "CONVERSION RATE",
@@ -206,6 +212,8 @@ export default function DashboardHome() {
       icon: TrendingUp,
       percentage: calculatePercentageChange(stats?.conversions || 0, previousStats?.conversions),
       trend: previousStats ? ((stats?.conversions || 0) > (previousStats?.conversions || 0) ? "up" : (stats?.conversions || 0) < (previousStats?.conversions || 0) ? "down" : "neutral") : "neutral",
+      color: "text-emerald-500",
+      glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
     },
   ];
 
@@ -228,33 +236,33 @@ export default function DashboardHome() {
 
       <OnboardingWizard isOpen={showOnboarding} onComplete={handleOnboardingComplete} />
 
-      <div className="space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto px-4 md:px-0">
+      <div className="space-y-8 animate-in fade-in duration-700">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/40">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-foreground via-foreground/90 to-primary/80 bg-clip-text text-transparent">
               Welcome back, {user?.name?.split(' ')[0] || user?.username || 'Operator'}
             </h1>
-            <p className="text-muted-foreground transition-all">
-              {hasAnyActivity ? "Here's your latest automation performance." : "Ready to scale your outreach. Connect an account to begin."}
+            <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
+              {hasAnyActivity ? "Your automated neural core is performing optimally." : "Scale your outreach with high-precision AI automation."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl border-border/40 hover:bg-muted/50 transition-all font-semibold uppercase tracking-wider text-[10px]"
+              className="rounded-2xl border-border/40 hover:bg-muted/50 transition-all font-bold uppercase tracking-wider text-[10px] h-10 px-6 backdrop-blur-md"
               onClick={() => {
                 queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
                 queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
               }}
             >
-              <RefreshCw className="mr-2 h-3 w-3" /> Sync Live Data
+              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sync Live Network
             </Button>
             {trialDaysLeft > 0 && (
-              <Badge variant="outline" className="px-4 py-2 bg-primary/5 text-primary border-primary/20 rounded-full font-medium">
+              <Badge variant="outline" className="px-6 py-2 bg-primary/5 text-primary border-primary/20 rounded-2xl font-bold text-xs shadow-sm shadow-primary/5">
                 <Sparkles className="w-4 h-4 mr-2" />
-                {trialDaysLeft} days left in trial
+                {trialDaysLeft} DAYS REMAINING
               </Badge>
             )}
           </div>
@@ -268,40 +276,53 @@ export default function DashboardHome() {
             return (
               <motion.div
                 key={kpi.label}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
               >
-                <Card className="hover:bg-muted/30 transition-colors border-border/50 rounded-2xl overflow-hidden group">
+                <Card className={cn(
+                  "relative transition-all duration-500 border-border/40 rounded-[2.5rem] overflow-hidden group bg-card/40 backdrop-blur-2xl hover:border-primary/30",
+                  kpi.glow
+                )}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{kpi.label}</CardTitle>
-                    <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <CardTitle className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/50">{kpi.label}</CardTitle>
+                    <div className={cn("p-2 rounded-2xl transition-colors bg-muted/5 group-hover:bg-muted/10", kpi.color)}>
+                      <Icon className="h-4 w-4" />
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold tracking-tight">{kpi.value}{kpi.suffix || ''}</div>
+                    <div className="text-4xl font-extrabold tracking-tighter mb-2">{kpi.value}{kpi.suffix || ''}</div>
                     {kpi.percentage !== "—" && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`text-xs font-medium flex items-center ${kpi.trend === "up" ? "text-emerald-500" : "text-red-500"}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-bold flex items-center px-2 py-0.5 rounded-full ${kpi.trend === "up" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
                           <TrendIcon className="h-3 w-3 mr-0.5" />
                           {kpi.percentage}
                         </span>
-                        <span className="text-xs text-muted-foreground">vs last month</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">Network Growth</span>
                       </div>
                     )}
-                    <div className="flex items-center justify-between mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-between mt-8 opacity-0 group-hover:opacity-100 transition-all transform translate-y-3 group-hover:translate-y-0 duration-300">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-[10px] font-bold uppercase tracking-tighter p-0 hover:bg-transparent"
+                        className="h-8 text-[10px] font-bold uppercase tracking-widest p-0 px-3 rounded-full hover:bg-primary/5 text-primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           window.location.href = '/api/bulk/export';
                         }}
                       >
-                        <Download className="h-3 w-3 mr-1" /> Download Report
+                        <Download className="h-3 w-3 mr-1.5" /> Export Data
                       </Button>
-                      <ArrowRight className="h-3 w-3 text-primary opacity-50" />
+                      <div className="h-8 w-8 rounded-full bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary/10 transition-colors">
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </div>
                     </div>
+
+                    {/* Sophisticated Backdrop Glow */}
+                    <div className={cn(
+                      "absolute -bottom-16 -right-16 w-32 h-32 blur-[80px] opacity-10 group-hover:opacity-20 transition-opacity rounded-full",
+                      kpi.color.replace('text-', 'bg-')
+                    )} />
                   </CardContent>
                 </Card>
               </motion.div>

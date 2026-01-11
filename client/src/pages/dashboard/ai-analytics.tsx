@@ -24,16 +24,22 @@ import {
 
 // Premium Theme Colors
 const COLORS = {
-  primary: "#8b5cf6", // Violet
-  secondary: "#06b6d4", // Cyan
+  primary: "hsl(var(--primary))",
+  secondary: "hsl(var(--primary) / 0.6)",
   accent: "#f59e0b", // Amber
   success: "#10b981", // Emerald
-  background: "#1e293b",
-  grid: "#334155",
-  tooltip: "#0f172a"
+  background: "hsl(var(--background))",
+  grid: "hsl(var(--border) / 0.1)",
+  tooltip: "hsl(var(--popover))"
 };
 
-const PIE_COLORS = ["#8b5cf6", "#06b6d4", "#f59e0b", "#ef4444", "#10b981"];
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "#c026d3", // Fuchsia
+  "#f59e0b", // Amber
+  "#10b981", // Emerald
+  "#6366f1"  // Indigo
+];
 
 interface AnalyticsResponse {
   period: string;
@@ -103,15 +109,15 @@ export default function AIAnalyticsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             <Brain className="h-8 w-8 text-primary" />
             Audnix Intelligence
           </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
+          <p className="text-muted-foreground mt-1">
             Real-time insights on your AI sales performance.
           </p>
         </div>
@@ -175,8 +181,9 @@ export default function AIAnalyticsPage() {
               title="Total Leads"
               value={analytics.summary.totalLeads}
               icon={Target}
-              color="text-blue-500"
+              color="text-primary"
               subtext={`${analytics.summary.active} active conversations`}
+              circle
             />
             <StatCard
               title="Conversion Rate"
@@ -185,6 +192,7 @@ export default function AIAnalyticsPage() {
               color="text-emerald-500"
               subtext={`${analytics.summary.conversions} total conversions`}
               progress={parseFloat(analytics.summary.conversionRate)}
+              circle
             />
             <StatCard
               title="Engagement Rate"
@@ -193,6 +201,7 @@ export default function AIAnalyticsPage() {
               color="text-purple-500"
               subtext={`${analytics.summary.leadsReplied} replies received`}
               progress={parseFloat(analytics.behaviorInsights.replyRate)}
+              circle
             />
             <StatCard
               title="Avg Response Time"
@@ -310,16 +319,16 @@ export default function AIAnalyticsPage() {
 
           {/* Bottom Insights */}
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent border-cyan-500/20">
+            <Card className="bg-gradient-to-br from-primary/10 via-transparent to-transparent border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-cyan-500" /> Optimal Follow-Up Time
+                  <Clock className="h-5 w-5 text-primary" /> Optimal Follow-Up Time
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-3xl font-bold text-cyan-400">
+                    <p className="text-3xl font-bold text-primary">
                       {analytics.behaviorInsights.bestReplyHour !== null ? `${analytics.behaviorInsights.bestReplyHour}:00` : '--:--'}
                       <span className="text-lg font-normal text-muted-foreground ml-1">
                         {analytics.behaviorInsights.bestReplyHour !== null && analytics.behaviorInsights.bestReplyHour >= 12 ? 'PM' : 'AM'}
@@ -327,8 +336,8 @@ export default function AIAnalyticsPage() {
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">Peak engagement window</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                    <Zap className="h-6 w-6 text-cyan-400" />
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Zap className="h-6 w-6 text-primary" />
                   </div>
                 </div>
               </CardContent>
@@ -337,7 +346,7 @@ export default function AIAnalyticsPage() {
             <Card className="bg-gradient-to-br from-purple-500/10 via-transparent to-transparent border-purple-500/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ThumbsUp className="h-5 w-5 text-purple-500" /> Customer Sentiment
+                  <TrendingUp className="h-4 w-4 text-primary" /> Customer Sentiment
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -367,23 +376,49 @@ export default function AIAnalyticsPage() {
   );
 }
 
-function StatCard({ title, value, icon: Icon, color, subtext, progress }: any) {
+function StatCard({ title, value, icon: Icon, color, subtext, progress, circle }: any) {
   return (
-    <Card className="overflow-hidden border-border/40 hover:border-primary/20 transition-all bg-card/50">
+    <Card className="overflow-hidden border-border/40 hover:border-primary/20 transition-all bg-card/40 backdrop-blur-xl rounded-[2rem] group relative">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <Icon className={`h-4 w-4 ${color}`} />
+        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{title}</CardTitle>
+        <Icon className={cn("h-4 w-4 transition-colors", color)} />
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {progress !== undefined && (
-          <div className="mt-2 text-xs">
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+      <CardContent className="flex flex-col items-center text-center pt-2">
+        {circle && progress !== undefined ? (
+          <div className="relative h-24 w-24 mb-4 flex items-center justify-center">
+            <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
+              <path className="text-muted/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
+              <motion.path
+                initial={{ strokeDasharray: "0, 100" }}
+                animate={{ strokeDasharray: `${progress}, 100` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className={color}
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center">
+              <span className="text-2xl font-bold tracking-tighter">{value}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-3xl font-bold tracking-tighter mb-4">{value}</div>
+        )}
+
+        {!circle && progress !== undefined && (
+          <div className="w-full mb-4">
+            <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
               <div className={`h-full ${color.replace('text-', 'bg-')}`} style={{ width: `${progress}%` }} />
             </div>
           </div>
         )}
-        <p className="text-xs text-muted-foreground mt-2">{subtext}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/40">{subtext}</p>
+
+        {/* Apple-style background glow */}
+        <div className={cn("absolute -bottom-10 -right-10 w-32 h-32 blur-[80px] opacity-10 rounded-full", color.replace('text-', 'bg-'))} />
       </CardContent>
     </Card>
   );

@@ -83,8 +83,13 @@ export function ProblemSection() {
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
+                            whileHover={{
+                                scale: 1.02,
+                                rotateY: i % 2 === 0 ? 5 : -5,
+                                rotateX: i % 3 === 0 ? 5 : -2
+                            }}
                             transition={{ delay: i * 0.1, duration: 0.6 }}
-                            className="p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/30 transition-all group shadow-sm"
+                            className="p-8 rounded-3xl bg-card border border-border/50 hover:border-primary/20 hover:bg-muted/30 transition-all group shadow-sm perspective-1000"
                         >
                             <div className="w-14 h-14 rounded-2xl bg-muted border border-border/50 flex items-center justify-center text-foreground mb-8 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
                                 <point.icon className="w-6 h-6" />

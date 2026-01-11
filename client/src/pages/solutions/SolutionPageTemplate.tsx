@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Navigation } from "@/components/landing/Navigation";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -41,6 +41,45 @@ export function SolutionPageTemplate({
 }: SolutionPageProps) {
     const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
+    // Custom text reveal component for scrolling highlights
+    const ScrollHighlightText = ({ text, className }: { text: string, className?: string }) => {
+        const words = text.split(" ");
+        return (
+            <p className={className}>
+                {words.map((word, i) => (
+                    <Word key={i} index={i}>{word} </Word>
+                ))}
+            </p>
+        );
+    };
+
+    const Word = ({ children, index }: { children: React.ReactNode, index: number }) => {
+        const ref = React.useRef(null);
+        const { scrollYProgress } = useScroll({
+            target: ref,
+            offset: ["start 90%", "start 40%"]
+        });
+        const opacity = useTransform(scrollYProgress, [0, 1], [0.15, 1]);
+        const color = useTransform(scrollYProgress, [0, 1], ["rgba(255,255,255,0.15)", "rgba(255,255,255,1)"]);
+        const textShadow = useTransform(scrollYProgress, [0, 1], ["0 0 0px transparent", "0 0 10px rgba(255,255,255,0.3)"]);
+
+        return (
+            <motion.span
+                ref={ref}
+                initial={{ opacity: 0.15 }}
+                whileInView={{
+                    opacity: 1,
+                    transition: { delay: (index % 10) * 0.05 }
+                }}
+                viewport={{ once: false, margin: "-10% 0px -20% 0px" }}
+                style={{ opacity, color, textShadow }}
+                className="transition-all duration-300 hover:text-white hover:bg-[#00d2ff]/20 hover:!opacity-100 hover:shadow-[0_0_20px_rgba(0,210,255,0.4)] px-1 rounded-md cursor-default inline-block"
+            >
+                {children}
+            </motion.span>
+        );
+    };
+
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-white">
             <Navigation />
@@ -65,9 +104,11 @@ export function SolutionPageTemplate({
                                     <span key={i} className={i === title.split(' ').length - 1 ? "text-primary block" : "inline"}>{word} </span>
                                 ))}
                             </h1>
-                            <p className="text-muted-foreground text-xl font-medium leading-relaxed max-w-xl">
-                                {description}
-                            </p>
+                            <ScrollHighlightText
+                                text={description}
+                                className="text-muted-foreground text-xl font-medium leading-relaxed max-w-xl"
+                            />
+
                             <div className="flex flex-wrap gap-4">
                                 <Link href="/auth">
                                     <Button size="lg" className="h-14 px-8 rounded-full bg-primary text-primary-foreground font-bold uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all">
@@ -117,9 +158,10 @@ export function SolutionPageTemplate({
                             CRITICAL FAILURE
                         </div>
                         <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground">{problemTitle}</h2>
-                        <div className="text-lg md:text-xl text-muted-foreground/80 font-medium leading-loose whitespace-pre-line max-w-3xl mx-auto text-left md:text-center">
-                            {problemText}
-                        </div>
+                        <ScrollHighlightText
+                            text={problemText}
+                            className="text-lg md:text-xl text-muted-foreground/80 font-medium leading-loose whitespace-pre-line max-w-3xl mx-auto text-left md:text-center"
+                        />
                     </div>
                 </section>
 
@@ -154,9 +196,10 @@ export function SolutionPageTemplate({
                     <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
                         <div className="space-y-8">
                             <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">{deepDiveTitle}</h2>
-                            <div className="text-muted-foreground text-lg leading-loose whitespace-pre-line font-medium">
-                                {deepDiveText}
-                            </div>
+                            <ScrollHighlightText
+                                text={deepDiveText}
+                                className="text-muted-foreground text-lg leading-loose whitespace-pre-line font-medium"
+                            />
                             <Link href="/auth">
                                 <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-2 hover:bg-muted transition-all uppercase tracking-widest text-xs">
                                     Read Technical Docs
@@ -204,6 +247,26 @@ export function SolutionPageTemplate({
                                 </div>
                             ))}
                         </div>
+
+                        {/* Support Point */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="p-10 rounded-[2rem] bg-primary/5 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-8 group"
+                        >
+                            <div className="text-center md:text-left">
+                                <h4 className="text-xl font-bold mb-2">Still need clarity?</h4>
+                                <p className="text-muted-foreground text-sm font-medium">Our strategy team is available 24/7 to help you.</p>
+                            </div>
+                            <button
+                                onClick={() => document.getElementById('expert-chat-trigger')?.click()}
+                                className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                Chat with an expert
+                            </button>
+                        </motion.div>
                     </div>
                 </section>
 

@@ -83,20 +83,32 @@ export default function InsightsPage() {
   const hasData = insightsData?.hasData || false;
   const timeSeriesData = insightsData?.timeSeries || [];
 
+  const PIE_COLORS = [
+    "hsl(var(--primary))",
+    "#c026d3", // Fuchsia
+    "#f59e0b", // Amber
+    "#10b981", // Emerald
+    "#6366f1"  // Indigo
+  ];
+
   const COLORS = {
-    Instagram: '#E1306C',
-    Email: '#3B82F6',
-    primary: 'hsl(var(--primary))',
+    primary: "hsl(var(--primary))",
+    secondary: "hsl(var(--primary) / 0.6)",
+    accent: "#f59e0b", // Amber
+    success: "#10b981", // Emerald
+    background: "hsl(var(--background))",
+    grid: "hsl(var(--border) / 0.1)",
+    tooltip: "hsl(var(--popover))"
   };
 
   const chartConfig = {
     Instagram: {
       label: "Instagram",
-      color: COLORS.Instagram,
+      color: "#E1306C", // Specific Instagram color
     },
     Email: {
       label: "Email",
-      color: COLORS.Email,
+      color: COLORS.primary,
     },
   };
 
@@ -121,8 +133,8 @@ export default function InsightsPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent inline-flex items-center gap-2">
-            AI Insights <Sparkles className="h-6 w-6 text-purple-400" />
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
+            AI Insights <Sparkles className="h-6 w-6 text-primary" />
           </h1>
           <p className="text-muted-foreground mt-1">
             Real-time analysis to optimize your outreach strategy.
@@ -173,7 +185,7 @@ export default function InsightsPage() {
         <>
           {/* AI Summary Card */}
           {insights && (
-            <Card className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/20">
+            <Card className="bg-gradient-to-br from-primary/10 via-transparent to-transparent border-primary/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <TrendingUp className="h-5 w-5 text-indigo-400" />
@@ -191,22 +203,51 @@ export default function InsightsPage() {
 
           {/* Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <MetricCard title="Avg Response Time" value={insightsData?.metrics?.avgResponseTime || "--"} color="text-cyan-500" />
-            <MetricCard title="Conversion Rate" value={parseFloat(insightsData?.metrics?.conversionRate || "0") + "%"} color="text-emerald-500" />
-            <MetricCard title="Engagement Score" value={parseFloat(insightsData?.metrics?.engagementScore || "0") + "%"} color="text-purple-500" />
+            <MetricCard
+              title="Avg Response Time"
+              value={insightsData?.metrics?.avgResponseTime || "--"}
+              color="text-primary"
+              icon={BarChart}
+            />
+            <MetricCard
+              title="Conversion Rate"
+              value={(insightsData?.metrics?.conversionRate || "0") + "%"}
+              color="text-emerald-500"
+              progress={parseFloat(insightsData?.metrics?.conversionRate || "0")}
+              icon={TrendingUp}
+            />
+            <MetricCard
+              title="Engagement Score"
+              value={(insightsData?.metrics?.engagementScore || "0") + "%"}
+              color="text-purple-500"
+              progress={parseFloat(insightsData?.metrics?.engagementScore || "0")}
+              icon={Sparkles}
+            />
           </div>
 
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {channelData.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Channel Distribution</CardTitle></CardHeader>
+              <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">Channel Distribution</CardTitle>
+                </CardHeader>
                 <CardContent className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={channelData} dataKey="count" nameKey="channel" cx="50%" cy="50%" outerRadius={80} label>
+                      <Pie
+                        data={channelData}
+                        dataKey="count"
+                        nameKey="channel"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
                         {channelData.map((e, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[e.channel as keyof typeof COLORS] || COLORS.primary} />
+                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                         ))}
                       </Pie>
                       <ChartTooltip content={<ChartTooltipContent />} />
@@ -217,16 +258,25 @@ export default function InsightsPage() {
             )}
 
             {timeSeriesData.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle>Lead Volume</CardTitle></CardHeader>
+              <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">Lead Volume</CardTitle>
+                </CardHeader>
                 <CardContent className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={timeSeriesData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
-                      <XAxis dataKey="date" className="text-xs text-muted-foreground" axisLine={false} tickLine={false} />
-                      <YAxis className="text-xs text-muted-foreground" axisLine={false} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/10" />
+                      <XAxis dataKey="date" className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
+                      <YAxis className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line type="monotone" dataKey="leads" strokeWidth={3} stroke="hsl(var(--primary))" dot={false} />
+                      <Line
+                        type="monotone"
+                        dataKey="leads"
+                        strokeWidth={4}
+                        stroke="hsl(var(--primary))"
+                        dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "#fff" }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -244,26 +294,42 @@ export default function InsightsPage() {
   );
 }
 
-function MetricCard({ title, value, color }: { title: string, value: string, color: string }) {
+function MetricCard({ title, value, color, icon: Icon, progress }: { title: string, value: string, color: string, icon: any, progress?: number }) {
   return (
-    <Card className="border-border/60 hover:border-border transition-colors group relative overflow-hidden">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity">
-            <RefreshCw className="h-3 w-3" />
-          </Button>
-        </div>
+    <Card className="border-border/40 hover:border-primary/20 transition-all bg-card/40 backdrop-blur-xl rounded-[2rem] group relative overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{title}</CardTitle>
+        <Icon className={cn("h-4 w-4 transition-colors", color)} />
       </CardHeader>
-      <CardContent>
-        <div className={`text-3xl font-bold ${color}`}>{value}</div>
-        <div className="h-1 w-full bg-muted mt-2 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: parseInt(value) > 100 ? '100%' : value }}
-            className={`h-full ${color.replace('text-', 'bg-')}`}
-          />
-        </div>
+      <CardContent className="flex flex-col items-center text-center pt-2">
+        {progress !== undefined ? (
+          <div className="relative h-24 w-24 mb-4 flex items-center justify-center">
+            <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
+              <path className="text-muted/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
+              <motion.path
+                initial={{ strokeDasharray: "0, 100" }}
+                animate={{ strokeDasharray: `${progress}, 100` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className={color}
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center">
+              <span className="text-2xl font-bold tracking-tighter">{value}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-3xl font-bold tracking-tighter mb-4 py-3">{value}</div>
+        )}
+
+        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/40 mb-2">Network Health</p>
+
+        {/* Apple-style background glow */}
+        <div className={cn("absolute -bottom-10 -right-10 w-32 h-32 blur-[80px] opacity-10 rounded-full", color.replace('text-', 'bg-'))} />
       </CardContent>
     </Card>
   );

@@ -62,7 +62,7 @@ const categoryColors: Record<string, string> = {
   price: "from-green-500/20 to-green-600/10 border-green-500/30",
   trust: "from-purple-500/20 to-purple-600/10 border-purple-500/30",
   authority: "from-orange-500/20 to-orange-600/10 border-orange-500/30",
-  fit: "from-cyan-500/20 to-cyan-600/10 border-cyan-500/30",
+  fit: "from-primary/20 to-primary/10 border-primary/30",
   competitor: "from-red-500/20 to-red-600/10 border-red-500/30",
   decision: "from-emerald-500/20 to-emerald-600/10 border-emerald-500/30",
 };
@@ -109,9 +109,9 @@ function CopyButton({ objectionId, text }: { objectionId: string; text: string }
   );
 }
 
-function ObjectionCard({ objection, expanded, onToggle }: { 
-  objection: Objection; 
-  expanded: boolean; 
+function ObjectionCard({ objection, expanded, onToggle }: {
+  objection: Objection;
+  expanded: boolean;
   onToggle: () => void;
 }) {
   const Icon = categoryIcons[objection.category] || MessageSquare;
@@ -203,16 +203,16 @@ export default function ObjectionsLibraryPage() {
   const filteredObjections = useMemo(() => {
     if (!data?.objections) return [];
     let filtered = data.objections;
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(obj => 
+      filtered = filtered.filter(obj =>
         obj.name.toLowerCase().includes(query) ||
         obj.content.toLowerCase().includes(query) ||
         obj.objectionTags.some(tag => tag.toLowerCase().includes(query))
       );
     }
-    
+
     return filtered;
   }, [data?.objections, searchQuery]);
 
@@ -226,14 +226,14 @@ export default function ObjectionsLibraryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-cyan-400" />
+            <Sparkles className="w-6 h-6 text-primary" />
             Objections Library
           </h1>
           <p className="text-white/60 mt-1">
             110+ proven responses for Email, Instagram, and manual copy-paste
           </p>
         </div>
-        <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30">
+        <Badge className="bg-primary/20 text-primary border-primary/30 py-1 px-3">
           {data?.total || 0} Responses
         </Badge>
       </div>
@@ -274,8 +274,8 @@ export default function ObjectionsLibraryPage() {
               variant={selectedCategory === cat.id ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(cat.id)}
-              className={selectedCategory === cat.id 
-                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/30" 
+              className={selectedCategory === cat.id
+                ? "bg-primary/20 text-primary border-primary/30 hover:bg-primary/30"
                 : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
               }
             >
@@ -318,8 +318,8 @@ export default function ObjectionsLibraryPage() {
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <Sparkles className="w-5 h-5 text-cyan-400" />
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h3 className="font-medium text-white">AI Objection Analyzer</h3>
@@ -328,7 +328,7 @@ export default function ObjectionsLibraryPage() {
             </div>
             <Button
               variant="outline"
-              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+              className="border-primary/30 text-primary hover:bg-primary/10"
               onClick={() => window.location.href = "/dashboard/sales-assistant"}
             >
               Try It

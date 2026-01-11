@@ -101,26 +101,30 @@ export default function LeadImportPage() {
   };
 
   return (
-    <div className="p-4 md:p-8 space-y-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-8 space-y-8 max-w-4xl mx-auto animate-in fade-in duration-700">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Lead Import</h1>
-        <p className="text-muted-foreground text-lg">
-          Upload your contact lists to begin automated outreach.
+        <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-foreground via-foreground/90 to-primary/80 bg-clip-text text-transparent">
+          Network Data Ingestion
+        </h1>
+        <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
+          Synchronize your high-intent leads into the Audnix neural core.
         </p>
       </div>
 
-      <Card className="border-border/50 shadow-sm">
+      <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden relative group">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Upload className="h-5 w-5 text-primary" />
-            Direct Upload
+          <CardTitle className="flex items-center gap-3 text-xl font-bold tracking-tight">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Upload className="h-6 w-6" />
+            </div>
+            Secure Data Upload
           </CardTitle>
-          <CardDescription>
-            Selected file will be analyzed for contact information.
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+            Automated contact mapping and deduplication
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="border-2 border-dashed border-border rounded-2xl p-12 text-center hover:bg-muted/30 transition-all cursor-pointer group">
+        <CardContent className="space-y-8">
+          <div className="border-2 border-dashed border-border/40 rounded-[2rem] p-16 text-center hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group/upload relative overflow-hidden">
             <Input
               type="file"
               accept=".csv,.xlsx,.xls,.pdf"
@@ -129,21 +133,23 @@ export default function LeadImportPage() {
               className="hidden"
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="cursor-pointer">
+            <label htmlFor="file-upload" className="cursor-pointer relative z-10">
               <div className="mb-6 flex justify-center">
                 {file ? (
-                  file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />
+                  <div className="animate-in zoom-in duration-300">
+                    {file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />}
+                  </div>
                 ) : (
-                  <div className="p-4 rounded-xl bg-primary/5 group-hover:bg-primary/10 transition-colors">
+                  <div className="p-6 rounded-[2rem] bg-primary/5 group-hover/upload:bg-primary/10 transition-all transform group-hover/upload:scale-110">
                     <Upload className="h-10 w-10 text-primary" />
                   </div>
                 )}
               </div>
-              <p className="text-lg font-semibold mb-2">
-                {file ? file.name : 'Click to select or drag & drop'}
+              <p className="text-xl font-bold tracking-tight mb-2">
+                {file ? file.name : 'Select Data Source'}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Supports CSV, Excel, and PDF formats
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+                DRAG & DROP OR BROWSE • CSV, EXCEL, PDF
               </p>
             </label>
           </div>
@@ -185,17 +191,20 @@ export default function LeadImportPage() {
           <Button
             onClick={handleImport}
             disabled={!file || importing}
-            className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/10"
+            className="w-full h-14 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all"
           >
             {importing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                Synchronizing Network...
               </>
             ) : (
-              'Start Import'
+              'Initialize Data Import'
             )}
           </Button>
+
+          {/* Subtle Glow */}
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 blur-[100px] opacity-10 bg-primary rounded-full group-hover:opacity-20 transition-opacity" />
         </CardContent>
       </Card>
 
@@ -215,14 +224,15 @@ export default function LeadImportPage() {
         ))}
       </div>
 
-      <Card className="bg-primary/5 border-primary/10 rounded-2xl">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-4">
-            <Badge variant="outline" className="mt-1 bg-background">Pro Tip</Badge>
-            <p className="text-sm text-balance leading-relaxed font-medium">
-              Importing from Apollo, LinkedIn, or HubSpot? Our intelligent system automatically maps columns for instant outreach synchronization.
+      <Card className="bg-primary/5 border-primary/20 rounded-[2rem] overflow-hidden relative">
+        <CardContent className="p-8">
+          <div className="flex items-start gap-6">
+            <Badge variant="outline" className="mt-1 bg-primary text-primary-foreground border-0 font-bold tracking-widest text-[10px] px-3 py-1">PRO TIP</Badge>
+            <p className="text-sm text-balance leading-relaxed font-bold tracking-tight text-foreground/80">
+              Importing from Apollo, LinkedIn, or HubSpot? Our intelligent neural system automatically maps columns for instant outreach synchronization.
             </p>
           </div>
+          <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full translate-x-10 -translate-y-10" />
         </CardContent>
       </Card>
     </div>

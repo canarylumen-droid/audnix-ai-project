@@ -120,29 +120,95 @@ export function HowItWorksSection() {
 
                                 {/* Visual Side (Mockup/Graphic) */}
                                 <div className="flex-1 w-full">
-                                    <div className="aspect-video rounded-[2rem] bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 relative overflow-hidden group hover:border-white/20 transition-all p-8 flex items-center justify-center shadow-2xl">
+                                    <div className="aspect-video rounded-[2rem] bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 relative overflow-hidden group hover:border-white/20 transition-all p-8 flex items-center justify-center shadow-2xl backdrop-blur-sm">
                                         <div className="absolute inset-0 bg-grid opacity-[0.04]" />
 
-                                        {/* Abstract Representation of the Step */}
-                                        <div className="relative z-10 w-full max-w-[300px] space-y-4">
-                                            {[1, 2, 3].map((line) => (
-                                                <div key={line} className="h-3 bg-white/10 rounded-full w-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: "0%" }}
-                                                        whileInView={{ width: `${Math.random() * 60 + 40}%` }}
-                                                        transition={{ delay: 0.5 + (line * 0.2), duration: 1.5, ease: "circOut" }}
-                                                        className={`h-full ${step.bg.replace('/10', '')} opacity-50`}
-                                                    />
+                                        {/* Logic Simulation UI */}
+                                        <div className="relative z-10 w-full h-full flex flex-col gap-4">
+                                            {/* Header of the mockup */}
+                                            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                                                <div className="flex gap-1.5">
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
+                                                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                                                 </div>
-                                            ))}
-                                            <div className="flex gap-4 pt-4">
-                                                <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
-                                                <div className="flex-1 space-y-2">
-                                                    <div className="h-2 bg-white/10 rounded-full w-3/4" />
-                                                    <div className="h-2 bg-white/5 rounded-full w-1/2" />
+                                                <div className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] font-mono text-white/40 tracking-tight">
+                                                    AUDNIX_PROTO_v2.4.0
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 grid grid-cols-2 gap-4">
+                                                {/* Simulated Logic Terminal */}
+                                                <div className="bg-black/40 rounded-xl border border-white/5 p-4 font-mono text-[9px] space-y-2 overflow-hidden">
+                                                    <div className="flex items-center gap-2 text-primary opacity-70">
+                                                        <Terminal className="w-3 h-3" />
+                                                        <span>INIT_PROCESS</span>
+                                                    </div>
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        whileInView={{ opacity: 1 }}
+                                                        className="space-y-1.5 text-white/40"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1 h-1 rounded-full bg-green-500" />
+                                                            <span>AUTHENTICATING_NODES...</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-1 h-1 rounded-full bg-green-500" />
+                                                            <span>SCANNING_VECTOR_DB...</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <motion.div
+                                                                animate={{ opacity: [0.2, 1, 0.2] }}
+                                                                transition={{ repeat: Infinity, duration: 1 }}
+                                                                className="w-1 h-1 rounded-full bg-primary shadow-[0_0_5px_rgba(var(--primary),0.5)]"
+                                                            />
+                                                            <span className="text-white/60">AWAITING_PAYLOAD_DETECTION</span>
+                                                        </div>
+                                                    </motion.div>
+                                                </div>
+
+                                                {/* Visual Logic Flow */}
+                                                <div className="flex flex-col gap-3">
+                                                    {['PDF_INGEST', 'VOICE_TRANSCRIPT', 'SEMANTIC_SYNC'].map((label, node) => (
+                                                        <motion.div
+                                                            key={label}
+                                                            initial={{ x: 20, opacity: 0 }}
+                                                            whileInView={{ x: 0, opacity: 1 }}
+                                                            transition={{ delay: node * 0.2 }}
+                                                            className="h-10 bg-white/5 border border-white/10 rounded-lg flex items-center px-3 gap-3 group/node relative overflow-hidden"
+                                                        >
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${step.color.replace('text', 'bg')} shadow-[0_0_10px_currentColor]`} />
+                                                            <div className="flex-1">
+                                                                <div className="text-[7px] text-white/40 mb-1 font-mono uppercase tracking-tighter">{label}</div>
+                                                                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                                                                    <motion.div
+                                                                        initial={{ width: 0 }}
+                                                                        whileInView={{ width: "100%" }}
+                                                                        transition={{ duration: 2, delay: 0.5 + (node * 0.2), repeat: Infinity }}
+                                                                        className={`h-full ${step.bg.replace('/10', '')} opacity-40`}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="absolute -right-1 -top-1 w-3 h-3 bg-primary/20 rounded-full blur-[2px] opacity-0 group-hover/node:opacity-100 transition-opacity" />
+                                                        </motion.div>
+                                                    ))}
+                                                    <div className="flex-1 flex items-center justify-center border-2 border-dashed border-white/5 rounded-xl bg-primary/5">
+                                                        <Activity className="w-8 h-8 text-primary animate-pulse" />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Floating Elements */}
+                                        <motion.div
+                                            animate={{
+                                                y: [0, -10, 0],
+                                                rotate: [0, 5, 0]
+                                            }}
+                                            transition={{ repeat: Infinity, duration: 4 }}
+                                            className="absolute top-10 right-10 w-20 h-20 bg-primary/10 blur-3xl rounded-full"
+                                        />
                                     </div>
                                 </div>
                             </motion.div>
@@ -152,12 +218,12 @@ export function HowItWorksSection() {
 
                 <div className="mt-40 flex flex-col items-center justify-center">
                     <Link href="/auth">
-                        <Button size="lg" className="h-20 px-16 rounded-full text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:scale-105 transition-all">
+                        <Button size="lg" className="h-20 px-16 rounded-full text-base font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:scale-105 transition-all bg-primary text-primary-foreground">
                             Initialize Your System <ArrowRight className="ml-3 w-5 h-5" />
                         </Button>
                     </Link>
                     <p className="mt-6 text-muted-foreground text-xs font-bold uppercase tracking-[0.2em]">
-                        Setup Time: Approx 12 Minutes
+                        Setup Time: Approx 5 Minutes
                     </p>
                 </div>
             </div>

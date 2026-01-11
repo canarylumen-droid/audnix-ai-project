@@ -27,6 +27,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ComponentShowcase } from '@/pages/dashboard/component-test';
 import { AuthGuard } from '@/components/auth-guard';
 import { CustomCursor } from "@/components/ui/CustomCursor";
+import { ExpertChat } from "@/components/landing/ExpertChat";
 
 const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
 
@@ -240,6 +241,7 @@ function App() {
             <Toaster />
             <CustomCursor />
             <Router />
+            <ExpertChat />
           </TooltipProvider>
         </QueryClientProvider>
       </ErrorBoundary>

@@ -16,7 +16,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { CookieConsent } from "@/components/landing/CookieConsent";
-import { ExpertChat } from "@/components/landing/ExpertChat";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 
@@ -216,7 +215,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      <ExpertChat />
       <PrivacyModal />
       <CookieConsent />
     </div>

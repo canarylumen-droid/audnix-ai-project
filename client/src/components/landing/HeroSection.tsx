@@ -3,6 +3,7 @@ import { motion, useMotionTemplate, useMotionValue, AnimatePresence, useSpring, 
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Star, Bot, Zap, Shield, PlayCircle, Users, Sparkles, Globe } from "lucide-react";
 import { Link } from "wouter";
+import { Magnetic } from "@/components/ui/Magnetic";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,52 +53,79 @@ export function HeroSection() {
 
           {/* Protocol Chip */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: "circOut" }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className="mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-              <Sparkles className="w-3 h-3 text-primary animate-pulse" />
-              <span className="text-[10px] uppercase tracking-[0.4em] text-white/60 font-medium">
-                NEURAL INTERFACE STATUS: OPERATIONAL
+            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl shadow-[0_0_20px_rgba(var(--primary),0.1)]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.5em] text-primary font-black">
+                NEURAL_LINK: ACTIVE
               </span>
             </div>
           </motion.div>
 
           {/* Clean "Apple-style" Hero Content */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.2, ease: "circOut" }}
-            className="space-y-8"
-          >
-            <h1 className="text-6xl md:text-9xl font-medium tracking-tight text-white leading-[1.1] max-w-5xl mx-auto">
-              The next evolution of <br />
-              <span className="text-white">autonomous intelligence.</span>
+          <div className="space-y-12">
+            <h1 className="text-6xl md:text-[140px] font-black tracking-tighter text-white leading-[0.85] max-w-6xl mx-auto uppercase">
+              {["The", "next", "evolution", "of"].map((word, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ y: 100, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: i * 0.1, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="inline-block mr-[0.2em]"
+                >
+                  {word}
+                </motion.span>
+              ))}
+              <br />
+              <motion.span
+                initial={{ filter: "blur(20px)", opacity: 0 }}
+                animate={{ filter: "blur(0px)", opacity: 1 }}
+                transition={{ delay: 0.8, duration: 2 }}
+                className="text-primary drop-shadow-[0_0_50px_rgba(0,210,255,0.3)] inline-block"
+              >
+                AU<span className="text-white">D</span>NIX
+              </motion.span>
             </h1>
 
-            <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto font-normal leading-relaxed">
-              Deploys AI agents that fill your calendar while you sleep.
-              Zero friction. Total control. Built for high-growth creators and agencies.
-            </p>
-          </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 1.2 }}
+              className="text-xl md:text-2xl text-white/40 max-w-3xl mx-auto font-medium leading-relaxed tracking-tight"
+            >
+              Deploy autonomous neural agents that identify, engage, and close <span className="text-white">million-dollar pipelines</span> while you sleep.
+            </motion.p>
+          </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12 mb-32"
+            transition={{ delay: 1.2, duration: 1 }}
+            className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-16 mb-24"
           >
             <Link href="/auth">
-              <Button size="lg" className="h-16 px-8 rounded-full bg-primary text-black font-bold text-lg hover:bg-primary/90 transition-all shadow-[0_0_40px_-10px_rgba(var(--primary),0.5)] hover:shadow-[0_0_60px_-10px_rgba(var(--primary),0.7)] hover:scale-105">
-                Start Deploying <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
+              <Magnetic>
+                <Button size="lg" className="h-20 px-12 rounded-2xl bg-primary text-black font-black text-xl hover:brightness-110 transition-all shadow-[0_20px_40px_-10px_rgba(0,210,255,0.4)] relative group overflow-hidden">
+                  <span className="relative z-10 flex items-center gap-3">
+                    INITIALIZE SYSTEM <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                </Button>
+              </Magnetic>
             </Link>
             <Link href="#how-it-works">
-              <Button size="lg" variant="outline" className="h-16 px-8 rounded-full border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-lg backdrop-blur-md transition-all hover:scale-105">
-                View Architecture
-              </Button>
+              <Magnetic>
+                <Button size="lg" variant="outline" className="h-20 px-12 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-black text-xl backdrop-blur-md transition-all">
+                  VIEW ARCHITECTURE
+                </Button>
+              </Magnetic>
             </Link>
           </motion.div>
 

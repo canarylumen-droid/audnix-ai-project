@@ -117,7 +117,7 @@ export default function SettingsPage() {
   if (isLoading || !user) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-10 py-8">
+    <div className="space-y-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">

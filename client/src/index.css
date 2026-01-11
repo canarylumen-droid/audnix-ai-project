@@ -87,9 +87,8 @@
 
   --popover-border: 220 8% 82%;
 
-  --primary: 200 95% 45%;
-
-  --primary-foreground: 200 95% 98%;
+  --primary: 215 100% 50%;
+  --primary-foreground: 210 40% 98%;
 
   --secondary: 220 8% 86%;
 
@@ -208,10 +207,10 @@
 
   --popover-border: 220 6% 22%;
 
-  --primary: 195 100% 60%;
-  --primary-glow: 195 100% 60% / 0.15;
+  --primary: 215 100% 60%;
+  --primary-glow: 215 100% 60% / 0.15;
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 210 40% 98%;
 
   --secondary: 280 60% 60%;
 
@@ -308,32 +307,43 @@
   position: relative;
   z-index: 0;
   overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .animated-border-card::before {
   content: '';
   position: absolute;
   inset: -1px;
-  padding: 1px;
+  padding: 1.5px;
   border-radius: inherit;
   background: conic-gradient(from 0deg,
       transparent 0%,
-      transparent 25%,
-      hsl(var(--primary) / 0.5) 50%,
-      transparent 75%,
+      transparent 10%,
+      hsl(var(--primary)) 20%,
+      transparent 30%,
+      transparent 50%,
+      hsl(var(--primary)) 60%,
+      transparent 70%,
       transparent 100%);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: destination-out;
-  opacity: 0;
+  opacity: 0.15;
   transition: opacity 0.5s ease;
-  animation: rotate-gradient 4s linear infinite;
+  animation: rotate-gradient 6s linear infinite;
   pointer-events: none;
+}
+
+.animated-border-card:hover {
+  transform: translateY(-8px);
+  border-color: hsla(var(--primary) / 0.4);
+  box-shadow: 0 20px 40px -20px hsla(var(--primary) / 0.3);
 }
 
 .animated-border-card:hover::before {
   opacity: 1;
+  animation-duration: 3s;
 }
 
 @keyframes rotate-gradient {
@@ -397,6 +407,26 @@
   50% {
     opacity: 0;
   }
+}
+
+/* 3D Perspective Utility */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
 }
 
 
@@ -509,5 +539,15 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+}
+
+@layer utilities {
+  .bg-brand-gradient {
+    @apply bg-gradient-to-b from-background via-background to-primary/5;
+  }
+
+  .bg-auth-gradient {
+    @apply bg-gradient-to-br from-[#0a0f1f] via-[#020409] to-[#0a0f1f];
   }
 }

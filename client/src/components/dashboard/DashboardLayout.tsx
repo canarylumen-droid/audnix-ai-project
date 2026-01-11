@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -57,6 +58,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Logo } from "@/components/ui/Logo";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 
 interface NavItem {
@@ -261,7 +263,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <motion.aside
-        className="hidden md:flex flex-col border-r border-border/40 bg-card/10 backdrop-blur-3xl z-50 transition-all duration-500 ease-out"
+        className="hidden md:flex flex-col border-r border-border/40 bg-card/60 backdrop-blur-xl z-50 transition-all duration-500 ease-out"
         animate={{ width: sidebarCollapsed ? "5rem" : "20rem" }}
       >
         {/* Sidebar Header */}
@@ -404,22 +406,49 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background/40 backdrop-blur-xl flex items-center justify-between px-8 sticky top-0 z-40">
+        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-40">
           <div className="flex items-center gap-4 flex-1">
-            <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-muted-foreground" onClick={() => setMobileMenuOpen(true)}>
-              <Menu className="h-5 w-5" />
-            </Button>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-muted-foreground hover:bg-muted/50 rounded-xl">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-80 bg-background border-r border-border/40">
+                <div className="h-20 flex items-center px-6 border-b border-border/40 mb-4">
+                  <Logo className="h-8 w-8" textClassName="text-lg font-bold" />
+                </div>
+                <ScrollArea className="h-[calc(100vh-6rem)] px-4">
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3">Platform</h4>
+                      {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+                      {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+                    </div>
+                    {navGroups.map(group => (
+                      <div key={group.label} className="space-y-1">
+                        <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-2">{group.label}</h4>
+                        {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                      </div>
+                    ))}
+                    <div className="pt-4 border-t border-border/20">
+                      {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
 
             <div className="relative max-w-md w-full hidden md:block group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Quick search..."
-                className="h-11 pl-11 bg-muted/20 border-transparent focus:bg-background focus:ring-1 focus:ring-border rounded-xl font-medium"
+                placeholder="Search leads, actions, or tools..."
+                className="h-11 pl-11 bg-muted/40 border-border/10 focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-xl font-medium placeholder:text-muted-foreground transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-40 group-focus-within:opacity-100 transition-opacity">
                 <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border border-border bg-muted/50 font-mono text-[10px] font-bold text-muted-foreground">
                   ⌘K
                 </kbd>
@@ -485,8 +514,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-muted/5">
-          <div className="max-w-7xl mx-auto p-6 md:p-10">
+        <main className="flex-1 overflow-auto bg-background/50">
+          <div className="max-w-7xl mx-auto p-6 md:p-8 lg:p-10">
             {children}
           </div>
         </main>

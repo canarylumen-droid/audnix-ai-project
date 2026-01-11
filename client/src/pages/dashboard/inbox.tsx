@@ -39,8 +39,8 @@ const channelIcons = {
 
 // Apple-style status badges
 const statusStyles = {
-  new: "bg-blue-500 text-white shadow-sm shadow-blue-500/20",
-  open: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  new: "bg-primary text-primary-foreground shadow-sm shadow-primary/20",
+  open: "bg-primary/10 text-primary",
   replied: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   converted: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
   not_interested: "bg-muted text-muted-foreground",
@@ -132,7 +132,7 @@ export default function InboxPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col md:flex-row overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-10rem)] -m-6 md:-m-8 lg:-m-10 flex-col md:flex-row overflow-hidden">
       {/* Sidebar */}
       <div className="w-64 border-r border-border/40 bg-muted/5 hidden md:flex flex-col p-3 space-y-6">
         <div className="space-y-1">
@@ -183,8 +183,8 @@ export default function InboxPage() {
             <div className="relative flex-1 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search inbox..."
-                className="pl-9 h-9 border-none bg-muted/40 focus-visible:ring-0 focus-visible:bg-muted/60 rounded-lg transition-all text-sm"
+                placeholder="Search leads, actions, or tools..."
+                className="h-11 pl-11 bg-muted/40 border-border/10 focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-xl font-medium placeholder:text-muted-foreground transition-all text-sm"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -235,7 +235,7 @@ export default function InboxPage() {
                     className={cn(
                       "group flex items-start gap-3 px-4 py-3.5 hover:bg-muted/30 transition-all cursor-pointer relative border-l-2 border-transparent",
                       isSelected && "bg-primary/5",
-                      isUnread && "bg-blue-500/5 border-l-blue-500" // Glow effect
+                      isUnread && "bg-primary/5 border-l-primary" // Glow effect
                     )}
                     onClick={() => window.location.href = `/dashboard/conversations/${lead.id}`}
                   >
@@ -251,7 +251,7 @@ export default function InboxPage() {
 
                     <div className={cn("transition-opacity duration-200", isSelected || "group-hover:opacity-0")}>
                       <Avatar className="h-10 w-10 border border-border/40 shadow-sm">
-                        <AvatarFallback className={cn("text-xs font-medium bg-background", isUnread ? "text-blue-600 font-bold" : "text-muted-foreground")}>
+                        <AvatarFallback className={cn("text-xs font-medium bg-background", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
                           {lead.name ? lead.name.slice(0, 2).toUpperCase() : "??"}
                         </AvatarFallback>
                       </Avatar>
@@ -277,7 +277,7 @@ export default function InboxPage() {
                       </div>
 
                       <div className="col-span-12 md:col-span-2 flex justify-end">
-                        <span className={cn("text-xs whitespace-nowrap", isUnread ? "text-blue-600 font-medium" : "text-muted-foreground/60")}>
+                        <span className={cn("text-xs whitespace-nowrap", isUnread ? "text-primary font-medium" : "text-muted-foreground/60")}>
                           {formatDate(lead.lastMessageAt || lead.createdAt)}
                         </span>
                       </div>

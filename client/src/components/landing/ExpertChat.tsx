@@ -150,13 +150,17 @@ export function ExpertChat() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
+                        whileHover={{ scale: 1.1 }}
                         onClick={() => {
                             setIsOpen(true);
                             setIsMinimized(false);
                         }}
-                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-14 h-14 rounded-full bg-black border border-white/10 flex items-center justify-center shadow-2xl hover:scale-105 transition-all"
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-16 h-16 rounded-full bg-black border-[3px] border-[#00d2ff] flex items-center justify-center shadow-[0_0_20px_rgba(0,210,255,0.3)] transition-all group overflow-hidden"
                     >
-                        <MessageCircle className="w-6 h-6 text-white" />
+                        {/* Hover Background Glow */}
+                        <div className="absolute inset-0 bg-[#00d2ff] translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+
+                        <MessageCircle className="w-7 h-7 text-[#00d2ff] group-hover:text-white transition-colors relative z-10" />
                     </motion.button>
                 )}
             </AnimatePresence>

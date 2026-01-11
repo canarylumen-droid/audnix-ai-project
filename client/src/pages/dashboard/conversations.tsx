@@ -263,7 +263,7 @@ export default function ConversationsPage() {
   const ChannelIcon = channelIcons[lead.channel as keyof typeof channelIcons] || Mail;
 
   return (
-    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-10rem)] -m-6 md:-m-8 lg:-m-10 bg-background">
       {/* Leads Sidebar */}
       <div className={`${selectedLead ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r bg-card flex-col`}>
         {/* This is a placeholder for the leads list. In a real app, this would fetch and display leads. */}
@@ -525,7 +525,7 @@ export default function ConversationsPage() {
         </CardContent>
         <div className="p-4 border-t mt-auto">
           <Button
-            className="w-full bg-gradient-to-r from-blue-500 to-primary hover:from-blue-600 hover:to-primary/90 text-white shadow-md border-0"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg border-0 font-bold rounded-xl h-11"
             onClick={() => setShowIntelligence(true)}
           >
             <Sparkles className="h-4 w-4 mr-2" /> View Intelligence Dossier

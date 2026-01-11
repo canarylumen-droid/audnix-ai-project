@@ -146,16 +146,16 @@ function IntentDetectionDemo() {
   };
 
   return (
-    <Card className="border-border/60 bg-gradient-to-br from-card to-muted/20">
+    <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden group relative">
       <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-pink-500/10 text-pink-500">
-            <Brain className="h-5 w-5" />
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-fuchsia-500/10 text-fuchsia-500 shadow-inner group-hover:scale-110 transition-transform">
+            <Brain className="h-6 w-6" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold">Intent Engine Preview</CardTitle>
-            <CardDescription className="text-xs">
-              Test how AI interprets buying signals
+            <CardTitle className="text-lg font-bold tracking-tight">Neural Intent Engine</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+              AI buying signal analysis
             </CardDescription>
           </div>
         </div>
@@ -184,7 +184,7 @@ function IntentDetectionDemo() {
             placeholder="Type a test comment..."
             value={testComment}
             onChange={(e) => setTestComment(e.target.value)}
-            className="bg-background/50 border-input shadow-sm"
+            className="bg-background/40 border-border/40 shadow-none h-11 rounded-xl"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && testComment.trim()) analyzeComment(testComment);
             }}
@@ -192,29 +192,31 @@ function IntentDetectionDemo() {
           <Button
             onClick={() => analyzeComment(testComment)}
             disabled={!testComment.trim() || analyzing}
-            className="min-w-[100px]"
-            size="sm"
+            className="min-w-[100px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl shadow-lg h-11"
           >
             {analyzing ? <Loader className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
             {analyzing ? "" : "Analyze"}
           </Button>
         </div>
 
+        {/* Glow effect */}
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 blur-[80px] opacity-10 bg-fuchsia-500 rounded-full" />
+
         <AnimatePresence mode="wait">
           {result && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="rounded-lg bg-background border border-border/50 p-4 space-y-3 shadow-sm"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="rounded-2xl bg-background/60 border border-border/40 p-5 space-y-4 shadow-xl backdrop-blur-md"
             >
               <div className="flex items-center justify-between">
-                <Badge variant={result.intent?.shouldDM ? "default" : "secondary"} className={result.intent?.shouldDM ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25 border-emerald-500/20" : ""}>
-                  {result.intent?.shouldDM ? "Active Lead" : "Passive"}
+                <Badge variant={result.intent?.shouldDM ? "default" : "secondary"} className={result.intent?.shouldDM ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3" : ""}>
+                  {result.intent?.shouldDM ? "HIGH INTENT LEAD" : "PASSIVE SIGNAL"}
                 </Badge>
-                <span className="text-xs font-mono text-muted-foreground">Confidence: {Math.round((result.intent?.confidence || 0) * 100)}%</span>
+                <span className="text-[10px] font-bold tracking-widest text-muted-foreground/50">CONFIDENCE: {Math.round((result.intent?.confidence || 0) * 100)}%</span>
               </div>
-              <p className="text-sm font-medium text-foreground">{result.recommendation}</p>
+              <p className="text-sm font-bold text-foreground leading-snug">{result.recommendation}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -250,54 +252,64 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
   });
 
   return (
-    <Card className="group hover:shadow-md transition-all duration-300 border-border/60 bg-card">
-      <CardHeader className="pb-3 px-4 pt-4">
+    <Card className="group hover:border-primary/20 transition-all duration-500 border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden relative">
+      <CardHeader className="pb-3 px-6 pt-6">
         <div className="flex items-start justify-between">
           <div className="space-y-1.5 flex-1 min-w-0 pr-4">
             <div className="flex items-center gap-2">
-              <Badge variant={monitor.isActive ? "default" : "secondary"} className={monitor.isActive ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20" : ""}>
-                {monitor.isActive ? "Monitoring" : "Paused"}
+              <Badge variant={monitor.isActive ? "default" : "secondary"} className={monitor.isActive ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-bold text-[10px] tracking-wider px-3" : ""}>
+                {monitor.isActive ? "LIVE SCANNING" : "MONITOR PAUSED"}
               </Badge>
             </div>
-            <a href={monitor.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-muted-foreground hover:text-primary truncate block hover:underline">
-              View Instagram Post ↗
+            <a href={monitor.videoUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-muted-foreground/40 hover:text-primary truncate block uppercase tracking-[0.1em] transition-colors">
+              Source URL ↗
             </a>
           </div>
-          <div className="flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onToggle} disabled={isToggling}>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-muted/20 hover:bg-muted/40" onClick={onToggle} disabled={isToggling}>
               {monitor.isActive ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/70 hover:text-destructive" onClick={onDelete} disabled={isDeleting}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-destructive/5 hover:bg-destructive/10 text-destructive/70 hover:text-destructive" onClick={onDelete} disabled={isDeleting}>
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-4 pb-4 space-y-4">
+      <CardContent className="px-6 pb-6 space-y-6">
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 py-3 border-y border-border/40">
+        <div className="grid grid-cols-3 gap-4 py-4 border-y border-border/20">
           <div className="text-center">
-            <div className="text-lg font-bold">{monitor.stats?.commentsChecked || 0}</div>
-            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Scanned</div>
+            <div className="text-xl font-extrabold tracking-tighter">{monitor.stats?.commentsChecked || 0}</div>
+            <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground/40 mt-1">Found</div>
           </div>
-          <div className="text-center border-l border-border/40">
-            <div className="text-lg font-bold text-primary">{monitor.stats?.dmsSent || 0}</div>
-            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Sent</div>
+          <div className="text-center">
+            <div className="text-xl font-extrabold tracking-tighter text-primary">{monitor.stats?.dmsSent || 0}</div>
+            <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground/40 mt-1">Relays</div>
           </div>
-          <div className="text-center border-l border-border/40">
-            <div className="text-lg font-bold text-emerald-500">{monitor.stats?.conversions || 0}</div>
-            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Leads</div>
+          <div className="text-center">
+            <div className="text-xl font-extrabold tracking-tighter text-emerald-500">{monitor.stats?.conversions || 0}</div>
+            <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground/40 mt-1">Impact</div>
           </div>
         </div>
 
         {/* Sync Status */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-            <span className="flex items-center gap-1"><Activity className="h-3 w-3" /> Syncing...</span>
-            <span className="font-mono">{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30">
+            <span className="flex items-center gap-1.5"><Activity className="h-3 w-3 animate-pulse" /> Neural Cycle</span>
+            <span>{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
           </div>
-          <Progress value={syncProgress} className="h-1 bg-muted" />
+          <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary"
+              initial={{ width: 0 }}
+              animate={{ width: `${syncProgress}%` }}
+              transition={{ duration: 1 }}
+            />
+          </div>
         </div>
+
+        {/* Subtle Glow */}
+        <div className="absolute -bottom-10 -left-10 w-32 h-32 blur-[80px] opacity-10 bg-primary rounded-full transition-opacity group-hover:opacity-20" />
       </CardContent>
     </Card>
   );
@@ -422,10 +434,10 @@ export default function VideoAutomationPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent inline-flex items-center gap-2">
-            Instagram Automation <Instagram className="h-6 w-6 text-rose-500" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            Instagram Automation <Instagram className="h-6 w-6 text-primary" />
           </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
+          <p className="text-muted-foreground mt-1">
             Convert comments into sales automatically.
           </p>
         </div>
@@ -442,7 +454,7 @@ export default function VideoAutomationPage() {
             Sync Live Feed
           </Button>
           <Button
-            className="rounded-xl shadow-lg shadow-pink-500/20 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
+            className="rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
             onClick={() => {
               toast({ title: "Force Re-scan Initiated", description: "AI is checking all active monitors now." });
             }}
