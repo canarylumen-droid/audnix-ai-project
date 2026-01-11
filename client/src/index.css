@@ -87,7 +87,7 @@
 
   --popover-border: 220 8% 82%;
 
-  --primary: 215 100% 50%;
+  --primary: 191 100% 45%;
   --primary-foreground: 210 40% 98%;
 
   --secondary: 220 8% 86%;
@@ -207,8 +207,8 @@
 
   --popover-border: 220 6% 22%;
 
-  --primary: 215 100% 60%;
-  --primary-glow: 215 100% 60% / 0.15;
+  --primary: 191 100% 50%;
+  --primary-glow: 191 100% 50% / 0.15;
 
   --primary-foreground: 210 40% 98%;
 
