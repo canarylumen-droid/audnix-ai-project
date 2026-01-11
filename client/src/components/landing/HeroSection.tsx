@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo, Suspense } from "react";
 import { motion, useMotionTemplate, useMotionValue, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star, Bot, Zap, Shield, PlayCircle, Users } from "lucide-react";
+import { ArrowRight, Star, Bot, Zap, Shield, PlayCircle, Users, Sparkles, Globe } from "lucide-react";
 import { Link } from "wouter";
 
 export function HeroSection() {
@@ -81,21 +81,9 @@ export function HeroSection() {
               Deploys AI agents that fill your calendar while you sleep.
               Zero friction. Total control. Built for high-growth creators and agencies.
             </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-10">
-              <Link href="/auth">
-                <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-widest text-[11px] shadow-[0_20px_40px_rgba(var(--primary),0.2)] hover:scale-105 transition-all duration-300">
-                  Initialize Control <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <Link href="#features">
-                <Button variant="ghost" className="h-16 px-10 rounded-full border border-white/10 text-white/60 font-semibold uppercase tracking-widest text-[11px] hover:bg-white/5 hover:text-white transition-all">
-                  Explore Architecture
-                </Button>
-              </Link>
-            </div>
           </motion.div>
 
+          {/* Trust Indicators */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -113,28 +101,35 @@ export function HeroSection() {
               </Button>
             </Link>
           </motion.div>
-
-          {/* Integrations Ribbon */}
-          <div className="mt-40 border-y border-white/5 bg-black/20 backdrop-blur-sm w-full py-12 overflow-hidden relative group">
-            <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-
-            <div className="flex justify-center items-center gap-16 md:gap-32 animate-marquee whitespace-nowrap">
-              {["HUBSPOT", "SALESFORCE", "SLACK", "GOHIGHLEVEL", "ZAPIER"].map((brand) => (
-                <span key={brand} className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-white/10 group-hover:text-white/40 transition-colors duration-500 cursor-default select-none">
-                  {brand}
-                </span>
-              ))}
-            </div>
-
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-black border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30">
-              Native Integrations
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Bottom Fade */}
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black to-transparent pointer-events-none z-30" />
     </section>
+  );
+}
+00" />
+
+  < div className = "flex justify-center items-center gap-16 md:gap-32 animate-marquee whitespace-nowrap" >
+  {
+    ["HUBSPOT", "SALESFORCE", "SLACK", "GOHIGHLEVEL", "ZAPIER"].map((brand) => (
+      <span key={brand} className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-white/10 group-hover:text-white/40 transition-colors duration-500 cursor-default select-none">
+        {brand}
+      </span>
+    ))
+  }
+            </div >
+
+  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-black border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30">
+    Native Integrations
+  </div>
+          </div >
+        </div >
+      </div >
+
+  {/* Bottom Fade */ }
+  < div className = "absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black to-transparent pointer-events-none z-30" />
+    </section >
   );
 }
