@@ -58,23 +58,16 @@ export function SolutionPageTemplate({
         const ref = React.useRef(null);
         const { scrollYProgress } = useScroll({
             target: ref,
-            offset: ["start 90%", "start 40%"]
+            offset: ["start 90%", "start 50%"]
         });
-        const opacity = useTransform(scrollYProgress, [0, 1], [0.15, 1]);
-        const color = useTransform(scrollYProgress, [0, 1], ["rgba(255,255,255,0.15)", "rgba(255,255,255,1)"]);
-        const textShadow = useTransform(scrollYProgress, [0, 1], ["0 0 0px transparent", "0 0 10px rgba(255,255,255,0.3)"]);
+        const opacity = useTransform(scrollYProgress, [0, 1], [0.2, 1]);
+        const color = useTransform(scrollYProgress, [0, 1], ["rgba(255,255,255,0.2)", "rgba(255,255,255,1)"]);
 
         return (
             <motion.span
                 ref={ref}
-                initial={{ opacity: 0.15 }}
-                whileInView={{
-                    opacity: 1,
-                    transition: { delay: (index % 10) * 0.05 }
-                }}
-                viewport={{ once: false, margin: "-10% 0px -20% 0px" }}
-                style={{ opacity, color, textShadow }}
-                className="transition-all duration-300 hover:text-white hover:bg-[#00d2ff]/20 hover:!opacity-100 hover:shadow-[0_0_20px_rgba(0,210,255,0.4)] px-1 rounded-md cursor-default inline-block"
+                style={{ opacity, color }}
+                className="transition-colors duration-300 px-1 inline-block"
             >
                 {children}
             </motion.span>
@@ -107,27 +100,27 @@ export function SolutionPageTemplate({
                             </h1>
                             <ScrollHighlightText
                                 text={description}
-                                className="text-muted-foreground text-xl font-medium leading-relaxed max-w-xl"
+                                className="text-muted-foreground text-xl font-medium leading-relaxed max-w-xl text-left"
                             />
 
                             <div className="flex flex-wrap gap-4">
                                 <Link href="/auth">
-                                    <Button size="lg" className="h-14 px-8 rounded-full bg-primary text-primary-foreground font-bold uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                                    <Button size="lg" className="h-14 px-8 rounded-full bg-primary text-black font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,210,255,0.3)] hover:scale-105 transition-all text-xs">
                                         Initialize Protocol <ArrowRight className="ml-2 w-4 h-4" />
                                     </Button>
                                 </Link>
                                 <Link href="/#calc">
-                                    <Button size="lg" variant="outline" className="h-14 px-8 rounded-full border-2 font-bold uppercase tracking-widest hover:bg-muted transition-all">
+                                    <Button size="lg" variant="outline" className="h-14 px-8 rounded-full border-white/10 bg-white/5 font-black uppercase tracking-widest hover:bg-white/10 transition-all text-white text-xs backdrop-blur-md">
                                         View ROI Model
                                     </Button>
                                 </Link>
                             </div>
 
-                            <div className="pt-8 flex items-center gap-8 text-muted-foreground">
-                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
-                                    <Shield className="w-4 h-4 text-primary" /> Verified Infrastructure
+                            <div className="pt-8 flex items-center gap-8 text-muted-foreground border-t border-white/5">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40">
+                                    <Shield className="w-4 h-4 text-emerald-500" /> Verified Infrastructure
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40">
                                     <Zap className="w-4 h-4 text-primary" /> &lt; 2m Response Latency
                                 </div>
                             </div>
@@ -140,11 +133,11 @@ export function SolutionPageTemplate({
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.2 + (i * 0.1) }}
-                                    className="p-8 rounded-3xl bg-card border border-border shadow-sm space-y-2 hover:border-primary/20 transition-colors"
+                                    className="p-8 rounded-[2rem] bg-[#0d1117] border border-white/5 hover:border-primary/20 transition-colors group"
                                 >
-                                    <p className="text-muted-foreground/60 text-[10px] font-bold uppercase tracking-widest">{metric.label}</p>
-                                    <p className="text-4xl font-bold text-foreground tracking-tight">{metric.value}</p>
-                                    <p className="text-primary text-[10px] font-bold uppercase tracking-widest">{metric.sub}</p>
+                                    <p className="text-white/20 text-[10px] font-black uppercase tracking-widest mb-2">{metric.label}</p>
+                                    <p className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2 group-hover:text-primary transition-colors">{metric.value}</p>
+                                    <p className="text-primary text-[10px] font-black uppercase tracking-widest">{metric.sub}</p>
                                 </motion.div>
                             ))}
                         </div>
@@ -152,40 +145,50 @@ export function SolutionPageTemplate({
                 </section>
 
                 {/* Problem Agitation Section */}
-                <section className="py-24 px-6 bg-red-500/[0.02] border-y border-red-500/10">
-                    <div className="max-w-4xl mx-auto text-center space-y-12">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(239,68,68,0.2)]">
-                            <AlertTriangle className="w-3 h-3" />
-                            CRITICAL FAILURE
+                <section className="py-32 px-6 bg-[#050505] border-y border-white/5">
+                    <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-start">
+                        <div className="space-y-8 sticky top-32">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                                <AlertTriangle className="w-3 h-3" />
+                                CRITICAL FAILURE
+                            </div>
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[0.9] uppercase">{problemTitle}</h2>
+                            <p className="text-white/40 text-sm font-bold uppercase tracking-widest">
+                                The bottleneck in your current operation.
+                            </p>
                         </div>
-                        <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-foreground">{problemTitle}</h2>
-                        <ScrollHighlightText
-                            text={problemText}
-                            className="text-lg md:text-xl text-muted-foreground/80 font-medium leading-loose whitespace-pre-line max-w-3xl mx-auto text-left md:text-center"
-                        />
+
+                        <div className="pl-8 border-l border-white/10">
+                            <ScrollHighlightText
+                                text={problemText}
+                                className="text-lg md:text-2xl text-white/60 font-medium leading-loose whitespace-pre-line text-left"
+                            />
+                        </div>
                     </div>
                 </section>
 
                 {/* Features Breakdown */}
-                <section className="py-24 px-6 bg-muted/30 border-y border-border/50">
+                <section className="py-32 px-6 bg-black">
                     <div className="max-w-7xl mx-auto space-y-20">
-                        <div className="text-center space-y-4 max-w-3xl mx-auto">
-                            <h2 className="text-3xl md:text-5xl font-bold tracking-tight">Engineered for <span className="text-primary">Performance.</span></h2>
-                            <p className="text-muted-foreground text-lg font-medium max-w-2xl mx-auto">
+                        <div className="text-center space-y-6 max-w-3xl mx-auto mb-20">
+                            <h2 className="text-3xl md:text-6xl font-black tracking-tighter text-white uppercase">Engineered for <span className="text-primary">Dominance.</span></h2>
+                            <p className="text-white/40 text-xl font-medium max-w-2xl mx-auto leading-relaxed">
                                 Standard outreach is dead. Autonomous intelligence is the only path forward for modern growth engines.
                             </p>
                         </div>
 
                         <div className="grid md:grid-cols-3 gap-8">
                             {features.map((feature, i) => (
-                                <div key={i} className="p-8 rounded-3xl bg-background border border-border hover:border-primary/30 transition-all duration-300 space-y-6 group shadow-sm hover:shadow-md">
-                                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                        <feature.icon className="w-7 h-7" />
+                                <div key={i} className="p-10 rounded-[2.5rem] bg-[#0d1117] border border-white/5 hover:border-primary/30 transition-all duration-500 space-y-8 group hover:-translate-y-2">
+                                    <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white group-hover:scale-110 group-hover:bg-primary group-hover:text-black transition-all duration-500">
+                                        <feature.icon className="w-8 h-8" />
                                     </div>
-                                    <h3 className="text-xl font-bold tracking-tight">{feature.title}</h3>
-                                    <p className="text-muted-foreground text-sm font-medium leading-relaxed">
-                                        {feature.desc}
-                                    </p>
+                                    <div className="space-y-4">
+                                        <h3 className="text-2xl font-black tracking-tight text-white uppercase">{feature.title}</h3>
+                                        <p className="text-white/40 text-base font-medium leading-relaxed">
+                                            {feature.desc}
+                                        </p>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -193,24 +196,27 @@ export function SolutionPageTemplate({
                 </section>
 
                 {/* Deep Dive Section */}
-                <section className="py-24 px-6">
-                    <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
-                        <div className="space-y-8">
-                            <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">{deepDiveTitle}</h2>
+                <section className="py-32 px-6 border-t border-white/5 bg-[#050505]">
+                    <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-start">
+                        <div className="space-y-10 pl-8 border-l border-white/10">
+                            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase leading-none">{deepDiveTitle}</h2>
                             <ScrollHighlightText
                                 text={deepDiveText}
-                                className="text-muted-foreground text-lg leading-loose whitespace-pre-line font-medium"
+                                className="text-lg md:text-xl text-white/60 leading-loose whitespace-pre-line font-medium text-left"
                             />
-                            <Link href="/auth">
-                                <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-2 hover:bg-muted transition-all uppercase tracking-widest text-xs">
-                                    Read Technical Docs
+                            <Link href="#">
+                                <Button variant="ghost" className="rounded-full px-0 font-black uppercase tracking-widest text-xs text-primary hover:text-white hover:bg-transparent transition-colors group">
+                                    Read Technical Documentation <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </Link>
                         </div>
-                        <div className="hidden md:block h-96 bg-muted rounded-3xl relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <MessageSquare className="w-32 h-32 text-primary/20 group-hover:scale-110 transition-transform duration-500" />
+                        <div className="hidden md:flex h-[600px] bg-[#0d1117] rounded-[3rem] border border-white/5 relative overflow-hidden items-center justify-center group">
+                            {/* Abstract Visualization */}
+                            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent" />
+
+                            <div className="relative z-10 p-12 ">
+                                <MessageSquare className="w-40 h-40 text-white/5 group-hover:text-primary/20 transition-colors duration-700" />
                             </div>
                         </div>
                     </div>

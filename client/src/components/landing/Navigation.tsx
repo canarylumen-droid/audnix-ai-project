@@ -158,10 +158,12 @@ export function Navigation() {
                         <Shield className="w-4 h-4 text-primary" />
                         <span className="text-xs font-bold uppercase tracking-wider">Privacy Policy</span>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Terms of Service</span>
-                      </div>
+                      <Link href="/terms-of-service">
+                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                          <FileText className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Terms of Service</span>
+                        </div>
+                      </Link>
                     </div>
                   </motion.div>
                 )}

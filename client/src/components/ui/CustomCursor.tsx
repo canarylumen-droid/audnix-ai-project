@@ -137,17 +137,18 @@ export const CustomCursor = () => {
                 {ripples.map((ripple) => (
                     <motion.div
                         key={ripple.id}
-                        initial={{ scale: 0, opacity: 0.5 }}
-                        animate={{ scale: 2, opacity: 0 }}
+                        initial={{ scale: 0, opacity: 0.8 }}
+                        animate={{ scale: 2.5, opacity: 0 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
                             left: ripple.x,
                             top: ripple.y,
                             transform: 'translate(-50%, -50%)',
+                            boxShadow: "0 0 15px rgba(0,210,255,0.5)"
                         }}
-                        className="w-8 h-8 rounded-full border border-[#00d2ff]/60"
+                        className="w-8 h-8 rounded-full border border-[#00d2ff]"
                     />
                 ))}
             </AnimatePresence>
@@ -162,14 +163,14 @@ export const CustomCursor = () => {
                         : 'translate(-2px, -2px)',
                 }}
                 animate={{
-                    scale: isClicked ? 0.75 : 1, // Stronger bounce
-                    y: isClicked ? 4 : 0,       // Hit effect
-                    rotate: isClicked ? -5 : 0  // Subtle tilt on click
+                    scale: isClicked ? 0.7 : 1, // Stronger bounce
+                    y: isClicked ? 8 : 0,       // Deeper press
+                    rotate: isClicked ? -12 : 0 // Stronger tilt
                 }}
                 transition={{
                     type: "spring",
-                    stiffness: 800, // Snap back faster
-                    damping: 20,
+                    stiffness: 800,
+                    damping: 15, // Less damping for more bounce
                     mass: 0.5
                 }}
             >
