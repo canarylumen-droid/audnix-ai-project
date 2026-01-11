@@ -10,11 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Brain, 
-  CheckCircle, 
-  Clock, 
-  XCircle, 
+import {
+  Brain,
+  CheckCircle,
+  Clock,
+  XCircle,
   AlertTriangle,
   MessageSquare,
   Mail,
@@ -113,44 +113,44 @@ export default function AIDecisionsPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
-          label="Total Decisions"
+          label="Neural Events"
           value={stats.total}
           icon={Activity}
-          color="text-blue-500"
+          color="text-primary"
         />
         <StatCard
-          label="Actions Taken"
+          label="Success Rate"
           value={stats.acted}
-          subtext={`${stats.total > 0 ? Math.round((stats.acted / stats.total) * 100) : 0}% approval rate`}
+          subtext={`${stats.total > 0 ? Math.round((stats.acted / stats.total) * 100) : 0}% APV`}
           icon={CheckCircle}
-          color="text-green-500"
+          color="text-emerald-500"
         />
         <StatCard
-          label="Avg Intent Score"
+          label="Neural Affinity"
           value={`${stats.avgIntentScore}%`}
           icon={TrendingUp}
-          color="text-purple-500"
+          color="text-orange-500"
         />
         <StatCard
-          label="Avg Confidence"
+          label="AI Stability"
           value={`${stats.avgConfidence}%`}
           icon={Brain}
-          color="text-cyan-500"
+          color="text-primary"
         />
       </div>
 
-      <Card className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-purple-500/20 rounded-lg">
-              <Brain className="h-6 w-6 text-purple-400" />
+      <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20 rounded-[2.5rem] overflow-hidden">
+        <CardContent className="p-8">
+          <div className="flex items-start gap-6">
+            <div className="p-4 bg-primary/20 rounded-2xl shadow-inner">
+              <Brain className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h3 className="font-semibold">Intelligence Governance</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                AI NEVER acts without decision engine approval. Every action requires minimum intent 
-                and confidence scores. Decisions are logged with: act (proceed), wait (hold), 
-                skip (don't do), escalate (needs human review).
+              <h3 className="text-lg font-black text-white uppercase tracking-tight">Intelligence Governance Protocol</h3>
+              <p className="text-sm text-white/40 mt-2 font-bold leading-relaxed max-w-2xl">
+                AI NEVER acts without decision engine approval. Every action requires minimum intent
+                thresholds and confidence scores. Each decision is logged as: <span className="text-emerald-500">ACT</span>, <span className="text-orange-500">WAIT</span>,
+                <span className="text-red-500">SKIP</span>, or <span className="text-purple-500">ESCALATE</span>.
               </p>
             </div>
           </div>
@@ -252,17 +252,17 @@ function StatCard({
   color: string;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg bg-muted`}>
-            <Icon className={`h-5 w-5 ${color}`} />
+    <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 group-hover:scale-110 transition-transform`}>
+            <Icon className={`h-6 w-6 ${color}`} />
           </div>
           <div>
-            <div className="text-2xl font-bold">{value}</div>
-            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="text-2xl font-black text-white tracking-tighter">{value}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">{label}</div>
             {subtext && (
-              <div className="text-xs text-muted-foreground mt-1">{subtext}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60 mt-1">{subtext}</div>
             )}
           </div>
         </div>
@@ -284,15 +284,15 @@ function DecisionTypeCard({
   const colorClass = DECISION_COLORS[type];
 
   return (
-    <Card className={count > 0 ? '' : 'opacity-50'}>
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-center gap-2">
-          <div className={`p-1.5 rounded ${colorClass}`}>
+    <Card className={`rounded-[1.5rem] border-white/5 overflow-hidden transition-all duration-300 ${count > 0 ? 'bg-white/5 hover:bg-white/10' : 'opacity-20'}`}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl ${colorClass}`}>
             <Icon className="h-4 w-4" />
           </div>
           <div>
-            <div className="font-semibold">{count}</div>
-            <div className="text-xs text-muted-foreground">{label}</div>
+            <div className="text-lg font-black tracking-tight text-white">{count}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-white/20">{label}</div>
           </div>
         </div>
       </CardContent>
@@ -306,31 +306,43 @@ function DecisionRow({ decision }: { decision: AIDecision }) {
   const colorClass = DECISION_COLORS[decision.decision];
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-lg border bg-card">
-      <div className={`p-2 rounded-lg ${colorClass}`}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex items-start gap-4 p-6 rounded-[2rem] border border-white/5 bg-background/20 hover:bg-white/5 transition-all group"
+    >
+      <div className={`p-3 rounded-2xl ${colorClass} shadow-lg`}>
         <DecisionIcon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1 text-xs">
-            <ActionIcon className="h-3 w-3" />
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="gap-2 text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/10 h-7 px-3">
+            <ActionIcon className="h-3.5 w-3.5" />
             {decision.actionType.replace('_', ' ')}
           </Badge>
           <Badge
             variant="secondary"
-            className={`text-xs ${colorClass}`}
+            className={`text-[10px] font-black uppercase tracking-widest h-7 px-3 ${colorClass}`}
           >
-            {decision.decision.toUpperCase()}
+            {decision.decision}
           </Badge>
         </div>
-        <p className="text-sm mt-2">{decision.reasoning}</p>
-        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-          <span>Intent: {decision.intentScore}%</span>
-          <span>Timing: {decision.timingScore}%</span>
-          <span>Confidence: {Math.round((decision.confidence || 0) * 100)}%</span>
-          <span>{format(new Date(decision.createdAt), 'MMM d, h:mm a')}</span>
+        <p className="text-md font-bold text-white/80 mt-4 leading-relaxed tracking-tight">{decision.reasoning}</p>
+        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Intent Score</span>
+            <span className="text-[10px] font-black text-orange-500">{decision.intentScore}%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Confidence</span>
+            <span className="text-[10px] font-black text-primary">{Math.round((decision.confidence || 0) * 100)}%</span>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Clock className="h-3 w-3 text-white/20" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">{format(new Date(decision.createdAt), 'MMM d, h:mm a')}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

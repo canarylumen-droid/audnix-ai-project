@@ -39,12 +39,12 @@ const channelIcons = {
 
 // Apple-style status badges
 const statusStyles = {
-  new: "bg-primary text-primary-foreground shadow-sm shadow-primary/20",
-  open: "bg-primary/10 text-primary",
-  replied: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  converted: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  not_interested: "bg-muted text-muted-foreground",
-  cold: "bg-muted text-muted-foreground",
+  new: "bg-primary/20 text-primary border-primary/20",
+  open: "bg-primary/10 text-primary border-primary/10",
+  replied: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  converted: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  not_interested: "bg-muted text-muted-foreground border-muted",
+  cold: "bg-muted text-muted-foreground border-muted",
 };
 
 export default function InboxPage() {
@@ -136,6 +136,7 @@ export default function InboxPage() {
       {/* Sidebar */}
       <div className="w-64 border-r border-border/40 bg-muted/5 hidden md:flex flex-col p-3 space-y-6">
         <div className="space-y-1">
+          <h4 className="text-[10px] font-black text-white/20 px-4 mb-4 uppercase tracking-[0.2em]">Priority Hub</h4>
           {[
             { id: 'inbox', label: 'Inbox', icon: InboxIcon, count: allLeads.length },
             { id: 'starred', label: 'Starred', icon: Star, count: 0 },
@@ -144,20 +145,27 @@ export default function InboxPage() {
             <Button
               key={item.id}
               variant={activeTab === item.id ? 'secondary' : 'ghost'}
-              className={cn("w-full justify-between font-medium h-9", activeTab === item.id ? "bg-muted/50" : "")}
+              className={cn(
+                "w-full justify-between font-bold h-11 rounded-xl px-4 transition-all duration-300",
+                activeTab === item.id ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "text-white/40 hover:text-white hover:bg-white/5"
+              )}
               onClick={() => setActiveTab(item.id as any)}
             >
               <div className="flex items-center">
-                <item.icon className="mr-2.5 h-4 w-4 opacity-70" />
-                {item.label}
+                <item.icon className={cn("mr-3 h-4 w-4", activeTab === item.id ? "text-primary" : "opacity-40")} />
+                <span className="text-[11px] uppercase tracking-widest">{item.label}</span>
               </div>
-              {item.count > 0 && <span className="text-xs text-muted-foreground">{item.count}</span>}
+              {item.count > 0 && (
+                <Badge className="bg-primary/20 text-primary text-[10px] font-black h-5 min-w-[1.25rem] px-1 flex items-center justify-center border-none">
+                  {item.count}
+                </Badge>
+              )}
             </Button>
           ))}
         </div>
 
-        <div className="space-y-1 pt-4 border-t border-border/40">
-          <h4 className="text-[10px] font-semibold text-muted-foreground px-3 mb-2 uppercase tracking-widest">Channels</h4>
+        <div className="space-y-1 pt-8">
+          <h4 className="text-[10px] font-black text-white/20 px-4 mb-4 uppercase tracking-[0.2em]">Neural Channels</h4>
           {[
             { id: 'all', label: 'All Channels', icon: InboxIcon },
             { id: 'instagram', label: 'Instagram', icon: Instagram },
@@ -166,10 +174,14 @@ export default function InboxPage() {
             <Button
               key={item.id}
               variant={filterChannel === item.id ? 'secondary' : 'ghost'}
-              className="w-full justify-start text-sm h-9"
+              className={cn(
+                "w-full justify-start font-bold h-11 rounded-xl px-4 transition-all duration-300",
+                filterChannel === item.id ? "bg-primary/10 text-primary border border-primary/20" : "text-white/40 hover:text-white hover:bg-white/5"
+              )}
               onClick={() => setFilterChannel(item.id)}
             >
-              <item.icon className="mr-2.5 h-4 w-4 opacity-70" /> {item.label}
+              <item.icon className={cn("mr-3 h-4 w-4", filterChannel === item.id ? "text-primary" : "opacity-40")} />
+              <span className="text-[11px] uppercase tracking-widest">{item.label}</span>
             </Button>
           ))}
         </div>
@@ -249,9 +261,9 @@ export default function InboxPage() {
                       </div>
                     </div>
 
-                    <div className={cn("transition-opacity duration-200", isSelected || "group-hover:opacity-0")}>
-                      <Avatar className="h-10 w-10 border border-border/40 shadow-sm">
-                        <AvatarFallback className={cn("text-xs font-medium bg-background", isUnread ? "text-primary font-bold" : "text-muted-foreground")}>
+                    <div className={cn("transition-all duration-300", isSelected || "group-hover:opacity-0 group-hover:scale-95")}>
+                      <Avatar className="h-12 w-12 border-2 border-white/5 shadow-2xl transition-transform group-hover:scale-110">
+                        <AvatarFallback className={cn("text-xs font-black bg-background/50 backdrop-blur-md", isUnread ? "text-primary" : "text-white/20")}>
                           {lead.name ? lead.name.slice(0, 2).toUpperCase() : "??"}
                         </AvatarFallback>
                       </Avatar>
@@ -265,14 +277,14 @@ export default function InboxPage() {
                         <ChannelIcon className="h-3 w-3 text-muted-foreground/60 flex-shrink-0" />
                       </div>
 
-                      <div className="col-span-12 md:col-span-7 flex items-center gap-2 min-w-0">
+                      <div className="col-span-12 md:col-span-7 flex items-center gap-3 min-w-0">
                         {lead.status && (
-                          <Badge variant="secondary" className={cn("text-[10px] h-5 px-1.5 font-normal rounded-md uppercase tracking-wider md:flex hidden", statusClass)}>
+                          <Badge variant="outline" className={cn("text-[9px] h-6 px-2.5 font-black rounded-lg uppercase tracking-widest md:flex hidden backdrop-blur-md", statusClass)}>
                             {lead.status.replace('_', ' ')}
                           </Badge>
                         )}
-                        <span className={cn("text-sm truncate", isUnread ? "text-foreground font-medium" : "text-muted-foreground")}>
-                          {lead.lastMessageSnippet || "Active conversation..."}
+                        <span className={cn("text-sm truncate font-bold tracking-tight", isUnread ? "text-white" : "text-white/40")}>
+                          {lead.lastMessageSnippet || "Neural sync active..."}
                         </span>
                       </div>
 

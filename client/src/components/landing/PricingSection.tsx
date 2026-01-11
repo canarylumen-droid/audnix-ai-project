@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Zap, Activity, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { getSortedPricingTiers } from "@shared/plan-utils";
+import { Tilt } from "@/components/ui/Tilt";
 
 export function PricingSection() {
   const pricingTiers = getSortedPricingTiers().filter(tier => tier.id !== 'trial' && tier.id !== 'free');
@@ -41,66 +42,67 @@ export function PricingSection() {
           {pricingTiers.map((tier, index) => {
             const isPopular = tier.id === 'pro';
             return (
-              <motion.div
-                key={tier.id}
-                initial={{ opacity: 0, scale: 0.95, y: 50 }}
-                whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.8 }}
-                className={`animated-border-card p-12 rounded-3xl border relative flex flex-col h-full transition-all duration-700 ${isPopular ? "bg-card border-primary/20 shadow-2xl scale-105 z-10" : "bg-card/50 border-border/40"
-                  }`}
-              >
-                {isPopular && (
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-8 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase shadow-xl">
-                    Recommended
-                  </div>
-                )}
-
-                <div className="mb-12">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.3em]">{tier.name}</h3>
-                    {isPopular && <Activity className="w-4 h-4 text-primary" />}
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-bold text-foreground tracking-tight">
-                      ${tier.price}
-                    </span>
-                    <span className="text-muted-foreground font-bold uppercase tracking-wider text-[10px]">/ {tier.period}</span>
-                  </div>
-                  <p className="text-muted-foreground text-xs mt-4 font-medium leading-relaxed">
-                    {tier.description}
-                  </p>
-                </div>
-
-                <div className="space-y-5 mb-12 flex-1">
-                  {tier.features.slice(0, 8).map((feat, i) => (
-                    <div key={i} className="flex items-start gap-4 group/item">
-                      <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10 group-hover/item:border-primary/50 transition-colors">
-                        <Check className="w-3 h-3 text-primary" />
-                      </div>
-                      <span className="text-muted-foreground font-medium text-sm group-hover/item:text-foreground transition-colors">{feat}</span>
+              <Tilt key={tier.id} className="h-full">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 50 }}
+                  whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.8 }}
+                  className={`animated-border-card p-12 rounded-3xl border relative flex flex-col h-full transition-all duration-700 ${isPopular ? "bg-card border-primary/20 shadow-2xl z-10" : "bg-card/50 border-border/40"
+                    }`}
+                >
+                  {isPopular && (
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-8 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase shadow-xl">
+                      Recommended
                     </div>
-                  ))}
-                </div>
+                  )}
 
-                <Link href="/auth">
-                  <Button
-                    className={`h-14 w-full rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-700 active:scale-95 group relative overflow-hidden ${isPopular
-                      ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/20 hover:brightness-110"
-                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 border-border/50"
-                      }`}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {isPopular ? "Get Started with Pro" : "Select Growth Plan"}
-                      <Zap className={`w-4 h-4 ${isPopular ? "fill-current" : ""}`} />
-                    </span>
-                  </Button>
-                </Link>
+                  <div className="mb-12">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-muted-foreground text-[10px] font-bold uppercase tracking-[0.3em]">{tier.name}</h3>
+                      {isPopular && <Activity className="w-4 h-4 text-primary" />}
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-6xl font-bold text-foreground tracking-tight">
+                        ${tier.price}
+                      </span>
+                      <span className="text-muted-foreground font-bold uppercase tracking-wider text-[10px]">/ {tier.period}</span>
+                    </div>
+                    <p className="text-muted-foreground text-xs mt-4 font-medium leading-relaxed">
+                      {tier.description}
+                    </p>
+                  </div>
 
-                <p className="mt-8 text-center text-[9px] font-bold uppercase tracking-[0.3em] text-muted-foreground/30">
-                  {isPopular ? "Includes Strategic ROI Mapping" : "Automated Lead Engagement"}
-                </p>
-              </motion.div>
+                  <div className="space-y-5 mb-12 flex-1">
+                    {tier.features.slice(0, 8).map((feat, i) => (
+                      <div key={i} className="flex items-start gap-4 group/item">
+                        <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-primary/5 flex items-center justify-center border border-primary/10 group-hover/item:border-primary/50 transition-colors">
+                          <Check className="w-3 h-3 text-primary" />
+                        </div>
+                        <span className="text-muted-foreground font-medium text-sm group-hover/item:text-foreground transition-colors">{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Link href="/auth">
+                    <Button
+                      className={`h-14 w-full rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-700 active:scale-95 group relative overflow-hidden ${isPopular
+                        ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/20 hover:brightness-110"
+                        : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 border-border/50"
+                        }`}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-3">
+                        {isPopular ? "Get Started with Pro" : "Select Growth Plan"}
+                        <Zap className={`w-4 h-4 ${isPopular ? "fill-current" : ""}`} />
+                      </span>
+                    </Button>
+                  </Link>
+
+                  <p className="mt-8 text-center text-[9px] font-bold uppercase tracking-[0.3em] text-muted-foreground/30">
+                    {isPopular ? "Includes Strategic ROI Mapping" : "Automated Lead Engagement"}
+                  </p>
+                </motion.div>
+              </Tilt>
             );
           })}
         </div>

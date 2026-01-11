@@ -142,44 +142,44 @@ export function FeatureSection() {
                     {/* Master List */}
                     <div className="space-y-4">
                         {FEATURES.map((feature, i) => (
-                            <motion.button
-                                key={feature.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                whileHover={{ scale: 1.02, x: 10 }}
-                                whileTap={{ scale: 0.98 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1, duration: 0.5, ease: "circOut" }}
-                                onClick={() => setActiveFeature(feature)}
-                                className={`w-full text-left p-8 rounded-[2rem] border transition-all duration-500 group relative overflow-hidden ${activeFeature.id === feature.id
-                                    ? "bg-primary/10 border-primary/30 shadow-[0_20px_40px_-10px_rgba(0,210,255,0.2)]"
-                                    : "bg-white/[0.02] border-white/5 hover:border-white/20"
-                                    }`}
-                            >
-                                <div className="flex items-center gap-6">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${activeFeature.id === feature.id ? "bg-primary text-black shadow-[0_0_20px_rgba(0,210,255,0.5)]" : "bg-white/5 text-white/40 group-hover:text-white"
-                                        }`}>
-                                        <feature.icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className={`text-xl font-black uppercase tracking-tight mb-2 ${activeFeature.id === feature.id ? "text-white" : "text-white/40"
+                            <Tilt key={feature.id}>
+                                <motion.button
+                                    initial={{ opacity: 0, x: -20 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1, duration: 0.5, ease: "circOut" }}
+                                    onClick={() => setActiveFeature(feature)}
+                                    className={`w-full text-left p-8 rounded-[2rem] border transition-all duration-500 group relative overflow-hidden ${activeFeature.id === feature.id
+                                        ? "bg-primary/10 border-primary/30 shadow-[0_20px_40px_-10px_rgba(0,210,255,0.2)]"
+                                        : "bg-white/[0.02] border-white/5 hover:border-white/20"
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-6">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${activeFeature.id === feature.id ? "bg-primary text-black shadow-[0_0_20px_rgba(0,210,255,0.5)]" : "bg-white/5 text-white/40 group-hover:text-white"
                                             }`}>
-                                            {feature.title}
-                                        </h3>
-                                        <p className="text-white/20 text-xs font-bold uppercase tracking-wider line-clamp-1">
-                                            {feature.short}
-                                        </p>
+                                            <feature.icon className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className={`text-xl font-black uppercase tracking-tight mb-2 ${activeFeature.id === feature.id ? "text-white" : "text-white/40"
+                                                }`}>
+                                                {feature.title}
+                                            </h3>
+                                            <p className="text-white/20 text-xs font-bold uppercase tracking-wider line-clamp-1">
+                                                {feature.short}
+                                            </p>
+                                        </div>
+                                        <ChevronRight className={`w-5 h-5 transition-all duration-500 ${activeFeature.id === feature.id ? "text-primary opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+                                            }`} />
                                     </div>
-                                    <ChevronRight className={`w-5 h-5 transition-all duration-500 ${activeFeature.id === feature.id ? "text-primary opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
-                                        }`} />
-                                </div>
-                                {activeFeature.id === feature.id && (
-                                    <motion.div
-                                        layoutId="feature-active-glint"
-                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"
-                                    />
-                                )}
-                            </motion.button>
+                                    {activeFeature.id === feature.id && (
+                                        <motion.div
+                                            layoutId="feature-active-glint"
+                                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-shimmer"
+                                        />
+                                    )}
+                                </motion.button>
+                            </Tilt>
                         ))}
                     </div>
 

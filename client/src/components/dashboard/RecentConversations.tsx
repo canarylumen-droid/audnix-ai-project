@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Instagram, 
-  Mail, 
-  X, 
+import {
+  Instagram,
+  Mail,
+  X,
   Loader2,
   MessageCircle,
   ArrowLeft,
@@ -38,16 +38,16 @@ const channelConfig = {
   instagram: {
     icon: Instagram,
     label: "Instagram",
-    color: "from-pink-500 to-purple-600",
-    bgColor: "bg-gradient-to-r from-pink-500/10 to-purple-600/10",
-    textColor: "text-pink-500",
+    color: "from-fuchsia-500 to-purple-600",
+    bgColor: "bg-fuchsia-500/10",
+    textColor: "text-fuchsia-500",
   },
   email: {
     icon: Mail,
     label: "Email",
-    color: "from-blue-500 to-cyan-600",
-    bgColor: "bg-gradient-to-r from-blue-500/10 to-cyan-600/10",
-    textColor: "text-blue-500",
+    color: "from-primary to-primary/60",
+    bgColor: "bg-primary/10",
+    textColor: "text-primary",
   },
 };
 
@@ -96,41 +96,42 @@ export function RecentConversations() {
 
   if (selectedLead) {
     return (
-      <Card className="h-full flex flex-col">
-        <div className="p-4 border-b flex items-center gap-3">
+      <Card className="h-full flex flex-col border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-white/5 flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSelectedLead(null)}
+            className="rounded-full hover:bg-white/5 h-10 w-10 transition-transform active:scale-95"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className={channelConfig[selectedLead.channel].bgColor}>
+          <Avatar className="h-12 w-12 border-2 border-white/5">
+            <AvatarFallback className={`${channelConfig[selectedLead.channel].bgColor} ${channelConfig[selectedLead.channel].textColor} font-black text-lg`}>
               {selectedLead.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="font-semibold">{selectedLead.name}</h3>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <h3 className="text-lg font-black tracking-tight text-white uppercase">{selectedLead.name}</h3>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
               {(() => {
                 const ChannelIcon = channelConfig[selectedLead.channel].icon;
                 return <ChannelIcon className="h-3 w-3" />;
               })()}
-              <span>{channelConfig[selectedLead.channel].label}</span>
+              <span>{channelConfig[selectedLead.channel].label} CORE</span>
             </div>
           </div>
           <Badge
             variant="outline"
             className={
               selectedLead.status === "converted"
-                ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                ? "bg-purple-500/10 text-purple-500 border-purple-500/20 font-black px-3"
                 : selectedLead.status === "replied"
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-black px-3"
+                  : "bg-primary/10 text-primary border-primary/20 font-black px-3"
             }
           >
-            {selectedLead.status}
+            {selectedLead.status.toUpperCase()}
           </Badge>
         </div>
 
@@ -152,16 +153,14 @@ export function RecentConversations() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`flex ${
-                    message.direction === "outbound" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message.direction === "outbound" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.direction === "outbound"
+                    className={`max-w-[80%] rounded-lg p-3 ${message.direction === "outbound"
                         ? `bg-gradient-to-r ${channelConfig[selectedLead.channel].color} text-white`
                         : "bg-muted"
-                    }`}
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.body}</p>
                     {message.audioUrl && (
@@ -172,11 +171,10 @@ export function RecentConversations() {
                       </div>
                     )}
                     <div
-                      className={`flex items-center gap-1 mt-1 text-xs ${
-                        message.direction === "outbound"
+                      className={`flex items-center gap-1 mt-1 text-xs ${message.direction === "outbound"
                           ? "text-white/70"
                           : "text-muted-foreground"
-                      }`}
+                        }`}
                     >
                       <Clock className="h-3 w-3" />
                       <span>{formatFullTime(message.createdAt)}</span>
@@ -192,31 +190,39 @@ export function RecentConversations() {
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold mb-4">Recent Conversations</h2>
-        
-        <div className="flex gap-2">
+    <Card className="h-full flex flex-col border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
+      <div className="p-6 border-b border-white/5 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-white/40">Recent Relay Events</h2>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[9px] font-black text-primary uppercase">Sync Active</span>
+          </div>
+        </div>
+
+        <div className="flex p-1.5 bg-background/40 backdrop-blur-md rounded-2xl border border-white/5 relative">
           {(Object.keys(channelConfig) as Channel[]).map((channel) => {
             const config = channelConfig[channel];
             const ChannelIcon = config.icon;
             const isActive = selectedChannel === channel;
 
             return (
-              <Button
+              <button
                 key={channel}
-                variant={isActive ? "default" : "outline"}
-                size="sm"
                 onClick={() => setSelectedChannel(channel)}
-                className={
-                  isActive
-                    ? `bg-gradient-to-r ${config.color} hover:opacity-90`
-                    : ""
-                }
+                className={`flex-1 relative z-10 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${isActive ? "text-white" : "text-white/20 hover:text-white/40"
+                  }`}
               >
-                <ChannelIcon className="h-4 w-4 mr-2" />
-                {config.label}
-              </Button>
+                {isActive && (
+                  <motion.div
+                    layoutId="active-channel"
+                    className={`absolute inset-0 rounded-xl bg-gradient-to-br ${config.color} shadow-lg`}
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <ChannelIcon className="h-4 w-4 relative z-20" />
+                <span className="text-[10px] font-black uppercase tracking-widest relative z-20">{config.label}</span>
+              </button>
             );
           })}
         </div>
@@ -248,55 +254,59 @@ export function RecentConversations() {
                   return (
                     <motion.div
                       key={lead.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ delay: index * 0.1 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       <button
                         onClick={() => setSelectedLead(lead)}
-                        className="w-full p-3 rounded-lg border bg-card hover:bg-accent transition-colors text-left group"
+                        className="w-full p-4 rounded-2xl border border-white/5 bg-background/20 hover:bg-white/5 hover:border-white/10 transition-all text-left group relative overflow-hidden"
                       >
-                        <div className="flex items-start gap-3">
-                          <Avatar className="h-10 w-10 mt-1">
-                            <AvatarFallback className={config.bgColor}>
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12 rounded-2xl border-2 border-white/5 transition-transform group-hover:scale-110">
+                            <AvatarFallback className={`${config.bgColor} ${config.textColor} font-black text-md`}>
                               {lead.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
 
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="font-medium truncate group-hover:text-primary transition-colors">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <h4 className="font-extrabold text-white text-md uppercase tracking-tight group-hover:text-primary transition-colors">
                                 {lead.name}
                               </h4>
-                              <span className="text-xs text-muted-foreground ml-2">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-white/20">
                                 {formatTime(lead.lastMessageAt)}
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <ChannelIcon className={`h-3 w-3 ${config.textColor}`} />
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                Score: {lead.engagementScore}
-                              </Badge>
+                            <div className="flex items-center gap-3">
+                              <div className={`p-1.5 rounded-lg bg-background/60 border border-white/5 ${config.textColor}`}>
+                                <ChannelIcon className="h-3 w-3" />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Score:</span>
+                                <span className={`text-[10px] font-black ${lead.engagementScore > 80 ? 'text-orange-500' : 'text-primary'}`}>{lead.engagementScore}</span>
+                              </div>
                               <Badge
                                 variant="outline"
                                 className={
                                   lead.status === "converted"
-                                    ? "bg-purple-500/10 text-purple-500 border-purple-500/20 text-xs"
+                                    ? "bg-purple-500/10 text-purple-500 border-purple-500/20 text-[9px] font-black px-2 mt-0.5"
                                     : lead.status === "replied"
-                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-xs"
-                                    : "bg-blue-500/10 text-blue-500 border-blue-500/20 text-xs"
+                                      ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black px-2 mt-0.5"
+                                      : "bg-primary/10 text-primary border-primary/20 text-[9px] font-black px-2 mt-0.5"
                                 }
                               >
-                                {lead.status}
+                                {lead.status.toUpperCase()}
                               </Badge>
                             </div>
                           </div>
                         </div>
+                        {/* Glow indicator on hover */}
+                        <div className="absolute top-0 right-0 w-32 h-32 blur-[40px] opacity-0 group-hover:opacity-10 bg-primary rounded-full translate-x-10 -translate-y-10 transition-opacity" />
                       </button>
                     </motion.div>
                   );

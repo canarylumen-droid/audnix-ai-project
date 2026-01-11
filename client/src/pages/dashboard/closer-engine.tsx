@@ -174,9 +174,9 @@ export default function CloserEngineLive() {
   const CopyButton = ({ text, label }: { text: string; label: string }) => (
     <button
       onClick={() => copyToClipboard(text, label)}
-      className="flex-shrink-0 p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors group cursor-none"
+      className="flex-shrink-0 p-2 rounded-xl bg-primary/10 hover:bg-primary/20 transition-all active:scale-90 group cursor-none"
     >
-      <Copy className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+      <Copy className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
     </button>
   );
 
@@ -186,7 +186,7 @@ export default function CloserEngineLive() {
     title,
     content,
     badge,
-    accentColor = "cyan",
+    accentColor = "primary",
   }: {
     id: string;
     icon: React.ComponentType<{ className?: string }>;
@@ -197,22 +197,33 @@ export default function CloserEngineLive() {
   }) => {
     const isExpanded = expandedSections[id];
 
+    // Map theme colors
+    const themes = {
+      primary: { border: "border-primary/20", bg: "bg-primary/5", text: "text-primary", icon: "text-primary", badge: "bg-primary/10" },
+      purple: { border: "border-purple-500/20", bg: "bg-purple-500/5", text: "text-purple-500", icon: "text-purple-400", badge: "bg-purple-500/10" },
+      emerald: { border: "border-emerald-500/20", bg: "bg-emerald-500/5", text: "text-emerald-500", icon: "text-emerald-400", badge: "bg-emerald-500/10" },
+      orange: { border: "border-orange-500/20", bg: "bg-orange-500/5", text: "text-orange-500", icon: "text-orange-400", badge: "bg-orange-500/10" },
+      blue: { border: "border-blue-500/20", bg: "bg-blue-500/5", text: "text-blue-500", icon: "text-blue-400", badge: "bg-blue-500/10" },
+    };
+
+    const theme = themes[accentColor as keyof typeof themes] || themes.primary;
+
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`rounded-[2rem] border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all`}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`rounded-[2rem] border transition-all duration-500 ${theme.border} ${theme.bg} overflow-hidden`}
       >
         <button
           onClick={() => toggleSection(id)}
-          className="w-full p-6 flex items-center justify-between cursor-none"
+          className="w-full p-6 flex items-center justify-between cursor-none group"
         >
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl bg-white/5 group-hover:bg-primary/10 transition-colors`}>
-              <Icon className={`w-5 h-5 text-white/40 group-hover:text-primary transition-colors`} />
+            <div className={`p-3 rounded-2xl bg-background/50 border border-white/5 group-hover:scale-110 transition-transform`}>
+              <Icon className={`w-5 h-5 ${theme.icon}`} />
             </div>
             <div className="text-left">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/20 block mb-1">{badge || 'Protocol Output'}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 block mb-0.5">{badge || 'PROTOCOL OUTPUT'}</span>
               <span className="text-lg font-black text-white uppercase tracking-tight">{title}</span>
             </div>
           </div>
@@ -228,11 +239,11 @@ export default function CloserEngineLive() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             >
-              <div className="px-6 pb-6 pt-2">
+              <div className="px-6 pb-6 mt-2">
                 <div className="p-6 rounded-2xl bg-black/40 border border-white/5 flex items-start gap-4">
-                  <p className="text-md text-white/80 flex-1 leading-relaxed font-medium">{content}</p>
+                  <p className="text-md text-white/80 flex-1 leading-relaxed font-bold tracking-tight">{content}</p>
                   <CopyButton text={content} label={title} />
                 </div>
               </div>
@@ -303,14 +314,14 @@ export default function CloserEngineLive() {
                   placeholder='e.g., "The price is too high for our current budget..."'
                   value={prospectText}
                   onChange={(e) => setProspectText(e.target.value)}
-                  className="min-h-60 rounded-3xl bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:border-primary/50 text-xl font-medium leading-relaxed resize-none p-8 transition-all cursor-none"
+                  className="min-h-60 rounded-[2.5rem] bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:border-primary/50 text-xl font-bold tracking-tight leading-relaxed resize-none p-10 transition-all cursor-none"
                 />
               </div>
 
               <Button
                 onClick={handleAnalyze}
                 disabled={analyzeMutation.isPending || !prospectText.trim()}
-                className="w-full h-20 rounded-2xl bg-white text-black font-black uppercase tracking-[0.2em] shadow-2xl hover:bg-white/90 transition-all text-xs cursor-none"
+                className="w-full h-24 rounded-[2rem] bg-white text-black font-black uppercase tracking-[0.3em] shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all text-xs cursor-none"
               >
                 {analyzeMutation.isPending ? (
                   <>
@@ -367,7 +378,7 @@ export default function CloserEngineLive() {
                       title="Neural Reframe"
                       content={analysis.reframes[0]}
                       badge="Perspective Shift"
-                      accentColor="cyan"
+                      accentColor="primary"
                     />
 
                     <CollapsibleSection

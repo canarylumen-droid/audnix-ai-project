@@ -1,41 +1,144 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { motion, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+
+// ============================================
+// MACBOOK-STYLE HAND POINTER SVG (Dashboard/Onboarding)
+// Clean, minimal Apple aesthetic
+// ============================================
+const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
+    <svg
+        width="26"
+        height="28"
+        viewBox="0 0 225 225"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{
+            filter: isClicked
+                ? "drop-shadow(0 0 8px rgba(59, 130, 246, 0.7))"
+                : "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
+            transition: "filter 0.1s ease"
+        }}
+    >
+        <g transform="translate(0, 225) scale(0.1, -0.1)">
+            {/* Hand shape - white fill with subtle border */}
+            <path
+                d="M843 1678 c-17 -4 -42 -21 -53 -36 -20 -24 -22 -35 -17 -112 4 -69 39 -233 74 -345 4 -15 -5 -10 -36 18 -47 43 -78 57 -123 57 -70 0 -125 -68 -115 -141 4 -27 20 -57 57 -101 29 -35 73 -98 98 -140 30 -52 57 -85 81 -100 20 -12 57 -42 84 -67 43 -40 47 -47 47 -91 0 -47 0 -47 38 -54 66 -11 191 -6 226 8 18 7 43 30 56 50 l22 37 18 -28 c9 -15 27 -36 38 -47 26 -22 101 -32 130 -17 19 10 21 17 16 55 -10 70 2 108 60 184 76 100 89 147 90 313 1 147 -7 178 -51 198 -33 15 -58 14 -93 -4 -28 -15 -30 -14 -30 4 0 36 -47 79 -94 86 -43 7 -99 -12 -119 -39 -6 -8 -10 -8 -13 1 -3 7 -21 22 -40 34 -28 17 -44 20 -79 14 -25 -3 -52 -13 -60 -21 -18 -18 -17 -20 -35 76 -15 83 -44 151 -78 182 -33 31 -57 37 -99 26z m82 -81 c25 -38 43 -102 65 -224 31 -178 29 -173 51 -173 21 0 23 7 19 63 -3 56 16 95 51 102 56 12 99 -36 99 -109 0 -37 24 -66 41 -49 5 5 14 36 19 68 10 60 17 70 59 82 46 12 74 -16 91 -87 19 -78 41 -90 67 -35 22 47 59 57 86 24 18 -22 19 -35 14 -152 -5 -117 -8 -134 -36 -190 -17 -34 -46 -81 -66 -105 -38 -47 -55 -96 -55 -159 0 -39 -2 -43 -24 -43 -15 0 -34 12 -50 33 -64 82 -81 86 -122 30 -45 -61 -50 -63 -151 -63 l-93 0 0 35 c0 29 -9 46 -46 85 -26 27 -66 62 -89 76 -29 19 -55 49 -84 99 -23 39 -67 102 -97 140 -60 75 -67 105 -32 142 43 46 102 23 179 -70 58 -69 64 -74 83 -58 15 13 1 96 -50 292 -16 65 -27 134 -28 184 -1 74 0 80 23 91 29 15 53 5 76 -29z"
+                fill="white"
+                stroke="#1e293b"
+                strokeWidth="12"
+            />
+            {/* Finger lines */}
+            <path
+                d="M1075 1048 c-3 -8 -4 -72 -3 -144 3 -121 4 -129 23 -129 19 0 20 7 20 140 0 125 -2 140 -18 143 -9 2 -19 -3 -22 -10z"
+                fill="#e2e8f0"
+            />
+            <path
+                d="M1215 1051 c-6 -6 -8 -65 -5 -143 5 -125 6 -133 25 -133 19 0 20 8 23 129 2 86 -1 133 -9 142 -13 16 -22 17 -34 5z"
+                fill="#e2e8f0"
+            />
+            <path
+                d="M1355 1048 c-3 -8 -4 -72 -3 -144 3 -121 4 -129 23 -129 19 0 20 7 20 140 0 125 -2 140 -18 143 -9 2 -19 -3 -22 -10z"
+                fill="#e2e8f0"
+            />
+        </g>
+    </svg>
+);
+
+// ============================================
+// PREMIUM ARROW CURSOR SVG (Landing/Auth)
+// Ocean Blue gradient, smooth rounded edges
+// ============================================
+const ArrowCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
+    <svg
+        width="24"
+        height="28"
+        viewBox="0 0 24 28"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{
+            filter: isClicked
+                ? "drop-shadow(0 0 12px rgba(59, 130, 246, 0.9))"
+                : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+            transition: "filter 0.1s ease"
+        }}
+    >
+        <defs>
+            <linearGradient id="cursor-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#60a5fa" />
+                <stop offset="40%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#1d4ed8" />
+            </linearGradient>
+            <linearGradient id="cursor-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </linearGradient>
+        </defs>
+        {/* Main arrow - rounded corners */}
+        <path
+            d="M2.5 1.5L21 12L13.5 13.5L17 25L13 23.5L9.5 14L3 17.5V1.5Z"
+            fill="url(#cursor-gradient)"
+            stroke="white"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+        />
+        {/* Inner highlight for depth */}
+        <path
+            d="M4 4L17 11L12.5 12L14.5 21L12.5 20L10 13L5 15.5V4Z"
+            fill="url(#cursor-highlight)"
+        />
+    </svg>
+);
 
 export const CustomCursor = () => {
     const [location] = useLocation();
-    // Use the Hand SVG cursor ONLY for dashboard routes
-    const isDashboard = location.startsWith("/dashboard");
 
-    const mouseX = useMotionValue(-100);
-    const mouseY = useMotionValue(-100);
+    // Dashboard + Onboarding = Hand cursor | Everything else = Arrow cursor
+    const isDashboardOrOnboarding = location.startsWith("/dashboard") || location.startsWith("/onboarding");
 
-    const springConfig = { damping: 40, stiffness: 1000, mass: 0.1 };
-    const cursorX = useSpring(mouseX, springConfig);
-    const cursorY = useSpring(mouseY, springConfig);
-
+    const [position, setPosition] = useState({ x: -100, y: -100 });
     const [isVisible, setIsVisible] = useState(false);
     const [isClicked, setIsClicked] = useState(false);
+    const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
 
+    // INSTANT position update - zero lag
     const handleMouseMove = useCallback((e: MouseEvent) => {
-        mouseX.set(e.clientX);
-        mouseY.set(e.clientY);
+        setPosition({ x: e.clientX, y: e.clientY });
         if (!isVisible) setIsVisible(true);
-    }, [isVisible, mouseX, mouseY]);
+    }, [isVisible]);
+
+    const handleMouseDown = useCallback((e: MouseEvent) => {
+        setIsClicked(true);
+
+        // Add ripple at click position
+        const rippleId = Date.now();
+        setRipples(prev => [...prev, { id: rippleId, x: e.clientX, y: e.clientY }]);
+        setTimeout(() => {
+            setRipples(prev => prev.filter(r => r.id !== rippleId));
+        }, 500);
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        setIsClicked(false);
+    }, []);
 
     useEffect(() => {
-        if (!isDashboard) {
-            document.body.style.cursor = 'auto';
-            return;
-        }
-
-        const handleMouseDown = () => setIsClicked(true);
-        const handleMouseUp = () => setIsClicked(false);
         const handleMouseLeave = () => setIsVisible(false);
         const handleMouseEnter = () => setIsVisible(true);
 
-        // Hide default cursor ONLY on dashboard
+        // Hide default cursor completely
         document.body.style.cursor = 'none';
+        document.documentElement.style.cursor = 'none';
+
+        // Inject global CSS to hide cursor everywhere
+        const style = document.createElement('style');
+        style.id = 'audnix-cursor-styles';
+        style.textContent = `
+            *, *::before, *::after { cursor: none !important; }
+            html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
+        `;
+        document.head.appendChild(style);
 
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
         window.addEventListener("mousedown", handleMouseDown);
@@ -45,70 +148,72 @@ export const CustomCursor = () => {
 
         return () => {
             document.body.style.cursor = 'auto';
+            document.documentElement.style.cursor = 'auto';
+            const styleEl = document.getElementById('audnix-cursor-styles');
+            if (styleEl) styleEl.remove();
+
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mousedown", handleMouseDown);
             window.removeEventListener("mouseup", handleMouseUp);
             document.body.removeEventListener("mouseleave", handleMouseLeave);
             document.body.removeEventListener("mouseenter", handleMouseEnter);
         };
-    }, [handleMouseMove, isDashboard]);
+    }, [handleMouseMove, handleMouseDown, handleMouseUp]);
 
-    // If not dashboard, or not visible, don't render custom cursor
-    if (!isDashboard || !isVisible) return null;
+    if (!isVisible) return null;
 
     return (
-        <AnimatePresence>
+        <div className="fixed inset-0 pointer-events-none z-[999999] hidden lg:block overflow-hidden">
+            {/* Click Ripple Effects */}
+            <AnimatePresence>
+                {ripples.map((ripple) => (
+                    <motion.div
+                        key={ripple.id}
+                        initial={{ scale: 0, opacity: 0.6 }}
+                        animate={{ scale: 2.5, opacity: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.45, ease: "easeOut" }}
+                        style={{
+                            position: 'absolute',
+                            left: ripple.x,
+                            top: ripple.y,
+                            transform: 'translate(-50%, -50%)',
+                        }}
+                        className={`w-6 h-6 rounded-full ${isDashboardOrOnboarding
+                                ? "border-2 border-primary/50 bg-primary/10"
+                                : "border-2 border-primary/70 bg-primary/15"
+                            }`}
+                    />
+                ))}
+            </AnimatePresence>
+
+            {/* Cursor SVG */}
             <motion.div
-                className="fixed top-0 left-0 pointer-events-none z-[99999] hidden lg:block"
                 style={{
-                    x: cursorX,
-                    y: cursorY,
-                    translateX: "-35%",
-                    translateY: "-15%",
+                    position: 'absolute',
+                    left: position.x,
+                    top: position.y,
+                    transform: isDashboardOrOnboarding
+                        ? 'translate(-6px, -2px)'
+                        : 'translate(-2px, -1px)',
+                }}
+                animate={{
+                    scale: isClicked ? 0.88 : 1,
+                    y: isClicked ? 1 : 0,
+                }}
+                transition={{
+                    type: "spring",
+                    stiffness: 600,
+                    damping: 25,
+                    mass: 0.3
                 }}
             >
-                <motion.div
-                    initial={{ scale: 1, opacity: 0 }}
-                    animate={{
-                        scale: isClicked ? 0.9 : 1,
-                        opacity: 1,
-                        y: isClicked ? [0, -4, 0] : 0,
-                    }}
-                    transition={{
-                        y: { duration: 0.2, ease: "easeOut" },
-                        scale: { duration: 0.1 }
-                    }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    className="relative"
-                >
-                    <svg width="34" height="34" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <g>
-                            <path fill="#FFFFFF" d="M11.3,20.4c-0.3-0.4-0.6-1.1-1.2-2c-0.3-0.5-1.2-1.5-1.5-1.9
-                                c-0.2-0.4-0.2-0.6-0.1-1c0.1-0.6,0.7-1.1,1.4-1.1c0.5,0,1,0.4,1.4,0.7c0.2,0.2,0.5,0.6,0.7,0.8c0.2,0.2,0.2,0.3,0.4,0.5
-                                c0.2,0.3,0.3,0.5,0.2,0.1c-0.1-0.5-0.2-1.3-0.4-2.1c-0.1-0.6-0.2-0.7-0.3-1.1c-0.1-0.5-0.2-0.8-0.3-1.3c-0.1-0.3-0.2-1.1-0.3-1.5
-                                c-0.1-0.5-0.1-1.4,0.3-1.8c0.3-0.3,0.9-0.4,1.3-0.2c0.5,0.3,0.8,1,0.9,1.3c0.2,0.5,0.4,1.2,0.5,2c0.2,1,0.5,2.5,0.5,2.8
-                                c0-0.4-0.1-1.1,0-1.5c0.1-0.3,0.3-0.7,0.7-0.8c0.3-0.1,0.6-0.1,0.9-0.1c0.3,0.1,0.6,0.3,0.8,0.5c0.4,0.6,0.4,1.9,0.4,1.8
-                                c0.1-0.4,0.1-1.2,0.3-1.6c0.1-0.2,0.5-0.4,0.7-0.5c0.3-0.1,0.7-0.1,1,0c0.2,0,0.6,0.3,0.7,0.5c0.2,0.3,0.3,1.3,0.4,1.7
-                                c0,0.1,0.1-0.4,0.3-0.7c0.4-0.6,1.8-0.8,1.9,0.6c0,0.7,0,0.6,0,1.1c0,0.5,0,0.8,0,1.2c0,0.4-0.1,1.3-0.2,1.7
-                                c-0.1,0.3-0.4,1-0.7,1.4c0,0-1.1,1.2-1.2,1.8c-0.1,0.6-0.1,0.6-0.1,1c0,0.4,0.1,0.9,0.1,0.9s-0.8,0.1-1.2,0c-0.4-0.1-0.9-0.8-1-1.1
-                                c-0.2-0.3-0.5-0.3-0.7,0c-0.2,0.4-0.7,1.1-1.1,1.1c-0.7,0.1-2.1,0-3.1,0c0,0,0.2-1-0.2-1.4c-0.3-0.3-0.8-0.8-1.1-1.1L11.3,20.4z"/>
-                            <path stroke="#000000" strokeWidth="0.75" strokeLinecap="round" strokeLinejoin="round" d="
-                                M11.3,20.4c-0.3-0.4-0.6-1.1-1.2-2c-0.3-0.5-1.2-1.5-1.5-1.9c-0.2-0.4-0.2-0.6-0.1-1c0.1-0.6,0.7-1.1,1.4-1.1c0.5,0,1,0.4,1.4,0.7
-                                c0.2,0.2,0.5,0.6,0.7,0.8c0.2,0.2,0.2,0.3,0.4,0.5c0.2,0.3,0.3,0.5,0.2,0.1c-0.1-0.5-0.2-1.3-0.4-2.1c-0.1-0.6-0.2-0.7-0.3-1.1
-                                c-0.1-0.5-0.2-0.8-0.3-1.3c-0.1-0.3-0.2-1.1-0.3-1.5c-0.1-0.5-0.1-1.4,0.3-1.8c0.3-0.3,0.9-0.4,1.3-0.2c0.5,0.3,0.8,1,0.9,1.3
-                                c0.2,0.5,0.4,1.2,0.5,2c0.2,1,0.5,2.5,0.5,2.8c0-0.4-0.1-1.1,0-1.5c0.1-0.3,0.3-0.7,0.7-0.8c0.3-0.1,0.6-0.1,0.9-0.1
-                                c0.3,0.1,0.6,0.3,0.8,0.5c0.4,0.6,0.4,1.9,0.4,1.8c0.1-0.4,0.1-1.2,0.3-1.6c0.1-0.2,0.5-0.4,0.7-0.5c0.3-0.1,0.7-0.1,1,0
-                                c0.2,0,0.6,0.3,0.7,0.5c0.2,0.3,0.3,1.3,0.4,1.7c0,0.1,0.1-0.4,0.3-0.7c0.4-0.6,1.8-0.8,1.9,0.6c0,0.7,0,0.6,0,1.1
-                                c0,0.5,0,0.8,0,1.2c0,0.4-0.1,1.3-0.2,1.7c-0.1,0.3-0.4,1-0.7,1.4c0,0-1.1,1.2-1.2,1.8c-0.1,0.6-0.1,0.6-0.1,1
-                                c0,0.4,0.1,0.9,0.1,0.9s-0.8,0.1-1.2,0c-0.4-0.1-0.9-0.8-1-1.1c-0.2-0.3-0.5-0.3-0.7,0c-0.2,0.4-0.7,1.1-1.1,1.1
-                                c-0.7,0.1-2.1,0-3.1,0c0,0,0.2-1-0.2-1.4c-0.3-0.3-0.8-0.8-1.1-1.1L11.3,20.4z"/>
-                            <line stroke="#000000" strokeWidth="0.75" strokeLinecap="round" x1="19.6" y1="20.7" x2="19.6" y2="17.3" />
-                            <line stroke="#000000" strokeWidth="0.75" strokeLinecap="round" x1="17.6" y1="20.7" x2="17.5" y2="17.3" />
-                            <line stroke="#000000" strokeWidth="0.75" strokeLinecap="round" x1="15.6" y1="17.3" x2="15.6" y2="20.7" />
-                        </g>
-                    </svg>
-                </motion.div>
+                {isDashboardOrOnboarding ? (
+                    <HandCursorSVG isClicked={isClicked} />
+                ) : (
+                    <ArrowCursorSVG isClicked={isClicked} />
+                )}
             </motion.div>
-        </AnimatePresence>
+        </div>
     );
 };

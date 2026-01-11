@@ -121,7 +121,7 @@ export default function SalesAssistant() {
     return (
       <button
         onClick={handleCopy}
-        className={`flex-shrink-0 p-2 rounded-lg transition-all duration-300 ${copied ? 'bg-emerald-500/20' : 'bg-cyan-500/10 hover:bg-cyan-500/20'} group`}
+        className={`flex-shrink-0 p-2.5 rounded-xl transition-all duration-300 ${copied ? 'bg-emerald-500/20' : 'bg-primary/10 hover:bg-primary/20 active:scale-90'} group`}
       >
         <AnimatePresence mode="wait">
           {copied ? (
@@ -154,7 +154,7 @@ export default function SalesAssistant() {
     title,
     content,
     badge,
-    accentColor = "cyan",
+    accentColor = "primary",
   }: {
     id: string;
     icon: React.ComponentType<{ className?: string }>;
@@ -178,9 +178,9 @@ export default function SalesAssistant() {
 
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`rounded-xl border transition-all ${theme.border} ${theme.bg}`}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`rounded-[2rem] border transition-all duration-500 ${theme.border} ${theme.bg} overflow-hidden group`}
       >
         <button
           onClick={() => toggleSection(id)}
@@ -209,11 +209,11 @@ export default function SalesAssistant() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden"
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             >
-              <div className="px-4 pb-4">
-                <div className="p-4 rounded-lg bg-background/50 border border-border flex items-start gap-3">
-                  <p className="text-sm text-foreground/90 flex-1 leading-relaxed">{content}</p>
+              <div className="px-6 pb-6">
+                <div className="p-6 rounded-2xl bg-background/50 border border-border/40 flex items-start gap-4">
+                  <p className="text-md text-foreground/90 flex-1 leading-relaxed font-bold tracking-tight">{content}</p>
                   <CopyButton text={content} label={title} />
                 </div>
               </div>
@@ -250,14 +250,16 @@ export default function SalesAssistant() {
           transition={{ delay: 0.1 }}
           className="h-full"
         >
-          <Card className="h-full border-border/60 shadow-lg bg-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2 text-foreground">
-                <MessageSquare className="w-5 h-5 text-cyan-500" />
+          <Card className="h-full border-border/40 shadow-2xl bg-card/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden grayscale-[0.5] hover:grayscale-0 transition-all duration-700">
+            <CardHeader className="p-10 pb-4">
+              <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-white">
+                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
                 Prospect Input
               </CardTitle>
-              <CardDescription>
-                Paste exactly what the prospect said.
+              <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
+                Verbatim Neural Analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -276,18 +278,18 @@ export default function SalesAssistant() {
               <Button
                 onClick={handleAnalyze}
                 disabled={analyzeMutation.isPending || !prospectText.trim()}
-                className="w-full h-14 text-base font-semibold shadow-xl shadow-cyan-500/20"
+                className="w-full h-20 text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-primary/20 rounded-[1.5rem] bg-primary hover:bg-primary/90 transition-all active:scale-95"
                 size="lg"
               >
                 {analyzeMutation.isPending ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Analyzing Intent...
+                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    Calculating Velocity...
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5 mr-2 fill-current" />
-                    Generate Reframe & Close
+                    <Zap className="w-5 h-5 mr-3 fill-current" />
+                    Decode & Destroy
                   </>
                 )}
               </Button>

@@ -90,14 +90,14 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
     });
 
     const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-primary";
-        if (score >= 50) return "text-primary/70";
-        return "text-muted-foreground";
+        if (score >= 80) return "text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]";
+        if (score >= 50) return "text-amber-500";
+        return "text-amber-500/50";
     };
 
     const getRiskColor = (risk: string) => {
         if (risk === "high") return "text-red-500 bg-red-500/10 border-red-500/20";
-        if (risk === "medium") return "text-yellow-500 bg-yellow-500/10 border-yellow-500/20";
+        if (risk === "medium") return "text-amber-500 bg-amber-500/10 border-amber-500/20";
         return "text-primary bg-primary/10 border-primary/20";
     };
 
@@ -127,33 +127,56 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                     <div className="space-y-6 pt-4">
                         {/* Top Score Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Lead Score */}
-                            <Card className="bg-card/50 border-border/60">
-                                <CardContent className="p-4 pt-6 text-center space-y-2">
-                                    <div className="mx-auto h-20 w-20 relative flex items-center justify-center">
+                            {/* Lead Score Circle */}
+                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
+                                <CardContent className="p-4 pt-8 text-center space-y-4">
+                                    <div className="mx-auto h-24 w-24 relative flex items-center justify-center">
                                         <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
-                                            <path className="text-muted/20" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
-                                            <path className={getScoreColor(intelligence.intent.intentScore)} strokeDasharray={`${intelligence.intent.intentScore}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" />
+                                            <path className="text-white/5" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
+                                            <motion.path
+                                                className={getScoreColor(intelligence.intent.intentScore)}
+                                                initial={{ strokeDasharray: "0, 100" }}
+                                                animate={{ strokeDasharray: `${intelligence.intent.intentScore}, 100` }}
+                                                transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                            />
                                         </svg>
-                                        <span className="absolute text-2xl font-bold">{intelligence.intent.intentScore}</span>
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: 0.8 }}
+                                            className="absolute"
+                                        >
+                                            <span className="text-3xl font-black tracking-tighter text-orange-500">
+                                                {intelligence.intent.intentScore}
+                                            </span>
+                                        </motion.div>
                                     </div>
-                                    <p className="text-sm font-medium">Lead Score</p>
-                                    <p className="text-xs text-muted-foreground">Based on engagement & firmographics</p>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Neural Pulse</p>
+                                        <p className="text-sm font-bold text-foreground">Buying Affinity</p>
+                                    </div>
                                 </CardContent>
                             </Card>
 
                             {/* Predicted Deal Value */}
-                            <Card className="bg-card/50 border-border/60">
-                                <CardContent className="p-4 pt-6 text-center space-y-2">
-                                    <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                            <Card className="bg-card/40 backdrop-blur-xl border-border/40 rounded-[2rem] overflow-hidden group">
+                                <CardContent className="p-4 pt-8 text-center space-y-4">
+                                    <div className="mx-auto h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
                                         <DollarSign className="h-8 w-8 text-primary" />
                                     </div>
-                                    <div className="text-2xl font-bold text-foreground">
-                                        ${intelligence.predictions.predictedAmount.toLocaleString()}
+                                    <div className="space-y-1">
+                                        <div className="text-3xl font-black tracking-tight text-foreground">
+                                            ${intelligence.predictions.predictedAmount.toLocaleString()}
+                                        </div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Estimated Yield</p>
                                     </div>
-                                    <p className="text-sm font-medium text-primary">Predicted Deal Value</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {intelligence.predictions.confidence}% confidence
+                                    <p className="text-xs font-bold text-muted-foreground/50">
+                                        {intelligence.predictions.confidence}% AI Certainty
                                     </p>
                                 </CardContent>
                             </Card>
@@ -205,24 +228,39 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 <h4 className="text-sm font-semibold flex items-center gap-2">
                                     <Target className="h-4 w-4 text-primary" /> Buying Intent
                                 </h4>
-                                <div className="p-4 rounded-xl bg-card border border-border/60 space-y-4">
+                                <div className="p-6 rounded-[2.5rem] bg-card/40 border border-border/40 space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium">Intent Level</span>
-                                        <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className="uppercase">
-                                            {intelligence.intent.intentLevel}
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intensity Logic</span>
+                                        <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className={intelligence.intent.intentLevel === 'high' ? "bg-orange-500/10 text-orange-500 border-orange-500/20 px-3 font-black" : "font-black"}>
+                                            {intelligence.intent.intentLevel.toUpperCase()} INTENT
                                         </Badge>
                                     </div>
-                                    <Progress value={intelligence.intent.confidence * 100} className="h-2" />
                                     <div className="space-y-2">
-                                        <span className="text-xs text-muted-foreground uppercase tracking-wider">Signals Detected</span>
-                                        <ul className="space-y-1">
+                                        <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground/50">
+                                            <span>Validation Confidence</span>
+                                            <span>{Math.round(intelligence.intent.confidence * 100)}%</span>
+                                        </div>
+                                        <Progress value={intelligence.intent.confidence * 100} className="h-1.5 bg-white/5" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 block">Digital Footprint Signals</span>
+                                        <ul className="grid grid-cols-1 gap-2">
                                             {intelligence.intent.signals.map((signal, i) => (
-                                                <li key={i} className="text-xs flex items-center gap-2">
-                                                    <Zap className="h-3 w-3 text-yellow-500" /> {signal}
-                                                </li>
+                                                <motion.li
+                                                    key={i}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: 1 + (i * 0.1) }}
+                                                    className="text-xs flex items-center gap-3 p-2.5 rounded-xl bg-background/40 border border-border/20 group hover:border-primary/40 transition-colors"
+                                                >
+                                                    <div className="h-6 w-6 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                                                        <Zap className="h-3 w-3 text-orange-500" />
+                                                    </div>
+                                                    <span className="font-bold text-foreground/80 tracking-tight">{signal}</span>
+                                                </motion.li>
                                             ))}
                                             {!intelligence.intent.signals.length && (
-                                                <li className="text-xs text-muted-foreground">No strong signals yet</li>
+                                                <li className="text-xs text-muted-foreground/50 py-4 text-center border border-dashed border-border/20 rounded-2xl">No strong signals yet</li>
                                             )}
                                         </ul>
                                     </div>
