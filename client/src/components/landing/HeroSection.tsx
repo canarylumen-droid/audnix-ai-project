@@ -12,28 +12,39 @@ import {
   Instagram,
   Calendar,
   UserCheck,
-  Sparkles
+  Sparkles,
+  Server,
+  Activity,
+  ShieldCheck
 } from "lucide-react";
 import { Link } from "wouter";
 import { Magnetic } from "@/components/ui/Magnetic";
 
 // ============================================
 // ANIMATED UI MOCKUP COMPONENT
-// Premium Dashboard Preview
+// Demonstrating "Real Backend" Logic
 // ============================================
 const NeuralEngineMockup = () => {
-  const [activeConvo, setActiveConvo] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+
+  // Simulating the "Deep Backend" analysis loop
+  const systemLogs = [
+    { type: 'intent', text: 'Analyzing Lead Intent...', status: 'Verified', color: 'text-emerald-400' },
+    { type: 'objection', text: 'Checking 110+ Objections...', status: 'Clear', color: 'text-blue-400' },
+    { type: 'timing', text: 'Predictive Timing Algo...', status: 'Optimal: 10:42 AM', color: 'text-purple-400' },
+    { type: 'churn', text: 'Drop-off Risk Detection', status: 'Low (2%)', color: 'text-orange-400' }
+  ];
 
   const conversations = [
-    { name: "Sarah M.", message: "When's the next availability?", score: 92, channel: "instagram" },
-    { name: "James K.", message: "What's included in the pro tier?", score: 87, channel: "email" },
-    { name: "Alex R.", message: "I'm ready to move forward", score: 98, channel: "instagram" },
+    { name: "Sarah M.", action: "Deploying 'Closer Protocol'...", status: "Intent Verified", channel: "instagram" },
+    { name: "James K.", action: "Simulating Objection (Price)...", status: "Handling...", channel: "email" },
+    { name: "Alex R.", action: "Scheduling Call (Auto-Pilot)", status: "Booked", channel: "instagram" },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveConvo((prev) => (prev + 1) % conversations.length);
-    }, 3000);
+      setActiveStep((prev) => (prev + 1) % systemLogs.length);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -49,133 +60,69 @@ const NeuralEngineMockup = () => {
 
       {/* Main Dashboard Card */}
       <motion.div
-        className="relative bg-[#0a0f1a]/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl"
+        className="relative bg-[#0a0f1a]/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl overflow-hidden"
         whileHover={{ scale: 1.02, rotateY: -2 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Brain className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+              <Server className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h4 className="text-white font-bold text-sm">Neural Engine</h4>
-              <p className="text-white/40 text-[10px] uppercase tracking-widest">Live Protocol</p>
+              <h3 className="text-white font-bold text-sm">Neural Core v2.4</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">System Active</span>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Active</span>
+          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/50">
+            Latency: 42ms
           </div>
         </div>
 
-        {/* Metrics Row */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "Leads Today", value: "47", icon: UserCheck, color: "text-primary" },
-            { label: "Meetings", value: "12", icon: Calendar, color: "text-emerald-400" },
-            { label: "Close Rate", value: "34%", icon: TrendingUp, color: "text-amber-400" },
-          ].map((stat, i) => (
+        {/* Real-time System Logs */}
+        <div className="space-y-3 mb-8">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Live Logic Stream</p>
+          {systemLogs.map((log, i) => (
             <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2 + i * 0.1 }}
-              className="bg-white/5 border border-white/5 rounded-xl p-3 text-center group hover:bg-white/10 transition-all"
+              key={i}
+              initial={{ opacity: 0.3 }}
+              animate={{ opacity: activeStep === i ? 1 : 0.3, x: activeStep === i ? 5 : 0 }}
+              className={`flex items-center justify-between p-3 rounded-lg border ${activeStep === i ? 'border-white/10 bg-white/5' : 'border-transparent'}`}
             >
-              <stat.icon className={`w-4 h-4 ${stat.color} mx-auto mb-1 group-hover:scale-110 transition-transform`} />
-              <p className="text-white font-black text-lg">{stat.value}</p>
-              <p className="text-white/30 text-[8px] uppercase tracking-widest">{stat.label}</p>
+              <div className="flex items-center gap-3">
+                <Activity className={`w-3 h-3 ${log.color}`} />
+                <span className="text-xs font-mono text-white/80">{log.text}</span>
+              </div>
+              <span className={`text-[10px] font-bold ${log.color}`}>{log.status}</span>
             </motion.div>
           ))}
         </div>
 
-        {/* Live Conversations */}
-        <div className="space-y-2">
-          <p className="text-white/40 text-[9px] uppercase tracking-[0.2em] mb-3">Live Conversations</p>
-          <AnimatePresence mode="wait">
-            {conversations.map((convo, i) => (
-              <motion.div
-                key={convo.name}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{
-                  opacity: activeConvo === i ? 1 : 0.4,
-                  x: 0,
-                  scale: activeConvo === i ? 1 : 0.98,
-                }}
-                transition={{ duration: 0.3 }}
-                className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${activeConvo === i
-                    ? "bg-primary/10 border-primary/30"
-                    : "bg-white/5 border-white/5"
-                  }`}
-              >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${convo.channel === 'instagram' ? 'bg-fuchsia-500/20' : 'bg-primary/20'
-                  }`}>
-                  {convo.channel === 'instagram'
-                    ? <Instagram className="w-4 h-4 text-fuchsia-400" />
-                    : <Mail className="w-4 h-4 text-primary" />
-                  }
+        {/* Active Conversations Preview */}
+        <div className="space-y-4">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold">Active Threads</p>
+          {conversations.map((convo, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${convo.channel === 'instagram' ? 'bg-fuchsia-500/20 text-fuchsia-500' : 'bg-blue-500/20 text-blue-500'}`}>
+                  {convo.channel === 'instagram' ? <Instagram className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-bold truncate">{convo.name}</p>
-                  <p className="text-white/40 text-xs truncate">{convo.message}</p>
+                <div>
+                  <p className="text-xs font-bold text-white">{convo.name}</p>
+                  <p className="text-[10px] text-white/40">{convo.action}</p>
                 </div>
-                <div className="text-right">
-                  <div className={`text-xs font-black ${convo.score >= 90 ? 'text-emerald-400' : 'text-amber-400'
-                    }`}>
-                    {convo.score}%
-                  </div>
-                  <p className="text-white/20 text-[8px] uppercase">Intent</p>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {/* AI Response Preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8 }}
-          className="mt-4 p-4 bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-xl"
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-3 h-3 text-white" />
+              </div>
+              <div className="px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-bold">
+                {convo.status}
+              </div>
             </div>
-            <div>
-              <p className="text-white/60 text-xs leading-relaxed">
-                <span className="text-primary font-bold">AI Response:</span> "Perfect timing! I have a slot tomorrow at 2 PM. Should I send you the calendar invite?"
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Floating Cards */}
-      <motion.div
-        initial={{ opacity: 0, x: -50, y: -50 }}
-        animate={{ opacity: 1, x: -30, y: -30 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-        className="absolute -top-8 -left-8 bg-black/80 backdrop-blur-md border border-white/10 rounded-xl p-3 shadow-xl"
-      >
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span className="text-white text-xs font-bold">Meeting Booked</span>
+          ))}
         </div>
-      </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, x: 50, y: 50 }}
-        animate={{ opacity: 1, x: 20, y: 20 }}
-        transition={{ delay: 1.8, duration: 0.8 }}
-        className="absolute -bottom-4 -right-4 bg-black/80 backdrop-blur-md border border-amber-500/20 rounded-xl p-3 shadow-xl"
-      >
-        <div className="flex items-center gap-2">
-          <Zap className="w-4 h-4 text-amber-400" />
-          <span className="text-white text-xs font-bold">+$12,400 Pipeline</span>
-        </div>
       </motion.div>
     </motion.div>
   );
@@ -202,6 +149,8 @@ export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -217,7 +166,7 @@ export function HeroSection() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [mouseX, mouseY]);
 
-  const mouseGlow = useMotionTemplate`radial-gradient(800px circle at ${mouseX}px ${mouseY}px, rgba(59, 130, 246, 0.06), transparent 60%)`;
+  const mouseGlow = useMotionTemplate`radial-gradient(800px circle at ${mouseX}px ${mouseY}px, rgba(0, 210, 255, 0.06), transparent 60%)`;
 
   return (
     <section
@@ -228,7 +177,7 @@ export function HeroSection() {
 
       {/* Ambient Glows */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-40">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/15 blur-[150px] rounded-full" />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-fuchsia-500/10 blur-[130px] rounded-full" />
       </div>
 
@@ -251,7 +200,7 @@ export function HeroSection() {
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-black">
-                  Revenue Protocol Active
+                  System Online: 14,203 Agents
                 </span>
               </div>
             </motion.div>
@@ -263,9 +212,10 @@ export function HeroSection() {
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
               className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9]"
             >
-              Your AI closer.
-              <br />
-              <span className="text-primary">Zero human lag.</span>
+              Not just Automation.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50">
+                An AI Sales Rep.
+              </span>
             </motion.h1>
 
             {/* Subheadline */}
@@ -275,11 +225,7 @@ export function HeroSection() {
               transition={{ delay: 0.4, duration: 1 }}
               className="text-lg md:text-xl text-white/50 max-w-lg font-medium leading-relaxed"
             >
-              For{" "}
-              <span className="text-primary/80 font-bold">agencies</span>,{" "}
-              <span className="text-emerald-400/80 font-bold">founders</span>, and{" "}
-              <span className="text-fuchsia-400/80 font-bold">creators</span>{" "}
-              who refuse to let leads slip through the cracks.
+              Generic bots reply instantly. Audnix uses <strong className="text-primary font-bold">Predictive Timing</strong> to message when leads are active, checks <strong className="text-primary font-bold">Intent</strong> before replying, and handles <strong className="text-primary font-bold">110+ Objections</strong> with human-like nuance.
             </motion.p>
 
             {/* CTAs */}
@@ -292,11 +238,14 @@ export function HeroSection() {
               <Link href="/auth">
                 <Magnetic>
                   <Button
+                    ref={buttonRef}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
                     size="lg"
-                    className="h-14 px-8 rounded-xl bg-primary text-white font-bold text-base hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(59,130,246,0.4)] group"
+                    className="h-14 px-8 rounded-xl bg-primary text-white font-bold text-base hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(0,210,255,0.4)] group"
                   >
-                    Start Free Trial
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    Deploy Your Agent
+                    <ArrowRight className={`ml-2 w-5 h-5 transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`} />
                   </Button>
                 </Magnetic>
               </Link>
@@ -307,7 +256,7 @@ export function HeroSection() {
                     variant="outline"
                     className="h-14 px-8 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-base backdrop-blur-md transition-all"
                   >
-                    See How It Works
+                    See System Logic
                   </Button>
                 </Magnetic>
               </Link>
@@ -318,15 +267,19 @@ export function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1 }}
-              className="flex items-center gap-6 pt-4"
+              className="flex items-center gap-6 pt-4 border-t border-white/5"
             >
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/40 text-sm">No credit card required</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Intent Verified</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/40 text-sm">Setup in 60 seconds</span>
+                <UserCheck className="w-4 h-4 text-blue-400" />
+                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Voice Cloning</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-purple-400" />
+                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Drop-off Detection</span>
               </div>
             </motion.div>
           </div>
@@ -363,4 +316,3 @@ export function HeroSection() {
     </section>
   );
 }
-

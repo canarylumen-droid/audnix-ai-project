@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { X, Check, Activity, Zap, Clock, Shield } from "lucide-react";
+import { X, Check, Activity, Zap, Clock, Shield, Target, Smartphone, AlertOctagon } from "lucide-react";
 
 export function MoatSection() {
     return (
@@ -12,8 +12,8 @@ export function MoatSection() {
                         viewport={{ once: true }}
                         className="text-4xl md:text-7xl font-bold tracking-tight text-foreground mb-6"
                     >
-                        Precision <br />
-                        <span className="text-primary">over prediction.</span>
+                        Logic <br />
+                        <span className="text-primary">over templates.</span>
                     </motion.h2>
                 </div>
 
@@ -29,16 +29,16 @@ export function MoatSection() {
                             <div className="w-12 h-12 rounded-2xl bg-muted border border-border/50 flex items-center justify-center">
                                 <X className="w-6 h-6 text-muted-foreground" />
                             </div>
-                            <h3 className="text-xl font-bold text-muted-foreground uppercase tracking-widest">Static Automation</h3>
+                            <h3 className="text-xl font-bold text-muted-foreground uppercase tracking-widest">Generic Automation</h3>
                         </div>
 
                         <ul className="space-y-6 flex-1">
                             {[
-                                "Linear 'if/then' logic that lacks flexibility",
-                                "Immediate replies that feel robotic",
-                                "Static templates that leads often ignore",
-                                "Limited context for multi-step interactions",
-                                "Hard-coded sequences that don't adapt"
+                                "Replies instantly (Super-human speed = Bot)",
+                                "Misses context in long threads",
+                                "Can't handle complex objections (Price/Time)",
+                                "Spams calendar links to unqualified leads",
+                                "Zero awareness of drop-off risk"
                             ].map((text, i) => (
                                 <li key={i} className="flex items-start gap-4 text-muted-foreground/60 font-medium">
                                     <X className="w-4 h-4 text-destructive/40 mt-1 flex-shrink-0" />
@@ -58,18 +58,18 @@ export function MoatSection() {
                         <div className="p-10 rounded-3xl border border-primary/20 bg-primary/5 h-full transition-all hover:bg-primary/[0.08]">
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30">
-                                    <Zap className="w-6 h-6 text-primary" />
+                                    <Shield className="w-6 h-6 text-primary" />
                                 </div>
-                                <h3 className="text-xl font-bold text-foreground uppercase tracking-widest">Intelligent Workspace</h3>
+                                <h3 className="text-xl font-bold text-foreground uppercase tracking-widest">High-Ticket Closer Protocol</h3>
                             </div>
 
                             <ul className="space-y-6">
                                 {[
-                                    { icon: Activity, t: "Adaptive Logic", d: "Matches exactly how your group communicates." },
-                                    { icon: Clock, t: "Strategic Timing", d: "Delays interactions to maintain a human feel." },
-                                    { icon: Shield, t: "Pattern Awareness", d: "Monitors sentiment and prioritizes accordingly." },
-                                    { icon: Check, t: "Contextual Memory", d: "Recalls past interactions to build trust." },
-                                    { icon: Zap, t: "Optimized Recovery", d: "Identifies lost interest and restarts sequences." }
+                                    { icon: Target, t: "Qualified Meetings Only", d: "No tire-kickers. AI verifies budget & intent before booking." },
+                                    { icon: Activity, t: "110+ Objection Handling", d: "Handles price, timing, and partner objections automatically." },
+                                    { icon: Clock, t: "Predictive Follow-up Timing", d: "Sends messages when leads are statistically most active." },
+                                    { icon: AlertOctagon, t: "Drop-off & Churn Detection", d: "Identifies fading interest and triggers re-engagement loops." },
+                                    { icon: Smartphone, t: "Voice Cloning & Notes", d: "Sends authentic voice DMs that sound exactly like you/brand." }
                                 ].map((item, i) => (
                                     <motion.li
                                         key={i}

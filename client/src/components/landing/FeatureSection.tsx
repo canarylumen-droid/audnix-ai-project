@@ -77,7 +77,7 @@ const FEATURES = [
         title: "Omnichannel Intelligence",
         icon: MessageSquare,
         short: "One brain, spreading across all lead sources.",
-        description: "Whether the lead comes from an Instagram DM, a LinkedIn message, or a Cold Email, Audnix maintains a single unified record. If they move from IG to Email, the conversation continues seamlessly.",
+        description: "Whether the lead comes from an Instagram DM, a Voice Note, or a Cold Email, Audnix maintains a single unified record. If they move from IG to Email, the conversation continues seamlessly.",
         outcomes: [
             "Unified Lead Journey",
             "Zero Lead Wastage",

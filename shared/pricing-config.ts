@@ -65,9 +65,9 @@ export const PRICING_TIERS: PricingTier[] = [
     features: [
       '7,500 leads / month',
       '400 AI Voice Minutes',
-      'Deep Insights',
+      'Deep Lead Insights',
       'Intent Recognition',
-      'Objection Mastery',
+      'Objection Mastery (110+ Scenarios)',
       'Strategic ROI Mapping',
       'Priority Support Access',
     ],
@@ -84,11 +84,11 @@ export const PRICING_TIERS: PricingTier[] = [
     features: [
       '20,000 leads / month',
       '1,000 AI Voice Minutes',
-      'Full Architecture Customization',
-      'Custom Model Fine-tuning',
+      'Voice Cloning & Training',
+      'Smart Auto-Tagging System',
+      'Drop-off & Churn Detection',
       'Dedicated Success Manager',
       '24/7 Priority Tech Support',
-      'White-glove Implementation',
     ],
   },
 ];
