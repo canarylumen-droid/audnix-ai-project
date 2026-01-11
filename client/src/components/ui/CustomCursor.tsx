@@ -15,7 +15,7 @@ const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
         xmlns="http://www.w3.org/2000/svg"
         style={{
             filter: isClicked
-                ? "drop-shadow(0 0 8px rgba(59, 130, 246, 0.7))"
+                ? "drop-shadow(0 0 10px rgba(0, 210, 255, 0.7))"
                 : "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
             transition: "filter 0.1s ease"
         }}
@@ -27,7 +27,6 @@ const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
                 stroke="#1e293b"
                 strokeWidth="12"
             />
-            {/* Finger lines */}
             <path d="M1075 1048 c-3 -8 -4 -72 -3 -144 3 -121 4 -129 23 -129 19 0 20 7 20 140 0 125 -2 140 -18 143 -9 2 -19 -3 -22 -10z" fill="#e2e8f0" />
             <path d="M1215 1051 c-6 -6 -8 -65 -5 -143 5 -125 6 -133 25 -133 19 0 20 8 23 129 2 86 -1 133 -9 142 -13 16 -22 17 -34 5z" fill="#e2e8f0" />
             <path d="M1355 1048 c-3 -8 -4 -72 -3 -144 3 -121 4 -129 23 -129 19 0 20 7 20 140 0 125 -2 140 -18 143 -9 2 -19 -3 -22 -10z" fill="#e2e8f0" />
@@ -36,8 +35,8 @@ const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
 );
 
 // ============================================
-// PREMIUM ARROW CURSOR SVG (Landing/Auth)
-// Ocean Blue gradient, smooth rounded edges
+// PREMIUM ROUNDED ARROW CURSOR (Landing/Auth)
+// Ocean Blue (#00d2ff) gradient, high-end feel
 // ============================================
 const ArrowCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
     <svg
@@ -48,35 +47,33 @@ const ArrowCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
         xmlns="http://www.w3.org/2000/svg"
         style={{
             filter: isClicked
-                ? "drop-shadow(0 0 12px rgba(59, 130, 246, 0.9))"
-                : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+                ? "drop-shadow(0 0 15px rgba(0, 210, 255, 0.9))"
+                : "drop-shadow(0 3px 6px rgba(0,0,0,0.3))",
             transition: "filter 0.1s ease"
         }}
     >
         <defs>
-            <linearGradient id="cursor-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#60a5fa" />
-                <stop offset="40%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#1d4ed8" />
+            <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#80efff" />
+                <stop offset="50%" stopColor="#00d2ff" />
+                <stop offset="100%" stopColor="#00a8cc" />
             </linearGradient>
-            <linearGradient id="cursor-highlight" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="glass-effect" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
                 <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </linearGradient>
         </defs>
-        {/* Main arrow - rounded corners */}
         <path
-            d="M2.5 1.5L21 12L13.5 13.5L17 25L13 23.5L9.5 14L3 17.5V1.5Z"
-            fill="url(#cursor-gradient)"
+            d="M3 2L21 12.5L12 14.5L16 26L12 24.5L8.5 14.5L3 18.5V2Z"
+            fill="url(#ocean-gradient)"
             stroke="white"
-            strokeWidth="1.2"
+            strokeWidth="1.5"
             strokeLinejoin="round"
             strokeLinecap="round"
         />
-        {/* Inner highlight for depth */}
         <path
-            d="M4 4L17 11L12.5 12L14.5 21L12.5 20L10 13L5 15.5V4Z"
-            fill="url(#cursor-highlight)"
+            d="M4.5 4.5L17 11.5L11 13L13 22L11 21L8.5 13.5L4.5 16.5V4.5Z"
+            fill="url(#glass-effect)"
         />
     </svg>
 );
@@ -161,10 +158,7 @@ export const CustomCursor = () => {
                             top: ripple.y,
                             transform: 'translate(-50%, -50%)',
                         }}
-                        className={`w-6 h-6 rounded-full ${isDashboardOrOnboarding
-                            ? "border-2 border-primary/50 bg-primary/10"
-                            : "border-2 border-primary/70 bg-primary/15"
-                            }`}
+                        className="w-6 h-6 rounded-full border-2 border-[#00d2ff]/70 bg-[#00d2ff]/15"
                     />
                 ))}
             </AnimatePresence>
