@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Zap, Shield, MessageSquare, Target, Cpu, TrendingUp, ChevronRight, Lock, Database } from "lucide-react";
+import { Tilt } from "@/components/ui/Tilt";
 
 const FEATURES = [
     {
