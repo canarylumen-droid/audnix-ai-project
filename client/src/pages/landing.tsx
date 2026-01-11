@@ -189,6 +189,7 @@ export default function Landing() {
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
               <li><Link href="#features" className="hover:text-primary transition-colors">Neural Core</Link></li>
               <li><Link href="#how-it-works" className="hover:text-primary transition-colors">Automation Flow</Link></li>
+              <li><Link href="/compare" className="hover:text-primary transition-colors">Compare Tools</Link></li>
               <li><Link href="#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
               <li><Link href="/auth" className="hover:text-primary transition-colors">Access Console</Link></li>
             </ul>

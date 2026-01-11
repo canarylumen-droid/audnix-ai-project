@@ -4,28 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Shield, Lock, Eye, Database, UserCheck, FileText, ArrowLeft, Mail, Calendar, MessageSquare, Phone } from "lucide-react";
 import { Link } from "wouter";
+import { Logo } from "@/components/ui/Logo";
 
 export default function PrivacyPolicy() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
+              <Button variant="ghost" size="sm" className="gap-2 text-white/60 hover:text-white hover:bg-white/5">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Home
               </Button>
             </Link>
-            <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded">
-                <img src="/logo.png" alt="Audnix AI" className="h-8 w-auto" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                Audnix AI
-              </span>
-            </div>
+            <Link href="/">
+              <Logo />
+            </Link>
           </div>
         </div>
       </nav>
@@ -109,14 +105,14 @@ export default function PrivacyPolicy() {
                     Why We Need Email Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates lead follow-ups via email. Connect your business email using Custom SMTP 
+                    Audnix AI automates lead follow-ups via email. Connect your business email using Custom SMTP
                     to send and receive messages through your own email server.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-3">How Custom SMTP Works</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="border-l-4 border-emerald-500 pl-4">
                       <h4 className="font-semibold text-foreground">Sending Emails</h4>
@@ -144,7 +140,7 @@ export default function PrivacyPolicy() {
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
                   <h4 className="font-semibold text-emerald-400 mb-2">✅ Secure Connection</h4>
                   <p className="text-sm">
-                    Your SMTP credentials are encrypted with AES-256-GCM and stored securely. 
+                    Your SMTP credentials are encrypted with AES-256-GCM and stored securely.
                     We never store full email content - only conversation metadata for AI context.
                   </p>
                 </div>
@@ -170,7 +166,7 @@ export default function PrivacyPolicy() {
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-3">How Auto-Booking Works</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="border-l-4 border-emerald-500 pl-4">
                       <h4 className="font-semibold text-foreground">1. Calendly Link Integration</h4>
@@ -222,14 +218,14 @@ export default function PrivacyPolicy() {
                     Why We Need Instagram Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates Instagram DM replies and comment engagement. We need access to read incoming messages, 
+                    Audnix AI automates Instagram DM replies and comment engagement. We need access to read incoming messages,
                     detect buying intent in comments, and send personalized follow-ups.
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-foreground mb-3">What We Access</h3>
-                  
+
                   <div className="space-y-4">
                     <div className="border-l-4 border-blue-500 pl-4">
                       <h4 className="font-semibold text-foreground">Instagram Direct Messages (DMs)</h4>
@@ -283,7 +279,7 @@ export default function PrivacyPolicy() {
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
                   <h4 className="font-semibold text-emerald-400 mb-2">✅ Official Instagram Graph API</h4>
                   <p className="text-sm">
-                    Audnix AI uses the official Instagram Graph API for all Instagram integrations. This ensures full compliance 
+                    Audnix AI uses the official Instagram Graph API for all Instagram integrations. This ensures full compliance
                     with Meta's platform policies and provides secure, reliable access to messaging and content features.
                   </p>
                   <p className="text-sm mt-2">
@@ -426,8 +422,8 @@ export default function PrivacyPolicy() {
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4">Children's Privacy</h2>
               <p className="text-muted-foreground">
-                Audnix AI is not intended for users under 18 years of age. We do not knowingly collect information from children. 
-                If you believe a child has provided us with personal information, please contact us immediately at <strong className="text-primary">privacy@audnixai.com</strong> 
+                Audnix AI is not intended for users under 18 years of age. We do not knowingly collect information from children.
+                If you believe a child has provided us with personal information, please contact us immediately at <strong className="text-primary">privacy@audnixai.com</strong>
                 and we will delete the account within 24 hours.
               </p>
             </Card>
@@ -436,11 +432,11 @@ export default function PrivacyPolicy() {
               <h2 className="text-2xl font-bold mb-4">International Data Transfers</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  Audnix AI operates globally. Your data may be transferred to and processed in countries outside your residence, 
+                  Audnix AI operates globally. Your data may be transferred to and processed in countries outside your residence,
                   including the United States and European Union.
                 </p>
                 <p>
-                  <strong>EU-US Data Transfers:</strong> We comply with the EU-US Data Privacy Framework and use Standard Contractual Clauses (SCCs) 
+                  <strong>EU-US Data Transfers:</strong> We comply with the EU-US Data Privacy Framework and use Standard Contractual Clauses (SCCs)
                   approved by the European Commission for data transfers.
                 </p>
                 <p>
@@ -476,7 +472,7 @@ export default function PrivacyPolicy() {
                 <p>
                   When you use Audnix AI to send automated messages, we process the following data:
                 </p>
-                
+
                 <div className="bg-background/50 p-4 rounded-lg border border-blue-500/20">
                   <h3 className="font-semibold text-foreground mb-2">Data Processed for Message Generation</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm">
@@ -525,8 +521,8 @@ export default function PrivacyPolicy() {
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4">Changes to This Policy</h2>
               <p className="text-muted-foreground">
-                We may update this Privacy Policy periodically to reflect changes in our practices, technology, or legal requirements. 
-                We will notify you of significant changes via email at least <strong>30 days before</strong> they take effect. 
+                We may update this Privacy Policy periodically to reflect changes in our practices, technology, or legal requirements.
+                We will notify you of significant changes via email at least <strong>30 days before</strong> they take effect.
                 Your continued use of Audnix AI after changes constitutes acceptance of the updated policy.
               </p>
               <p className="text-muted-foreground mt-2">

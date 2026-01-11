@@ -16,6 +16,7 @@ import DataDeletion from "@/pages/data-deletion";
 const AgenciesPage = lazy(() => import("./pages/solutions/Agencies"));
 const FoundersPage = lazy(() => import("./pages/solutions/Founders"));
 const CreatorsPage = lazy(() => import("./pages/solutions/Creators"));
+const ComparePage = lazy(() => import("./pages/compare"));
 
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 const ConversationsPage = lazy(() => import("./pages/dashboard/conversations"));
@@ -54,6 +55,9 @@ function Router() {
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/data-deletion" component={DataDeletion} />
+      <Route path="/compare">
+        {() => <Suspense fallback={null}><ComparePage /></Suspense>}
+      </Route>
 
       {/* Solutions */}
       <Route path="/solutions/agencies">
