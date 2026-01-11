@@ -210,13 +210,100 @@ export function SolutionPageTemplate({
                                 </Button>
                             </Link>
                         </div>
-                        <div className="hidden md:flex h-[600px] bg-[#0d1117] rounded-[3rem] border border-white/5 relative overflow-hidden items-center justify-center group">
-                            {/* Abstract Visualization */}
-                            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent" />
+                        <div className="hidden md:flex h-[600px] bg-[#0d1117] rounded-[3rem] border border-white/5 relative overflow-hidden flex-col group">
+                            {/* Diagram Header */}
+                            <div className="px-8 py-6 border-b border-white/5 flex items-center gap-4">
+                                <div className="flex gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                                    <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
+                                </div>
+                                <span className="text-white/30 text-xs font-mono">Neural Operations Diagram</span>
+                            </div>
 
-                            <div className="relative z-10 p-12 ">
-                                <MessageSquare className="w-40 h-40 text-white/5 group-hover:text-primary/20 transition-colors duration-700" />
+                            {/* Diagram Content */}
+                            <div className="flex-1 p-8 relative">
+                                {/* Grid Background */}
+                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+
+                                {/* Central Brain Node */}
+                                <motion.div
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    whileInView={{ scale: 1, opacity: 1 }}
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center shadow-[0_0_60px_rgba(0,210,255,0.3)]"
+                                >
+                                    <div className="text-center">
+                                        <div className="text-2xl font-black text-primary">AI</div>
+                                        <div className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Neural Core</div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Client Nodes - Orbiting around the core */}
+                                {['Client A', 'Client B', 'Client C', 'Client D'].map((client, i) => {
+                                    const angle = (i * 90) * (Math.PI / 180);
+                                    const radius = 180;
+                                    const x = Math.cos(angle) * radius;
+                                    const y = Math.sin(angle) * radius;
+
+                                    return (
+                                        <motion.div
+                                            key={client}
+                                            initial={{ opacity: 0, scale: 0 }}
+                                            whileInView={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: i * 0.15 }}
+                                            className="absolute top-1/2 left-1/2 w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/30 transition-colors"
+                                            style={{
+                                                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
+                                            }}
+                                        >
+                                            <div className="text-center">
+                                                <MessageSquare className="w-5 h-5 text-white/40 mx-auto mb-1" />
+                                                <div className="text-[9px] font-bold text-white/60 uppercase">{client}</div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+
+                                {/* Connection Lines - Animated dashes */}
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
+                                    <defs>
+                                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stopColor="rgba(0,210,255,0.1)" />
+                                            <stop offset="50%" stopColor="rgba(0,210,255,0.4)" />
+                                            <stop offset="100%" stopColor="rgba(0,210,255,0.1)" />
+                                        </linearGradient>
+                                    </defs>
+                                    {[0, 90, 180, 270].map((angle, i) => {
+                                        const rad = angle * (Math.PI / 180);
+                                        const x1 = '50%';
+                                        const y1 = '50%';
+                                        const x2 = `calc(50% + ${Math.cos(rad) * 120}px)`;
+                                        const y2 = `calc(50% + ${Math.sin(rad) * 120}px)`;
+                                        return (
+                                            <line
+                                                key={i}
+                                                x1={x1} y1={y1}
+                                                x2={x2} y2={y2}
+                                                stroke="url(#lineGradient)"
+                                                strokeWidth="2"
+                                                strokeDasharray="6 4"
+                                                className="animate-pulse"
+                                            />
+                                        );
+                                    })}
+                                </svg>
+
+                                {/* Bottom Legend */}
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-6 text-[9px] font-bold uppercase tracking-widest text-white/30">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-primary" />
+                                        Isolated Brain
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-white/30" />
+                                        Sub-Account
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
