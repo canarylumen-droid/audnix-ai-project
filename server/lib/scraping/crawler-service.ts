@@ -9,6 +9,8 @@ export interface RawLead {
     website: string;
     snippet: string;
     source: string;
+    email?: string;
+    role?: string;
     socialProfiles?: {
         instagram?: string;
         linkedin?: string;

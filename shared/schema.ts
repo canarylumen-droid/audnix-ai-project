@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   voiceRules: text("voice_rules"),
   pdfConfidenceThreshold: real("pdf_confidence_threshold").default(0.7),
   lastInsightGeneratedAt: timestamp("last_insight_generated_at"),
+  lastProspectScanAt: timestamp("last_prospect_scan_at"),
   paymentStatus: text("payment_status").default("none"),
   pendingPaymentPlan: text("pending_payment_plan"),
   pendingPaymentAmount: real("pending_payment_amount"),
@@ -211,6 +212,25 @@ export const apiKeys = pgTable("api_keys", {
   key: text("key").notNull().unique(),
   lastUsedAt: timestamp("last_used_at"),
   expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const prospects = pgTable("prospects", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  entity: text("entity").notNull(),
+  industry: text("industry"),
+  location: text("location"),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  website: text("website"),
+  platforms: jsonb("platforms").$type<string[]>().default(sql`'[]'::jsonb`),
+  wealthSignal: text("wealth_signal"),
+  verified: boolean("verified").default(false),
+  verifiedAt: timestamp("verified_at"),
+  status: text("status").default("found"),
+  source: text("source"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -532,6 +552,7 @@ export const insertCalendarBookingSchema = createInsertSchema(calendarBookings).
 export const insertAutomationRuleSchema = createInsertSchema(automationRules).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertContentLibrarySchema = createInsertSchema(contentLibrary).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertConversationEventSchema = createInsertSchema(conversationEvents).omit({ id: true, createdAt: true });
+export const insertProspectSchema = createInsertSchema(prospects).omit({ id: true, createdAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -588,6 +609,8 @@ export type ContentLibraryItem = typeof contentLibrary.$inferSelect;
 export type InsertContentLibraryItem = typeof contentLibrary.$inferInsert;
 export type ConversationEvent = typeof conversationEvents.$inferSelect;
 export type InsertConversationEvent = typeof conversationEvents.$inferInsert;
+export type Prospect = typeof prospects.$inferSelect;
+export type InsertProspect = typeof prospects.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({

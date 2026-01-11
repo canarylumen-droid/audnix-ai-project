@@ -24,7 +24,6 @@ const InsightsPage = lazy(() => import("./pages/dashboard/insights"));
 const VideoAutomationPage = lazy(() => import("./pages/dashboard/video-automation"));
 import { lazy, Suspense } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { BrowserRouter, Routes } from "react-router-dom";
 import { ComponentShowcase } from '@/pages/dashboard/component-test';
 import { AuthGuard } from '@/components/auth-guard';
 import { CustomCursor } from "@/components/ui/CustomCursor";

@@ -112,7 +112,7 @@ export class AudnixIngestor {
 
                     // Ingest into DB
                     const [inserted] = await db.insert(prospects).values({
-                        userId: Number(this.userId),
+                        userId: this.userId,
                         entity: enriched.entity,
                         industry: intent.niche,
                         location: enriched.location || intent.location,
@@ -160,7 +160,7 @@ export class AudnixIngestor {
             // Update user's last scan timestamp
             await db.update(users)
                 .set({ lastProspectScanAt: new Date() })
-                .where(eq(users.id, Number(this.userId)));
+                .where(eq(users.id, this.userId));
 
             await this.log(`[Protocol] Scan COMPLETE. ${ingestedCount} leads ingested (${verifiedCount} verified, ${highQualityCount} high-quality).`, 'success');
 

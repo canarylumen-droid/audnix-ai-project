@@ -2,6 +2,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { Database, Activity, Zap, MessageSquare, ArrowRight, CheckCircle2, Terminal, Cpu, FileJson, Lock } from "lucide-react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 const STEPS = [
     {
