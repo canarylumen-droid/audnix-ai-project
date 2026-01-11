@@ -1,10 +1,11 @@
+import React, { useState } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { Navigation } from "@/components/landing/Navigation";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, Shield, Zap, Target, AlertTriangle, ChevronDown, MessageSquare } from "lucide-react";
 import { CookieConsent } from "@/components/landing/CookieConsent";
-import { useState } from "react";
+
 
 interface FAQItem {
     question: string;
