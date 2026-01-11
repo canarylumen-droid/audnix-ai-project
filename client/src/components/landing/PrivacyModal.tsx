@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShieldCheck } from "lucide-react";
+import { X } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 
 export function PrivacyModal() {
   const closeModal = () => {
@@ -41,11 +42,10 @@ export function PrivacyModal() {
         whileInView={{ opacity: 1, scale: 1, y: 0 }}
       >
         <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-              <ShieldCheck className="w-6 h-6 text-primary" />
-            </div>
-            <h2 className="text-2xl font-black tracking-tight text-white uppercase">Privacy Protocol</h2>
+          <div className="flex items-center gap-4">
+            <Logo className="w-12 h-12" textClassName="text-2xl font-black" />
+            <div className="h-8 w-px bg-white/10" />
+            <h2 className="text-xl font-bold tracking-tight text-white/80 uppercase">Privacy Protocol</h2>
           </div>
           <button
             onClick={closeModal}

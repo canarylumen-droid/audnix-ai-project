@@ -290,23 +290,23 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* Competitor Tools Ribbon */}
+        {/* Trusted By Ribbon */}
         <div className="mt-32 border-y border-white/5 bg-black/20 backdrop-blur-sm w-full py-10 overflow-hidden relative group">
-          <div className="absolute inset-0 bg-red-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+          <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
           <div className="flex items-center gap-16 md:gap-20 animate-marquee whitespace-nowrap">
-            {["MANYCHAT BOTS", "MAKE.COM AGENTS", "N8N SCRIPTS", "ZAPIER FLOWS", "VA AGENCIES", "COLD EMAIL SPAM", "GENERIC CRMS", "CHATGPT WRAPPERS", "MANYCHAT BOTS", "MAKE.COM AGENTS"].map((brand, i) => (
+            {["LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI", "LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI"].map((brand, i) => (
               <span
                 key={`${brand}-${i}`}
-                className="text-lg md:text-xl font-black tracking-[-0.02em] text-white/10 hover:text-red-400/50 transition-all duration-300 cursor-none select-none"
+                className="text-lg md:text-xl font-black tracking-[-0.02em] text-white/20 hover:text-white transition-all duration-300 cursor-none select-none"
               >
                 {brand}
               </span>
             ))}
           </div>
 
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-1.5 bg-black border border-red-500/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-red-400/60">
-            🚨 Legacy Tools Bleeding Revenue
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-1.5 bg-black border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">
+            Trusted By Top Agencies
           </div>
         </div>
       </div>

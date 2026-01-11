@@ -4,6 +4,7 @@ import { HeroSection } from "@/components/landing/HeroSection";
 import { FeatureSection } from "@/components/landing/FeatureSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { MoatSection } from "@/components/landing/MoatSection";
+import { CompetitorSection } from "@/components/landing/CompetitorSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FAQSection } from "@/components/landing/FAQSection";
@@ -72,6 +73,10 @@ export default function Landing() {
 
         <section id="moat" className="reveal-section">
           <MoatSection />
+        </section>
+
+        <section id="competitors" className="reveal-section">
+          <CompetitorSection />
         </section>
 
         <section id="how-it-works" className="reveal-section">
