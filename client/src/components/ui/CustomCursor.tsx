@@ -40,40 +40,29 @@ const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
 // ============================================
 const ArrowCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
     <svg
-        width="24"
+        width="28"
         height="28"
-        viewBox="0 0 24 28"
+        viewBox="0 0 28 28"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         style={{
-            filter: isClicked
-                ? "drop-shadow(0 0 15px rgba(0, 210, 255, 0.9))"
-                : "drop-shadow(0 3px 6px rgba(0,0,0,0.3))",
-            transition: "filter 0.1s ease"
+            filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.2))",
+            transition: "transform 0.1s ease"
         }}
     >
         <defs>
             <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#80efff" />
-                <stop offset="50%" stopColor="#00d2ff" />
-                <stop offset="100%" stopColor="#00a8cc" />
-            </linearGradient>
-            <linearGradient id="glass-effect" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.4)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="100%" stopColor="#e0f9ff" />
             </linearGradient>
         </defs>
         <path
-            d="M3 2L21 12.5L12 14.5L16 26L12 24.5L8.5 14.5L3 18.5V2Z"
+            d="M5.5 3.5L13 22.5L16.5 15.5L23.5 13L5.5 3.5Z"
             fill="url(#ocean-gradient)"
-            stroke="white"
-            strokeWidth="1.5"
+            stroke="#00d2ff"
+            strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
-        />
-        <path
-            d="M4.5 4.5L17 11.5L11 13L13 22L11 21L8.5 13.5L4.5 16.5V4.5Z"
-            fill="url(#glass-effect)"
         />
     </svg>
 );
@@ -98,7 +87,7 @@ export const CustomCursor = () => {
         setRipples(prev => [...prev, { id: rippleId, x: e.clientX, y: e.clientY }]);
         setTimeout(() => {
             setRipples(prev => prev.filter(r => r.id !== rippleId));
-        }, 500);
+        }, 600);
     }, []);
 
     const handleMouseUp = useCallback(() => {
@@ -148,17 +137,17 @@ export const CustomCursor = () => {
                 {ripples.map((ripple) => (
                     <motion.div
                         key={ripple.id}
-                        initial={{ scale: 0, opacity: 0.6 }}
-                        animate={{ scale: 2.5, opacity: 0 }}
+                        initial={{ scale: 0, opacity: 0.5 }}
+                        animate={{ scale: 2, opacity: 0 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.45, ease: "easeOut" }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                         style={{
                             position: 'absolute',
                             left: ripple.x,
                             top: ripple.y,
                             transform: 'translate(-50%, -50%)',
                         }}
-                        className="w-6 h-6 rounded-full border-2 border-[#00d2ff]/70 bg-[#00d2ff]/15"
+                        className="w-8 h-8 rounded-full border border-[#00d2ff]/60"
                     />
                 ))}
             </AnimatePresence>
@@ -170,17 +159,18 @@ export const CustomCursor = () => {
                     top: position.y,
                     transform: isDashboardOrOnboarding
                         ? 'translate(-6px, -2px)'
-                        : 'translate(-2px, -1px)',
+                        : 'translate(-2px, -2px)',
                 }}
                 animate={{
-                    scale: isClicked ? 0.88 : 1,
-                    y: isClicked ? 1 : 0,
+                    scale: isClicked ? 0.75 : 1, // Stronger bounce
+                    y: isClicked ? 4 : 0,       // Hit effect
+                    rotate: isClicked ? -5 : 0  // Subtle tilt on click
                 }}
                 transition={{
                     type: "spring",
-                    stiffness: 600,
-                    damping: 25,
-                    mass: 0.3
+                    stiffness: 800, // Snap back faster
+                    damping: 20,
+                    mass: 0.5
                 }}
             >
                 {isDashboardOrOnboarding ? (

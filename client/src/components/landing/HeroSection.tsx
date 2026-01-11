@@ -31,7 +31,7 @@ const NeuralEngineMockup = () => {
   const systemLogs = [
     { type: 'intent', text: 'Analyzing Lead Intent...', status: 'Verified', color: 'text-emerald-400' },
     { type: 'objection', text: 'Checking 110+ Objections...', status: 'Clear', color: 'text-blue-400' },
-    { type: 'timing', text: 'Predictive Timing Algo...', status: 'Optimal: 10:42 AM', color: 'text-purple-400' },
+    { type: 'timing', text: 'Predictive Timing Algorithm', status: 'Delay: 4m 12s (Humanizing)', color: 'text-purple-400' },
     { type: 'churn', text: 'Drop-off Risk Detection', status: 'Low (2%)', color: 'text-orange-400' }
   ];
 
@@ -225,7 +225,7 @@ export function HeroSection() {
               transition={{ delay: 0.4, duration: 1 }}
               className="text-lg md:text-xl text-white/50 max-w-lg font-medium leading-relaxed"
             >
-              Generic bots reply instantly. Audnix uses <strong className="text-primary font-bold">Predictive Timing</strong> to message when leads are active, checks <strong className="text-primary font-bold">Intent</strong> before replying, and handles <strong className="text-primary font-bold">110+ Objections</strong> with human-like nuance.
+              Stop chasing AI Hypes. Make.com and n8n save you time. <span className="text-white">Audnix makes you money.</span> We use <strong className="text-primary font-bold">Predictive Timing</strong> (2-8m humanized delays) and <strong className="text-primary font-bold">Intent Detection</strong> to actually close deals, not just reply.
             </motion.p>
 
             {/* CTAs */}
@@ -295,7 +295,7 @@ export function HeroSection() {
           <div className="absolute inset-0 bg-red-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
           <div className="flex items-center gap-16 md:gap-20 animate-marquee whitespace-nowrap">
-            {["GENERIC CRM", "CHATGPT WRAPPERS", "VA AGENCIES", "MANUAL OUTREACH", "COLD EMAIL TOOLS", "GENERIC CRM", "CHATGPT WRAPPERS", "VA AGENCIES", "MANUAL OUTREACH", "COLD EMAIL TOOLS"].map((brand, i) => (
+            {["MANYCHAT BOTS", "MAKE.COM AGENTS", "N8N SCRIPTS", "ZAPIER FLOWS", "VA AGENCIES", "COLD EMAIL SPAM", "GENERIC CRMS", "CHATGPT WRAPPERS", "MANYCHAT BOTS", "MAKE.COM AGENTS"].map((brand, i) => (
               <span
                 key={`${brand}-${i}`}
                 className="text-lg md:text-xl font-black tracking-[-0.02em] text-white/10 hover:text-red-400/50 transition-all duration-300 cursor-none select-none"

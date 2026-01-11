@@ -3,8 +3,20 @@ import { motion } from "framer-motion";
 
 export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-black" }: { className?: string; textClassName?: string }) => {
     return (
-        <div className="flex items-center gap-3 group cursor-none select-none">
-            <div className={`relative ${className}`}>
+        <motion.div
+            className="flex items-center gap-3 group cursor-pointer select-none relative"
+            whileHover="hover"
+            initial="idle"
+        >
+            {/* Icon Container */}
+            <motion.div
+                className={`relative ${className}`}
+                variants={{
+                    hover: { scale: 1.1, rotate: 5 },
+                    idle: { scale: 1, rotate: 0 }
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
                 <svg
                     viewBox="0 0 40 40"
                     fill="none"
@@ -18,7 +30,6 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                         </linearGradient>
                     </defs>
 
-                    {/* The Outer Sigil */}
                     <path
                         d="M20 4L34 31H6L20 4Z"
                         stroke="url(#logo-gradient)"
@@ -27,7 +38,6 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                         className="opacity-20"
                     />
 
-                    {/* The Neural Path - Dynamic & Sharp */}
                     <motion.path
                         initial={{ pathLength: 0, opacity: 0 }}
                         animate={{ pathLength: 1, opacity: 1 }}
@@ -39,24 +49,18 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                         strokeLinejoin="round"
                     />
 
-                    {/* The Strategic Core */}
                     <motion.circle
-                        animate={{
-                            scale: [1, 1.2, 1],
-                            opacity: [0.6, 1, 0.6]
+                        variants={{
+                            hover: { scale: 1.5, opacity: 1 },
+                            idle: { scale: 1.2, opacity: 0.8 }
                         }}
-                        transition={{
-                            duration: 3,
-                            repeat: Infinity,
-                            ease: "easeInOut"
-                        }}
+                        transition={{ duration: 0.3 }}
                         cx="20"
                         cy="19"
                         r="3"
                         fill="url(#logo-gradient)"
                     />
 
-                    {/* Precision Line */}
                     <path
                         d="M15 22H25"
                         stroke="url(#logo-gradient)"
@@ -65,17 +69,40 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                         className="opacity-40"
                     />
                 </svg>
-            </div>
-            <span className={`${textClassName} tracking-tighter text-white uppercase flex items-baseline gap-0.5`}>
-                Audnix
-                <motion.span
-                    animate={{ opacity: [1, 0.4, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-primary text-[8px] font-black"
+            </motion.div>
+
+            {/* Text Container */}
+            <div className="relative">
+                <span className={`${textClassName} tracking-tighter text-white uppercase flex items-baseline gap-0.5 relative z-10`}>
+                    Audnix
+                    <motion.span
+                        variants={{
+                            hover: { y: -2, color: "#60a5fa" },
+                            idle: { y: 0, color: "#3b82f6" }
+                        }}
+                        className="text-primary text-[10px] font-black"
+                    >
+                        .AI
+                    </motion.span>
+                </span>
+
+                {/* Orbiting Satellite on Hover */}
+                <motion.div
+                    className="absolute -inset-2 rounded-full border border-primary/20 pointer-events-none"
+                    variants={{
+                        hover: { opacity: 1, scale: 1 },
+                        idle: { opacity: 0, scale: 0.8 }
+                    }}
+                    transition={{ duration: 0.3 }}
                 >
-                    .AI
-                </motion.span>
-            </span>
-        </div>
+                    <motion.div
+                        className="absolute top-1/2 -right-1 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,1)]"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                        style={{ originX: "-50px" }} // Orbit center offset
+                    />
+                </motion.div>
+            </div>
+        </motion.div>
     );
 };
