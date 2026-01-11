@@ -14,8 +14,8 @@ const SOLUTIONS = [
     href: "/solutions/agencies"
   },
   {
-    name: "For Sales Teams",
-    desc: "Close more deals with autonomous objection handling.",
+    name: "For Founders",
+    desc: "Clone yourself and close deals without being on calls.",
     icon: Zap,
     badge: "Velocity",
     href: "/solutions/sales-teams"
@@ -99,7 +99,7 @@ export function Navigation() {
                                   {sol.badge}
                                 </span>
                               </div>
-                              <span className="text-xs text-muted-foreground font-medium mt-0.5">{sol.desc}</span>
+                              <span className="text-xs text-muted-foreground font-medium mt-0.5 whitespace-normal break-words leading-tight">{sol.desc}</span>
                             </div>
                           </div>
                         </Link>

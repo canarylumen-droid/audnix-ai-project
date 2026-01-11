@@ -6,13 +6,13 @@ const PAIN_POINTS = [
     {
         icon: Ghost,
         title: "Response Latency",
-        desc: "Over 70% of leads engage with competitors simply because of delay. Slow response times lead to immediate revenue leaks while your team is offline.",
+        desc: "Creators lose 70% of potential deals because they can't reply instantly. When a brand or high-ticket lead DMs you, waiting hours to respond means they've already moved to the next creator. Speed is the only currency that matters.",
         impact: "Lower Conversion"
     },
     {
         icon: Clock,
-        title: "Operational Overhead",
-        desc: "Managing high-volume outreach manually consumes hours of productive time daily. High-value founders spend too much time on repetitive tasks.",
+        title: "Operational Burnout",
+        desc: "You didn't start an agency to spend 20+ hours a week refreshing Gmail and Instagram DMs. Manual outreach forces you to work IN your business instead of ON it, capping your growth ceiling.",
         impact: "20+ Hours Lost/Week"
     },
     {
@@ -56,7 +56,7 @@ export function ProblemSection() {
                         className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-[0.2em] mb-10"
                     >
                         <AlertCircle className="w-3.5 h-3.5" />
-                        The Challenge of Scaling Outreach
+                        The Scaling Trap
                     </motion.div>
 
                     <motion.h2
@@ -72,7 +72,7 @@ export function ProblemSection() {
                         whileInView={{ opacity: 1 }}
                         className="text-muted-foreground text-lg md:text-2xl max-w-3xl mx-auto font-medium leading-relaxed"
                     >
-                        Most organizations face a <span className="text-foreground border-b-2 border-primary/20 pb-0.5">bottleneck in response time</span> and follow-up consistency. Audnix solves this by automating the engagement layer.
+                        Most <span className="text-foreground border-b-2 border-primary/20 pb-0.5">Agencies & Creators</span> hit a revenue ceiling because they can't clone themselves. Audnix solves this by deploying autonomous clones that scrape, qualify, and close deals for you.
                     </motion.p>
                 </div>
 

@@ -7,7 +7,7 @@ const router = Router();
 
 // Audnix AI Knowledge Base for the Expert Chat
 const AUDNIX_KNOWLEDGE = `
-You are the Audnix Neural Assistant, the frontline intelligence for Audnix AI. 
+You are the Audnix Assistant. 
 Your goal is to help visitors understand how Audnix AI can architect their revenue engine.
 
 CORE MISSION:
@@ -71,7 +71,7 @@ USER CONTEXT: Authenticated=${isAuthenticated}, Email=${userEmail || 'Guest'}
 
 USER MESSAGE: ${message}
 
-RESPOND AS THE AUDNIX NEURAL ASSISTANT (Keep it under 250 words, direct and professional):`;
+RESPOND AS THE AUDNIX ASSISTANT (Keep it under 250 words, direct and professional):`;
 
         const result = await model.generateContent(prompt);
         const content = result.response.text() || "I'm having trouble retrieving the protocol response. Please try again.";

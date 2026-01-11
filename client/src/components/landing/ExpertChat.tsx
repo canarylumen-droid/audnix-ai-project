@@ -79,10 +79,18 @@ export function ExpertChat() {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'ai', content: "Hello! I am your Audnix AI Assistant. How can I help you scale today?" }
+        { role: 'ai', content: "Hello! I am your Audnix Assistant. I can answer any questions you have about our sales engine or help you get started. How can I assist you today?" }
     ]);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-open after 10 seconds
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsOpen(true);
+        }, 10000);
+        return () => clearTimeout(timer);
+    }, []);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -138,6 +146,7 @@ export function ExpertChat() {
             <AnimatePresence>
                 {(!isOpen || isMinimized) && (
                     <motion.button
+                        id="expert-chat-trigger"
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
@@ -145,9 +154,9 @@ export function ExpertChat() {
                             setIsOpen(true);
                             setIsMinimized(false);
                         }}
-                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-xl hover:bg-blue-700 transition-all"
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-14 h-14 rounded-full bg-black border border-white/10 flex items-center justify-center shadow-2xl hover:scale-105 transition-all"
                     >
-                        <MessageCircle className="w-8 h-8 text-white" />
+                        <MessageCircle className="w-6 h-6 text-white" />
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -161,34 +170,34 @@ export function ExpertChat() {
                             : { opacity: 1, y: 0, scale: 1 }
                         }
                         exit={{ opacity: 0, y: 100, scale: 0.95 }}
-                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-[400px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-white rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-[380px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-[#0b0c16] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-white/10"
                     >
                         {/* Header */}
-                        <div className="p-6 bg-blue-600 flex items-center justify-between">
+                        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-black/50 backdrop-blur-md">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white">
-                                    <Bot className="w-6 h-6" />
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/5">
+                                    <Sparkles className="w-4 h-4" />
                                 </div>
                                 <div>
-                                    <h4 className="text-white font-bold text-sm">Audnix AI Assistant</h4>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                                        <span className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Online</span>
+                                    <h4 className="text-white font-medium text-sm">Audnix Assistant</h4>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-[10px] text-white/40 uppercase tracking-widest font-medium">Online</span>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <Minus className="w-4 h-4 text-white" />
+                            <div className="flex gap-1">
+                                <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/60 hover:text-white">
+                                    <Minus className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                                    <X className="w-4 h-4 text-white" />
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/60 hover:text-white">
+                                    <X className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
 
                         {/* Messages Area */}
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 bg-transparent">
                             {messages.map((msg, i) => (
                                 <motion.div
                                     key={i}
@@ -197,10 +206,10 @@ export function ExpertChat() {
                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div className={`
-                                        max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed
+                                        max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed
                                         ${msg.role === 'user'
-                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none shadow-sm'}
+                                            ? 'bg-primary text-primary-foreground rounded-br-sm'
+                                            : 'bg-white/5 text-white/90 border border-white/5 rounded-bl-sm'}
                                     `}>
                                         {msg.content}
                                     </div>
@@ -211,12 +220,12 @@ export function ExpertChat() {
 
                         {/* Suggestions */}
                         {!isTyping && messages.length < 3 && (
-                            <div className="px-6 pb-2 flex flex-wrap gap-2">
+                            <div className="px-5 pb-2 flex flex-wrap gap-2">
                                 {SUGGESTED_QUESTIONS.map((q) => (
                                     <button
                                         key={q.label}
                                         onClick={() => handleSend(q.query)}
-                                        className="px-3 py-1.5 rounded-lg bg-gray-100 text-[10px] font-bold text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-all flex items-center gap-1.5"
+                                        className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-all flex items-center gap-1.5"
                                     >
                                         <q.icon className="w-3 h-3" />
                                         {q.label}
@@ -226,22 +235,22 @@ export function ExpertChat() {
                         )}
 
                         {/* Input Area */}
-                        <div className="p-6 bg-white border-t border-gray-100">
-                            <div className="flex gap-3 items-center">
+                        <div className="p-4 border-t border-white/5 bg-black/50 backdrop-blur-md">
+                            <div className="flex gap-2 items-center">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-gray-100 px-5 h-12 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-800"
+                                    placeholder="Ask anything..."
+                                    className="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 px-4 h-10 rounded-full text-sm outline-none focus:border-white/20 transition-all text-white placeholder:text-white/20"
                                 />
                                 <button
                                     onClick={() => handleSend()}
                                     disabled={isTyping || !input.trim()}
-                                    className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all disabled:opacity-50"
+                                    className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
                                 >
-                                    <Send className="w-5 h-5" />
+                                    <Send className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>

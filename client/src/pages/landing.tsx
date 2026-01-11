@@ -174,7 +174,7 @@ export default function Landing() {
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Solutions</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
               <li><Link href="/solutions/agencies" className="hover:text-primary transition-colors">Agencies</Link></li>
-              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors">Sales Teams</Link></li>
+              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors">Founders & Closers</Link></li>
               <li><Link href="/solutions/creators" className="hover:text-primary transition-colors">Personal Brands</Link></li>
               <li><Link href="/#calc" className="hover:text-primary transition-colors">ROI Modeling</Link></li>
             </ul>
@@ -197,9 +197,10 @@ export default function Landing() {
               <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Growth</Link></li>
               <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Erasure</Link></li>
               <li className="flex items-center gap-3 text-emerald-500">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Operational
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+                All Systems Normal
               </li>
+              <li className="text-[10px] text-white/10 font-mono">v2.4.0-stable</li>
             </ul>
           </div>
         </div>

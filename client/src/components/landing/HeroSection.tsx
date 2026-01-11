@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect, useMemo, Suspense } from "react";
 import { motion, useMotionTemplate, useMotionValue, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { ArrowRight, Star, Bot, Zap, Shield, PlayCircle, Users } from "lucide-react";
 import { Link } from "wouter";
-import { ArrowRight, Globe, Sparkles } from "lucide-react";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,8 +58,8 @@ export function HeroSection() {
             className="mb-8"
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-[10px] uppercase tracking-[0.4em] text-white/40 font-medium">
+              <Sparkles className="w-3 h-3 text-primary animate-pulse" />
+              <span className="text-[10px] uppercase tracking-[0.4em] text-white/60 font-medium">
                 NEURAL INTERFACE STATUS: OPERATIONAL
               </span>
             </div>
@@ -74,44 +74,62 @@ export function HeroSection() {
           >
             <h1 className="text-6xl md:text-9xl font-medium tracking-tight text-white leading-[1.1] max-w-5xl mx-auto">
               The next evolution of <br />
-              <span className="text-white/40">autonomous intelligence.</span>
+              <span className="text-white">autonomous intelligence.</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-white/40 max-w-2xl mx-auto font-normal leading-relaxed">
-              Deploy surgical-grade AI agents that architect revenue while you sleep.
-              Zero latency. Zero friction. Total dominance.
+            <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto font-normal leading-relaxed">
+              Deploys AI agents that fill your calendar while you sleep.
+              Zero friction. Total control. Built for high-growth creators and agencies.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-10">
               <Link href="/auth">
-                <Button size="lg" className="h-16 px-10 rounded-2xl bg-blue-600 text-white font-semibold uppercase tracking-widest text-[11px] shadow-[0_20px_40px_rgba(37,99,235,0.2)] hover:bg-blue-700 hover:scale-105 transition-all duration-300">
+                <Button size="lg" className="h-16 px-10 rounded-full bg-primary text-primary-foreground font-semibold uppercase tracking-widest text-[11px] shadow-[0_20px_40px_rgba(var(--primary),0.2)] hover:scale-105 transition-all duration-300">
                   Initialize Control <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
               <Link href="#features">
-                <Button variant="ghost" className="h-16 px-10 rounded-2xl border border-white/10 text-white/60 font-semibold uppercase tracking-widest text-[11px] hover:bg-white/5 hover:text-white transition-all">
+                <Button variant="ghost" className="h-16 px-10 rounded-full border border-white/10 text-white/60 font-semibold uppercase tracking-widest text-[11px] hover:bg-white/5 hover:text-white transition-all">
                   Explore Architecture
                 </Button>
               </Link>
             </div>
           </motion.div>
 
-          {/* Trust Indicators */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 1.5 }}
-            className="mt-32 w-full max-w-3xl flex flex-wrap justify-center items-center gap-10 text-[10px] font-medium uppercase tracking-[0.2em] text-white/10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12 mb-32"
           >
-            <div className="flex items-center gap-2">
-              <Globe className="w-3 h-3" />
-              Global Infrastructure
-            </div>
-            <div className="w-1 h-1 rounded-full bg-white/10" />
-            <div>Enterprise Encryption</div>
-            <div className="w-1 h-1 rounded-full bg-white/10" />
-            <div>Deterministic Logic</div>
+            <Link href="/auth">
+              <Button size="lg" className="h-16 px-8 rounded-full bg-primary text-black font-bold text-lg hover:bg-primary/90 transition-all shadow-[0_0_40px_-10px_rgba(var(--primary),0.5)] hover:shadow-[0_0_60px_-10px_rgba(var(--primary),0.7)] hover:scale-105">
+                Start Deploying <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="#how-it-works">
+              <Button size="lg" variant="outline" className="h-16 px-8 rounded-full border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-lg backdrop-blur-md transition-all hover:scale-105">
+                View Architecture
+              </Button>
+            </Link>
           </motion.div>
+
+          {/* Integrations Ribbon */}
+          <div className="mt-40 border-y border-white/5 bg-black/20 backdrop-blur-sm w-full py-12 overflow-hidden relative group">
+            <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+
+            <div className="flex justify-center items-center gap-16 md:gap-32 animate-marquee whitespace-nowrap">
+              {["HUBSPOT", "SALESFORCE", "SLACK", "GOHIGHLEVEL", "ZAPIER"].map((brand) => (
+                <span key={brand} className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-white/10 group-hover:text-white/40 transition-colors duration-500 cursor-default select-none">
+                  {brand}
+                </span>
+              ))}
+            </div>
+
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-black border border-white/10 rounded-full text-[9px] font-black uppercase tracking-[0.3em] text-white/30">
+              Native Integrations
+            </div>
+          </div>
         </div>
       </div>
 

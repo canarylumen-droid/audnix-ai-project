@@ -14,7 +14,7 @@ import DataDeletion from "@/pages/data-deletion";
 
 // Solutions
 const AgenciesPage = lazy(() => import("./pages/solutions/Agencies"));
-const SalesTeamsPage = lazy(() => import("./pages/solutions/SalesTeams"));
+const FoundersPage = lazy(() => import("./pages/solutions/Founders"));
 const CreatorsPage = lazy(() => import("./pages/solutions/Creators"));
 
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
@@ -60,7 +60,7 @@ function Router() {
         {() => <Suspense fallback={null}><AgenciesPage /></Suspense>}
       </Route>
       <Route path="/solutions/sales-teams">
-        {() => <Suspense fallback={null}><SalesTeamsPage /></Suspense>}
+        {() => <Suspense fallback={null}><FoundersPage /></Suspense>}
       </Route>
       <Route path="/solutions/creators">
         {() => <Suspense fallback={null}><CreatorsPage /></Suspense>}

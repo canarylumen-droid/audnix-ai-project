@@ -1,182 +1,210 @@
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { MessageSquare, Calendar, Target, Smartphone, Sparkles, Activity, Bookmark, MousePointer2 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, Calendar, Target, Smartphone, Sparkles, Activity, Bookmark, MousePointer2, Brain, History, Clock, ShieldCheck, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { useState } from "react";
 
-const capabilities = [
+const DEEP_DIVE_FEATURES = [
   {
-    title: "Lead Scoring",
-    desc: "Predictive intent analysis that surfaces high-value conversion opportunities autonomously.",
+    id: "memory",
+    title: "Permanent Active Memory",
+    subtitle: "Context That Never Expires",
+    icon: History,
+    color: "text-blue-400",
+    bg: "bg-blue-400/10",
+    border: "border-blue-400/20",
+    outcome: "Your leads feel truly heard because the AI remembers details from 3 months ago.",
+    technical: [
+      "Vector Database Persistence: Unlike generic wrappers that wipe context after the session, Audnix maintains a permanent Pinecone vector record for every specific lead handle.",
+      "Semantic Recall: If a lead mentioned 'budget issues' in January, and you reach out in March, the AI references that specific conversation: 'Hey [Name], I know timing was tight in Jan, is Q2 looking better?'",
+      "Cross-Channel Knowledge: Information gathered via Email is instantly available to the Instagram DM agent. It creates a unified 'Theory of Mind' for each prospect."
+    ]
+  },
+  {
+    id: "objections",
+    title: "Dynamic Objection Graph",
+    subtitle: "Navigate 'No' Like a Top Closer",
+    icon: Brain,
+    color: "text-purple-400",
+    bg: "bg-purple-400/10",
+    border: "border-purple-400/20",
+    outcome: "Turns 'It's too expensive' into 'When can we start?' without human intervention.",
+    technical: [
+      "Goal-Oriented Agents: We don't use static 'If/Then' scripts. We use a dynamic goal-seeking agent that understands the intent behind the objection.",
+      "Value Re-Anchoring: When a lead objects to price, the AI automatically retrieves their 'Pain Point' from the memory bank and re-anchors the price against the cost of inaction.",
+      "Soft-Looping: The agent uses 'Chris Voss' style mirroring and labeling ('It sounds like you're worried about ROI...') to lower defensiveness before moving back to the close."
+    ]
+  },
+  {
+    id: "timing",
+    title: "Behavioral Timing Matrix",
+    subtitle: "Human-Like Latency Patterns",
+    icon: Clock,
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10",
+    border: "border-emerald-400/20",
+    outcome: "Leads never suspect it's a bot because it doesn't reply instantly.",
+    technical: [
+      "Variable Latency Distribution: The AI analyzes the complexity of the inbound message. A simple 'Yes' gets a 45-second reply. A complex paragraph gets a 4-7 minute reply time to simulate reading/thinking.",
+      "Prime Activity Windows: We analyze the lead's historical posting times to determine when they are most active. Follow-up nudges are scheduled for these specific 'Green Zones' to maximize open rates.",
+      "Drop-Off Detection: If a lead ghosts, the system waits exactly 22 hours (not 24, to look natural) before sending a 'short-form' bump message."
+    ]
+  },
+  {
+    id: "sentiment",
+    title: "Instagram Intelligence",
+    subtitle: "Scoring Beyond The Bio",
     icon: Target,
-    badge: "Vector Logic",
-    features: ["Strategic prioritization", "Behavioral tracking", "Intent detection"]
-  },
-  {
-    title: "Brand Intelligence",
-    desc: "A neural layer that mirrors your business's cognitive patterns and communication ethos.",
-    icon: Bookmark,
-    badge: "Identity Sync",
-    features: ["Tone synchronization", "Detailed knowledge", "Brand-safe logic"]
-  },
-  {
-    title: "Live Audit Trail",
-    desc: "A deterministic log of every psychological shift and tactical decision made by your agents.",
-    icon: Activity,
-    badge: "Real-time Insight",
-    features: ["Conversation logs", "Decision transparency", "Real-time oversight"]
-  },
-  {
-    title: "Atomic Booking",
-    desc: "Automated finalization and meeting orchestration without human latency or friction.",
-    icon: Calendar,
-    badge: "Calendar Core",
-    features: ["Calendar sync", "Timezone master", "Soft-close expertise"]
-  },
-  {
-    title: "Objection Mastery",
-    desc: "Deterministic reframing of prospect resistance into ROI-calculated pathwards.",
-    icon: MessageSquare,
-    badge: "Tactical Response",
-    features: ["Value reframing", "Signal detection", "Risk reversal"]
-  },
-  {
-    title: "Omni-Flow DMs",
-    desc: "Unified presence across platforms that transitions seamlessly with prospect movement.",
-    icon: Smartphone,
-    badge: "Channel Unity",
-    features: ["Instagram Native", "Email Automation", "Unified Sync"]
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    border: "border-red-400/20",
+    outcome: "Stop talking to unqualified leads. We filter them out before you even say hello.",
+    technical: [
+      "Visual Profiling: The engine scans their recent 9 posts to estimate 'Business Viability'. No business content? It lowers the lead score.",
+      "Keyword Density Analysis: We scan their bio for specific negative keywords (e.g., 'Aspiring', 'Student', 'Free') and positive keywords (e.g., 'Founder', 'CEO', 'Agency') to assign a 0-100 fit score.",
+      "Intent Prediction: Based on their first DM to you, we classify them as 'Hot Lead', 'Fan/Support', or 'Tire Kicker'. Fan messages are routed to a cheaper model; Hot Leads go to the GPT-4o 'Closer' model."
+    ]
   }
 ];
 
-const FeatureCard = ({ cap, index }: { cap: any; index: number }) => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function onMouseMove({ currentTarget, clientX, clientY }: any) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1, duration: 0.8, ease: "circOut" }}
-      onMouseMove={onMouseMove}
-      className="group relative p-10 rounded-[3rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all duration-700 overflow-hidden"
-    >
-      <motion.div
-        className="pointer-events-none absolute -inset-px rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: useTransform(
-            [mouseX, mouseY],
-            ([x, y]) => `radial-gradient(600px circle at ${x}px ${y}px, rgba(var(--primary), 0.15), transparent 80%)`
-          ),
-        }}
-      />
-
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-10">
-          <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-primary/20 group-hover:border-primary/30 transition-all duration-500">
-            <cap.icon className="w-6 h-6 text-white/40 group-hover:text-primary transition-colors" />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 group-hover:text-primary/50 transition-colors">
-            {cap.badge}
-          </span>
-        </div>
-
-        <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 group-hover:translate-x-1 transition-transform duration-500">
-          {cap.title}
-        </h3>
-        <p className="text-white/40 font-bold text-md leading-tight mb-10 min-h-[4rem]">
-          {cap.desc}
-        </p>
-
-        <div className="space-y-4 pt-8 border-t border-white/5">
-          {cap.features.map((feat: string) => (
-            <div key={feat} className="flex items-center gap-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-white/10 group-hover:bg-primary transition-colors duration-500" />
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 group-hover:text-white/60 transition-colors">
-                {feat}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
 export function FeatureSection() {
+  const [expandedId, setExpandedId] = useState<string | null>("memory");
+
   return (
     <section id="features" className="py-40 px-4 relative overflow-hidden bg-black">
-      {/* Structural Grid Background */}
-      <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent)]" />
-
-      {/* Epic Ambient Glows */}
-      <div className="absolute top-1/2 left-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full translate-x-1/4 translate-y-1/4 pointer-events-none" />
+      {/* Background Grid & Glows */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex flex-col items-center text-center mb-40">
+        <div className="text-center mb-32">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.5em] mb-12 flex items-center gap-3 shadow-[0_0_30px_rgba(var(--primary),0.1)]"
+            className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-8 shadow-[0_0_20px_rgba(var(--primary),0.2)]"
           >
             <Sparkles className="w-4 h-4" />
-            Deterministic Intelligence Layers
+            Under The Hood
           </motion.div>
           <motion.h2
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-6xl md:text-9xl font-black tracking-[calc(-0.04em)] mb-12 leading-[0.85] text-white uppercase"
+            className="text-5xl md:text-8xl font-black tracking-tight leading-[0.9] text-white mb-8"
           >
-            The New Core of <br />
-            <span className="text-primary">High-Performance.</span>
+            Not A Wrapper. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary animate-gradient-x">
+              A Neural Architecture.
+            </span>
           </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-white/40 text-xl md:text-2xl max-w-3xl font-bold leading-tight"
-          >
-            We don't provide features. We deploy autonomous protocols that transform raw opportunity into confirmed revenue.
-          </motion.p>
+          <p className="text-white/40 text-xl md:text-2xl max-w-3xl mx-auto font-medium leading-relaxed">
+            Most "AI tools" are just prompt wrappers that forget you immediately. Audnix is a stateful, persistent intelligence engine designed for complex sales cycles.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {capabilities.map((cap, i) => (
-            <FeatureCard key={cap.title} cap={cap} index={i} />
-          ))}
-        </div>
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          {/* Left Side: Interactive Selector */}
+          <div className="space-y-6">
+            {DEEP_DIVE_FEATURES.map((feature, i) => (
+              <motion.div
+                key={feature.id}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                onClick={() => setExpandedId(feature.id)}
+                className={`group cursor-pointer p-8 rounded-[2rem] border transition-all duration-500 overflow-hidden relative ${expandedId === feature.id
+                  ? `bg-white/[0.03] ${feature.border} shadow-2xl`
+                  : "bg-transparent border-transparent hover:bg-white/[0.02] hover:border-white/5"
+                  }`}
+              >
+                {/* Active Indicator Glow */}
+                {expandedId === feature.id && (
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${feature.bg.replace('/10', '')} shadow-[0_0_20px_rgba(0,0,0,0.5)]`} />
+                )}
 
-        {/* Global Scaling Indicator Block */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          className="mt-32 p-12 rounded-[4rem] border border-white/5 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent text-center"
-        >
-          <div className="flex flex-col md:flex-row items-center justify-center gap-16 md:gap-32">
-            <div className="space-y-4">
-              <h4 className="text-4xl font-black text-white tracking-tighter">99.98%</h4>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Operational Availability</p>
-            </div>
-            <div className="w-px h-12 bg-white/5 hidden md:block" />
-            <div className="space-y-4">
-              <h4 className="text-4xl font-black text-white tracking-tighter">&lt; 800ms</h4>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Neural Response Latency</p>
-            </div>
-            <div className="w-px h-12 bg-white/5 hidden md:block" />
-            <div className="space-y-4">
-              <h4 className="text-4xl font-black text-white tracking-tighter">14 Zones</h4>
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Edge Processing Capacity</p>
-            </div>
+                <div className="flex items-start gap-6">
+                  <div className={`w-14 h-14 rounded-2xl ${expandedId === feature.id ? feature.bg : "bg-white/5"} border ${expandedId === feature.id ? feature.border : "border-white/5"} flex items-center justify-center transition-colors duration-500 group-hover:scale-110`}>
+                    <feature.icon className={`w-7 h-7 ${expandedId === feature.id ? feature.color : "text-white/20"} transition-colors duration-500`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className={`text-2xl font-bold mb-2 transition-colors ${expandedId === feature.id ? "text-white" : "text-white/50 group-hover:text-white/80"}`}>
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm font-black uppercase tracking-[0.2em] text-white/30 group-hover:text-white/50 transition-colors">
+                      {feature.subtitle}
+                    </p>
+                  </div>
+                  <div className={`w-8 h-8 rounded-full border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all ${expandedId === feature.id ? "opacity-100 rotate-90" : ""}`}>
+                    <ChevronDown className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </motion.div>
+
+          {/* Right Side: Detail View */}
+          <div className="relative min-h-[600px]">
+            <AnimatePresence mode="wait">
+              {DEEP_DIVE_FEATURES.map((feature) => (
+                expandedId === feature.id && (
+                  <motion.div
+                    key={feature.id}
+                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                    transition={{ duration: 0.4, ease: "circOut" }}
+                    className="absolute inset-0"
+                  >
+                    <div className={`h-full p-12 rounded-[3rem] border ${feature.border} bg-black/80 backdrop-blur-3xl relative overflow-hidden flex flex-col shadow-2xl`}>
+                      {/* Ambient Glow */}
+                      <div className={`absolute top-0 right-0 w-[400px] h-[400px] ${feature.bg} blur-[120px] rounded-full opacity-30 pointer-events-none`} />
+
+                      <div className="relative z-10 h-full flex flex-col">
+                        <div className="inline-flex items-center gap-3 mb-8 text-white/30 font-mono text-xs tracking-widest">
+                          <span className={feature.color}>// SYSTEM_ARCHITECTURE</span>
+                          <span>::</span>
+                          <span className="uppercase">{feature.id}</span>
+                        </div>
+
+                        <h3 className="text-3xl md:text-4xl font-black text-white mb-8 leading-tight pl-6 border-l-4 border-primary">
+                          {feature.outcome}
+                        </h3>
+
+                        <div className="space-y-8 flex-1 overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                          <div className="p-8 rounded-3xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors">
+                            <h4 className="text-xs font-black uppercase tracking-[0.2em] text-white mb-6 flex items-center gap-3">
+                              <Zap className="w-4 h-4 text-yellow-400" />
+                              Technical Breakdown
+                            </h4>
+                            <ul className="space-y-6">
+                              {feature.technical.map((tech, i) => (
+                                <li key={i} className="flex gap-4 group/item">
+                                  <div className="mt-2 w-1.5 h-1.5 rounded-full bg-white/20 group-hover/item:bg-primary transition-colors duration-300 flex-shrink-0" />
+                                  <p className="text-white/60 text-sm leading-loose font-medium group-hover/item:text-white/90 transition-colors duration-300">
+                                    {tech}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] text-white/20 pt-8 border-t border-white/5">
+                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                            Production Ready
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            latency &lt; 50ms
+                            <span className="w-1 h-1 rounded-full bg-white/20" />
+                            99.9% Uptime
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              ))}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
     </section>
   );
