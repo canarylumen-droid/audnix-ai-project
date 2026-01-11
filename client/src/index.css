@@ -585,3 +585,146 @@
     transform: translateX(100%);
   }
 }
+
+/* ============================================
+   PREMIUM CUSTOM SCROLLBAR
+   Matches Audnix branding, cursor compatible
+   ============================================ */
+
+/* WebKit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.4) 0%, rgba(0, 150, 200, 0.3) 100%);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.7) 0%, rgba(0, 180, 230, 0.6) 100%);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.3) 0%, rgba(0, 120, 180, 0.2) 100%);
+  background-clip: padding-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.6) 0%, rgba(0, 160, 220, 0.5) 100%);
+  background-clip: padding-box;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 210, 255, 0.3) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(0, 210, 255, 0.25) rgba(255, 255, 255, 0.03);
+}
+
+/* Hide cursor on scrollbar for consistency */
+::-webkit-scrollbar,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb {
+  cursor: none !important;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE UTILITIES
+   Prevents overlapping on low-end devices
+   ============================================ */
+
+/* Safe area handling for mobile */
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+}
+
+/* Prevent text/element overflow on mobile */
+@media (max-width: 640px) {
+
+  .container,
+  section,
+  main {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-size: clamp(1.75rem, 8vw, 3.5rem) !important;
+    word-break: break-word;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 6vw, 2.5rem) !important;
+    word-break: break-word;
+  }
+
+  /* Prevent horizontal scrolling */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Cards fit screen */
+  .grid {
+    gap: 1rem;
+  }
+}
+
+/* Super low-end device optimizations */
+@media (max-width: 360px) {
+  html {
+    font-size: 14px;
+  }
+
+  .px-4,
+  .px-6,
+  .px-8 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+
+  /* Larger touch targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Disable hover effects that feel wrong on touch */
+  .hover\:scale-105:hover {
+    transform: none;
+  }
+}

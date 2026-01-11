@@ -84,11 +84,11 @@ export function ExpertChat() {
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-open after 10 seconds
+    // Auto-open after 15 seconds (changed from 10)
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsOpen(true);
-        }, 10000);
+        }, 15000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -97,6 +97,17 @@ export function ExpertChat() {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, isTyping]);
+
+    // Reset conversation when closed (not minimized)
+    const handleClose = () => {
+        setIsOpen(false);
+        setIsMinimized(false);
+        // Reset to initial message
+        setMessages([
+            { role: 'ai', content: "Hello! I am your Audnix Assistant. I can answer any questions you have about our sales engine or help you get started. How can I assist you today?" }
+        ]);
+        setInput("");
+    };
 
     const findPresetAnswer = (query: string) => {
         const lowerQuery = query.toLowerCase();
@@ -194,7 +205,7 @@ export function ExpertChat() {
                                 <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/60 hover:text-white">
                                     <Minus className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/60 hover:text-white">
+                                <button onClick={handleClose} className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/60 hover:text-white">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>

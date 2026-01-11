@@ -2,12 +2,36 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { ShieldCheck, X } from "lucide-react";
 
+// ============================================
+// COOKIE UTILITY FUNCTIONS
+// Uses actual HTTP cookies, not localStorage
+// ============================================
+const setCookie = (name: string, value: string, days: number) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+};
+
+const getCookie = (name: string): string | null => {
+    const nameEQ = name + "=";
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+        let c = cookies[i].trim();
+        if (c.indexOf(nameEQ) === 0) {
+            return c.substring(nameEQ.length, c.length);
+        }
+    }
+    return null;
+};
+
 export function CookieConsent() {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        const consent = localStorage.getItem("audnix_cookie_consent");
+        // Check for actual cookie (not localStorage)
+        const consent = getCookie("audnix_consent");
         const declined = sessionStorage.getItem("audnix_cookie_declined");
+
         if (!consent && !declined) {
             const timer = setTimeout(() => setIsVisible(true), 2500);
             return () => clearTimeout(timer);
@@ -15,12 +39,38 @@ export function CookieConsent() {
     }, []);
 
     const accept = () => {
+        // Set actual HTTP cookie that expires in 365 days
+        setCookie("audnix_consent", "accepted", 365);
+
+        // Also set localStorage for backward compatibility
         localStorage.setItem("audnix_cookie_consent", "true");
+
+        // Enable analytics if gtag exists
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+            (window as any).gtag('consent', 'update', {
+                'analytics_storage': 'granted',
+                'ad_storage': 'granted',
+            });
+        }
+
         setIsVisible(false);
     };
 
     const decline = () => {
+        // Set session flag (disappears when browser closes)
         sessionStorage.setItem("audnix_cookie_declined", "true");
+
+        // Set minimal consent cookie (required for GDPR compliance)
+        setCookie("audnix_consent", "declined", 30);
+
+        // Disable analytics
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+            (window as any).gtag('consent', 'update', {
+                'analytics_storage': 'denied',
+                'ad_storage': 'denied',
+            });
+        }
+
         setIsVisible(false);
     };
 

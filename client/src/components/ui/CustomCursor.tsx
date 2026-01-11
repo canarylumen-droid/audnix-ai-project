@@ -1,122 +1,107 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 
 // ============================================
-// MACBOOK-STYLE POINTER CURSOR (Dashboard/Onboarding)
-// Clean, minimal Apple aesthetic - White Arrow
+// ZERO-LAG CUSTOM CURSOR
+// Uses direct DOM manipulation for instant response
+// No React state = No re-renders = Zero lag
 // ============================================
-const HandCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
-    <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{
-            filter: isClicked
-                ? "drop-shadow(0 0 8px rgba(0, 210, 255, 0.6))"
-                : "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-            transition: "filter 0.15s ease"
-        }}
-    >
-        {/* MacBook-style pointer arrow */}
-        <path
-            d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
-            fill="white"
-            stroke="#1e293b"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
-
-// ============================================
-// PREMIUM ROUNDED ARROW CURSOR (Landing/Auth)
-// Ocean Blue (#00d2ff) gradient, high-end feel
-// ============================================
-const ArrowCursorSVG = ({ isClicked }: { isClicked: boolean }) => (
-    <svg
-        width="28"
-        height="28"
-        viewBox="0 0 28 28"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{
-            filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.2))",
-            transition: "transform 0.1s ease"
-        }}
-    >
-        <defs>
-            <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#ffffff" />
-                <stop offset="100%" stopColor="#e0f9ff" />
-            </linearGradient>
-        </defs>
-        <path
-            d="M5.5 3.5L13 22.5L16.5 15.5L23.5 13L5.5 3.5Z"
-            fill="url(#ocean-gradient)"
-            stroke="#00d2ff"
-            strokeWidth="2"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-        />
-    </svg>
-);
 
 export const CustomCursor = () => {
     const [location] = useLocation();
     const isDashboardOrOnboarding = location.startsWith("/dashboard") || location.startsWith("/onboarding");
 
-    const [position, setPosition] = useState({ x: -100, y: -100 });
-    const [isVisible, setIsVisible] = useState(false);
-    const [isClicked, setIsClicked] = useState(false);
-    const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+    const cursorRef = useRef<HTMLDivElement>(null);
+    const rippleContainerRef = useRef<HTMLDivElement>(null);
+    const positionRef = useRef({ x: -100, y: -100 });
+    const isClickedRef = useRef(false);
+    const rafRef = useRef<number>(0);
 
-    const handleMouseMove = useCallback((e: MouseEvent) => {
-        setPosition({ x: e.clientX, y: e.clientY });
-        if (!isVisible) setIsVisible(true);
-    }, [isVisible]);
-
-    const handleMouseDown = useCallback((e: MouseEvent) => {
-        setIsClicked(true);
-        const rippleId = Date.now();
-        setRipples(prev => [...prev, { id: rippleId, x: e.clientX, y: e.clientY }]);
-        setTimeout(() => {
-            setRipples(prev => prev.filter(r => r.id !== rippleId));
-        }, 600);
-    }, []);
-
-    const handleMouseUp = useCallback(() => {
-        setIsClicked(false);
-    }, []);
+    // Direct DOM update - bypasses React for instant response
+    const updateCursorPosition = useCallback(() => {
+        if (cursorRef.current) {
+            const offset = isDashboardOrOnboarding ? 'translate(-6px, -2px)' : 'translate(-2px, -2px)';
+            cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset}`;
+        }
+    }, [isDashboardOrOnboarding]);
 
     useEffect(() => {
-        const handleMouseLeave = () => setIsVisible(false);
-        const handleMouseEnter = () => setIsVisible(true);
-
-        document.body.style.cursor = 'none';
-        document.documentElement.style.cursor = 'none';
-
+        // Hide default cursor
         const style = document.createElement('style');
         style.id = 'audnix-cursor-styles';
         style.textContent = `
             *, *::before, *::after { cursor: none !important; }
             html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
+            ::-webkit-scrollbar { cursor: none !important; }
+            ::-webkit-scrollbar-thumb { cursor: none !important; }
         `;
         document.head.appendChild(style);
 
+        const handleMouseMove = (e: MouseEvent) => {
+            positionRef.current = { x: e.clientX, y: e.clientY };
+
+            // Use requestAnimationFrame for smooth 60fps updates
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+            rafRef.current = requestAnimationFrame(updateCursorPosition);
+
+            // Show cursor
+            if (cursorRef.current) {
+                cursorRef.current.style.opacity = '1';
+            }
+        };
+
+        const handleMouseDown = (e: MouseEvent) => {
+            isClickedRef.current = true;
+            if (cursorRef.current) {
+                cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) scale(0.8)`;
+            }
+
+            // Create ripple directly in DOM
+            if (rippleContainerRef.current) {
+                const ripple = document.createElement('div');
+                ripple.className = 'cursor-ripple';
+                ripple.style.cssText = `
+                    position: absolute;
+                    left: ${e.clientX}px;
+                    top: ${e.clientY}px;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    border: 1px solid #00d2ff;
+                    transform: translate(-50%, -50%) scale(0);
+                    opacity: 0.8;
+                    box-shadow: 0 0 15px rgba(0,210,255,0.5);
+                    pointer-events: none;
+                    animation: ripple-expand 0.5s ease-out forwards;
+                `;
+                rippleContainerRef.current.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 500);
+            }
+        };
+
+        const handleMouseUp = () => {
+            isClickedRef.current = false;
+            updateCursorPosition();
+        };
+
+        const handleMouseLeave = () => {
+            if (cursorRef.current) cursorRef.current.style.opacity = '0';
+        };
+
+        const handleMouseEnter = () => {
+            if (cursorRef.current) cursorRef.current.style.opacity = '1';
+        };
+
         window.addEventListener("mousemove", handleMouseMove, { passive: true });
-        window.addEventListener("mousedown", handleMouseDown);
-        window.addEventListener("mouseup", handleMouseUp);
+        window.addEventListener("mousedown", handleMouseDown, { passive: true });
+        window.addEventListener("mouseup", handleMouseUp, { passive: true });
         document.body.addEventListener("mouseleave", handleMouseLeave);
         document.body.addEventListener("mouseenter", handleMouseEnter);
 
         return () => {
-            document.body.style.cursor = 'auto';
-            document.documentElement.style.cursor = 'auto';
             const styleEl = document.getElementById('audnix-cursor-styles');
             if (styleEl) styleEl.remove();
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
 
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mousedown", handleMouseDown);
@@ -124,59 +109,67 @@ export const CustomCursor = () => {
             document.body.removeEventListener("mouseleave", handleMouseLeave);
             document.body.removeEventListener("mouseenter", handleMouseEnter);
         };
-    }, [handleMouseMove, handleMouseDown, handleMouseUp]);
-
-    if (!isVisible) return null;
+    }, [updateCursorPosition]);
 
     return (
-        <div className="fixed inset-0 pointer-events-none z-[999999] hidden lg:block overflow-hidden">
-            <AnimatePresence>
-                {ripples.map((ripple) => (
-                    <motion.div
-                        key={ripple.id}
-                        initial={{ scale: 0, opacity: 0.8 }}
-                        animate={{ scale: 2.5, opacity: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.6, ease: "easeOut" }}
-                        style={{
-                            position: 'absolute',
-                            left: ripple.x,
-                            top: ripple.y,
-                            transform: 'translate(-50%, -50%)',
-                            boxShadow: "0 0 15px rgba(0,210,255,0.5)"
-                        }}
-                        className="w-8 h-8 rounded-full border border-[#00d2ff]"
-                    />
-                ))}
-            </AnimatePresence>
+        <>
+            {/* Inline keyframes for ripple animation */}
+            <style>{`
+                @keyframes ripple-expand {
+                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; }
+                    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+                }
+            `}</style>
 
-            <motion.div
+            {/* Ripple container */}
+            <div
+                ref={rippleContainerRef}
+                className="fixed inset-0 pointer-events-none z-[999998] hidden lg:block overflow-hidden"
+            />
+
+            {/* Main cursor - uses will-change for GPU acceleration */}
+            <div
+                ref={cursorRef}
+                className="fixed top-0 left-0 pointer-events-none z-[999999] hidden lg:block"
                 style={{
-                    position: 'absolute',
-                    left: position.x,
-                    top: position.y,
-                    transform: isDashboardOrOnboarding
-                        ? 'translate(-6px, -2px)'
-                        : 'translate(-2px, -2px)',
-                }}
-                animate={{
-                    scale: isClicked ? 0.7 : 1, // Stronger bounce
-                    y: isClicked ? 8 : 0,       // Deeper press
-                    rotate: isClicked ? -12 : 0 // Stronger tilt
-                }}
-                transition={{
-                    type: "spring",
-                    stiffness: 800,
-                    damping: 15, // Less damping for more bounce
-                    mass: 0.5
+                    opacity: 0,
+                    willChange: 'transform',
+                    transition: 'opacity 0.15s ease',
                 }}
             >
                 {isDashboardOrOnboarding ? (
-                    <HandCursorSVG isClicked={isClicked} />
+                    // MacBook-style white arrow for Dashboard
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
+                            fill="white"
+                            stroke="#1e293b"
+                            strokeWidth="1.5"
+                            strokeLinejoin="round"
+                            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                        />
+                    </svg>
                 ) : (
-                    <ArrowCursorSVG isClicked={isClicked} />
+                    // Premium ocean arrow for Landing
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" />
+                                <stop offset="100%" stopColor="#e0f9ff" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d="M5.5 3.5L13 22.5L16.5 15.5L23.5 13L5.5 3.5Z"
+                            fill="url(#ocean-gradient)"
+                            stroke="#00d2ff"
+                            strokeWidth="2"
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                            style={{ filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }}
+                        />
+                    </svg>
                 )}
-            </motion.div>
-        </div>
+            </div>
+        </>
     );
 };
