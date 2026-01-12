@@ -109,6 +109,29 @@ class PaymentAutoApprovalWorker {
         }
       }
 
+      // 3. Process whitelisted users (Dynamic check from ENV)
+      const whitelistRaw = process.env.WHITELISTED_EMAILS || '';
+      const whitelist = whitelistRaw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      
+      if (whitelist.length > 0) {
+        const usersToUpgrade = users.filter(u => 
+          whitelist.includes(u.email.toLowerCase()) && u.plan !== 'pro'
+        );
+        
+        for (const user of usersToUpgrade) {
+          try {
+            await storage.updateUser(user.id, {
+              plan: 'pro',
+              paymentStatus: 'approved',
+              paymentApprovedAt: now
+            });
+            console.log(`💎 WHITELIST UPGRADE: ${user.email} -> pro plan (granted via whitelist)`);
+          } catch (err: any) {
+            console.error(`❌ Whitelist upgrade error for ${user.email}:`, err.message);
+          }
+        }
+      }
+
       this.stats.lastRun = now;
       this.lastLogTime = currentTime; // Update last log time when activity occurs
     } catch (error: any) {

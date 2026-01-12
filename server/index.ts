@@ -211,14 +211,7 @@ app.use((req, res, next) => {
     'https://audnixai.com',
     'https://www.audnixai.com',
     'http://localhost:5000',
-    'https://localhost:5000',
-    `http://0.0.0.0:5000`,
-    `https://0.0.0.0:5000`,
-    'test1@audnixai.com',
-    'test2@audnixai.com',
-    'test3@audnixai.com',
-    'test4@audnixai.com',
-    'test5@audnixai.com'
+    'https://localhost:5000'
   ].filter((url): url is string => Boolean(url));
 
   const origin = req.get('origin') || req.get('referer');
