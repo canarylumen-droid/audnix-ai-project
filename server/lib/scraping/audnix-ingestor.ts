@@ -1,5 +1,5 @@
 import { db } from "../../db.js";
-import { prospects, users } from "../../shared/schema.js";
+import { prospects, users } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { wsSync } from "../websocket-sync.js";

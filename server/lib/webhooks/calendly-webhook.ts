@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from "../../db.js";
-import { calendarBookings, integrations, notifications } from "../../shared/schema.js";
+import { calendarBookings, integrations, notifications } from "../../../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import crypto from 'crypto';
 import { wsSync } from "../websocket-sync.js";
@@ -177,4 +177,11 @@ async function handleMeetingCancelled(event: CalendlyWebhookEvent): Promise<void
   } catch (error) {
     console.error('Error in handleMeetingCancelled:', error);
   }
+}
+
+/**
+ * Handle Calendly verification ping
+ */
+export function handleCalendlyVerification(req: Request, res: Response): void {
+  res.status(200).json({ ok: true, message: 'Calendly webhook verified' });
 }

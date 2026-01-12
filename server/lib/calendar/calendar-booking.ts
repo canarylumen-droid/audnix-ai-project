@@ -75,7 +75,7 @@ export async function getAvailableTimeSlots(
   try {
     const { calendarSettings } = await import('../../../shared/schema.js');
     const { eq } = await import('drizzle-orm');
-    const { db } = await import('../db.js');
+    const { db } = await import('../../db.js');
 
     // Get user's timezone from settings
     const [settings] = await db

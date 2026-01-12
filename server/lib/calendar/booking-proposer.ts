@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCalendlySlots, createCalendlyEvent } from "./calendly.js";
 import { db } from "../../db.js";
-import { calendarSettings, integrations } from "../../shared/schema.js";
+import { calendarSettings, integrations } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");

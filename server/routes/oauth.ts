@@ -301,7 +301,7 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     await storage.createIntegration({
       userId: stateData.userId,
       provider: 'gmail',
-      accountType: gmailProfile.emailAddress,
+      accountType: gmailProfile.emailAddress as any,
       encryptedMeta: encrypt(JSON.stringify({
         email: gmailProfile.emailAddress,
         name: userProfile.name,
@@ -549,27 +549,28 @@ router.get('/google-calendar/events', async (req: Request, res: Response): Promi
       await storage.updateIntegration(userId, 'google_calendar', {
         encryptedMeta: encrypt(JSON.stringify(updatedTokens)),
       });
-
-      const rawEvents: CalendarEventData[] = await googleCalendarOAuth.listUpcomingEvents(accessToken);
-
-      const events = rawEvents.map((event: CalendarEventData) => ({
-        id: event.id,
-        title: event.summary || 'Untitled Event',
-        startTime: event.start?.dateTime || event.start?.date,
-        endTime: event.end?.dateTime || event.end?.date,
-        leadName: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || null,
-        meetingUrl: event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null,
-        isAiBooked: event.description?.includes('AI Scheduled') || false,
-        location: event.location || null,
-        description: event.description || null,
-      }));
-
-      res.json({ events });
-    } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      res.status(500).json({ error: 'Failed to fetch events' });
     }
-  });
+
+    const rawEvents: CalendarEventData[] = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+
+    const events = rawEvents.map((event: CalendarEventData) => ({
+      id: event.id,
+      title: event.summary || 'Untitled Event',
+      startTime: event.start?.dateTime || event.start?.date,
+      endTime: event.end?.dateTime || event.end?.date,
+      leadName: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || null,
+      meetingUrl: event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null,
+      isAiBooked: event.description?.includes('AI Scheduled') || false,
+      location: event.location || null,
+      description: event.description || null,
+    }));
+
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching calendar events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+});
 
 // ==================== CALENDLY OAUTH ====================
 
@@ -630,7 +631,7 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
     await storage.createIntegration({
       userId: userId,
       provider: 'calendly',
-      accountType: tokenData.user?.email || 'Calendly (OAuth)',
+      accountType: (tokenData.user?.email || 'Calendly (OAuth)') as any,
       encryptedMeta: encryptedMeta,
       connected: true,
       lastSync: new Date()

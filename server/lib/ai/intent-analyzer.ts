@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { storage } from '../../storage.js';
+import { type Message } from '../../../shared/schema.js';
 
 export interface IntentAnalysis {
   isInterested: boolean;
@@ -24,11 +25,7 @@ export interface Lead {
   created_at?: string;
 }
 
-interface Message {
-  content: string;
-  role: string;
-  created_at?: string;
-}
+
 
 interface AnalysisRecord {
   analysis: IntentAnalysis;
@@ -188,11 +185,7 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
   };
 }
 
-/**
- * Analyze conversation for auto-conversion
- */
-return (intent.readyToBuy && intent.confidence > 0.8) ||
-  (intent.wantsToSchedule && intent.confidence > 0.7);
+
 
 export async function suggestLeadTags(lead: Lead, latestMessage?: string, analysis?: IntentAnalysis): Promise<string[]> {
   try {
@@ -253,7 +246,7 @@ export async function calculateLeadQualityScore(lead: Lead): Promise<{
 
   const messageCount = messages?.length || 0;
   const responseRate = messages ?
-    messages.filter((m: Message) => m.role === 'user').length / Math.max(1, messages.filter((m: Message) => m.role === 'assistant').length) : 0;
+    messages.filter((m: Message) => m.direction === 'inbound').length / Math.max(1, messages.filter((m: Message) => m.direction === 'outbound').length) : 0;
   const engagementScore = Math.min(100, (messageCount * 10) + (responseRate * 30));
 
   const recentAnalyses = analyses?.map((a: AnalysisRecord) => a.analysis) || [];
@@ -264,7 +257,7 @@ export async function calculateLeadQualityScore(lead: Lead): Promise<{
 
   const fitScore = calculateFitScore(lead);
 
-  const lastMessageDate = messages?.[0]?.created_at ? new Date(messages[0].created_at) : new Date(lead.created_at || Date.now());
+  const lastMessageDate = messages?.[0]?.createdAt ? new Date(messages[0].createdAt) : new Date(lead.created_at || Date.now());
   const daysSinceLastMessage = (Date.now() - lastMessageDate.getTime()) / (1000 * 60 * 60 * 24);
   const timingScore = Math.max(0, 100 - (daysSinceLastMessage * 5));
 
