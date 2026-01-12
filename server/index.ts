@@ -369,6 +369,17 @@ async function runMigrations() {
 }
 
 (async () => {
+  // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
+  // Register BEFORE Vite middleware to ensure they're always accessible
+  app.get('/health', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+  app.get('/api/health', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Register API routes first (creates the HTTP server)
   const server = await registerRoutes(app);
 
@@ -392,16 +403,6 @@ async function runMigrations() {
   }
 
   const PORT = parseInt(process.env.PORT || '5000', 10);
-
-  // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
-  app.get('/health', (_req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-  app.get('/api/health', (_req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
 
   const serverInstance = server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
