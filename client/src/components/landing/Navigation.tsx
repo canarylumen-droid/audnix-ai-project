@@ -9,6 +9,7 @@ import { Magnetic } from "@/components/ui/Magnetic";
 const SOLUTIONS = [
   {
     name: "For Agencies",
+    displayName: <>For <i className="italic font-black text-primary">Agencies</i></>,
     desc: "Scale your client outreach without increasing headcount.",
     icon: LayoutGrid,
     badge: "Scale",
@@ -16,6 +17,7 @@ const SOLUTIONS = [
   },
   {
     name: "For Founders",
+    displayName: <>For <i className="italic font-black text-primary">Founders</i></>,
     desc: "Clone yourself and close deals without being on calls.",
     icon: Zap,
     badge: "Velocity",
@@ -23,6 +25,7 @@ const SOLUTIONS = [
   },
   {
     name: "For Creators",
+    displayName: <>For <i className="italic font-black text-primary">Creators</i></>,
     desc: "Monetize your audience with 24/7 AI engagement.",
     icon: Brain,
     badge: "New",
@@ -44,9 +47,10 @@ export function Navigation() {
   }, []);
 
   const navLinks = [
-    { name: "How it works", href: "#how-it-works" },
-    { name: "ROI Calculator", href: "#calc" },
-    { name: "Pricing", href: "#pricing" },
+    { name: "Find Leads", href: "/find-leads" },
+    { name: "How it works", href: "/#how-it-works" },
+    { name: "ROI Calculator", href: "/#calc" },
+    { name: "Pricing", href: "/#pricing" },
   ];
 
   return (
@@ -97,7 +101,7 @@ export function Navigation() {
                             </div>
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-foreground">{sol.name}</span>
+                                <span className="text-sm font-bold text-foreground">{sol.displayName || sol.name}</span>
                                 <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-bold uppercase tracking-wider">
                                   {sol.badge}
                                 </span>
@@ -151,6 +155,24 @@ export function Navigation() {
                     className="absolute top-full left-0 mt-2 bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 min-w-[220px] shadow-2xl"
                   >
                     <div className="grid gap-1">
+                      <Link href="/resources/niche-vault">
+                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                          <LayoutGrid className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Niche Vault (20+)</span>
+                        </div>
+                      </Link>
+                      <Link href="/resources/outreach-playbooks">
+                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                          <Zap className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Outreach Playbooks</span>
+                        </div>
+                      </Link>
+                      <Link href="/resources/api-docs">
+                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
+                          <Brain className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-bold uppercase tracking-wider">Engineering Docs</span>
+                        </div>
+                      </Link>
                       <div
                         className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors"
                         onClick={() => document.getElementById('privacy-modal')?.classList.remove('hidden')}

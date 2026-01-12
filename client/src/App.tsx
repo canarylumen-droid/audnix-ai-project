@@ -17,6 +17,10 @@ const AgenciesPage = lazy(() => import("./pages/solutions/Agencies"));
 const FoundersPage = lazy(() => import("./pages/solutions/Founders"));
 const CreatorsPage = lazy(() => import("./pages/solutions/Creators"));
 const ComparePage = lazy(() => import("./pages/compare"));
+const FindLeadsPage = lazy(() => import("./pages/find-leads"));
+const NicheVaultPage = lazy(() => import("./pages/resources/niche-vault"));
+const PlaybooksPage = lazy(() => import("./pages/resources/outreach-playbooks"));
+const ApiDocsPage = lazy(() => import("./pages/resources/api-docs"));
 
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 const ConversationsPage = lazy(() => import("./pages/dashboard/conversations"));
@@ -57,6 +61,18 @@ function Router() {
       <Route path="/data-deletion" component={DataDeletion} />
       <Route path="/compare">
         {() => <Suspense fallback={null}><ComparePage /></Suspense>}
+      </Route>
+      <Route path="/find-leads">
+        {() => <Suspense fallback={null}><FindLeadsPage /></Suspense>}
+      </Route>
+      <Route path="/resources/niche-vault">
+        {() => <Suspense fallback={null}><NicheVaultPage /></Suspense>}
+      </Route>
+      <Route path="/resources/outreach-playbooks">
+        {() => <Suspense fallback={null}><PlaybooksPage /></Suspense>}
+      </Route>
+      <Route path="/resources/api-docs">
+        {() => <Suspense fallback={null}><ApiDocsPage /></Suspense>}
       </Route>
 
       {/* Solutions */}

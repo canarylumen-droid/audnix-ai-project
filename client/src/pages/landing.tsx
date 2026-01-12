@@ -187,10 +187,10 @@ export default function Landing() {
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Intelligence</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="#features" className="hover:text-primary transition-colors">Neural Core</Link></li>
-              <li><Link href="#how-it-works" className="hover:text-primary transition-colors">Automation Flow</Link></li>
-              <li><Link href="/compare" className="hover:text-primary transition-colors">Compare Tools</Link></li>
-              <li><Link href="#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
+              <li><Link href="/find-leads" className="hover:text-primary transition-colors">Neural Core (Find Leads)</Link></li>
+              <li><Link href="/resources/niche-vault" className="hover:text-primary transition-colors">Niche Vault (20+)</Link></li>
+              <li><Link href="/resources/outreach-playbooks" className="hover:text-primary transition-colors">Outreach Playbooks</Link></li>
+              <li><Link href="/#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
               <li><Link href="/auth" className="hover:text-primary transition-colors">Access Console</Link></li>
             </ul>
           </div>
@@ -216,7 +216,7 @@ export default function Landing() {
           </p>
           <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-white/10">
             <Link href="#" className="hover:text-white transition-colors">Global Status</Link>
-            <Link href="#" className="hover:text-white transition-colors">API Documentation</Link>
+            <Link href="/resources/api-docs" className="hover:text-white transition-colors">API Documentation</Link>
           </div>
         </div>
       </footer>
