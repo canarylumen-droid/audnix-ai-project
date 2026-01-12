@@ -439,52 +439,56 @@ async function runMigrations() {
       // 1. Run migrations
       await runMigrations();
 
-      // 2. Start workers
-      const { db } = await import('./db.js');
-      const hasDatabase = process.env.DATABASE_URL && db;
-      const hasSupabase = isSupabaseAdminConfigured();
+      // Start workers only if NOT on Vercel
+      const isVercel = process.env.VERCEL === '1';
+      if (!isVercel) {
+        // 2. Start workers (only on persistent servers like Railway/Local)
+        const { db } = await import('./db.js');
+        const hasDatabase = process.env.DATABASE_URL && db;
+        const hasSupabase = isSupabaseAdminConfigured();
 
-      if (hasDatabase && hasSupabase && supabaseAdmin) {
-        console.log('🤖 Starting AI workers...');
-        workerHealthMonitor.registerWorker('follow-up-worker');
-        workerHealthMonitor.registerWorker('video-comment-monitor');
-        workerHealthMonitor.registerWorker('lead-learning');
-        workerHealthMonitor.registerWorker('oauth-token-refresh');
-        workerHealthMonitor.start();
+        if (hasDatabase && hasSupabase && supabaseAdmin) {
+          console.log('🤖 Starting AI workers...');
+          workerHealthMonitor.registerWorker('follow-up-worker');
+          workerHealthMonitor.registerWorker('video-comment-monitor');
+          workerHealthMonitor.registerWorker('lead-learning');
+          workerHealthMonitor.registerWorker('oauth-token-refresh');
+          workerHealthMonitor.start();
 
-        followUpWorker.start();
-        startVideoCommentMonitoring();
+          followUpWorker.start();
+          startVideoCommentMonitoring();
 
-        const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
-        startLeadLearning();
+          const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
+          startLeadLearning();
 
-        const { GmailOAuth } = await import('./lib/oauth/gmail.js');
-        setInterval(() => {
-          GmailOAuth.refreshExpiredTokens()
-            .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
-            .catch((err) => {
-              console.error(err);
-              workerHealthMonitor.recordError('oauth-token-refresh', err.message);
-            });
-        }, 30 * 60 * 1000);
-      }
-
-      if (hasDatabase) {
-        console.log('📬 Starting email workers...');
-        emailSyncWorker.start();
-
-        // Start real-time IMAP IDLE if available
-        try {
-          const { imapIdleManager } = await import('./lib/email/imap-idle-manager.js');
-          imapIdleManager.start();
-        } catch (err) {
-          console.warn('⚠️ Could not start IMAP IDLE manager:', err);
+          const { GmailOAuth } = await import('./lib/oauth/gmail.js');
+          setInterval(() => {
+            GmailOAuth.refreshExpiredTokens()
+              .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
+              .catch((err) => {
+                console.error(err);
+                workerHealthMonitor.recordError('oauth-token-refresh', err.message);
+              });
+          }, 30 * 60 * 1000);
         }
 
-        paymentAutoApprovalWorker.start();
+        if (hasDatabase) {
+          console.log('📬 Starting email workers...');
+          emailSyncWorker.start();
+
+          // Start real-time IMAP IDLE if available
+          try {
+            const { imapIdleManager } = await import('./lib/email/imap-idle-manager.js');
+            imapIdleManager.start();
+          } catch (err) {
+            console.warn('⚠️ Could not start IMAP IDLE manager:', err);
+          }
+
+          paymentAutoApprovalWorker.start();
+        }
       }
-    } catch (error: any) {
-      console.error('⚠️ Background worker/migration status:', error.message);
+    } catch (err) {
+      console.error('❌ Failed to initialize background workers:', err);
     }
   })();
 })();
