@@ -34,7 +34,7 @@ import { AuthGuard } from '@/components/auth-guard';
 import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ExpertChat } from "@/components/landing/ExpertChat";
 
-const MockupDemo = lazy(() => import("./mockup/LiveCallModeDemo"));
+
 
 const PricingPage = lazy(() => import("./pages/dashboard/pricing"));
 const SettingsPage = lazy(() => import("./pages/dashboard/settings"));
@@ -234,15 +234,6 @@ function Router() {
           <AuthGuard adminOnly={true}>
             <AdminSettings />
           </AuthGuard>
-        )}
-      </Route>
-
-      {/* Mockup Demo - Isolated, no auth, for investor/marketing screenshots */}
-      <Route path="/mockup-demo">
-        {() => (
-          <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="text-white">Loading...</div></div>}>
-            <MockupDemo />
-          </Suspense>
         )}
       </Route>
 
