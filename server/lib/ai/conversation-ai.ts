@@ -10,9 +10,14 @@ import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js
 import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
 import { BookingProposer } from '../calendar/booking-proposer.js';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Conversation AI will use fallback responses.');
+}
 
 const isDemoMode = false;
 
@@ -496,6 +501,10 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       }
     }
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -574,6 +583,10 @@ Requirements:
 Script:`;
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

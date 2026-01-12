@@ -27,9 +27,14 @@ interface CachedPdfData {
   created_at: Date;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. PDF analysis will use fallback logic.');
+}
 
 interface BrandExtraction {
   companyName?: string;
@@ -254,13 +259,13 @@ router.post(
       }
 
       // Extract brand context using AI
-      let brandContext: BrandExtraction = {};
-      let analysisScore = 0;
-      let analysisItems: any[] = [];
+    let brandContext: BrandExtraction = {};
+    let analysisScore = 0;
+    let analysisItems: any[] = [];
 
-      if (process.env.OPENAI_API_KEY) {
-        try {
-          const completion = await openai.chat.completions.create({
+    if (openai) {
+      try {
+        const completion = await (openai as OpenAI).chat.completions.create({
             model: "gpt-4-turbo-preview",
             messages: [
               {
@@ -558,9 +563,9 @@ router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: 
     let brandContext: BrandExtraction = {};
 
     // Try AI extraction if available
-    if (process.env.OPENAI_API_KEY) {
+    if (openai) {
       try {
-        const completion = await openai.chat.completions.create({
+        const completion = await (openai as OpenAI).chat.completions.create({
           model: "gpt-4o",
           messages: [
             { role: "system", content: "Extract brand information from the document. Return JSON with: companyName, businessDescription, industry, uniqueValue, targetAudience, offer, tone." },
