@@ -37,30 +37,16 @@ export default function AgenciesPage() {
                 "24/7 Response on Weekends & Holidays",
                 "Zero-Touch Meeting Booking"
             ]}
-            problemTitle="The 'Scale-Break' Paradox"
-            problemText={`
-                You started your agency to buy freedom, but somewhere along the way, you built yourself another job. 
-                
-                The 'Scale-Break' Paradox is what kills 90% of agencies between $10k and $50k MRR. It works like this:
-                To get more clients, you need to send more outreach. To send more outreach, you need to hire more SDRs or VAs. 
-                SDRs are expensive ($3k-$5k/mo), require constant management, and often have bad days.
-                VAs are cheaper but require intense training, have language barriers, and often paste the wrong scripts.
-                
-                So, you hire them. Your payroll swells. Your margins shrink.
-                Then, your new hires make mistakes. They ghost leads. They sound robotic. 
-                Your clients start complaining. "The leads are bad," they say. "Nobody is booking calls."
-                
-                Client A churns. Then Client B.
-                Suddenly, you're back to square one—doing all the sales yourself just to keep the lights on, but now with a bloated payroll you can't afford.
-                
-                This is the Churn Cycle. It's the silent killer of agency growth.
-                
-                Audnix breaks this cycle permanently.
-                By replacing human SDRs with autonomous neural agents, you decouple your revenue from your headcount.
-                You can onboard 10 new clients tomorrow without hiring a single new person.
-                Your margins explode because your cost-per-agent is a fraction of a human salary.
-                Your quality goes UP, not down, because the AI never forgets a script, never gets tired, and never has a 'bad day'.
-            `}
+            problemTitle="The Churn Trap"
+            problemText={`Most agencies stay trapped between $10k and $50k MRR because growth requires headcount. 
+
+Every new client means hiring more SDRs or VAs. SDRs are expensive ($3k-$5k/mo) and prone to inconsistency. VAs often lack the nuance required for high-ticket closing. 
+
+Your payroll swells, but your margins shrink. When a hire makes a mistake or ghosts a lead, your client churns. You're left with a bloated payroll and a shrinking pipeline.
+
+Audnix breaks this cycle. 
+
+By deploying autonomous neural agents, you decouple revenue from headcount. One manager can now oversee 50+ client bots that never sleep, never forget a script, and never have a 'bad day'.`}
             deepDiveTitle="Multi-Tenant Neural Ops"
             deepDiveText={`Audnix was built for agencies first. Our 'Commander' dashboard allows you to toggle between 50+ client sub-accounts in seconds.
             

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { supabaseAdmin } from '../supabase-admin.js';
+import { storage } from '../../storage.js';
 
 export interface IntentAnalysis {
   isInterested: boolean;
@@ -35,7 +35,7 @@ interface AnalysisRecord {
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
@@ -90,18 +90,18 @@ Negative signals:
 Return ONLY valid JSON, no explanation.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: 'You are a sales intent analyzer. Analyze messages and return JSON only.'
+          content: 'You are an elite sales intent analyzer. Analyze messages and return raw JSON only.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      temperature: 0.3,
+      temperature: 0.1,
       max_completion_tokens: 500,
       response_format: { type: 'json_object' }
     });
@@ -112,17 +112,21 @@ Return ONLY valid JSON, no explanation.`;
     }
 
     const analysis = JSON.parse(response) as IntentAnalysis;
-    
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('lead_analysis')
-        .insert({
-          lead_id: lead.id,
-          message,
-          analysis,
-          created_at: new Date().toISOString()
-        });
-    }
+
+    // Neural Tagging Integration
+    const tags = await suggestLeadTags(lead, message, analysis);
+
+    // Store analysis and tags via Drizzle storage
+    await storage.updateLead(lead.id.toString(), {
+      tags: tags,
+      metadata: {
+        ...(lead as any).metadata,
+        lastIntensity: analysis.confidence,
+        lastIntent: analysis.sentiment,
+        suggestedAction: analysis.suggestedAction,
+        intentAnalysis: analysis
+      }
+    });
 
     return analysis;
 
@@ -137,23 +141,23 @@ Return ONLY valid JSON, no explanation.`;
  */
 function performBasicIntentAnalysis(message: string): IntentAnalysis {
   const lowerMessage = message.toLowerCase();
-  
+
   const positiveKeywords = [
     'interested', 'yes', 'sure', 'love', 'great', 'perfect',
     'need', 'want', 'looking for', 'sounds good', 'tell me more',
     'how much', 'pricing', 'cost', 'when', 'available'
   ];
-  
+
   const negativeKeywords = [
     'not interested', 'no', 'stop', 'unsubscribe', 'remove',
     'don\'t', 'cant', 'won\'t', 'never', 'spam', 'leave me alone'
   ];
-  
+
   const schedulingKeywords = [
     'schedule', 'meeting', 'call', 'demo', 'appointment',
     'calendar', 'book', 'available', 'free', 'talk'
   ];
-  
+
   const buyingKeywords = [
     'buy', 'purchase', 'sign up', 'register', 'start',
     'get started', 'ready', 'let\'s do', 'deal', 'sold'
@@ -163,7 +167,7 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
   const hasNegative = negativeKeywords.some(kw => lowerMessage.includes(kw));
   const hasScheduling = schedulingKeywords.some(kw => lowerMessage.includes(kw));
   const hasBuying = buyingKeywords.some(kw => lowerMessage.includes(kw));
-  const hasQuestion = lowerMessage.includes('?') || 
+  const hasQuestion = lowerMessage.includes('?') ||
     ['what', 'how', 'when', 'where', 'why', 'who'].some(q => lowerMessage.includes(q));
 
   return {
@@ -176,10 +180,10 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
     needsMoreInfo: hasQuestion && !hasNegative,
     confidence: 0.6,
     sentiment: hasNegative ? 'negative' : hasPositive ? 'positive' : 'neutral',
-    suggestedAction: hasBuying ? 'Close the deal' : 
-                     hasScheduling ? 'Schedule meeting' :
-                     hasPositive ? 'Send more info' :
-                     hasNegative ? 'Remove from list' : 'Continue nurturing',
+    suggestedAction: hasBuying ? 'Close the deal' :
+      hasScheduling ? 'Schedule meeting' :
+        hasPositive ? 'Send more info' :
+          hasNegative ? 'Remove from list' : 'Continue nurturing',
     keywords: []
   };
 }
@@ -187,67 +191,48 @@ function performBasicIntentAnalysis(message: string): IntentAnalysis {
 /**
  * Analyze conversation for auto-conversion
  */
-export async function shouldAutoConvert(lead: Lead): Promise<boolean> {
-  if (!supabaseAdmin) return false;
-  
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('content, role')
-    .eq('lead_id', lead.id)
-    .order('created_at', { ascending: false })
-    .limit(3);
+return (intent.readyToBuy && intent.confidence > 0.8) ||
+  (intent.wantsToSchedule && intent.confidence > 0.7);
 
-  if (!messages || messages.length === 0) return false;
+export async function suggestLeadTags(lead: Lead, latestMessage?: string, analysis?: IntentAnalysis): Promise<string[]> {
+  try {
+    const messages = await storage.getMessagesByLeadId(lead.id.toString());
+    const history = messages?.slice(-5).map(m => `${m.direction === 'inbound' ? 'Lead' : 'AI'}: ${m.body}`).join('\n') || 'No history';
 
-  const lastUserMessage = messages.find((m: Message) => m.role === 'user');
-  if (!lastUserMessage) return false;
+    const prompt = `Analyze this conversation and suggest 3-5 technical tags for this lead.
+    
+    Lead: ${lead.name}
+    Channel: ${lead.channel}
+    Current Tags: ${lead.tags?.join(', ') || 'none'}
+    
+    Conversation History:
+    ${history}
+    
+    ${latestMessage ? `Latest Message: "${latestMessage}"` : ''}
+    ${analysis ? `AI Analysis: ${JSON.stringify(analysis)}` : ''}
 
-  const intent = await analyzeLeadIntent(lastUserMessage.content, lead);
-  
-  return (intent.readyToBuy && intent.confidence > 0.8) ||
-         (intent.wantsToSchedule && intent.confidence > 0.7);
-}
+    Rules:
+    - Include industry tags (e.g., "SaaS", "Real Estate", "Ecommerce")
+    - Include intent tags (e.g., "High Intent", "Price Sensitive", "Technical Buyer")
+    - Include status tags (e.g., "Decision Maker", "Information Seeker")
+    - Return a string array of tags only.
+    
+    Example: ["SaaS", "High Intent", "Decision Maker", "Q1 Timeline"]
+    Return JSON: { "tags": ["string"] }`;
 
-/**
- * Get AI-suggested tags for lead
- */
-export async function suggestLeadTags(lead: Lead): Promise<string[]> {
-  const tags: string[] = [];
-  
-  if (!supabaseAdmin) {
-    return ['new', lead.channel];
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'system', content: 'You are a neural lead tagger.' }, { role: 'user', content: prompt }],
+      response_format: { type: 'json_object' }
+    });
+
+    const result = JSON.parse(completion.choices[0].message?.content || '{"tags": []}');
+    const newTags = Array.from(new Set([...(lead.tags || []), ...(result.tags || [])]));
+    return newTags.slice(0, 10); // Limit to 10 tags
+  } catch (error) {
+    console.error('Neural tagging error:', error);
+    return lead.tags || [];
   }
-
-  const { data: messages } = await supabaseAdmin
-    .from('messages')
-    .select('content')
-    .eq('lead_id', lead.id)
-    .eq('role', 'user');
-
-  if (!messages || messages.length === 0) {
-    return ['new', lead.channel];
-  }
-
-  const allMessages = messages.map((m: { content: any }) => m.content).join(' ').toLowerCase();
-  
-  if (allMessages.match(/\b(saas|software|app|tech|startup)\b/)) tags.push('tech');
-  if (allMessages.match(/\b(retail|shop|store|ecommerce)\b/)) tags.push('retail');
-  if (allMessages.match(/\b(agency|marketing|advertising)\b/)) tags.push('agency');
-  if (allMessages.match(/\b(real estate|property|realtor)\b/)) tags.push('real-estate');
-  
-  if (allMessages.match(/\b(enterprise|corporate|large)\b/)) tags.push('enterprise');
-  if (allMessages.match(/\b(small|smb|local)\b/)) tags.push('smb');
-  if (allMessages.match(/\b(startup|new business)\b/)) tags.push('startup');
-  
-  if (allMessages.match(/\b(asap|urgent|immediately|now)\b/)) tags.push('urgent');
-  if (allMessages.match(/\b(q1|q2|q3|q4|quarter|month)\b/)) tags.push('timeline-defined');
-  
-  if (allMessages.match(/\b(budget|afford|price|cost)\b/)) tags.push('price-sensitive');
-  if (allMessages.match(/\b(premium|best|quality|top)\b/)) tags.push('quality-focused');
-  
-  tags.push(lead.channel);
-  
-  return Array.from(new Set(tags));
 }
 
 /**
@@ -263,28 +248,11 @@ export async function calculateLeadQualityScore(lead: Lead): Promise<{
   };
   recommendation: string;
 }> {
-  let messages: Message[] | null = null;
-  let analyses: AnalysisRecord[] | null = null;
-
-  if (supabaseAdmin) {
-    const messagesResult = await supabaseAdmin
-      .from('messages')
-      .select('content, role, created_at')
-      .eq('lead_id', lead.id)
-      .order('created_at', { ascending: false });
-    messages = messagesResult.data;
-
-    const analysesResult = await supabaseAdmin
-      .from('lead_analysis')
-      .select('analysis')
-      .eq('lead_id', lead.id)
-      .order('created_at', { ascending: false })
-      .limit(5);
-    analyses = analysesResult.data;
-  }
+  const messages = await storage.getMessagesByLeadId(lead.id.toString());
+  const analyses = (lead as any).metadata?.intentAnalysis ? [(lead as any).metadata.intentAnalysis] : [];
 
   const messageCount = messages?.length || 0;
-  const responseRate = messages ? 
+  const responseRate = messages ?
     messages.filter((m: Message) => m.role === 'user').length / Math.max(1, messages.filter((m: Message) => m.role === 'assistant').length) : 0;
   const engagementScore = Math.min(100, (messageCount * 10) + (responseRate * 30));
 
@@ -332,20 +300,20 @@ export async function calculateLeadQualityScore(lead: Lead): Promise<{
 
 function calculateFitScore(lead: Lead): number {
   let score = 50;
-  
+
   const tags = lead.tags || [];
-  
+
   if (tags.includes('enterprise')) score += 20;
   if (tags.includes('quality-focused')) score += 15;
   if (tags.includes('urgent')) score += 15;
   if (tags.includes('timeline-defined')) score += 10;
-  
+
   if (tags.includes('price-sensitive')) score -= 10;
   if (tags.includes('cold')) score -= 20;
-  
+
   if (lead.channel === 'instagram') score += 5;
   if (lead.channel === 'email') score += 10;
   if (lead.channel === 'whatsapp') score += 8;
-  
+
   return Math.max(0, Math.min(100, score));
 }

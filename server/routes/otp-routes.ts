@@ -6,6 +6,8 @@ import { otpCodes } from '../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { multiProviderEmailFailover } from '../lib/email/multi-provider-failover.js';
 import { generateOTPEmail } from '../lib/email/otp-templates.js';
+import { authLimiter } from '../middleware/rate-limit.js';
+import crypto from 'crypto';
 
 const router = Router();
 
@@ -25,7 +27,7 @@ interface ResendOTPBody {
 /**
  * Generate and send OTP code
  */
-router.post('/send', requireAuth, async (req: Request<Record<string, string>, unknown, SendOTPBody>, res: Response): Promise<void> => {
+router.post('/send', requireAuth, authLimiter, async (req: Request<Record<string, string>, unknown, SendOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { email } = req.body;
@@ -41,7 +43,8 @@ router.post('/send', requireAuth, async (req: Request<Record<string, string>, un
       return;
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Secure OTP Generation
+    const otp = crypto.randomInt(100000, 999999).toString();
 
     await storage.createOtpCode({
       email,
@@ -92,7 +95,7 @@ router.post('/send', requireAuth, async (req: Request<Record<string, string>, un
 /**
  * Verify OTP code
  */
-router.post('/verify', requireAuth, async (req: Request<Record<string, string>, unknown, VerifyOTPBody>, res: Response): Promise<void> => {
+router.post('/verify', requireAuth, authLimiter, async (req: Request<Record<string, string>, unknown, VerifyOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { code, email } = req.body;
@@ -125,7 +128,7 @@ router.post('/verify', requireAuth, async (req: Request<Record<string, string>, 
     }
 
     const otpRecord = otpRecords[0];
-    
+
     if (new Date() > new Date(otpRecord.expiresAt)) {
       console.log(`❌ OTP expired for ${email}`);
       res.status(400).json({
@@ -164,7 +167,7 @@ router.post('/verify', requireAuth, async (req: Request<Record<string, string>, 
 /**
  * Resend OTP (rate-limited)
  */
-router.post('/resend', requireAuth, async (req: Request<Record<string, string>, unknown, ResendOTPBody>, res: Response): Promise<void> => {
+router.post('/resend', requireAuth, authLimiter, async (req: Request<Record<string, string>, unknown, ResendOTPBody>, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { email } = req.body;
@@ -180,7 +183,8 @@ router.post('/resend', requireAuth, async (req: Request<Record<string, string>, 
       return;
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Secure OTP Generation
+    const otp = crypto.randomInt(100000, 999999).toString();
 
     await storage.createOtpCode({
       email,

@@ -8,12 +8,13 @@ import { detectCompetitorMention, trackCompetitorMention } from './competitor-de
 import { optimizeSalesLanguage } from './sales-language-optimizer.js';
 import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
 import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
+import { BookingProposer } from '../calendar/booking-proposer.js';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key"
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "mock-key";
+const isDemoMode = false;
 
 type LeadStatus = 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
 
@@ -452,18 +453,51 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     // First check if lead is requesting a meeting, payment, or app link
     const linkIntent = await detectAndGenerateLinkResponse(lead.userId, lastMessage.body);
 
-    // If strong intent detected with available link, use that response
-    if (linkIntent.detected && linkIntent.confidence >= 0.5 && linkIntent.suggestedResponse) {
-      console.log(`🔗 Auto-detected ${linkIntent.intentType} intent - sending link`);
-      return {
-        text: optimizeSalesLanguage(linkIntent.suggestedResponse),
-        useVoice: false,
-        detections: { language: languageDetection }
-      };
+    // If meeting requested, check brand preference
+    if (linkIntent.intentType === 'meeting') {
+      const hasTimeMention = /at|on|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|next|morning|afternoon|evening|\d+/i.test(lastMessage.body);
+
+      // If they prefer autonomous booking AND provided a time, propose slots
+      if (brandContext.bookingPreference === 'autonomous' || hasTimeMention) {
+        const proposer = new BookingProposer(lead.userId);
+        const { suggestedSlots, parsedIntent, needsClarification } = await proposer.proposeTimes(lastMessage.body);
+
+        if (suggestedSlots.length > 0) {
+          const firstSlot = new Date(suggestedSlots[0]);
+          const timeStr = firstSlot.toLocaleString([], { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+          const dateStr = firstSlot.toLocaleString([], { month: 'short', day: 'numeric' });
+
+          let response = "";
+          if (suggestedSlots.length === 1 || isWarm) {
+            response = `I've got a spot open on ${timeStr} (${dateStr}) - does that work for you? I can lock it in for us right now.`;
+          } else {
+            const timeList = suggestedSlots.slice(0, 3).map(s => {
+              const d = new Date(s);
+              return d.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+            }).join(', ');
+            response = `I've got some space mid-week! Specifically: ${timeList}. Do any of those work, or would you prefer to just pick a time that suits you better here: ${linkIntent.link}`;
+          }
+
+          return {
+            text: optimizeSalesLanguage(response),
+            useVoice: detectionResult.shouldUseVoice === true && isWarm
+          };
+        }
+      }
+
+      // If they prefer link ONLY or AI couldn't find slots, send the direct link
+      if (linkIntent.detected && linkIntent.confidence >= 0.5 && linkIntent.suggestedResponse) {
+        console.log(`🔗 Sending direct booking link (Preference: ${brandContext.bookingPreference})`);
+        return {
+          text: optimizeSalesLanguage(linkIntent.suggestedResponse),
+          useVoice: false,
+          detections: { language: languageDetection }
+        };
+      }
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: systemPrompt },
         ...messageContext
@@ -541,7 +575,7 @@ Script:`;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         { role: "system", content: "You are a top-performing salesman creating personalized voice notes. You're confident, articulate, and genuinely helpful. You build trust quickly and guide leads toward action naturally." },
         { role: "user", content: prompt }

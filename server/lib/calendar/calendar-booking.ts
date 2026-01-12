@@ -73,6 +73,19 @@ export async function getAvailableTimeSlots(
   slotDuration: number = 30
 ): Promise<BookingSlot[]> {
   try {
+    const { calendarSettings } = await import('../../../shared/schema.js');
+    const { eq } = await import('drizzle-orm');
+    const { db } = await import('../db.js');
+
+    // Get user's timezone from settings
+    const [settings] = await db
+      .select({ timezone: calendarSettings.timezone })
+      .from(calendarSettings)
+      .where(eq(calendarSettings.userId, userId))
+      .limit(1);
+
+    const timezone = settings?.timezone || 'America/New_York';
+
     const integrations = await storage.getIntegrations(userId);
     const decrypt = (await import('../crypto/encryption.js')).decrypt;
 
@@ -98,7 +111,7 @@ export async function getAvailableTimeSlots(
             startTime: new Date(slot.time),
             endTime: new Date(new Date(slot.time).getTime() + slotDuration * 60000),
             available: slot.available,
-            timezone: 'America/New_York'
+            timezone: timezone
           }));
         }
       } catch (error: any) {
@@ -113,54 +126,54 @@ export async function getAvailableTimeSlots(
 
     if (googleIntegration?.encryptedMeta) {
 
-    const decrypted = await decrypt(googleIntegration.encryptedMeta);
-    const credentials = JSON.parse(decrypted);
+      const decrypted = await decrypt(googleIntegration.encryptedMeta);
+      const credentials = JSON.parse(decrypted);
 
-    // Get upcoming events
-    const events = await listUpcomingEvents(credentials.access_token, 50);
+      // Get upcoming events
+      const events = await listUpcomingEvents(credentials.access_token, 50);
 
-    // Generate available slots
-    const slots: BookingSlot[] = [];
-    const now = new Date();
-    const businessHours = { start: 9, end: 17 }; // 9 AM - 5 PM
+      // Generate available slots
+      const slots: BookingSlot[] = [];
+      const now = new Date();
+      const businessHours = { start: 9, end: 17 }; // 9 AM - 5 PM
 
-    for (let day = 0; day < daysAhead; day++) {
-      const date = new Date(now);
-      date.setDate(date.getDate() + day);
+      for (let day = 0; day < daysAhead; day++) {
+        const date = new Date(now);
+        date.setDate(date.getDate() + day);
 
-      // Skip weekends
-      if (date.getDay() === 0 || date.getDay() === 6) continue;
+        // Skip weekends
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
 
-      // Generate slots for this day
-      for (let hour = businessHours.start; hour < businessHours.end; hour++) {
-        for (let minute = 0; minute < 60; minute += slotDuration) {
-          const slotStart = new Date(date);
-          slotStart.setHours(hour, minute, 0, 0);
+        // Generate slots for this day
+        for (let hour = businessHours.start; hour < businessHours.end; hour++) {
+          for (let minute = 0; minute < 60; minute += slotDuration) {
+            const slotStart = new Date(date);
+            slotStart.setHours(hour, minute, 0, 0);
 
-          const slotEnd = new Date(slotStart);
-          slotEnd.setMinutes(slotEnd.getMinutes() + slotDuration);
+            const slotEnd = new Date(slotStart);
+            slotEnd.setMinutes(slotEnd.getMinutes() + slotDuration);
 
-          // Check if slot conflicts with existing events
-          const hasConflict = events.some((event: GoogleCalendarEvent) => {
-            const eventStart = new Date(event.start.dateTime || event.start.date || '');
-            const eventEnd = new Date(event.end.dateTime || event.end.date || '');
-            return (
-              (slotStart >= eventStart && slotStart < eventEnd) ||
-              (slotEnd > eventStart && slotEnd <= eventEnd)
-            );
-          });
-
-          if (!hasConflict && slotStart > now) {
-            slots.push({
-              startTime: slotStart,
-              endTime: slotEnd,
-              available: true,
-              timezone: 'America/New_York'
+            // Check if slot conflicts with existing events
+            const hasConflict = events.some((event: GoogleCalendarEvent) => {
+              const eventStart = new Date(event.start.dateTime || event.start.date || '');
+              const eventEnd = new Date(event.end.dateTime || event.end.date || '');
+              return (
+                (slotStart >= eventStart && slotStart < eventEnd) ||
+                (slotEnd > eventStart && slotEnd <= eventEnd)
+              );
             });
+
+            if (!hasConflict && slotStart > now) {
+              slots.push({
+                startTime: slotStart,
+                endTime: slotEnd,
+                available: true,
+                timezone: timezone
+              });
+            }
           }
         }
       }
-    }
 
       console.log(`✅ Using Google Calendar: ${slots.length} slots`);
       return slots.slice(0, 20); // Return top 20 slots

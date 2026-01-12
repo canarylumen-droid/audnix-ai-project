@@ -20,7 +20,7 @@
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface ExtractedPDFContent {
@@ -90,14 +90,14 @@ Look for app/signup links if it's a SaaS or software product.
 Be thorough and precise.`;
 
     const extractionResponse = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [{ role: "user", content: extractionPrompt }],
       temperature: 0.3,
       max_tokens: 1500,
     });
 
     const messageContent: string = extractionResponse.choices[0]?.message?.content ?? "{}";
-    
+
     let extracted: Partial<ExtractedPDFContent> = {};
     try {
       extracted = JSON.parse(messageContent) as Partial<ExtractedPDFContent>;

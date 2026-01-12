@@ -22,7 +22,7 @@ import OpenAI from "openai";
 import type { BrandContext } from "../../../shared/types.js";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface SalesLeadProfile {
@@ -247,7 +247,7 @@ export async function gatherCompetitorIntelligence(
 ): Promise<CompetitorIntelligence> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -297,7 +297,7 @@ export async function detectUVP(brandContext: SalesBrandContext | BrandContext):
   try {
     const industry = (brandContext as SalesBrandContext).industry || "B2B";
     const niche = (brandContext as SalesBrandContext).niche || "Sales";
-    
+
     const competitive = await gatherCompetitorIntelligence(
       industry,
       niche,
@@ -305,7 +305,7 @@ export async function detectUVP(brandContext: SalesBrandContext | BrandContext):
     );
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -470,7 +470,7 @@ export async function generateSmartMessage(
   const industry = leadProfile.industry || "General";
   const niche = (brandContext as SalesBrandContext).niche || "General";
   const companyName = leadProfile.companyName || leadProfile.company || "";
-  
+
   const competitive = await gatherCompetitorIntelligence(
     industry,
     niche,
@@ -481,12 +481,12 @@ export async function generateSmartMessage(
   const firstName = leadProfile.firstName || "";
   const painPoint = leadProfile.painPoint || "Unknown - find out";
 
-  const stageText = stage === "cold" 
-    ? "First touch - grab attention" 
-    : stage === "follow_up" 
-      ? "They're interested - push momentum" 
-      : stage === "objection" 
-        ? "Handle objection - lead frame" 
+  const stageText = stage === "cold"
+    ? "First touch - grab attention"
+    : stage === "follow_up"
+      ? "They're interested - push momentum"
+      : stage === "objection"
+        ? "Handle objection - lead frame"
         : "Close them - make it easy to say yes";
 
   const prompt = `You are a world-class sales closer who closes million-dollar deals.
@@ -518,7 +518,7 @@ Message:`;
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.8,
       max_tokens: 300,

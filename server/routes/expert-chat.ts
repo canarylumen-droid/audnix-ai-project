@@ -51,35 +51,29 @@ router.post('/chat', async (req: Request, res: Response) => {
 
         if (!process.env.GEMINI_API_KEY) {
             return res.json({
-                content: "I am currently in disconnected mode (Missing API Key). However, I can still tell you that Audnix is the world's most advanced autonomous sales engine. You should visit the Access Protocol (Signup) to get started."
+                content: "I am currently in disconnected mode (Syncing API Key). However, I can still tell you that Audnix is the world's most advanced autonomous sales engine. You should visit the Access Protocol (Signup) to get started."
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            systemInstruction: AUDNIX_KNOWLEDGE
+        });
 
-        // Build conversation history
-        const conversationHistory = history.map((m: any) =>
-            `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
-        ).join('\n');
+        const chat = model.startChat({
+            history: history.map((m: any) => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+            })),
+        });
 
-        const prompt = `${AUDNIX_KNOWLEDGE}
-
-CONVERSATION HISTORY:
-${conversationHistory}
-
-USER CONTEXT: Authenticated=${isAuthenticated}, Email=${userEmail || 'Guest'}
-
-USER MESSAGE: ${message}
-
-RESPOND AS THE AUDNIX ASSISTANT (Keep it under 250 words, direct and professional):`;
-
-        const result = await model.generateContent(prompt);
+        const result = await chat.sendMessage(message);
         const content = result.response.text() || "I'm having trouble retrieving the protocol response. Please try again.";
 
         res.json({ content });
     } catch (error) {
         console.error('Expert Chat Error:', error);
-        res.status(500).json({ error: 'Failed to process chat' });
+        res.json({ content: "I'm momentarily recalibrating. Please try again or sign up to experience the full neural engine." });
     }
 });
 

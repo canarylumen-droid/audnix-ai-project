@@ -155,12 +155,24 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
-// CORS Middleware - Allow browser requests from allowed origins
+// CORS Middleware - Restricted to allowlist for credential safety
+const ALLOWED_ORIGINS = [
+  'https://www.audnixai.com',
+  'https://audnixai.com',
+  'http://localhost:5173',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+].filter(Boolean) as string[];
+
 app.use((req, res, next) => {
-  // Basic CORS for all environments
   const origin = req.get('origin');
-  res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin && process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
   res.setHeader('Access-Control-Max-Age', '86400');

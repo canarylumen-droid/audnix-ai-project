@@ -66,10 +66,10 @@ interface IntegrationRecord {
 
 function verifySignature(req: Request): boolean {
   const signature = req.headers['x-hub-signature-256'] as string;
-  
+
   // Check for explicit test mode flag (controlled, not automatic)
   const isTestMode = process.env.INSTAGRAM_WEBHOOK_TEST_MODE === 'true';
-  
+
   if (!signature) {
     console.log('[IG_WEBHOOK] No x-hub-signature-256 header found');
     if (isTestMode) {
@@ -96,7 +96,7 @@ function verifySignature(req: Request): boolean {
     console.error('[IG_WEBHOOK] Ensure route uses express.json with verify callback to preserve rawBody');
     return false;
   }
-  
+
   const expectedSignature = crypto
     .createHmac('sha256', appSecret)
     .update(rawBody)
@@ -104,7 +104,7 @@ function verifySignature(req: Request): boolean {
 
   const expectedFull = `sha256=${expectedSignature}`;
   const isValid = signature === expectedFull;
-  
+
   if (!isValid) {
     console.log('[IG_WEBHOOK] Signature mismatch');
     console.log('[IG_WEBHOOK] Received:', signature);
@@ -120,12 +120,12 @@ export function handleInstagramVerification(req: Request, res: Response): void {
   const challenge = req.query['hub.challenge'];
 
   const verifyToken = process.env.META_VERIFY_TOKEN;
-  
+
   console.log('[Instagram Webhook] Verification request received');
   console.log('[Instagram Webhook] Mode:', mode);
   console.log('[Instagram Webhook] Token received:', token);
   console.log('[Instagram Webhook] Token configured:', !!verifyToken);
-  
+
   // If no token configured, show helpful error
   if (!verifyToken) {
     console.error('[Instagram Webhook] ❌ META_VERIFY_TOKEN not configured!');
@@ -137,7 +137,9 @@ export function handleInstagramVerification(req: Request, res: Response): void {
 
   if (mode === 'subscribe' && token === verifyToken) {
     console.log('[Instagram Webhook] ✅ Verification successful');
-    res.status(200).type('text/plain').send(challenge);
+    // Sanitize challenge to prevent Reflected XSS
+    const safeChallenge = String(challenge || '').replace(/[^\w-]/g, '');
+    res.status(200).type('text/plain').send(safeChallenge);
   } else {
     console.error('[Instagram Webhook] ❌ Verification failed');
     console.error('[Instagram Webhook] Expected token:', verifyToken);
@@ -150,7 +152,7 @@ export async function handleInstagramWebhook(req: Request, res: Response): Promi
   try {
     console.log('[IG_EVENT] Webhook received:', JSON.stringify(req.body, null, 2));
     recordWebhookEvent();
-    
+
     if (!verifySignature(req)) {
       console.log('[IG_EVENT] Signature verification failed');
       res.sendStatus(403);
@@ -168,18 +170,18 @@ export async function handleInstagramWebhook(req: Request, res: Response): Promi
 
     for (const item of entry) {
       console.log(`[IG_EVENT] Processing entry ID: ${item.id}, Time: ${item.time}`);
-      
+
       if (item.messaging) {
         for (const message of item.messaging) {
-          const eventType = message.message ? 'message' : 
-                           message.postback ? 'postback' : 
-                           'unknown';
+          const eventType = message.message ? 'message' :
+            message.postback ? 'postback' :
+              'unknown';
           console.log(`[IG_EVENT] Message event: ${eventType}, Sender: ${message.sender.id}`);
-          
+
           if (message.message?.text) {
             console.log(`[IG_EVENT] Message text: "${message.message.text.substring(0, 100)}..."`);
           }
-          
+
           await processInstagramMessage(message);
         }
       }
@@ -187,7 +189,7 @@ export async function handleInstagramWebhook(req: Request, res: Response): Promi
       if (item.changes) {
         for (const change of item.changes) {
           console.log(`[IG_EVENT] Change event: ${change.field}`);
-          
+
           if (change.field === 'comments') {
             console.log(`[IG_EVENT] Comment from: ${change.value.from?.username}, text: "${change.value.text?.substring(0, 100)}..."`);
             await processInstagramComment(change.value);
@@ -216,7 +218,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
   try {
     const senderId = message.sender.id;
     const messageText = message.message?.text;
-    
+
     if (!messageText) return;
 
     if (!supabaseAdmin) {
@@ -255,7 +257,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
 
     if (!lead) {
       const senderProfile = await fetchInstagramProfile(senderId, typedIntegration.user_id);
-      
+
       const { data: newLead, error: createError } = await supabaseAdmin
         .from('leads')
         .insert({
@@ -308,18 +310,18 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     }
 
     const intent = await analyzeLeadIntent(messageText, lead);
-    
+
     let newStatus = lead.status;
     let newTags = [...(lead.tags || [])];
-    
+
     if (intent.isInterested && intent.confidence > 0.7) {
       newStatus = 'interested';
       newTags.push('hot-lead');
-      
+
       if (intent.wantsToSchedule || intent.readyToBuy) {
         newStatus = 'converting';
         newTags.push('ready-to-buy');
-        
+
         await scheduleCalendarMeeting(lead, typedIntegration.user_id);
       }
     } else if (intent.isNegative && intent.confidence > 0.7) {
@@ -354,7 +356,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
           channel: 'instagram',
           status: 'pending',
           scheduled_at: getSmartScheduleTime(intent, lead),
-          context: { 
+          context: {
             last_message: messageText,
             intent,
             message_count: (lead.message_count || 0) + 1
@@ -385,7 +387,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     try {
       const messages = await storage.getMessagesByLeadId(lead.id);
       const leadData = await storage.getLeadById(lead.id);
-      
+
       if (messages.length > 0 && leadData) {
         await saveConversationToMemory(typedIntegration.user_id, leadData, messages);
       }
@@ -395,10 +397,10 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
 
     try {
       const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
-      
+
       if (automationSettings.enabled && newStatus !== 'not_interested') {
         console.log(`[IG_EVENT] Scheduling automated DM reply for lead ${lead.name}`);
-        
+
         await scheduleAutomatedDMReply(
           typedIntegration.user_id,
           lead.id,
@@ -406,7 +408,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
           messageText,
           intent
         );
-        
+
         console.log(`[IG_EVENT] Automated reply scheduled with 2-8 min delay`);
       } else {
         console.log(`[IG_EVENT] DM automation skipped - enabled: ${automationSettings.enabled}, status: ${newStatus}`);
@@ -423,7 +425,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
 async function processInstagramComment(comment: InstagramCommentValue): Promise<void> {
   try {
     const { from, text, media } = comment;
-    
+
     if (!supabaseAdmin) {
       console.error('Supabase admin not configured');
       return;
@@ -472,7 +474,7 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
         })
         .select()
         .single();
-      
+
       if (createError) {
         console.error('Error creating lead:', createError);
         return;
@@ -498,7 +500,7 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
     }
 
     const intent = await analyzeLeadIntent(text, lead);
-    
+
     if (intent.isInterested || intent.hasQuestion) {
       const { error: queueError } = await supabaseAdmin
         .from('follow_up_queue')
@@ -508,7 +510,7 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
           channel: 'instagram',
           status: 'pending',
           scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-          context: { 
+          context: {
             comment_text: text,
             media_id: media.id,
             priority: 'high'
@@ -521,10 +523,10 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
 
       try {
         const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
-        
+
         if (automationSettings.enabled) {
           console.log(`[IG_EVENT] Scheduling automated DM reply for comment from ${from.username}`);
-          
+
           await scheduleAutomatedDMReply(
             typedIntegration.user_id,
             lead.id,
@@ -573,18 +575,18 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
     const url = new URL(`https://${allowedHost}/${userId}`);
     url.searchParams.set('fields', 'name,username');
     url.searchParams.set('access_token', tokenData.access_token);
-    
+
     if (url.hostname !== allowedHost) {
       return { username: 'Instagram User' };
     }
-    
+
     const response = await fetch(url.toString());
-    
+
     if (!response.ok) {
       console.error('Instagram API error:', response.status, response.statusText);
       return { username: 'Instagram User' };
     }
-    
+
     const profile = await response.json() as InstagramProfile;
     return profile;
   } catch (error) {
@@ -595,28 +597,28 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
 
 function calculateLeadScore(intent: IntentAnalysis, lead: LeadRecord): number {
   let score = lead.lead_score || 50;
-  
+
   if (intent.isInterested) score += 20;
   if (intent.wantsToSchedule) score += 30;
   if (intent.readyToBuy) score = Math.max(score, 90);
   if (intent.isNegative) score -= 30;
   if (intent.hasObjection) score -= 10;
-  
+
   const messageCount = lead.message_count || 1;
   if (messageCount > 5) score += 10;
   if (messageCount > 10) score += 10;
-  
+
   const lastMessageDays = (Date.now() - new Date(lead.last_message_at).getTime()) / (1000 * 60 * 60 * 24);
   if (lastMessageDays > 7) score -= 10;
   if (lastMessageDays > 30) score -= 20;
-  
+
   return Math.max(0, Math.min(100, score));
 }
 
 function getSmartScheduleTime(intent: IntentAnalysis, lead: LeadRecord): string {
   const now = Date.now();
   let delayMs: number;
-  
+
   if (intent.wantsToSchedule || intent.readyToBuy) {
     delayMs = (2 + Math.random() * 3) * 60 * 1000;
   } else if (intent.isInterested) {
@@ -633,7 +635,7 @@ function getSmartScheduleTime(intent: IntentAnalysis, lead: LeadRecord): string 
       delayMs = 3 * 24 * 60 * 60 * 1000;
     }
   }
-  
+
   return new Date(now + delayMs).toISOString();
 }
 

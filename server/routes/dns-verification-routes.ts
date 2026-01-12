@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { apiLimiter } from '../middleware/rate-limit.js';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 
@@ -9,17 +10,24 @@ const router = Router();
 const verificationCache = new Map<string, { result: any; timestamp: number }>();
 const CACHE_TTL = 5 * 60 * 1000;
 
-router.post('/verify', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/verify', requireAuth, apiLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { domain, dkimSelector } = req.body;
-    
+
     if (!domain || typeof domain !== 'string') {
       res.status(400).json({ error: 'Domain is required' });
       return;
     }
-    
-    const cleanDomain = domain.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-    
+
+    let cleanDomain = domain.toLowerCase().trim();
+    try {
+      const url = new URL(cleanDomain.startsWith('http') ? cleanDomain : `https://${cleanDomain}`);
+      cleanDomain = url.hostname;
+    } catch (e) {
+      // Fallback if not a full URL
+      cleanDomain = cleanDomain.replace(/\/.*$/, '');
+    }
+
     const cacheKey = `${cleanDomain}:${dkimSelector || 'default'}`;
     const cached = verificationCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -30,11 +38,11 @@ router.post('/verify', requireAuth, async (req: Request, res: Response): Promise
       });
       return;
     }
-    
+
     const result = await verifyDomainDns(cleanDomain, dkimSelector);
-    
+
     verificationCache.set(cacheKey, { result, timestamp: Date.now() });
-    
+
     const userId = getCurrentUserId(req);
     if (userId) {
       try {
@@ -48,7 +56,7 @@ router.post('/verify', requireAuth, async (req: Request, res: Response): Promise
         console.log('Domain verification table may not exist yet, skipping storage');
       }
     }
-    
+
     res.json({
       success: true,
       cached: false,
@@ -56,7 +64,7 @@ router.post('/verify', requireAuth, async (req: Request, res: Response): Promise
     });
   } catch (error: any) {
     console.error('DNS verification error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to verify domain DNS',
       message: error.message,
     });
@@ -66,7 +74,7 @@ router.post('/verify', requireAuth, async (req: Request, res: Response): Promise
 router.get('/history', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const result = await db.execute(sql`
       SELECT domain, verification_result, created_at
       FROM domain_verifications
@@ -74,7 +82,7 @@ router.get('/history', requireAuth, async (req: Request, res: Response): Promise
       ORDER BY created_at DESC
       LIMIT 10
     `);
-    
+
     res.json({
       success: true,
       verifications: result.rows,

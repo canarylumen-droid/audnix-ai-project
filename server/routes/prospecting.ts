@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db.js';
-import { prospects } from '@shared/schema.js';
+import { prospects } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { AudnixIngestor } from '../lib/scraping/audnix-ingestor.js';
 

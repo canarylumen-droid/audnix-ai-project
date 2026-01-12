@@ -166,24 +166,37 @@ export default function ConversationsPage() {
   }, [messages]);
 
   const handleGenerateReply = async () => {
+    if (!leadId) return;
+
     setIsGenerating(true);
     setTypedText("");
 
-    const aiResponse =
-      "Thanks for your interest! I'd love to help you get started. Let me know what questions you have and I'll be happy to walk you through everything.";
+    try {
+      const response = await apiRequest("POST", `/api/ai/reply/${leadId}`);
+      const data = await response.json();
+      const aiResponse = data.aiSuggestion || data.message?.body || "I'm ready to help you with that.";
 
-    // Typewriter effect
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < aiResponse.length) {
-        setTypedText(aiResponse.slice(0, index + 1));
-        index++;
-      } else {
-        clearInterval(interval);
-        setMessage(aiResponse);
-        setIsGenerating(false);
-      }
-    }, 20);
+      // Typewriter effect
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index < aiResponse.length) {
+          setTypedText(aiResponse.slice(0, index + 1));
+          index++;
+        } else {
+          clearInterval(interval);
+          setMessage(aiResponse);
+          setIsGenerating(false);
+        }
+      }, 20);
+    } catch (err) {
+      console.error("AI Reply Error:", err);
+      toast({
+        title: "AI Brain Latency",
+        description: "The neural core took too long to respond. Please try again.",
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+    }
   };
 
   const handleSendMessage = () => {

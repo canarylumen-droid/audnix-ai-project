@@ -26,14 +26,15 @@ export const CustomCursor = () => {
     }, [isDashboardOrOnboarding]);
 
     useEffect(() => {
-        // Hide default cursor
         const style = document.createElement('style');
         style.id = 'audnix-cursor-styles';
         style.textContent = `
-            *, *::before, *::after { cursor: none !important; }
-            html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
-            ::-webkit-scrollbar { cursor: none !important; }
-            ::-webkit-scrollbar-thumb { cursor: none !important; }
+            @media (pointer: fine) {
+                *, *::before, *::after { cursor: none !important; }
+                html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
+                ::-webkit-scrollbar { cursor: none !important; }
+                ::-webkit-scrollbar-thumb { cursor: none !important; }
+            }
         `;
         document.head.appendChild(style);
 
@@ -137,38 +138,17 @@ export const CustomCursor = () => {
                     transition: 'opacity 0.15s ease',
                 }}
             >
-                {isDashboardOrOnboarding ? (
-                    // MacBook-style white arrow for Dashboard
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
-                            fill="white"
-                            stroke="#1e293b"
-                            strokeWidth="1.5"
-                            strokeLinejoin="round"
-                            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
-                        />
-                    </svg>
-                ) : (
-                    // Premium ocean arrow for Landing
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="ocean-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#ffffff" />
-                                <stop offset="100%" stopColor="#e0f9ff" />
-                            </linearGradient>
-                        </defs>
-                        <path
-                            d="M5.5 3.5L13 22.5L16.5 15.5L23.5 13L5.5 3.5Z"
-                            fill="url(#ocean-gradient)"
-                            stroke="#00d2ff"
-                            strokeWidth="2"
-                            strokeLinejoin="round"
-                            strokeLinecap="round"
-                            style={{ filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.2))' }}
-                        />
-                    </svg>
-                )}
+                {/* Premium Unified MacBook-style Arrow */}
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
+                        fill="white"
+                        stroke="#1e293b"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
+                    />
+                </svg>
             </div>
         </>
     );

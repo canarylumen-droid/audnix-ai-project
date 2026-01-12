@@ -118,10 +118,10 @@ export class DrizzleStorage implements IStorage {
 
       const result = await db
         .update(users)
-        .set({ 
-          ...otherUpdates, 
+        .set({
+          ...otherUpdates,
           metadata: mergedMetadata as any,
-          updatedAt: new Date() 
+          updatedAt: new Date()
         })
         .where(eq(users.id, id))
         .returning();
@@ -370,6 +370,25 @@ export class DrizzleStorage implements IStorage {
         accountType: integration.accountType || null,
         lastSync: integration.lastSync || null,
       })
+      .returning();
+
+    return result[0];
+  }
+
+  async updateIntegration(
+    userId: string,
+    provider: string,
+    updates: Partial<Integration>
+  ): Promise<Integration | undefined> {
+    checkDatabase();
+    const result = await db
+      .update(integrations)
+      .set({
+        ...updates,
+        provider: provider as any, // Preserve provider to avoid type issues
+        updatedAt: new Date(),
+      })
+      .where(and(eq(integrations.userId, userId), eq(integrations.provider, provider as any)))
       .returning();
 
     return result[0];

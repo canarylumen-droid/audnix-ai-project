@@ -598,55 +598,55 @@ export default function AuthPage() {
             transition={{ duration: 0.6 }}
           >
             <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight tracking-tighter">
+              <h1 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tighter">
                 <span className="bg-gradient-to-r from-primary via-primary/80 to-primary/40 bg-clip-text text-transparent">
-                  Close Your First Deal
+                  Automate Your Growth Core
                 </span>
               </h1>
-              <p className="text-xl text-white/70 leading-relaxed">
-                Join creators, coaches, and founders who are closing their first $1,000 deals in Week 1 with Audnix AI.
+              <p className="text-xl text-white/70 leading-relaxed max-w-lg">
+                Deploy the world's most advanced AI sales brain. Join high-performance founders scaling to $10k/mo with autonomous outreach.
               </p>
             </div>
 
             {/* Benefits */}
             <div className="space-y-4">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
-                  <Check className="w-4 h-4 text-emerald-400" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1 border border-primary/30">
+                  <Check className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Smart Lead Follow-ups</h3>
-                  <p className="text-white/60 text-sm">AI-powered messaging across Instagram, Email & more</p>
+                  <h3 className="font-semibold text-white">Neural Response Engine</h3>
+                  <p className="text-white/60 text-sm">Hyper-personalized AI messaging across Instagram, Email & more.</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
-                  <Check className="w-4 h-4 text-emerald-400" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1 border border-primary/30">
+                  <Check className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Zero Setup Required</h3>
-                  <p className="text-white/60 text-sm">Connect your own email, Instagram & Calendly instantly</p>
+                  <h3 className="font-semibold text-white">1M+ Global Proxy Mesh</h3>
+                  <p className="text-white/60 text-sm">Advanced infrastructure for safe, unlimited prospecting scale.</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
-                  <Check className="w-4 h-4 text-emerald-400" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1 border border-primary/30">
+                  <Check className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">24/7 Sales Agent</h3>
-                  <p className="text-white/60 text-sm">Never miss a lead again with personalized campaigns</p>
+                  <h3 className="font-semibold text-white">Autonomous Sales Logic</h3>
+                  <p className="text-white/60 text-sm">AI handles objections and books meetings directly on your calendar.</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center mt-1">
-                  <Check className="w-4 h-4 text-emerald-400" />
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center mt-1 border border-primary/30">
+                  <Check className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Privacy-First</h3>
-                  <p className="text-white/60 text-sm">Your data stays in your control. No data selling.</p>
+                  <h3 className="font-semibold text-white">Enterprise-Grade Privacy</h3>
+                  <p className="text-white/60 text-sm">Your data and brand identity are encrypted and never sold.</p>
                 </div>
               </div>
             </div>
@@ -682,17 +682,17 @@ export default function AuthPage() {
                 >
                   {/* HEADER */}
                   <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight">
-                      {isLogin ? 'Welcome Back' : 'Join Audnix'}
+                    <h1 className="text-3xl font-extrabold tracking-tight">
+                      {isLogin ? 'Access Portal' : 'Initialize Core'}
                     </h1>
                     <p className="text-white/70">
                       {isLogin
-                        ? 'Sign in to your account'
+                        ? 'Reconnect to your sales network'
                         : signupStep === 1
-                          ? 'Create your account'
+                          ? 'Scale your business with AI'
                           : signupStep === 2
-                            ? 'Enter verification code'
-                            : 'Choose your username'
+                            ? 'Verify neural handshake code'
+                            : 'Define your network signature'
                       }
                     </p>
                   </div>

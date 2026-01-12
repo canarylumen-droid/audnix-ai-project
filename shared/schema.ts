@@ -395,6 +395,7 @@ export const calendarSettings = pgTable("calendar_settings", {
   workingHoursStart: integer("working_hours_start").notNull().default(9),
   workingHoursEnd: integer("working_hours_end").notNull().default(17),
   timezone: text("timezone").notNull().default("America/New_York"),
+  bookingPreference: text("booking_preference", { enum: ["link", "autonomous"] }).notNull().default("autonomous"),
   availabilityCache: jsonb("availability_cache").$type<Array<{ time: string; available: boolean }>>().notNull().default(sql`'[]'::jsonb`),
   availabilityCachedAt: timestamp("availability_cached_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

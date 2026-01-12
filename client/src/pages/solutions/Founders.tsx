@@ -26,38 +26,15 @@ export default function FoundersPage() {
                 "Scaling Offer Testing Rapidly"
             ]}
             problemTitle="The Founder's Bottleneck"
-            problemText={`
-                There is a brutal truth in B2B sales:
-                Nobody sells the product as well as the Founder.
-                
-                You know the vision. You know the pain points. You have the passion.
-                When you take the call, the close rate is 40%.
-                When you hire a sales rep, it drops to 15%.
-                
-                But you cannot take every call. You have a product to build, a team to manage, and a vision to execute.
-                So you are stuck in the 'Founder's Bottleneck'.
-                
-                You try to hire sales reps. It's a nightmare.
-                You pay a recruiter $10k. You pay the rep a $5k base.
-                You spend 3 months training them. They burn your leads. They miss follow-ups. They don't handle objections correctly.
-                Then, just as they start to get good—they quit for a higher commission elsewhere.
-                
-                Meanwhile, your calendar is full of "tire kickers"—people who booked a time but have $0 budget.
-                You spend 30 minutes on a Zoom call just to find out they can't afford you.
-                That is 30 minutes of your life you will never get back.
-                
-                Audnix removes this friction entirely.
-                We clone your sales logic—your best objection handlers, your qualification criteria, your tone—into an autonomous agent.
-                
-                This agent sits at the front door. It talks to every lead.
-                It asks the hard questions: "What is your budget?", "When are you looking to start?", "Who is the decision maker?"
-                
-                It ruthlessly filters out the unqualified leads.
-                It nurtures the 'maybe' leads.
-                And it only puts the 'Hell Yes' leads on your calendar.
-                
-                Stop doing unpaid consulting. Start closing deal flow.
-            `}
+            problemText={`Nobody sells better than the Founder. But you can't take every call.
+
+When you take the call, the close rate is 40%. When you hire a rep, it drops to 15%. Hiring is a nightmare: $10k recruiters, $5k bases, and months of training, only for them to burn leads.
+
+Meanwhile, your calendar is full of 'tire kickers' with $0 budget. You spend your precious time doing unpaid consulting for people who can't afford you.
+
+Audnix clones your sales logic—your best objection handlers, your qualification criteria, and your tone. 
+
+The AI agent sits at the front door. It talks to every lead, asks the hard questions about budget and timeline, and ruthlessly filters out the unqualified. It only puts the 'Hell Yes' leads on your calendar.`}
             deepDiveTitle="The Closer Protocol"
             deepDiveText={`We analyzed over 100,000 successful high-ticket sales conversations to build our 'Closer Protocol' logic.
             

@@ -19,7 +19,7 @@ import {
 } from "./sales-engine/objections-database.js";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 interface LeadObjectionContext {
@@ -163,8 +163,8 @@ export async function generateAutonomousObjectionResponse(
   confidence: number;
   nextAction: string;
 }> {
-  // Step 1: Identify objection
-  const objection = identifyObjection(leadMessage, context.leadIndustry);
+  // Step 1: Identify objection neurally
+  const objection = await neuralIdentifyObjection(leadMessage, context);
 
   // Step 2: Generate tailored response using GPT-4
   const prompt = buildObjectionResponsePrompt(
@@ -176,7 +176,7 @@ export async function generateAutonomousObjectionResponse(
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: 'gpt-4o',
       messages: [
         {
           role: "system",
@@ -223,6 +223,47 @@ Your goal is to TURN THIS OBJECTION INTO A DEAL.
 /**
  * IDENTIFY WHICH OBJECTION THIS IS
  */
+/**
+ * NEURAL OBJECTION IDENTIFIER
+ * Uses GPT-4o to identify the REAL objection even if hidden
+ */
+async function neuralIdentifyObjection(leadMessage: string, context: LeadObjectionContext) {
+  try {
+    const prompt = `Identify the real sales objection in this message.
+    
+    Lead Message: "${leadMessage}"
+    Industry: ${context.leadIndustry}
+    Brand: ${context.brandName}
+    
+    PDF Context: ${context.pdfContext?.substring(0, 500) || "No specific PDF context"}
+
+    Categorize as: pricing, timing, trust, authority, fit, social, decision, or competitive.
+    Identify the "Hidden Objection" (the psychological state).
+
+    Return JSON: { "category": "string", "hidden": "string", "intensity": 0-100 }`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [{ role: 'system', content: 'You are a neural sales analyst.' }, { role: 'user', content: prompt }],
+      response_format: { type: 'json_object' }
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+
+    // Find matching template in database for reframes/stories
+    const matched = EXPANDED_OBJECTIONS.find(o => o.category === result.category) ||
+      EXPANDED_OBJECTIONS.find(o => o.id === 'edge-skeptical'); // Fallback
+
+    return {
+      ...matched,
+      objection: result.hidden || matched?.objection,
+      category: result.category || matched?.category
+    };
+  } catch (error) {
+    return identifyObjection(leadMessage, context.leadIndustry);
+  }
+}
+
 function identifyObjection(leadMessage: string, industry: string) {
   const cleanMessage = leadMessage.toLowerCase();
   const relevantObjections = EXPANDED_OBJECTIONS.filter(

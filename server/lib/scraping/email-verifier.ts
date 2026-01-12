@@ -1,5 +1,6 @@
 import dns from 'dns';
 import { promisify } from 'util';
+import net from 'net';
 
 const resolveMx = promisify(dns.resolveMx);
 
@@ -54,11 +55,30 @@ export class EmailVerifier {
             return result;
         }
 
+        // 5. Advanced SMTP Handshake (Optional / Advanced)
+        // Note: We perform this but if it fails (timeout/block), we fall back to MX valid
+        // because we don't want to discard valid emails just because dev environment can't speak SMTP.
+        try {
+            const smtpCheck = await this.checkSMTP(email);
+            if (smtpCheck.valid) {
+                result.reason = 'Verified via SMTP handshake';
+                result.riskLevel = 'low';
+            } else if (smtpCheck.log.includes('Mailbox address rejected')) {
+                result.valid = false;
+                result.reason = 'Mailbox does not exist (SMTP rejected)';
+                result.riskLevel = 'high';
+                return result; // Explicit reject
+            } else {
+                // Indeterminate (likely timeout or block), fallback to MX check
+                result.reason = 'Valid MX (SMTP handshake skipped/failed)';
+                result.riskLevel = 'low'; // Assume low risk if MX exists but we can't connect
+            }
+        } catch (e) {
+            result.reason = 'Valid MX (SMTP check error)';
+        }
+
         // If all checks pass
         result.valid = true;
-        result.reason = 'Valid email with MX records';
-        result.riskLevel = 'low';
-
         return result;
     }
 
@@ -83,13 +103,105 @@ export class EmailVerifier {
     }
 
     /**
-     * Disposable Email Provider Detection
+     * Advanced SMTP Handshake to verify mailbox existence
+     * NOTE: This requires port 25 access and a non-blacklisted IP.
+     * In some dev environments, this may fail or time out.
+     */
+    async checkSMTP(email: string): Promise<{ valid: boolean; log: string }> {
+        const domain = email.split('@')[1];
+
+        try {
+            const mxRecords = await resolveMx(domain);
+            if (!mxRecords || mxRecords.length === 0) {
+                return { valid: false, log: 'No MX records found' };
+            }
+
+            // Sort by priority
+            const sortedMx = mxRecords.sort((a, b) => a.priority - b.priority);
+            const exchange = sortedMx[0].exchange;
+
+            return new Promise((resolve) => {
+                const socket = new net.Socket();
+                let step = 0;
+                let log = '';
+                let isValid = false;
+
+                socket.setTimeout(3000); // 3s timeout for speed
+
+                socket.on('connect', () => {
+                    log += `Connected to ${exchange}\n`;
+                });
+
+                socket.on('data', (data) => {
+                    const response = data.toString();
+                    log += `S: ${response}`;
+
+                    const code = parseInt(response.substring(0, 3));
+
+                    if (step === 0 && code === 220) {
+                        // Server greeting -> Send HELO
+                        const cmd = `HELO ${domain}\r\n`;
+                        socket.write(cmd);
+                        log += `C: ${cmd}`;
+                        step++;
+                    } else if (step === 1 && code === 250) {
+                        // HELO accepted -> MAIL FROM
+                        const cmd = `MAIL FROM:<verify@${domain}>\r\n`;
+                        socket.write(cmd);
+                        log += `C: ${cmd}`;
+                        step++;
+                    } else if (step === 2 && code === 250) {
+                        // MAIL FROM accepted -> RCPT TO
+                        const cmd = `RCPT TO:<${email}>\r\n`;
+                        socket.write(cmd);
+                        log += `C: ${cmd}`;
+                        step++;
+                    } else if (step === 3) {
+                        // RCPT TO response
+                        if (code === 250 || code === 251) {
+                            isValid = true;
+                            log += 'Mailbox exists (250/251 OK)\n';
+                        } else {
+                            log += `Mailbox address rejected (${code})\n`;
+                        }
+                        socket.end();
+                    } else {
+                        socket.end();
+                    }
+                });
+
+                socket.on('error', (err) => {
+                    log += `Error: ${err.message}\n`;
+                    resolve({ valid: false, log });
+                });
+
+                socket.on('timeout', () => {
+                    log += 'Timeout\n';
+                    socket.destroy();
+                    resolve({ valid: false, log });
+                });
+
+                socket.on('close', () => {
+                    resolve({ valid: isValid, log });
+                });
+
+                socket.connect(25, exchange);
+            });
+
+        } catch (error: any) {
+            return { valid: false, log: error.message };
+        }
+    }
+
+    /**
+     * Disposable Email Provider Detection - Expanded List
      */
     private isDisposable(email: string): boolean {
         const disposableDomains = [
             'tempmail.com', 'guerrillamail.com', '10minutemail.com',
             'mailinator.com', 'throwaway.email', 'temp-mail.org',
-            'fakeinbox.com', 'sharklasers.com', 'yopmail.com'
+            'fakeinbox.com', 'sharklasers.com', 'yopmail.com',
+            'getnada.com', 'dispostable.com', 'grr.la', 'maildrop.cc'
         ];
 
         const domain = email.split('@')[1].toLowerCase();
@@ -102,20 +214,29 @@ export class EmailVerifier {
     private isRoleBased(email: string): boolean {
         const roleKeywords = [
             'info', 'contact', 'support', 'sales', 'admin',
-            'hello', 'help', 'service', 'team', 'office'
+            'hello', 'help', 'service', 'team', 'office',
+            'marketing', 'jobs', 'careers', 'hr', 'billing'
         ];
 
         const localPart = email.split('@')[0].toLowerCase();
-        return roleKeywords.some(keyword => localPart.includes(keyword));
+        return roleKeywords.some(keyword => localPart === keyword || localPart.startsWith(keyword + '.'));
     }
 
     /**
      * Batch Verification (for high-volume scans)
      */
     async verifyBatch(emails: string[]): Promise<SMTPVerificationResult[]> {
-        const results = await Promise.all(
-            emails.map(email => this.verify(email))
-        );
+        // Process in chunks of 5 to avoid overwhelming network/server
+        const results: SMTPVerificationResult[] = [];
+        const chunkSize = 5;
+
+        for (let i = 0; i < emails.length; i += chunkSize) {
+            const chunk = emails.slice(i, i + chunkSize);
+            const chunkResults = await Promise.all(
+                chunk.map(email => this.verify(email))
+            );
+            results.push(...chunkResults);
+        }
         return results;
     }
 }

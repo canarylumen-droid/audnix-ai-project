@@ -4,14 +4,13 @@ import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
 import type { PDFProcessingResult } from '../../shared/types.js';
 
-// Initialize OpenAI - will use mock-key if not configured
 const openaiKey = process.env.OPENAI_API_KEY;
 if (!openaiKey) {
   console.error('❌ CRITICAL: OPENAI_API_KEY not set');
-  console.error('📋 PDF analysis and AI features will use fallback responses');
+  console.error('📋 PDF analysis and AI features will be disabled');
 }
 const openai = new OpenAI({
-  apiKey: openaiKey || 'mock-key',
+  apiKey: openaiKey,
 });
 
 /**
@@ -27,7 +26,7 @@ export async function processPDF(
 ): Promise<PDFProcessingResult> {
   try {
     const pdfParse = require('pdf-parse');
-    
+
     // Handle large files (>10MB) with max buffer size
     const maxBufferSize = 50 * 1024 * 1024; // 50MB max
     if (fileBuffer.length > maxBufferSize) {
@@ -37,13 +36,13 @@ export async function processPDF(
         error: `PDF too large (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB). Maximum size is 50MB.`
       };
     }
-    
+
     const data = await pdfParse(fileBuffer, {
       max: 0, // Parse all pages
       version: 'v2.0.550' // Use latest version
     });
     const text = data.text;
-    
+
     if (!text || text.trim().length === 0) {
       return {
         success: false,
@@ -51,7 +50,7 @@ export async function processPDF(
         error: 'PDF appears to be empty or contains only images'
       };
     }
-    
+
     // Extract offer/product information if requested
     let offerData;
     let brandData;
@@ -60,15 +59,15 @@ export async function processPDF(
       offerData = extractedData.offer;
       brandData = extractedData.brand;
     }
-    
+
     // Extract leads with AI
     let parsedLeads = await extractLeadsWithAI(text);
-    
+
     if (parsedLeads.length === 0) {
       // Fallback to regex if AI fails
       parsedLeads = parseLeadsFromText(text);
     }
-    
+
     if (parsedLeads.length === 0 && !offerData) {
       return {
         success: false,
@@ -76,7 +75,7 @@ export async function processPDF(
         error: 'No valid lead data or offer information found in PDF'
       };
     }
-    
+
     // Create leads in database with extracted contact info
     const createdLeads = [];
     for (const leadData of parsedLeads) {
@@ -97,7 +96,7 @@ export async function processPDF(
             has_phone: !!leadData.phone,
           }
         });
-        
+
         createdLeads.push({
           id: lead.id,
           name: lead.name,
@@ -121,7 +120,7 @@ export async function processPDF(
         console.error('Error creating lead:', error);
       }
     }
-    
+
     return {
       success: true,
       leadsCreated: createdLeads.length,
@@ -149,12 +148,12 @@ function extractColorsFromText(text: string): {
   all: string[];
 } {
   const colors: string[] = [];
-  
+
   // Extract hex colors (#RRGGBB or #RGB)
   const hexPattern = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
   const hexMatches = text.match(hexPattern) || [];
   colors.push(...hexMatches);
-  
+
   // Extract RGB/RGBA colors
   const rgbPattern = /rgba?\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*[\d.]+)?\s*\)/gi;
   let rgbMatch;
@@ -166,7 +165,7 @@ function extractColorsFromText(text: string): {
     const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
     colors.push(hex.toUpperCase());
   }
-  
+
   // Extract named colors in brand context
   const colorNames = [
     'navy', 'blue', 'coral', 'teal', 'purple', 'violet', 'indigo',
@@ -174,34 +173,34 @@ function extractColorsFromText(text: string): {
     'gold', 'pink', 'rose', 'magenta', 'cyan', 'turquoise', 'lime',
     'mint', 'sage', 'olive', 'maroon', 'burgundy', 'plum', 'lavender'
   ];
-  
+
   const brandColorPattern = new RegExp(
     `(?:brand|primary|secondary|accent|main)\\s*(?:color|colour)?\\s*:?\\s*(${colorNames.join('|')})`,
     'gi'
   );
   const namedMatches = text.match(brandColorPattern) || [];
   colors.push(...namedMatches.map(m => m.split(/[:\s]+/).pop()!));
-  
+
   // Remove duplicates and normalize
   const uniqueColors = [...new Set(colors.map(c => c.toUpperCase()))];
-  
+
   // Try to identify primary, secondary, accent from context
   let primary, secondary, accent;
-  
+
   const primaryMatch = text.match(/primary\s*(?:color|colour)?[:\s]*([#\w]+)/i);
   if (primaryMatch) primary = primaryMatch[1];
-  
+
   const secondaryMatch = text.match(/secondary\s*(?:color|colour)?[:\s]*([#\w]+)/i);
   if (secondaryMatch) secondary = secondaryMatch[1];
-  
+
   const accentMatch = text.match(/accent\s*(?:color|colour)?[:\s]*([#\w]+)/i);
   if (accentMatch) accent = accentMatch[1];
-  
+
   // Fallback: assign first 3 unique colors
   if (!primary && uniqueColors.length > 0) primary = uniqueColors[0];
   if (!secondary && uniqueColors.length > 1) secondary = uniqueColors[1];
   if (!accent && uniqueColors.length > 2) accent = uniqueColors[2];
-  
+
   return {
     primary,
     secondary,
@@ -219,8 +218,8 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
 }> {
   // First, extract colors using regex (works without OpenAI)
   const extractedColors = extractColorsFromText(text);
-  
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+
+  if (!process.env.OPENAI_API_KEY) {
     console.warn('⚠️ OpenAI API key not configured - using regex-based brand extraction only');
     // Return regex-based colors if OpenAI not available
     return {
@@ -260,10 +259,10 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
       response_format: { type: 'json_object' },
       max_completion_tokens: 1200
     });
-    
+
     const result = JSON.parse(response.choices[0].message.content || '{}');
     console.log('✅ Brand analysis complete via OpenAI');
-    
+
     // Merge AI-extracted colors with regex-extracted colors for maximum coverage
     const aiColors = result.brand?.colors || {};
     const mergedColors = {
@@ -275,12 +274,12 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
         ...extractedColors.all
       ].filter((v, i, a) => a.indexOf(v) === i) // Remove duplicates
     };
-    
+
     result.brand = {
       ...result.brand,
       colors: mergedColors
     };
-    
+
     // Store both offer and brand in user's profile for future auto-responses
     if (result.offer?.productName || result.brand?.companyName) {
       await storage.updateUser(userId, {
@@ -292,7 +291,7 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
         }
       });
     }
-    
+
     return {
       offer: result.offer || null,
       brand: result.brand || null
@@ -360,7 +359,7 @@ Would you like to discuss how this can help you?`;
             }
           }
         );
-        
+
         await storage.createMessage({
           leadId: lead.id,
           userId,
@@ -391,7 +390,7 @@ Would you like to discuss how this can help you?`;
             } : undefined
           }
         );
-        
+
         await storage.createMessage({
           leadId: lead.id,
           userId,
@@ -421,7 +420,7 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
   phone?: string;
   company?: string;
 }>> {
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+  if (!process.env.OPENAI_API_KEY) {
     return [];
   }
 
@@ -438,7 +437,7 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
       response_format: { type: 'json_object' },
       max_completion_tokens: 1000
     });
-    
+
     const result = JSON.parse(response.choices[0].message.content || '{}');
     return result.leads || [];
   } catch (error) {
@@ -462,34 +461,34 @@ function parseLeadsFromText(text: string): Array<{
     phone?: string;
     company?: string;
   }> = [];
-  
+
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
+
   const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
   const phoneRegex = /(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})/g;
   const nameRegex = /\b([A-Z][a-z]+(?:\s[A-Z][a-z]+){1,3})\b/g;
   const companyRegex = /\b([A-Z][A-Za-z0-9\s&]+(?:Inc|LLC|Corp|Ltd|Limited|Co|Company|Group|Solutions|Technologies)\.?)\b/g;
-  
+
   const emailMap = new Map<string, string>();
   const phoneMap = new Map<string, string>();
   const companyMap = new Map<string, string>();
-  
+
   for (const line of lines) {
     const lineEmail = line.match(emailRegex)?.[0];
     const lineName = line.match(nameRegex)?.[0];
     const linePhone = line.match(phoneRegex)?.[0];
     const lineCompany = line.match(companyRegex)?.[0];
-    
+
     if (lineName) {
       if (lineEmail) emailMap.set(lineName, lineEmail);
       if (linePhone) phoneMap.set(lineName, linePhone.replace(/\D/g, ''));
       if (lineCompany) companyMap.set(lineName, lineCompany);
     }
   }
-  
+
   const names = text.match(nameRegex) || [];
   const uniqueNames = new Set(names);
-  
+
   for (const name of uniqueNames) {
     leads.push({
       name,
@@ -498,7 +497,7 @@ function parseLeadsFromText(text: string): Array<{
       company: companyMap.get(name)
     });
   }
-  
+
   if (leads.length === 0) {
     const emails = text.match(emailRegex) || [];
     for (const email of emails) {
@@ -506,11 +505,11 @@ function parseLeadsFromText(text: string): Array<{
       const capitalizedName = namePart.split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
-      
+
       leads.push({ name: capitalizedName, email });
     }
   }
-  
+
   return leads;
 }
 
@@ -519,7 +518,7 @@ function parseLeadsFromText(text: string): Array<{
  */
 export async function exportLeadsToCSV(userId: string): Promise<string> {
   const leads = await storage.getLeads({ userId, limit: 10000 });
-  
+
   const headers = ['Name', 'Email', 'Phone', 'Company', 'Channel', 'Status', 'Score', 'Created At'];
   const rows = leads.map(lead => [
     lead.name,
@@ -531,11 +530,11 @@ export async function exportLeadsToCSV(userId: string): Promise<string> {
     lead.score || 0,
     new Date(lead.createdAt).toISOString()
   ]);
-  
+
   const csv = [
     headers.join(','),
     ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
   ].join('\n');
-  
+
   return csv;
 }

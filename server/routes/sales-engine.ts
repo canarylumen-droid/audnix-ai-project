@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 import { LRUCache } from 'lru-cache';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 const router = Router();
@@ -64,7 +64,7 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
     }
 
     // High Preference: AI Engine (GPT-4o)
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
+    if (process.env.OPENAI_API_KEY) {
       try {
         const completion = await openai.chat.completions.create({
           model: "gpt-4o",

@@ -14,7 +14,7 @@ import OpenAI from "openai";
 import type { ConversationMessage, LeadProfile, BrandContext } from "../../../shared/types.js";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export interface IntentDetectionResult {
@@ -92,7 +92,7 @@ export async function detectLeadIntent(
     const industry = lead.metadata?.industry as string | undefined;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -172,7 +172,7 @@ export async function suggestSmartReply(
     const industry = leadProfile.metadata?.industry as string | undefined;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
@@ -231,7 +231,7 @@ export async function detectObjection(
 ): Promise<ObjectionDetectionResult> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",

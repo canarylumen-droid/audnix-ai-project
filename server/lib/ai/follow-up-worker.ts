@@ -790,30 +790,37 @@ Generate a natural follow-up message:`;
         3: 168 * 60 * 60 * 1000,   // 7 days (Day 7 - final touch)
         4: 336 * 60 * 60 * 1000    // 14 days (archive if no response)
       };
-      return hotDelays[followUpCount] || 24 * 60 * 60 * 1000;
+
+      const baseDelay = hotDelays[followUpCount] || 24 * 60 * 60 * 1000;
+      const jitter = baseDelay * (Math.random() * 0.3 - 0.15); // +/- 15%
+      return Math.max(1000 * 60 * 5, baseDelay + jitter);
     }
 
     // Warm leads - moderate timing
     if (temperature === 'warm') {
       const warmDelays: Record<number, number> = {
-        0: 2 * 60 * 60 * 1000,      // 2 hours
-        1: 6 * 60 * 60 * 1000,      // 6 hours
-        2: 24 * 60 * 60 * 1000,     // 1 day
-        3: 2 * 24 * 60 * 60 * 1000, // 2 days
-        4: 3 * 24 * 60 * 60 * 1000  // 3 days
+        0: 6 * 60 * 60 * 1000,      // 6 hours
+        1: 24 * 60 * 60 * 1000,     // 24 hours
+        2: 72 * 60 * 60 * 1000,     // 3 days
+        3: 120 * 60 * 60 * 1000,    // 5 days
+        4: 240 * 60 * 60 * 1000     // 10 days
       };
-      return warmDelays[followUpCount] || 3 * 24 * 60 * 60 * 1000;
+      const baseDelay = warmDelays[followUpCount] || 72 * 60 * 60 * 1000;
+      const jitter = baseDelay * (Math.random() * 0.4 - 0.2); // +/- 20%
+      return Math.max(1000 * 60 * 30, baseDelay + jitter);
     }
 
     // Cold leads - slower, more spaced out
     const coldDelays: Record<number, number> = {
-      0: 4 * 60 * 60 * 1000,      // 4 hours
-      1: 24 * 60 * 60 * 1000,     // 1 day
-      2: 3 * 24 * 60 * 60 * 1000, // 3 days
-      3: 5 * 24 * 60 * 60 * 1000, // 5 days
-      4: 7 * 24 * 60 * 60 * 1000  // 1 week
+      0: 24 * 60 * 60 * 1000,     // 1 day
+      1: 72 * 60 * 60 * 1000,     // 3 days
+      2: 168 * 60 * 60 * 1000,    // 1 week
+      3: 336 * 60 * 60 * 1000,    // 2 weeks
+      4: 720 * 60 * 60 * 1000     // 30 days
     };
-    return coldDelays[followUpCount] || 7 * 24 * 60 * 60 * 1000;
+    const baseDelay = coldDelays[followUpCount] || 720 * 60 * 60 * 1000;
+    const jitter = baseDelay * (Math.random() * 0.5 - 0.25); // +/- 25%
+    return Math.max(1000 * 60 * 60, baseDelay + jitter);
   }
 
   /**

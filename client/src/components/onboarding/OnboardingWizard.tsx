@@ -66,7 +66,7 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [userRole, setUserRole] = useState<string>('');
   const [source, setSource] = useState<string>('');
   const [customSource, setCustomSource] = useState<string>('');
@@ -204,6 +204,53 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
           <div className="p-8">
             <AnimatePresence mode="wait" custom={1}>
+              {/* Step 0: Neural Handshake */}
+              {step === 0 && (
+                <motion.div
+                  key="step0"
+                  custom={1}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="space-y-8 text-center py-10"
+                >
+                  <div className="relative w-24 h-24 mx-auto">
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                    <div className="relative w-24 h-24 rounded-full border-2 border-primary/50 flex items-center justify-center bg-background/80 backdrop-blur-md">
+                      <Zap className="w-12 h-12 text-primary animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-extrabold tracking-tighter">Neural Core Initialized</h2>
+                    <p className="text-muted-foreground text-lg max-w-md mx-auto">
+                      Connecting to your personal <span className="text-primary font-bold">1M+ Global Proxy Mesh</span> and calibrating the Gemini 2.0 Sales Brain.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto pt-6">
+                    <div className="p-3 rounded-2xl bg-muted/30 border border-white/5">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Status</p>
+                      <p className="text-emerald-500 font-bold">ACTIVE</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-muted/30 border border-white/5">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Latency</p>
+                      <p className="text-primary font-bold">14ms</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => setStep(1)}
+                    className="w-full max-w-sm h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 group"
+                  >
+                    Enter Command Center
+                    <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                  </Button>
+                </motion.div>
+              )}
+
               {/* Step 1: Role Selection */}
               {step === 1 && (
                 <motion.div
@@ -217,8 +264,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-bold">What brings you here?</h2>
-                    <p className="text-muted-foreground">Help us personalize your experience</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Identify Your Strategy</h2>
+                    <p className="text-muted-foreground">We'll tailor the neural network to your specific business model</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
@@ -260,11 +307,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
                       <Search className="w-8 h-8 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold">How did you find us?</h2>
-                    <p className="text-muted-foreground">Your answer helps us improve</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Channel Attribution</h2>
+                    <p className="text-muted-foreground">How did you first discover the Audnix ecosystem?</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
@@ -321,11 +368,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
                       <Sparkles className="w-8 h-8 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold">What do you want to achieve?</h2>
-                    <p className="text-muted-foreground">Select all that apply</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Deployment Objectives</h2>
+                    <p className="text-muted-foreground">Select the mission-critical sectors for AI automation</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-8">
@@ -381,11 +428,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
                       <Building className="w-8 h-8 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold">What's your team size?</h2>
-                    <p className="text-muted-foreground">Almost done!</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Compute Scale</h2>
+                    <p className="text-muted-foreground">Calibrating infrastructure for your organizational volume</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
@@ -422,11 +469,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                      <Sparkles className="w-8 h-8 text-primary" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
+                      <Zap className="w-8 h-8 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold">What's your company name?</h2>
-                    <p className="text-muted-foreground">One last thing!</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Neural Signature</h2>
+                    <p className="text-muted-foreground">Finalize the core profile with your brand identity</p>
                   </div>
 
                   <div className="space-y-4 mt-8">

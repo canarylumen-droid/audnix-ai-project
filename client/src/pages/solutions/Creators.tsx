@@ -37,36 +37,16 @@ export default function CreatorsPage() {
                 "Filter Out Time-Wasters Automatically",
                 "Upsell Free Followers to Paid Communities"
             ]}
-            problemTitle="The Engagement Trap"
-            problemText={`
-                You’ve built the audience. You have the views. You have the likes.
-                But your bank account doesn't reflect your influence. Why?
-                
-                Because 'Attention' is not 'Revenue.' To turn attention into revenue, you need one thing: Conversation.
-                
-                Here lies the trap:
-                If you have 100,000 followers, you likely get 50-200 DMs a day.
-                "How much is your course?"
-                "Do you offer coaching?"
-                "I love your video!"
-                
-                You have two choices, and both of them suck:
-                1. Reply to everyone yourself. You spend 4 hours a day in the inbox. You burn out. You stop making content. Your channel dies.
-                2. Ignore them. You leave thousands of dollars on the table every single day. Your fans feel ignored. Your community weakens.
-                
-                Most creators try to hire a VA to help. But a VA doesn't know your voice. They sound stiff. They send generic links. Your fans know it's not you, and the trust is broken.
-                
-                This is the 'Engagement Gap'. It's the glass ceiling of the creator economy.
-                
-                Audnix shatters this ceiling by cloning YOU.
-                Not a chatbot. A digital extension of your mind.
-                We train the model on your YouTube transcripts, your tweets, your emails. It learns your slang, your emojis, your worldview.
-                
-                It replies to every single fan, instantly. It jokes with them. It answers their specific questions.
-                And when they are ready? It drops the link to your course or community.
-                
-                You get to be the Creator again. Let Audnix be the Closer.
-            `}
+            problemTitle="The Attention Gap"
+            problemText={`Attention is not revenue. To turn followers into buyers, you need conversation. 
+
+If you have 100k followers, you get 100+ DMs a day. You have two bad choices: 
+1. Spend 5 hours replying manually and burn out. 
+2. Ignore them and leave thousands of dollars on the table.
+
+Hiring a VA often breaks the trust because they don't know your voice. Fans can tell when they're talking to a script.
+
+Audnix shatters this ceiling by cloning YOU. We train a neural model on your transcripts, tweets, and course content. It learns your slang, emojis, and worldview. It replies to every fan instantly, handles objections, and drops your links when the intent is high.`}
             deepDiveTitle="Persona Authentication Layer"
             deepDiveText={`Audnix isn't a chatbot. It's a neural clone of your digital persona.
             

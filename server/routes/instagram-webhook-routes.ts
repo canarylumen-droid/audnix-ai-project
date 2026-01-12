@@ -9,6 +9,7 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { webhookLimiter } from "../middleware/rate-limit.js";
 import crypto from "crypto";
 
 const WEBHOOK_LOG_PREFIX = "🪝 [WEBHOOK]";
@@ -30,7 +31,7 @@ function webhookLog(message: string, data?: any) {
     hour12: true,
   });
   const safeMessage = typeof message === 'string' ? message.replace(/%/g, '%%') : '[invalid]';
-  console.log(`${timestamp} ${WEBHOOK_LOG_PREFIX} ${safeMessage}`, data ? JSON.stringify(data, null, 2) : "");
+  console.log(`${timestamp} ${WEBHOOK_LOG_PREFIX} %s`, safeMessage, data ? JSON.stringify(data, null, 2) : "");
 }
 
 function getStringParam(query: any, key: string): string | undefined {
@@ -81,7 +82,7 @@ export default function registerInstagramWebhookRoutes(app: Express) {
    * Meta sends this during webhook setup to verify URL ownership
    * Parameters: hub.mode, hub.challenge, hub.verify_token
    */
-  app.get("/api/webhook/instagram", (req: Request, res: Response) => {
+  app.get("/api/webhook/instagram", webhookLimiter, (req: Request, res: Response) => {
     webhookLog("=== INSTAGRAM WEBHOOK VERIFICATION ===");
 
     const hubMode = getStringParam(req.query, "hub.mode");
@@ -126,7 +127,7 @@ export default function registerInstagramWebhookRoutes(app: Express) {
    * CRITICAL: Uses raw request body for signature verification
    * Must check BEFORE body parsing modifies the request
    */
-  app.post("/api/webhook/instagram", (req: RawRequest, res: Response) => {
+  app.post("/api/webhook/instagram", webhookLimiter, (req: RawRequest, res: Response) => {
     webhookLog("=== INSTAGRAM WEBHOOK EVENT ===");
 
     const signature = req.get("x-hub-signature-256") || "";

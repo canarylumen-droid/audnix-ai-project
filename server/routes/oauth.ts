@@ -3,7 +3,7 @@ import { InstagramOAuth } from '../lib/oauth/instagram.js';
 import { GmailOAuth } from '../lib/oauth/gmail.js';
 import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
-import { supabaseAdmin } from '../lib/supabase-admin.js';
+import { storage } from '../storage.js';
 import { encrypt } from '../lib/crypto/encryption.js';
 
 interface AuthenticatedRequest extends Request {
@@ -109,12 +109,12 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
   try {
     const { code, state, error_reason, error, error_description } = req.query;
 
-    console.log('[Instagram OAuth] Callback received:', { 
-      hasCode: !!code, 
-      hasState: !!state, 
-      error_reason, 
+    console.log('[Instagram OAuth] Callback received:', {
+      hasCode: !!code,
+      hasState: !!state,
+      error_reason,
       error,
-      error_description 
+      error_description
     });
 
     if (error_reason === 'user_denied' || error === 'access_denied') {
@@ -166,11 +166,11 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
     }
 
     console.log('[Instagram OAuth] Saving token for user:', stateData.userId);
-    
+
     // Save to Neon database using storage
     const { storage } = await import('../storage.js');
     const { encrypt } = await import('../lib/crypto/encryption.js');
-    
+
     const encryptedMeta = encrypt(JSON.stringify({
       accessToken: longLivedToken.access_token,
       userId: profile.id,
@@ -233,10 +233,10 @@ router.get('/instagram/status', async (req: Request, res: Response): Promise<voi
     if (token) {
       try {
         const profile = await instagramOAuth.getUserProfile(token);
-        res.json({ 
-          connected: true, 
+        res.json({
+          connected: true,
           username: profile.username,
-          userId: profile.id 
+          userId: profile.id
         });
       } catch {
         res.json({ connected: false, error: 'Token expired or invalid' });
@@ -298,23 +298,18 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       ...gmailProfile
     });
 
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .upsert({
-          user_id: stateData.userId,
-          provider: 'gmail',
-          account_type: gmailProfile.emailAddress,
-          credentials: { 
-            email: gmailProfile.emailAddress,
-            name: userProfile.name
-          },
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
-    }
+    await storage.createIntegration({
+      userId: stateData.userId,
+      provider: 'gmail',
+      accountType: gmailProfile.emailAddress,
+      encryptedMeta: encrypt(JSON.stringify({
+        email: gmailProfile.emailAddress,
+        name: userProfile.name,
+        tokens
+      })),
+      connected: true,
+      lastSync: new Date()
+    });
 
     res.redirect('/dashboard/integrations?success=gmail_connected');
   } catch (error) {
@@ -333,17 +328,7 @@ router.post('/gmail/disconnect', async (req: Request, res: Response): Promise<vo
     }
 
     await gmailOAuth.revokeToken(userId);
-
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'gmail');
-    }
+    await storage.disconnectIntegration(userId, 'gmail');
 
     res.json({ success: true });
   } catch (error) {
@@ -366,7 +351,7 @@ router.get('/gmail/status', async (req: Request, res: Response): Promise<void> =
     if (token) {
       try {
         const profile = await gmailOAuth.getGmailProfile(token);
-        res.json({ 
+        res.json({
           connected: true,
           email: profile.emailAddress
         });
@@ -456,16 +441,7 @@ router.post('/google-calendar/disconnect', async (req: Request, res: Response): 
       return;
     }
 
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          connected: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'google_calendar');
-    }
+    await storage.disconnectIntegration(userId, 'google_calendar');
 
     res.json({ success: true });
   } catch (error) {
@@ -492,25 +468,14 @@ router.post('/google-calendar/events', async (req: Request, res: Response): Prom
       return;
     }
 
-    if (!supabaseAdmin) {
-      res.status(500).json({ error: 'Database not configured' });
-      return;
-    }
-
-    const { data: integration } = await supabaseAdmin
-      .from('integrations')
-      .select('encrypted_meta')
-      .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
-      .eq('connected', true)
-      .single();
+    const integration = await storage.getIntegration(userId, 'google_calendar');
 
     if (!integration) {
       res.status(404).json({ error: 'Google Calendar not connected' });
       return;
     }
 
-    const tokens: StoredTokens = JSON.parse(integration.encrypted_meta);
+    const tokens: StoredTokens = JSON.parse(integration.encryptedMeta);
     const expiresAt = new Date(tokens.expiresAt);
     let accessToken = tokens.accessToken;
 
@@ -536,7 +501,7 @@ router.post('/google-calendar/events', async (req: Request, res: Response): Prom
         provider: 'system',
         direction: 'outbound',
         body: `Calendar event created: ${summary}`,
-        metadata: { 
+        metadata: {
           eventId: event.id,
           eventLink: event.htmlLink,
           meetingLink: event.hangoutLink
@@ -560,25 +525,14 @@ router.get('/google-calendar/events', async (req: Request, res: Response): Promi
       return;
     }
 
-    if (!supabaseAdmin) {
-      res.status(500).json({ error: 'Database not configured' });
-      return;
-    }
+    const integration = await storage.getIntegration(userId, 'google_calendar');
 
-    const { data: integration } = await supabaseAdmin
-      .from('integrations')
-      .select('encrypted_meta')
-      .eq('user_id', userId)
-      .eq('provider', 'google_calendar')
-      .eq('connected', true)
-      .single();
-
-    if (!integration) {
+    if (!integration || !integration.connected) {
       res.status(404).json({ error: 'Google Calendar not connected' });
       return;
     }
 
-    const tokens: StoredTokens = JSON.parse(integration.encrypted_meta);
+    const tokens: StoredTokens = JSON.parse(integration.encryptedMeta);
     const expiresAt = new Date(tokens.expiresAt);
     let accessToken = tokens.accessToken;
 
@@ -592,36 +546,30 @@ router.get('/google-calendar/events', async (req: Request, res: Response): Promi
         expiresAt: refreshedTokens.expiresAt.toISOString(),
       };
 
-      await supabaseAdmin
-        .from('integrations')
-        .update({
-          encrypted_meta: encrypt(JSON.stringify(updatedTokens)),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId)
-        .eq('provider', 'google_calendar');
+      await storage.updateIntegration(userId, 'google_calendar', {
+        encryptedMeta: encrypt(JSON.stringify(updatedTokens)),
+      });
+
+      const rawEvents: CalendarEventData[] = await googleCalendarOAuth.listUpcomingEvents(accessToken);
+
+      const events = rawEvents.map((event: CalendarEventData) => ({
+        id: event.id,
+        title: event.summary || 'Untitled Event',
+        startTime: event.start?.dateTime || event.start?.date,
+        endTime: event.end?.dateTime || event.end?.date,
+        leadName: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || null,
+        meetingUrl: event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null,
+        isAiBooked: event.description?.includes('AI Scheduled') || false,
+        location: event.location || null,
+        description: event.description || null,
+      }));
+
+      res.json({ events });
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      res.status(500).json({ error: 'Failed to fetch events' });
     }
-
-    const rawEvents: CalendarEventData[] = await googleCalendarOAuth.listUpcomingEvents(accessToken);
-
-    const events = rawEvents.map((event: CalendarEventData) => ({
-      id: event.id,
-      title: event.summary || 'Untitled Event',
-      startTime: event.start?.dateTime || event.start?.date,
-      endTime: event.end?.dateTime || event.end?.date,
-      leadName: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || null,
-      meetingUrl: event.hangoutLink || event.conferenceData?.entryPoints?.[0]?.uri || null,
-      isAiBooked: event.description?.includes('AI Scheduled') || false,
-      location: event.location || null,
-      description: event.description || null,
-    }));
-
-    res.json({ events });
-  } catch (error) {
-    console.error('Error fetching calendar events:', error);
-    res.status(500).json({ error: 'Failed to fetch events' });
-  }
-});
+  });
 
 // ==================== CALENDLY OAUTH ====================
 
@@ -679,20 +627,14 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
       expiresAt: tokenData.expiresAt.toISOString()
     }));
 
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('integrations')
-        .upsert({
-          user_id: userId,
-          provider: 'calendly',
-          account_type: tokenData.user?.email || 'Calendly (OAuth)',
-          encrypted_meta: encryptedMeta,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
-    }
+    await storage.createIntegration({
+      userId: userId,
+      provider: 'calendly',
+      accountType: tokenData.user?.email || 'Calendly (OAuth)',
+      encryptedMeta: encryptedMeta,
+      connected: true,
+      lastSync: new Date()
+    });
 
     try {
       await registerCalendlyWebhook(userId, tokenData.accessToken);

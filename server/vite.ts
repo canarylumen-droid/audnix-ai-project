@@ -84,7 +84,7 @@ export function serveStatic(app: Express) {
   }
 
   // Optimized static serving for production
-  app.use(express.static(distPath, { 
+  app.use(express.static(distPath, {
     dotfiles: 'allow',
     index: false,
     maxAge: '1d',
@@ -102,9 +102,16 @@ export function serveStatic(app: Express) {
     }
   }));
 
-  // Explicit route handlers for PWA/Manifest files
-  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt'], (req, res) => {
-    const filePath = path.resolve(distPath, req.path.substring(1));
+  // Explicit route handlers for PWA/Manifest files with strict path validation
+  app.get(['/sw.js', '/manifest.json', '/favicon.ico', '/robots.txt'], viteLimiter, (req, res) => {
+    const safeFiles = ['sw.js', 'manifest.json', 'favicon.ico', 'robots.txt'];
+    const fileName = req.path.substring(1);
+
+    if (!safeFiles.includes(fileName)) {
+      return res.status(404).end();
+    }
+
+    const filePath = path.resolve(distPath, fileName);
     if (fs.existsSync(filePath)) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(filePath);
@@ -114,7 +121,7 @@ export function serveStatic(app: Express) {
   });
 
   // Handle all other routes by serving index.html (SPA)
-  app.get('*', (req, res) => {
+  app.get('*', viteLimiter, (req, res) => {
     // CRITICAL: Never serve index.html for API or Webhook routes
     if (req.path.startsWith('/api/') || req.path.startsWith('/webhook/') || req.path === '/health') {
       if (req.path === '/health') {

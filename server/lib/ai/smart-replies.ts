@@ -3,10 +3,10 @@ import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key'
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key';
+const isDemoMode = false;
 
 export interface SmartReply {
   id: string;
@@ -23,9 +23,6 @@ export async function generateSmartReplies(
   leadId: string,
   lastMessage: Message
 ): Promise<SmartReply[]> {
-  if (isDemoMode) {
-    return getDemoReplies(lastMessage.body);
-  }
 
   const lead = await storage.getLeadById(leadId);
   if (!lead) {
@@ -68,7 +65,7 @@ Return JSON array:
 ]`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'You are a sales reply expert. Generate concise, effective quick replies.' },
         ...conversationContext as any,
@@ -91,86 +88,7 @@ Return JSON array:
     }));
   } catch (error) {
     console.error('Smart reply generation error:', error);
-    return getDemoReplies(lastMessage.body);
+    throw error;
   }
 }
 
-function getDemoReplies(lastMessage: string): SmartReply[] {
-  const lower = lastMessage.toLowerCase();
-
-  if (lower.includes('price') || lower.includes('cost')) {
-    return [
-      {
-        id: 'demo-1',
-        text: "Our pricing starts at $49/mo with a 3-day free trial. Would you like to see a demo?",
-        tone: 'professional',
-        useCase: 'Pricing inquiry',
-        confidence: 0.9
-      },
-      {
-        id: 'demo-2',
-        text: "Great question! Let's hop on a quick call so I can show you the value. When works for you?",
-        tone: 'friendly',
-        useCase: 'Build relationship',
-        confidence: 0.85
-      },
-      {
-        id: 'demo-3',
-        text: "Limited spots available this week! Book a demo now and get 20% off your first month.",
-        tone: 'urgent',
-        useCase: 'Create urgency',
-        confidence: 0.8
-      }
-    ];
-  }
-
-  if (lower.includes('interested') || lower.includes('tell me more')) {
-    return [
-      {
-        id: 'demo-1',
-        text: "I'd love to share more! When can we schedule a quick 15-min call?",
-        tone: 'professional',
-        useCase: 'Book demo',
-        confidence: 0.9
-      },
-      {
-        id: 'demo-2',
-        text: "Awesome! Let me send you a quick video showing how it works. Sound good?",
-        tone: 'friendly',
-        useCase: 'Share resource',
-        confidence: 0.85
-      },
-      {
-        id: 'demo-3',
-        text: "Perfect timing! We have 3 spots left for our onboarding this week. Ready to get started?",
-        tone: 'urgent',
-        useCase: 'Push for action',
-        confidence: 0.8
-      }
-    ];
-  }
-
-  return [
-    {
-      id: 'demo-1',
-      text: "Thanks for your message! How can I help you today?",
-      tone: 'professional',
-      useCase: 'General response',
-      confidence: 0.7
-    },
-    {
-      id: 'demo-2',
-      text: "Hey! Great to hear from you. What questions do you have?",
-      tone: 'friendly',
-      useCase: 'Casual follow-up',
-      confidence: 0.75
-    },
-    {
-      id: 'demo-3',
-      text: "Let's connect! When's a good time for a quick call this week?",
-      tone: 'urgent',
-      useCase: 'Book meeting',
-      confidence: 0.65
-    }
-  ];
-}

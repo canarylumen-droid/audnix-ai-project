@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { InstagramOAuth } from "../lib/oauth/instagram.js";
 import { storage } from "../storage.js";
 import { encrypt } from "../lib/crypto/encryption.js";
+import { authLimiter } from "../middleware/rate-limit.js";
 
 interface AuthenticatedRequest extends Request {
   session: Request["session"] & {
@@ -17,16 +18,16 @@ const instagramOAuth = new InstagramOAuth();
  * Redirect to Instagram OAuth authorization page
  * Logs the OAuth redirect URL for debugging
  */
-router.get("/", async (req: Request, res: Response): Promise<void> => {
+router.get("/", authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as AuthenticatedRequest).session?.userId;
     const callbackUrl = process.env.META_CALLBACK_URL || "";
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("[Instagram OAuth] /auth/instagram called");
-    console.log("[Instagram OAuth] META_CALLBACK_URL:", callbackUrl || "NOT SET");
-    console.log("[Instagram OAuth] META_APP_ID:", process.env.META_APP_ID ? "SET" : "NOT SET");
-    console.log("[Instagram OAuth] User ID from session:", userId || "NOT AUTHENTICATED");
+    console.log("[Instagram OAuth] META_CALLBACK_URL: %s", callbackUrl || "NOT SET");
+    console.log("[Instagram OAuth] META_APP_ID: %s", process.env.META_APP_ID ? "SET" : "NOT SET");
+    console.log("[Instagram OAuth] User ID from session: %s", userId || "NOT AUTHENTICATED");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     if (!userId) {
@@ -36,7 +37,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
     }
 
     const authUrl = instagramOAuth.getAuthorizationUrl(userId);
-    console.log("[Instagram OAuth] Generated Auth URL:", authUrl);
+    console.log("[Instagram OAuth] Generated Auth URL: %s", authUrl);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     res.redirect(authUrl);
@@ -51,17 +52,17 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
  * Handle Instagram OAuth callback
  * Logs the code parameter received from Meta
  */
-router.get("/callback", async (req: Request, res: Response): Promise<void> => {
+router.get("/callback", authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error, error_reason, error_description } = req.query;
 
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("[Instagram OAuth] /auth/instagram/callback called");
-    console.log("[Instagram OAuth] Code received:", code ? `${String(code).substring(0, 20)}...` : "NONE");
-    console.log("[Instagram OAuth] State received:", state ? "YES" : "NONE");
-    console.log("[Instagram OAuth] Error:", error || "NONE");
-    console.log("[Instagram OAuth] Error reason:", error_reason || "NONE");
-    console.log("[Instagram OAuth] Error description:", error_description || "NONE");
+    console.log("[Instagram OAuth] Code received: %s", code ? "YES" : "NONE");
+    console.log("[Instagram OAuth] State received: %s", state ? "YES" : "NONE");
+    console.log("[Instagram OAuth] Error: %s", error || "NONE");
+    console.log("[Instagram OAuth] Error reason: %s", error_reason || "NONE");
+    console.log("[Instagram OAuth] Error description: %s", error_description || "NONE");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     if (error_reason === "user_denied" || error === "access_denied") {

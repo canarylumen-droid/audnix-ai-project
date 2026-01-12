@@ -4,7 +4,7 @@ import OpenAI from "openai";
 
 const router = Router();
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 interface LeadProfileInput {
@@ -96,7 +96,7 @@ OPTION C (Most ROI-Focused - Best for Decision Makers):
 For each, include 2-line reasoning why it works.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.8,
       max_tokens: 800,
@@ -146,7 +146,7 @@ Requirements:
 Response:`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 100,

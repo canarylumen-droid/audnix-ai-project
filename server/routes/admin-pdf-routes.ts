@@ -8,7 +8,7 @@ import OpenAI from "openai";
 import crypto from "crypto";
 
 const router = Router();
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit for brand PDFs
 });
@@ -28,7 +28,7 @@ interface CachedPdfData {
 }
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "mock-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 interface BrandExtraction {
@@ -56,12 +56,12 @@ type DeepMergeObject = Record<string, DeepMergeValue>;
  */
 function deepMerge(target: DeepMergeObject, source: DeepMergeObject): DeepMergeObject {
   const result: DeepMergeObject = { ...target };
-  
+
   for (const key in source) {
     if (source[key] === null || source[key] === undefined) {
       continue;
     }
-    
+
     if (Array.isArray(source[key])) {
       const targetArray = result[key];
       const sourceArray = source[key] as DeepMergeValue[];
@@ -70,16 +70,16 @@ function deepMerge(target: DeepMergeObject, source: DeepMergeObject): DeepMergeO
       const targetObj = result[key];
       const sourceObj = source[key] as DeepMergeObject;
       result[key] = deepMerge(
-        (typeof targetObj === 'object' && targetObj !== null && !Array.isArray(targetObj)) 
-          ? targetObj as DeepMergeObject 
-          : {}, 
+        (typeof targetObj === 'object' && targetObj !== null && !Array.isArray(targetObj))
+          ? targetObj as DeepMergeObject
+          : {},
         sourceObj
       );
     } else {
       result[key] = source[key];
     }
   }
-  
+
   return result;
 }
 
@@ -188,7 +188,7 @@ router.post(
 
       // Generate hash to check if PDF was already processed
       const fileHash = generateFileHash(req.file.buffer);
-      
+
       // Check PostgreSQL cache first
       try {
         const cachedResult = await db.execute(sql`
@@ -202,9 +202,9 @@ router.post(
           const cached = cachedResult.rows[0] as any;
           const brandContext = cached.brand_context as BrandExtraction;
           const cachedFileSize = cached.file_size || req.file.size;
-          
+
           console.log(`📦 Using cached brand PDF analysis for user ${userId}`);
-          
+
           // Update user metadata from cache (use cached file size, not current upload size)
           const existingMetadata = (user.metadata || {}) as DeepMergeObject;
           const brandMetadata: DeepMergeObject = {
@@ -215,7 +215,7 @@ router.post(
             brandPdfCached: true,
           };
           const updatedMetadata = deepMerge(existingMetadata, brandMetadata);
-          
+
           await storage.updateUser(userId, {
             metadata: updatedMetadata,
             businessName: brandContext.companyName || user.businessName,
@@ -246,7 +246,7 @@ router.post(
       const pdfText: string = data.text;
 
       if (!pdfText || pdfText.length < 50) {
-        res.status(400).json({ 
+        res.status(400).json({
           error: "PDF appears to be empty or too short",
           message: "Please upload a PDF with your brand information (at least 50 characters)"
         });
@@ -258,7 +258,7 @@ router.post(
       let analysisScore = 0;
       let analysisItems: any[] = [];
 
-      if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
+      if (process.env.OPENAI_API_KEY) {
         try {
           const completion = await openai.chat.completions.create({
             model: "gpt-4-turbo-preview",
@@ -556,12 +556,12 @@ router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: 
     }
 
     let brandContext: BrandExtraction = {};
-    
+
     // Try AI extraction if available
-    if (process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== "mock-key") {
+    if (process.env.OPENAI_API_KEY) {
       try {
         const completion = await openai.chat.completions.create({
-          model: "gpt-4-turbo-preview",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: "Extract brand information from the document. Return JSON with: companyName, businessDescription, industry, uniqueValue, targetAudience, offer, tone." },
             { role: "user", content: `Extract brand context:\n\n${pdfText.substring(0, 8000)}` }

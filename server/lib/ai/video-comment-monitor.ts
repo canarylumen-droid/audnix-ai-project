@@ -6,10 +6,10 @@ import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { User, Lead, Integration, VideoMonitor } from '../../../shared/schema.js';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key';
+const isDemoMode = false;
 
 interface VideoMonitorMetadata {
   videoCaption?: string;
@@ -429,7 +429,7 @@ export async function monitorVideoComments(userId: string, videoMonitorId: strin
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       if (errorMessage?.includes('<!DOCTYPE html>') || errorMessage?.includes('<html')) {
         console.warn(`⚠️  Instagram access token expired for user ${userId} - attempting refresh`);
 

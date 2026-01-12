@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { handleInstagramWebhook, handleInstagramVerification } from "../lib/webhooks/instagram-webhook.js";
+import { webhookLimiter } from "../middleware/rate-limit.js";
 
 const router = Router();
 
@@ -8,7 +9,7 @@ const router = Router();
  * Meta webhook verification endpoint
  * Responds to hub.challenge for webhook subscription verification
  */
-router.get("/", (req: Request, res: Response): void => {
+router.get("/", webhookLimiter, (req: Request, res: Response): void => {
   const mode = req.query["hub.mode"];
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
@@ -29,7 +30,7 @@ router.get("/", (req: Request, res: Response): void => {
  * Meta webhook event handler
  * Receives Instagram DM events, comments, and reactions
  */
-router.post("/", async (req: Request, res: Response): Promise<void> => {
+router.post("/", webhookLimiter, async (req: Request, res: Response): Promise<void> => {
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("[Webhook] POST /webhook called (Meta event)");
   console.log("[Webhook] Object type:", req.body?.object || "UNKNOWN");

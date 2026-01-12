@@ -47,7 +47,7 @@ interface OpenAIModerationResponse {
  * Detects inappropriate, spam, or offensive content
  */
 export class ContentModerationService {
-  
+
   private readonly offensiveKeywords: readonly string[] = [
     'fuck', 'shit', 'bitch', 'asshole', 'damn', 'hell',
     'idiot', 'stupid', 'dumb', 'scam', 'fraud'
@@ -83,7 +83,7 @@ export class ContentModerationService {
     let category: ModerationResult['category'] = 'safe';
     let shouldBlock = false;
 
-    const offensiveCount = this.offensiveKeywords.filter(word => 
+    const offensiveCount = this.offensiveKeywords.filter(word =>
       lower.includes(word)
     ).length;
     if (offensiveCount > 0) {
@@ -92,7 +92,7 @@ export class ContentModerationService {
       if (offensiveCount >= 3) shouldBlock = true;
     }
 
-    const spamMatches = this.spamPatterns.filter(pattern => 
+    const spamMatches = this.spamPatterns.filter(pattern =>
       pattern.test(content)
     ).length;
     if (spamMatches > 0) {
@@ -101,7 +101,7 @@ export class ContentModerationService {
       if (spamMatches >= 2) shouldBlock = true;
     }
 
-    const sexualCount = this.sexualKeywords.filter(word => 
+    const sexualCount = this.sexualKeywords.filter(word =>
       lower.includes(word)
     ).length;
     if (sexualCount > 0) {
@@ -110,7 +110,7 @@ export class ContentModerationService {
       if (sexualCount >= 2) shouldBlock = true;
     }
 
-    const violentCount = this.violentKeywords.filter(word => 
+    const violentCount = this.violentKeywords.filter(word =>
       lower.includes(word)
     ).length;
     if (violentCount > 0) {
@@ -151,7 +151,7 @@ export class ContentModerationService {
    * Enhanced moderation using OpenAI (if available)
    */
   public async moderateWithAI(content: string): Promise<ModerationResult> {
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key') {
+    if (!process.env.OPENAI_API_KEY) {
       return this.moderateContent(content);
     }
 
@@ -170,7 +170,7 @@ export class ContentModerationService {
       }
 
       const data = await response.json() as OpenAIModerationResponse;
-      
+
       const result = data.results?.[0];
       if (!result) {
         throw new Error('No moderation result returned');

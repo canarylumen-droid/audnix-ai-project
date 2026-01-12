@@ -4,10 +4,10 @@ import type { Lead, Message } from '../../../shared/schema.js';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-const isDemoMode = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'mock-key';
+const isDemoMode = false;
 
 /**
  * Detect if a comment indicates user wants a DM (link, info, etc.)

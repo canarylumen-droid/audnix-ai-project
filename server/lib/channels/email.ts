@@ -100,7 +100,7 @@ async function sendCustomSMTP(
   isHtml: boolean = false
 ): Promise<void> {
   const nodemailer = require('nodemailer');
-  
+
   const transporter = nodemailer.createTransport({
     host: config.smtp_host,
     port: config.smtp_port || 587,
@@ -129,14 +129,14 @@ export async function importCustomEmails(
 ): Promise<ImportedEmail[]> {
   const Imap = require('imap');
   const { simpleParser } = require('mailparser');
-  
+
   const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
   const imapPort = config.imap_port || 993;
-  
+
   if (!imapHost) {
     throw new Error('IMAP host not configured. Please provide explicit IMAP settings.');
   }
-  
+
   return new Promise((resolve, reject) => {
     let timeoutHandle: NodeJS.Timeout | null = null;
     let completed = false;
@@ -260,7 +260,7 @@ export async function sendEmail(
   options: EmailOptions = {}
 ): Promise<void> {
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
-  
+
   if (customEmailIntegration?.connected) {
     const { decrypt } = await import('../crypto/encryption.js');
     if (!customEmailIntegration.encryptedMeta) {
@@ -268,12 +268,12 @@ export async function sendEmail(
     }
     const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta);
     const credentials = JSON.parse(credentialsStr) as EmailConfig;
-    
+
     const brandColors = options.brandColors || await getUserBrandColors(userId);
-    
+
     const user = await storage.getUser(userId);
     const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
-    
+
     let emailBody = content;
     if (options.buttonUrl && options.buttonText) {
       if (options.isMeetingInvite) {
@@ -284,12 +284,12 @@ export async function sendEmail(
     } else {
       emailBody = generateBrandedEmail(content, { text: 'View Details', url: '#' }, brandColors, businessName);
     }
-    
+
     await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
     console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
     return;
   }
-  
+
   if (!supabaseAdmin) {
     throw new Error('No email provider configured. Please connect your business email in Settings.');
   }
@@ -307,7 +307,7 @@ export async function sendEmail(
   }
 
   const brandColors = options.brandColors || await getUserBrandColors(userId);
-  
+
   const { generateEmailSubject } = await import('./email-subject-generator.js');
   const emailSubject = subject || await generateEmailSubject(userId, content);
 
@@ -353,17 +353,17 @@ export async function sendEmail(
 
   if (integration.provider === 'gmail') {
     await sendGmailMessage(
-      credentials, 
-      recipientEmail, 
-      emailSubject, 
+      credentials,
+      recipientEmail,
+      emailSubject,
       emailBody,
       options.isHtml
     );
   } else if (integration.provider === 'outlook') {
     await sendOutlookMessage(
-      credentials, 
-      recipientEmail, 
-      emailSubject, 
+      credentials,
+      recipientEmail,
+      emailSubject,
       emailBody,
       options.isHtml
     );
@@ -448,29 +448,42 @@ async function sendOutlookMessage(
  * Create MIME message for Gmail with HTML support
  */
 function createMimeMessage(
-  from: string, 
-  to: string, 
-  subject: string, 
+  from: string,
+  to: string,
+  subject: string,
   body: string,
   isHtml: boolean = false
 ): string {
   const boundary = '----=_Part_' + Date.now();
-  
+
   const stripHtml = (html: string): string => {
-    let safe = html.replace(/<script(?:\s[^>]*)?>[\s\S]*?<\/script>/gi, '');
-    safe = safe.replace(/<style(?:\s[^>]*)?>[\s\S]*?<\/style>/gi, '');
-    safe = safe.replace(/<iframe(?:\s[^>]*)?>[\s\S]*?<\/iframe>/gi, '');
-    safe = safe.replace(/<[^>]+>/g, '');
-    safe = safe
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#x27;/g, "'")
-      .replace(/&#x2F;/g, '/');
-    
-    return safe.trim();
+    if (!html) return '';
+
+    // Safety first: Remove dangerous tags without using nested quantifiers
+    let safe = html;
+
+    // Remove scripts, styles, iframes using non-backtracking patterns
+    safe = safe.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    safe = safe.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    safe = safe.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+
+    // Remove remaining HTML tags
+    safe = safe.replace(/<[^>]+>/g, ' ');
+
+    // Decode common entities
+    const entities: Record<string, string> = {
+      '&nbsp;': ' ',
+      '&amp;': '&',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&quot;': '"',
+      '&#x27;': "'",
+      '&#x2F;': '/'
+    };
+
+    return safe.replace(/&[a-z0-9#]+;/gi, (match) => entities[match] || match)
+      .replace(/\s+/g, ' ')
+      .trim();
   };
 
   const parts = [
@@ -512,7 +525,7 @@ export async function getEmailInbox(
   if (!supabaseAdmin) {
     throw new Error('Supabase admin not configured');
   }
-  
+
   const { data: integration } = await supabaseAdmin
     .from('integrations')
     .select('provider, credentials')

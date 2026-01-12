@@ -1,5 +1,5 @@
 import { db } from "../../db.js";
-import { prospects, users } from "@shared/schema.js";
+import { prospects, users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { wsSync } from "../websocket-sync.js";
@@ -42,7 +42,7 @@ export class AudnixIngestor {
                 Identify:
                 1. Main Niche/Industry
                 2. Target Geographic Location
-                3. Requested Lead Volume (Minimum 500, Maximum 2000. Default to 500 if not specified)
+                3. Requested Lead Volume (Minimum 500, Maximum 500000. Default to 5000 if not specified)
                 4. Platform Focus (if any)
                 5. Special Filters (e.g., "personal emails", "founders only", "high revenue", etc.)
 
@@ -50,7 +50,7 @@ export class AudnixIngestor {
                 {
                     "niche": "string",
                     "location": "string",
-                    "volume": number (500-2000),
+                    "volume": number (500-500000),
                     "platforms": ["string"],
                     "filters": ["string"]
                 }
@@ -59,8 +59,8 @@ export class AudnixIngestor {
             const result = await model.generateContent(prompt);
             const intent = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-            // Enforce volume limits
-            intent.volume = Math.max(500, Math.min(2000, intent.volume));
+            // Enforce volume limits (Scalability lift: 2k -> 500k)
+            intent.volume = Math.max(500, Math.min(500000, intent.volume));
 
             await this.log(`[Intel] Niche: ${intent.niche} | Location: ${intent.location} | Target: ${intent.volume} leads`, 'success');
 

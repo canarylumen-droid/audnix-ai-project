@@ -9,6 +9,8 @@
  */
 
 import type { Express, Request, Response } from "express";
+import { authLimiter } from "./middleware/rate-limit.js";
+import crypto from "crypto";
 
 const OAUTH_LOG_PREFIX = "🔐 [OAUTH]";
 
@@ -25,7 +27,7 @@ function oauthLog(message: string, data?: any) {
     hour12: true,
   });
   const safeMessage = typeof message === 'string' ? message.replace(/%/g, '%%') : '[invalid]';
-  console.log(`${timestamp} ${OAUTH_LOG_PREFIX} ${safeMessage}`, data ? JSON.stringify(data, null, 2) : "");
+  console.log(`${timestamp} ${OAUTH_LOG_PREFIX} %s`, safeMessage, data ? JSON.stringify(data, null, 2) : "");
 }
 
 function getStringParam(query: any, key: string): string | undefined {
@@ -73,7 +75,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
    * GET /auth/instagram
    * Generates and redirects to Instagram OAuth URL
    */
-  app.get("/auth/instagram", (req: Request, res: Response) => {
+  app.get("/auth/instagram", authLimiter, (req: Request, res: Response) => {
     oauthLog("=== INSTAGRAM OAUTH INITIATION ===");
 
     if (!META_APP_ID || !META_CALLBACK_URL) {
@@ -84,8 +86,8 @@ export function registerInstagramOAuthRoutes(app: Express) {
       });
     }
 
-    // Generate random state for CSRF protection
-    const state = Math.random().toString(36).substring(7);
+    // Use cryptographically secure random values for state
+    const state = crypto.randomBytes(16).toString('hex');
 
     oauthLog("OAuth parameters configured");
     oauthLog("Scope: instagram_basic,instagram_manage_messages");

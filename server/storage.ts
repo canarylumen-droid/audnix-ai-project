@@ -34,6 +34,7 @@ export interface IStorage {
   getIntegration(userId: string, provider: string): Promise<Integration | undefined>;
   getIntegrationsByProvider(provider: string): Promise<Integration[]>;
   createIntegration(integration: Partial<InsertIntegration> & { userId: string; provider: string; encryptedMeta: string }): Promise<Integration>;
+  updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined>;
   disconnectIntegration(userId: string, provider: string): Promise<void>;
   deleteIntegration(userId: string, provider: string): Promise<void>;
 
@@ -364,6 +365,18 @@ export class MemStorage implements IStorage {
 
     this.integrations.set(id, newIntegration);
     return newIntegration;
+  }
+
+  async updateIntegration(userId: string, provider: string, updates: Partial<Integration>): Promise<Integration | undefined> {
+    const integration = Array.from(this.integrations.values()).find(
+      (i) => i.userId === userId && i.provider === provider
+    );
+
+    if (!integration) return undefined;
+
+    const updated = { ...integration, ...updates };
+    this.integrations.set(integration.id, updated);
+    return updated;
   }
 
   async disconnectIntegration(userId: string, provider: string): Promise<void> {

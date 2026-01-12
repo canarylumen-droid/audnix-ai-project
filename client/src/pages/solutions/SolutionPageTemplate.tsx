@@ -58,16 +58,22 @@ export function SolutionPageTemplate({
         const ref = React.useRef(null);
         const { scrollYProgress } = useScroll({
             target: ref,
-            offset: ["start 90%", "start 50%"]
+            offset: ["start 90%", "start 60%"]
         });
-        const opacity = useTransform(scrollYProgress, [0, 1], [0.2, 1]);
-        const color = useTransform(scrollYProgress, [0, 1], ["rgba(255,255,255,0.2)", "rgba(255,255,255,1)"]);
+        const opacity = useTransform(scrollYProgress, [0, 1], [0.15, 1]);
+        const color = useTransform(scrollYProgress, [0, 1], ["rgba(255,255,255,0.15)", "rgba(255,255,255,1)"]);
 
         return (
             <motion.span
                 ref={ref}
                 style={{ opacity, color }}
-                className="transition-colors duration-300 px-1 inline-block"
+                whileHover={{
+                    color: "#00d2ff",
+                    textShadow: "0 0 15px rgba(0, 210, 255, 0.6), 0 0 30px rgba(0, 210, 255, 0.2)",
+                    scale: 1.02,
+                    y: -1
+                }}
+                className="transition-all duration-300 px-0.5 inline-block cursor-default font-semibold tracking-tight"
             >
                 {children}
             </motion.span>
@@ -93,14 +99,14 @@ export function SolutionPageTemplate({
                                 <Target className="w-3 h-3" />
                                 {subtitle}
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.05]">
+                            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.95] uppercase italic">
                                 {title.split(' ').map((word, i) => (
                                     <span key={i} className={i === title.split(' ').length - 1 ? "text-primary block" : "inline"}>{word} </span>
                                 ))}
                             </h1>
                             <ScrollHighlightText
                                 text={description}
-                                className="text-muted-foreground text-xl font-medium leading-relaxed max-w-xl text-left"
+                                className="text-white/60 text-lg md:text-xl font-medium leading-[1.4] max-w-xl text-left tracking-tight"
                             />
 
                             <div className="flex flex-wrap gap-4">
@@ -145,23 +151,23 @@ export function SolutionPageTemplate({
                 </section>
 
                 {/* Problem Agitation Section */}
-                <section className="py-32 px-6 bg-[#050505] border-y border-white/5">
-                    <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-20 items-start">
-                        <div className="space-y-8 sticky top-32">
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                <section className="py-20 px-6 bg-[#030303] border-y border-white/5">
+                    <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-start">
+                        <div className="space-y-6 sticky top-32">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-[0.4em] shadow-[0_0_20px_rgba(239,68,68,0.2)] border border-red-500/20">
                                 <AlertTriangle className="w-3 h-3" />
-                                CRITICAL FAILURE
+                                THREAT LEVEL: CRITICAL
                             </div>
-                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white leading-[0.9] uppercase">{problemTitle}</h2>
-                            <p className="text-white/40 text-sm font-bold uppercase tracking-widest">
-                                The bottleneck in your current operation.
+                            <h2 className="text-4xl md:text-7xl font-black tracking-tighter text-white leading-[0.85] uppercase italic">{problemTitle}</h2>
+                            <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
+                                Current infrastructure inefficiency detected
                             </p>
                         </div>
 
-                        <div className="pl-8 border-l border-white/10">
+                        <div className="pl-10 border-l-2 border-primary/20">
                             <ScrollHighlightText
                                 text={problemText}
-                                className="text-lg md:text-2xl text-white/60 font-medium leading-loose whitespace-pre-line text-left"
+                                className="text-lg md:text-2xl text-white/70 font-bold leading-[1.3] whitespace-pre-line text-left tracking-tight"
                             />
                         </div>
                     </div>
@@ -196,135 +202,132 @@ export function SolutionPageTemplate({
                 </section>
 
                 {/* Deep Dive Section */}
-                <section className="py-32 px-6 border-t border-white/5 bg-[#050505]">
-                    <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-20 items-start">
-                        <div className="space-y-10 pl-8 border-l border-white/10">
-                            <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase leading-none">{deepDiveTitle}</h2>
+                <section className="py-20 px-6 border-t border-white/5 bg-[#030303]">
+                    <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-start">
+                        <div className="space-y-8 pl-10 border-l-2 border-primary/20">
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.9] italic">{deepDiveTitle}</h2>
                             <ScrollHighlightText
                                 text={deepDiveText}
-                                className="text-lg md:text-xl text-white/60 leading-loose whitespace-pre-line font-medium text-left"
+                                className="text-lg md:text-xl text-white/70 leading-[1.4] whitespace-pre-line font-bold text-left tracking-tight"
                             />
-                            <Link href="#">
-                                <Button variant="ghost" className="rounded-full px-0 font-black uppercase tracking-widest text-xs text-primary hover:text-white hover:bg-transparent transition-colors group">
-                                    Read Technical Documentation <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            <Link href="/auth">
+                                <Button variant="ghost" className="rounded-full px-0 font-black uppercase tracking-widest text-[10px] text-primary hover:text-white hover:bg-transparent transition-colors group">
+                                    Initialize Neural Handshake <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </Link>
                         </div>
-                        <div className="hidden md:flex h-[600px] bg-[#0d1117] rounded-[3rem] border border-white/5 relative overflow-hidden flex-col group">
-                            {/* Diagram Header */}
-                            <div className="px-8 py-6 border-b border-white/5 flex items-center gap-4">
-                                <div className="flex gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                                    <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
+                        <div className="hidden md:flex h-[600px] bg-[#0d1117] rounded-[3rem] border border-white/5 relative overflow-hidden flex-col group shadow-2xl">
+                            {/* Pro UI Skeleton Header */}
+                            <div className="px-8 py-5 border-b border-white/5 flex items-center justify-between bg-black/20">
+                                <div className="flex gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/40" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/40" />
                                 </div>
-                                <span className="text-white/30 text-xs font-mono">Neural Operations Diagram</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="h-1.5 w-24 bg-white/5 rounded-full" />
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 border border-primary/20" />
+                                </div>
                             </div>
 
-                            {/* Diagram Content */}
-                            <div className="flex-1 p-8 relative">
-                                {/* Grid Background */}
-                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-
-                                {/* Central Brain Node */}
-                                <motion.div
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    whileInView={{ scale: 1, opacity: 1 }}
-                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-28 h-28 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center shadow-[0_0_60px_rgba(0,210,255,0.3)]"
-                                >
-                                    <div className="text-center">
-                                        <div className="text-2xl font-black text-primary">AI</div>
-                                        <div className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Neural Core</div>
-                                    </div>
-                                </motion.div>
-
-                                {/* Client Nodes - Orbiting around the core */}
-                                {['Client A', 'Client B', 'Client C', 'Client D'].map((client, i) => {
-                                    const angle = (i * 90) * (Math.PI / 180);
-                                    const radius = 180;
-                                    const x = Math.cos(angle) * radius;
-                                    const y = Math.sin(angle) * radius;
-
-                                    return (
-                                        <motion.div
-                                            key={client}
-                                            initial={{ opacity: 0, scale: 0 }}
-                                            whileInView={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: i * 0.15 }}
-                                            className="absolute top-1/2 left-1/2 w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-primary/30 transition-colors"
-                                            style={{
-                                                transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
-                                            }}
-                                        >
-                                            <div className="text-center">
-                                                <MessageSquare className="w-5 h-5 text-white/40 mx-auto mb-1" />
-                                                <div className="text-[9px] font-bold text-white/60 uppercase">{client}</div>
+                            {/* Dashboard Skeleton Layout */}
+                            <div className="flex-1 flex overflow-hidden">
+                                {/* Sidebar Skeleton */}
+                                <div className="w-48 border-r border-white/5 p-6 space-y-4">
+                                    {[...Array(5)].map((_, i) => (
+                                        <div key={i} className="flex items-center gap-3">
+                                            <div className="w-4 h-4 rounded bg-white/5" />
+                                            <div className={`h-2 bg-white/5 rounded-full ${i === 0 ? 'w-20 bg-primary/20' : 'w-16'}`} />
+                                        </div>
+                                    ))}
+                                    <div className="pt-8 space-y-4">
+                                        <div className="h-2 w-12 bg-white/5 rounded-full opacity-50" />
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className="flex items-center gap-3">
+                                                <div className="w-4 h-4 rounded-full border border-white/5" />
+                                                <div className="h-2 w-14 bg-white/5 rounded-full" />
                                             </div>
-                                        </motion.div>
-                                    );
-                                })}
-
-                                {/* Connection Lines - Animated dashes */}
-                                <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: -1 }}>
-                                    <defs>
-                                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                            <stop offset="0%" stopColor="rgba(0,210,255,0.1)" />
-                                            <stop offset="50%" stopColor="rgba(0,210,255,0.4)" />
-                                            <stop offset="100%" stopColor="rgba(0,210,255,0.1)" />
-                                        </linearGradient>
-                                    </defs>
-                                    {[0, 90, 180, 270].map((angle, i) => {
-                                        const rad = angle * (Math.PI / 180);
-                                        const x1 = '50%';
-                                        const y1 = '50%';
-                                        const x2 = `calc(50% + ${Math.cos(rad) * 120}px)`;
-                                        const y2 = `calc(50% + ${Math.sin(rad) * 120}px)`;
-                                        return (
-                                            <line
-                                                key={i}
-                                                x1={x1} y1={y1}
-                                                x2={x2} y2={y2}
-                                                stroke="url(#lineGradient)"
-                                                strokeWidth="2"
-                                                strokeDasharray="6 4"
-                                                className="animate-pulse"
-                                            />
-                                        );
-                                    })}
-                                </svg>
-
-                                {/* Bottom Legend */}
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-6 text-[9px] font-bold uppercase tracking-widest text-white/30">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-primary" />
-                                        Isolated Brain
+                                        ))}
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-white/30" />
-                                        Sub-Account
+                                </div>
+
+                                {/* Main Content Skeleton */}
+                                <div className="flex-1 p-8 space-y-8 relative">
+                                    {/* Grid background */}
+                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+
+                                    {/* Stats Row */}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                                                <div className="h-1.5 w-10 bg-white/10 rounded-full" />
+                                                <div className="h-4 w-16 bg-white/20 rounded-full" />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Large Graph Block */}
+                                    <div className="h-48 rounded-2xl bg-primary/5 border border-primary/10 relative overflow-hidden flex items-center justify-center">
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                            <svg width="100%" height="100%" viewBox="0 0 400 150">
+                                                <motion.path
+                                                    d="M0 100 Q 50 20, 100 80 T 200 60 T 300 120 T 400 40"
+                                                    fill="none"
+                                                    stroke="#00d2ff"
+                                                    strokeWidth="3"
+                                                    initial={{ pathLength: 0 }}
+                                                    whileInView={{ pathLength: 1 }}
+                                                    transition={{ duration: 2, ease: "easeInOut" }}
+                                                />
+                                            </svg>
+                                        </div>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Neural Pulse Active</div>
+                                    </div>
+
+                                    {/* List Block */}
+                                    <div className="space-y-3">
+                                        {[...Array(4)].map((_, i) => (
+                                            <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-black/20">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-6 h-6 rounded bg-white/5" />
+                                                    <div className="h-2 w-32 bg-white/10 rounded-full" />
+                                                </div>
+                                                <div className="h-2 w-12 bg-emerald-500/20 rounded-full" />
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Floating Message Badge */}
+                            <motion.div
+                                initial={{ y: 20, opacity: 0 }}
+                                whileInView={{ y: 0, opacity: 1 }}
+                                className="absolute bottom-10 right-10 bg-primary text-black p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,210,255,0.4)] flex items-center gap-3 scale-110"
+                            >
+                                <MessageSquare className="w-5 h-5" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Lead Verified</span>
+                            </motion.div>
                         </div>
                     </div>
                 </section>
 
                 {/* FAQ Section */}
-                <section className="py-24 px-6 bg-muted/20 border-y border-border/50">
-                    <div className="max-w-3xl mx-auto space-y-16">
-                        <div className="text-center space-y-4">
-                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Technical FAQs</h2>
-                            <p className="text-muted-foreground">Everything you need to know about implementation.</p>
+                <section className="py-12 px-6 bg-muted/10 border-y border-white/5">
+                    <div className="max-w-3xl mx-auto space-y-8">
+                        <div className="text-center space-y-1">
+                            <h2 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">Technical FAQs</h2>
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Protocol implementation details</p>
                         </div>
-                        <div className="space-y-4">
+                        <div className="grid gap-2">
                             {faqs.map((faq, i) => (
-                                <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden">
+                                <div key={i} className="rounded-lg border border-white/5 bg-[#0d1117] overflow-hidden hover:border-primary/20 transition-colors">
                                     <button
-                                        className="w-full p-6 text-left flex items-center justify-between font-bold"
+                                        className="w-full px-5 py-3 text-left flex items-center justify-between font-bold text-white/80 hover:text-white transition-colors"
                                         onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
                                     >
-                                        {faq.question}
-                                        <ChevronDown className={`w-5 h-5 transition-transform ${openFaqIndex === i ? 'rotate-180' : ''}`} />
+                                        <span className="text-xs uppercase tracking-tight">{faq.question}</span>
+                                        <ChevronDown className={`w-3.5 h-3.5 text-primary transition-transform duration-300 ${openFaqIndex === i ? 'rotate-180' : ''}`} />
                                     </button>
                                     <AnimatePresence>
                                         {openFaqIndex === i && (
@@ -332,7 +335,7 @@ export function SolutionPageTemplate({
                                                 initial={{ height: 0, opacity: 0 }}
                                                 animate={{ height: 'auto', opacity: 1 }}
                                                 exit={{ height: 0, opacity: 0 }}
-                                                className="px-6 pb-6 text-muted-foreground leading-relaxed text-sm whitespace-pre-line"
+                                                className="px-5 pb-4 text-white/40 leading-relaxed text-xs font-medium whitespace-pre-line border-t border-white/5 pt-3"
                                             >
                                                 {faq.answer}
                                             </motion.div>
@@ -344,18 +347,18 @@ export function SolutionPageTemplate({
 
                         {/* Support Point */}
                         <motion.div
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="p-10 rounded-[2rem] bg-primary/5 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-8 group"
+                            className="p-8 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col md:flex-row items-center justify-between gap-6 group"
                         >
                             <div className="text-center md:text-left">
-                                <h4 className="text-xl font-bold mb-2">Still need clarity?</h4>
-                                <p className="text-muted-foreground text-sm font-medium">Our strategy team is available 24/7 to help you.</p>
+                                <h4 className="text-lg font-bold mb-1">Still need clarity?</h4>
+                                <p className="text-white/40 text-xs font-medium">Our strategy team is available 24/7 to help you.</p>
                             </div>
                             <button
                                 onClick={() => document.getElementById('expert-chat-trigger')?.click()}
-                                className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-bold uppercase tracking-widest text-[10px] hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
+                                className="h-10 px-6 rounded-lg bg-primary text-black font-black uppercase tracking-widest text-[9px] hover:brightness-110 transition-all flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95"
                             >
                                 <MessageSquare className="w-4 h-4" />
                                 Chat with an expert
@@ -364,11 +367,11 @@ export function SolutionPageTemplate({
                     </div>
                 </section>
 
-                <section className="py-32 px-6 text-center space-y-8">
-                    <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">Start Your <br /> <span className="text-primary">Evolution.</span></h2>
-                    <p className="text-muted-foreground max-w-xl mx-auto text-lg font-medium">Join the top 1% of agencies and creators who have automated their revenue growth.</p>
+                <section className="py-24 px-6 text-center space-y-6">
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tight leading-tight uppercase">Start Your <br /> <span className="text-primary">Evolution.</span></h2>
+                    <p className="text-white/40 max-w-lg mx-auto text-sm font-medium">Join the top 1% of agencies and creators who have automated their revenue growth.</p>
                     <Link href="/auth">
-                        <Button size="lg" className="h-16 px-12 rounded-full bg-primary text-primary-foreground font-bold uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-105 transition-all text-sm">
+                        <Button size="lg" className="h-14 px-10 rounded-full bg-primary text-black font-black uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-105 transition-all text-xs">
                             Initialize Access
                         </Button>
                     </Link>
@@ -376,6 +379,6 @@ export function SolutionPageTemplate({
             </main>
 
             <CookieConsent />
-        </div>
+        </div >
     );
 }

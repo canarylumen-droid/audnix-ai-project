@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'mock-key',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function generateEmailSubject(userId: string, content: string): Promise<string> {

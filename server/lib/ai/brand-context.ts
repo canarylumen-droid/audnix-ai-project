@@ -21,6 +21,8 @@ export interface BrandContext {
   appLink?: string | null; // SaaS app, download link
   contactEmail?: string | null;
   contactPhone?: string | null;
+  // Booking automation preference: 'link' (just send link) or 'autonomous' (suggest slots)
+  bookingPreference?: 'link' | 'autonomous';
 }
 
 /**
@@ -60,6 +62,7 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
       appLink: metadata.app_link || metadata.signup_link || metadata.download_link || null,
       contactEmail: metadata.contact_email || user.email || null,
       contactPhone: metadata.contact_phone || null,
+      bookingPreference: metadata.booking_preference || 'autonomous', // Default to autonomous for premium feel
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);
@@ -196,16 +199,16 @@ export async function buildPersonalizedObjectionResponse(
   userId: string
 ): Promise<string> {
   const brand = await getBrandContext(userId);
-  
+
   let response = '';
-  
+
   // Check if brand has custom objection handling
   if (brand.objections && brand.objections[objectionType]) {
     response = brand.objections[objectionType];
   } else {
     // Build generic response with brand context
     const personality = extractBrandPersonality(brand);
-    
+
     switch (objectionType) {
       case 'price':
         response = personality.confidence === 'high'
@@ -227,6 +230,6 @@ export async function buildPersonalizedObjectionResponse(
         response = `Thanks for sharing that. At ${brand.companyName}, we're here to help you succeed. Let me address your concern directly...`;
     }
   }
-  
+
   return response;
 }

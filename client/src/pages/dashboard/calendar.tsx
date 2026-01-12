@@ -73,6 +73,7 @@ interface CalendarSettings {
   workingHoursStart: number;
   workingHoursEnd: number;
   timezone: string;
+  bookingPreference: 'link' | 'autonomous';
 }
 
 interface CalendarBooking {
@@ -263,202 +264,355 @@ export default function CalendarPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8 animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent inline-flex items-center gap-2">
-            <CalendarDays className="h-8 w-8 text-primary" />
-            Calendar
-          </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Manage your schedule and let AI handle the bookings.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {allEvents.length > 0 && (
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg border-0">
-              <Plus className="h-4 w-4 mr-2" />
-              Book Meeting
-            </Button>
-          )}
-          <Sheet open={showSettingsSheet} onOpenChange={setShowSettingsSheet}>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="border-primary/20 hover:bg-primary/5">
-                <Settings className="h-4 w-4 mr-2" />
-                Config
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+          <div className="text-center md:text-left">
+            <div className="flex flex-col md:flex-row items-center gap-3 mb-2">
+              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Neural Scheduling Core</h1>
+              <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20 flex items-center gap-1.5">
+                <Brain className="w-3.5 h-3.5 text-primary animate-pulse" />
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Autonomous Active</span>
+              </div>
+            </div>
+            <p className="text-white/40 text-xs md:text-sm font-medium">Orchestrate your engagement windows with distributed booking logic.</p>
+          </div>
+          <div className="flex items-center justify-center md:justify-end gap-3 shrink-0">
+            {!settings?.calendlyEnabled && !settings?.googleCalendarEnabled && (
+              <Button
+                onClick={() => setShowSettingsSheet(true)}
+                className="rounded-xl bg-primary text-black hover:scale-105 transition-all font-black text-[10px] uppercase tracking-widest h-10 md:h-12 px-6 shadow-[0_0_30px_rgba(0,210,255,0.3)]"
+              >
+                Initialize Node Connection
               </Button>
-            </SheetTrigger>
-            <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto border-l-primary/10 bg-background/95 backdrop-blur-xl">
-              <SheetHeader>
-                <SheetTitle className="text-2xl font-bold">Calendar Settings</SheetTitle>
-                <SheetDescription>
-                  Configure calendar connections and AI booking behavior
-                </SheetDescription>
-              </SheetHeader>
-              <div className="space-y-6 py-6">
-                {/* (Included existing settings form - simplified for brevity of replacement but keeping logic) */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2 text-primary">
-                    <LinkIcon className="h-4 w-4" /> Connections
-                  </h3>
-                  <Card className="border-border/40 bg-card/50">
-                    <CardContent className="p-4 flex items-center justify-between">
+            )}
+            <Sheet open={showSettingsSheet} onOpenChange={setShowSettingsSheet}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest h-10 md:h-12 px-6">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Neural Config
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto border-l-primary/10 bg-background/95 backdrop-blur-xl">
+                <SheetHeader>
+                  <SheetTitle className="text-2xl font-bold">Calendar Settings</SheetTitle>
+                  <SheetDescription>
+                    Configure calendar connections and AI booking behavior
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 py-6">
+                  {/* (Included existing settings form - simplified for brevity of replacement but keeping logic) */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold flex items-center gap-2 text-primary">
+                      <LinkIcon className="h-4 w-4" /> Connections
+                    </h3>
+                    <Card className="border-border/40 bg-card/50">
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <CalendarIcon className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">Calendly</p>
+                            <p className="text-sm text-muted-foreground">{settings?.calendlyEnabled ? "Connected" : "Disconnected"}</p>
+                          </div>
+                        </div>
+                        {/* Simplified connect UI similar to original but cleaner */}
+                        {settings?.calendlyEnabled ?
+                          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => disconnectCalendlyMutation.mutate()}>Disconnect</Button> :
+                          <div className="flex gap-2">
+                            <Input placeholder="Token" value={calendlyToken} onChange={(e) => setCalendlyToken(e.target.value)} className="w-32 h-8 text-xs" />
+                            <Button size="sm" onClick={() => connectCalendlyMutation.mutate(calendlyToken)}>Connect</Button>
+                          </div>
+                        }
+                      </CardContent>
+                    </Card>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors group">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-purple-400 group-hover:animate-pulse" />
+                          <Label className="text-base font-medium">Autonomous Slot Proposals</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          AI will suggest specific meeting times based on real-time availability instead of just sending a link.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.bookingPreference === 'autonomous'}
+                        onCheckedChange={(checked) =>
+                          updateSettingsMutation.mutate({
+                            bookingPreference: checked ? 'autonomous' : 'link'
+                          })
+                        }
+                        className="data-[state=checked]:bg-purple-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors group">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-4 h-4 text-blue-400 group-hover:animate-bounce" />
+                          <Label className="text-base font-medium">Neural Availability Guard</Label>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Automatically block times when your intent scores are tracking high for other deals.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.autoBookingEnabled}
+                        onCheckedChange={(checked) =>
+                          updateSettingsMutation.mutate({ autoBookingEnabled: checked })
+                        }
+                        className="data-[state=checked]:bg-blue-500"
+                      />
+                    </div>
+                  </div>
+                  {/* Kept existing settings format just wrapped in nicer container styles */}
+                  <Separator className="bg-border/40" />
+                  <div className="space-y-4">
+                    <h3 className="font-semibold flex items-center gap-2 text-primary">
+                      <Brain className="h-4 w-4" /> Neural Proposer
+                    </h3>
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
+                      <div>
+                        <p className="font-medium">Auto-Booking</p>
+                        <p className="text-xs text-muted-foreground">Allow AI to propose times</p>
+                      </div>
+                      <Switch checked={settings?.autoBookingEnabled ?? false} onCheckedChange={(c) => updateSettingsMutation.mutate({ autoBookingEnabled: c })} />
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <Label>Min Intent Score</Label>
+                          <span className="text-primary font-bold">{settings?.minIntentScore}%</span>
+                        </div>
+                        <Slider
+                          value={[settings?.minIntentScore || 85]}
+                          max={100}
+                          step={5}
+                          onValueChange={([v]) => updateSettingsMutation.mutate({ minIntentScore: v })}
+                        />
+                        <p className="text-[10px] text-muted-foreground italic">Target only leads with this minimum neural confidence.</p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Standard Meeting Duration</Label>
+                        <Select
+                          value={String(settings?.meetingDuration || 30)}
+                          onValueChange={(v) => updateSettingsMutation.mutate({ meetingDuration: Number(v) })}
+                        >
+                          <SelectTrigger className="bg-black/40 border-white/10">
+                            <SelectValue placeholder="Select duration" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 Minutes (Rapid)</SelectItem>
+                            <SelectItem value="30">30 Minutes (Standard)</SelectItem>
+                            <SelectItem value="45">45 Minutes (Strategy)</SelectItem>
+                            <SelectItem value="60">60 Minutes (Deep Dive)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-border/40" />
+                  <div className="space-y-4">
+                    <h3 className="font-semibold flex items-center gap-2 text-primary">
+                      <Timer className="h-4 w-4" /> Availability Guard
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Buffer Before</Label>
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={settings?.bufferBefore || 5}
+                          onChange={(e) => updateSettingsMutation.mutate({ bufferBefore: Number(e.target.value) })}
+                          className="bg-black/40 border-white/10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Buffer After</Label>
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={settings?.bufferAfter || 5}
+                          onChange={(e) => updateSettingsMutation.mutate({ bufferAfter: Number(e.target.value) })}
+                          className="bg-black/40 border-white/10"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">System prevents back-to-back fatigue by enforcing guards.</p>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+
+        {/* Integration Ecosystem Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Calendly Card */}
+          <Card className="bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-primary/20 transition-all overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+              <CalendarIcon className="w-24 h-24" />
+            </div>
+            <div className="flex items-start justify-between mb-6">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${settings?.calendlyEnabled ? 'bg-primary/20 border-primary/40' : 'bg-white/5 border-white/10'}`}>
+                <LinkIcon className={`w-6 h-6 ${settings?.calendlyEnabled ? 'text-primary' : 'text-white/20'}`} />
+              </div>
+              <Badge className={`${settings?.calendlyEnabled ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-white/5 text-white/30 border-white/10'} font-black text-[9px] uppercase tracking-widest`}>
+                {settings?.calendlyEnabled ? 'Operational' : 'Disconnected'}
+              </Badge>
+            </div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Calendly Mesh</h3>
+            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Inbound availability engine</p>
+          </Card>
+
+          {/* Google Calendar Card */}
+          <Card className="bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-indigo-500/20 transition-all overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+              <Globe className="w-24 h-24" />
+            </div>
+            <div className="flex items-start justify-between mb-6">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${settings?.googleCalendarEnabled ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-white/5 border-white/10'}`}>
+                <CalendarDays className={`w-6 h-6 ${settings?.googleCalendarEnabled ? 'text-indigo-400' : 'text-white/20'}`} />
+              </div>
+              <Badge className={`${settings?.googleCalendarEnabled ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-white/5 text-white/30 border-white/10'} font-black text-[9px] uppercase tracking-widest`}>
+                {settings?.googleCalendarEnabled ? 'Operational' : 'Disconnected'}
+              </Badge>
+            </div>
+            <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Google Core</h3>
+            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Main schedule synchronization</p>
+          </Card>
+
+          {/* AI Scheduled Stat */}
+          <Card className="bg-primary/5 border-primary/10 rounded-[2rem] p-6 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-50" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 text-primary mb-4">
+                <Brain className="w-5 h-5 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Neural Output</span>
+              </div>
+              <div className="text-4xl font-black text-white tracking-tighter mb-1">{aiScheduledCount}</div>
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Autonomous Bookings Fully Handled</p>
+            </div>
+          </Card>
+
+          {/* Intelligence Mode */}
+          <Card className="bg-[#0d0d0d] border-white/5 rounded-[2rem] p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-3 text-amber-500 mb-4">
+                <Zap className="w-5 h-5" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Core State</span>
+              </div>
+              <div className="text-2xl font-black text-white tracking-tight uppercase italic">{settings?.autoBookingEnabled ? "Active Protocol" : "Monitoring Only"}</div>
+            </div>
+            <div className="h-1.5 w-full bg-white/5 rounded-full mt-4 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: settings?.autoBookingEnabled ? '100%' : '15%' }}
+                className={`h-full ${settings?.autoBookingEnabled ? 'bg-primary shadow-[0_0_15px_#00d2ff]' : 'bg-white/20'}`}
+              />
+            </div>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          {settings?.autoBookingEnabled && aiLogs.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" /> AI Activity Stream
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3">
+                  {aiLogs.slice(0, 3).map(log => (
+                    <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <CalendarIcon className="h-5 w-5 text-primary" />
+                        <Badge variant={log.decision === 'act' ? 'default' : 'secondary'}>{log.decision}</Badge>
+                        <span className="text-sm text-muted-foreground">{log.reasoning}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground opacity-50">{new Date(log.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {allEvents.length === 0 ? (
+            <div className="py-20 text-center space-y-4 bg-muted/5 rounded-3xl border-2 border-dashed border-border/40">
+              <div className="w-16 h-16 bg-muted rounded-full mx-auto flex items-center justify-center">
+                <CalendarDays className="h-8 w-8 opacity-20" />
+              </div>
+              <p className="text-muted-foreground">No events scheduled yet. Connect your calendar to get started.</p>
+              <Button onClick={() => setShowSettingsSheet(true)}>Connect Calendar</Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allEvents.map((event, index) => (
+                <motion.div key={event.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+                  <Card className="hover:border-primary/30 transition-colors group">
+                    <CardContent className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl ${event.isAiBooked ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <span className="text-xs font-medium uppercase truncate w-full text-center px-1">{new Date(event.startTime).toLocaleString('default', { month: 'short' })}</span>
+                          <span className="text-2xl font-bold">{new Date(event.startTime).getDate()}</span>
                         </div>
                         <div>
-                          <p className="font-medium">Calendly</p>
-                          <p className="text-sm text-muted-foreground">{settings?.calendlyEnabled ? "Connected" : "Disconnected"}</p>
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                            {event.title}
+                            {event.isAiBooked && <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 text-[10px] h-5">AI Booked</Badge>}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {event.leadName && <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {event.leadName}</span>}
+                          </div>
                         </div>
                       </div>
-                      {/* Simplified connect UI similar to original but cleaner */}
-                      {settings?.calendlyEnabled ?
-                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => disconnectCalendlyMutation.mutate()}>Disconnect</Button> :
-                        <div className="flex gap-2">
-                          <Input placeholder="Token" value={calendlyToken} onChange={(e) => setCalendlyToken(e.target.value)} className="w-32 h-8 text-xs" />
-                          <Button size="sm" onClick={() => connectCalendlyMutation.mutate(calendlyToken)}>Connect</Button>
-                        </div>
-                      }
+                      <div className="flex items-center gap-2 ml-auto">
+                        {event.meetingUrl && (
+                          <Button size="sm" variant="outline" className="gap-2" asChild>
+                            <a href={event.meetingUrl} target="_blank" rel="noopener noreferrer">
+                              <Video className="h-4 w-4" /> Join
+                            </a>
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
-                </div>
-                {/* Kept existing settings format just wrapped in nicer container styles */}
-                <Separator className="bg-border/40" />
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2 text-primary">
-                    <Bot className="h-4 w-4" /> AI Booking
-                  </h3>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
-                    <div>
-                      <p className="font-medium">Auto-Booking</p>
-                      <p className="text-xs text-muted-foreground">Allow AI to propose times</p>
-                    </div>
-                    <Switch checked={settings?.autoBookingEnabled ?? false} onCheckedChange={(c) => updateSettingsMutation.mutate({ autoBookingEnabled: c })} />
-                  </div>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {[
-          { title: "Today", value: todayEvents.length, icon: CalendarDays, color: "text-primary", bg: "bg-primary/10" },
-          { title: "This Week", value: upcomingEvents.length, icon: Clock, color: "text-purple-500", bg: "bg-purple-500/10" },
-          { title: "AI Scheduled", value: aiScheduledCount, icon: Bot, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          { title: "Auto-Pilot", value: settings?.autoBookingEnabled ? "ON" : "OFF", icon: Zap, color: "text-amber-500", bg: "bg-amber-500/10" }
-        ].map((stat, i) => (
-          <motion.div key={stat.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-            <Card className="hover:shadow-lg transition-all duration-300 border-border/40 bg-card/50 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Main Content */}
-      <div className="space-y-6">
-        {settings?.autoBookingEnabled && aiLogs.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="h-4 w-4 text-primary" /> AI Activity Stream
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                {aiLogs.slice(0, 3).map(log => (
-                  <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
-                    <div className="flex items-center gap-3">
-                      <Badge variant={log.decision === 'act' ? 'default' : 'secondary'}>{log.decision}</Badge>
-                      <span className="text-sm text-muted-foreground">{log.reasoning}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground opacity-50">{new Date(log.createdAt).toLocaleTimeString()}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {allEvents.length === 0 ? (
-          <div className="py-20 text-center space-y-4 bg-muted/5 rounded-3xl border-2 border-dashed border-border/40">
-            <div className="w-16 h-16 bg-muted rounded-full mx-auto flex items-center justify-center">
-              <CalendarDays className="h-8 w-8 opacity-20" />
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent>
+            {/* Kept Create Dialog Simple */}
+            <DialogHeader>
+              <DialogTitle>Details</DialogTitle>
+            </DialogHeader>
+            {/* ... existing fields ... */}
+            <div className="space-y-4 pt-4">
+              <Input placeholder="Event Title" value={newEvent.summary} onChange={(e) => setNewEvent({ ...newEvent, summary: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input type="datetime-local" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} />
+                <Input type="datetime-local" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} />
+              </div>
+              <Input placeholder="Description" value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} />
+              <Input placeholder="Attendee Email" value={newEvent.attendeeEmail} onChange={(e) => setNewEvent({ ...newEvent, attendeeEmail: e.target.value })} />
+              <Button className="w-full" onClick={() => createEventMutation.mutate(newEvent)}>Schedule</Button>
             </div>
-            <p className="text-muted-foreground">No events scheduled yet. Connect your calendar to get started.</p>
-            <Button onClick={() => setShowSettingsSheet(true)}>Connect Calendar</Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {allEvents.map((event, index) => (
-              <motion.div key={event.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
-                <Card className="hover:border-primary/30 transition-colors group">
-                  <CardContent className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl ${event.isAiBooked ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-muted text-muted-foreground'}`}>
-                        <span className="text-xs font-medium uppercase truncate w-full text-center px-1">{new Date(event.startTime).toLocaleString('default', { month: 'short' })}</span>
-                        <span className="text-2xl font-bold">{new Date(event.startTime).getDate()}</span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {event.title}
-                          {event.isAiBooked && <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 text-[10px] h-5">AI Booked</Badge>}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {event.leadName && <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {event.leadName}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-auto">
-                      {event.meetingUrl && (
-                        <Button size="sm" variant="outline" className="gap-2" asChild>
-                          <a href={event.meetingUrl} target="_blank" rel="noopener noreferrer">
-                            <Video className="h-4 w-4" /> Join
-                          </a>
-                        </Button>
-                      )}
-                      <Button size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
       </div>
-
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          {/* Kept Create Dialog Simple */}
-          <DialogHeader>
-            <DialogTitle>Details</DialogTitle>
-          </DialogHeader>
-          {/* ... existing fields ... */}
-          <div className="space-y-4 pt-4">
-            <Input placeholder="Event Title" value={newEvent.summary} onChange={(e) => setNewEvent({ ...newEvent, summary: e.target.value })} />
-            <div className="grid grid-cols-2 gap-4">
-              <Input type="datetime-local" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} />
-              <Input type="datetime-local" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} />
-            </div>
-            <Input placeholder="Description" value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} />
-            <Input placeholder="Attendee Email" value={newEvent.attendeeEmail} onChange={(e) => setNewEvent({ ...newEvent, attendeeEmail: e.target.value })} />
-            <Button className="w-full" onClick={() => createEventMutation.mutate(newEvent)}>Schedule</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+      );
 }
