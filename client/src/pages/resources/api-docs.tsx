@@ -63,12 +63,32 @@ export default function ApiDocsPage() {
                     icon: Code,
                     content: (
                         <DocSection title="Real-time Synchronization">
-                            <p>Sync Audnix events to your custom CRM or internal workflows using our high-retry webhook engine.</p>
+                            <p className="mb-4">Sync Audnix events to your custom CRM or internal workflows using our high-retry webhook engine. Every request is signed with a SHA-256 HMAC signature for security.</p>
                             <ul className="list-disc pl-5 mt-4 space-y-4 text-white/60">
-                                <li><code className="text-primary">lead.verified</code>: Triggered when a prospect clears the 12-point hygiene check.</li>
-                                <li><code className="text-primary">reply.positive</code>: Sent when the AI detects a high-intent response.</li>
-                                <li><code className="text-primary">meeting.booked</code>: Direct signal from our calendar orchestration layer.</li>
+                                <li><code className="text-primary font-bold">lead.verified</code>: Triggered when a prospect clears the 12-point hygiene check.</li>
+                                <li><code className="text-primary font-bold">reply.positive</code>: Sent when the AI detects a high-intent response.</li>
+                                <li><code className="text-primary font-bold">meeting.booked</code>: Direct signal from our calendar orchestration layer.</li>
                             </ul>
+                        </DocSection>
+                    )
+                },
+                {
+                    id: "security",
+                    title: "Security & Rate Limits",
+                    icon: Shield,
+                    content: (
+                        <DocSection title="System Governance">
+                            <p className="mb-6">Audnix APIs are governed by strict token-bucket rate limits to ensure stability across the global proxy mesh.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
+                                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">Rate Limiting</h4>
+                                    <p className="text-xs text-white/40 leading-relaxed font-medium">Standard tier is capped at 50,000 requests per 24 hours. Enterprise clusters feature uncapped burst capacity.</p>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/5 space-y-2">
+                                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">Authentication</h4>
+                                    <p className="text-xs text-white/40 leading-relaxed font-medium">All requests must be authenticated via Bearer Token in the Authorization header.</p>
+                                </div>
+                            </div>
                         </DocSection>
                     )
                 }

@@ -41,25 +41,52 @@ export default function PlaybooksPage() {
                     icon: Book,
                     content: (
                         <DocSection title="Pre-Built Blueprints">
+                            <p className="mb-8">Our sequence library is updated weekly based on collective mesh intelligence. These blueprints are proven to break through the initial barrier of professional skepticism.</p>
                             <div className="space-y-6">
                                 <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 group cursor-default">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-sm font-black uppercase text-primary tracking-widest italic">The 'Founder to Founder' Pulse</h4>
+                                        <h4 className="text-sm font-black uppercase text-primary tracking-widest">The 'Founder to Founder' Pulse</h4>
                                         <span className="text-[10px] font-bold text-emerald-500 uppercase">High Conversion</span>
                                     </div>
-                                    <p className="text-xs text-white/40 leading-relaxed italic">
+                                    <p className="text-xs text-white/40 leading-relaxed font-medium">
                                         "Hey [Name], I noticed you're scaling your [X] department. We just released a protocol that handled [Y] for [Similar Company] without increasing their headcount. Curious if you're open to an advice-swap on how you're handling [Z]?"
                                     </p>
                                 </div>
 
                                 <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 group cursor-default">
                                     <div className="flex items-center justify-between mb-4">
-                                        <h4 className="text-sm font-black uppercase text-primary tracking-widest italic">The 'Infrastructure Audit' Lead</h4>
+                                        <h4 className="text-sm font-black uppercase text-primary tracking-widest">The 'Infrastructure Audit' Lead</h4>
                                         <span className="text-[10px] font-bold text-blue-500 uppercase">Educational</span>
                                     </div>
-                                    <p className="text-xs text-white/40 leading-relaxed italic">
+                                    <p className="text-xs text-white/40 leading-relaxed font-medium">
                                         "We ran a brief scan of [Company]'s digital outreach. Found 3 critical leaks where your leads are dropping off. I've mapped the fix in a 2-page doc for you. Where should I send it?"
                                     </p>
+                                </div>
+                            </div>
+                        </DocSection>
+                    )
+                },
+                {
+                    id: "logic",
+                    title: "Response Logic",
+                    icon: Brain,
+                    content: (
+                        <DocSection title="Neural Branching">
+                            <p className="mb-8">
+                                Linear sequences are dead. Audnix agents use <strong>Sentiment-Based Branching</strong> to adapt the conversation in real-time. Depending on the prospect's reply, the AI can pivot between four distinct logic states.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-6 rounded-2xl bg-[#0d1117] border border-white/5 space-y-3">
+                                    <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px]">
+                                        <Zap className="w-3 h-3" /> State A: Aggressive Value
+                                    </div>
+                                    <p className="text-[11px] text-white/40 font-medium">For high-intent leads who need immediate technical validation.</p>
+                                </div>
+                                <div className="p-6 rounded-2xl bg-[#0d1117] border border-white/5 space-y-3">
+                                    <div className="flex items-center gap-2 text-purple-500 font-black uppercase text-[10px]">
+                                        <Shield className="w-3 h-3" /> State B: Educational Defensive
+                                    </div>
+                                    <p className="text-[11px] text-white/40 font-medium">For skeptical leads requiring social proof and deep-dive audits.</p>
                                 </div>
                             </div>
                         </DocSection>

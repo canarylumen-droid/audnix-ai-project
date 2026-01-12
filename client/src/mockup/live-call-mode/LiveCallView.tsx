@@ -3,8 +3,8 @@ import { GlassPanel, GlassCard } from "./GlassPanel";
 import { WaveformVisualizer, PulsingDot } from "./WaveformVisualizer";
 import { TypewriterText } from "./TypewriterText";
 import { liveCallMock } from "../data/liveCallMockData";
-import { 
-  Headphones, User, Sparkles, Copy, Zap, MessageSquare, 
+import {
+  Headphones, User, Sparkles, Copy, Zap, MessageSquare,
   Target, ArrowRight, Building, TrendingUp, AlertCircle,
   FileText, Phone, Settings, Volume2, Brain, PhoneOff
 } from "lucide-react";
@@ -266,7 +266,7 @@ export function LiveCallView() {
                   </div>
                   <p className="text-slate-300 text-xs truncate">{context.brandPDF}</p>
                 </div>
-                <p className="text-slate-500 text-xs italic line-clamp-2">"{context.notes}"</p>
+                <p className="text-slate-500 text-xs line-clamp-2">"{context.notes}"</p>
               </GlassCard>
             </GlassPanel>
 

@@ -147,7 +147,7 @@ export default function ProspectingPage() {
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div className="text-center md:text-left">
                         <div className="flex flex-col md:flex-row items-center gap-2 mb-2">
-                            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic">AI Lead Finder Pro</h1>
+                            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase">AI Lead Finder Pro</h1>
                             <div className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                                 <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Global Pool: 500M+ Nodes</span>

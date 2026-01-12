@@ -31,7 +31,7 @@ export function DocumentationLayout({ title, subtitle, sections }: Documentation
                         <Rocket className="w-3 h-3" />
                         {subtitle}
                     </div>
-                    <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic">
+                    <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase">
                         {title.split(' ').map((word, i) => (
                             <span key={i} className={i === title.split(' ').length - 1 ? "text-primary" : ""}>{word} </span>
                         ))}
@@ -81,7 +81,7 @@ export function DocumentationLayout({ title, subtitle, sections }: Documentation
                 <div className="max-w-7xl mx-auto px-8 space-y-16">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                         <div className="space-y-6">
-                            <h3 className="text-xl font-black uppercase italic tracking-tighter">Niche <span className="text-primary italic">Intelligence</span></h3>
+                            <h3 className="text-xl font-black uppercase tracking-tighter">Niche <span className="text-primary">Intelligence</span></h3>
                             <p className="text-white/40 text-xs leading-relaxed font-medium">
                                 Audnix agents are pre-trained on 20+ specific high-growth sectors. We don't just find leads; we architect conversations.
                             </p>
@@ -119,7 +119,7 @@ export function DocumentationLayout({ title, subtitle, sections }: Documentation
 // Helper components for rich documentation
 export const DocSection = ({ title, children }: { title: string, children: ReactNode }) => (
     <div className="space-y-6 bg-white/[0.02] border border-white/5 p-8 rounded-[2rem]">
-        <h2 className="text-2xl font-black uppercase tracking-tight text-white border-b border-primary/20 pb-4 italic">{title}</h2>
+        <h2 className="text-2xl font-black uppercase tracking-tight text-white border-b border-primary/20 pb-4">{title}</h2>
         <div className="prose prose-invert max-w-none text-white/60 font-medium leading-relaxed">
             {children}
         </div>

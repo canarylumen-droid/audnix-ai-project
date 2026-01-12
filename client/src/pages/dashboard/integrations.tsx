@@ -300,7 +300,7 @@ export default function IntegrationsPage() {
                       <Activity className="h-4 w-4 text-purple-500" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-foreground italic uppercase">Active</span>
+                      <span className="text-2xl font-bold text-foreground uppercase">Active</span>
                       <div className="px-1.5 py-0.5 rounded bg-purple-500/10 text-[8px] font-black text-purple-500 uppercase">Jitter v4.1</div>
                     </div>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Staggered sends to look 100% human</p>

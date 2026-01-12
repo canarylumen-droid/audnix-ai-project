@@ -2,9 +2,9 @@ import { motion } from "framer-motion";
 import { GlassPanel, GlassCard } from "./GlassPanel";
 import { WaveformVisualizer, PulsingDot } from "./WaveformVisualizer";
 import { liveCallMock } from "../data/liveCallMockData";
-import { 
-  Headphones, User, Building, TrendingUp, AlertCircle, 
-  FileText, Phone, DollarSign, Target, Settings, 
+import {
+  Headphones, User, Building, TrendingUp, AlertCircle,
+  FileText, Phone, DollarSign, Target, Settings,
   Volume2, Brain, Zap, ChevronRight
 } from "lucide-react";
 
@@ -45,26 +45,26 @@ export function ContextPanel() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <InfoCard 
+                <InfoCard
                   icon={<User className="w-5 h-5 text-teal-400" />}
                   label="Contact"
                   value={context.name}
                   sublabel={context.role}
                 />
-                <InfoCard 
+                <InfoCard
                   icon={<Building className="w-5 h-5 text-purple-400" />}
                   label="Company"
                   value={context.company}
                   sublabel="Enterprise Account"
                 />
-                <InfoCard 
+                <InfoCard
                   icon={<TrendingUp className="w-5 h-5 text-green-400" />}
                   label="Lead Score"
                   value={`${context.leadScore}/100`}
                   sublabel="High Intent"
                   highlight
                 />
-                <InfoCard 
+                <InfoCard
                   icon={<DollarSign className="w-5 h-5 text-amber-400" />}
                   label="Deal Value"
                   value={context.dealValue}
@@ -101,7 +101,7 @@ export function ContextPanel() {
                       <p className="text-slate-500 text-sm">Uploaded sales material</p>
                     </div>
                   </div>
-                  <p className="text-slate-400 text-sm italic">"{context.notes}"</p>
+                  <p className="text-slate-400 text-sm">"{context.notes}"</p>
                 </div>
               </GlassCard>
             </GlassPanel>
@@ -138,7 +138,7 @@ export function ContextPanel() {
                 <ControlToggle icon={<Volume2 />} label="Auto-Listen" active />
                 <ControlToggle icon={<Brain />} label="Real-Time AI" active />
                 <ControlToggle icon={<Zap />} label="Objection Mode" active />
-                
+
                 <div className="pt-2">
                   <div className="flex justify-between mb-2">
                     <span className="text-slate-400 text-sm">Sensitivity</span>
@@ -157,10 +157,10 @@ export function ContextPanel() {
   );
 }
 
-function InfoCard({ icon, label, value, sublabel, highlight = false }: { 
-  icon: React.ReactNode; 
-  label: string; 
-  value: string; 
+function InfoCard({ icon, label, value, sublabel, highlight = false }: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
   sublabel?: string;
   highlight?: boolean;
 }) {

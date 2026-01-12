@@ -9,7 +9,7 @@ import { Magnetic } from "@/components/ui/Magnetic";
 const SOLUTIONS = [
   {
     name: "For Agencies",
-    displayName: <>For <i className="italic font-black text-primary">Agencies</i></>,
+    displayName: <>For <span className="font-black text-primary ml-1">Agencies</span></>,
     desc: "Scale your client outreach without increasing headcount.",
     icon: LayoutGrid,
     badge: "Scale",
@@ -17,7 +17,7 @@ const SOLUTIONS = [
   },
   {
     name: "For Founders",
-    displayName: <>For <i className="italic font-black text-primary">Founders</i></>,
+    displayName: <>For <span className="font-black text-primary ml-1">Founders</span></>,
     desc: "Clone yourself and close deals without being on calls.",
     icon: Zap,
     badge: "Velocity",
@@ -25,7 +25,7 @@ const SOLUTIONS = [
   },
   {
     name: "For Creators",
-    displayName: <>For <i className="italic font-black text-primary">Creators</i></>,
+    displayName: <>For <span className="font-black text-primary ml-1">Creators</span></>,
     desc: "Monetize your audience with 24/7 AI engagement.",
     icon: Brain,
     badge: "New",

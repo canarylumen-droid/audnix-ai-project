@@ -99,7 +99,7 @@ export function SolutionPageTemplate({
                                 <Target className="w-3 h-3" />
                                 {subtitle}
                             </div>
-                            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.95] uppercase italic">
+                            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[0.95] uppercase">
                                 {title.split(' ').map((word, i) => (
                                     <span key={i} className={i === title.split(' ').length - 1 ? "text-primary block" : "inline"}>{word} </span>
                                 ))}
@@ -158,7 +158,7 @@ export function SolutionPageTemplate({
                                 <AlertTriangle className="w-3 h-3" />
                                 THREAT LEVEL: CRITICAL
                             </div>
-                            <h2 className="text-4xl md:text-7xl font-black tracking-tighter text-white leading-[0.85] uppercase italic">{problemTitle}</h2>
+                            <h2 className="text-4xl md:text-7xl font-black tracking-tighter text-white leading-[0.85] uppercase">{problemTitle}</h2>
                             <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
                                 Current infrastructure inefficiency detected
                             </p>
@@ -205,7 +205,7 @@ export function SolutionPageTemplate({
                 <section className="py-20 px-6 border-t border-white/5 bg-[#030303]">
                     <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-start">
                         <div className="space-y-8 pl-10 border-l-2 border-primary/20">
-                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.9] italic">{deepDiveTitle}</h2>
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-[0.9]">{deepDiveTitle}</h2>
                             <ScrollHighlightText
                                 text={deepDiveText}
                                 className="text-lg md:text-xl text-white/70 leading-[1.4] whitespace-pre-line font-bold text-left tracking-tight"

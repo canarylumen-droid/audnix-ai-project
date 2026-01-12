@@ -68,7 +68,7 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase italic">Neural Core Alpha</h3>
+                                <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase">Neural Core Alpha</h3>
                                 <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] font-black uppercase">Active</Badge>
                             </div>
                             <p className="text-[9px] md:text-[10px] font-black text-white/40 tracking-[0.3em] uppercase mt-1">Global Proxy Mesh V4.2 • Handshake: 1.5M Residential Nodes</p>

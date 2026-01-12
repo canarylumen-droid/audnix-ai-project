@@ -267,7 +267,7 @@ export default function CalendarPage() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center gap-3 mb-2">
-              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Neural Scheduling Core</h1>
+              <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase">Neural Scheduling Core</h1>
               <div className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20 flex items-center gap-1.5">
                 <Brain className="w-3.5 h-3.5 text-primary animate-pulse" />
                 <span className="text-[10px] font-black text-primary uppercase tracking-widest leading-none">Autonomous Active</span>
@@ -393,7 +393,7 @@ export default function CalendarPage() {
                           step={5}
                           onValueChange={([v]) => updateSettingsMutation.mutate({ minIntentScore: v })}
                         />
-                        <p className="text-[10px] text-muted-foreground italic">Target only leads with this minimum neural confidence.</p>
+                        <p className="text-[10px] text-muted-foreground">Target only leads with this minimum neural confidence.</p>
                       </div>
 
                       <div className="space-y-2">
@@ -508,7 +508,7 @@ export default function CalendarPage() {
               <Zap className="w-5 h-5" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em]">Core State</span>
             </div>
-            <div className="text-2xl font-black text-white tracking-tight uppercase italic">{settings?.autoBookingEnabled ? "Active Protocol" : "Monitoring Only"}</div>
+            <div className="text-2xl font-black text-white tracking-tight uppercase">{settings?.autoBookingEnabled ? "Active Protocol" : "Monitoring Only"}</div>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full mt-4 overflow-hidden">
             <motion.div
