@@ -165,17 +165,20 @@ const ALLOWED_ORIGINS = [
   'https://www.audnixai.com',
   'https://audnixai.com',
   'http://localhost:5173',
-  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null
+  'http://localhost:5000',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
 ].filter(Boolean) as string[];
 
 app.use((req, res, next) => {
   const origin = req.get('origin');
 
-  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app'))) {
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.replit.dev'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else if (!origin && process.env.NODE_ENV === 'development') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+  } else if (process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
@@ -211,7 +214,8 @@ app.use((req, res, next) => {
     'https://audnixai.com',
     'https://www.audnixai.com',
     'http://localhost:5000',
-    'https://localhost:5000'
+    'https://localhost:5000',
+    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
   ].filter((url): url is string => Boolean(url));
 
   const origin = req.get('origin') || req.get('referer');
