@@ -74,8 +74,8 @@ const TypingIndicator = () => (
 );
 
 export function ExpertChat() {
-    const { data: user } = useUser();
     const [isOpen, setIsOpen] = useState(false);
+    const { data: user } = useUser({ enabled: isOpen });
     const [isMinimized, setIsMinimized] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
@@ -84,13 +84,15 @@ export function ExpertChat() {
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Auto-open after 15 seconds (changed from 10)
+    // Disabled auto-open to satisfy "work based on user activity" requirement
+    /*
     useEffect(() => {
         const timer = setTimeout(() => {
             setIsOpen(true);
         }, 15000);
         return () => clearTimeout(timer);
     }, []);
+    */
 
     useEffect(() => {
         if (scrollRef.current) {

@@ -436,11 +436,15 @@ async function runMigrations() {
   // Run migrations and start workers in background AFTER server starts
   (async () => {
     try {
-      // 1. Run migrations
-      await runMigrations();
+      const isVercel = process.env.VERCEL === '1';
+
+      // 1. Run migrations (only if NOT on Vercel to prevent log clutter/timeouts)
+      // On Vercel, migrations should be run via scripts/run-migrations.ts manually
+      if (!isVercel) {
+        await runMigrations();
+      }
 
       // Start workers only if NOT on Vercel
-      const isVercel = process.env.VERCEL === '1';
       if (!isVercel) {
         // 2. Start workers (only on persistent servers like Railway/Local)
         const { db } = await import('./db.js');

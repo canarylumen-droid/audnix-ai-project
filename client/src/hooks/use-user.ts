@@ -40,11 +40,12 @@ async function fetchUser(): Promise<User | null> {
   }
 }
 
-export function useUser() {
+export function useUser(options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ['user'],
     queryFn: fetchUser,
     retry: false,
     staleTime: 1000 * 60 * 5,
+    enabled: options.enabled ?? true,
   });
 }
