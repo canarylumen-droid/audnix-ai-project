@@ -5,9 +5,14 @@ import { formatDMWithButton } from './dm-formatter.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { User, Lead, Integration, VideoMonitor } from '../../../shared/schema.js';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Video comment monitor will use fallback logic.');
+}
 
 const isDemoMode = false;
 
@@ -107,6 +112,10 @@ Return JSON:
   "suggestedResponse": "optional response for handling difficult comments"
 }`;
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -189,6 +198,10 @@ Generate JSON:
 
 REMEMBER: Use their REAL username (${leadName}), reference their actual comment, and talk about what THEY want.`;
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -251,6 +264,10 @@ ${askForFollow ? `EXAMPLES:
 - "Yes! Sliding into your DMs now ✨"`}
 
 Generate ONLY the comment reply text (no quotes, no explanations):`;
+
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',

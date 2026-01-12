@@ -19,9 +19,14 @@
 
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. PDF extraction will use fallback logic.');
+}
 
 export interface ExtractedPDFContent {
   company_name: string;
@@ -89,7 +94,11 @@ Look for payment links (Stripe, PayPal, Gumroad, invoice details, bank transfer 
 Look for app/signup links if it's a SaaS or software product.
 Be thorough and precise.`;
 
-    const extractionResponse = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const extractionResponse = await (openai as OpenAI).chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: extractionPrompt }],
       temperature: 0.3,
@@ -189,7 +198,11 @@ export async function performDeepBrandResearch(
   industry_trends: string[];
 }> {
   try {
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: "gpt-4",
       messages: [
         {
@@ -268,7 +281,11 @@ export async function researchCompetitivePosition(
   targetAudience: string
 ): Promise<string> {
   try {
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: "gpt-4",
       messages: [
         {
@@ -304,7 +321,11 @@ export async function brainstormMessageAngles(
   extractedContent: ExtractedPDFContent
 ): Promise<string[]> {
   try {
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: "gpt-4",
       messages: [
         {
@@ -347,7 +368,11 @@ export async function generateIndustrySpecificGuidance(
   extractedContent: ExtractedPDFContent
 ): Promise<IndustryGuidance> {
   try {
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: "gpt-4",
       messages: [
         {

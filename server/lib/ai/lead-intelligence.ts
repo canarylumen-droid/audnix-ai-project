@@ -13,9 +13,14 @@
 import OpenAI from "openai";
 import type { ConversationMessage, LeadProfile, BrandContext } from "../../../shared/types.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Lead Intelligence will use basic scoring.');
+}
 
 export interface IntentDetectionResult {
   intentLevel: "high" | "medium" | "low" | "not_interested";
@@ -90,6 +95,10 @@ export async function detectLeadIntent(
 
     const company = lead.metadata?.company as string | undefined;
     const industry = lead.metadata?.industry as string | undefined;
+
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -171,6 +180,10 @@ export async function suggestSmartReply(
     const company = leadProfile.metadata?.company as string | undefined;
     const industry = leadProfile.metadata?.industry as string | undefined;
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -230,6 +243,10 @@ export async function detectObjection(
   messageFromLead: string
 ): Promise<ObjectionDetectionResult> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [

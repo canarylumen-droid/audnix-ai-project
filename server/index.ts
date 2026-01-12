@@ -196,7 +196,7 @@ app.use((req, res, next) => {
   }
 
   // Skip CSRF check for webhooks (they use signature verification)
-  if (req.path.startsWith('/webhook/')) {
+  if (req.path.startsWith('/webhook/') || req.path.startsWith('/api/webhook/')) {
     return next();
   }
 
@@ -217,7 +217,7 @@ app.use((req, res, next) => {
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
 
-  if (origin && host) {
+  if (origin && host && process.env.NODE_ENV === 'production') {
     try {
       const originUrl = new URL(origin);
       const isAllowed = allowedOrigins.some(allowed => {

@@ -2,9 +2,14 @@ import OpenAI from 'openai';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Smart replies will be disabled.');
+}
 
 const isDemoMode = false;
 
@@ -36,6 +41,10 @@ export async function generateSmartReplies(
   }));
 
   try {
+    if (!openai) {
+      return [];
+    }
+
     const prompt = `You are a sales expert generating quick reply suggestions for a conversation.
 
 Lead: ${lead.name}

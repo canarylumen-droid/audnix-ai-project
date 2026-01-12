@@ -31,9 +31,14 @@ interface AnalysisRecord {
   analysis: IntentAnalysis;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Intent analysis will use basic keywords.');
+}
 
 /**
  * Analyze lead message intent using GPT-4
@@ -85,6 +90,10 @@ Negative signals:
 - "already have", "using another", "competitor"
 
 Return ONLY valid JSON, no explanation.`;
+
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -213,6 +222,10 @@ export async function suggestLeadTags(lead: Lead, latestMessage?: string, analys
     Example: ["SaaS", "High Intent", "Decision Maker", "Q1 Timeline"]
     Return JSON: { "tags": ["string"] }`;
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'system', content: 'You are a neural lead tagger.' }, { role: 'user', content: prompt }],
@@ -223,7 +236,6 @@ export async function suggestLeadTags(lead: Lead, latestMessage?: string, analys
     const newTags = Array.from(new Set([...(lead.tags || []), ...(result.tags || [])]));
     return newTags.slice(0, 10); // Limit to 10 tags
   } catch (error) {
-    console.error('Neural tagging error:', error);
     return lead.tags || [];
   }
 }

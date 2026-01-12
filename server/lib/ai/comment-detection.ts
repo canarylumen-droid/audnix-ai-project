@@ -3,9 +3,14 @@ import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Comment detection will use fallback logic.');
+}
 
 const isDemoMode = false;
 
@@ -49,7 +54,11 @@ Determine:
 
 Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }`;
 
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are an expert at analyzing social media engagement patterns.' },
@@ -120,7 +129,11 @@ Guidelines:
 
 Generate the DM:`;
 
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a skilled digital marketer creating personalized DM responses. Never include URLs - they will be added as styled buttons.' },
@@ -195,7 +208,11 @@ Guidelines:
 
 Generate the follow-up:`;
 
-    const response = await openai.chat.completions.create({
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
+    const response = await (openai as OpenAI).chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You are a skilled sales professional creating thoughtful, context-aware follow-up messages. Always reference specific details from previous conversations when available.' },

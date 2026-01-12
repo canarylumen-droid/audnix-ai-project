@@ -4,9 +4,10 @@ import { requireAuth } from '../middleware/auth.js';
 import OpenAI from 'openai';
 import { LRUCache } from 'lru-cache';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 const router = Router();
 
@@ -64,9 +65,9 @@ router.post('/analyze-objection', requireAuth, async (req: Request, res: Respons
     }
 
     // High Preference: AI Engine (GPT-4o)
-    if (process.env.OPENAI_API_KEY) {
+    if (openai) {
       try {
-        const completion = await openai.chat.completions.create({
+        const completion = await (openai as OpenAI).chat.completions.create({
           model: "gpt-4o",
           messages: [
             {

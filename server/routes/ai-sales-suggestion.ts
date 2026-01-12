@@ -3,9 +3,14 @@ import { requireAuth } from "../middleware/auth.js";
 import OpenAI from "openai";
 
 const router = Router();
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Sales suggestions will use fallback logic.');
+}
 
 interface LeadProfileInput {
   firstName: string;
@@ -95,6 +100,10 @@ OPTION C (Most ROI-Focused - Best for Decision Makers):
 
 For each, include 2-line reasoning why it works.`;
 
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
@@ -144,6 +153,10 @@ Requirements:
 - Lead them closer to decision
 
 Response:`;
+
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

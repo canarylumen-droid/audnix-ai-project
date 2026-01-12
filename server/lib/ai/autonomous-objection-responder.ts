@@ -18,9 +18,14 @@ import {
   getObjectionsByIndustry,
 } from "./sales-engine/objections-database.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI if key is present, otherwise use fallback
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+if (!openai) {
+  console.warn('⚠️ OpenAI API Key missing. Objection responder will use fallback logic.');
+}
 
 interface LeadObjectionContext {
   leadName: string;
@@ -175,6 +180,10 @@ export async function generateAutonomousObjectionResponse(
   );
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
+
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -241,6 +250,10 @@ async function neuralIdentifyObjection(leadMessage: string, context: LeadObjecti
     Identify the "Hidden Objection" (the psychological state).
 
     Return JSON: { "category": "string", "hidden": "string", "intensity": 0-100 }`;
+
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
