@@ -209,129 +209,129 @@ export default function ProspectingPage() {
                             >
                                 {scanMutation.isPending ? (
                                     <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <Zap className="w-5 h-5 mr-2 fill-current" />
+                                    <>
+                                        <Zap className="w-5 h-5 mr-2 fill-current" />
                                         Initiate Lead Hunt
-                            </>
+                                    </>
                                 )}
-                        </Button>
-                    </form>
+                            </Button>
+                        </form>
 
-                    <div className="flex flex-wrap gap-2">
-                        {['500M+ Residential Mesh', 'WAF/Captcha Bypass', 'JS Headless Render', 'AI Web Unblocker v4', 'Full Header Rotation'].map(f => (
-                            <div key={f} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 group/badge hover:border-blue-500/30 transition-colors">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500/40 group-hover/badge:bg-blue-500 transition-colors" />
-                                {f}
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Results Table */}
-            {leads.length > 0 ? (
-                <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
-                    <CardHeader>
-                        <CardTitle className="text-foreground">Discovered Leads ({leads.length})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {leads.map((lead) => (
-                                <motion.div
-                                    key={lead.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="p-6 bg-muted/10 border border-border/20 rounded-2xl hover:bg-muted/20 transition-all"
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-3 flex-1">
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="text-lg font-bold text-foreground">{lead.entity}</h3>
-                                                {lead.verified && (
-                                                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                                                        <CheckCircle className="w-3 h-3 mr-1" />
-                                                        Verified
-                                                    </Badge>
-                                                )}
-                                                <Badge className="bg-primary/20 text-primary border-primary/30">
-                                                    Score: {lead.leadScore}%
-                                                </Badge>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                                <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                    <Mail className="w-4 h-4" />
-                                                    {lead.email}
-                                                </div>
-                                                {lead.phone && (
-                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                        <Phone className="w-4 h-4" />
-                                                        {lead.phone}
-                                                    </div>
-                                                )}
-                                                {lead.location && (
-                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                        <MapPin className="w-4 h-4" />
-                                                        {lead.location}
-                                                    </div>
-                                                )}
-                                                {lead.website && (
-                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
-                                                        <Globe className="w-4 h-4" />
-                                                        <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
-                                                            {lead.website.length > 40 ? `${lead.website.substring(0, 40)}...` : lead.website}
-                                                        </a>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {lead.socialProfiles && Object.keys(lead.socialProfiles).length > 0 && (
-                                                <div className="flex gap-2">
-                                                    {Object.entries(lead.socialProfiles).map(([platform, url]) => (
-                                                        <a
-                                                            key={platform}
-                                                            href={url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="px-3 py-1 bg-muted/50 hover:bg-muted border border-border/40 rounded-lg text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-                                                        >
-                                                            {platform}
-                                                        </a>
-                                                    ))}
-                                                </div>
-                                            )}
-
-                                            <div className="flex gap-2">
-                                                {lead.role && (
-                                                    <Badge variant="outline" className="text-xs">{lead.role}</Badge>
-                                                )}
-                                                {lead.estimatedRevenue && (
-                                                    <Badge variant="outline" className="text-xs">{lead.estimatedRevenue}</Badge>
-                                                )}
-                                                <Badge variant="outline" className="text-xs">{lead.wealthSignal}</Badge>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </motion.div>
+                        <div className="flex flex-wrap gap-2">
+                            {['500M+ Residential Mesh', 'WAF/Captcha Bypass', 'JS Headless Render', 'AI Web Unblocker v4', 'Full Header Rotation'].map(f => (
+                                <div key={f} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 group/badge hover:border-blue-500/30 transition-colors">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500/40 group-hover/badge:bg-blue-500 transition-colors" />
+                                    {f}
+                                </div>
                             ))}
                         </div>
                     </CardContent>
                 </Card>
-            ) : (
-                <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
-                    <CardContent className="p-12 text-center">
-                        <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a neural scan to discover prospects.</div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
 
-            {/* Neural Scraper Console Overlay */ }
-    <ScraperConsole
-        isVisible={showConsole}
-        onClose={() => setShowConsole(false)}
-        logs={logs}
-    />
+                {/* Results Table */}
+                {leads.length > 0 ? (
+                    <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
+                        <CardHeader>
+                            <CardTitle className="text-foreground">Discovered Leads ({leads.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {leads.map((lead) => (
+                                    <motion.div
+                                        key={lead.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-6 bg-muted/10 border border-border/20 rounded-2xl hover:bg-muted/20 transition-all"
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="space-y-3 flex-1">
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-lg font-bold text-foreground">{lead.entity}</h3>
+                                                    {lead.verified && (
+                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                                            <CheckCircle className="w-3 h-3 mr-1" />
+                                                            Verified
+                                                        </Badge>
+                                                    )}
+                                                    <Badge className="bg-primary/20 text-primary border-primary/30">
+                                                        Score: {lead.leadScore}%
+                                                    </Badge>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                        <Mail className="w-4 h-4" />
+                                                        {lead.email}
+                                                    </div>
+                                                    {lead.phone && (
+                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                            <Phone className="w-4 h-4" />
+                                                            {lead.phone}
+                                                        </div>
+                                                    )}
+                                                    {lead.location && (
+                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                            <MapPin className="w-4 h-4" />
+                                                            {lead.location}
+                                                        </div>
+                                                    )}
+                                                    {lead.website && (
+                                                        <div className="flex items-center gap-2 text-muted-foreground font-medium">
+                                                            <Globe className="w-4 h-4" />
+                                                            <a href={lead.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">
+                                                                {lead.website.length > 40 ? `${lead.website.substring(0, 40)}...` : lead.website}
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {lead.socialProfiles && Object.keys(lead.socialProfiles).length > 0 && (
+                                                    <div className="flex gap-2">
+                                                        {Object.entries(lead.socialProfiles).map(([platform, url]) => (
+                                                            <a
+                                                                key={platform}
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-3 py-1 bg-muted/50 hover:bg-muted border border-border/40 rounded-lg text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
+                                                            >
+                                                                {platform}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex gap-2">
+                                                    {lead.role && (
+                                                        <Badge variant="outline" className="text-xs">{lead.role}</Badge>
+                                                    )}
+                                                    {lead.estimatedRevenue && (
+                                                        <Badge variant="outline" className="text-xs">{lead.estimatedRevenue}</Badge>
+                                                    )}
+                                                    <Badge variant="outline" className="text-xs">{lead.wealthSignal}</Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
+                        <CardContent className="p-12 text-center">
+                            <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a neural scan to discover prospects.</div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* Neural Scraper Console Overlay */}
+            <ScraperConsole
+                isVisible={showConsole}
+                onClose={() => setShowConsole(false)}
+                logs={logs}
+            />
         </div >
     );
 }
