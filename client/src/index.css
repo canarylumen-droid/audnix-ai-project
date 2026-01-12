@@ -593,12 +593,12 @@
 
 /* WebKit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: transparent;
   border-radius: 20px;
 }
 

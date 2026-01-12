@@ -43,6 +43,11 @@ If false, emphasize that they need to initialize their Access Protocol by signin
 
 router.post('/chat', async (req: Request, res: Response) => {
     try {
+        // Defensive check for missing body
+        if (!req.body) {
+            return res.json({ content: "I'm momentarily recalibrating. Please try again." });
+        }
+
         const { message, history = [], isAuthenticated = false, userEmail = null } = req.body;
 
         if (!message) {

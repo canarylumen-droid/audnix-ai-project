@@ -34,6 +34,13 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
   try {
     console.log('🔍 [OTP Request] Received request to /api/user/auth/signup/request-otp');
 
+    // Defensive check for missing body (happens when JSON middleware not applied)
+    if (!req.body) {
+      console.error('🚨 [OTP CRASH] req.body is undefined - JSON middleware not applied');
+      res.status(400).json({ error: 'Invalid request format', details: 'No JSON body received' });
+      return;
+    }
+
     const { email, password } = req.body as { email?: string; password?: string };
     console.log('🔍 [OTP Request] Body - Email:', email ? '✓' : '✗', 'Password:', password ? '✓' : '✗');
 

@@ -35,29 +35,29 @@ export function InternetConnectionBanner() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -100, opacity: 0 }}
           transition={{ type: "spring", damping: 20 }}
-          className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-red-500 to-orange-600 text-white px-4 py-3 shadow-lg"
+          className="fixed bottom-4 right-4 z-[100] bg-yellow-500/90 backdrop-blur-md text-black px-4 py-2 rounded-lg shadow-lg border border-yellow-600/20"
         >
           <div className="flex items-center justify-center gap-2">
-            <WifiOff className="h-5 w-5 animate-pulse" />
-            <p className="text-sm font-medium">
-              No Internet Connection - Please check your network
+            <WifiOff className="h-4 w-4" />
+            <p className="text-xs font-medium">
+              Offline mode active
             </p>
           </div>
         </motion.div>
       )}
-      
+
       {showReconnected && isOnline && (
         <motion.div
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -100, opacity: 0 }}
           transition={{ type: "spring", damping: 20 }}
-          className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-3 shadow-lg"
+          className="fixed bottom-4 right-4 z-[100] bg-emerald-500/90 backdrop-blur-md text-white px-4 py-2 rounded-lg shadow-lg border border-emerald-600/20"
         >
           <div className="flex items-center justify-center gap-2">
-            <Wifi className="h-5 w-5" />
-            <p className="text-sm font-medium">
-              Connection Restored
+            <Wifi className="h-4 w-4" />
+            <p className="text-xs font-medium">
+              Back online
             </p>
           </div>
         </motion.div>

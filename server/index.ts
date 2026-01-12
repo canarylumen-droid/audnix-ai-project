@@ -95,6 +95,11 @@ app.use('/api/instagram/callback', express.json({
 // Trust proxy for Railway/Vercel/Cloudflare
 app.set("trust proxy", 1);
 
+// CRITICAL: Global JSON body parser for ALL other routes
+// This MUST come AFTER the raw body handlers above (webhooks) but BEFORE all API routes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Optimized Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
