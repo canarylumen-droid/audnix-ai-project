@@ -14,7 +14,7 @@ export default function ApiDocsPage() {
                     icon: Cpu,
                     content: (
                         <DocSection title="The Neural Core">
-                            <p>Audnix is built on a distributed agent architecture. We use low-latency vector databases (Pinecone/Milvus) coupled with Gemini 1.5 Pro inference to handle decision making in real-time.</p>
+                            <p>Audnix is built on a high-availability, distributed agent architecture. Our proprietary logic engine processes complex sentiment and intent signals across multi-channel environments to ensure deterministic accuracy and zero-latency decision making.</p>
                             <DocGrid>
                                 <HighlightCard
                                     icon={Brain}

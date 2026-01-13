@@ -15,7 +15,7 @@ const STEPS = [
     {
         id: "02",
         title: "Autonomous Sourcing",
-        desc: "The Neural Core scans Instagram, YouTube, and LinkedIn to find prospects that don't just 'fit a niche', but are showing active sentiment triggers that indicate a need for your help.",
+        desc: "The Audnix Logic Engine scours social and professional networks to find prospects based on proprietary sentiment triggers. We identify not just 'who' fits your niche, but 'when' they are most ready to engage.",
         icon: Zap,
         color: "text-primary",
         bg: "bg-primary/10"
