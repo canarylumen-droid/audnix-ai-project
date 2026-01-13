@@ -103,32 +103,32 @@ export default function FindLeadsPage() {
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Linkedin className="w-10 h-10 text-[#0077b5]" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">LinkedIn Enterprise</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Extracts deep <strong>Revenue Intelligence</strong> by cross-referencing hiring surges with decision-maker sentiment. Finds the exact leads with the budget to say 'Yes' now.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Deep-scrapes Executive Bios and Corporate Summaries to identify <strong>Right-Fit Investors and Strategic Partners</strong>. Specialized in finding high-value founders across the LinkedIn database who represent the exact match for your business.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Instagram className="w-10 h-10 text-[#E1306C]" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">Instagram Neural</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Scans bios and engagement history using <strong>Neural Summary Extraction</strong> to identify 'High-Growth' creators and brands who are currently bleeding revenue due to poor DM management.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Analyzes Bio Descriptions and Engagement Metadata across any industry. Pinpoints brands and creators who are <strong>losing money on the table</strong> specifically so you can offer your services at their peak point of pain.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Mail className="w-10 h-10 text-primary" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">Direct Email Core</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Goes beyond lists. Performs <strong>Dynamic DNS/MX Analysis</strong> to guarantee 100% deliverability to personal, non-guarded inboxes of high-ticket founders.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Engineers a direct path to the <strong>Unreachable 1%</strong>. Uses deep-web data to map corporate structures and find the personal inboxes of major investors and 'silent' founders that gatekeepers and standard scrapers fail to find.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Youtube className="w-10 h-10 text-[#FF0000]" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">YouTube Intelligence</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Monitors channel velocity and comment sentiment to detect <strong>Monetization Gaps</strong>. Hooks you into creators at the exact moment they need an automation partner.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Analyzes Channel Descriptions and Video Transcripts to identify <strong>Operational Leakage</strong>. Finds right-fit partners across any niche who are scaling too fast and losing equity through operational inefficiency.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Database className="w-10 h-10 text-emerald-500" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">Google Maps / Local</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Identifies local service 'Whales' by mapping review decay against site tech deficiencies. Pinpoints businesses with <strong>High Liquid Cash</strong> but low digital efficiency.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Maps industry-specific review velocity against <strong>Liquid Cash Indicators</strong>. Identifies local 'Whales' who are losing money due to technical deficiencies, allowing you to solve their most expensive problems.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Fingerprint className="w-10 h-10 text-purple-500" />
                                     <h4 className="text-xl font-black text-white uppercase tracking-tight">The Dark Net Scraper</h4>
-                                    <p className="text-sm text-white/40 leading-relaxed font-medium">Our 'Black Box' engine. Accesses private registries and professional association silos to find the <strong>Invisible 1%</strong> of leads that never appear in Apollo or Lusha.</p>
+                                    <p className="text-sm text-white/40 leading-relaxed font-medium">The ultimate 'Black Box' for <strong>Partner and Investor Discovery</strong>. Scours private business registries and associations across the deep net to find the hidden equity and decision-makers others miss.</p>
                                 </div>
                             </div>
                         </DocSection>
