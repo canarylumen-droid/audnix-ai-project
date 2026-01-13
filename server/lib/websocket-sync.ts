@@ -21,10 +21,14 @@ class WebSocketSyncServer {
   private heartbeatInterval: NodeJS.Timeout | null = null;
 
   initialize(server: http.Server) {
-    this.wss = new WebSocketServer({
+    const options: any = {
       server,
       path: '/ws/sync'
-    });
+    };
+    
+    // In development, we might have multiple starts, so we need to be careful
+    // but the 'server' option should handle port sharing.
+    this.wss = new WebSocketServer(options);
 
     this.wss.on('connection', (ws: WebSocketClient, req) => {
       const url = new URL(req.url || '', `http://${req.headers.host}`);

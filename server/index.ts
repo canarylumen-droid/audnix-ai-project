@@ -193,6 +193,10 @@ app.use((req, res, next) => {
 
 // CSRF Protection via SameSite cookies + Origin validation
 app.use((req, res, next) => {
+  // Skip CSRF check in development
+  if (process.env.NODE_ENV === 'development') {
+    return next();
+  }
   // Skip CSRF check for GET, HEAD, OPTIONS
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
@@ -439,14 +443,13 @@ async function runMigrations() {
       const isVercel = process.env.VERCEL === '1';
 
       // 1. Run migrations (only if NOT on Vercel to prevent log clutter/timeouts)
-      // On Vercel, migrations should be run via scripts/run-migrations.ts manually
       if (!isVercel) {
         await runMigrations();
       }
 
       // Start workers only if NOT on Vercel
       if (!isVercel) {
-        // 2. Start workers (only on persistent servers like Railway/Local)
+        // 2. Start workers
         const { db } = await import('./db.js');
         const hasDatabase = process.env.DATABASE_URL && db;
         const hasSupabase = isSupabaseAdminConfigured();
@@ -479,6 +482,9 @@ async function runMigrations() {
         if (hasDatabase) {
           console.log('📬 Starting email workers...');
           emailSyncWorker.start();
+
+          const wssSync = (await import('./lib/websocket-sync.js')).wsSync;
+          wssSync.initialize(serverInstance);
 
           // Start real-time IMAP IDLE if available
           try {
