@@ -104,7 +104,7 @@ export default function Landing() {
         </section>
 
         {/* FINAL CTA */}
-        <section className="py-60 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden border-t border-white/5">
+        <section className="py-32 px-4 relative flex flex-col items-center justify-center text-center overflow-hidden border-t border-white/5">
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-primary/5 blur-[120px] rounded-full -z-10" />
 
           <motion.div
@@ -153,7 +153,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="py-40 px-8 border-t border-white/5 bg-black relative overflow-hidden">
+      <footer className="py-24 px-8 border-t border-white/5 bg-black relative overflow-hidden">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 blur-[150px] rounded-full -z-10" />
 
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">

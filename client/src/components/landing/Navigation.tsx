@@ -90,23 +90,23 @@ export function Navigation() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 min-w-[340px] shadow-2xl"
+                    className="absolute top-full left-0 mt-2 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-4 min-w-[360px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                   >
-                    <div className="grid gap-1">
+                    <div className="grid gap-2">
                       {SOLUTIONS.map((sol) => (
                         <Link key={sol.name} href={sol.href}>
-                          <div className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors group/item">
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary transition-colors">
-                              <sol.icon className="w-5 h-5" />
+                          <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-white/5 transition-all group/item border border-transparent hover:border-white/5">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary transition-colors">
+                              <sol.icon className="w-6 h-6" />
                             </div>
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-foreground">{sol.displayName || sol.name}</span>
-                                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-bold uppercase tracking-wider">
+                                <span className="text-sm font-black text-white uppercase tracking-tight">{sol.displayName || sol.name}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider">
                                   {sol.badge}
                                 </span>
                               </div>
-                              <span className="text-xs text-muted-foreground font-medium mt-0.5 whitespace-normal break-words leading-tight">{sol.desc}</span>
+                              <span className="text-xs text-white/40 font-medium mt-1 whitespace-normal break-words leading-tight">{sol.desc}</span>
                             </div>
                           </div>
                         </Link>
@@ -152,38 +152,38 @@ export function Navigation() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 min-w-[220px] shadow-2xl"
+                    className="absolute top-full left-0 mt-2 bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-[2rem] p-4 min-w-[240px] shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                   >
-                    <div className="grid gap-1">
+                    <div className="grid gap-2">
                       <Link href="/resources/niche-vault">
-                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
-                          <LayoutGrid className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Niche Vault (20+)</span>
+                        <div className="flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all border border-transparent hover:border-white/5">
+                          <LayoutGrid className="w-5 h-5 text-primary" />
+                          <span className="text-xs font-black uppercase tracking-wider text-white/60">Niche Vault (20+)</span>
                         </div>
                       </Link>
                       <Link href="/resources/outreach-playbooks">
-                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
-                          <Zap className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Outreach Playbooks</span>
+                        <div className="flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all border border-transparent hover:border-white/5">
+                          <Zap className="w-5 h-5 text-primary" />
+                          <span className="text-xs font-black uppercase tracking-wider text-white/60">Outreach Playbooks</span>
                         </div>
                       </Link>
                       <Link href="/resources/api-docs">
-                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
-                          <Brain className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Engineering Docs</span>
+                        <div className="flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all border border-transparent hover:border-white/5">
+                          <Brain className="w-5 h-5 text-primary" />
+                          <span className="text-xs font-black uppercase tracking-wider text-white/60">Engineering Docs</span>
                         </div>
                       </Link>
                       <div
-                        className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors"
+                        className="flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
                         onClick={() => document.getElementById('privacy-modal')?.classList.remove('hidden')}
                       >
-                        <Shield className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Privacy Policy</span>
+                        <Shield className="w-5 h-5 text-primary" />
+                        <span className="text-xs font-black uppercase tracking-wider text-white/60">Privacy Policy</span>
                       </div>
                       <Link href="/terms-of-service">
-                        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-white/5 transition-colors">
-                          <FileText className="w-4 h-4 text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Terms of Service</span>
+                        <div className="flex items-center gap-3 p-4 rounded-xl cursor-pointer hover:bg-white/5 transition-all border border-transparent hover:border-white/5">
+                          <FileText className="w-5 h-5 text-primary" />
+                          <span className="text-xs font-black uppercase tracking-wider text-white/60">Terms of Service</span>
                         </div>
                       </Link>
                     </div>
