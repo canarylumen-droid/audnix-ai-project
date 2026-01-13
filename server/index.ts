@@ -173,7 +173,7 @@ const ALLOWED_ORIGINS = [
 app.use((req, res, next) => {
   const origin = req.get('origin');
 
-  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.replit.dev'))) {
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.replit.dev') || origin.endsWith('.repl.co'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else if (process.env.NODE_ENV === 'development') {
