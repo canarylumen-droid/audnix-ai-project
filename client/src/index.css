@@ -389,12 +389,25 @@
   animation: scanline 8s linear infinite;
 }
 
-/* Refined Lightweight Glass */
+/* Refined Lightweight Glass - Optimized for Performance */
 .glass-premium {
-  background: hsla(var(--background) / 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid hsla(var(--foreground) / 0.05);
+  /* Default: High Performance (Real Blur) */
+  --glass-bg: hsla(var(--background) / 0.4);
+  --glass-blur: blur(12px);
+  --glass-border: hsla(var(--foreground) / 0.05);
+  
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+}
+
+/* Low Performance Mode (Reduced Motion / Low Power) */
+@media (prefers-reduced-motion: reduce) {
+  .glass-premium {
+    --glass-bg: hsla(var(--background) / 0.95); /* Nearly opaque fallback */
+    --glass-blur: none; /* Disable expensive blur */
+  }
 }
 
 /* Typing cursor animation */
