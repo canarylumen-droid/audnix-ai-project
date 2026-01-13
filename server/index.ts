@@ -215,8 +215,9 @@ app.use((req, res, next) => {
     'https://www.audnixai.com',
     'http://localhost:5000',
     'https://localhost:5000',
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
-  ].filter((url): url is string => Boolean(url));
+    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+    process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : []
+  ].flat().filter((url): url is string => Boolean(url));
 
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
@@ -229,11 +230,12 @@ app.use((req, res, next) => {
           const allowedUrl = new URL(allowed);
           return originUrl.host === allowedUrl.host;
         } catch {
-          return originUrl.host === host;
+          // If allowed entry isn't a full URL, compare hosts directly
+          return originUrl.host === allowed || originUrl.host === host;
         }
       });
 
-      if (!isAllowed) {
+      if (!isAllowed && !originUrl.host.endsWith('.replit.dev') && !originUrl.host.endsWith('.replit.app')) {
         console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
         return res.status(403).json({ error: 'Invalid request origin' });
       }
