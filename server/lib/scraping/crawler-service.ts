@@ -95,7 +95,7 @@ export class AdvancedCrawler {
         const header = this.headerPool[Math.floor(Math.random() * this.headerPool.length)];
         // Add random X-Forwarded-For to simulate proxy mesh with realistic IPs
         const fakeIp = `${Math.floor(Math.random() * 210) + 10}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
-        
+
         // Advanced fingerprinting bypass
         return {
             ...header,
@@ -135,7 +135,7 @@ export class AdvancedCrawler {
                 console.error("Invalid PROXY_URL configuration");
             }
         }
-        
+
         if (process.env.USE_PROXIES !== 'true') return undefined;
         // High-trust residential rotation fallback
         const proxy = PROXY_POOL[Math.floor(Math.random() * PROXY_POOL.length)];
