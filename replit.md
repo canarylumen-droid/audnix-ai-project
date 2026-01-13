@@ -44,10 +44,10 @@ Preferred communication style: Simple, everyday language.
 - **Token Handling**: Supabase JWT verification with service role for admin operations
 
 ### AI and ML Services
-- **Conversation AI**: Google Gemini 2.0 Flash for chat responses and lead analysis
+- **Conversation AI**: Google Gemini 2.0 Flash for chat responses and lead analysis (updated from 1.5)
 - **Voice Cloning**: ElevenLabs API for personalized voice message generation
 - **Lead Scoring**: AI-powered quality scoring with 95%+ threshold
-- **Content Generation**: Smart reply suggestions, objection handling scripts
+- **Scraping Capability**: Scaled to 1,000,000 leads with Gemini 2.0 intent analysis and advanced proxy rotation simulation
 
 ### Lead Prospecting Engine
 - **Data Sources**: Google Search, Bing Search, Instagram, YouTube (HTML scraping, no API keys required)
