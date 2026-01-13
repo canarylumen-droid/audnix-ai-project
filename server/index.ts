@@ -176,11 +176,11 @@ app.use((req, res, next) => {
   const origin = req.get('origin');
 
   // Allow Replit, Vercel, and Railway domains
-  const isAllowedDomain = !origin || 
-    ALLOWED_ORIGINS.includes(origin) || 
-    origin.endsWith('.vercel.app') || 
-    origin.endsWith('.replit.dev') || 
-    origin.endsWith('.repl.co') || 
+  const isAllowedDomain = !origin ||
+    ALLOWED_ORIGINS.includes(origin) ||
+    origin.endsWith('.vercel.app') ||
+    origin.endsWith('.replit.dev') ||
+    origin.endsWith('.repl.co') ||
     origin.endsWith('.railway.app') ||
     origin.endsWith('.replit.app');
 
@@ -248,10 +248,10 @@ app.use((req, res, next) => {
         }
       });
 
-      const isAllowedSuffix = originUrl.host.endsWith('.replit.dev') || 
-                             originUrl.host.endsWith('.replit.app') || 
-                             originUrl.host.endsWith('.vercel.app') || 
-                             originUrl.host.endsWith('.railway.app');
+      const isAllowedSuffix = originUrl.host.endsWith('.replit.dev') ||
+        originUrl.host.endsWith('.replit.app') ||
+        originUrl.host.endsWith('.vercel.app') ||
+        originUrl.host.endsWith('.railway.app');
 
       if (!isAllowed && !isAllowedSuffix) {
         console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
@@ -454,30 +454,30 @@ async function runMigrations() {
   // Run migrations and start workers in background AFTER server starts
   (async () => {
     try {
-    const isVercel = process.env.VERCEL === '1';
+      const isVercel = false; // Forced to false to enable full backend logic on all platforms
 
-    // 1. Run migrations
-    if (!isVercel) {
-      try {
-        await runMigrations();
-        
-        // Seed initial data if database is empty (disabled for production)
-        const { db } = await import('./db.js');
-        const userCount = await db.select({ count: sql`count(*)` }).from(users);
-        if (Number(userCount[0].count) === 0) {
-          console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
+      // 1. Run migrations
+      if (!isVercel) {
+        try {
+          await runMigrations();
+
+          // Seed initial data if database is empty (disabled for production)
+          const { db } = await import('./db.js');
+          const userCount = await db.select({ count: sql`count(*)` }).from(users);
+          if (Number(userCount[0].count) === 0) {
+            console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
+          }
+        } catch (err) {
+          console.error('❌ Migration or seeding failed, continuing...', err);
         }
-      } catch (err) {
-        console.error('❌ Migration or seeding failed, continuing...', err);
       }
-    }
 
-    // Always start workers on persistent environments (Replit, Railway, etc.)
-    if (!isVercel) {
+      // Always start workers on persistent environments (Replit, Railway, etc.)
+      if (!isVercel) {
         // 2. Start workers
         const { db } = await import('./db.js');
         const hasDatabase = process.env.DATABASE_URL && db;
-        
+
         console.log('🤖 Initializing AI services...');
         const hasSupabase = isSupabaseAdminConfigured();
 

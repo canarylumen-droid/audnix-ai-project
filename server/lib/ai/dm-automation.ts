@@ -68,7 +68,7 @@ export async function scheduleAutomatedDMReply(
         .eq('lead_id', leadId)
         .eq('status', 'scheduled')
         .limit(1);
-      
+
       if (existingJob && existingJob.length > 0) {
         console.log(`[DM_AUTO] Reply already scheduled in queue for lead ${leadId}, skipping`);
         return;
@@ -76,10 +76,10 @@ export async function scheduleAutomatedDMReply(
     }
 
     const conversationHistory = await getConversationHistory(leadId);
-    
+
     const delayMs = calculateSmartDelay(intent, conversationHistory);
     const scheduledAt = new Date(Date.now() + delayMs);
-    
+
     console.log(`[DM_AUTO] Reply scheduled in ${Math.round(delayMs / 1000)}s at ${scheduledAt.toISOString()}`);
 
     const timeoutId = setTimeout(async () => {
@@ -132,10 +132,10 @@ export async function scheduleAutomatedDMReply(
 function calculateSmartDelay(intent?: IntentAnalysis, history?: Message[]): number {
   const MIN_DELAY = 2 * 60 * 1000;
   const MAX_DELAY = 8 * 60 * 1000;
-  
+
   let minDelay = MIN_DELAY;
   let maxDelay = MAX_DELAY;
-  
+
   if (intent?.readyToBuy || intent?.wantsToSchedule) {
     minDelay = 2 * 60 * 1000;
     maxDelay = 3 * 60 * 1000;
@@ -149,25 +149,25 @@ function calculateSmartDelay(intent?: IntentAnalysis, history?: Message[]): numb
     minDelay = 2 * 60 * 1000;
     maxDelay = 5 * 60 * 1000;
   } else {
-    const isActiveConversation = history && history.length > 0 && 
+    const isActiveConversation = history && history.length > 0 &&
       (Date.now() - new Date(history[history.length - 1].createdAt).getTime()) < 5 * 60 * 1000;
-    
+
     if (isActiveConversation) {
       minDelay = 2 * 60 * 1000;
       maxDelay = 4 * 60 * 1000;
     }
   }
-  
+
   minDelay = Math.max(minDelay, MIN_DELAY);
   maxDelay = Math.min(maxDelay, MAX_DELAY);
-  
+
   return minDelay + Math.random() * (maxDelay - minDelay);
 }
 
 async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
   try {
     console.log(`[DM_AUTO] Executing automated reply for lead ${job.leadId}`);
-    
+
     const lead = await storage.getLeadById(job.leadId);
     if (!lead) {
       console.error(`[DM_AUTO] Lead ${job.leadId} not found`);
@@ -187,7 +187,7 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
     }
 
     const conversationHistory = await getConversationHistory(job.leadId);
-    
+
     const aiResult = await generateAIReply(
       {
         ...lead,
@@ -213,7 +213,7 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
     console.log(`[DM_AUTO] Generated AI reply: "${aiResult.text.substring(0, 100)}..."`);
 
     const sent = await sendInstagramReply(job.userId, job.recipientId, aiResult.text);
-    
+
     if (sent) {
       await storage.createMessage({
         userId: job.userId,
@@ -234,9 +234,9 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
       });
 
       await updateQueueStatus(job.leadId, 'sent', null);
-      
+
       console.log(`[DM_AUTO] Successfully sent automated reply to ${lead.name}`);
-      
+
       if (supabaseAdmin) {
         await supabaseAdmin
           .from('recent_activities')
@@ -246,7 +246,7 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
             activity_type: 'ai_reply_sent',
             channel: 'instagram',
             description: `AI sent: "${aiResult.text.substring(0, 50)}..."`,
-            metadata: { 
+            metadata: {
               automated: true,
               reply_delay_seconds: Math.round((Date.now() - job.scheduledAt.getTime()) / 1000),
               intent: job.context.intent
@@ -295,7 +295,7 @@ async function sendInstagramReply(userId: string, recipientId: string, message: 
 
 async function getInstagramAccountId(userId: string): Promise<string | null> {
   if (!db) return null;
-  
+
   try {
     const userIntegrations = await db
       .select()
@@ -306,12 +306,12 @@ async function getInstagramAccountId(userId: string): Promise<string | null> {
         eq(integrations.connected, true)
       ))
       .limit(1);
-    
+
     if (userIntegrations.length > 0) {
       const metadata = userIntegrations[0].metadata as Record<string, unknown> | null;
       return metadata?.instagramAccountId as string || null;
     }
-    
+
     return null;
   } catch (error) {
     console.error('[DM_AUTO] Error getting Instagram account ID:', error);
