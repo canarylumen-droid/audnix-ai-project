@@ -16,7 +16,7 @@ if (process.env.DATABASE_URL) {
       connectionString: process.env.DATABASE_URL,
     });
     db = drizzle(dbPool, { schema });
-    console.log('✅ PostgreSQL database connected (Neon Serverless)');
+    console.log('✅ PostgreSQL database connected (Neon Serverless - Live Protocol)');
     console.log(`📊 Database: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown'} `);
 
     // EXPLICIT CONNECTION TEST

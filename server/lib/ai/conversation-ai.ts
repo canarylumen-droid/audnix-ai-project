@@ -21,64 +21,6 @@ if (!openai) {
 
 const isDemoMode = false;
 
-type LeadStatus = 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
-
-interface ConversationStatusResult {
-  status: LeadStatus;
-  confidence: number;
-  reason?: string;
-  shouldUseVoice?: boolean;
-}
-
-interface AIReplyResult {
-  text: string;
-  useVoice: boolean;
-  detections?: {
-    priceObjection?: PriceObjectionResult;
-    competitorMention?: CompetitorMentionResult;
-    language?: LanguageDetection;
-  };
-}
-
-interface PriceObjectionResult {
-  detected: boolean;
-  severity?: 'low' | 'medium' | 'high';
-  suggestedDiscount?: number;
-}
-
-interface CompetitorMentionResult {
-  detected: boolean;
-  competitor: string;
-  context: 'positive' | 'negative' | 'neutral' | 'comparison';
-  response: string;
-  sentiment: number;
-}
-
-interface LanguageDetection {
-  language: string;
-  confidence: number;
-  code: string;
-}
-
-interface MemoryMessage {
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp?: string;
-}
-
-interface MemoryConversation {
-  content?: {
-    messages?: MemoryMessage[];
-    channel?: string;
-  };
-}
-
-interface MemoryRetrievalResult {
-  success: boolean;
-  conversations?: MemoryConversation[];
-  context?: string;
-}
-
 /**
  * Detect if lead is actively engaged (replying immediately)
  */
@@ -266,21 +208,11 @@ export async function generateAIReply(
   userContext?: { businessName?: string; brandVoice?: string }
 ): Promise<AIReplyResult> {
 
-  const brandContext = await getBrandContext(lead.userId);
-  const brandPromptSection = formatBrandContextForPrompt(brandContext);
+    if (isDemoMode) {
+        throw new Error("Neural Engine Disconnected: System requires live API key for real-time inference.");
+    }
 
-  if (isDemoMode) {
-    const demoResponses = [
-      "Hey! Thanks for reaching out. I'd love to learn more about what you're looking for.",
-      "That sounds great! When would be a good time for a quick call to discuss this further?",
-      "I appreciate your interest! Let me share some details that might help...",
-      "Perfect timing! I've helped others in similar situations. Would you like to see some examples?",
-    ];
-    return {
-      text: demoResponses[Math.floor(Math.random() * demoResponses.length)],
-      useVoice: false
-    };
-  }
+    const brandContext = await getBrandContext(lead.userId);
 
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
@@ -544,7 +476,7 @@ export async function generateVoiceScript(
   conversationHistory: Message[]
 ): Promise<string> {
   if (isDemoMode) {
-    return "Hey! Quick voice note - I wanted to personally reach out and see if you'd like to hop on a brief call this week to discuss how we can help. Let me know what works for you!";
+    throw new Error("Voice Protocol Offline: Live API credentials required.");
   }
 
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');

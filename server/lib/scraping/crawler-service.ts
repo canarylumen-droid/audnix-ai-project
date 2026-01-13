@@ -95,12 +95,20 @@ export class AdvancedCrawler {
         const header = this.headerPool[Math.floor(Math.random() * this.headerPool.length)];
         // Add random X-Forwarded-For to simulate proxy mesh with realistic IPs
         const fakeIp = `${Math.floor(Math.random() * 210) + 10}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+        
+        // Advanced fingerprinting bypass
         return {
             ...header,
             'X-Forwarded-For': fakeIp,
             'X-Real-IP': fakeIp,
             'Via': '1.1 proxy-mesh.audnix.ai',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Site': 'cross-site',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Dest': 'document',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
         };
     }
 
@@ -108,9 +116,28 @@ export class AdvancedCrawler {
         this.log(text, 'raw');
     }
 
+    // Rotating Proxy Configuration (Production-Ready Mesh)
     private getProxyConfig(): any {
+        const proxyUrl = process.env.PROXY_URL; // e.g. http://user:pass@gate.proxyprovider.com:8080
+        if (proxyUrl) {
+            try {
+                const url = new URL(proxyUrl);
+                return {
+                    protocol: url.protocol.replace(':', ''),
+                    host: url.hostname,
+                    port: parseInt(url.port),
+                    auth: {
+                        username: decodeURIComponent(url.username),
+                        password: decodeURIComponent(url.password)
+                    }
+                };
+            } catch (e) {
+                console.error("Invalid PROXY_URL configuration");
+            }
+        }
+        
         if (process.env.USE_PROXIES !== 'true') return undefined;
-        // Simple random rotation
+        // High-trust residential rotation fallback
         const proxy = PROXY_POOL[Math.floor(Math.random() * PROXY_POOL.length)];
         return proxy;
     }
