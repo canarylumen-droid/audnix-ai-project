@@ -79,7 +79,7 @@ export function ExpertChat() {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'ai', content: "Hello! I am your Audnix Assistant. I can answer any questions you have about our sales engine or help you get started. How can I assist you today?" }
+        { role: 'ai', content: "Protocol initialized. I am the Audnix Assistant. How can I help you architect your revenue engine today?" }
     ]);
     const [input, setInput] = useState("");
     const scrollRef = useRef<HTMLDivElement>(null);

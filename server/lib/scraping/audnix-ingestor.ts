@@ -39,18 +39,22 @@ export class AudnixIngestor {
             const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
             const prompt = `
                 Analyze this lead generation request: "${query}"
+                
+                OBJECTIVE: 
+                Determine the target audience including potential partners, investors, or specific lead types.
+                
                 Identify:
                 1. Main Niche/Industry
-                2. Target Geographic Location
-                3. Requested Lead Volume (Minimum 500, Maximum 500000. Default to 5000 if not specified)
-                4. Platform Focus (if any)
-                5. Special Filters (e.g., "personal emails", "founders only", "high revenue", etc.)
+                2. Target Geographic Location (Global if not specified)
+                3. Requested Lead Volume (Up to 1,000,000. Default to 10,000 if not specified)
+                4. Platform Focus (LinkedIn, Instagram, Crunchbase, etc.)
+                5. High-Value Filters (e.g., "Series A funded", "decision makers", "personal emails")
 
                 Return as JSON:
                 {
                     "niche": "string",
                     "location": "string",
-                    "volume": number (500-500000),
+                    "volume": number,
                     "platforms": ["string"],
                     "filters": ["string"]
                 }
@@ -59,8 +63,8 @@ export class AudnixIngestor {
             const result = await model.generateContent(prompt);
             const intent = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-            // Enforce volume limits (Scalability lift: 2k -> 500k)
-            intent.volume = Math.max(500, Math.min(500000, intent.volume));
+            // Enforce volume limits (Millions of data points scalability)
+            intent.volume = Math.max(500, Math.min(1000000, intent.volume));
 
             await this.log(`[Intel] Niche: ${intent.niche} | Location: ${intent.location} | Target: ${intent.volume} leads`, 'success');
 
