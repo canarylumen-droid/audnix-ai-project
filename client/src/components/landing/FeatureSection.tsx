@@ -6,9 +6,10 @@ interface FeatureCardProps {
     description: string;
     icon: any;
     delay: number;
+    index: number;
 }
 
-const FeatureCard = ({ title, description, icon: Icon, delay }: FeatureCardProps) => (
+const FeatureCard = ({ title, description, icon: Icon, delay, index }: FeatureCardProps) => (
     <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -18,8 +19,13 @@ const FeatureCard = ({ title, description, icon: Icon, delay }: FeatureCardProps
     >
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] rounded-full group-hover:bg-primary/10 transition-colors" />
         <div className="relative z-10">
-            <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mb-8 group-hover:scale-110 group-hover:bg-primary group-hover:text-black transition-all duration-500">
-                <Icon className="w-6 h-6" />
+            <div className="flex justify-between items-start mb-8">
+                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 group-hover:bg-primary group-hover:text-black transition-all duration-500">
+                    <Icon className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-black text-white/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
+                    0{index + 1}
+                </span>
             </div>
             <h3 className="text-xl font-black text-white mb-4 tracking-tight uppercase">{title}</h3>
             <p className="text-white/40 text-sm leading-relaxed font-medium">
@@ -64,24 +70,28 @@ export function FeatureSection() {
                         description="Audnix doesn't just read text. It listens to Voice Notes, extracts sentiment, and adapts its reply tone instantly using neural acoustic modeling."
                         icon={Mic}
                         delay={0}
+                        index={0}
                     />
                     <FeatureCard
                         title="Real-Time Intent Check"
                         description="Every reply is analyzed against 110+ objection scenarios and buying signals before a single word is sent back to the lead."
                         icon={BrainCircuit}
                         delay={0.1}
+                        index={1}
                     />
                     <FeatureCard
                         title="Predictive Timing"
                         description="Uses 'Human-Like Delays' (2-8 mins) and checks user activity to respond exactly when they are most likely to convert into a sale."
                         icon={Clock}
                         delay={0.2}
+                        index={2}
                     />
                     <FeatureCard
                         title="Churn & Drop-off Risk"
                         description="Identifies leads losing interest based on sentiment decay and automatically deploys a 'Re-Engagement Protocol' to recover the sale."
                         icon={AlertTriangle}
                         delay={0.3}
+                        index={3}
                     />
                 </div>
 

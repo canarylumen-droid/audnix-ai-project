@@ -89,8 +89,13 @@ export function ProblemSection() {
                             transition={{ delay: i * 0.1, duration: 0.6 }}
                             className="p-8 rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-primary/20 hover:bg-white/[0.05] transition-all group shadow-sm"
                         >
-                            <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-foreground mb-8 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
-                                <point.icon className="w-6 h-6" />
+                            <div className="flex justify-between items-start mb-8">
+                                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
+                                    <point.icon className="w-6 h-6" />
+                                </div>
+                                <span className="text-[10px] font-black text-white/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
+                                    0{i + 1}
+                                </span>
                             </div>
                             <h3 className="text-xl font-bold text-white mb-4 tracking-tight uppercase">{point.title}</h3>
                             <p className="text-white/40 text-sm leading-relaxed mb-8 font-medium">
