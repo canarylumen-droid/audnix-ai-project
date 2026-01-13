@@ -461,19 +461,12 @@ async function runMigrations() {
       try {
         await runMigrations();
         
-        // Seed initial data if database is empty
+        // Seed initial data if database is empty (disabled for production)
         const { db } = await import('./db.js');
         const userCount = await db.select({ count: sql`count(*)` }).from(users);
-      if (Number(userCount[0].count) === 0) {
-        console.log('🌱 Database empty, seeding demo data...');
-        try {
-          const { seed } = await import('../scripts/seed_demo.js');
-          await seed();
-          console.log('✅ Demo data seeded successfully');
-        } catch (seedErr) {
-          console.error('⚠️ Seeding failed:', seedErr);
+        if (Number(userCount[0].count) === 0) {
+          console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
         }
-      }
       } catch (err) {
         console.error('❌ Migration or seeding failed, continuing...', err);
       }

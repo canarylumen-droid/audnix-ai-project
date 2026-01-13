@@ -60,22 +60,8 @@ async function seedUser() {
 }
 
 async function runSeeder() {
-  console.log('Starting demo seeder...\n');
-  
-  let count = 0;
-  const maxUsers = 10;
-
-  const interval = setInterval(async () => {
-    if (count >= maxUsers) {
-      clearInterval(interval);
-      console.log(`\n✓ Seeded ${maxUsers} demo users`);
-      process.exit(0);
-    }
-
-    await seedUser();
-    count++;
-    // Use crypto for secure random intervals between 2-7 seconds
-  }, crypto.randomInt(2000, 7000));
+  console.log('Demo seeder is disabled for production safety.');
+  process.exit(0);
 }
 
 runSeeder();
