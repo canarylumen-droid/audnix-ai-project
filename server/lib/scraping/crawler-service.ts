@@ -689,12 +689,13 @@ export class AdvancedCrawler {
             }
         });
 
-        return Array.from(emails).filter(e =>
-            !e.includes('example.com') &&
-            !e.includes('sentry.io') &&
-            !e.includes('wixpress.com') &&
-            !e.includes('@2x.png')
-        );
+        return Array.from(emails).filter(e => {
+            const lowerFilter = e.toLowerCase();
+            return !lowerFilter.includes('example.com') &&
+                !lowerFilter.includes('sentry.io') &&
+                !lowerFilter.includes('wixpress.com') &&
+                !lowerFilter.includes('@2x.png');
+        });
     }
 
     private isPersonalEmail(email: string): boolean {

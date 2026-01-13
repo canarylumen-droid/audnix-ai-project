@@ -463,11 +463,21 @@ function createMimeMessage(
     let safe = html;
 
     // Remove scripts, styles, iframes using non-backtracking patterns
-    safe = safe.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    safe = safe.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-    safe = safe.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+    // Safe replacement of scripts/styles/iframes
+    // We use a simpler strategy to avoid ReDoS: just strip the tags themselves if content removal is hard without a parser
+    // But for basic security, we'll use a known safe pattern that doesn't backtrack excessively
 
-    // Remove remaining HTML tags
+    // 1. Remove entire <script>...</script> blocks (safe non-greedy dot match)
+    safe = safe.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+
+    // 2. Remove entire <style>...</style> blocks
+    safe = safe.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+
+    // 3. Remove <iframe> tags (self closing or block)
+    safe = safe.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    safe = safe.replace(/<iframe\b[^>]*\/>/gi, '');
+
+    // 4. Remove all other HTML tags
     safe = safe.replace(/<[^>]+>/g, ' ');
 
     // Decode common entities
