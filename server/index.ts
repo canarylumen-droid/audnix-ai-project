@@ -167,16 +167,24 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:5000',
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
-].filter(Boolean) as string[];
+  process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
+  process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : [],
+  process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null,
+].flat().filter(Boolean) as string[];
 
 app.use((req, res, next) => {
   const origin = req.get('origin');
 
-  if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('.replit.dev') || origin.endsWith('.repl.co'))) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else if (process.env.NODE_ENV === 'development') {
+  // Allow Replit, Vercel, and Railway domains
+  const isAllowedDomain = !origin || 
+    ALLOWED_ORIGINS.includes(origin) || 
+    origin.endsWith('.vercel.app') || 
+    origin.endsWith('.replit.dev') || 
+    origin.endsWith('.repl.co') || 
+    origin.endsWith('.railway.app') ||
+    origin.endsWith('.replit.app');
+
+  if (isAllowedDomain) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -220,7 +228,8 @@ app.use((req, res, next) => {
     'http://localhost:5000',
     'https://localhost:5000',
     process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-    process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : []
+    process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : [],
+    process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null
   ].flat().filter((url): url is string => Boolean(url));
 
   const origin = req.get('origin') || req.get('referer');
@@ -239,7 +248,12 @@ app.use((req, res, next) => {
         }
       });
 
-      if (!isAllowed && !originUrl.host.endsWith('.replit.dev') && !originUrl.host.endsWith('.replit.app')) {
+      const isAllowedSuffix = originUrl.host.endsWith('.replit.dev') || 
+                             originUrl.host.endsWith('.replit.app') || 
+                             originUrl.host.endsWith('.vercel.app') || 
+                             originUrl.host.endsWith('.railway.app');
+
+      if (!isAllowed && !isAllowedSuffix) {
         console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
         return res.status(403).json({ error: 'Invalid request origin' });
       }
@@ -440,22 +454,42 @@ async function runMigrations() {
   // Run migrations and start workers in background AFTER server starts
   (async () => {
     try {
-      const isVercel = process.env.VERCEL === '1';
+    const isVercel = process.env.VERCEL === '1';
 
-      // 1. Run migrations (only if NOT on Vercel to prevent log clutter/timeouts)
-      if (!isVercel) {
+    // 1. Run migrations
+    if (!isVercel) {
+      try {
         await runMigrations();
+        
+        // Seed initial data if database is empty
+        const { db } = await import('./db.js');
+        const userCount = await db.select({ count: sql`count(*)` }).from(users);
+      if (Number(userCount[0].count) === 0) {
+        console.log('🌱 Database empty, seeding demo data...');
+        try {
+          const { seed } = await import('../scripts/seed_demo.js');
+          await seed();
+          console.log('✅ Demo data seeded successfully');
+        } catch (seedErr) {
+          console.error('⚠️ Seeding failed:', seedErr);
+        }
       }
+      } catch (err) {
+        console.error('❌ Migration or seeding failed, continuing...', err);
+      }
+    }
 
-      // Start workers only if NOT on Vercel
-      if (!isVercel) {
+    // Always start workers on persistent environments (Replit, Railway, etc.)
+    if (!isVercel) {
         // 2. Start workers
         const { db } = await import('./db.js');
         const hasDatabase = process.env.DATABASE_URL && db;
+        
+        console.log('🤖 Initializing AI services...');
         const hasSupabase = isSupabaseAdminConfigured();
 
         if (hasDatabase && hasSupabase && supabaseAdmin) {
-          console.log('🤖 Starting AI workers...');
+          console.log('✅ Supabase AI workers starting...');
           workerHealthMonitor.registerWorker('follow-up-worker');
           workerHealthMonitor.registerWorker('video-comment-monitor');
           workerHealthMonitor.registerWorker('lead-learning');
@@ -480,7 +514,7 @@ async function runMigrations() {
         }
 
         if (hasDatabase) {
-          console.log('📬 Starting email workers...');
+          console.log('📬 Starting core system workers...');
           emailSyncWorker.start();
 
           const wssSync = (await import('./lib/websocket-sync.js')).wsSync;

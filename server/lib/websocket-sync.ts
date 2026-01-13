@@ -22,13 +22,22 @@ class WebSocketSyncServer {
 
   initialize(server: http.Server) {
     const options: any = {
-      server,
-      path: '/ws/sync'
+      noServer: true, // Handle upgrade manually to avoid port conflicts
+      path: '/ws/sync',
+      clientTracking: true
     };
     
-    // In development, we might have multiple starts, so we need to be careful
-    // but the 'server' option should handle port sharing.
     this.wss = new WebSocketServer(options);
+
+    server.on('upgrade', (request, socket, head) => {
+      const { pathname } = new URL(request.url || '', `http://${request.headers.host}`);
+
+      if (pathname === '/ws/sync') {
+        this.wss?.handleUpgrade(request, socket, head, (ws) => {
+          this.wss?.emit('connection', ws, request);
+        });
+      }
+    });
 
     this.wss.on('connection', (ws: WebSocketClient, req) => {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
