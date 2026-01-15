@@ -154,7 +154,9 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
       slug: org.slug ?? null,
       stripeCustomerId: org.stripeCustomerId ?? null,
-      subscriptionId: org.subscriptionId ?? null
+      subscriptionId: org.subscriptionId ?? null,
+      plan: org.plan ?? "trial",
+      metadata: org.metadata ?? {}
     };
     this.organizations.set(id, newOrg);
     return newOrg;
@@ -187,7 +189,14 @@ export class MemStorage implements IStorage {
 
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
     const id = randomUUID();
-    const newMember: TeamMember = { ...member, id, invitedAt: new Date(), acceptedAt: null, invitedBy: member.invitedBy ?? null };
+    const newMember: TeamMember = { 
+      ...member, 
+      id, 
+      invitedAt: new Date(), 
+      acceptedAt: null, 
+      invitedBy: member.invitedBy ?? null,
+      role: member.role ?? "member"
+    };
     this.teamMembers.set(id, newMember);
     return newMember;
   }

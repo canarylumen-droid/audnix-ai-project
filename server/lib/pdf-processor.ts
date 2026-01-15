@@ -238,6 +238,9 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
   }
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
     const response = await openai.chat.completions.create({
       model: MODELS.lead_intelligence,
       messages: [{
@@ -400,6 +403,9 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
   }
 
   try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
     const response = await openai.chat.completions.create({
       model: MODELS.lead_intelligence,
       messages: [{

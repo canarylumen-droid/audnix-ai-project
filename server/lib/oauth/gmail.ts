@@ -148,7 +148,7 @@ export class GmailOAuth {
     // Save to oauth_accounts table
     await storage.saveOAuthAccount({
       userId: userId,
-      provider: 'gmail',
+      provider: 'google', // Fixed: 'gmail' is not in the allowed enum
       providerAccountId: profile.emailAddress || profile.email, // Using email as ID for Gmail usually
       accessToken: encryptedAccessToken,
       refreshToken: encryptedRefreshToken,

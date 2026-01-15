@@ -75,38 +75,24 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       // But sendEmail handles some logic. For exact threading, we need threadId or Message-ID.
       // sendEmail is simple.
     } else if (selectedChannel === 'instagram') {
-      if (!lead.instagramId) {
-        // Can fallback to metadata.instagram_id if present
-        const igId = (lead.metadata as any)?.instagram_id || (lead.metadata as any)?.psid;
-        if (!igId) {
-          res.status(400).json({ error: "Lead has no Instagram ID" });
-          return;
-        }
-        // Fetch Credentials
-        const oauth = await storage.getOAuthAccount(userId, 'instagram');
-        if (!oauth || !oauth.accessToken) {
-          res.status(400).json({ error: "Instagram not connected" });
-          return;
-        }
-        const meta = oauth.metadata as any;
-        if (!meta?.instagram_business_account_id) {
-          res.status(400).json({ error: "Instagram business account ID missing" });
-          return;
-        }
-        await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, igId, messageBody);
-      } else {
-        const oauth = await storage.getOAuthAccount(userId, 'instagram');
-        if (!oauth || !oauth.accessToken) {
-          res.status(400).json({ error: "Instagram not connected" });
-          return;
-        }
-        const meta = oauth.metadata as any;
-        if (!meta?.instagram_business_account_id) {
-          res.status(400).json({ error: "Instagram business account ID missing" });
-          return;
-        }
-        await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, lead.instagramId, messageBody);
+      const leadMeta = lead.metadata as any;
+      const igId = leadMeta?.instagram_id || leadMeta?.psid || lead.externalId;
+      if (!igId) {
+        res.status(400).json({ error: "Lead has no Instagram ID" });
+        return;
       }
+      // Fetch Credentials
+      const oauth = await storage.getOAuthAccount(userId, 'instagram');
+      if (!oauth || !oauth.accessToken) {
+        res.status(400).json({ error: "Instagram not connected" });
+        return;
+      }
+      const meta = oauth.metadata as any;
+      if (!meta?.instagram_business_account_id) {
+        res.status(400).json({ error: "Instagram business account ID missing" });
+        return;
+      }
+      await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, igId, messageBody);
     }
 
     const message = await storage.createMessage({

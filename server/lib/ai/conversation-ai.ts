@@ -148,6 +148,26 @@ export async function autoUpdateLeadStatus(
   }
 }
 
+export interface ConversationStatusResult {
+  status: "new" | "open" | "replied" | "converted" | "not_interested" | "cold";
+  confidence: number;
+  reason?: string;
+  shouldUseVoice?: boolean;
+}
+
+export interface AIReplyResult {
+  text: string;
+  useVoice: boolean;
+  detections?: any;
+}
+
+export interface MemoryRetrievalResult {
+  context: string;
+  metadata?: any;
+}
+
+const brandPromptSection = `[BRAND CONTEXT PLACEHOLDER]`;
+
 /**
  * Detect conversation intent and update lead status automatically
  */
