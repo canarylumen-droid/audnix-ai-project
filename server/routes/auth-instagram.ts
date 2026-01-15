@@ -48,6 +48,21 @@ router.get("/", authLimiter, async (req: Request, res: Response): Promise<void> 
 });
 
 /**
+ * POST /auth/instagram/callback
+ * Handle Instagram OAuth callback (some integrations or webhooks might use POST)
+ */
+router.post("/callback", authLimiter, async (req: Request, res: Response): Promise<void> => {
+  console.log("[Instagram OAuth] POST /auth/instagram/callback received - handling as webhook/callback");
+  // If Meta sends POST, we might need to handle body instead of query
+  const data = req.body || {};
+  console.log("[Instagram OAuth] POST Data:", JSON.stringify(data, null, 2));
+  
+  // Forward to GET handler logic or handle separately if needed
+  // For now, let's just log and see if it's the missing piece
+  res.status(200).send("OK");
+});
+
+/**
  * GET /auth/instagram/callback
  * Handle Instagram OAuth callback
  * Logs the code parameter received from Meta
