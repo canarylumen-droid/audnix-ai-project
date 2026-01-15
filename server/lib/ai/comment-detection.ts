@@ -336,7 +336,20 @@ export async function processCommentAutomation(
       try {
         // Reply to the comment with short message like "Check DMs!"
         console.log(`💬 Replying to comment ${commentId} with: ${shortReply}`);
-        // TODO: Implement actual Instagram comment reply via Graph API
+
+        const { InstagramOAuth } = await import('../oauth/instagram.js');
+        const { replyToInstagramComment } = await import('../channels/instagram.js');
+
+        const oauth = new InstagramOAuth();
+        const token = await oauth.getValidToken(userId);
+
+        if (token) {
+          await replyToInstagramComment(token, commentId, shortReply);
+          console.log(`✅ Successfully replied to comment ${commentId}`);
+        } else {
+          console.error(`❌ No valid Instagram token for user ${userId} to reply to comment`);
+        }
+
         await storage.createNotification({
           userId,
           title: '💬 Comment Reply Sent',

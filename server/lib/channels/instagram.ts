@@ -29,7 +29,7 @@ export async function sendInstagramMessage(
 ): Promise<void> {
   // Instagram Direct uses Facebook Graph API, not Instagram Graph API
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`;
-  
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -49,12 +49,12 @@ export async function sendInstagramMessage(
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.error('Instagram text message error:', data);
     throw new Error(data.error?.message || 'Failed to send Instagram message');
   }
-  
+
   console.log('Instagram text message sent successfully:', data);
 }
 
@@ -75,7 +75,7 @@ async function uploadInstagramAttachment(
   mediaType: 'audio' | 'image' | 'video' | 'file'
 ): Promise<string> {
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/message_attachments`;
-  
+
   // Create form data with the media URL - multipart format required by Meta
   const formData = new FormData();
   formData.append('messaging_product', 'instagram'); // Required as separate field
@@ -88,7 +88,7 @@ async function uploadInstagramAttachment(
       }
     }
   }));
-  
+
   // Use fetch with FormData (Node.js form-data package)
   const response = await fetch(endpoint, {
     method: 'POST',
@@ -100,16 +100,16 @@ async function uploadInstagramAttachment(
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.error('Instagram media upload error:', data);
     throw new Error(data.error?.message || 'Failed to upload Instagram attachment');
   }
-  
+
   if (!data.attachment_id) {
     throw new Error('Instagram API did not return attachment_id');
   }
-  
+
   console.log('Instagram attachment uploaded, ID:', data.attachment_id);
   return data.attachment_id;
 }
@@ -135,10 +135,10 @@ export async function sendInstagramVoiceMessage(
     audioUrl,
     'audio'
   );
-  
+
   // Step 2: Send message using the attachment_id
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`;
-  
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -163,12 +163,12 @@ export async function sendInstagramVoiceMessage(
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.error('Instagram voice message send error:', data);
     throw new Error(data.error?.message || 'Failed to send Instagram voice message');
   }
-  
+
   console.log('Instagram voice message sent successfully:', data);
 }
 
@@ -195,10 +195,10 @@ export async function sendInstagramMedia(
     mediaUrl,
     mediaType
   );
-  
+
   // Step 2: Send message using the attachment_id
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/messages`;
-  
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
@@ -223,12 +223,12 @@ export async function sendInstagramMedia(
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.error('Instagram media send error:', data);
     throw new Error(data.error?.message || 'Failed to send Instagram media');
   }
-  
+
   console.log('Instagram media sent successfully:', data);
 }
 
@@ -241,21 +241,52 @@ export async function getInstagramConversations(
   limit: number = 20
 ): Promise<InstagramMessage[]> {
   const endpoint = `https://graph.facebook.com/v18.0/${instagramBusinessAccountId}/conversations?fields=messages{id,text,timestamp,from}&limit=${limit}`;
-  
+
   const response = await fetch(endpoint, {
     headers: {
       'Authorization': `Bearer ${accessToken}`
     }
   });
-  
+
   const data = await response.json();
-  
+
   if (!response.ok) {
     console.error('Instagram conversations error:', data);
     throw new Error(data.error?.message || 'Failed to get conversations');
   }
 
   return data.data || [];
+}
+
+/**
+ * Reply to a comment on Instagram
+ */
+export async function replyToInstagramComment(
+  accessToken: string,
+  commentId: string,
+  message: string
+): Promise<void> {
+  const endpoint = `https://graph.facebook.com/v18.0/${commentId}/replies`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({
+      message: message
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('Instagram comment reply error:', data);
+    throw new Error(data.error?.message || 'Failed to reply to Instagram comment');
+  }
+
+  console.log('Instagram comment reply sent successfully:', data);
 }
 
 /**

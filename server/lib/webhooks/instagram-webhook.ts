@@ -263,7 +263,6 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     await storage.createMessage({
       userId: integration.userId,
       leadId: lead.id,
-      content: messageText,
       direction: isEcho ? 'outbound' : 'inbound',
       provider: 'instagram',
       body: messageText,
@@ -313,6 +312,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
 
     // 6. Follow Up Queue
     if (newStatus !== 'not_interested' && newStatus !== 'converted') {
+      const messages = await storage.getMessagesByLeadId(lead.id);
       await storage.createFollowUp({
         userId: integration.userId,
         leadId: lead.id,
@@ -322,7 +322,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
         context: {
           last_message: messageText,
           intent,
-          message_count: 1 // TODO: get actual count
+          message_count: messages.length
         }
       });
     }
@@ -361,7 +361,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
         await scheduleAutomatedDMReply(
           integration.userId,
           lead.id,
-          senderId,
+          customerId,
           messageText,
           intent
         );
@@ -419,8 +419,6 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
     await storage.createMessage({
       userId: integration.userId,
       leadId: lead.id,
-      content: text,
-      role: 'user',
       direction: 'inbound',
       provider: 'instagram', // 'instagram-comment' not in enum, sticking to 'instagram'
       body: text,
@@ -472,10 +470,7 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
 
 async function fetchInstagramProfile(userId: string, appUserId: string): Promise<InstagramProfile> {
   try {
-    if (!supabaseAdmin) {
-      console.error('Supabase admin not configured');
-      return { username: 'Instagram User' };
-    }
+    // Supabase dependency removed, using direct Instagram API with token from storage
 
     // Updated to use storage for OAuth token
     const tokenData = await storage.getOAuthAccount(appUserId, 'instagram');

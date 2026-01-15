@@ -1,34 +1,7 @@
-interface SupabaseMessage {
-  id: string;
-  lead_id: string;
-  user_id: string;
-  provider: 'instagram' | 'gmail' | 'email' | 'system';
-  direction: 'inbound' | 'outbound';
-  body: string;
-  audio_url: string | null;
-  metadata: Record<string, any>;
-  created_at: string;
-}
+import { storage } from "../../storage.js";
+import { type Lead, type Message } from "../../../shared/schema.js";
 
-interface SupabaseLead {
-  id: string;
-  user_id: string;
-  external_id: string | null;
-  name: string;
-  channel: 'instagram' | 'email';
-  email: string | null;
-  phone: string | null;
-  status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
-  score: number;
-  warm: boolean;
-  last_message_at: string | null;
-  ai_paused: boolean;
-  pdf_confidence: number | null;
-  tags: string[];
-  metadata: Record<string, any>;
-  created_at: string;
-  updated_at: string;
-}
+// Local interfaces for internal behavior patterns
 
 interface LeadBehaviorPattern {
   userId: string;
@@ -51,38 +24,48 @@ interface SemanticMemoryRecord {
 export class LeadLearningSystem {
 
   async analyzeAndLearn(leadId: string, _newMessage?: unknown): Promise<void> {
-    // Using Neon database for message storage - no Supabase needed
     try {
-      // TODO: Fetch messages from Neon database via storage
-      const messages: SupabaseMessage[] = [];
+      const lead = await storage.getLeadById(leadId);
+      if (!lead) return;
+
+      const messages = await storage.getMessagesByLeadId(leadId);
       if (!messages || messages.length === 0) return;
 
-      // Using Neon database for lead and semantic memory storage
+      const behaviorPattern = this.calculateBehaviorPattern(messages, lead);
+
+      // Save to lead metadata for persistence
+      await storage.updateLead(leadId, {
+        metadata: {
+          ...lead.metadata,
+          behavior_pattern: behaviorPattern
+        }
+      });
+
       console.log(`✅ Learned behavior pattern for lead ${leadId}`);
     } catch (error) {
       console.error('Error in lead learning system:', error);
     }
   }
 
-  private calculateBehaviorPattern(messages: SupabaseMessage[], lead: SupabaseLead): LeadBehaviorPattern {
-    const userMessages = messages.filter((m: SupabaseMessage) => m.direction === 'inbound');
+  private calculateBehaviorPattern(messages: Message[], lead: Lead): LeadBehaviorPattern {
+    const userMessages = messages.filter((m: Message) => m.direction === 'inbound');
 
     let totalResponseTime = 0;
     let responseCount = 0;
     for (let i = 1; i < messages.length; i++) {
       if (messages[i].direction === 'inbound' && messages[i - 1].direction === 'outbound') {
-        const diff = new Date(messages[i].created_at).getTime() - new Date(messages[i - 1].created_at).getTime();
+        const diff = new Date(messages[i].createdAt).getTime() - new Date(messages[i - 1].createdAt).getTime();
         totalResponseTime += diff / (1000 * 60);
         responseCount++;
       }
     }
     const avgResponseTime = responseCount > 0 ? totalResponseTime / responseCount : 0;
 
-    const avgMessageLength = userMessages.reduce((sum: number, m: SupabaseMessage) => sum + m.body.length, 0) / (userMessages.length || 1);
+    const avgMessageLength = userMessages.reduce((sum: number, m: Message) => sum + m.body.length, 0) / (userMessages.length || 1);
 
     const timeSlots: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
-    userMessages.forEach((m: SupabaseMessage) => {
-      const hour = new Date(m.created_at).getHours();
+    userMessages.forEach((m: Message) => {
+      const hour = new Date(m.createdAt).getHours();
       if (hour >= 6 && hour < 12) timeSlots.morning++;
       else if (hour >= 12 && hour < 17) timeSlots.afternoon++;
       else if (hour >= 17 && hour < 22) timeSlots.evening++;
@@ -96,7 +79,7 @@ export class LeadLearningSystem {
 
     let positiveCount = 0;
     let negativeCount = 0;
-    recentMessages.forEach((m: SupabaseMessage) => {
+    recentMessages.forEach((m: Message) => {
       const lower = m.body.toLowerCase();
       positiveWords.forEach((word: string) => { if (lower.includes(word)) positiveCount++; });
       negativeWords.forEach((word: string) => { if (lower.includes(word)) negativeCount++; });
@@ -107,7 +90,7 @@ export class LeadLearningSystem {
 
     const conversionSignals: string[] = [];
     const conversionPhrases = ['how much', 'price', 'buy', 'purchase', 'pay', 'link', 'checkout', 'demo', 'schedule'];
-    userMessages.forEach((m: SupabaseMessage) => {
+    userMessages.forEach((m: Message) => {
       const lower = m.body.toLowerCase();
       conversionPhrases.forEach((phrase: string) => {
         if (lower.includes(phrase) && !conversionSignals.includes(phrase)) {
@@ -118,7 +101,7 @@ export class LeadLearningSystem {
 
     const objectionPatterns: string[] = [];
     const objectionPhrases = ['too expensive', 'not sure', 'need to think', 'maybe later', 'not now', 'not interested'];
-    userMessages.forEach((m: SupabaseMessage) => {
+    userMessages.forEach((m: Message) => {
       const lower = m.body.toLowerCase();
       objectionPhrases.forEach((phrase: string) => {
         if (lower.includes(phrase) && !objectionPatterns.includes(phrase)) {
@@ -148,7 +131,7 @@ export class LeadLearningSystem {
         engagementScore > 40 ? 'warm' : 'cold';
 
     return {
-      userId: lead.user_id,
+      userId: lead.userId,
       leadId: lead.id,
       responseTime: Math.round(avgResponseTime),
       messageLength: Math.round(avgMessageLength),
@@ -163,9 +146,12 @@ export class LeadLearningSystem {
   }
 
   async getLeadInsights(leadId: string): Promise<LeadBehaviorPattern | null> {
-    // Using Neon database for semantic memory - no Supabase needed
     try {
-      return null; // TODO: Fetch from Neon database
+      const lead = await storage.getLeadById(leadId);
+      if (!lead?.metadata) return null;
+
+      const metadata = lead.metadata as Record<string, any>;
+      return metadata.behavior_pattern as LeadBehaviorPattern || null;
     } catch (error) {
       console.error('Error getting lead insights:', error);
       return null;

@@ -19,6 +19,10 @@ import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import crypto from "crypto";
 import hpp from 'hpp';
 import csrf from 'csurf';
+import fs from 'fs';
+import path from 'path';
+import { sql } from "drizzle-orm";
+import { users } from "../shared/schema.js";
 
 const app = express();
 
@@ -499,11 +503,8 @@ async function runMigrations() {
         const { db } = await import('./db.js');
         const hasDatabase = process.env.DATABASE_URL && db;
 
-        console.log('🤖 Initializing AI services...');
-        const hasSupabase = isSupabaseAdminConfigured();
-
-        if (hasDatabase && hasSupabase && supabaseAdmin) {
-          console.log('✅ Supabase AI workers starting...');
+        if (hasDatabase) {
+          console.log('🤖 Initializing AI services...');
           workerHealthMonitor.registerWorker('follow-up-worker');
           workerHealthMonitor.registerWorker('video-comment-monitor');
           workerHealthMonitor.registerWorker('lead-learning');
@@ -513,8 +514,12 @@ async function runMigrations() {
           followUpWorker.start();
           startVideoCommentMonitoring();
 
-          const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
-          startLeadLearning();
+          try {
+            const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
+            startLeadLearning();
+          } catch (err) {
+            console.warn('⚠️  Could not start lead learning worker:', err);
+          }
 
           const { GmailOAuth } = await import('./lib/oauth/gmail.js');
           setInterval(() => {
@@ -525,14 +530,9 @@ async function runMigrations() {
                 workerHealthMonitor.recordError('oauth-token-refresh', err.message);
               });
           }, 30 * 60 * 1000);
-        }
 
-        if (hasDatabase) {
           console.log('📬 Starting core system workers...');
           emailSyncWorker.start();
-
-          // wsSync is already initialized in registerRoutes
-
 
           // Start real-time IMAP IDLE if available
           try {
@@ -543,6 +543,7 @@ async function runMigrations() {
           }
 
           paymentAutoApprovalWorker.start();
+          emailWarmupWorker.start();
         }
       }
     } catch (err) {

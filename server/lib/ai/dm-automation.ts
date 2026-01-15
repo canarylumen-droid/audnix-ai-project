@@ -3,6 +3,7 @@ import { storage } from '../../storage.js';
 import { generateAIReply, calculateReplyDelay, isLeadActivelyReplying } from './conversation-ai.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
+import { decryptToJSON } from '../crypto/encryption.js';
 import { db } from '../../db.js';
 import { leads, messages, integrations } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
@@ -291,8 +292,14 @@ async function getInstagramAccountId(userId: string): Promise<string | null> {
       .limit(1);
 
     if (userIntegrations.length > 0) {
-      const metadata = userIntegrations[0].metadata as Record<string, unknown> | null;
-      return metadata?.instagramAccountId as string || null;
+      const integration = userIntegrations[0];
+      try {
+        const meta = decryptToJSON<{ userId: string }>(integration.encryptedMeta);
+        return meta.userId || null;
+      } catch (e) {
+        console.error('[DM_AUTO] Failed to decrypt integration meta:', e);
+        return null;
+      }
     }
 
     return null;

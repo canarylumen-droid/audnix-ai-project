@@ -46,6 +46,7 @@ export const users = pgTable("users", {
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
   externalId: text("external_id"),
   name: text("name").notNull(),
   channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
@@ -90,6 +91,7 @@ export const deals = pgTable("deals", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
   brand: text("brand").notNull(),
   channel: text("channel", { enum: ["instagram", "email", "gmail", "manual"] }).notNull(),
   value: real("value").notNull(),
@@ -183,9 +185,22 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const organizations = pgTable("organizations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").unique(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  plan: text("plan", { enum: ["trial", "starter", "pro", "enterprise"] }).notNull().default("trial"),
+  stripeCustomerId: text("stripe_customer_id"),
+  subscriptionId: text("subscription_id"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const teamMembers = pgTable("team_members", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizationId: uuid("organization_id").notNull(),
+  organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
   invitedBy: uuid("invited_by"),
@@ -569,6 +584,8 @@ export const insertAutomationRuleSchema = createInsertSchema(automationRules);
 export const insertContentLibrarySchema = createInsertSchema(contentLibrary);
 export const insertConversationEventSchema = createInsertSchema(conversationEvents);
 export const insertProspectSchema = createInsertSchema(prospects);
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
+export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({ id: true, invitedAt: true });
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -603,6 +620,10 @@ export type OnboardingProfile = typeof onboardingProfiles.$inferSelect;
 export type InsertOnboardingProfile = typeof onboardingProfiles.$inferInsert;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = typeof organizations.$inferInsert;
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
 export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
 export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;

@@ -8,7 +8,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Search, Download, CheckCircle, XCircle, Loader2, Zap, Globe, Mail, Phone, MapPin, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/hooks/use-user';
-
+import { useRealtime } from '@/hooks/use-realtime';
 import { ScraperConsole } from '@/components/dashboard/ScraperConsole';
 
 interface Prospect {
@@ -41,7 +41,7 @@ export default function ProspectingPage() {
     const [query, setQuery] = useState('');
     const [logs, setLogs] = useState<LogMessage[]>([]);
     const [showConsole, setShowConsole] = useState(false);
-    const [ws, setWs] = useState<WebSocket | null>(null);
+    const { socket } = useRealtime(user?.id);
 
     // Fetch leads
     const { data: leads = [], refetch } = useQuery<Prospect[]>({
@@ -76,36 +76,30 @@ export default function ProspectingPage() {
 
     // WebSocket connection
     useEffect(() => {
-        if (!user?.id) return;
+        if (!socket) return;
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/sync?userId=${user.id}`;
-        const websocket = new WebSocket(wsUrl);
-
-        websocket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'PROSPECTING_LOG') {
-                const logData = data.payload || data.data; // Handle both notification formats
-                setLogs(prev => [...prev, {
-                    id: logData.id || Math.random().toString(),
-                    text: logData.text,
-                    type: logData.type,
-                    timestamp: new Date(logData.timestamp)
-                }]);
-            } else if (data.type === 'PROSPECT_FOUND') {
-                refetch();
-            } else if (data.type === 'PROSPECT_UPDATED') {
-                refetch();
-            }
+        const handleLog = (payload: any) => {
+            setLogs(prev => [...prev, {
+                id: payload.id || Math.random().toString(),
+                text: payload.text,
+                type: payload.type,
+                timestamp: new Date(payload.timestamp || Date.now())
+            }]);
         };
 
-        setWs(websocket);
+        const handleFound = () => refetch();
+        const handleUpdated = () => refetch();
+
+        socket.on('PROSPECTING_LOG', handleLog);
+        socket.on('PROSPECT_FOUND', handleFound);
+        socket.on('PROSPECT_UPDATED', handleUpdated);
 
         return () => {
-            websocket.close();
+            socket.off('PROSPECTING_LOG', handleLog);
+            socket.off('PROSPECT_FOUND', handleFound);
+            socket.off('PROSPECT_UPDATED', handleUpdated);
         };
-    }, [user?.id, refetch]);
+    }, [socket, refetch]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

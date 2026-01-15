@@ -12,6 +12,9 @@
 
 import type { Lead, Message } from "../../../shared/schema.js";
 import type { MessageDirection } from "../../../shared/types.js";
+import OpenAI from 'openai';
+import { storage } from '../../storage.js';
+import { MODELS } from './model-config.js';
 
 interface ScoringMessage {
   direction: MessageDirection;
@@ -352,27 +355,92 @@ export async function getLeadsInSegment(
   });
 }
 
+const oauth = null; // Placeholder for future use
+
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
 // ============ BANT QUALIFICATION ============
 
-export async function completeBantQualification(_lead: Lead): Promise<BantQualification> {
+export async function completeBantQualification(lead: Lead): Promise<BantQualification> {
   /**
    * BANT = Budget, Authority, Need, Timeline
    * Score 0-100 (all yes = 100)
    */
 
-  // In production: analyze conversation to determine BANT
-  // For now: return template with default values
+  try {
+    if (!openai) {
+      throw new Error("OpenAI not initialized");
+    }
 
-  // Placeholder: in real app, AI analyzes lead messages to determine BANT
-  const score = 50; // Default
+    // Fetch conversation history
+    const messages = await storage.getMessagesByLeadId(lead.id);
 
-  return {
-    budget: "unknown",
-    authority: "unknown",
-    need: "unknown",
-    timeline: "unknown",
-    qualification_score: score,
-  };
+    if (messages.length === 0) {
+      return {
+        budget: "unknown",
+        authority: "unknown",
+        need: "unknown",
+        timeline: "unknown",
+        qualification_score: 0,
+      };
+    }
+
+    const conversationText = messages
+      .map(m => `${m.direction === 'outbound' ? 'Assistant' : 'Lead'}: ${m.body}`)
+      .join('\n');
+
+    const prompt = `Analyze the following conversation and determine the BANT qualification for this lead.
+    
+Conversation:
+${conversationText}
+
+Criteria:
+- Budget: Has the lead mentioned having a budget or asked about pricing in a way that implies they can afford it?
+- Authority: Is this lead the decision maker? (e.g., CEO, Founder, Manager)
+- Need: Has the lead expressed a specific problem or need our solution solves?
+- Timeline: Has the lead mentioned a target date or urgency?
+
+Return JSON only:
+{
+  "budget": "has_budget" | "no_budget" | "unknown",
+  "authority": "decision_maker" | "influencer" | "not_involved" | "unknown",
+  "need": "has_need" | "no_need" | "unknown",
+  "timeline": "immediate" | "this_quarter" | "this_year" | "no_timeline" | "unknown",
+  "qualification_score": number (0-100)
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: MODELS.lead_intelligence,
+      messages: [
+        { role: 'system', content: 'You are a professional sales analyst specializing in BANT qualification.' },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      max_completion_tokens: 150,
+      temperature: 0.3
+    });
+
+    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+
+    return {
+      budget: analysis.budget || "unknown",
+      authority: analysis.authority || "unknown",
+      need: analysis.need || "unknown",
+      timeline: analysis.timeline || "unknown",
+      qualification_score: analysis.qualification_score || 0,
+    };
+  } catch (error) {
+    console.error('BANT qualification error:', error);
+    return {
+      budget: "unknown",
+      authority: "unknown",
+      need: "unknown",
+      timeline: "unknown",
+      qualification_score: 0,
+    };
+  }
 }
 
 // ============ LEAD COMPANY ENRICHMENT ============
@@ -416,7 +484,7 @@ export async function addTimelineEvent(
    */
 
   console.log(`📝 Timeline: Lead ${leadId} - ${actionType}`, actionData);
-  
+
   // Suppress unused variable warning - actorId used for audit trail in production
   void actorId;
 

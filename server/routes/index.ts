@@ -41,9 +41,11 @@ import objectionsRoutes from "./objections-routes.js";
 import expertChatRoutes from "./expert-chat.js";
 import userSettingsRoutes from "./user-settings-routes.js";
 import prospectingRoutes from "./prospecting.js";
+import { organizationRouter } from "./organization-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
+  app.use("/api/organizations", organizationRouter);
   app.use("/api/user/auth", userAuthRouter);
   app.use("/api/user", userAuthRouter); // Alias for /api/user/avatar calls
   app.use("/api/admin/auth", adminAuthRouter);

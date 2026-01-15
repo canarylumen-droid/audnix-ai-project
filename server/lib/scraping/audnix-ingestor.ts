@@ -102,7 +102,7 @@ export class AudnixIngestor {
                     }
 
                     // Filter: Lead score must be >= 95%
-                    if (enriched.leadScore < 95) continue;
+                    if (enriched.leadScore < 70) continue;
 
                     // SMTP Verification
                     const verification = await this.verifier.verify(enriched.email);

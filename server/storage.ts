@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -12,6 +12,20 @@ export interface IStorage {
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>;
+
+  // Organization methods
+  getOrganization(id: string): Promise<Organization | undefined>;
+  getOrganizationBySlug(slug: string): Promise<Organization | undefined>;
+  getOrganizationsByOwner(ownerId: string): Promise<Organization[]>;
+  createOrganization(org: InsertOrganization): Promise<Organization>;
+  updateOrganization(id: string, updates: Partial<Organization>): Promise<Organization | undefined>;
+
+  // Team Member methods
+  getTeamMember(orgId: string, userId: string): Promise<TeamMember | undefined>;
+  getOrganizationMembers(orgId: string): Promise<(TeamMember & { user: User })[]>;
+  getUserOrganizations(userId: string): Promise<(Organization & { role: TeamMember["role"] })[]>;
+  addTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  removeTeamMember(orgId: string, userId: string): Promise<void>;
 
   // Lead methods
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
@@ -60,7 +74,10 @@ export interface IStorage {
   calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
 
   // Payment methods
-  createPayment(data: any): Promise<any>;
+  createPayment(data: InsertPayment): Promise<Payment>;
+  getPayments(userId: string): Promise<Payment[]>;
+  getPaymentById(id: string): Promise<Payment | undefined>;
+  updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined>;
 
   // Usage tracking
   createUsageTopup(data: any): Promise<any>;
@@ -101,13 +118,117 @@ export class MemStorage implements IStorage {
   private leads: Map<string, Lead>;
   private messages: Map<string, Message>;
   private integrations: Map<string, Integration>;
+  private organizations: Map<string, Organization>;
+  private teamMembers: Map<string, TeamMember>;
+  private payments: Map<string, Payment>;
 
   constructor() {
     this.users = new Map();
     this.leads = new Map();
     this.messages = new Map();
     this.integrations = new Map();
+    this.organizations = new Map();
+    this.teamMembers = new Map();
+    this.payments = new Map();
   }
+
+  // --- Organization Methods ---
+  async getOrganization(id: string): Promise<Organization | undefined> {
+    return this.organizations.get(id);
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<Organization | undefined> {
+    return Array.from(this.organizations.values()).find(o => o.slug === slug);
+  }
+
+  async getOrganizationsByOwner(ownerId: string): Promise<Organization[]> {
+    return Array.from(this.organizations.values()).filter(o => o.ownerId === ownerId);
+  }
+
+  async createOrganization(org: InsertOrganization): Promise<Organization> {
+    const id = randomUUID();
+    const newOrg: Organization = {
+      ...org,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      slug: org.slug ?? null,
+      stripeCustomerId: org.stripeCustomerId ?? null,
+      subscriptionId: org.subscriptionId ?? null
+    };
+    this.organizations.set(id, newOrg);
+    return newOrg;
+  }
+
+  async updateOrganization(id: string, updates: Partial<Organization>): Promise<Organization | undefined> {
+    const org = this.organizations.get(id);
+    if (!org) return undefined;
+    const updated = { ...org, ...updates, updatedAt: new Date() };
+    this.organizations.set(id, updated);
+    return updated;
+  }
+
+  // --- Team Member Methods ---
+  async getTeamMember(orgId: string, userId: string): Promise<TeamMember | undefined> {
+    return Array.from(this.teamMembers.values()).find(m => m.organizationId === orgId && m.userId === userId);
+  }
+
+  async getOrganizationMembers(orgId: string): Promise<(TeamMember & { user: User })[]> {
+    return Array.from(this.teamMembers.values())
+      .filter(m => m.organizationId === orgId)
+      .map(m => ({ ...m, user: this.users.get(m.userId)! }));
+  }
+
+  async getUserOrganizations(userId: string): Promise<(Organization & { role: TeamMember["role"] })[]> {
+    return Array.from(this.teamMembers.values())
+      .filter(m => m.userId === userId)
+      .map(m => ({ ...this.organizations.get(m.organizationId)!, role: m.role }));
+  }
+
+  async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    const id = randomUUID();
+    const newMember: TeamMember = { ...member, id, invitedAt: new Date(), acceptedAt: null, invitedBy: member.invitedBy ?? null };
+    this.teamMembers.set(id, newMember);
+    return newMember;
+  }
+
+  async removeTeamMember(orgId: string, userId: string): Promise<void> {
+    const member = Array.from(this.teamMembers.values()).find(m => m.organizationId === orgId && m.userId === userId);
+    if (member) this.teamMembers.delete(member.id);
+  }
+
+  // --- Payment Methods ---
+  async createPayment(data: InsertPayment): Promise<Payment> {
+    const id = randomUUID();
+    const payment: Payment = {
+      ...data,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      stripePaymentId: data.stripePaymentId ?? null,
+      plan: data.plan ?? null,
+      paymentLink: data.paymentLink ?? null
+    };
+    this.payments.set(id, payment);
+    return payment;
+  }
+
+  async getPayments(userId: string): Promise<Payment[]> {
+    return Array.from(this.payments.values()).filter(p => p.userId === userId);
+  }
+
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    return this.payments.get(id);
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
+    const payment = this.payments.get(id);
+    if (!payment) return undefined;
+    const updated = { ...payment, ...updates, updatedAt: new Date() };
+    this.payments.set(id, updated);
+    return updated;
+  }
+
 
   // ========== User Methods ==========
 

@@ -12,8 +12,8 @@ import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
 import DayAwareSequence from './day-aware-sequence.js';
 import { getMessageScript, personalizeScript } from './message-scripts.js';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization.js';
-import { multiProviderEmailFailover } from '../email/multi-provider-failover.j';
-import { decrypt } from '../crypto/encryption.js';
+import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
+import { decrypt, decryptToJSON } from '../crypto/encryption.js';
 import type {
   BrandContext,
   ChannelType,
@@ -373,6 +373,7 @@ export class FollowUpWorker {
     }
 
     // Use day-aware sequence for context-aware prompt
+    const metadata = lead.metadata as Record<string, any>;
     const dayAwareContext = {
       campaignDay,
       previousMessages: history.map((msg: Message) => ({
@@ -380,7 +381,7 @@ export class FollowUpWorker {
         body: msg.body,
       })),
       leadEngagement: this.assessLeadTemperature(lead, history),
-      leadName: lead.preferred_name || lead.name.split(' ')[0],
+      leadName: metadata?.preferred_name || lead.name.split(' ')[0],
       brandName: brandContext.businessName || 'Your Business',
       userSenderName: personalizationContext?.senderName || brandContext.senderName,
     };
@@ -412,7 +413,8 @@ export class FollowUpWorker {
    * Build follow-up prompt with context and message script
    */
   private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }): string {
-    const firstName = lead.preferred_name || lead.name.split(' ')[0];
+    const metadata = lead.metadata as Record<string, any>;
+    const firstName = metadata?.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
 
     // Include message script guidelines if available
@@ -653,9 +655,13 @@ Generate a natural follow-up message:`;
         return null;
       }
 
-      const decrypted = decrypt(integration.encryptedMeta);
-      const meta = JSON.parse(decrypted) as { instagramBusinessAccountId?: string; pageId?: string };
-      return meta.instagramBusinessAccountId || meta.pageId || null;
+      try {
+        const meta = decryptToJSON<{ userId?: string; instagramBusinessAccountId?: string; pageId?: string }>(integration.encryptedMeta);
+        return meta.userId || meta.instagramBusinessAccountId || meta.pageId || null;
+      } catch (e) {
+        console.error('[FOLLOW_UP] Failed to decrypt integration meta:', e);
+        return null;
+      }
     } catch (error) {
       console.error('Error fetching Instagram account ID:', error);
       return null;

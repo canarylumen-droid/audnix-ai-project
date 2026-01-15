@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 import { wsSync } from './lib/websocket-sync.js';
@@ -151,6 +151,82 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
     return Number(result[0].count);
+  }
+
+  // --- Organization Methods ---
+
+  async getOrganization(id: string): Promise<Organization | undefined> {
+    checkDatabase();
+    const result = await db.select().from(organizations).where(eq(organizations.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getOrganizationBySlug(slug: string): Promise<Organization | undefined> {
+    checkDatabase();
+    const result = await db.select().from(organizations).where(eq(organizations.slug, slug)).limit(1);
+    return result[0];
+  }
+
+  async getOrganizationsByOwner(ownerId: string): Promise<Organization[]> {
+    checkDatabase();
+    return await db.select().from(organizations).where(eq(organizations.ownerId, ownerId));
+  }
+
+  async createOrganization(org: InsertOrganization): Promise<Organization> {
+    checkDatabase();
+    const result = await db.insert(organizations).values(org).returning();
+    return result[0];
+  }
+
+  async updateOrganization(id: string, updates: Partial<Organization>): Promise<Organization | undefined> {
+    checkDatabase();
+    const result = await db.update(organizations).set({ ...updates, updatedAt: new Date() }).where(eq(organizations.id, id)).returning();
+    return result[0];
+  }
+
+  // --- Team Member Methods ---
+
+  async getTeamMember(orgId: string, userId: string): Promise<TeamMember | undefined> {
+    checkDatabase();
+    const result = await db.select().from(teamMembers).where(and(eq(teamMembers.organizationId, orgId), eq(teamMembers.userId, userId))).limit(1);
+    return result[0];
+  }
+
+  async getOrganizationMembers(orgId: string): Promise<(TeamMember & { user: User })[]> {
+    checkDatabase();
+    const result = await db.select({
+      member: teamMembers,
+      user: users
+    })
+      .from(teamMembers)
+      .innerJoin(users, eq(teamMembers.userId, users.id))
+      .where(eq(teamMembers.organizationId, orgId));
+
+    return result.map(r => ({ ...r.member, user: r.user }));
+  }
+
+  async getUserOrganizations(userId: string): Promise<(Organization & { role: TeamMember["role"] })[]> {
+    checkDatabase();
+    const result = await db.select({
+      org: organizations,
+      role: teamMembers.role
+    })
+      .from(teamMembers)
+      .innerJoin(organizations, eq(teamMembers.organizationId, organizations.id))
+      .where(eq(teamMembers.userId, userId));
+
+    return result.map(r => ({ ...r.org, role: r.role }));
+  }
+
+  async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    checkDatabase();
+    const result = await db.insert(teamMembers).values(member).returning();
+    return result[0];
+  }
+
+  async removeTeamMember(orgId: string, userId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(teamMembers).where(and(eq(teamMembers.organizationId, orgId), eq(teamMembers.userId, userId)));
   }
 
   async getLeads(options: {
@@ -462,22 +538,30 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async createPayment(data: any): Promise<any> {
+  async createPayment(data: InsertPayment): Promise<Payment> {
     checkDatabase();
     const result = await db
       .insert(payments)
-      .values({
-        userId: data.userId,
-        stripePaymentId: data.stripePaymentId,
-        amount: data.amount,
-        currency: data.currency,
-        status: data.status,
-        plan: data.plan,
-        paymentLink: data.paymentLink,
-        webhookPayload: data.webhookPayload
-      })
+      .values(data)
       .returning();
 
+    return result[0];
+  }
+
+  async getPayments(userId: string): Promise<Payment[]> {
+    checkDatabase();
+    return await db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
+  }
+
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    checkDatabase();
+    const result = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    return result[0];
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
+    checkDatabase();
+    const result = await db.update(payments).set({ ...updates, updatedAt: new Date() }).where(eq(payments.id, id)).returning();
     return result[0];
   }
 

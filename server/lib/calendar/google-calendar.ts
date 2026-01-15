@@ -1,5 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
+import { storage } from '../../storage.js';
 
 /**
  * Create a Google Calendar booking link for a lead
@@ -9,14 +10,25 @@ export async function createCalendarBookingLink(
   leadName: string,
   duration: number = 30
 ): Promise<string> {
-  // For production: Use Google Calendar API with OAuth
-  // For now: Generate a Calendly-style link placeholder
+  // Fetch user to check for custom booking link
+  const user = await storage.getUser(userId);
+  const customLink = user?.metadata?.ctaLink;
 
-  const userName = 'Your Business';
+  if (customLink) {
+    // If it's a Cal.com or Calendly link, we might want to append attendee info
+    if (customLink.includes('cal.com') || customLink.includes('calendly.com')) {
+      const url = new URL(customLink);
+      url.searchParams.set('name', leadName);
+      return url.toString();
+    }
+    return customLink;
+  }
+
+  const userName = user?.businessName || user?.name || 'Your Business';
   const encodedName = encodeURIComponent(userName);
   const encodedLead = encodeURIComponent(leadName);
 
-  // In production, this would be a real booking link from Google Calendar or Calendly
+  // Fallback to Google Calendar appointment schedule if no custom link
   return `https://calendar.google.com/calendar/appointments/schedules?name=${encodedName}&attendee=${encodedLead}`;
 }
 

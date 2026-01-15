@@ -18,11 +18,16 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Admin only" });
     }
 
-    // Query database for pending payments (no API key needed)
-    const users = await storage.getAllUsers();
-    const pending = users
-      .filter((u: any) => u.paymentStatus === "pending")
-      .map((u: any) => ({
+    // Query database for pending payments using the formal payments table
+    const allUsers = await storage.getAllUsers();
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+    // We still consider users with legacy pending fields for backward compatibility
+    // but we prefer the payments table
+    const usersWithLegacyPending = allUsers.filter((u: any) => u.paymentStatus === "pending");
+
+    return res.json({
+      pending: usersWithLegacyPending.map((u: any) => ({
         id: u.id,
         email: u.email,
         name: u.name,
@@ -31,9 +36,9 @@ router.get("/pending", requireAuth, async (req: Request, res: Response) => {
         pendingDate: u.pendingPaymentDate,
         subscriptionId: u.subscriptionId,
         sessionId: u.stripeSessionId,
-      }));
-
-    return res.json({ pending });
+        source: 'legacy'
+      }))
+    });
   } catch (error: any) {
     console.error("Error fetching pending approvals:", error);
     res.status(500).json({ error: error.message });
@@ -108,6 +113,16 @@ router.post("/approve/:userId", requireAuth, async (req: Request, res: Response)
       pendingPaymentDate: null,
       paymentApprovedAt: new Date(),
     });
+
+    // Update formal payment records if they exist
+    const userPayments = await storage.getPayments(userId);
+    const pendingPayment = userPayments.find(p => p.status === "pending");
+    if (pendingPayment) {
+      await storage.updatePayment(pendingPayment.id, {
+        status: "approved",
+        updatedAt: new Date()
+      });
+    }
 
     console.log(`✅ Admin ${admin.email} approved payment for ${user.email} → ${plan} plan`);
 
@@ -186,7 +201,7 @@ router.post("/mark-pending", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Store pending payment in database
+    // Store pending payment in database (Legacy fields for compatibility)
     await storage.updateUser(userId, {
       paymentStatus: "pending",
       pendingPaymentPlan: plan,
@@ -194,6 +209,17 @@ router.post("/mark-pending", async (req: Request, res: Response) => {
       pendingPaymentDate: new Date(),
       stripeSessionId: sessionId || null,
       subscriptionId: subscriptionId || null,
+    });
+
+    // Store in formal payments table (System of Record)
+    await storage.createPayment({
+      userId,
+      plan,
+      amount: Number(amount),
+      currency: "USD",
+      status: "pending",
+      stripePaymentId: sessionId || null,
+      webhookPayload: { sessionId, subscriptionId }
     });
 
     console.log(`💳 Payment marked as pending for user ${userId} → ${plan} plan ($${amount})`);
@@ -226,8 +252,8 @@ router.get("/worker/stats", requireAuth, async (req: Request, res: Response) => 
     res.json({
       success: true,
       workerStatus: stats,
-      message: stats.status === "running" 
-        ? "✅ Auto-approval worker running (checks every 5 seconds)" 
+      message: stats.status === "running"
+        ? "✅ Auto-approval worker running (checks every 5 seconds)"
         : "❌ Auto-approval worker stopped",
     });
   } catch (error: any) {

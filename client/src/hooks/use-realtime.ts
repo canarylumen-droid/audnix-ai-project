@@ -66,6 +66,7 @@ export function useRealtime(userId?: string) {
   const { toast } = useToast();
   const lastNotificationTime = useRef<number>(0);
   const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
     // Register service worker on mount
@@ -90,6 +91,7 @@ export function useRealtime(userId?: string) {
 
     socket.on('connect', () => {
       console.log('✅ Socket connected');
+      setSocket(socket);
     });
 
     socket.on('connect_error', (err) => {
@@ -135,6 +137,22 @@ export function useRealtime(userId?: string) {
           data: { url: '/dashboard/deals' }
         });
       }
+    });
+
+    // PROSPECTING EVENTS
+    socket.on('PROSPECTING_LOG', (payload: any) => {
+      console.log('Prospecting log:', payload);
+      // Let individual pages handle logs via custom event or status
+    });
+
+    socket.on('PROSPECT_FOUND', () => {
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
+    });
+
+    socket.on('PROSPECT_UPDATED', () => {
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
     });
 
     // MESSAGES UPDATES
@@ -220,6 +238,8 @@ export function useRealtime(userId?: string) {
       }
     };
   }, [userId, queryClient, toast]);
+
+  return { socket };
 }
 
 // Hook to use in dashboard layout
