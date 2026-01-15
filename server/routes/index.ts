@@ -57,6 +57,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/auth", authClean);
   app.use("/api/auth/clean", authClean);
   app.use("/api/auth/username", authUsernameOnboarding);
+  app.use("/api/auth", authUsernameOnboarding); // Also mount at /api/auth for /set-username endpoint
   app.use("/api/billing", billingRoutes);
   app.use("/api/bulk", bulkActionsRoutes);
   app.use("/api/calendar", calendarRoutes);
