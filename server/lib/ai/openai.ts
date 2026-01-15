@@ -1,12 +1,12 @@
-// Flagship model is gpt-4o for high-performance sales intelligence
 import OpenAI from "openai";
+import { MODELS, OPENAI_INTELLIGENCE_MODEL } from "./model-config.js";
 
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
 const isDemoMode = process.env.DISABLE_EXTERNAL_API === "true" || !process.env.OPENAI_API_KEY || !openai;
-export const AI_MODEL = process.env.OPENAI_MODEL || "gpt-4o"; // Latest flagship for production
+export const AI_MODEL = process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL; // Latest flagship for production
 const model = AI_MODEL;
 
 /**

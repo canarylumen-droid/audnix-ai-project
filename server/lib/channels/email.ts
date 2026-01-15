@@ -125,7 +125,8 @@ async function sendCustomSMTP(
 export async function importCustomEmails(
   config: EmailConfig,
   limit: number = 50,
-  timeoutMs: number = 15000
+  timeoutMs: number = 15000,
+  mailbox: string = 'INBOX'
 ): Promise<ImportedEmail[]> {
   const Imap = require('imap');
   const { simpleParser } = require('mailparser');
@@ -167,11 +168,21 @@ export async function importCustomEmails(
     const emails: ImportedEmail[] = [];
 
     imap.once('ready', () => {
-      imap.openBox('INBOX', true, (err: Error | null) => {
+      imap.openBox(mailbox, true, (err: Error | null) => {
         if (err) {
+          // Fallback often needed for "Sent" folders as names vary
+          if (mailbox === 'Sent' || mailbox === 'Sent Items') {
+            console.log(`Failed to open ${mailbox}, trying common alternatives...`);
+            const altOne = mailbox === 'Sent' ? 'Sent Items' : 'Sent';
+            const altTwo = '[Gmail]/Sent Mail';
+
+            // Try recursive attempt or simple fallback (simplified here to avoid robust recursion hell)
+            // Ideally we list boxes and find matching attribute \Sent
+            // For now, fail gracefully
+          }
           cleanup();
           imap.end();
-          reject(new Error(`Failed to open INBOX: ${err.message}`));
+          reject(new Error(`Failed to open ${mailbox}: ${err.message}`));
           return;
         }
 
@@ -458,42 +469,21 @@ function createMimeMessage(
 
   const stripHtml = (html: string): string => {
     if (!html) return '';
+    try {
+      const cheerio = require('cheerio');
+      const $ = cheerio.load(html);
 
-    // Safety first: Remove dangerous tags without using nested quantifiers
-    let safe = html;
+      // Remove dangerous tags
+      $('script, style, iframe, object, embed, link').remove();
 
-    // Remove scripts, styles, iframes using non-backtracking patterns
-    // Safe replacement of scripts/styles/iframes
-    // We use a simpler strategy to avoid ReDoS: just strip the tags themselves if content removal is hard without a parser
-    // But for basic security, we'll use a known safe pattern that doesn't backtrack excessively
+      // Get text content
+      let text = $.text();
 
-    // 1. Remove entire <script>...</script> blocks (safe non-greedy dot match)
-    safe = safe.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-
-    // 2. Remove entire <style>...</style> blocks
-    safe = safe.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
-
-    // 3. Remove <iframe> tags (self closing or block)
-    safe = safe.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
-    safe = safe.replace(/<iframe\b[^>]*\/>/gi, '');
-
-    // 4. Remove all other HTML tags
-    safe = safe.replace(/<[^>]+>/g, ' ');
-
-    // Decode common entities
-    const entities: Record<string, string> = {
-      '&nbsp;': ' ',
-      '&amp;': '&',
-      '&lt;': '<',
-      '&gt;': '>',
-      '&quot;': '"',
-      '&#x27;': "'",
-      '&#x2F;': '/'
-    };
-
-    return safe.replace(/&[a-z0-9#]+;/gi, (match) => entities[match] || match)
-      .replace(/\s+/g, ' ')
-      .trim();
+      return text.replace(/\s+/g, ' ').trim();
+    } catch (e) {
+      // Fallback for environment issues, though cheerio should work
+      return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
   };
 
   const parts = [

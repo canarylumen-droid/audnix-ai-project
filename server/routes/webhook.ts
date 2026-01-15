@@ -2,7 +2,6 @@ import { Request, Response, Router } from 'express';
 import Stripe from 'stripe';
 import crypto from 'crypto';
 import { stripe, verifyWebhookSignature, processTopupSuccess, PLANS } from '../lib/billing/stripe.js';
-import { supabaseAdmin } from '../lib/supabase-admin.js';
 import { storage } from '../storage.js';
 import { handleCalendlyWebhook, handleCalendlyVerification, verifyCalendlySignature } from '../lib/webhooks/calendly-webhook.js';
 import { handleInstagramWebhook, handleInstagramVerification } from '../lib/webhooks/instagram-webhook.js';
@@ -105,7 +104,7 @@ router.post('/callback', async (req: Request, res: Response): Promise<void> => {
 router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void> => {
   try {
     const sig = req.headers['stripe-signature'] as string;
-    
+
     if (!sig) {
       res.status(400).json({ error: 'Missing signature' });
       return;
@@ -139,13 +138,13 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
             return;
           }
 
-          const stripeCustomerId = typeof session.customer === 'string' 
-            ? session.customer 
+          const stripeCustomerId = typeof session.customer === 'string'
+            ? session.customer
             : (session.customer as Stripe.Customer | Stripe.DeletedCustomer | null)?.id ?? undefined;
-          const stripeSubscriptionId = typeof session.subscription === 'string' 
-            ? session.subscription 
+          const stripeSubscriptionId = typeof session.subscription === 'string'
+            ? session.subscription
             : (session.subscription as Stripe.Subscription | null)?.id ?? undefined;
-          
+
           await storage.updateUser(userId, {
             plan: planKey as PlanType,
             stripeCustomerId,
@@ -161,46 +160,40 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
             enterprise: 'Enterprise ($199)',
           };
 
-          if (supabaseAdmin) {
-            await supabaseAdmin
-              .from('payments')
-              .insert({
-                user_id: userId,
-                stripe_payment_id: session.payment_intent ?? undefined,
-                amount: session.amount_total,
-                currency: session.currency,
-                status: 'completed',
-                plan: planKey,
-                payment_link: session.url,
-                webhook_payload: event,
-              });
+          await storage.createPayment({
+            userId,
+            stripePaymentId: (session.payment_intent as string) ?? undefined,
+            amount: session.amount_total,
+            currency: session.currency,
+            status: 'completed',
+            plan: planKey,
+            paymentLink: session.url ?? undefined,
+            webhookPayload: event,
+          });
 
-            await supabaseAdmin
-              .from('notifications')
-              .insert({
-                user_id: userId,
-                type: 'system',
-                title: `Upgraded to ${planNames[planKey] || planKey} Plan`,
-                message: `Congratulations! Your payment was successful and you've been upgraded to the ${planNames[planKey] || planKey} plan. All premium features are now unlocked.`,
-                action_url: '/dashboard',
-                metadata: { plan: planKey, upgrade: true },
-              });
-          }
+          await storage.createNotification({
+            userId,
+            type: 'system',
+            title: `Upgraded to ${planNames[planKey] || planKey} Plan`,
+            message: `Congratulations! Your payment was successful and you've been upgraded to the ${planNames[planKey] || planKey} plan. All premium features are now unlocked.`,
+            actionUrl: '/dashboard',
+            metadata: { plan: planKey, upgrade: true },
+          });
         }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = typeof subscription.customer === 'string' 
-          ? subscription.customer 
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
           : (subscription.customer as Stripe.Customer).id;
         const userId = await getUserIdFromStripeCustomer(customerId);
-        
+
         if (userId) {
           const status = subscription.status;
           const planId = getPlanFromSubscription(subscription);
-          
+
           await storage.updateUser(userId, {
             plan: status === 'active' ? planId as PlanType : 'trial',
           });
@@ -210,11 +203,11 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = typeof subscription.customer === 'string' 
-          ? subscription.customer 
+        const customerId = typeof subscription.customer === 'string'
+          ? subscription.customer
           : (subscription.customer as Stripe.Customer).id;
         const userId = await getUserIdFromStripeCustomer(customerId);
-        
+
         if (userId) {
           await storage.updateUser(userId, {
             plan: 'trial',
@@ -227,23 +220,21 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const customerId = typeof invoice.customer === 'string' 
-          ? invoice.customer 
+        const customerId = typeof invoice.customer === 'string'
+          ? invoice.customer
           : (invoice.customer as Stripe.Customer)?.id;
-        
+
         if (customerId) {
           const userId = await getUserIdFromStripeCustomer(customerId);
-          
-          if (userId && supabaseAdmin) {
-            await supabaseAdmin
-              .from('notifications')
-              .insert({
-                user_id: userId,
-                type: 'billing_issue',
-                title: 'Payment Failed',
-                message: 'Your payment failed. Please update your payment method to continue using premium features.',
-                action_url: '/dashboard/pricing',
-              });
+
+          if (userId) {
+            await storage.createNotification({
+              userId,
+              type: 'billing_issue',
+              title: 'Payment Failed',
+              message: 'Your payment failed. Please update your payment method to continue using premium features.',
+              actionUrl: '/dashboard/pricing',
+            });
           }
         }
         break;
@@ -293,7 +284,7 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promis
       case 'order_created': {
         const attributes = data.attributes as LemonSqueezyOrderAttributes;
         const { user_email, product_id, variant_id } = attributes;
-        
+
         const user = await storage.getUserByEmail(user_email);
         if (!user) {
           console.error('User not found:', user_email);
@@ -302,25 +293,21 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promis
         }
 
         const plan = mapLemonSqueezyToPlan(product_id, variant_id);
-        
+
         await storage.updateUser(user.id, {
           plan: plan as PlanType,
           trialExpiresAt: null,
         });
 
-        if (supabaseAdmin) {
-          await supabaseAdmin
-            .from('payments')
-            .insert({
-              user_id: user.id,
-              stripe_payment_id: data.id,
-              amount: attributes.total,
-              currency: attributes.currency,
-              status: 'completed',
-              plan: plan,
-              webhook_payload: req.body,
-            });
-        }
+        await storage.createPayment({
+          userId: user.id,
+          stripePaymentId: data.id,
+          amount: attributes.total,
+          currency: attributes.currency,
+          status: 'completed',
+          plan: plan,
+          webhookPayload: req.body,
+        });
         break;
       }
 
@@ -328,12 +315,12 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promis
       case 'subscription_updated': {
         const attributes = data.attributes as LemonSqueezySubscriptionAttributes;
         const { user_email, status, product_id, variant_id } = attributes;
-        
+
         const user = await storage.getUserByEmail(user_email);
         if (!user) break;
 
         const plan = mapLemonSqueezyToPlan(product_id, variant_id);
-        
+
         await storage.updateUser(user.id, {
           plan: status === 'active' ? plan as PlanType : 'trial',
         });
@@ -343,7 +330,7 @@ router.post('/webhook/lemonsqueezy', async (req: Request, res: Response): Promis
       case 'subscription_cancelled': {
         const attributes = data.attributes as LemonSqueezySubscriptionAttributes;
         const { user_email } = attributes;
-        
+
         const user = await storage.getUserByEmail(user_email);
         if (!user) break;
 
@@ -403,7 +390,7 @@ function getPlanFromSubscription(subscription: Stripe.Subscription): string {
     [process.env.STRIPE_PRO_PRICE_ID || '']: 'pro',
     [process.env.STRIPE_ENTERPRISE_PRICE_ID || '']: 'enterprise',
   };
-  
+
   return priceToPlan[priceId] || 'trial';
 }
 
@@ -413,7 +400,7 @@ function mapLemonSqueezyToPlan(productId: string, variantId: string): string {
     '12345_pro': 'pro',
     '12345_enterprise': 'enterprise',
   };
-  
+
   return mapping[`${productId}_${variantId}`] || 'trial';
 }
 

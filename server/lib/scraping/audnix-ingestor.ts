@@ -6,6 +6,8 @@ import { wsSync } from "../websocket-sync.js";
 import { AdvancedCrawler } from "./crawler-service.js";
 import { EmailVerifier } from "./email-verifier.js";
 
+import { GEMINI_LATEST_MODEL } from "../ai/model-config.js";
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export class AudnixIngestor {
@@ -36,7 +38,7 @@ export class AudnixIngestor {
             await this.log(`[Neural Engine] Activating Gemini 2.0 Discovery Protocol...`, 'info');
 
             // 1. Extract Intent and Volume using Gemini 2.0
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+            const model = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
             const prompt = `
                 Analyze this lead generation request: "${query}"
                 

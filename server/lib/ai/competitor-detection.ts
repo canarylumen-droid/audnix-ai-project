@@ -15,7 +15,7 @@ const COMPETITORS = {
     keywords: ['manychat', 'many chat', 'chatbot'],
     advantages: [
       'Unlike ManyChat, we use AI - not rigid keyword matching',
-      'ManyChat is Instagram-only. We work across Instagram, WhatsApp & Email',
+      'ManyChat is Instagram-only. We work across Instagram & Email',
       'We offer voice cloning - ManyChat doesn\'t',
       'Our AI learns from your conversations - ManyChat uses fixed templates'
     ]
@@ -57,7 +57,7 @@ const COMPETITORS = {
       'We use advanced AI that understands context',
       'Human-like responses, not robotic templates',
       'Voice cloning for authentic communication',
-      'Multi-channel: Instagram, WhatsApp, Email in one place'
+      'Multi-channel: Instagram & Email in one place'
     ]
   }
 };
@@ -67,11 +67,11 @@ const COMPETITORS = {
  */
 export function detectCompetitorMention(message: string): CompetitorMention {
   const lowerMessage = message.toLowerCase();
-  
+
   // Find which competitor was mentioned
   let detectedCompetitor: string | null = null;
   let competitorData: any = null;
-  
+
   for (const [key, data] of Object.entries(COMPETITORS)) {
     for (const keyword of data.keywords) {
       if (lowerMessage.includes(keyword)) {
@@ -82,7 +82,7 @@ export function detectCompetitorMention(message: string): CompetitorMention {
     }
     if (detectedCompetitor) break;
   }
-  
+
   if (!detectedCompetitor || !competitorData) {
     return {
       detected: false,
@@ -92,14 +92,14 @@ export function detectCompetitorMention(message: string): CompetitorMention {
       sentiment: 0
     };
   }
-  
+
   // Determine context and sentiment
   const context = determineContext(lowerMessage, competitorData.name);
   const sentiment = analyzeSentiment(lowerMessage);
-  
+
   // Generate comparison response
   const response = generateComparisonResponse(competitorData, context);
-  
+
   return {
     detected: true,
     competitor: competitorData.name,
@@ -118,19 +118,19 @@ function determineContext(message: string, competitorName: string): 'positive' |
   if (comparisonKeywords.some(k => message.includes(k))) {
     return 'comparison';
   }
-  
+
   // Negative context
   const negativeKeywords = ['but', 'however', 'disappointed', 'switched from', 'left', 'abandoned'];
   if (negativeKeywords.some(k => message.includes(k))) {
     return 'negative';
   }
-  
+
   // Positive context
   const positiveKeywords = ['love', 'great', 'good', 'using', 'works well'];
   if (positiveKeywords.some(k => message.includes(k))) {
     return 'positive';
   }
-  
+
   return 'neutral';
 }
 
@@ -140,7 +140,7 @@ function determineContext(message: string, competitorName: string): 'positive' |
 function analyzeSentiment(message: string): number {
   const positiveWords = ['love', 'great', 'good', 'best', 'amazing', 'perfect'];
   const negativeWords = ['hate', 'bad', 'worst', 'terrible', 'disappointed', 'limited'];
-  
+
   let score = 0;
   for (const word of positiveWords) {
     if (message.includes(word)) score += 0.2;
@@ -148,7 +148,7 @@ function analyzeSentiment(message: string): number {
   for (const word of negativeWords) {
     if (message.includes(word)) score -= 0.2;
   }
-  
+
   return Math.max(-1, Math.min(1, score));
 }
 
@@ -157,7 +157,7 @@ function analyzeSentiment(message: string): number {
  */
 function generateComparisonResponse(competitorData: any, context: string): string {
   const advantage = competitorData.advantages[Math.floor(Math.random() * competitorData.advantages.length)];
-  
+
   const responses = {
     comparison: [
       `Great question! ${advantage} 🚀`,
@@ -180,7 +180,7 @@ function generateComparisonResponse(competitorData: any, context: string): strin
       `I'll be honest - ${advantage} Want to see it in action?`
     ]
   };
-  
+
   const options = responses[context as keyof typeof responses] || responses.neutral;
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -197,7 +197,7 @@ export async function trackCompetitorMention(
 ): Promise<void> {
   const lead = await storage.getLeadById(leadId);
   if (!lead) return;
-  
+
   const mentions = (lead.metadata?.competitorMentions as any[]) || [];
   mentions.push({
     competitor,
@@ -205,7 +205,7 @@ export async function trackCompetitorMention(
     sentiment,
     timestamp: new Date().toISOString()
   });
-  
+
   await storage.updateLead(leadId, {
     metadata: {
       ...lead.metadata,
@@ -213,7 +213,7 @@ export async function trackCompetitorMention(
       lastCompetitorMention: competitor
     }
   });
-  
+
   // Create notification for high-value competitive mentions
   if (context === 'comparison' || context === 'negative') {
     await storage.createNotification({
@@ -241,20 +241,20 @@ export async function getCompetitorAnalytics(userId: string): Promise<{
   recentMentions: any[];
 }> {
   const leads = await storage.getLeads({ userId, limit: 10000 });
-  
+
   let totalMentions = 0;
   const byCompetitor: Record<string, number> = {};
   const sentimentScores: number[] = [];
   const recentMentions: any[] = [];
-  
+
   for (const lead of leads) {
     const mentions = (lead.metadata?.competitorMentions as any[]) || [];
     totalMentions += mentions.length;
-    
+
     for (const mention of mentions) {
       byCompetitor[mention.competitor] = (byCompetitor[mention.competitor] || 0) + 1;
       sentimentScores.push(mention.sentiment);
-      
+
       if (recentMentions.length < 10) {
         recentMentions.push({
           leadName: lead.name,
@@ -265,11 +265,11 @@ export async function getCompetitorAnalytics(userId: string): Promise<{
       }
     }
   }
-  
+
   const avgSentiment = sentimentScores.length > 0
     ? sentimentScores.reduce((sum, s) => sum + s, 0) / sentimentScores.length
     : 0;
-  
+
   return {
     totalMentions,
     byCompetitor,
@@ -279,7 +279,7 @@ export async function getCompetitorAnalytics(userId: string): Promise<{
       negative: sentimentScores.filter(s => s < 0).length,
       neutral: sentimentScores.filter(s => s === 0).length
     },
-    recentMentions: recentMentions.sort((a, b) => 
+    recentMentions: recentMentions.sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )
   };

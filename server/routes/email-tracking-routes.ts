@@ -54,14 +54,25 @@ router.get('/track/click/:token', async (req: Request, res: Response): Promise<v
     }
 
     const decodedUrl = decodeURIComponent(url);
+    let isSafe = false;
 
-    // Safety check: Only allow redirects to same domain or relative paths
-    // MUST prevent protocol-relative URLs (starting with //) which browsers treat as same-protocol redirects
-    const isRelative = decodedUrl.startsWith('/') && !decodedUrl.startsWith('//');
-    const isSafeDomain = decodedUrl.startsWith('https://www.audnixai.com') ||
-      decodedUrl.startsWith('https://audnixai.com');
+    try {
+      if (decodedUrl.startsWith('//')) {
+        isSafe = false;
+      } else if (decodedUrl.startsWith('/')) {
+        isSafe = true;
+      } else {
+        const parsed = new URL(decodedUrl);
+        const safeHostnames = ['www.audnixai.com', 'audnixai.com', 'localhost'];
+        isSafe = safeHostnames.includes(parsed.hostname) ||
+          parsed.hostname.endsWith('.vercel.app') ||
+          parsed.hostname.endsWith('.replit.dev');
+      }
+    } catch (e) {
+      isSafe = false;
+    }
 
-    if (!isRelative && !isSafeDomain) {
+    if (!isSafe) {
       res.status(400).send('Invalid redirect URL (External domains not allowed)');
       return;
     }

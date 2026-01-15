@@ -17,7 +17,7 @@ PERSONALITY:
 CORE CAPABILITIES:
 1. Closer Engine: Autonomous neural layer for handling 110+ sales objections. It doesn't just chat; it closes.
 2. Lead Intelligence: Real-time intent scoring and predictive behavior analysis.
-3. Multi-Channel Outreach: Human-like engagement across Instagram, WhatsApp, and Email.
+3. Multi-Channel Outreach: Human-like engagement across Instagram and Email.
 4. Scraping Protocol: Advanced lead discovery that scans millions of data points to find the perfect partner fit, investors, or high-ticket leads.
 5. Voice Cloning: Personalized audio engagement using ElevenLabs integration.
 

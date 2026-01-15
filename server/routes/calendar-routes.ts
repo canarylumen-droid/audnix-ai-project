@@ -21,17 +21,17 @@ const router = Router();
 router.get('/settings', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const [settings] = await db
       .select()
       .from(calendarSettings)
       .where(eq(calendarSettings.userId, userId))
       .limit(1);
-    
+
     const integrations = await storage.getIntegrations(userId);
     const calendlyIntegration = integrations.find(i => i.provider === 'calendly' && i.connected);
     const googleIntegration = integrations.find(i => i.provider === 'google_calendar' && i.connected);
-    
+
     let calendlyUsername = null;
     if (calendlyIntegration?.encryptedMeta) {
       try {
@@ -39,9 +39,9 @@ router.get('/settings', requireAuth, async (req: Request, res: Response): Promis
         const decrypted = await decrypt(calendlyIntegration.encryptedMeta);
         const data = JSON.parse(decrypted);
         calendlyUsername = data.username || 'connected';
-      } catch {}
+      } catch { }
     }
-    
+
     res.json({
       settings: settings ? {
         ...settings,
@@ -78,13 +78,13 @@ router.patch('/settings', requireAuth, async (req: Request, res: Response): Prom
   try {
     const userId = getCurrentUserId(req)!;
     const updates = req.body;
-    
+
     const [existing] = await db
       .select()
       .from(calendarSettings)
       .where(eq(calendarSettings.userId, userId))
       .limit(1);
-    
+
     if (existing) {
       const [updated] = await db
         .update(calendarSettings)
@@ -111,14 +111,14 @@ router.patch('/settings', requireAuth, async (req: Request, res: Response): Prom
 router.get('/bookings', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const bookings = await db
       .select()
       .from(calendarBookings)
       .where(eq(calendarBookings.userId, userId))
       .orderBy(desc(calendarBookings.startTime))
       .limit(50);
-    
+
     res.json({ bookings });
   } catch (error: any) {
     console.error('Error getting bookings:', error.message);
@@ -132,14 +132,14 @@ router.get('/bookings', requireAuth, async (req: Request, res: Response): Promis
 router.get('/ai-logs', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    
+
     const logs = await db
       .select()
       .from(aiActionLogs)
       .where(eq(aiActionLogs.userId, userId))
       .orderBy(desc(aiActionLogs.createdAt))
       .limit(20);
-    
+
     res.json({ logs });
   } catch (error: any) {
     console.error('Error getting AI logs:', error.message);
@@ -154,31 +154,31 @@ router.post('/connect-calendly', requireAuth, async (req: Request, res: Response
   try {
     const userId = getCurrentUserId(req)!;
     const { token } = req.body;
-    
+
     if (!token?.trim()) {
       res.status(400).json({ error: 'Token required' });
       return;
     }
-    
+
     const validation = await validateCalendlyToken(token);
     if (!validation.valid) {
       res.status(400).json({ error: validation.error || 'Invalid token' });
       return;
     }
-    
+
     const { encrypt } = await import('../lib/crypto/encryption.js');
-    const encrypted = await encrypt(JSON.stringify({ 
+    const encrypted = await encrypt(JSON.stringify({
       api_token: token,
-      username: validation.userName 
+      username: validation.userName
     }));
-    
+
     const existingIntegrations = await storage.getIntegrations(userId);
     const existingCalendly = existingIntegrations.find(i => i.provider === 'calendly');
-    
+
     if (existingCalendly) {
       await storage.deleteIntegration(userId, 'calendly');
     }
-    
+
     await storage.createIntegration({
       userId,
       provider: 'calendly',
@@ -186,7 +186,7 @@ router.post('/connect-calendly', requireAuth, async (req: Request, res: Response
       encryptedMeta: encrypted,
       accountType: 'personal'
     });
-    
+
     res.json({ success: true, username: validation.userName });
   } catch (error: any) {
     console.error('Error connecting Calendly:', error.message);
@@ -349,9 +349,9 @@ router.post('/format-message', requireAuth, async (req: Request, res: Response):
       return;
     }
 
-    if (!['email', 'whatsapp', 'instagram'].includes(channel)) {
+    if (!['email', 'instagram'].includes(channel)) {
       res.status(400).json({
-        error: 'Channel must be email, whatsapp, or instagram'
+        error: 'Channel must be email or instagram'
       });
       return;
     }
@@ -394,11 +394,11 @@ router.get('/status', requireAuth, async (req: Request, res: Response): Promise<
         accountType: google?.accountType || null
       },
       primary: calendly ? 'calendly' : google ? 'google_calendar' : null,
-      message: calendly 
-        ? 'Using Calendly for instant booking' 
-        : google 
-        ? 'Using Google Calendar for booking'
-        : 'No calendar connected. Connect Calendly or Google Calendar to enable booking.'
+      message: calendly
+        ? 'Using Calendly for instant booking'
+        : google
+          ? 'Using Google Calendar for booking'
+          : 'No calendar connected. Connect Calendly or Google Calendar to enable booking.'
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
+import { sendEmail } from "../lib/channels/email.js";
+import { sendInstagramMessage } from "../lib/channels/instagram.js";
 
 const router = Router();
 
@@ -21,7 +23,7 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
     }
 
     const messages = await storage.getMessagesByLeadId(leadId);
-    
+
     // Apply pagination
     const offsetNum = parseInt(offset as string) || 0;
     const limitNum = Math.min(parseInt(limit as string) || 100, 500);
@@ -59,14 +61,62 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
+    const selectedChannel = channel || lead.channel;
+    const messageBody = content.trim();
+
+    // Actual sending logic
+    if (selectedChannel === 'email') {
+      if (!lead.email) {
+        res.status(400).json({ error: "Lead has no email address" });
+        return;
+      }
+      await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`);
+      // Note: Subject is assumed Re: Name or Conversation. Ideally should thread based on last subject.
+      // But sendEmail handles some logic. For exact threading, we need threadId or Message-ID.
+      // sendEmail is simple.
+    } else if (selectedChannel === 'instagram') {
+      if (!lead.instagramId) {
+        // Can fallback to metadata.instagram_id if present
+        const igId = (lead.metadata as any)?.instagram_id || (lead.metadata as any)?.psid;
+        if (!igId) {
+          res.status(400).json({ error: "Lead has no Instagram ID" });
+          return;
+        }
+        // Fetch Credentials
+        const oauth = await storage.getOAuthAccount(userId, 'instagram');
+        if (!oauth || !oauth.accessToken) {
+          res.status(400).json({ error: "Instagram not connected" });
+          return;
+        }
+        const meta = oauth.metadata as any;
+        if (!meta?.instagram_business_account_id) {
+          res.status(400).json({ error: "Instagram business account ID missing" });
+          return;
+        }
+        await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, igId, messageBody);
+      } else {
+        const oauth = await storage.getOAuthAccount(userId, 'instagram');
+        if (!oauth || !oauth.accessToken) {
+          res.status(400).json({ error: "Instagram not connected" });
+          return;
+        }
+        const meta = oauth.metadata as any;
+        if (!meta?.instagram_business_account_id) {
+          res.status(400).json({ error: "Instagram business account ID missing" });
+          return;
+        }
+        await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, lead.instagramId, messageBody);
+      }
+    }
+
     const message = await storage.createMessage({
       leadId,
       userId,
-      provider: channel || lead.channel,
+      provider: selectedChannel,
       direction: "outbound",
-      body: content.trim(),
+      body: messageBody,
       audioUrl: null,
-      metadata: { manual: true },
+      metadata: { manual: true, sentAt: new Date() },
     });
 
     // Update lead last message time

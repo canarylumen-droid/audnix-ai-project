@@ -3,7 +3,7 @@ interface FollowRequestContext {
   leadName: string;
   leadStatus: 'converted' | 'not_interested' | 'warm';
   isBrand: boolean;
-  channel: 'instagram' | 'whatsapp';
+  channel: 'instagram';
 }
 
 /**
@@ -58,7 +58,7 @@ export async function shouldAskForFollow(leadId: string): Promise<boolean> {
 export async function handleFollowResponse(
   leadId: string,
   response: string,
-  channel: 'instagram' | 'whatsapp'
+  channel: 'instagram'
 ): Promise<{ wantsToFollow: boolean; followButtonUrl?: string }> {
   const lowerResponse = response.toLowerCase();
 

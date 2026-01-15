@@ -13,13 +13,14 @@
  */
 
 import OpenAI from "openai";
+import { MODELS } from "./model-config.js";
 import {
   OBJECTIONS_DATABASE,
   getObjectionsByIndustry,
 } from "./sales-engine/objections-database.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -185,7 +186,7 @@ export async function generateAutonomousObjectionResponse(
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.objection_handling,
       messages: [
         {
           role: "system",
@@ -256,7 +257,7 @@ async function neuralIdentifyObjection(leadMessage: string, context: LeadObjecti
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.objection_handling,
       messages: [{ role: 'system', content: 'You are a neural sales analyst.' }, { role: 'user', content: prompt }],
       response_format: { type: 'json_object' }
     });

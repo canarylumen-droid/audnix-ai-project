@@ -23,6 +23,7 @@ export interface BrandContext {
   contactPhone?: string | null;
   // Booking automation preference: 'link' (just send link) or 'autonomous' (suggest slots)
   bookingPreference?: 'link' | 'autonomous';
+  signature?: string;
 }
 
 /**
@@ -63,6 +64,7 @@ export async function getBrandContext(userId: string): Promise<BrandContext> {
       contactEmail: metadata.contact_email || user.email || null,
       contactPhone: metadata.contact_phone || null,
       bookingPreference: metadata.booking_preference || 'autonomous', // Default to autonomous for premium feel
+      signature: metadata.signature || metadata.email_signature || `\n\nBest regards,\n${user.businessName || 'The Team'}`,
     };
   } catch (error) {
     console.error("Error fetching brand context:", error);

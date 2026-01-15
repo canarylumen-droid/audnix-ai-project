@@ -2,7 +2,7 @@ interface SupabaseMessage {
   id: string;
   lead_id: string;
   user_id: string;
-  provider: 'instagram' | 'whatsapp' | 'gmail' | 'email' | 'system';
+  provider: 'instagram' | 'gmail' | 'email' | 'system';
   direction: 'inbound' | 'outbound';
   body: string;
   audio_url: string | null;
@@ -15,7 +15,7 @@ interface SupabaseLead {
   user_id: string;
   external_id: string | null;
   name: string;
-  channel: 'instagram' | 'whatsapp' | 'email';
+  channel: 'instagram' | 'email';
   email: string | null;
   phone: string | null;
   status: 'new' | 'open' | 'replied' | 'converted' | 'not_interested' | 'cold';
@@ -49,7 +49,7 @@ interface SemanticMemoryRecord {
 }
 
 export class LeadLearningSystem {
-  
+
   async analyzeAndLearn(leadId: string, _newMessage?: unknown): Promise<void> {
     // Using Neon database for message storage - no Supabase needed
     try {
@@ -66,7 +66,7 @@ export class LeadLearningSystem {
 
   private calculateBehaviorPattern(messages: SupabaseMessage[], lead: SupabaseLead): LeadBehaviorPattern {
     const userMessages = messages.filter((m: SupabaseMessage) => m.direction === 'inbound');
-    
+
     let totalResponseTime = 0;
     let responseCount = 0;
     for (let i = 1; i < messages.length; i++) {
@@ -93,7 +93,7 @@ export class LeadLearningSystem {
     const recentMessages = userMessages.slice(-5);
     const positiveWords = ['yes', 'great', 'thanks', 'perfect', 'interested', 'good', 'awesome'];
     const negativeWords = ['no', 'not', "don't", 'busy', 'later', 'expensive', 'stop'];
-    
+
     let positiveCount = 0;
     let negativeCount = 0;
     recentMessages.forEach((m: SupabaseMessage) => {
@@ -101,9 +101,9 @@ export class LeadLearningSystem {
       positiveWords.forEach((word: string) => { if (lower.includes(word)) positiveCount++; });
       negativeWords.forEach((word: string) => { if (lower.includes(word)) negativeCount++; });
     });
-    
-    const sentimentTrend: 'positive' | 'neutral' | 'negative' = positiveCount > negativeCount ? 'positive' : 
-                          negativeCount > positiveCount ? 'negative' : 'neutral';
+
+    const sentimentTrend: 'positive' | 'neutral' | 'negative' = positiveCount > negativeCount ? 'positive' :
+      negativeCount > positiveCount ? 'negative' : 'neutral';
 
     const conversionSignals: string[] = [];
     const conversionPhrases = ['how much', 'price', 'buy', 'purchase', 'pay', 'link', 'checkout', 'demo', 'schedule'];
@@ -128,24 +128,24 @@ export class LeadLearningSystem {
     });
 
     let engagementScore = 50;
-    
+
     if (avgResponseTime < 5) engagementScore += 20;
     else if (avgResponseTime < 30) engagementScore += 10;
     else if (avgResponseTime > 120) engagementScore -= 20;
-    
+
     if (avgMessageLength > 100) engagementScore += 15;
     else if (avgMessageLength < 20) engagementScore -= 10;
-    
+
     if (sentimentTrend === 'positive') engagementScore += 15;
     else if (sentimentTrend === 'negative') engagementScore -= 15;
-    
+
     engagementScore += conversionSignals.length * 10;
     engagementScore -= objectionPatterns.length * 5;
     engagementScore = Math.max(0, Math.min(100, engagementScore));
 
-    const temperature: 'hot' | 'warm' | 'cold' = 
+    const temperature: 'hot' | 'warm' | 'cold' =
       engagementScore > 70 ? 'hot' :
-      engagementScore > 40 ? 'warm' : 'cold';
+        engagementScore > 40 ? 'warm' : 'cold';
 
     return {
       userId: lead.user_id,

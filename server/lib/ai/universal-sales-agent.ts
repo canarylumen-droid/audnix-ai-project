@@ -19,10 +19,11 @@
  */
 
 import OpenAI from "openai";
+import { MODELS } from "./model-config.js";
 import type { BrandContext } from "../../../shared/types.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -256,7 +257,7 @@ export async function gatherCompetitorIntelligence(
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -318,7 +319,7 @@ export async function detectUVP(brandContext: SalesBrandContext | BrandContext):
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -535,7 +536,7 @@ Message:`;
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.8,
       max_tokens: 300,

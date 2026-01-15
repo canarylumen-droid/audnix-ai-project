@@ -12,7 +12,7 @@ import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
 import DayAwareSequence from './day-aware-sequence.js';
 import { getMessageScript, personalizeScript } from './message-scripts.js';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization.js';
-import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
+import { multiProviderEmailFailover } from '../email/multi-provider-failover.j';
 import { decrypt } from '../crypto/encryption.js';
 import type {
   BrandContext,
@@ -92,6 +92,8 @@ export class FollowUpWorker {
 
   constructor() {
     this.instagramOAuth = new InstagramOAuth();
+    this.isRunning = false;
+    this.processingInterval = null;
   }
 
   /**
@@ -262,26 +264,31 @@ export class FollowUpWorker {
       // Generate AI reply with day-aware context and brand personalization
       let aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
 
-      // Prepend disclaimer for legal compliance
+      // Prepend disclaimer for legal compliance (UI use only)
+      let disclaimerPrefix = '';
       try {
         const { prependDisclaimerToMessage } = await import('./disclaimer-generator.js');
-        const { messageWithDisclaimer } = prependDisclaimerToMessage(
+        const disclaimerResult = prependDisclaimerToMessage(
           aiReply,
-          job.channel as 'email' | 'sms' | 'voice',
+          job.channel as 'email' | 'voice',
           brandContext?.businessName || 'Audnix'
         );
-        aiReply = messageWithDisclaimer;
+        disclaimerPrefix = disclaimerResult.disclaimerPrefix;
+        // aiReply remains unmodified by prependDisclaimerToMessage
       } catch (disclaimerError) {
-        console.warn('Failed to add disclaimer:', disclaimerError);
-        // Continue without disclaimer rather than failing the entire message
+        console.warn('Failed to add disclaimer context:', disclaimerError);
       }
 
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
 
       if (sent) {
-        // Save message to database
-        const savedMessage = await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant');
+        // Save message to database with disclaimer in metadata
+        const savedMessage = await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant', {
+          aiGenerated: true,
+          disclaimer: disclaimerPrefix,
+          channel: job.channel
+        });
 
         // UPDATE: Log to audit trail
         try {
@@ -601,7 +608,7 @@ Generate a natural follow-up message:`;
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error(`Failed to send via ${channel}:`, error);
-        // WhatsApp specific error handling for 24-hour window
+        // Error handling
 
         // Re-throw other errors to mark the job as failed after retries
         throw error;
@@ -662,21 +669,22 @@ Generate a natural follow-up message:`;
     userId: string,
     leadId: string,
     content: string,
-    role: 'user' | 'assistant'
-  ): Promise<{ id: string } | undefined> {
-    if (!db) return undefined;
-
-    const result = await db.insert(messages).values({
-      userId,
-      leadId,
-      body: content,
-      direction: role === 'user' ? 'inbound' : 'outbound',
-      provider: 'system',
-      metadata: {},
-      createdAt: new Date()
-    }).returning({ id: messages.id });
-
-    return result[0];
+    role: 'user' | 'assistant',
+    metadata: Record<string, any> = {}
+  ): Promise<any> {
+    try {
+      return await storage.createMessage({
+        userId,
+        leadId,
+        body: content,
+        direction: role === 'user' ? 'inbound' : 'outbound',
+        provider: (metadata.channel as ProviderType) || 'instagram',
+        metadata
+      });
+    } catch (error) {
+      console.error('Error saving follow-up message:', error);
+      return undefined;
+    }
   }
 
   /**
@@ -778,7 +786,7 @@ Generate a natural follow-up message:`;
    * - Email Day 4: Day 7 (168 hours)
    * 
    * Multi-channel spacing:
-   * - Email → +48 hours WhatsApp → +72 hours IG DM
+   * - Email → +72 hours IG DM
    */
   private getFollowUpDelay(followUpCount: number, temperature: 'hot' | 'warm' | 'cold'): number {
     // Hot leads - respond quickly but HUMAN (not desperate)
@@ -852,7 +860,7 @@ export const followUpWorker = new FollowUpWorker();
 export async function scheduleInitialFollowUp(
   userId: string,
   leadId: string,
-  channel: 'email' | 'whatsapp' | 'instagram' | 'manual'
+  channel: 'email' | 'instagram' | 'manual'
 ): Promise<boolean> {
   if (!db) {
     console.warn('Database not available for follow-up scheduling');

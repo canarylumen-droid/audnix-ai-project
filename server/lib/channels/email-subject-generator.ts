@@ -1,7 +1,9 @@
 import OpenAI from 'openai';
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+import { MODELS } from '../ai/model-config.js';
+
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -12,7 +14,7 @@ export async function generateEmailSubject(userId: string, content: string): Pro
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       max_tokens: 100,
       messages: [
         {

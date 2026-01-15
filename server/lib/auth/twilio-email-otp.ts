@@ -24,15 +24,11 @@ function getErrorMessage(error: unknown): string {
 }
 
 export class TwilioEmailOTP {
-  private accountSid: string;
-  private authToken: string;
   private emailFrom: string;
   private sendgridApiKey: string;
 
   constructor() {
-    this.accountSid = process.env.TWILIO_ACCOUNT_SID || '';
-    this.authToken = process.env.TWILIO_AUTH_TOKEN || '';
-    this.emailFrom = process.env.TWILIO_EMAIL_FROM || 'auth@audnixai.com';
+    this.emailFrom = process.env.TWILIO_EMAIL_FROM || 'team@audnixai.com';
     this.sendgridApiKey = process.env.TWILIO_SENDGRID_API_KEY || '';
   }
 

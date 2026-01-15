@@ -11,10 +11,11 @@
  */
 
 import OpenAI from "openai";
+import { MODELS } from "./model-config.js";
 import type { ConversationMessage, LeadProfile, BrandContext } from "../../../shared/types.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -101,7 +102,7 @@ export async function detectLeadIntent(
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -185,7 +186,7 @@ export async function suggestSmartReply(
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -248,7 +249,7 @@ export async function detectObjection(
     }
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",

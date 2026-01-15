@@ -24,8 +24,8 @@ router.post('/verify', requireAuth, apiLimiter, async (req: Request, res: Respon
       const url = new URL(cleanDomain.startsWith('http') ? cleanDomain : `https://${cleanDomain}`);
       cleanDomain = url.hostname;
     } catch (e) {
-      // Fallback if not a full URL
-      cleanDomain = cleanDomain.replace(/\/.*$/, '');
+      // Fallback if not a full URL - safer split instead of regex
+      cleanDomain = cleanDomain.split('/')[0];
     }
 
     const cacheKey = `${cleanDomain}:${dkimSelector || 'default'}`;

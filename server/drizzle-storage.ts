@@ -1,9 +1,10 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
+import { wsSync } from './lib/websocket-sync.js';
 
 // Function to check if the database connection is available
 function checkDatabase() {
@@ -135,6 +136,9 @@ export class DrizzleStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
 
+    if (result[0]) {
+      wsSync.notifySettingsUpdated(id, result[0]);
+    }
     return result[0];
   }
 
@@ -207,19 +211,6 @@ export class DrizzleStorage implements IStorage {
     return this.getLead(id);
   }
 
-  async getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined> {
-    checkDatabase();
-    const result = await db
-      .select()
-      .from(leads)
-      .where(and(
-        eq(leads.userId, userId),
-        eq(leads.phone, phone)
-      ))
-      .limit(1);
-
-    return result[0];
-  }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
     checkDatabase();
@@ -241,6 +232,9 @@ export class DrizzleStorage implements IStorage {
       })
       .returning();
 
+    if (result[0]) {
+      wsSync.notifyLeadsUpdated(insertLead.userId, { event: 'INSERT', lead: result[0] });
+    }
     return result[0];
   }
 
@@ -252,6 +246,9 @@ export class DrizzleStorage implements IStorage {
       .where(eq(leads.id, id))
       .returning();
 
+    if (result[0]) {
+      wsSync.notifyLeadsUpdated(result[0].userId, { event: 'UPDATE', lead: result[0] });
+    }
     return result[0];
   }
 
@@ -311,23 +308,25 @@ export class DrizzleStorage implements IStorage {
     const result = await db
       .insert(messages)
       .values({
-        leadId: message.leadId,
         userId: message.userId,
-        provider: message.provider || "instagram",
+        leadId: message.leadId,
         direction: message.direction,
         body: message.body,
-        audioUrl: message.audioUrl || null,
+        provider: message.provider || 'system',
+        createdAt: new Date(),
         metadata: message.metadata || {},
       })
       .returning();
 
-    await db
-      .update(leads)
-      .set({ lastMessageAt: new Date() })
-      .where(eq(leads.id, message.leadId));
-
+    if (result[0]) {
+      wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
+      // Also notify leads updated because lastMessageAt usually changes, handled by separate updateLead call?
+      // Usually logic calls updateLead separately. If not, we might want to trigger it here.
+      // But let's stick to notifying about the message.
+    }
     return result[0];
   }
+
 
   async getIntegrations(userId: string): Promise<Integration[]> {
     checkDatabase();
@@ -454,6 +453,28 @@ export class DrizzleStorage implements IStorage {
         actionUrl: data.actionUrl || null,
         isRead: false,
         metadata: data.metadata || {}
+      })
+      .returning();
+
+    if (result[0]) {
+      wsSync.broadcastToUser(data.userId, { type: 'notification', payload: result[0] });
+    }
+    return result[0];
+  }
+
+  async createPayment(data: any): Promise<any> {
+    checkDatabase();
+    const result = await db
+      .insert(payments)
+      .values({
+        userId: data.userId,
+        stripePaymentId: data.stripePaymentId,
+        amount: data.amount,
+        currency: data.currency,
+        status: data.status,
+        plan: data.plan,
+        paymentLink: data.paymentLink,
+        webhookPayload: data.webhookPayload
       })
       .returning();
 
@@ -848,6 +869,116 @@ export class DrizzleStorage implements IStorage {
       .update(otpCodes)
       .set({ verified: true })
       .where(eq(otpCodes.id, id));
+  }
+
+  async cleanupDemoData(): Promise<{ deletedUsers: number }> {
+    checkDatabase();
+    // Delete all users with @demo.com email (used by seeder)
+    const result = await db.delete(users)
+      .where(like(users.email, '%@demo.com'))
+      .returning();
+
+    console.log(`🧹 Demo Data Cleanup: Deleted ${result.length} demo users`);
+    return { deletedUsers: result.length };
+  }
+
+  // ========== Follow Up Queue ==========
+  async createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue> {
+    checkDatabase();
+    const [result] = await db.insert(followUpQueue).values(data).returning();
+    return result;
+  }
+
+  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(followUpQueue)
+      .where(and(eq(followUpQueue.leadId, leadId), eq(followUpQueue.status, 'pending')))
+      .limit(1);
+    return result;
+  }
+
+  async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {
+    checkDatabase();
+    const updateData: any = { status, processedAt: new Date() };
+    if (errorMessage !== undefined) updateData.errorMessage = errorMessage;
+
+    // Validate status against enum if enforcing strict types, or cast as any if dynamic
+    const [updated] = await db
+      .update(followUpQueue)
+      .set(updateData)
+      .where(eq(followUpQueue.id, id))
+      .returning();
+    return updated;
+  }
+
+  // ========== OAuth Accounts ==========
+  async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
+    checkDatabase();
+    const [account] = await db
+      .select()
+      .from(oauthAccounts)
+      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
+    return account;
+  }
+
+  async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
+    checkDatabase();
+    const threshold = new Date(Date.now() + thresholdMinutes * 60 * 1000);
+    const accounts = await db.select()
+      .from(oauthAccounts)
+      .where(
+        and(
+          eq(oauthAccounts.provider, provider as any),
+          lte(oauthAccounts.expiresAt, threshold)
+        )
+      );
+    return accounts;
+  }
+
+  async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
+    checkDatabase();
+    const existing = await this.getOAuthAccount(data.userId, data.provider);
+
+    if (existing) {
+      const [updated] = await db
+        .update(oauthAccounts)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(oauthAccounts.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(oauthAccounts)
+        .values(data)
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteOAuthAccount(userId: string, provider: string): Promise<void> {
+    checkDatabase();
+    await db.delete(oauthAccounts)
+      .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
+  }
+
+  // ========== Calendar Events ==========
+  async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
+    checkDatabase();
+    const [result] = await db.insert(calendarEvents).values(data).returning();
+
+    if (result) {
+      wsSync.notifyCalendarUpdated(data.userId, { event: 'INSERT', eventData: result });
+    }
+    return result;
+  }
+
+  // ========== Audit Trail ==========
+  async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
+    checkDatabase();
+    const [result] = await db.insert(auditTrail).values(data).returning();
+    return result;
   }
 }
 

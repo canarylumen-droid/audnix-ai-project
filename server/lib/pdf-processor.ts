@@ -2,16 +2,18 @@ import { supabaseAdmin } from './supabase-admin.js';
 import { storage } from '../storage.js';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
+import { MODELS } from './ai/model-config.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
 
 const openaiKey = process.env.OPENAI_API_KEY;
+const openai = openaiKey ? new OpenAI({
+  apiKey: openaiKey,
+}) : null;
+
 if (!openaiKey) {
   console.error('❌ CRITICAL: OPENAI_API_KEY not set');
   console.error('📋 PDF analysis and AI features will be disabled');
 }
-const openai = new OpenAI({
-  apiKey: openaiKey,
-});
 
 /**
  * Process PDF file and extract lead information + offer details with AI
@@ -80,13 +82,13 @@ export async function processPDF(
     const createdLeads = [];
     for (const leadData of parsedLeads) {
       try {
-        const leadChannel = leadData.email ? 'email' : leadData.phone ? 'whatsapp' : 'instagram';
+        const leadChannel = leadData.email ? 'email' : 'instagram';
         const lead = await storage.createLead({
           userId,
           name: leadData.name,
           email: leadData.email,
           phone: leadData.phone,
-          channel: leadChannel as 'email' | 'instagram' | 'whatsapp',
+          channel: leadChannel as 'email' | 'instagram',
           status: 'new',
           metadata: {
             source: 'pdf_import',
@@ -107,7 +109,7 @@ export async function processPDF(
 
         // Auto-schedule initial follow-up for imported leads
         try {
-          await scheduleInitialFollowUp(userId, lead.id, leadChannel as 'email' | 'whatsapp' | 'instagram' | 'manual');
+          await scheduleInitialFollowUp(userId, lead.id, leadChannel as 'email' | 'instagram' | 'manual');
         } catch (followUpError) {
           console.warn(`Failed to schedule follow-up for ${lead.name}:`, followUpError);
         }
@@ -237,7 +239,7 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.lead_intelligence,
       messages: [{
         role: 'system',
         content: `Extract BOTH product/service AND brand identity from this document. Return JSON with two objects:
@@ -315,7 +317,7 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
 }
 
 /**
- * Auto-reach out to leads via email or WhatsApp with offer info and brand colors
+ * Auto-reach out to leads via email with offer info and brand colors
  */
 async function autoReachOutToLead(
   userId: string,
@@ -324,7 +326,6 @@ async function autoReachOutToLead(
 ): Promise<void> {
   try {
     const { sendEmail } = await import('./channels/email.js');
-    const { sendWhatsAppMessage } = await import('./channels/whatsapp.js');
 
     // Get user's extracted brand data
     const user = await storage.getUserById(userId);
@@ -376,35 +377,9 @@ Would you like to discuss how this can help you?`;
       }
     }
 
-    // Try WhatsApp if phone available
+    // Phone reach-out not currently supported as system focus is Instagram & Email
     if (lead.phone) {
-      try {
-        await sendWhatsAppMessage(
-          userId,
-          lead.phone,
-          message,
-          {
-            button: offerData.link ? {
-              text: 'Learn More',
-              url: offerData.link
-            } : undefined
-          }
-        );
-
-        await storage.createMessage({
-          leadId: lead.id,
-          userId,
-          provider: 'whatsapp',
-          direction: 'outbound',
-          body: message,
-          metadata: {
-            auto_outreach: true,
-            source: 'pdf_extraction'
-          }
-        });
-      } catch (error) {
-        console.error('WhatsApp outreach failed:', error);
-      }
+      console.log(`[Reachout] Skipping phone outreach for ${lead.phone} - Phone mesh inactive.`);
     }
   } catch (error) {
     console.error('Auto-reach out error:', error);
@@ -426,10 +401,25 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.lead_intelligence,
       messages: [{
         role: 'system',
-        content: 'Extract all lead contact information from the text. Look for names, email addresses, phone numbers, and company names. Return a JSON array of objects with fields: name, email, phone, company. Be thorough and accurate.'
+        content: `You are a high-precision data extraction expert. Extract all lead contact information from the provided text.
+        
+        RULES:
+        1. "name" must be the person's full name. If only a username is found, use that.
+        2. BE CAREFUL not to mismatch company names with person names.
+        3. If a name is followed by a title (e.g., "John Doe, CEO"), extract only "John Doe".
+        4. Look for patterns like "To: [Name]", "Attention: [Name]", or signature lines.
+        5. "company" should be the organization name associated with the lead.
+        
+        Return a JSON object with a "leads" array. Each lead must have:
+        {
+          "name": "Full Name",
+          "email": "email@example.com (optional)",
+          "phone": "Phone Number (optional)",
+          "company": "Company Name (optional)"
+        }`
       }, {
         role: 'user',
         content: text.substring(0, 8000)

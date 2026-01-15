@@ -28,7 +28,7 @@ interface CachedPdfData {
 }
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -259,13 +259,13 @@ router.post(
       }
 
       // Extract brand context using AI
-    let brandContext: BrandExtraction = {};
-    let analysisScore = 0;
-    let analysisItems: any[] = [];
+      let brandContext: BrandExtraction = {};
+      let analysisScore = 0;
+      let analysisItems: any[] = [];
 
-    if (openai) {
-      try {
-        const completion = await (openai as OpenAI).chat.completions.create({
+      if (openai) {
+        try {
+          const completion = await (openai as OpenAI).chat.completions.create({
             model: "gpt-4-turbo-preview",
             messages: [
               {

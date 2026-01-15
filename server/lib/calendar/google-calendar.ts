@@ -11,11 +11,11 @@ export async function createCalendarBookingLink(
 ): Promise<string> {
   // For production: Use Google Calendar API with OAuth
   // For now: Generate a Calendly-style link placeholder
-  
+
   const userName = 'Your Business';
   const encodedName = encodeURIComponent(userName);
   const encodedLead = encodeURIComponent(leadName);
-  
+
   // In production, this would be a real booking link from Google Calendar or Calendly
   return `https://calendar.google.com/calendar/appointments/schedules?name=${encodedName}&attendee=${encodedLead}`;
 }
@@ -29,7 +29,7 @@ export function getGoogleOAuth2Client(accessToken: string): OAuth2Client {
     process.env.GOOGLE_CLIENT_SECRET,
     process.env.GOOGLE_REDIRECT_URI
   );
-  
+
   oauth2Client.setCredentials({ access_token: accessToken });
   return oauth2Client;
 }
@@ -51,7 +51,7 @@ export async function createCalendarEvent(
   try {
     const oauth2Client = getGoogleOAuth2Client(accessToken);
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
+
     const response = await calendar.events.insert({
       calendarId: 'primary',
       conferenceDataVersion: 1,
@@ -84,7 +84,7 @@ export async function createCalendarEvent(
         },
       },
     });
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Error creating calendar event:', error);
@@ -102,7 +102,7 @@ export async function listUpcomingEvents(
   try {
     const oauth2Client = getGoogleOAuth2Client(accessToken);
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
+
     const response = await calendar.events.list({
       calendarId: 'primary',
       timeMin: new Date().toISOString(),
@@ -110,7 +110,7 @@ export async function listUpcomingEvents(
       singleEvents: true,
       orderBy: 'startTime',
     });
-    
+
     return response.data.items || [];
   } catch (error: any) {
     console.error('Error listing calendar events:', error);
@@ -129,13 +129,12 @@ export async function listUpcomingEvents(
 export function generateMeetingLinkMessage(
   leadName: string,
   bookingLink: string,
-  platform: 'instagram' | 'whatsapp' | 'email'
+  platform: 'instagram' | 'email'
 ): string {
   const messages = {
     instagram: `Hey ${leadName}! 📅 Ready to chat? Book a time that works for you: ${bookingLink}`,
-    whatsapp: `Hi ${leadName}! I'd love to connect with you. Here's my calendar link to schedule a call: ${bookingLink}`,
     email: `Hi ${leadName},\n\nThanks for your interest! I'd love to discuss how we can help.\n\nPlease use this link to schedule a time that works best for you:\n${bookingLink}\n\nLooking forward to connecting!\n\nBest regards`
   };
-  
-  return messages[platform];
+
+  return messages[platform as keyof typeof messages] || messages.email;
 }

@@ -59,7 +59,7 @@ export class GoogleCalendarOAuth {
     email?: string;
   }> {
     const { tokens } = await this.oauth2Client.getToken(code);
-    
+
     this.oauth2Client.setCredentials(tokens);
 
     // Get user info to verify email
@@ -137,10 +137,10 @@ export class GoogleCalendarOAuth {
     isOriginalTimeAvailable: boolean;
   }> {
     const requestedEnd = new Date(requestedStart.getTime() + duration * 60000);
-    
+
     // Check if original time is available
     const isAvailable = await this.checkAvailability(accessToken, requestedStart, requestedEnd);
-    
+
     if (isAvailable) {
       return {
         suggestedStart: requestedStart,
@@ -153,7 +153,7 @@ export class GoogleCalendarOAuth {
     // Find next available slot (30 min or 1 hour buffer depending on time of day)
     let bufferMinutes = 30;
     const hour = requestedStart.getHours();
-    
+
     // Use 1 hour buffer during peak hours (9 AM - 5 PM)
     if (hour >= 9 && hour < 17) {
       bufferMinutes = 60;
@@ -163,9 +163,9 @@ export class GoogleCalendarOAuth {
     for (let attempt = 1; attempt <= 5; attempt++) {
       const alternativeStart = new Date(requestedStart.getTime() + (bufferMinutes * attempt * 60000));
       const alternativeEnd = new Date(alternativeStart.getTime() + duration * 60000);
-      
+
       const altAvailable = await this.checkAvailability(accessToken, alternativeStart, alternativeEnd);
-      
+
       if (altAvailable) {
         // Format time professionally based on timezone
         const timeFormatter = new Intl.DateTimeFormat('en-US', {
@@ -177,9 +177,9 @@ export class GoogleCalendarOAuth {
           month: 'short',
           day: 'numeric'
         });
-        
+
         const formattedTime = timeFormatter.format(alternativeStart);
-        
+
         return {
           suggestedStart: alternativeStart,
           suggestedEnd: alternativeEnd,
@@ -192,7 +192,7 @@ export class GoogleCalendarOAuth {
     // Fallback if no slots found in next few hours
     const fallbackStart = new Date(requestedStart.getTime() + (24 * 60 * 60000)); // Next day same time
     const fallbackEnd = new Date(fallbackStart.getTime() + duration * 60000);
-    
+
     const fallbackTimeFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: leadTimezone,
       hour: 'numeric',
@@ -202,7 +202,7 @@ export class GoogleCalendarOAuth {
       month: 'short',
       day: 'numeric'
     });
-    
+
     return {
       suggestedStart: fallbackStart,
       suggestedEnd: fallbackEnd,
@@ -291,21 +291,17 @@ export class GoogleCalendarOAuth {
     return response.data;
   }
 
-  /**
-   * Generate booking link message for different platforms
-   */
   static generateBookingMessage(
     leadName: string,
     bookingUrl: string,
-    platform: 'instagram' | 'whatsapp' | 'email'
+    platform: 'instagram' | 'email'
   ): string {
     const messages = {
       instagram: `Hey ${leadName}! 📅 Let's schedule a time to chat. Pick a time that works for you: ${bookingUrl}`,
-      whatsapp: `Hi ${leadName}! I'd love to connect with you. Here's my calendar to book a call: ${bookingUrl}`,
       email: `Hi ${leadName},\n\nThanks for your interest! I'd love to discuss how we can help.\n\nPlease use this link to schedule a time that works best for you:\n${bookingUrl}\n\nLooking forward to connecting!\n\nBest regards`,
     };
 
-    return messages[platform];
+    return messages[platform as keyof typeof messages] || messages.email;
   }
 }
 

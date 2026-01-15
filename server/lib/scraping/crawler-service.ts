@@ -4,21 +4,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { EmailVerifier } from './email-verifier.js';
 
 // Free proxy rotation (simulated for dev, replace with paid rotating proxy service like BrightData, Oxylabs, or Smartproxy in production)
-const PROXY_POOL = [
-    // US Residential Proxies (Simulated Examples)
-    { protocol: 'http', host: '192.168.1.101', port: 8080 },
-    { protocol: 'http', host: '10.0.0.15', port: 3128 },
-    { protocol: 'http', host: '172.16.254.1', port: 80 },
-    { protocol: 'http', host: '203.0.113.1', port: 8080 },
-    { protocol: 'http', host: '198.51.100.2', port: 3128 },
-    // EU Nodes
-    { protocol: 'http', host: '185.199.108.153', port: 8080 },
-    { protocol: 'http', host: '140.82.112.4', port: 80 },
-    // APAC Nodes
-    { protocol: 'http', host: '13.229.188.59', port: 3128 },
-    { protocol: 'http', host: '54.251.192.200', port: 8080 },
-    // ... scalable to 50M+ with paid provider API
+// Free proxy rotation (simulated for dev, replace with paid rotating proxy service like BrightData, Oxylabs, or Smartproxy in production)
+const PROXY_POOL: any[] = [
+    // Add custom proxies here if needed, or use PROXY_URL env var
+    // { protocol: 'http', host: '...', port: 8080 }
 ];
+
+import { GEMINI_LATEST_MODEL } from '../ai/model-config.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -800,7 +792,7 @@ export class AdvancedCrawler {
         estimatedRevenue: string;
     }> {
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+            const model = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
             const prompt = `Analyze this business and estimate revenue.
 
 Business: ${entity}

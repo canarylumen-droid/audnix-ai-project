@@ -218,7 +218,7 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string): Pr
     const url = new URL(cleanDomain.startsWith('http') ? cleanDomain : `https://${cleanDomain}`);
     cleanDomain = url.hostname;
   } catch (e) {
-    cleanDomain = cleanDomain.replace(/\/.*$/, '');
+    cleanDomain = cleanDomain.split('/')[0];
   }
 
   const [spf, dkim, dmarc, mx] = await Promise.all([

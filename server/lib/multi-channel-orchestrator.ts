@@ -8,8 +8,7 @@ import { eq, and, lt } from 'drizzle-orm';
  * 
  * Stagger across channels to avoid looking like a bot:
  * - Email: Day 0, 24h, 48h, Day 5, Day 7
- * - WhatsApp: Day 3, Day 6 (only if email was opened/clicked or ignored)
- * - Instagram: Day 5, Day 8 (only if both email & WhatsApp failed)
+ * - Instagram: Day 5, Day 8 (only if email failed)
  */
 
 export interface FollowUpSchedule {

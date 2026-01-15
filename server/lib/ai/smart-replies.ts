@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
+import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -74,7 +75,7 @@ Return JSON array:
 ]`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.sales_reasoning,
       messages: [
         { role: 'system', content: 'You are a sales reply expert. Generate concise, effective quick replies.' },
         ...conversationContext as any,

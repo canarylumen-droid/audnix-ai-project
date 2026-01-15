@@ -5,7 +5,7 @@
  */
 
 export interface DisclaimerConfig {
-  channel: 'email' | 'sms' | 'voice';
+  channel: 'email' | 'voice';
   companyName?: string;
 }
 
@@ -23,7 +23,7 @@ export function generateDisclaimerPrefix(config: DisclaimerConfig): string {
 
 
 
-    sms: `[Automated: This message is informational and AI-generated. See our terms for official commitments.]`,
+
 
     voice: `This is an automated message from ${companyName}. `, // Voice: subtle prefix to sound natural
   };
@@ -32,35 +32,36 @@ export function generateDisclaimerPrefix(config: DisclaimerConfig): string {
 }
 
 /**
- * Prepend disclaimer to message (internal - not shown to leads)
- * This is stored in the database for audit trail and legal compliance
+ * Get disclaimer for message (UI/internal use only)
+ * DO NOT append to the actual message sent to leads, as requested by user.
+ * This can be shown in the dashboard conversation view but remains hidden from leads.
+ */
+export function getMessageDisclaimer(
+  channel: 'email' | 'voice',
+  companyName?: string
+): string {
+  return generateDisclaimerPrefix({ channel, companyName });
+}
+
+/**
+ * DEPRECATED: Prepend disclaimer to message
+ * Now returns the original message unmodified to ensure leads don't see AI disclaimers,
+ * while still providing the disclaimer string for the UI to display in gray/subtle text.
  */
 export function prependDisclaimerToMessage(
   messageBody: string,
-  channel: 'email' | 'sms' | 'voice',
+  channel: 'email' | 'voice',
   companyName?: string
 ): {
   messageWithDisclaimer: string;
   disclaimerPrefix: string;
 } {
-  const disclaimerPrefix = generateDisclaimerPrefix({ channel, companyName });
+  const disclaimerPrefix = getMessageDisclaimer(channel, companyName);
 
-  // For email: disclaimer at the end (better UX)
-  // For others: prepend naturally
-  let messageWithDisclaimer = messageBody;
-
-  if (channel === 'email') {
-    messageWithDisclaimer = `${messageBody}\n\n${disclaimerPrefix}`;
-  } else if (channel === 'voice') {
-    // Voice: prepend naturally so it sounds like part of the message
-    messageWithDisclaimer = `${disclaimerPrefix}${messageBody}`;
-  } else {
-    // SMS: prepend
-    messageWithDisclaimer = `${disclaimerPrefix}\n\n${messageBody}`;
-  }
-
+  // Return the original message - DO NOT append the disclaimer
+  // This satisfies the user's request that leads shouldn't know it's AI
   return {
-    messageWithDisclaimer,
+    messageWithDisclaimer: messageBody,
     disclaimerPrefix,
   };
 }

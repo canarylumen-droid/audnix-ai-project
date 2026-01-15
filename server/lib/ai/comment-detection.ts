@@ -1,10 +1,11 @@
 import OpenAI from 'openai';
+import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -59,7 +60,7 @@ Return JSON only: { "wantsDM": boolean, "intent": string, "confidence": number }
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You are an expert at analyzing social media engagement patterns.' },
         { role: 'user', content: prompt }
@@ -134,7 +135,7 @@ Generate the DM:`;
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You are a skilled digital marketer creating personalized DM responses. Never include URLs - they will be added as styled buttons.' },
         { role: 'user', content: prompt }
@@ -213,7 +214,7 @@ Generate the follow-up:`;
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You are a skilled sales professional creating thoughtful, context-aware follow-up messages. Always reference specific details from previous conversations when available.' },
         { role: 'user', content: prompt }

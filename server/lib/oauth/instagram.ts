@@ -1,5 +1,6 @@
 import crypto from 'crypto';
-import { supabaseAdmin } from '../supabase-admin.js';
+// import { supabaseAdmin } from '../supabase-admin.js'; // Removed
+import { storage } from '../../storage.js';
 import { encrypt, decrypt } from '../crypto/encryption.js';
 import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
 
@@ -143,84 +144,57 @@ export class InstagramOAuth {
    * Save OAuth token to database
    */
   async saveToken(userId: string, tokenData: InstagramTokenResponse, expiresIn: number = 5184000): Promise<void> {
-    if (!supabaseAdmin) {
-      throw new Error('Supabase admin not configured');
-    }
-
     const encryptedToken = await encrypt(tokenData.access_token);
     const expiresAt = new Date(Date.now() + (expiresIn * 1000));
 
-    // Save to oauth_tokens table
-    const { error: tokenError } = await supabaseAdmin
-      .from('oauth_tokens')
-      .upsert({
-        user_id: userId,
-        provider: 'instagram',
-        access_token: encryptedToken,
-        expires_at: expiresAt.toISOString(),
-        metadata: {
-          instagram_user_id: tokenData.user_id,
-          permissions: tokenData.permissions
-        },
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,provider'
-      });
-
-    if (tokenError) {
-      console.error('Error saving OAuth token:', tokenError);
-      throw new Error('Failed to save OAuth token');
-    }
+    // Save to oauth_accounts table via storage
+    await storage.saveOAuthAccount({
+      userId: userId,
+      provider: 'instagram',
+      providerAccountId: tokenData.user_id,
+      accessToken: encryptedToken,
+      expiresAt: expiresAt,
+      tokenType: 'bearer', // Instagram uses Bearer?
+      scope: 'instagram_basic,instagram_manage_messages,instagram_manage_comments'
+    });
 
     // Update user record with Instagram info
-    const { error: userError } = await supabaseAdmin
-      .from('users')
-      .update({
+    await storage.updateUser(userId, {
+      metadata: {
         instagram_access_token: encryptedToken,
         instagram_token_expires: expiresAt.toISOString(),
         instagram_user_id: tokenData.user_id
-      })
-      .eq('id', userId);
-
-    if (userError) {
-      console.error('Error updating user:', userError);
-      throw new Error('Failed to update user record');
-    }
+      }
+    }); // Schema needs to support this metadata structure or columns
   }
 
   /**
    * Get valid access token (refresh if needed)
    */
   async getValidToken(userId: string): Promise<string | null> {
-    if (!supabaseAdmin) {
+    const tokenData = await storage.getOAuthAccount(userId, 'instagram');
+
+    if (!tokenData) {
       return null;
     }
 
-    const { data: tokenData, error } = await supabaseAdmin
-      .from('oauth_tokens')
-      .select('access_token, expires_at')
-      .eq('user_id', userId)
-      .eq('provider', 'instagram')
-      .single();
-
-    if (error || !tokenData) {
-      return null;
-    }
-
-    const expiresAt = new Date(tokenData.expires_at);
+    // Check if token is expired
+    const expiresAt = tokenData.expiresAt ? new Date(tokenData.expiresAt) : new Date(0);
     const now = new Date();
     const hoursUntilExpiry = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     // Refresh if less than 24 hours until expiry
-    if (hoursUntilExpiry < 24) {
+    if (hoursUntilExpiry < 24 && tokenData.accessToken) {
       try {
-        const decryptedToken = await decrypt(tokenData.access_token);
+        const decryptedToken = await decrypt(tokenData.accessToken);
         const refreshedData = await this.refreshLongLivedToken(decryptedToken);
 
         // Save new token
         await this.saveToken(userId, {
           access_token: refreshedData.access_token,
-          user_id: userId,
+          user_id: tokenData.providerAccountId, // Reuse existing user_id if not provided in refresh? Usually refresh just gives token.
+          // refreshLongLivedToken result: { access_token, token_type, expires_in }
+          // It doesn't return user_id. We must rely on stored user_id.
         }, refreshedData.expires_in);
 
         return refreshedData.access_token;
@@ -230,7 +204,8 @@ export class InstagramOAuth {
       }
     }
 
-    return await decrypt(tokenData.access_token);
+    if (!tokenData.accessToken) return null;
+    return await decrypt(tokenData.accessToken);
   }
 
   /**
@@ -238,28 +213,23 @@ export class InstagramOAuth {
    */
   async revokeToken(userId: string): Promise<void> {
     const token = await this.getValidToken(userId);
-    if (!token || !supabaseAdmin) return;
+    if (!token) return;
 
     // Call Instagram API to revoke token
     // Note: Instagram doesn't have a revoke endpoint, so we just delete from DB
 
-    // Delete from oauth_tokens table
-    await supabaseAdmin
-      .from('oauth_tokens')
-      .delete()
-      .eq('user_id', userId)
-      .eq('provider', 'instagram');
+    // Delete from oauth_accounts table
+    await storage.deleteOAuthAccount(userId, 'instagram');
 
     // Clear from users table
-    await supabaseAdmin
-      .from('users')
-      .update({
+    await storage.updateUser(userId, {
+      metadata: {
         instagram_access_token: null,
         instagram_token_expires: null,
         instagram_user_id: null,
         instagram_username: null
-      })
-      .eq('id', userId);
+      }
+    });
   }
 
   /**

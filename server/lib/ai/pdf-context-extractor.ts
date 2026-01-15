@@ -18,9 +18,10 @@
  */
 
 import OpenAI from "openai";
+import { MODELS } from "./model-config.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -85,7 +86,7 @@ Extract and return ONLY valid JSON (no markdown, no code blocks):
   "payment_link": "stripe payment link, paypal.me, bank details, or invoice URL",
   "app_link": "SaaS app URL, signup page, or download link",
   "contact_email": "business email for contact",
-  "contact_phone": "business phone/WhatsApp",
+  "contact_phone": "business phone number",
   "social_links": ["instagram", "twitter", "linkedin URLs"]
 }
 
@@ -99,7 +100,7 @@ Be thorough and precise.`;
     }
 
     const extractionResponse = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [{ role: "user", content: extractionPrompt }],
       temperature: 0.3,
       max_tokens: 1500,
@@ -203,7 +204,7 @@ export async function performDeepBrandResearch(
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "system",
@@ -286,7 +287,7 @@ export async function researchCompetitivePosition(
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -326,7 +327,7 @@ export async function brainstormMessageAngles(
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",
@@ -373,7 +374,7 @@ export async function generateIndustrySpecificGuidance(
     }
 
     const response = await (openai as OpenAI).chat.completions.create({
-      model: "gpt-4",
+      model: MODELS.sales_reasoning,
       messages: [
         {
           role: "user",

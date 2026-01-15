@@ -23,6 +23,7 @@ import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/ca
 import { generateSmartReplies } from '../lib/ai/smart-replies.js';
 import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
 import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
+import { processPDF } from "../lib/pdf-processor.js";
 import type { ProviderType, ChannelType } from '../../shared/types.js';
 
 type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
@@ -126,7 +127,8 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
       audioUrl: null,
       metadata: {
         ai_generated: !manualMessage,
-        should_use_voice: aiResponse.useVoice
+        should_use_voice: aiResponse.useVoice,
+        detections: aiResponse.detections
       }
     });
 
@@ -885,10 +887,24 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
       const row = leadsData[i];
 
       try {
-        const email = row.email || row.Email || row.EMAIL;
-        const phone = row.phone || row.Phone || row.PHONE || row.mobile || row.Mobile;
-        const name = row.name || row.Name || row.NAME || row.full_name || row.fullName || 'Unknown';
-        const company = row.company || row.Company || row.COMPANY || row.organization;
+        const email = (row.email || row.Email || row.EMAIL || row.emailAddress || row.EmailAddress)?.trim();
+        const phone = (row.phone || row.Phone || row.PHONE || row.mobile || row.Mobile || row.phoneNumber)?.trim();
+        let name = (row.name || row.Name || row.NAME || row.full_name || row.fullName || row.Firstname || row.FirstName)?.trim();
+        const company = (row.company || row.Company || row.COMPANY || row.organization || row.Organization)?.trim();
+
+        // Better name extraction: if name is generic or missing, try extracting from email
+        if (!name || name.toLowerCase() === 'unknown' || name === 'Unknown Lead') {
+          if (email) {
+            const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+            name = namePart.split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          } else if (phone) {
+            name = `Lead ${phone.slice(-4)}`;
+          } else {
+            name = 'Unknown Lead';
+          }
+        }
 
         const identifier = email || phone;
         if (!identifier) {
@@ -905,7 +921,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
 
         await storage.createLead({
           userId,
-          name: name || 'Unknown Lead',
+          name: name,
           email: email || undefined,
           phone: phone || undefined,
           channel: 'email',
@@ -977,86 +993,23 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
       return;
     }
 
-    const pdfParse = require("pdf-parse");
-    const data = await pdfParse(req.file.buffer);
-    const pdfText: string = data.text;
-
-    // Extract emails from PDF
-    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-    const emails = [...new Set(pdfText.match(emailRegex) || [])];
-
-    // Extract phone numbers from PDF
-    const phoneRegex = /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/g;
-    const phones = [...new Set(pdfText.match(phoneRegex) || [])];
-
-    const results = {
-      leadsImported: 0,
-      errors: [] as string[]
-    };
-
-    const existingEmails = new Set(existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean));
-    const existingPhones = new Set(existingLeads.map(l => l.phone).filter(Boolean));
-    const importedIdentifiers = new Set<string>();
-
-    // Import email leads
-    for (const email of emails) {
-      if (currentLeadCount + results.leadsImported >= maxLeads) break;
-      if (existingEmails.has(email.toLowerCase()) || importedIdentifiers.has(email.toLowerCase())) continue;
-
-      try {
-        await storage.createLead({
-          userId,
-          name: email.split('@')[0],
-          email,
-          channel: 'email',
-          status: 'new',
-          metadata: {
-            imported_from_pdf: true,
-            import_date: new Date().toISOString()
-          }
-        });
-        importedIdentifiers.add(email.toLowerCase());
-        results.leadsImported++;
-      } catch (error) {
-        results.errors.push(`Failed to import ${email}`);
-      }
-    }
-
-    /* Phone import removed as WhatsApp is disabled
-    // Import phone leads
-    for (const phone of phones) {
-      if (currentLeadCount + results.leadsImported >= maxLeads) break;
-      if (existingPhones.has(phone) || importedIdentifiers.has(phone)) continue;
-
-      try {
-        await storage.createLead({
-          userId,
-          name: 'Lead ' + phone.slice(-4),
-          phone,
-          channel: 'instagram', // Fallback to instagram? Or just skip.
-          status: 'new',
-          metadata: {
-            imported_from_pdf: true,
-            import_date: new Date().toISOString()
-          }
-        });
-        importedIdentifiers.add(phone);
-        // results.leadsImported++; // Skip count
-      } catch (error) {
-        results.errors.push(`Failed to import ${phone}`);
-      }
-    }
-    */
-
-    res.json({
-      success: results.leadsImported > 0,
-      leadsImported: results.leadsImported,
-      emailsFound: emails.length,
-      phonesFound: phones.length,
-      errors: results.errors,
-      message: `Imported ${results.leadsImported} leads from PDF`
+    const result = await processPDF(req.file.buffer, userId, {
+      extractOffer: true,
+      autoReachOut: false
     });
 
+    if (!result.success) {
+      throw new Error(result.error || "Failed to process PDF");
+    }
+
+    res.json({
+      success: true,
+      leadsImported: result.leadsCreated,
+      emailsFound: result.leads?.filter(l => !!l.email).length || 0,
+      phonesFound: result.leads?.filter(l => !!l.phone).length || 0,
+      errors: [],
+      message: `Successfully processed PDF and imported ${result.leadsCreated} leads`
+    });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads from PDF";
     console.error("PDF import error:", error);

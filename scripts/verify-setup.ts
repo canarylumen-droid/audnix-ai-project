@@ -1,5 +1,5 @@
 
-#!/usr/bin/env tsx
+#!/usr/bin / env tsx
 
 /**
  * Audnix AI Setup Verification
@@ -24,7 +24,6 @@ const REQUIRED = {
 const OPTIONAL = {
   'AI Features': ['OPENAI_API_KEY'],
   'Payments': ['STRIPE_SECRET_KEY', 'VITE_STRIPE_PUBLIC_KEY'],
-  'WhatsApp OTP': ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'],
   'Google OAuth': ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
   'Voice Cloning': ['ELEVENLABS_API_KEY']
 };
@@ -54,7 +53,7 @@ const hasAuth = !!(
 if (!hasAuth) {
   console.log('\n❌ No authentication method configured!');
   console.log('   Set up either:');
-  console.log('   - Supabase (for Email/WhatsApp)');
+  console.log('   - Supabase (for Email)');
   console.log('   - Google OAuth');
   allGood = false;
 }

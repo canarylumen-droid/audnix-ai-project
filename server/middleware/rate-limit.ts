@@ -28,19 +28,19 @@ async function initRedis(): Promise<void> {
     console.log('ℹ️  Redis not configured - using memory-based rate limiting');
     return;
   }
-  
+
   try {
     let redisUrl = process.env.REDIS_URL.trim();
-    
+
     if (redisUrl.includes('redis-cli')) {
       redisUrl = redisUrl.replace(/^redis-cli\s+-u\s+/, '');
     }
-    
+
     const match = redisUrl.match(/redis:\/\/[^:]+:[^@]+@[^:]+:\d+/);
     if (match) {
       redisUrl = match[0];
     }
-    
+
     console.log('📍 Connecting to Redis...');
     const client = createClient({
       url: redisUrl,
@@ -49,9 +49,9 @@ async function initRedis(): Promise<void> {
         reconnectStrategy: false
       }
     });
-    
-    client.on('error', () => {});
-    
+
+    client.on('error', () => { });
+
     await client.connect();
     console.log('✅ Redis connected for rate limiting');
     redisClient = client as RedisClientType;
@@ -61,7 +61,7 @@ async function initRedis(): Promise<void> {
   }
 }
 
-initRedis().catch(() => {});
+initRedis().catch(() => { });
 
 function createRedisStoreConfig(prefix: string): RedisStoreConfig | undefined {
   if (!redisClient) {
@@ -150,20 +150,6 @@ export const aiLimiter = rateLimit(
   )
 );
 
-export const whatsappLimiter = rateLimit(
-  createRateLimiterOptions(
-    {
-      windowMs: 60 * 1000,
-      max: 20,
-      message: 'WhatsApp message rate limit exceeded. Please wait before sending more messages.',
-      keyGenerator: createUserKeyGenerator('user'),
-      standardHeaders: true,
-      legacyHeaders: false,
-      validate: false
-    },
-    'rl:whatsapp:'
-  )
-);
 
 export const viteLimiter = rateLimit(
   createRateLimiterOptions(

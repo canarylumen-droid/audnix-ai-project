@@ -177,59 +177,73 @@ export default function ProspectingPage() {
                     </div>
                 </div>
 
-                {/* Search Interface */}
-                <Card className="bg-[#0d1117]/50 backdrop-blur-md border hover:border-primary/20 transition-colors border-white/5 rounded-3xl overflow-hidden group shadow-2xl">
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-white text-xl">Direct Intelligence Search</CardTitle>
-                                <p className="text-white/30 text-xs font-medium mt-1">
-                                    Describe your ideal client. Our 500M+ node proxy mesh will verify decision makers with high-trust residential IPs.
-                                </p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-primary text-2xl font-black tracking-tighter">2,000</p>
-                                <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">Leads per Burst</p>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <form onSubmit={handleSearch} className="relative">
-                            <div className="absolute inset-0 bg-primary/5 blur-3xl rounded-full opacity-30 pointer-events-none" />
-                            <Input
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                disabled={scanMutation.isPending}
-                                placeholder="Find 500 decision makers in SaaS companies with $1M+ revenue..."
-                                className="h-24 pl-8 pr-32 bg-black/40 border-white/10 rounded-2xl text-xl text-white placeholder:text-white/10 focus:border-primary/50 transition-all shadow-inner"
-                            />
-                            <Button
-                                type="submit"
-                                disabled={scanMutation.isPending || !query.trim()}
-                                className="absolute right-3 top-3 bottom-3 px-10 bg-primary hover:bg-primary/90 text-black font-black rounded-xl shadow-[0_0_30px_rgba(0,210,255,0.4)] transition-all hover:scale-[1.02] active:scale-95 text-xs uppercase tracking-widest"
-                            >
-                                {scanMutation.isPending ? (
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        <Zap className="w-5 h-5 mr-2 fill-current" />
-                                        Initiate Lead Hunt
-                                    </>
-                                )}
-                            </Button>
-                        </form>
+                {/* Gemini-Style Neural Input */}
+                <div className="relative max-w-4xl mx-auto mt-12 mb-16 group">
+                    {/* Atmospheric Glow */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 rounded-3xl opacity-20 group-hover:opacity-40 blur-xl transition-all duration-500" />
 
-                        <div className="flex flex-wrap gap-2">
-                            {['500M+ Residential Mesh', 'WAF/Captcha Bypass', 'JS Headless Render', 'AI Web Unblocker v4', 'Full Header Rotation'].map(f => (
-                                <div key={f} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 group/badge hover:border-blue-500/30 transition-colors">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500/40 group-hover/badge:bg-blue-500 transition-colors" />
-                                    {f}
+                    <Card className="relative bg-[#0a0a0a]/90 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
+                        <CardContent className="p-2">
+                            <form onSubmit={handleSearch} className="relative flex items-center">
+                                <div className="pl-6 pr-4">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 animate-pulse-slow">
+                                        <Zap className="w-5 h-5 text-white fill-white" />
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+
+                                <Input
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    disabled={scanMutation.isPending}
+                                    placeholder="Ask Neural Core to find leads (e.g., 'CEO of SaaS in Austin with $5M+ revenue')..."
+                                    className="h-20 bg-transparent border-none text-xl md:text-2xl text-white placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 font-medium px-2"
+                                />
+
+                                <div className="pr-4 flex items-center gap-3">
+                                    {scanMutation.isPending ? (
+                                        <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/5">
+                                            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                                            <span className="text-xs font-bold text-primary uppercase tracking-wider animate-pulse">Scanning</span>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            type="submit"
+                                            disabled={!query.trim()}
+                                            className="w-12 h-12 rounded-2xl bg-white text-black hover:bg-blue-50 hover:scale-105 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center p-0"
+                                        >
+                                            <Search className="w-6 h-6" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </form>
+
+                            {/* Feature Tags */}
+                            <div className="px-6 pb-4 pt-2 flex flex-wrap gap-2">
+                                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-2 py-1.5">Active Protocols:</span>
+                                {['Only 95%+ Verified', 'Decision Makers', 'Revenue > $1M', 'Mobile + Email'].map((tag, i) => (
+                                    <div key={i} className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] font-medium text-white/60 flex items-center gap-1.5 hover:bg-white/10 transition-colors">
+                                        <div className={`w-1 h-1 rounded-full ${i % 2 === 0 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                                        {tag}
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+
+                        {/* Progress Bar (Bottom) */}
+                        {scanMutation.isPending && (
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/5">
+                                <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500 animate-shimmer w-full" />
+                            </div>
+                        )}
+                    </Card>
+
+                    {/* Helper Text */}
+                    <div className="absolute -bottom-10 left-0 right-0 text-center">
+                        <p className="text-xs text-white/30 font-medium">
+                            <span className="text-primary">Tip:</span> Be specific about location and niche for higher verification rates.
+                        </p>
+                    </div>
+                </div>
 
                 {/* Results Table */}
                 {leads.length > 0 ? (

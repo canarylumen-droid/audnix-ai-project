@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/hooks/use-toast';
 
 // Register service worker for PWA
@@ -65,6 +65,7 @@ export function useRealtime(userId?: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const lastNotificationTime = useRef<number>(0);
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     // Register service worker on mount
@@ -72,189 +73,179 @@ export function useRealtime(userId?: string) {
   }, []);
 
   useEffect(() => {
-    if (!supabase || !userId) return;
+    if (!userId) return;
 
-    // Subscribe to leads table changes
-    const leadsChannel = supabase
-      .channel(`leads-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('Lead change:', payload);
+    // Connect to Socket.IO server
+    // Use relative path for production compatibility or configured URL
+    const socket = io(undefined, {
+      path: '/socket.io',
+      query: { userId },
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      transports: ['websocket', 'polling']
+    });
 
-          // Invalidate leads queries and dashboard stats
-          queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/leads/stats'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
+    socketRef.current = socket;
 
-          // Show notification for new leads
-          if (payload.eventType === 'INSERT') {
-            playNotificationSound();
-            toast({
-              title: '🎯 New Lead Captured',
-              description: `${payload.new.name} from ${payload.new.channel}`,
-            });
+    socket.on('connect', () => {
+      console.log('✅ Socket connected');
+    });
 
-            // Push notification
-            showPushNotification('🎯 New Lead Captured', {
-              body: `${payload.new.name} from ${payload.new.channel}`,
-              tag: 'new-lead',
-              data: { url: '/dashboard/inbox' }
-            });
-          }
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err);
+    });
 
-          // Show notification for status changes
-          if (payload.eventType === 'UPDATE' && payload.old.status !== payload.new.status) {
-            if (payload.new.status === 'converted') {
-              playNotificationSound();
-              toast({
-                title: '🎉 Conversion!',
-                description: `${payload.new.name} converted to customer`,
-              });
+    // LEADS UPDATES
+    socket.on('leads_updated', (payload: any) => {
+      console.log('Lead update:', payload);
+      // Data payload: { event: 'INSERT'|'UPDATE', lead: object }
 
-              // Push notification
-              showPushNotification('🎉 Conversion!', {
-                body: `${payload.new.name} converted to customer`,
-                tag: 'conversion',
-                requireInteraction: true,
-                data: { url: '/dashboard/deals' }
-              });
-            }
-          }
-        }
-      )
-      .subscribe();
+      // Invalidate leads queries and dashboard stats
+      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leads/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
 
-    // Subscribe to messages table changes
-    const messagesChannel = supabase
-      .channel(`messages-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('New message:', payload);
+      // Handle INSERT notifications
+      if (payload.event === 'INSERT' && payload.lead) {
+        playNotificationSound();
+        toast({
+          title: '🎯 New Lead Captured',
+          description: `${payload.lead.name} from ${payload.lead.channel}`,
+        });
+        showPushNotification('🎯 New Lead Captured', {
+          body: `${payload.lead.name} from ${payload.lead.channel}`,
+          tag: 'new-lead',
+          data: { url: '/dashboard/inbox' }
+        });
+      }
 
-          // Invalidate conversation queries and dashboard
-          queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
-          queryClient.invalidateQueries({ queryKey: [`/api/conversations/${payload.new.lead_id}`] });
-          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
+      // Handle UPDATE status changes
+      if (payload.event === 'UPDATE' && payload.lead?.status === 'converted') {
+        playNotificationSound();
+        toast({
+          title: '🎉 Conversion!',
+          description: `${payload.lead.name} converted to customer`,
+        });
+        showPushNotification('🎉 Conversion!', {
+          body: `${payload.lead.name} converted to customer`,
+          tag: 'conversion',
+          requireInteraction: true,
+          data: { url: '/dashboard/deals' }
+        });
+      }
+    });
 
-          // Show notification for inbound messages with sound
-          if (payload.new.direction === 'inbound') {
-            playNotificationSound();
-            toast({
-              title: '💬 New Message',
-              description: 'You have a new message from a lead',
-            });
+    // MESSAGES UPDATES
+    socket.on('messages_updated', (payload: any) => {
+      console.log('Message update:', payload);
+      // Payload: { event: 'INSERT', message: object }
 
-            // Push notification
-            showPushNotification('💬 New Message', {
-              body: 'You have a new message from a lead',
-              tag: 'new-message',
-              data: { url: '/dashboard/conversations' }
-            });
-          }
-        }
-      )
-      .subscribe();
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
+      // Invalidate specific lead conversation if needed
+      if (payload.message?.leadId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/conversations/${payload.message.leadId}`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
 
-    // Subscribe to notifications table with enhanced handling
-    const notificationsChannel = supabase
-      .channel(`notifications-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('New notification:', payload);
+      // Notification for inbound messages
+      if (payload.message?.direction === 'inbound') {
+        playNotificationSound();
+        toast({
+          title: '💬 New Message',
+          description: 'You have a new message from a lead',
+        });
+        showPushNotification('💬 New Message', {
+          body: 'You have a new message from a lead',
+          tag: 'new-message',
+          data: { url: '/dashboard/conversations' }
+        });
+      }
+    });
 
-          // Invalidate notifications queries
-          queryClient.invalidateQueries({ queryKey: ['/api/user/notifications'] });
+    // NOTIFICATIONS UPDATES
+    // Assuming backend emits 'notification' event when creating rows in 'notifications' table
+    socket.on('notification', (payload: any) => {
+      console.log('New notification:', payload);
+      // Invalidate notifications queries
+      queryClient.invalidateQueries({ queryKey: ['/api/user/notifications'] });
 
-          // Throttle notification sounds (max 1 per 2 seconds)
-          const now = Date.now();
-          if (now - lastNotificationTime.current > 2000) {
-            playNotificationSound();
-            lastNotificationTime.current = now;
-          }
+      // Throttle sound
+      const now = Date.now();
+      if (now - lastNotificationTime.current > 2000) {
+        playNotificationSound();
+        lastNotificationTime.current = now;
+      }
 
-          // Show the notification with relative time
-          const relativeTime = getRelativeTime(payload.new.created_at);
-          toast({
-            title: payload.new.title,
-            description: `${payload.new.message} • ${relativeTime}`,
-            variant: payload.new.type === 'billing_issue' ? 'destructive' : 'default',
-          });
-        }
-      )
-      .subscribe();
+      const relativeTime = getRelativeTime(payload.created_at || new Date());
+      toast({
+        title: payload.title,
+        description: `${payload.message} • ${relativeTime}`,
+        variant: payload.type === 'billing_issue' ? 'destructive' : 'default',
+      });
+    });
 
-    // Subscribe to calendar events
-    const calendarChannel = supabase
-      .channel(`calendar-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'calendar_events',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          console.log('New calendar event:', payload);
+    // CALENDAR UPDATES
+    socket.on('calendar_updated', (payload: any) => {
+      console.log('Calendar update:', payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/oauth/google-calendar/events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/calendar'] });
 
-          queryClient.invalidateQueries({ queryKey: ['/api/oauth/google-calendar/events'] });
+      if (payload.event === 'INSERT' && payload.eventData?.is_ai_booked) {
+        playNotificationSound();
+        toast({
+          title: '📅 Meeting Booked',
+          description: `AI scheduled: ${payload.eventData.title}`,
+        });
+        showPushNotification('📅 Meeting Booked', {
+          body: `AI scheduled: ${payload.eventData.title}`,
+          tag: 'meeting-booked',
+          requireInteraction: true,
+          data: { url: '/dashboard/calendar' }
+        });
+      }
+    });
 
-          if (payload.new.is_ai_booked) {
-            playNotificationSound();
-            toast({
-              title: '📅 Meeting Booked',
-              description: `AI scheduled: ${payload.new.title}`,
-            });
+    // SETTINGS/USER UPDATES
+    socket.on('settings_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+    });
 
-            // Push notification
-            showPushNotification('📅 Meeting Booked', {
-              body: `AI scheduled: ${payload.new.title}`,
-              tag: 'meeting-booked',
-              requireInteraction: true,
-              data: { url: '/dashboard/calendar' }
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    // Cleanup subscriptions on unmount
     return () => {
-      supabase.removeChannel(leadsChannel);
-      supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(notificationsChannel);
-      supabase.removeChannel(calendarChannel);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, [userId, queryClient, toast]);
 }
 
 // Hook to use in dashboard layout
 export function useDashboardRealtime() {
-  // Get current user ID from your auth context or storage
-  const userId = localStorage.getItem('userId') || undefined;
+  // Get current user ID from state management or localStorage
+  // Ideally this comes from a proper Auth Context
+  const [userId, setUserId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    // Try to get from storage 
+    const id = localStorage.getItem('userId');
+    // Also check if we have a user object in storage (common pattern)
+    const userStr = localStorage.getItem('user');
+    let finalId = id;
+
+    if (!finalId && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.id) finalId = user.id;
+      } catch (e) { }
+    }
+
+    if (finalId) {
+      setUserId(finalId);
+    }
+  }, []);
 
   useRealtime(userId);
 }

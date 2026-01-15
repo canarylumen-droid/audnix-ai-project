@@ -17,10 +17,13 @@ import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import crypto from "crypto";
-import fs from "fs";
-import path from "path";
+import hpp from 'hpp';
+import csrf from 'csurf';
 
 const app = express();
+
+// Security: Use HPP to prevent HTTP Parameter Pollution
+app.use(hpp());
 
 // Simple logging utility (avoid circular imports)
 function log(message: string, source = "express") {
@@ -160,6 +163,21 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
+// CSRF Protection
+const csrfProtection = csrf({ cookie: false }); // Using session-based CSRF
+app.use((req, res, next) => {
+  // Skip CSRF for webhooks or specific APIs if needed
+  if (req.path.startsWith('/api/webhooks')) {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+// Provide CSRF token to client
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
 // CORS Middleware - Restricted to allowlist for credential safety
 const ALLOWED_ORIGINS = [
   'https://www.audnixai.com',
@@ -184,9 +202,12 @@ app.use((req, res, next) => {
     origin.endsWith('.railway.app') ||
     origin.endsWith('.replit.app');
 
-  if (isAllowedDomain) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  if (isAllowedDomain && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else if (!origin) {
+    // For non-browser requests or same-origin requests without Origin header
+    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
   }
 
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
@@ -510,8 +531,8 @@ async function runMigrations() {
           console.log('📬 Starting core system workers...');
           emailSyncWorker.start();
 
-          const wssSync = (await import('./lib/websocket-sync.js')).wsSync;
-          wssSync.initialize(serverInstance);
+          // wsSync is already initialized in registerRoutes
+
 
           // Start real-time IMAP IDLE if available
           try {

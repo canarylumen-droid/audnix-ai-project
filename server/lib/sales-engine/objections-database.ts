@@ -19,7 +19,7 @@ export interface Objection {
 /**
  * UNIFIED OBJECTIONS DATABASE - 110+ OBJECTIONS
  * Covers: Timing, Price, Competitor, Trust, Fit, Social, Decision, Compliance, Tone-Based
- * Handles: Email, WhatsApp, Instagram, SMS, Calls
+ * Handles: Email, Instagram
  * Learns: Tone, Permission asks, Industry context, Lead behavior
  */
 
@@ -746,7 +746,7 @@ export const OBJECTIONS_DATABASE: Objection[] = [
   // COMPLIANCE & PERMISSION OBJECTIONS (15) - NEW
   {
     id: 'compliance-1',
-    objection: 'Did you ask permission to contact me on WhatsApp?',
+    objection: 'Did you ask permission to contact me on Instagram?',
     category: 'trust',
     industries: ['all'],
     reframes: [
@@ -942,13 +942,13 @@ export const OBJECTIONS_DATABASE: Objection[] = [
   },
   {
     id: 'channel-2',
-    objection: 'Don\'t contact me on WhatsApp for business',
+    objection: 'Don\'t contact me on DMs for business',
     category: 'trust',
     industries: ['all'],
     reframes: [
       'Understood - we\'ll use email instead',
-      'WhatsApp is how businesses reach people fastest - but we respect your preference',
-      'One-click to switch to email, SMS, or any channel you prefer',
+      'Instagram DMs are where businesses reach people fastest - but we respect your preference',
+      'One-click to switch to email or any channel you prefer',
     ],
     stories: [],
     questions: [
@@ -962,7 +962,7 @@ export const OBJECTIONS_DATABASE: Objection[] = [
   },
   {
     id: 'channel-3',
-    objection: 'Your voice note in WhatsApp felt weird / Inappropriate',
+    objection: 'Your voice note in Instagram DM felt weird / Inappropriate',
     category: 'social',
     industries: ['all'],
     reframes: [
@@ -1267,9 +1267,9 @@ export const getObjectionsByIndustry = (industry: string): Objection[] => {
 export const getObjectionReframe = (objectionId: string, brandContext?: string): string[] => {
   const objection = OBJECTIONS_DATABASE.find(o => o.id === objectionId);
   if (!objection) return [];
-  
+
   if (brandContext) {
-    return objection.reframes.map(reframe => 
+    return objection.reframes.map(reframe =>
       reframe.replace(/your brand/gi, brandContext)
     );
   }
@@ -1283,7 +1283,7 @@ export const getSalesStrategy = (objectionId: string): {
 } => {
   const objection = OBJECTIONS_DATABASE.find(o => o.id === objectionId);
   if (!objection) return { questions: [], stories: [], closingTactics: [] };
-  
+
   return {
     questions: objection.questions,
     stories: objection.stories,

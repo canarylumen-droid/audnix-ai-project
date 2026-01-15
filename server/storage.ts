@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -18,7 +18,6 @@ export interface IStorage {
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
-  getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   getTotalLeadsCount(): Promise<number>;
@@ -60,6 +59,9 @@ export interface IStorage {
   updateDeal(id: string, userId: string, updates: any): Promise<any>;
   calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }>;
 
+  // Payment methods
+  createPayment(data: any): Promise<any>;
+
   // Usage tracking
   createUsageTopup(data: any): Promise<any>;
   getUsageHistory(userId: string, type?: string): Promise<any[]>;
@@ -74,6 +76,24 @@ export interface IStorage {
   getLatestOtpCode(email: string, purpose?: string): Promise<any>;
   incrementOtpAttempts(id: string): Promise<void>;
   markOtpVerified(id: string): Promise<void>;
+  cleanupDemoData(): Promise<{ deletedUsers: number }>;
+
+  // Follow Up Queue
+  createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue>;
+  getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined>;
+  updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined>;
+
+  // OAuth Accounts
+  getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined>;
+  getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]>;
+  saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount>;
+  deleteOAuthAccount(userId: string, provider: string): Promise<void>;
+
+  // Calendar Events
+  createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent>;
+
+  // Audit Trail (Recent Activities)
+  createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
 }
 
 export class MemStorage implements IStorage {
@@ -233,10 +253,6 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async getLeadByPhone(userId: string, phone: string): Promise<Lead | undefined> {
-    const leads = await this.getLeads({ userId, limit: 1000 });
-    return leads.find(lead => lead.phone === phone);
-  }
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
     const id = randomUUID();
@@ -516,6 +532,10 @@ export class MemStorage implements IStorage {
   // Usage tracking
   private usageHistory: Map<string, any[]> = new Map();
 
+  async createPayment(data: any): Promise<any> {
+    return { id: randomUUID(), ...data, createdAt: new Date() };
+  }
+
   async createUsageTopup(data: any): Promise<any> {
     const id = randomUUID();
     const now = new Date();
@@ -607,11 +627,153 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async cleanupDemoData(): Promise<{ deletedUsers: number }> {
+    let deletedCount = 0;
+    for (const [id, user] of this.users.entries()) {
+      if (user.email.toLowerCase().endsWith('@demo.com')) {
+        this.users.delete(id);
+        deletedCount++;
+      }
+    }
+    return { deletedUsers: deletedCount };
+  }
+
   // getUserByEmail is already defined above for User, but for OTP context, we might need to return null if not found.
   // The interface definition for IStorage already has a getUserByEmail that returns User | null.
   // If the existing implementation returns undefined and needs to return null, it would be changed.
   // For now, assuming the existing getUserByEmail is compatible or will be adjusted.
   // If a distinct getUserByEmail for OTP context is needed, it would be implemented here.
+
+  // ========== Follow Up Queue ==========
+  private followUps: Map<string, FollowUpQueue> = new Map();
+
+  async createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue> {
+    const id = randomUUID();
+    const followUp: FollowUpQueue = {
+      id,
+      userId: data.userId,
+      leadId: data.leadId,
+      channel: data.channel,
+      scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt : new Date(data.scheduledAt),
+      status: data.status || "pending",
+      processedAt: null,
+      context: data.context || {},
+      errorMessage: null,
+      createdAt: new Date(),
+    };
+    this.followUps.set(id, followUp);
+    return followUp;
+  }
+
+  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
+    return Array.from(this.followUps.values()).find(
+      f => f.leadId === leadId && f.status === 'pending'
+    );
+  }
+
+  async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {
+    const followUp = this.followUps.get(id);
+    if (followUp) {
+      followUp.status = status;
+      if (errorMessage !== undefined) followUp.errorMessage = errorMessage;
+      followUp.processedAt = new Date();
+      this.followUps.set(id, followUp);
+    }
+    return followUp;
+  }
+
+  // ========== OAuth Accounts ==========
+  private oauthAccounts: Map<string, OAuthAccount> = new Map();
+
+  async getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined> {
+    return Array.from(this.oauthAccounts.values()).find(
+      (account) => account.userId === userId && account.provider === provider
+    );
+  }
+
+  async getSoonExpiringOAuthAccounts(provider: string, thresholdMinutes: number): Promise<OAuthAccount[]> {
+    const now = Date.now();
+    const threshold = now + thresholdMinutes * 60 * 1000;
+    return Array.from(this.oauthAccounts.values()).filter(
+      account => account.provider === provider &&
+        account.expiresAt &&
+        account.expiresAt.getTime() < threshold
+    );
+  }
+
+  async saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount> {
+    const existing = await this.getOAuthAccount(data.userId, data.provider);
+    const id = existing ? existing.id : randomUUID();
+    const now = new Date();
+
+    const account: OAuthAccount = {
+      id,
+      userId: data.userId,
+      provider: data.provider,
+      providerAccountId: data.providerAccountId,
+      accessToken: data.accessToken || null,
+      refreshToken: data.refreshToken || null,
+      expiresAt: data.expiresAt ? (data.expiresAt instanceof Date ? data.expiresAt : new Date(data.expiresAt)) : null,
+      scope: data.scope || null,
+      tokenType: data.tokenType || null,
+      idToken: data.idToken || null,
+      createdAt: existing ? existing.createdAt : now,
+      updatedAt: now,
+    };
+
+    this.oauthAccounts.set(id, account);
+    return account;
+  }
+
+  async deleteOAuthAccount(userId: string, provider: string): Promise<void> {
+    const existing = await this.getOAuthAccount(userId, provider);
+    if (existing) {
+      this.oauthAccounts.delete(existing.id);
+    }
+  }
+
+  // ========== Calendar Events ==========
+  private calendarEvents: Map<string, CalendarEvent> = new Map();
+
+  async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
+    const id = randomUUID();
+    const event: CalendarEvent = {
+      id,
+      userId: data.userId,
+      leadId: data.leadId || null,
+      title: data.title,
+      description: data.description || null,
+      startTime: data.startTime instanceof Date ? data.startTime : new Date(data.startTime),
+      endTime: data.endTime instanceof Date ? data.endTime : new Date(data.endTime),
+      meetingUrl: data.meetingUrl || null,
+      provider: data.provider,
+      externalId: data.externalId,
+      attendees: data.attendees || [],
+      isAiBooked: data.isAiBooked || false,
+      preCallNote: data.preCallNote || null,
+      createdAt: new Date(),
+    };
+    this.calendarEvents.set(id, event);
+    return event;
+  }
+
+  // ========== Audit Trail ==========
+  private auditLogs: Map<string, AuditTrail> = new Map();
+
+  async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
+    const id = randomUUID();
+    const log: AuditTrail = {
+      id,
+      userId: data.userId,
+      leadId: data.leadId,
+      action: data.action,
+      messageId: data.messageId || null,
+      details: data.details || {},
+      createdAt: new Date(),
+    };
+    this.auditLogs.set(id, log);
+    return log;
+  }
 }
 
 // Use DrizzleStorage with Replit PostgreSQL database

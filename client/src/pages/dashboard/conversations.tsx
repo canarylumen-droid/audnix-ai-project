@@ -43,9 +43,14 @@ interface Lead {
 interface Message {
   id: string;
   content: string;
-  sender: "user" | "lead";
+  sender: "user" | "lead" | "assistant";
   timestamp: string;
   channel?: string;
+  metadata?: {
+    disclaimer?: string;
+    aiGenerated?: boolean;
+    [key: string]: any;
+  };
 }
 
 interface LeadResponse {
@@ -128,10 +133,24 @@ export default function ConversationsPage() {
   // Accumulate messages as user loads more
   useEffect(() => {
     if (messagesData?.messages) {
+      const mappedMessages = messagesData.messages.map((msg: any) => ({
+        id: msg.id,
+        content: msg.body,
+        sender: msg.direction === 'inbound' ? 'lead' : (msg.metadata?.aiGenerated ? 'assistant' : 'user'),
+        timestamp: msg.createdAt,
+        metadata: msg.metadata,
+      }));
+
       if (messageOffset === 0) {
-        setAllMessages(messagesData.messages);
+        setAllMessages(mappedMessages);
       } else {
-        setAllMessages(prev => [...prev, ...messagesData.messages]);
+        setAllMessages(prev => {
+          // Filter out duplicates
+          const newMessages = mappedMessages.filter(
+            nm => !prev.some(pm => pm.id === nm.id)
+          );
+          return [...prev, ...newMessages];
+        });
       }
     }
   }, [messagesData, messageOffset]);
@@ -387,14 +406,23 @@ export default function ConversationsPage() {
                       data-testid={`message-${index}`}
                     >
                       <div
-                        className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.sender === "user"
+                        className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.sender === "user" || msg.sender === "assistant"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
                           }`}
                       >
                         <p className="text-sm">{msg.content}</p>
+
+                        {msg.metadata?.disclaimer && (
+                          <div className="mt-2 pt-2 border-t border-primary-foreground/20">
+                            <p className="text-[10px] leading-tight opacity-70 italic">
+                              {msg.metadata.disclaimer}
+                            </p>
+                          </div>
+                        )}
+
                         <p
-                          className={`text-xs mt-1 ${msg.sender === "user"
+                          className={`text-xs mt-1 ${msg.sender === "user" || msg.sender === "assistant"
                             ? "text-primary-foreground/70"
                             : "text-muted-foreground"
                             }`}

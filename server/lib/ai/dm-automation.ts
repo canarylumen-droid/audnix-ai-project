@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../supabase-admin.js';
+// import { supabaseAdmin } from '../supabase-admin.js'; // Removed
 import { storage } from '../../storage.js';
 import { generateAIReply, calculateReplyDelay, isLeadActivelyReplying } from './conversation-ai.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
@@ -61,18 +61,12 @@ export async function scheduleAutomatedDMReply(
       return;
     }
 
-    if (supabaseAdmin) {
-      const { data: existingJob } = await supabaseAdmin
-        .from('dm_automation_queue')
-        .select('id')
-        .eq('lead_id', leadId)
-        .eq('status', 'scheduled')
-        .limit(1);
+    // Check DB for existing pending follow-up
+    const existingJob = await storage.getPendingFollowUp(leadId);
 
-      if (existingJob && existingJob.length > 0) {
-        console.log(`[DM_AUTO] Reply already scheduled in queue for lead ${leadId}, skipping`);
-        return;
-      }
+    if (existingJob) {
+      console.log(`[DM_AUTO] Reply already scheduled in queue for lead ${leadId}, skipping`);
+      return;
     }
 
     const conversationHistory = await getConversationHistory(leadId);
@@ -100,29 +94,23 @@ export async function scheduleAutomatedDMReply(
 
     pendingReplies.set(leadId, timeoutId);
 
-    if (supabaseAdmin) {
-      await supabaseAdmin
-        .from('dm_automation_queue')
-        .insert({
-          user_id: userId,
-          lead_id: leadId,
-          recipient_id: recipientId,
-          channel: 'instagram',
-          status: 'scheduled',
-          scheduled_at: scheduledAt.toISOString(),
-          context: {
-            last_message: lastMessage,
-            intent,
-            message_count: conversationHistory.length + 1
-          },
-          created_at: new Date().toISOString()
-        })
-        .then(({ error }) => {
-          if (error) {
-            console.log('[DM_AUTO] Queue logging info:', error.message);
-          }
-        });
-    }
+    pendingReplies.set(leadId, timeoutId);
+
+    // Persist to DB using FollowUpQueue
+    await storage.createFollowUp({
+      userId,
+      leadId,
+      channel: 'instagram',
+      status: 'pending', // Mapped 'scheduled' -> 'pending'
+      scheduledAt: scheduledAt,
+      context: {
+        last_message: lastMessage,
+        intent,
+        message_count: conversationHistory.length + 1
+      },
+      // recipientId is not in FollowUpQueue schema, context?
+      // schema: context matches.
+    });
 
   } catch (error) {
     console.error('[DM_AUTO] Error scheduling automated reply:', error);
@@ -233,27 +221,22 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
         lastMessageAt: new Date()
       });
 
-      await updateQueueStatus(job.leadId, 'sent', null);
+      await updateQueueStatus(job.leadId, 'completed', null);
 
       console.log(`[DM_AUTO] Successfully sent automated reply to ${lead.name}`);
 
-      if (supabaseAdmin) {
-        await supabaseAdmin
-          .from('recent_activities')
-          .insert({
-            user_id: job.userId,
-            lead_id: job.leadId,
-            activity_type: 'ai_reply_sent',
-            channel: 'instagram',
-            description: `AI sent: "${aiResult.text.substring(0, 50)}..."`,
-            metadata: {
-              automated: true,
-              reply_delay_seconds: Math.round((Date.now() - job.scheduledAt.getTime()) / 1000),
-              intent: job.context.intent
-            },
-            created_at: new Date().toISOString()
-          });
-      }
+      await storage.createAuditLog({
+        userId: job.userId,
+        leadId: job.leadId,
+        action: 'ai_reply_sent',
+        details: {
+          channel: 'instagram',
+          description: `AI sent: "${aiResult.text.substring(0, 50)}..."`,
+          automated: true,
+          reply_delay_seconds: Math.round((Date.now() - job.scheduledAt.getTime()) / 1000),
+          intent: job.context.intent
+        }
+      });
     } else {
       console.error('[DM_AUTO] Failed to send Instagram reply');
       await updateQueueStatus(job.leadId, 'failed', 'Instagram send failed');
@@ -348,18 +331,16 @@ async function getConversationHistory(leadId: string): Promise<Message[]> {
 }
 
 async function updateQueueStatus(leadId: string, status: string, errorMessage: string | null): Promise<void> {
-  if (!supabaseAdmin) return;
+  // Determine mapped status
+  let mappedStatus = status;
+  if (status === 'sent') mappedStatus = 'completed';
+  if (status === 'skipped') mappedStatus = 'completed'; // Treat skipped as completed processing
 
   try {
-    await supabaseAdmin
-      .from('dm_automation_queue')
-      .update({
-        status,
-        error_message: errorMessage,
-        processed_at: new Date().toISOString()
-      })
-      .eq('lead_id', leadId)
-      .eq('status', 'scheduled');
+    const pending = await storage.getPendingFollowUp(leadId);
+    if (!pending) return;
+
+    await storage.updateFollowUpStatus(pending.id, mappedStatus, errorMessage);
   } catch (error) {
     console.log('[DM_AUTO] Queue status update info:', error);
   }

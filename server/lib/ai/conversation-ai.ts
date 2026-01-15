@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { MODELS } from "./model-config.js";
 import { storage } from "../../storage.js";
 import type { Message, Lead } from "../../../shared/schema.js";
 import { storeConversationMemory, retrieveConversationMemory } from "./super-memory.js";
@@ -11,7 +12,7 @@ import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent
 import { BookingProposer } from '../calendar/booking-proposer.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -208,11 +209,11 @@ export async function generateAIReply(
   userContext?: { businessName?: string; brandVoice?: string }
 ): Promise<AIReplyResult> {
 
-    if (isDemoMode) {
-        throw new Error("Neural Engine Disconnected: System requires live API key for real-time inference.");
-    }
+  if (isDemoMode) {
+    throw new Error("Neural Engine Disconnected: System requires live API key for real-time inference.");
+  }
 
-    const brandContext = await getBrandContext(lead.userId);
+  const brandContext = await getBrandContext(lead.userId);
 
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
@@ -438,7 +439,7 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         { role: "system", content: systemPrompt },
         ...messageContext
@@ -451,6 +452,10 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
 
     // Append meeting/payment/app link if detected with lower confidence
     responseText = await appendLinkIfNeeded(lead.userId, lastMessage.body, responseText);
+
+    if (platform === 'email' && brandContext.signature) {
+      responseText += brandContext.signature;
+    }
 
     return {
       text: optimizeSalesLanguage(responseText),
@@ -520,7 +525,7 @@ Script:`;
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: MODELS.sales_reasoning,
       messages: [
         { role: "system", content: "You are a top-performing salesman creating personalized voice notes. You're confident, articulate, and genuinely helpful. You build trust quickly and guide leads toward action naturally." },
         { role: "user", content: prompt }

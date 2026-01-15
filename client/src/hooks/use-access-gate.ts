@@ -87,10 +87,6 @@ export function useCanAccessVideoAutomation(): AccessGate {
   return useAccessGate('videoAutomation');
 }
 
-// Instagram DM hook removed - not supported yet
-
-// WhatsApp removed - not supported
-
 export function useCanAccessEmail(): AccessGate {
   return useAccessGate('email');
 }

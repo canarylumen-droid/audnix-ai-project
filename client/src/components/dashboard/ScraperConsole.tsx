@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Cpu, Globe, Zap, CheckCircle, AlertTriangle, Loader2, Database, Shield } from 'lucide-react';
+import {
+    Terminal, Cpu, Globe, Zap, CheckCircle,
+    AlertTriangle, Loader2, Database, Shield,
+    XCircle, Brain, Activity
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface LogEntry {
     id: string;
@@ -60,8 +65,21 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                 animate={{ y: 0, opacity: 1 }}
                 className="w-full h-full md:h-[90vh] md:max-w-6xl bg-[#030303] md:border border-white/10 md:rounded-[3rem] shadow-[0_0_150px_rgba(0,180,255,0.2)] flex flex-col overflow-hidden relative"
             >
+                {/* Neural Scanline Effect */}
+                <div className="absolute inset-0 pointer-events-none z-50 opacity-[0.03] overflow-hidden">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+                    <motion.div
+                        animate={{ y: ['0%', '100%'] }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-x-0 h-20 bg-gradient-to-b from-transparent via-primary/20 to-transparent"
+                    />
+                </div>
+
+                {/* Grid Background Overlay */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.02] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+
                 {/* Header */}
-                <div className="px-6 md:px-10 py-6 md:py-8 border-b border-white/5 flex items-center justify-between bg-white/[0.01] sticky top-0 z-10 backdrop-blur-md">
+                <div className="px-6 md:px-10 py-6 md:py-8 border-b border-white/5 flex items-center justify-between bg-black/40 sticky top-0 z-10 backdrop-blur-xl">
                     <div className="flex items-center gap-4 md:gap-6">
                         <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/40 shadow-[0_0_30px_rgba(0,210,255,0.3)] shrink-0">
                             <Brain className="w-6 h-6 md:w-8 md:h-8 text-primary animate-pulse" />

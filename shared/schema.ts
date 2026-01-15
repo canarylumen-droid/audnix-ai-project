@@ -307,6 +307,20 @@ export const brandEmbeddings = pgTable("brand_embeddings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  stripePaymentId: text("stripe_payment_id"),
+  amount: real("amount").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  status: text("status").notNull().default("pending"),
+  plan: text("plan"),
+  paymentLink: text("payment_link"),
+  webhookPayload: jsonb("webhook_payload").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const onboardingProfiles = pgTable("onboarding_profiles", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
@@ -486,7 +500,7 @@ export const automationRules = pgTable("automation_rules", {
 // Content library for AI to choose from
 export const contentLibrary = pgTable("content_library", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
   type: text("type", { enum: ["reply", "objection", "cta", "video"] }).notNull(),
   name: text("name").notNull(),
   content: text("content").notNull(),
@@ -532,28 +546,29 @@ export const insertUserSchema = createInsertSchema(users).omit({ id: true, creat
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertIntegrationSchema = createInsertSchema(integrations).omit({ id: true, createdAt: true });
-export const insertDealSchema = createInsertSchema(deals).omit({ id: true, createdAt: true });
-export const insertVoiceSettingSchema = createInsertSchema(voiceSettings).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertAutomationSchema = createInsertSchema(automations).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertCalendarEventSchema = createInsertSchema(calendarEvents).omit({ id: true, createdAt: true });
-export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
-export const insertWebhookSchema = createInsertSchema(webhooks).omit({ id: true, createdAt: true });
-export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
-export const insertInsightSchema = createInsertSchema(insights).omit({ id: true, generatedAt: true });
-export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings).omit({ id: true, createdAt: true });
-export const insertOnboardingProfileSchema = createInsertSchema(onboardingProfiles).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({ id: true, createdAt: true });
-export const insertEmailWarmupScheduleSchema = createInsertSchema(emailWarmupSchedules).omit({ id: true, createdAt: true });
-export const insertBounceTrackerSchema = createInsertSchema(bounceTracker).omit({ id: true, createdAt: true });
-export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertVideoAssetSchema = createInsertSchema(videoAssets).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertAiActionLogSchema = createInsertSchema(aiActionLogs).omit({ id: true, createdAt: true });
-export const insertCalendarBookingSchema = createInsertSchema(calendarBookings).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertAutomationRuleSchema = createInsertSchema(automationRules).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertContentLibrarySchema = createInsertSchema(contentLibrary).omit({ id: true, createdAt: true, updatedAt: true });
-export const insertConversationEventSchema = createInsertSchema(conversationEvents).omit({ id: true, createdAt: true });
-export const insertProspectSchema = createInsertSchema(prospects).omit({ id: true, createdAt: true });
+export const insertDealSchema = createInsertSchema(deals);
+export const insertVoiceSettingSchema = createInsertSchema(voiceSettings);
+export const insertAutomationSchema = createInsertSchema(automations);
+export const insertCalendarEventSchema = createInsertSchema(calendarEvents);
+export const insertNotificationSchema = createInsertSchema(notifications);
+export const insertWebhookSchema = createInsertSchema(webhooks);
+export const insertApiKeySchema = createInsertSchema(apiKeys);
+export const insertInsightSchema = createInsertSchema(insights);
+export const insertPaymentSchema = createInsertSchema(payments);
+export const insertBrandEmbeddingSchema = createInsertSchema(brandEmbeddings);
+export const insertOnboardingProfileSchema = createInsertSchema(onboardingProfiles);
+export const insertOAuthAccountSchema = createInsertSchema(oauthAccounts);
+export const insertOtpCodeSchema = createInsertSchema(otpCodes);
+export const insertEmailWarmupScheduleSchema = createInsertSchema(emailWarmupSchedules);
+export const insertBounceTrackerSchema = createInsertSchema(bounceTracker);
+export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings);
+export const insertVideoAssetSchema = createInsertSchema(videoAssets);
+export const insertAiActionLogSchema = createInsertSchema(aiActionLogs);
+export const insertCalendarBookingSchema = createInsertSchema(calendarBookings);
+export const insertAutomationRuleSchema = createInsertSchema(automationRules);
+export const insertContentLibrarySchema = createInsertSchema(contentLibrary);
+export const insertConversationEventSchema = createInsertSchema(conversationEvents);
+export const insertProspectSchema = createInsertSchema(prospects);
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -582,6 +597,8 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = typeof apiKeys.$inferInsert;
 export type Insight = typeof insights.$inferSelect;
 export type InsertInsight = typeof insights.$inferInsert;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;
 export type OnboardingProfile = typeof onboardingProfiles.$inferSelect;
 export type InsertOnboardingProfile = typeof onboardingProfiles.$inferInsert;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
@@ -612,6 +629,12 @@ export type ConversationEvent = typeof conversationEvents.$inferSelect;
 export type InsertConversationEvent = typeof conversationEvents.$inferInsert;
 export type Prospect = typeof prospects.$inferSelect;
 export type InsertProspect = typeof prospects.$inferInsert;
+
+export type FollowUpQueue = typeof followUpQueue.$inferSelect;
+export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;
+
+export type AuditTrail = typeof auditTrail.$inferSelect;
+export type InsertAuditTrail = typeof auditTrail.$inferInsert;
 
 // LEGACY - Keep old Zod schemas for backward compatibility (deprecated)
 export const userSchema = z.object({

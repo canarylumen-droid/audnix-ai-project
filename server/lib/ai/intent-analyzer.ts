@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { type Message } from '../../../shared/schema.js';
 
@@ -32,7 +33,7 @@ interface AnalysisRecord {
 }
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -96,7 +97,7 @@ Return ONLY valid JSON, no explanation.`;
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.intent_classification,
       messages: [
         {
           role: 'system',
@@ -227,7 +228,7 @@ export async function suggestLeadTags(lead: Lead, latestMessage?: string, analys
     }
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: MODELS.intent_classification,
       messages: [{ role: 'system', content: 'You are a neural lead tagger.' }, { role: 'user', content: prompt }],
       response_format: { type: 'json_object' }
     });
@@ -318,7 +319,6 @@ function calculateFitScore(lead: Lead): number {
 
   if (lead.channel === 'instagram') score += 5;
   if (lead.channel === 'email') score += 10;
-  if (lead.channel === 'whatsapp') score += 8;
 
   return Math.max(0, Math.min(100, score));
 }

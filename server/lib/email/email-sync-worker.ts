@@ -79,7 +79,7 @@ class EmailSyncWorker {
     try {
       // Get all users with custom email integrations
       const integrations = await storage.getIntegrationsByProvider('custom_email');
-      
+
       if (!integrations || integrations.length === 0) {
         return; // No users with connected emails
       }
@@ -88,7 +88,7 @@ class EmailSyncWorker {
 
       for (const integration of integrations) {
         if (!integration.connected) continue;
-        
+
         try {
           await this.syncUserEmails(integration.userId, integration);
         } catch (error) {
@@ -118,31 +118,59 @@ class EmailSyncWorker {
       const credentialsStr = await decrypt(integration.encryptedMeta);
       const credentials = JSON.parse(credentialsStr) as Record<string, unknown>;
 
-      // Import last 50 emails (recent ones only)
-      const emails = await importCustomEmails(credentials as Parameters<typeof importCustomEmails>[0], 50);
+      // Import last 50 emails (recent ones only) from INBOX
+      const inboxEmails = await importCustomEmails(credentials as Parameters<typeof importCustomEmails>[0], 50, 15000, 'INBOX');
 
-      if (emails.length === 0) {
+      // Import Sent emails (if possible) - Try 'Sent' or 'Sent Items'
+      // Note: importCustomEmails now logs fail-soft if box not found, returning empty.
+      // We start with 'Sent' as generic, but ideally we'd try multiple or accept config.
+      // For now, let's try 'Sent Items' as a common default for business email (Office365/Exchange)
+      // or 'Sent' for others.
+      // Since importCustomEmails logic for recursive search isn't robust yet, let's try 'Sent' first.
+
+      let sentEmails: any[] = [];
+      try {
+        // Many IMAP servers use "Sent" or "Sent Items".
+        // We can try one, if fail, try other?
+        // importCustomEmails throws if openBox fails.
+        // So we wrap in try/catch block.
+        sentEmails = await importCustomEmails(credentials as Parameters<typeof importCustomEmails>[0], 30, 8000, 'Sent Items');
+      } catch (err) {
+        try {
+          sentEmails = await importCustomEmails(credentials as Parameters<typeof importCustomEmails>[0], 30, 8000, 'Sent');
+        } catch (e) {
+          console.warn(`User ${userId}: Could not sync Sent box`);
+        }
+      }
+
+      if (inboxEmails.length === 0 && sentEmails.length === 0) {
         return result;
       }
 
-      // Process emails and create/update leads
-      const importResults = await pagedEmailImport(userId, emails.map((emailData: EmailData) => ({
+      const mapEmail = (emailData: EmailData) => ({
         from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from,
+        to: emailData.to?.split('<')[1]?.split('>')[0] || emailData.to,
         subject: emailData.subject,
         text: emailData.text || emailData.html || '',
         date: emailData.date,
         html: emailData.html
-      })), () => {});
+      });
 
-      result.imported = importResults.imported;
-      result.skipped = importResults.skipped;
-      result.errors = importResults.errors.length;
+      // Process Inbound
+      const inboundResults = await pagedEmailImport(userId, inboxEmails.map(mapEmail), () => { }, 'inbound');
 
-      // Detect ghosted leads
+      // Process Outbound
+      const outboundResults = await pagedEmailImport(userId, sentEmails.map(mapEmail), () => { }, 'outbound');
+
+      result.imported = inboundResults.imported + outboundResults.imported;
+      result.skipped = inboundResults.skipped + outboundResults.skipped;
+      result.errors = inboundResults.errors.length + outboundResults.errors.length;
+
+      // Detect ghosted leads (only relevant if we have outbound context? No, strictly time based)
       result.ghostedDetected = await this.detectGhostedLeads(userId);
 
       if (result.imported > 0) {
-        console.log(`📬 User ${userId}: Imported ${result.imported} new emails, ${result.ghostedDetected} ghosted leads detected`);
+        console.log(`📬 User ${userId}: Imported ${result.imported} emails (Inbox+Sent), ${result.ghostedDetected} ghosted leads detected`);
       }
 
     } catch (error) {
@@ -173,7 +201,7 @@ class EmailSyncWorker {
         // Check if we sent a message and haven't received a reply
         if (lead.lastMessageAt) {
           const timeSinceMessage = now.getTime() - new Date(lead.lastMessageAt).getTime();
-          
+
           if (timeSinceMessage > thresholdMs) {
             // Mark as ghosted (cold status)
             await storage.updateLead(lead.id, {

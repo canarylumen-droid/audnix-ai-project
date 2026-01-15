@@ -4,6 +4,8 @@ import { db } from "../../db.js";
 import { calendarSettings, integrations } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
+import { GEMINI_STABLE_MODEL } from "../ai/model-config.js";
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export class BookingProposer {
@@ -31,7 +33,7 @@ export class BookingProposer {
             }
 
             // 2. Use AI to extract requested time range
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const model = genAI.getGenerativeModel({ model: GEMINI_STABLE_MODEL });
             const prompt = `
                 Extract the user's preferred meeting times from this message: "${userInput}"
                 

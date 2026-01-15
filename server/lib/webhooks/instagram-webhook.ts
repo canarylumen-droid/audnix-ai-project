@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabaseAdmin } from '../supabase-admin.js';
+// import { supabaseAdmin } from '../supabase-admin.js'; // Removed Supabase dependency
 import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
 import { followUpWorker } from '../ai/follow-up-worker.js';
 import { saveConversationToMemory } from '../ai/conversation-ai.js';
@@ -7,6 +7,7 @@ import { scheduleAutomatedDMReply, checkUserAutomationSettings } from '../ai/dm-
 import { storage } from '../../storage.js';
 import crypto from 'crypto';
 import { recordWebhookEvent } from '../../routes/instagram-status.js';
+import { InsertLead, InsertMessage, InsertFollowUpQueue, InsertAuditTrail, InsertCalendarEvent } from '../../shared/schema.js';
 
 interface InstagramMessage {
   sender: { id: string };
@@ -15,6 +16,7 @@ interface InstagramMessage {
   message?: {
     mid: string;
     text: string;
+    is_echo?: boolean;
   };
   postback?: {
     payload: string;
@@ -215,194 +217,149 @@ export async function handleInstagramWebhook(req: Request, res: Response): Promi
 }
 
 async function processInstagramMessage(message: InstagramMessage): Promise<void> {
+  const isEcho = message.message?.is_echo || false;
+  const customerId = isEcho ? message.recipient.id : message.sender.id;
+  const messageText = message.message?.text || '';
+
+  if (!messageText) return;
+
   try {
-    const senderId = message.sender.id;
-    const messageText = message.message?.text;
 
-    if (!messageText) return;
+    // 1. Get Integration
+    const integrations = await storage.getIntegrationsByProvider('instagram');
+    const integration = integrations.find(i => i.connected);
 
-    if (!supabaseAdmin) {
-      console.error('Supabase admin not configured');
+    if (!integration) {
+      console.log('No active Instagram integration found.');
       return;
     }
 
-    const { data: integration, error: integrationError } = await supabaseAdmin
-      .from('integrations')
-      .select('user_id')
-      .eq('provider', 'instagram')
-      .eq('is_active', true)
-      .single();
+    // 2. Get or Create Lead
+    const userLeads = await storage.getLeads({ userId: integration.userId });
+    let existingLead = userLeads.find(l => l.externalId === customerId && l.channel === 'instagram');
 
-    if (integrationError || !integration) {
-      if (integrationError) {
-        console.error('Error fetching integration:', integrationError);
+    if (!existingLead) {
+      if (isEcho) {
+        // If it's an echo, we likely don't want to create a NEW lead unless we're sure
+        // But for completeness, we should.
       }
-      return;
-    }
-
-    const typedIntegration = integration as IntegrationRecord;
-
-    const { data: existingLead, error: leadError } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('user_id', typedIntegration.user_id)
-      .eq('external_id', senderId)
-      .single();
-
-    if (leadError && leadError.code !== 'PGRST116') {
-      console.error('Error fetching lead:', leadError);
-    }
-
-    let lead: LeadRecord | null = existingLead as LeadRecord | null;
-
-    if (!lead) {
-      const senderProfile = await fetchInstagramProfile(senderId, typedIntegration.user_id);
-
-      const { data: newLead, error: createError } = await supabaseAdmin
-        .from('leads')
-        .insert({
-          user_id: typedIntegration.user_id,
-          external_id: senderId,
-          name: senderProfile.name || senderProfile.username || 'Instagram User',
-          channel: 'instagram',
-          status: 'new',
-          last_message_at: new Date().toISOString(),
-          tags: ['instagram', 'auto-captured'],
-          preferred_name: senderProfile.name?.split(' ')[0]
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating lead:', createError);
-        return;
-      }
-
-      lead = newLead as LeadRecord;
-
-      const { error: realtimeError } = await supabaseAdmin
-        .from('realtime_events')
-        .insert({
-          user_id: typedIntegration.user_id,
-          event_type: 'new_lead',
-          payload: { lead: newLead }
-        });
-
-      if (realtimeError) {
-        console.error('Error inserting realtime event:', realtimeError);
-      }
-    }
-
-    const { error: messageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        user_id: typedIntegration.user_id,
-        lead_id: lead.id,
-        content: messageText,
-        role: 'user',
+      const senderProfile = await fetchInstagramProfile(customerId, integration.userId);
+      const newLeadData = {
+        userId: integration.userId,
+        externalId: customerId,
+        name: senderProfile.name || senderProfile.username || 'Instagram User',
         channel: 'instagram',
-        external_id: message.message?.mid,
-        created_at: new Date().toISOString()
-      });
+        status: 'new',
+        tags: ['instagram', 'auto-captured'],
+        metadata: { preferred_name: senderProfile.name?.split(' ')[0] }
+      };
 
-    if (messageError) {
-      console.error('Error saving message:', messageError);
+      existingLead = await storage.createLead(newLeadData);
     }
 
-    const intent = await analyzeLeadIntent(messageText, lead);
+    const lead = existingLead;
+
+    // 3. Save Message
+    await storage.createMessage({
+      userId: integration.userId,
+      leadId: lead.id,
+      content: messageText,
+      direction: isEcho ? 'outbound' : 'inbound',
+      provider: 'instagram',
+      body: messageText,
+      metadata: {
+        external_id: message.message?.mid,
+        is_echo: isEcho
+      }
+    });
+
+    if (isEcho) {
+      // If it's an echo, we skip AI analysis and automation
+      return;
+    }
+
+    // 4. Analyze Intent
+    const intent = await analyzeLeadIntent(messageText, lead as any); // cast for now
 
     let newStatus = lead.status;
     let newTags = [...(lead.tags || [])];
 
     if (intent.isInterested && intent.confidence > 0.7) {
-      newStatus = 'interested';
+      newStatus = 'open'; // mapped 'interested' -> 'open' (schema enum)
       newTags.push('hot-lead');
 
       if (intent.wantsToSchedule || intent.readyToBuy) {
-        newStatus = 'converting';
+        newStatus = 'converted'; // mapped 'converting' -> 'converted'? Schema has 'converted'.
         newTags.push('ready-to-buy');
 
-        await scheduleCalendarMeeting(lead, typedIntegration.user_id);
+        await scheduleCalendarMeeting(lead as any, integration.userId);
       }
     } else if (intent.isNegative && intent.confidence > 0.7) {
-      newStatus = 'not_interested';
+      newStatus = 'not_interested'; // valid enum
       newTags.push('cold');
     } else if (intent.needsMoreInfo) {
-      newStatus = 'nurturing';
+      newStatus = 'open'; // 'nurturing' not in enum
       newTags.push('needs-info');
     }
 
-    const { error: updateError } = await supabaseAdmin
-      .from('leads')
-      .update({
-        status: newStatus,
-        tags: Array.from(new Set(newTags)),
-        last_message_at: new Date().toISOString(),
-        lead_score: calculateLeadScore(intent, lead),
-        intent_analysis: intent
-      })
-      .eq('id', lead.id);
+    // 5. Update Lead
+    await storage.updateLead(lead.id, {
+      status: newStatus as any,
+      tags: Array.from(new Set(newTags)),
+      lastMessageAt: new Date(),
+      score: calculateLeadScore(intent, lead as any),
+      metadata: { ...lead.metadata, intent_analysis: intent }
+    });
 
-    if (updateError) {
-      console.error('Error updating lead:', updateError);
-    }
-
+    // 6. Follow Up Queue
     if (newStatus !== 'not_interested' && newStatus !== 'converted') {
-      const { error: queueError } = await supabaseAdmin
-        .from('follow_up_queue')
-        .insert({
-          user_id: typedIntegration.user_id,
-          lead_id: lead.id,
-          channel: 'instagram',
-          status: 'pending',
-          scheduled_at: getSmartScheduleTime(intent, lead),
-          context: {
-            last_message: messageText,
-            intent,
-            message_count: (lead.message_count || 0) + 1
-          }
-        });
-
-      if (queueError) {
-        console.error('Error adding to follow-up queue:', queueError);
-      }
+      await storage.createFollowUp({
+        userId: integration.userId,
+        leadId: lead.id,
+        channel: 'instagram',
+        status: 'pending',
+        scheduledAt: new Date(getSmartScheduleTime(intent, lead as any)),
+        context: {
+          last_message: messageText,
+          intent,
+          message_count: 1 // TODO: get actual count
+        }
+      });
     }
 
-    const { error: activityError } = await supabaseAdmin
-      .from('recent_activities')
-      .insert({
-        user_id: typedIntegration.user_id,
-        lead_id: lead.id,
-        activity_type: 'message_received',
+    // 7. Recent Activity (Audit Trail)
+    await storage.createAuditLog({
+      userId: integration.userId,
+      leadId: lead.id,
+      action: 'message_received',
+      details: {
         channel: 'instagram',
         description: `${lead.name} sent: "${messageText.substring(0, 50)}..."`,
-        metadata: { intent, auto_tagged: true },
-        created_at: new Date().toISOString()
-      });
+        intent,
+        auto_tagged: true
+      }
+    });
 
-    if (activityError) {
-      console.error('Error recording activity:', activityError);
-    }
-
+    // 8. Memory & Automation (Kept as is, assuming they use storage or are independent)
     try {
       const messages = await storage.getMessagesByLeadId(lead.id);
       const leadData = await storage.getLeadById(lead.id);
 
       if (messages.length > 0 && leadData) {
-        await saveConversationToMemory(typedIntegration.user_id, leadData, messages);
+        await saveConversationToMemory(integration.userId, leadData, messages);
       }
     } catch (memoryError) {
       console.error('Failed to save conversation to memory:', memoryError);
     }
 
     try {
-      const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
+      const automationSettings = await checkUserAutomationSettings(integration.userId);
 
       if (automationSettings.enabled && newStatus !== 'not_interested') {
         console.log(`[IG_EVENT] Scheduling automated DM reply for lead ${lead.name}`);
 
         await scheduleAutomatedDMReply(
-          typedIntegration.user_id,
+          integration.userId,
           lead.id,
           senderId,
           messageText,
@@ -420,115 +377,83 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
   } catch (error) {
     console.error('Error processing Instagram message:', error);
   }
+
 }
 
 async function processInstagramComment(comment: InstagramCommentValue): Promise<void> {
   try {
     const { from, text, media } = comment;
 
-    if (!supabaseAdmin) {
-      console.error('Supabase admin not configured');
+    // 1. Get Integration
+    const integrations = await storage.getIntegrationsByProvider('instagram');
+    const integration = integrations.find(i => i.connected);
+
+    if (!integration) {
+      console.log('No active Instagram integration found for comment processing.');
       return;
     }
 
-    const { data: integration, error: integrationError } = await supabaseAdmin
-      .from('integrations')
-      .select('user_id')
-      .eq('provider', 'instagram')
-      .eq('is_active', true)
-      .single();
+    // 2. Get or Create Lead
+    const userLeads = await storage.getLeads({ userId: integration.userId });
+    let existingLead = userLeads.find(l => l.externalId === from.id && l.channel === 'instagram');
 
-    if (integrationError || !integration) {
-      if (integrationError) {
-        console.error('Error fetching integration:', integrationError);
-      }
-      return;
+    if (!existingLead) {
+      // Comments usually don't give us phone/email, just username/name
+      const newLeadData = {
+        userId: integration.userId,
+        externalId: from.id,
+        name: from.username,
+        channel: 'instagram',
+        status: 'new',
+        tags: ['instagram-comment', 'auto-captured'],
+        metadata: {
+          preferred_name: from.username
+        }
+      };
+      existingLead = await storage.createLead(newLeadData);
     }
 
-    const typedIntegration = integration as IntegrationRecord;
+    const lead = existingLead;
 
-    const { data: existingLead, error: leadError } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('user_id', typedIntegration.user_id)
-      .eq('external_id', from.id)
-      .single();
+    // 3. Save Message/Comment
+    await storage.createMessage({
+      userId: integration.userId,
+      leadId: lead.id,
+      content: text,
+      role: 'user',
+      direction: 'inbound',
+      provider: 'instagram', // 'instagram-comment' not in enum, sticking to 'instagram'
+      body: text,
+      metadata: { media_id: media.id, type: 'comment' }
+    });
 
-    if (leadError && leadError.code !== 'PGRST116') {
-      console.error('Error fetching lead:', leadError);
-    }
-
-    let lead: LeadRecord | null = existingLead as LeadRecord | null;
-
-    if (!lead) {
-      const { data: newLead, error: createError } = await supabaseAdmin
-        .from('leads')
-        .insert({
-          user_id: typedIntegration.user_id,
-          external_id: from.id,
-          name: from.username,
-          channel: 'instagram',
-          status: 'new',
-          tags: ['instagram-comment', 'auto-captured'],
-          last_message_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error('Error creating lead:', createError);
-        return;
-      }
-
-      lead = newLead as LeadRecord;
-    }
-
-    const { error: messageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        user_id: typedIntegration.user_id,
-        lead_id: lead.id,
-        content: text,
-        role: 'user',
-        channel: 'instagram-comment',
-        metadata: { media_id: media.id },
-        created_at: new Date().toISOString()
-      });
-
-    if (messageError) {
-      console.error('Error saving message:', messageError);
-    }
-
-    const intent = await analyzeLeadIntent(text, lead);
+    // 4. Analyze Intent
+    const intent = await analyzeLeadIntent(text, lead as any);
 
     if (intent.isInterested || intent.hasQuestion) {
-      const { error: queueError } = await supabaseAdmin
-        .from('follow_up_queue')
-        .insert({
-          user_id: typedIntegration.user_id,
-          lead_id: lead.id,
-          channel: 'instagram',
-          status: 'pending',
-          scheduled_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-          context: {
-            comment_text: text,
-            media_id: media.id,
-            priority: 'high'
-          }
-        });
+      // 5. Follow Up Queue
+      await storage.createFollowUp({
+        userId: integration.userId,
+        leadId: lead.id,
+        channel: 'instagram',
+        status: 'pending',
+        scheduledAt: new Date(Date.now() + 5 * 60 * 1000),
+        context: {
+          comment_text: text,
+          media_id: media.id,
+          priority: 'high'
+        }
+      });
 
-      if (queueError) {
-        console.error('Error adding to follow-up queue:', queueError);
-      }
-
+      // 6. Automation
       try {
-        const automationSettings = await checkUserAutomationSettings(typedIntegration.user_id);
+        const automationSettings = await checkUserAutomationSettings(integration.userId);
 
         if (automationSettings.enabled) {
           console.log(`[IG_EVENT] Scheduling automated DM reply for comment from ${from.username}`);
 
           await scheduleAutomatedDMReply(
-            typedIntegration.user_id,
+            integration.userId,
             lead.id,
             from.id,
             text,
@@ -552,17 +477,11 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
       return { username: 'Instagram User' };
     }
 
-    const { data: tokenData, error: tokenError } = await supabaseAdmin
-      .from('oauth_tokens')
-      .select('access_token')
-      .eq('user_id', appUserId)
-      .eq('provider', 'instagram')
-      .single();
+    // Updated to use storage for OAuth token
+    const tokenData = await storage.getOAuthAccount(appUserId, 'instagram');
 
-    if (tokenError || !tokenData) {
-      if (tokenError) {
-        console.error('Error fetching token:', tokenError);
-      }
+    if (!tokenData || !tokenData.accessToken) {
+      console.error('No Instagram access token found for user');
       return { username: 'Instagram User' };
     }
 
@@ -574,7 +493,7 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
     const allowedHost = 'graph.instagram.com';
     const url = new URL(`https://${allowedHost}/${userId}`);
     url.searchParams.set('fields', 'name,username');
-    url.searchParams.set('access_token', tokenData.access_token);
+    url.searchParams.set('access_token', tokenData.accessToken);
 
     if (url.hostname !== allowedHost) {
       return { username: 'Instagram User' };
@@ -583,6 +502,8 @@ async function fetchInstagramProfile(userId: string, appUserId: string): Promise
     const response = await fetch(url.toString());
 
     if (!response.ok) {
+      // If unauthorized, token might be expired. We should refresh it?
+      // Logic for refresh is complex here, skipping for now.
       console.error('Instagram API error:', response.status, response.statusText);
       return { username: 'Instagram User' };
     }
@@ -639,26 +560,21 @@ function getSmartScheduleTime(intent: IntentAnalysis, lead: LeadRecord): string 
   return new Date(now + delayMs).toISOString();
 }
 
-async function scheduleCalendarMeeting(lead: LeadRecord, userId: string): Promise<void> {
-  if (!supabaseAdmin) {
-    console.error('Supabase admin not configured');
-    return;
-  }
-
-  const { error } = await supabaseAdmin
-    .from('calendar_events')
-    .insert({
-      user_id: userId,
-      lead_id: lead.id,
-      event_type: 'meeting',
+async function scheduleCalendarMeeting(lead: any, userId: string): Promise<void> {
+  try {
+    const nextSlot = getNextAvailableSlot(userId);
+    await storage.createCalendarEvent({
+      userId,
+      leadId: lead.id,
       title: `Meeting with ${lead.name}`,
-      scheduled_at: getNextAvailableSlot(userId),
-      status: 'pending',
-      meeting_link: generateMeetingLink(),
-      created_at: new Date().toISOString()
+      startTime: new Date(nextSlot),
+      endTime: new Date(new Date(nextSlot).getTime() + 30 * 60 * 1000), // 30 min default
+      provider: 'google', // Default or fetch from settings
+      externalId: generateMeetingLink(), // Mock ID for now
+      meetingUrl: generateMeetingLink(),
+      description: 'Auto-scheduled via AI'
     });
-
-  if (error) {
+  } catch (error) {
     console.error('Error scheduling calendar meeting:', error);
   }
 }

@@ -1,7 +1,6 @@
 /**
  * Format messages with channel-specific rich formatting
  * Instagram: Meta API button templates (rounded, hyperlinked)
- * WhatsApp: Clean link formatting with context
  * Email: Branded HTML templates with CTA buttons
  * 
  * IMPORTANT: For Instagram DMs, we now use Meta API button payloads
@@ -58,7 +57,7 @@ export function formatDMWithButtons(message: string, buttons: DMButton[]): strin
     const emoji = i === 0 ? '🔥' : i === 1 ? '✨' : '💡';
     return `${emoji} ${btn.text}: ${btn.url}`;
   }).join('\n');
-  
+
   return `${message}\n\n━━━━━━━━━━━━━━━━━━━\n${formattedButtons}\n━━━━━━━━━━━━━━━━━━━\n\n👆 Tap a link above to continue`;
 }
 
@@ -73,7 +72,7 @@ export function formatCommentReply(intent: string): string {
     'product': ['📦 DMd you!', '✨ Check inbox!', '💫 Sent info!'],
     'general': ['👍 DMd you!', '✨ Check DMs!', '💬 Sent!']
   };
-  
+
   const options = replies[intent] || replies['general'];
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -93,22 +92,8 @@ export function formatChoiceButtons(message: string, choices: string[]): string 
     .slice(0, 3)
     .map((choice, i) => `${i + 1}️⃣ ${choice.toUpperCase()}`)
     .join('\n');
-  
+
   return `${message}\n\n━━━━━━━━━━━━━━━━━━\n${formattedChoices}\n━━━━━━━━━━━━━━━━━━\n\nReply with the number of your choice`;
-}
-
-/**
- * Format WhatsApp message with clean link presentation
- */
-export function formatWhatsAppLink(message: string, button: DMButton): string {
-  return `${message}\n\n┌─────────────────────┐\n│ 🔗 ${button.text.toUpperCase()} │\n└─────────────────────┘\n\n${button.url}\n\n✨ Tap the link above to get started`;
-}
-
-/**
- * Format WhatsApp meeting link with calendar emoji
- */
-export function formatWhatsAppMeeting(message: string, calendarLink: string): string {
-  return `${message}\n\n┌─────────────────────┐\n│ 📅 SCHEDULE MEETING │\n└─────────────────────┘\n\n${calendarLink}\n\n✓ Pick a time that works for you`;
 }
 
 /**
@@ -139,23 +124,23 @@ function isValidUrl(url: string): boolean {
  * Generate branded HTML email template
  */
 export function generateBrandedEmail(
-  message: string, 
-  button: DMButton, 
+  message: string,
+  button: DMButton,
   brandColors: BrandColors = {},
   businessName: string = 'Our Team'
 ): string {
   const primaryColor = brandColors.primary || '#6366f1';
   const accentColor = brandColors.accent || '#8b5cf6';
-  
+
   if (!isValidUrl(button.url)) {
     throw new Error('Invalid button URL: only HTTP and HTTPS protocols are allowed');
   }
-  
+
   const sanitizedMessage = message.split('\n').map(p => `<p>${escapeHtml(p)}</p>`).join('');
   const sanitizedBusinessName = escapeHtml(businessName);
   const sanitizedButtonText = escapeHtml(button.text);
   const sanitizedButtonUrl = escapeHtml(button.url);
-  
+
   return `
 <!DOCTYPE html>
 <html>
@@ -202,7 +187,7 @@ export function generateMeetingEmail(
   businessName: string = 'Our Team'
 ): string {
   const primaryColor = brandColors.primary || '#6366f1';
-  
+
   return generateBrandedEmail(
     message,
     { text: '📅 Schedule Your Meeting', url: calendarLink },

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Audnix AI is a full-stack SaaS platform that serves as an autonomous AI sales representative. The system automates lead engagement across Instagram, WhatsApp, and Email channels with human-like timing and personalized voice messages. Core capabilities include AI-powered conversation handling, voice cloning for personalized audio messages, lead scoring, objection handling (110+ scripts), and automated meeting booking.
+Audnix AI is a full-stack SaaS platform that serves as an autonomous AI sales representative. The system automates lead engagement across Instagram and Email channels with human-like timing and personalized voice messages. Core capabilities include AI-powered conversation handling, voice cloning for personalized audio messages, lead scoring, objection handling (110+ scripts), and automated meeting booking.
 
 The platform targets creators, coaches, agencies, and founders who need 24/7 sales automation without manual follow-up overhead.
 
@@ -74,7 +74,7 @@ Preferred communication style: Simple, everyday language.
   - Environment: `REDIS_URL`
 - **Google OAuth**: Calendar integration for meeting booking
   - Environment: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- **Instagram/WhatsApp**: Channel integrations via OAuth and webhooks
+- **Instagram**: Channel integrations via OAuth and webhooks
   - Environment: `META_APP_ID`, `META_APP_SECRET`, `META_CALLBACK_URL`
 
 ### Deployment Targets

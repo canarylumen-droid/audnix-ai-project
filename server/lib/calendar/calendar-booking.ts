@@ -347,16 +347,8 @@ ${bookingLink}
 
 Looking forward to connecting!`,
 
-    whatsapp: `Hey ${leadName}! 👋
-
-Ready to chat? Click the link below to schedule a call that works for you:
-
-${bookingLink}
-
-Looking forward to connecting! 🚀`,
-
     instagram: `Hi ${leadName}! 📅
-
+    
 I'd love to connect with you. Here's my calendar to schedule a quick call:
 
 ${bookingLink}
@@ -364,5 +356,5 @@ ${bookingLink}
 Let's chat! 💬`
   };
 
-  return templates[channel];
+  return templates[channel] || templates.email;
 }

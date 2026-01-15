@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import { InstagramProvider } from '../providers/instagram.js';
 import { formatDMWithButton } from './dm-formatter.js';
@@ -6,7 +7,7 @@ import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { User, Lead, Integration, VideoMonitor } from '../../../shared/schema.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY 
+const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
@@ -117,7 +118,7 @@ Return JSON:
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You are a hyper-intelligent sales AI that detects interest from ANY comment - no keywords needed. You understand context, tone, and human behavior.' },
         { role: 'user', content: prompt }
@@ -203,7 +204,7 @@ REMEMBER: Use their REAL username (${leadName}), reference their actual comment,
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You are a legendary salesperson who creates hyper-personalized DMs that convert. Every message feels like it was written just for that person.' },
         { role: 'user', content: prompt }
@@ -270,7 +271,7 @@ Generate ONLY the comment reply text (no quotes, no explanations):`;
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODELS.intent_classification,
       messages: [
         { role: 'system', content: 'You write natural Instagram comment replies that sound human and capture leads fast.' },
         { role: 'user', content: prompt }

@@ -1,7 +1,8 @@
 import crypto from 'crypto';
-import { supabaseAdmin } from '../supabase-admin.js';
+// import { supabaseAdmin } from '../supabase-admin.js'; // Removed
 import { encrypt, decrypt } from '../crypto/encryption.js';
 import { getOAuthRedirectUrl } from '../config/oauth-redirects.js';
+import { storage } from '../../storage.js';
 
 interface OutlookOAuthConfig {
   clientId: string;
@@ -49,7 +50,7 @@ export class OutlookOAuth {
    */
   getAuthorizationUrl(userId: string): string {
     const state = this.generateState(userId);
-    
+
     const scopes = [
       'offline_access', // Required for refresh token
       'User.Read',
@@ -96,7 +97,7 @@ export class OutlookOAuth {
     );
 
     const data = await response.json();
-    
+
     if (data.error) {
       throw new Error(data.error_description || data.error || 'Failed to exchange code for token');
     }
@@ -128,7 +129,7 @@ export class OutlookOAuth {
     );
 
     const data = await response.json();
-    
+
     if (data.error) {
       throw new Error(data.error_description || data.error || 'Failed to refresh token');
     }
@@ -160,7 +161,7 @@ export class OutlookOAuth {
    */
   async getCalendarEvents(accessToken: string, startDateTime?: string, endDateTime?: string): Promise<any[]> {
     let url = 'https://graph.microsoft.com/v1.0/me/calendarview';
-    
+
     if (startDateTime && endDateTime) {
       const params = new URLSearchParams({
         startDateTime,
@@ -188,10 +189,10 @@ export class OutlookOAuth {
    * Send email using Microsoft Graph
    */
   async sendEmail(
-    accessToken: string, 
-    to: string[], 
-    subject: string, 
-    body: string, 
+    accessToken: string,
+    to: string[],
+    subject: string,
+    body: string,
     isHtml: boolean = false
   ): Promise<void> {
     const message = {
@@ -224,108 +225,85 @@ export class OutlookOAuth {
    * Save OAuth tokens to database
    */
   async saveToken(userId: string, tokens: OutlookTokenResponse, profile: OutlookProfile): Promise<void> {
-    if (!supabaseAdmin) {
-      throw new Error('Supabase admin not configured');
-    }
-
     const encryptedAccessToken = await encrypt(tokens.access_token);
     const encryptedRefreshToken = tokens.refresh_token ? await encrypt(tokens.refresh_token) : null;
-    
+
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
 
-    // Save to oauth_tokens table
-    const { error: tokenError } = await supabaseAdmin
-      .from('oauth_tokens')
-      .upsert({
-        user_id: userId,
-        provider: 'outlook',
-        access_token: encryptedAccessToken,
-        refresh_token: encryptedRefreshToken,
-        expires_at: expiresAt.toISOString(),
-        metadata: {
-          email: profile.mail || profile.userPrincipalName,
-          name: profile.displayName,
-          microsoft_id: profile.id,
-          scopes: tokens.scope
-        },
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'user_id,provider'
-      });
-
-    if (tokenError) {
-      console.error('Error saving OAuth token:', tokenError);
-      throw new Error('Failed to save OAuth token');
-    }
+    // Save to oauth_accounts table via storage
+    await storage.saveOAuthAccount({
+      userId: userId,
+      provider: 'outlook',
+      providerAccountId: profile.id, // Microsoft ID
+      accessToken: encryptedAccessToken,
+      refreshToken: encryptedRefreshToken,
+      expiresAt: expiresAt,
+      scope: tokens.scope,
+      tokenType: tokens.token_type,
+      idToken: tokens.id_token // if available
+    });
 
     // Update user record
-    const { error: userError } = await supabaseAdmin
-      .from('users')
-      .update({
+    await storage.updateUser(userId, {
+      // outlook_email: profile.mail || profile.userPrincipalName, // User schema might not have this, check schema?
+      // Check User schema in shared/schema.ts
+      // User schema has optional fields, maybe metadata?
+      // Previous code: outlook_email, outlook_connected.
+      // Schema Step 6254: I don't see 'outlook_email' column in 'users' table.
+      // It might be in 'metadata'.
+      // Or I should add it to metadata.
+      metadata: {
         outlook_email: profile.mail || profile.userPrincipalName,
         outlook_connected: true
-      })
-      .eq('id', userId);
-
-    if (userError) {
-      console.error('Error updating user:', userError);
-      throw new Error('Failed to update user record');
-    }
+      }
+    });
   }
 
   /**
    * Get valid access token (refresh if needed)
    */
   async getValidToken(userId: string): Promise<string | null> {
-    if (!supabaseAdmin) {
-      return null;
-    }
-
-    const { data: tokenData } = await supabaseAdmin
-      .from('oauth_tokens')
-      .select('access_token, refresh_token, expires_at')
-      .eq('user_id', userId)
-      .eq('provider', 'outlook')
-      .single();
+    const tokenData = await storage.getOAuthAccount(userId, 'outlook');
 
     if (!tokenData) {
       return null;
     }
 
     // Check if token is expired
-    const expiresAt = new Date(tokenData.expires_at);
+    // tokenData.expiresAt could be Date or string depending on Drizzle return type logic (usually Date)
+    const expiresAt = tokenData.expiresAt ? new Date(tokenData.expiresAt) : new Date(0);
     const now = new Date();
-    
+
     // Refresh if expired or about to expire (5 minutes buffer)
     if (expiresAt <= new Date(now.getTime() + 5 * 60 * 1000)) {
-      if (!tokenData.refresh_token) {
+      if (!tokenData.refreshToken) {
         // No refresh token available, user needs to re-authenticate
         return null;
       }
 
       try {
         // Refresh the token
-        const decryptedRefreshToken = await decrypt(tokenData.refresh_token);
+        const decryptedRefreshToken = await decrypt(tokenData.refreshToken);
         const newTokens = await this.refreshAccessToken(decryptedRefreshToken);
-        
+
         // Update stored tokens
         const encryptedNewAccessToken = await encrypt(newTokens.access_token);
-        const encryptedNewRefreshToken = newTokens.refresh_token ? 
-          await encrypt(newTokens.refresh_token) : 
-          tokenData.refresh_token;
-        
+        const encryptedNewRefreshToken = newTokens.refresh_token ?
+          await encrypt(newTokens.refresh_token) :
+          tokenData.refreshToken;
+
         const newExpiresAt = new Date(Date.now() + (newTokens.expires_in * 1000));
 
-        await supabaseAdmin
-          .from('oauth_tokens')
-          .update({
-            access_token: encryptedNewAccessToken,
-            refresh_token: encryptedNewRefreshToken,
-            expires_at: newExpiresAt.toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', userId)
-          .eq('provider', 'outlook');
+        await storage.saveOAuthAccount({
+          userId: userId,
+          provider: 'outlook',
+          providerAccountId: tokenData.providerAccountId,
+          accessToken: encryptedNewAccessToken,
+          refreshToken: encryptedNewRefreshToken,
+          expiresAt: newExpiresAt,
+          scope: newTokens.scope,
+          tokenType: newTokens.token_type
+        });
 
         return newTokens.access_token;
       } catch (error) {
@@ -335,7 +313,8 @@ export class OutlookOAuth {
     }
 
     // Token is still valid
-    const decryptedToken = await decrypt(tokenData.access_token);
+    if (!tokenData.accessToken) return null;
+    const decryptedToken = await decrypt(tokenData.accessToken);
     return decryptedToken;
   }
 
@@ -343,28 +322,19 @@ export class OutlookOAuth {
    * Revoke OAuth tokens
    */
   async revokeToken(userId: string): Promise<void> {
-    if (!supabaseAdmin) {
-      throw new Error('Supabase admin not configured');
-    }
-
     // Note: Microsoft doesn't provide a programmatic way to revoke tokens
     // Users must revoke access through their Microsoft account settings
-    
+
     // Remove from database
-    await supabaseAdmin
-      .from('oauth_tokens')
-      .delete()
-      .eq('user_id', userId)
-      .eq('provider', 'outlook');
+    await storage.deleteOAuthAccount(userId, 'outlook');
 
     // Update user record
-    await supabaseAdmin
-      .from('users')
-      .update({
+    await storage.updateUser(userId, {
+      metadata: {
         outlook_email: null,
         outlook_connected: false
-      })
-      .eq('id', userId);
+      }
+    }); // Assuming we update metadata as in saveToken
   }
 
   /**
@@ -427,13 +397,13 @@ export class OutlookOAuth {
     const timestamp = Date.now();
     const random = crypto.randomBytes(16).toString('hex');
     const data = JSON.stringify({ userId, timestamp, random });
-    
+
     // Create signature
     const signature = crypto
       .createHmac('sha256', this.config.clientSecret)
       .update(data)
       .digest('hex');
-    
+
     // Encode state
     const state = Buffer.from(JSON.stringify({ data, signature })).toString('base64url');
     return state;
@@ -446,26 +416,26 @@ export class OutlookOAuth {
     try {
       const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
       const { data, signature } = decoded;
-      
+
       // Verify signature
       const expectedSignature = crypto
         .createHmac('sha256', this.config.clientSecret)
         .update(data)
         .digest('hex');
-      
+
       if (signature !== expectedSignature) {
         return null;
       }
-      
+
       const parsedData = JSON.parse(data);
-      
+
       // Check timestamp (valid for 10 minutes)
       const timestamp = parsedData.timestamp;
       const now = Date.now();
       if (now - timestamp > 10 * 60 * 1000) {
         return null;
       }
-      
+
       return { userId: parsedData.userId };
     } catch (error) {
       console.error('Error verifying state:', error);

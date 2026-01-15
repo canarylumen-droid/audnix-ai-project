@@ -47,7 +47,6 @@ export function getPlanCapabilities(planId: string) {
     hasAPIAccess: isEnterprise,
     hasPrioritySupport: isProOrAbove,
     hasVideoAutomation: true, // Video automation FREE for all plans
-    hasWhatsApp: isPaid, // WhatsApp only for paid plans
     hasEmail: true // Email available to ALL users including free/trial
   };
 }
@@ -63,7 +62,6 @@ export type FeatureKey =
   | 'apiAccess'
   | 'prioritySupport'
   | 'videoAutomation'
-  | 'whatsApp'
   | 'email';
 
 export function canAccessFeature(featureKey: FeatureKey, planId: string): boolean {
@@ -80,7 +78,6 @@ export function canAccessFeature(featureKey: FeatureKey, planId: string): boolea
     apiAccess: capabilities.hasAPIAccess,
     prioritySupport: capabilities.hasPrioritySupport,
     videoAutomation: capabilities.hasVideoAutomation,
-    whatsApp: capabilities.hasWhatsApp,
     email: capabilities.hasEmail
   };
 
