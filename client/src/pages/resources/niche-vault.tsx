@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { DocumentationLayout, DocSection, DocGrid, HighlightCard } from "@/components/landing/DocumentationLayout";
-import { LayoutGrid, Shield, Zap, Target, Rocket, Search, Users, Database, Globe, Briefcase, Plus, ChevronDown } from "lucide-react";
+import { LayoutGrid, Shield, Zap, Target, Rocket, Search, Users, Database, Globe, Briefcase, Plus, ChevronDown, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function NicheVaultPage() {

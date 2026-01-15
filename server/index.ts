@@ -333,6 +333,8 @@ async function runMigrations() {
       return;
     }
 
+    const dbHost = new URL(process.env.DATABASE_URL).hostname;
+    console.log(`🔌 Connecting to database at: ${dbHost}`);
     console.log('🚀 Running database migrations...');
 
     // Use Drizzle's db connection directly

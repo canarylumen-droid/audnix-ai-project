@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import TermsOfService from "@/pages/terms-of-service";
 import DataDeletion from "@/pages/data-deletion";
+import { PrivacyModal } from "@/components/landing/PrivacyModal";
 
 import { lazy, Suspense } from "react";
 
@@ -56,9 +57,6 @@ import { ThemeProvider } from "next-themes";
 function Router() {
   return (
     <Switch>
-      <Route path="/">
-        {() => <Suspense fallback={null}><Landing /></Suspense>}
-      </Route>
       <Route path="/auth">
         {() => <Suspense fallback={null}><Auth /></Suspense>}
       </Route>
@@ -91,6 +89,11 @@ function Router() {
       </Route>
       <Route path="/solutions/creators">
         {() => <Suspense fallback={null}><CreatorsPage /></Suspense>}
+      </Route>
+
+      {/* Original Landing Page - MUST BE LAST IN SWITCH IF NO NESTING */}
+      <Route path="/">
+        {() => <Suspense fallback={null}><Landing /></Suspense>}
       </Route>
       <Route path="/leads/prospecting">
         {() => (
@@ -260,6 +263,7 @@ function App() {
             <CustomCursor />
             <Router />
             <ExpertChat />
+            <PrivacyModal />
           </TooltipProvider>
         </QueryClientProvider>
       </ErrorBoundary>

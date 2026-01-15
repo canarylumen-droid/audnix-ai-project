@@ -233,18 +233,24 @@ export const apiKeys = pgTable("api_keys", {
 export const prospects = pgTable("prospects", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sessionId: uuid("session_id"),
   entity: text("entity").notNull(),
   industry: text("industry"),
   location: text("location"),
-  email: text("email").notNull(),
+  email: text("email"),
   phone: text("phone"),
   website: text("website"),
+  source: text("source", { enum: ["google", "bing", "maps", "instagram", "youtube", "facebook", "twitter", "tiktok", "pinterest", "linkedin", "manual"] }),
+  snippet: text("snippet"),
   platforms: jsonb("platforms").$type<string[]>().default(sql`'[]'::jsonb`),
-  wealthSignal: text("wealth_signal"),
+  socialProfiles: jsonb("social_profiles").$type<Record<string, string>>().default(sql`'{}'::jsonb`),
+  wealthSignal: text("wealth_signal", { enum: ["high", "medium", "low"] }),
+  leadScore: integer("lead_score").default(0),
+  estimatedRevenue: text("estimated_revenue"),
   verified: boolean("verified").default(false),
   verifiedAt: timestamp("verified_at"),
+  emailValid: boolean("email_valid"),
   status: text("status").default("found"),
-  source: text("source"),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -554,6 +560,28 @@ export const conversationEvents = pgTable("conversation_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ========== SCRAPING SESSIONS ==========
+
+// Scraping session tracking
+export const scrapingSessions = pgTable("scraping_sessions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  niche: text("niche").notNull(),
+  location: text("location").notNull(),
+  status: text("status", { enum: ["running", "completed", "failed", "cancelled"] }).notNull().default("running"),
+  totalFound: integer("total_found").notNull().default(0),
+  verified: integer("verified").notNull().default(0),
+  enriched: integer("enriched").notNull().default(0),
+  failed: integer("failed").notNull().default(0),
+  sourcesScanned: jsonb("sources_scanned").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  proxyNodesUsed: integer("proxy_nodes_used").notNull().default(0),
+  durationMs: integer("duration_ms"),
+  errorLog: jsonb("error_log").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -584,6 +612,7 @@ export const insertAutomationRuleSchema = createInsertSchema(automationRules);
 export const insertContentLibrarySchema = createInsertSchema(contentLibrary);
 export const insertConversationEventSchema = createInsertSchema(conversationEvents);
 export const insertProspectSchema = createInsertSchema(prospects);
+export const insertScrapingSessionSchema = createInsertSchema(scrapingSessions);
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({ id: true, invitedAt: true });
 

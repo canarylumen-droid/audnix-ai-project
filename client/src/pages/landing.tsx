@@ -15,7 +15,6 @@ import { Twitter, Linkedin, Github, ShieldCheck, Zap, ArrowRight, Instagram } fr
 import { useScroll, useSpring, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { PrivacyModal } from "@/components/landing/PrivacyModal";
 import { CookieConsent } from "@/components/landing/CookieConsent";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -221,7 +220,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      <PrivacyModal />
       <CookieConsent />
     </div>
   );

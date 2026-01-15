@@ -14,19 +14,43 @@ let PROXY_POOL: any[] = [
 ];
 
 async function scrapePublicProxies(): Promise<any[]> {
-    try {
-        console.log("🛰️ Fetching fresh proxy mesh from global open-source nodes...");
-        const response = await axios.get('https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all', { timeout: 5000 });
-        const proxies = response.data.split('\r\n').filter((p: string) => p.trim() !== '');
+    const sources = [
+        'https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all',
+        'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt',
+        'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt',
+        'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt'
+    ];
 
-        return proxies.map((p: string) => {
+    const results: any[] = [];
+    console.log("🛰️ Synchronizing Neural Proxy Mesh from global open-source nodes...");
+
+    for (const source of sources) {
+        try {
+            const response = await axios.get(source, { timeout: 5000 });
+            const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+            const proxies = data.split(/\r?\n/).filter((p: string) => p.includes(':') && p.trim() !== '');
+
+            proxies.forEach((p: string) => {
+                const parts = p.trim().split(':');
+                if (parts.length >= 2) {
+                    results.push({ protocol: 'http', host: parts[0], port: parseInt(parts[1]) });
+                }
+            });
+        } catch (e) {
+            console.error(`Failed to fetch proxies from ${source.substring(0, 30)}...`);
+        }
+    }
+
+    // Deduplicate and shuffle
+    const unique = Array.from(new Set(results.map(p => `${p.host}:${p.port}`)))
+        .map(p => {
             const [host, port] = p.split(':');
             return { protocol: 'http', host, port: parseInt(port) };
-        });
-    } catch (e) {
-        console.error("Failed to fetch public proxies, using fallback pool");
-        return [];
-    }
+        })
+        .sort(() => Math.random() - 0.5);
+
+    console.log(`✅ Proxy Mesh Cluster synchronized. ${unique.length} active nodes identified.`);
+    return unique;
 }
 
 // Set default envs for proxy mesh if not present
@@ -192,7 +216,7 @@ export class AdvancedCrawler {
         // If in simulated mode or just to ensure dev success
         const isSimulated = process.env.NODE_ENV === 'development' || !process.env.PROXY_URL;
 
-        const sources = ['google', 'bing', 'instagram', 'maps', 'youtube'];
+        const sources = ['google', 'bing', 'instagram', 'maps', 'youtube', 'facebook', 'twitter', 'tiktok', 'pinterest'];
         const batchSize = Math.ceil(limit / sources.length);
         const searchTasks = sources.map(source => this.parallelSearch(niche, location, batchSize, source));
 
@@ -256,6 +280,10 @@ export class AdvancedCrawler {
                     case 'instagram': found = await this.searchInstagramWithBios(niche, location, limit); break;
                     case 'maps': found = await this.searchGoogleMaps(niche, location, limit); break;
                     case 'youtube': found = await this.searchYouTube(niche, location, limit); break;
+                    case 'facebook': found = await this.searchSocialViaDork(niche, location, limit, 'facebook.com'); break;
+                    case 'twitter': found = await this.searchSocialViaDork(niche, location, limit, 'twitter.com'); break;
+                    case 'tiktok': found = await this.searchSocialViaDork(niche, location, limit, 'tiktok.com'); break;
+                    case 'pinterest': found = await this.searchSocialViaDork(niche, location, limit, 'pinterest.com'); break;
                 }
 
                 if (found.length > 0) {
@@ -501,81 +529,86 @@ export class AdvancedCrawler {
     }
 
     /**
-     * Google Search (optimized)
+     * Google Search (optimized with pagination)
      */
     private async searchGoogle(niche: string, location: string, limit: number): Promise<RawLead[]> {
+        const results: RawLead[] = [];
         try {
             const query = `${niche} ${location} contact email -linkedin -facebook -yelp`;
+            const pagesToScrape = Math.min(5, Math.ceil(limit / 10)); // Scrape up to 5 pages
 
-            const response = await axios.get(`https://www.google.com/search`, {
-                params: { q: query, num: limit, hl: 'en' },
-                headers: this.getSmartHeaders(),
-                timeout: this.timeout,
-                validateStatus: (_) => true
-            });
+            for (let page = 0; page < pagesToScrape; page++) {
+                if (results.length >= limit) break;
 
-            const $ = cheerio.load(response.data);
-            const results: RawLead[] = [];
-
-            $('.g').each((i, elem) => {
-                if (results.length >= limit) return false;
-
-                const title = $(elem).find('h3').first().text().trim();
-                const link = $(elem).find('a').first().attr('href');
-                const snippet = $(elem).find('.VwiC3b, .IsZvec').first().text().trim();
-
-                if (!link || this.isBlacklisted(link) || !title) return;
-
-                results.push({
-                    entity: this.cleanTitle(title),
-                    website: link,
-                    snippet: snippet.substring(0, 200),
-                    source: 'google'
+                const response = await axios.get(`https://www.google.com/search`, {
+                    params: { q: query, start: page * 10, hl: 'en' },
+                    headers: this.getSmartHeaders(),
+                    timeout: this.timeout,
+                    validateStatus: (_) => true
                 });
-            });
 
+                const $ = cheerio.load(response.data);
+                $('.g').each((i, elem) => {
+                    const title = $(elem).find('h3').first().text().trim();
+                    const link = $(elem).find('a').first().attr('href');
+                    const snippet = $(elem).find('.VwiC3b, .IsZvec').first().text().trim();
+
+                    if (!link || this.isBlacklisted(link) || !title) return;
+
+                    results.push({
+                        entity: this.cleanTitle(title),
+                        website: link,
+                        snippet: snippet.substring(0, 200),
+                        source: 'google'
+                    });
+                });
+
+                if (page < pagesToScrape - 1) await new Promise(r => setTimeout(r, 1000));
+            }
             return results;
-
         } catch (error) {
-            return [];
+            return results;
         }
     }
 
     /**
-     * Bing Search
+     * Bing Search (with pagination)
      */
     private async searchBing(niche: string, location: string, limit: number): Promise<RawLead[]> {
+        const results: RawLead[] = [];
         try {
             const query = `${niche} in ${location} contact`;
-            const response = await axios.get(`https://www.bing.com/search`, {
-                params: { q: query, count: limit },
-                headers: this.getSmartHeaders(),
-                timeout: this.timeout
-            });
+            const pagesToScrape = Math.min(3, Math.ceil(limit / 10));
 
-            const $ = cheerio.load(response.data);
-            const results: RawLead[] = [];
+            for (let page = 0; page < pagesToScrape; page++) {
+                if (results.length >= limit) break;
 
-            $('.b_algo').each((i, elem) => {
-                if (results.length >= limit) return false;
-
-                const title = $(elem).find('h2 a').text().trim();
-                const link = $(elem).find('h2 a').attr('href');
-                const snippet = $(elem).find('.b_caption p').text().trim();
-
-                if (!link || this.isBlacklisted(link)) return;
-
-                results.push({
-                    entity: this.cleanTitle(title),
-                    website: link,
-                    snippet: snippet.substring(0, 200),
-                    source: 'bing'
+                const response = await axios.get(`https://www.bing.com/search`, {
+                    params: { q: query, first: page * 10 + 1 },
+                    headers: this.getSmartHeaders(),
+                    timeout: this.timeout
                 });
-            });
 
+                const $ = cheerio.load(response.data);
+                $('.b_algo').each((i, elem) => {
+                    const title = $(elem).find('h2 a').text().trim();
+                    const link = $(elem).find('h2 a').attr('href');
+                    const snippet = $(elem).find('.b_caption p').text().trim();
+
+                    if (!link || this.isBlacklisted(link)) return;
+
+                    results.push({
+                        entity: this.cleanTitle(title),
+                        website: link,
+                        snippet: snippet.substring(0, 200),
+                        source: 'bing'
+                    });
+                });
+                if (page < pagesToScrape - 1) await new Promise(r => setTimeout(r, 1000));
+            }
             return results;
         } catch {
-            return [];
+            return results;
         }
     }
 
@@ -914,13 +947,81 @@ Return ONLY JSON:
         return title.replace(/\s+/g, ' ').replace(/[|–-].*$/, '').trim().substring(0, 100);
     }
 
-    private isBlacklisted(url: string): boolean {
-        const blacklist = [
-            'facebook.com', 'linkedin.com', 'instagram.com',
-            'yelp.com', 'yellowpages.com', 'bbb.org',
-            'wikipedia.org', 'youtube.com', 'twitter.com',
-            'amazon.com', 'ebay.com'
-        ];
-        return blacklist.some(domain => url.includes(domain));
+    private isBlacklisted(url: string, allowSocial: boolean = false): boolean {
+        // When specifically crawling social platforms, don't blacklist them
+        const socialPlatforms = ['facebook.com', 'linkedin.com', 'instagram.com', 'youtube.com', 'twitter.com', 'x.com', 'tiktok.com', 'pinterest.com'];
+        const generalBlacklist = ['yelp.com', 'yellowpages.com', 'bbb.org', 'wikipedia.org', 'amazon.com', 'ebay.com'];
+
+        if (allowSocial) {
+            return generalBlacklist.some(domain => url.includes(domain));
+        }
+
+        return [...socialPlatforms, ...generalBlacklist].some(domain => url.includes(domain));
+    }
+
+    /**
+     * Search social media platforms via Google Dorks
+     * This enables discovery of business profiles across Facebook, Twitter, TikTok, Pinterest, etc.
+     */
+    private async searchSocialViaDork(niche: string, location: string, limit: number, platform: string): Promise<RawLead[]> {
+        const leads: RawLead[] = [];
+        const query = encodeURIComponent(`site:${platform} "${niche}" "${location}" contact OR email OR @`);
+
+        try {
+            this.log(`[Social Intel] Scanning ${platform} for ${niche} profiles in ${location}...`, 'info');
+
+            for (let page = 0; page < 3; page++) {
+                const start = page * 10;
+                const searchUrl = `https://www.google.com/search?q=${query}&start=${start}&num=10`;
+
+                try {
+                    const response = await axios.get(searchUrl, {
+                        headers: this.getSmartHeaders(),
+                        timeout: this.timeout,
+                        ...this.getProxyConfig()
+                    });
+
+                    const $ = cheerio.load(response.data);
+                    const results = $('div.g');
+
+                    results.each((i, elem) => {
+                        const link = $(elem).find('a').first().attr('href');
+                        const title = $(elem).find('h3').text();
+                        const snippet = $(elem).find('.VwiC3b').text();
+
+                        if (link && link.includes(platform) && !link.includes('/search') && !link.includes('/hashtag')) {
+                            // Extract username/handle from URL
+                            const usernameMatch = link.match(/(?:facebook|twitter|x|tiktok|pinterest)\.com\/(?:@)?([a-zA-Z0-9._-]+)/);
+                            const username = usernameMatch ? usernameMatch[1] : '';
+
+                            // Extract emails from snippet
+                            const emailMatch = snippet.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/);
+                            const email = emailMatch ? emailMatch[1] : undefined;
+
+                            leads.push({
+                                entity: this.cleanTitle(title) || username,
+                                website: link,
+                                snippet: snippet.substring(0, 300),
+                                source: platform.replace('.com', ''),
+                                email: email,
+                                socialProfiles: {
+                                    [platform.replace('.com', '')]: link
+                                }
+                            });
+                        }
+                    });
+
+                    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
+                } catch (e) {
+                    this.log(`[Social Intel] Page ${page + 1} blocked on ${platform}, rotating...`, 'warning');
+                }
+            }
+
+            this.log(`[Social Intel] Extracted ${leads.length} profiles from ${platform}`, 'success');
+        } catch (error) {
+            this.log(`[Social Intel] ${platform} scan failed: ${error}`, 'error');
+        }
+
+        return leads.slice(0, limit);
     }
 }
