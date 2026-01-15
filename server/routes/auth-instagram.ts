@@ -126,7 +126,7 @@ router.get("/callback", authLimiter, async (req: Request, res: Response): Promis
       })
     );
 
-    await storage.createIntegration({
+    const integration = await storage.createIntegration({
       userId: stateData.userId,
       provider: "instagram",
       encryptedMeta,
@@ -135,6 +135,7 @@ router.get("/callback", authLimiter, async (req: Request, res: Response): Promis
       lastSync: new Date(),
     });
 
+    console.log("[Instagram OAuth] Integration created successfully:", integration.id);
     console.log("[Instagram OAuth] Success! Redirecting to integrations page");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     res.redirect("/dashboard/integrations?success=instagram_connected");

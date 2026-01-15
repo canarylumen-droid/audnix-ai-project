@@ -230,9 +230,11 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     const integration = integrations.find(i => i.connected);
 
     if (!integration) {
-      console.log('No active Instagram integration found.');
+      console.log(`[IG_EVENT] No active Instagram integration found for message from ${customerId}.`);
       return;
     }
+
+    console.log(`[IG_EVENT] Using integration for user: ${integration.userId}`);
 
     // 2. Get or Create Lead
     const userLeads = await storage.getLeads({ userId: integration.userId });
@@ -389,9 +391,11 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
     const integration = integrations.find(i => i.connected);
 
     if (!integration) {
-      console.log('No active Instagram integration found for comment processing.');
+      console.log(`[IG_EVENT] No active Instagram integration found for comment from ${from.username}.`);
       return;
     }
+
+    console.log(`[IG_EVENT] Using integration for user: ${integration.userId}`);
 
     // 2. Get or Create Lead
     const userLeads = await storage.getLeads({ userId: integration.userId });
