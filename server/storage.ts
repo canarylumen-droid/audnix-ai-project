@@ -321,7 +321,11 @@ export class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return undefined;
 
-    const updatedUser = { ...user, ...updates };
+    const updatedUser = { 
+      ...user, 
+      ...updates,
+      metadata: updates.metadata ? { ...user.metadata, ...updates.metadata } : user.metadata
+    };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -391,12 +395,13 @@ export class MemStorage implements IStorage {
     const lead: Lead = {
       id,
       userId: insertLead.userId,
+      organizationId: insertLead.organizationId || null,
       externalId: insertLead.externalId || null,
       name: insertLead.name,
-      channel: insertLead.channel as any,
+      channel: insertLead.channel as "instagram" | "email",
       email: insertLead.email || null,
       phone: insertLead.phone || null,
-      status: insertLead.status || "new",
+      status: (insertLead.status as any) || "new",
       score: insertLead.score || 0,
       warm: insertLead.warm || false,
       lastMessageAt: insertLead.lastMessageAt || null,

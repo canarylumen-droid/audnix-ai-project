@@ -87,12 +87,13 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
         res.status(400).json({ error: "Instagram not connected" });
         return;
       }
-      const meta = oauth.metadata as any;
-      if (!meta?.instagram_business_account_id) {
+      const meta = (oauth.metadata as any) || {};
+      const businessId = meta.instagram_business_account_id;
+      if (!businessId) {
         res.status(400).json({ error: "Instagram business account ID missing" });
         return;
       }
-      await sendInstagramMessage(oauth.accessToken, meta.instagram_business_account_id, igId, messageBody);
+      await sendInstagramMessage(oauth.accessToken, businessId, igId, messageBody);
     }
 
     const message = await storage.createMessage({

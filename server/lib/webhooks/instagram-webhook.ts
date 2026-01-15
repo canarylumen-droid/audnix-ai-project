@@ -4,10 +4,8 @@ import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
 import { followUpWorker } from '../ai/follow-up-worker.js';
 import { saveConversationToMemory } from '../ai/conversation-ai.js';
 import { scheduleAutomatedDMReply, checkUserAutomationSettings } from '../ai/dm-automation.js';
-import { storage } from '../../storage.js';
-import crypto from 'crypto';
-import { recordWebhookEvent } from '../../routes/instagram-status.js';
-import { InsertLead, InsertMessage, InsertFollowUpQueue, InsertAuditTrail, InsertCalendarEvent } from '../../shared/schema.js';
+import { storage } from "../../storage.js";
+import { type Lead } from "../../../shared/schema.js";
 
 interface InstagramMessage {
   sender: { id: string };

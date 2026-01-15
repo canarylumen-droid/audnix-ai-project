@@ -209,6 +209,7 @@ export const teamMembers = pgTable("team_members", {
   acceptedAt: timestamp("accepted_at"),
 });
 
+// Export types
 export const teamMembersSelect = createSelectSchema(teamMembers);
 export const teamMembersInsert = createInsertSchema(teamMembers);
 export type TeamMember = z.infer<typeof teamMembersSelect>;
