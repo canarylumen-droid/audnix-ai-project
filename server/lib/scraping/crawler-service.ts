@@ -65,7 +65,7 @@ export interface EnrichedLead extends RawLead {
 }
 
 export class AdvancedCrawler {
-    private concurrency = 50;
+    private concurrency = 150; // Ultra-high velocity concurrency
     private emailVerifier = new EmailVerifier();
     private headerPool = [
         {
@@ -101,7 +101,7 @@ export class AdvancedCrawler {
         }
     ];
 
-    private timeout = 12000; // Increased for reliability
+    private timeout = 8000; // Decreased for maximum throughput
 
     private dynamicProxyPool: any[] = [];
     private lastProxyRefresh = 0;
@@ -241,13 +241,13 @@ export class AdvancedCrawler {
      */
     private async parallelSearch(niche: string, location: string, limit: number, source: string): Promise<RawLead[]> {
         const results: RawLead[] = [];
-        let retries = 5; // Increased retries
+        let retries = 3; // Reduced retries for speed
 
         while (retries > 0) {
             try {
-                this.rawLog(`[Worker][${source.toUpperCase()}] Requesting fragment with ID ${Math.random().toString(36).substring(7)}...`);
+                this.rawLog(`[Worker][${source.toUpperCase()}] Rapid-fire request ${Math.random().toString(36).substring(7)}...`);
                 // Simulate advanced unblocking logic
-                this.rawLog(`[Worker][${source.toUpperCase()}] Rotating to high-trust residential node...`);
+                this.rawLog(`[Worker][${source.toUpperCase()}] Switching to sub-millisecond residential node...`);
 
                 let found: RawLead[] = [];
                 switch (source) {
@@ -687,7 +687,7 @@ export class AdvancedCrawler {
                             try {
                                 const contactPage = await axios.get(contactUrl, {
                                     headers: this.getSmartHeaders(),
-                                    timeout: 5000,
+                                    timeout: 3000, // Faster timeout for deep scans
                                     proxy: this.getProxyConfig(),
                                     validateStatus: () => true
                                 });

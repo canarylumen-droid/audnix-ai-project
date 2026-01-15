@@ -86,81 +86,71 @@ export class AudnixIngestor {
 
             const enrichedLeads = await this.crawler.enrichWebsitesParallel(rawLeads);
 
-            // 4. Filter and Ingest
+            // 4. Batch Filter and Ingest (Turbo Mode)
             let ingestedCount = 0;
             let verifiedCount = 0;
             let highQualityCount = 0;
 
-            for (const enriched of enrichedLeads) {
-                try {
-                    // Filter: Must have email
-                    if (!enriched.email) continue;
+            const batchSize = 20;
+            for (let i = 0; i < enrichedLeads.length; i += batchSize) {
+                const batch = enrichedLeads.slice(i, i + batchSize);
+                await Promise.all(batch.map(async (enriched) => {
+                    try {
+                        if (!enriched.email) return;
+                        if (enriched.email.match(/^(info|contact|support|hello|admin|noreply|no-reply|hr|sales|team|office)@/i)) return;
+                        if (enriched.leadScore < 70) return;
 
-                    // Filter: No generic emails
-                    if (enriched.email.match(/^(info|contact|support|hello|admin|noreply|no-reply|hr|sales|team|office)@/i)) {
-                        continue;
-                    }
+                        const verification = await this.verifier.verify(enriched.email);
+                        if (!verification.valid) return;
 
-                    // Filter: Lead score must be >= 95%
-                    if (enriched.leadScore < 70) continue;
+                        const existing = await db.select()
+                            .from(prospects)
+                            .where(eq(prospects.email, enriched.email))
+                            .limit(1);
 
-                    // SMTP Verification
-                    const verification = await this.verifier.verify(enriched.email);
-                    if (!verification.valid) continue;
+                        if (existing.length > 0) return;
 
-                    // Check for duplicates
-                    const existing = await db.select()
-                        .from(prospects)
-                        .where(eq(prospects.email, enriched.email))
-                        .limit(1);
+                        const [inserted] = await db.insert(prospects).values({
+                            userId: this.userId,
+                            entity: enriched.entity,
+                            industry: intent.niche,
+                            location: enriched.location || intent.location,
+                            email: enriched.email,
+                            phone: enriched.phone || null,
+                            website: enriched.website,
+                            platforms: enriched.platforms,
+                            wealthSignal: enriched.wealthSignal,
+                            verified: verification.riskLevel === 'low',
+                            verifiedAt: verification.riskLevel === 'low' ? new Date() : null,
+                            status: verification.riskLevel === 'low' ? 'verified' : 'found',
+                            source: enriched.source,
+                            metadata: {
+                                intent,
+                                leadScore: enriched.leadScore,
+                                personalEmail: enriched.personalEmail,
+                                founderEmail: enriched.founderEmail,
+                                estimatedRevenue: (enriched as any).estimatedRevenue,
+                                role: (enriched as any).role,
+                                verification: {
+                                    reason: verification.reason,
+                                    riskLevel: verification.riskLevel
+                                },
+                                socialProfiles: enriched.socialProfiles
+                            }
+                        }).returning();
 
-                    if (existing.length > 0) continue;
+                        ingestedCount++;
+                        if (verification.riskLevel === 'low') verifiedCount++;
+                        if (enriched.leadScore >= 95) highQualityCount++;
 
-                    // Ingest into DB
-                    const [inserted] = await db.insert(prospects).values({
-                        userId: this.userId,
-                        entity: enriched.entity,
-                        industry: intent.niche,
-                        location: enriched.location || intent.location,
-                        email: enriched.email,
-                        phone: enriched.phone || null,
-                        website: enriched.website,
-                        platforms: enriched.platforms,
-                        wealthSignal: enriched.wealthSignal,
-                        verified: verification.riskLevel === 'low',
-                        verifiedAt: verification.riskLevel === 'low' ? new Date() : null,
-                        status: verification.riskLevel === 'low' ? 'verified' : 'found',
-                        source: enriched.source,
-                        metadata: {
-                            intent,
-                            leadScore: enriched.leadScore,
-                            personalEmail: enriched.personalEmail,
-                            founderEmail: enriched.founderEmail,
-                            estimatedRevenue: (enriched as any).estimatedRevenue,
-                            role: (enriched as any).role,
-                            verification: {
-                                reason: verification.reason,
-                                riskLevel: verification.riskLevel
-                            },
-                            socialProfiles: enriched.socialProfiles
-                        }
-                    }).returning();
+                        wsSync.broadcastToUser(this.userId, {
+                            type: 'PROSPECT_FOUND',
+                            payload: inserted
+                        });
 
-                    ingestedCount++;
-                    if (verification.riskLevel === 'low') verifiedCount++;
-                    if (enriched.leadScore >= 95) highQualityCount++;
-
-                    // Real-time update
-                    wsSync.broadcastToUser(this.userId, {
-                        type: 'PROSPECT_FOUND',
-                        payload: inserted
-                    });
-
-                    await this.log(`[Ingested] ${enriched.entity} | ${enriched.email} | Score: ${enriched.leadScore}% | Revenue: ${(enriched as any).estimatedRevenue || 'N/A'}`, 'success');
-
-                } catch (err) {
-                    continue;
-                }
+                        await this.log(`[Ingested] ${enriched.entity} | ${enriched.email}`, 'success');
+                    } catch (err) { }
+                }));
             }
 
             // Update user's last scan timestamp
