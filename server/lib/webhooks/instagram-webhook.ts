@@ -239,10 +239,7 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     let existingLead = userLeads.find(l => l.externalId === customerId && l.channel === 'instagram');
 
     if (!existingLead) {
-      if (isEcho) {
-        // If it's an echo, we likely don't want to create a NEW lead unless we're sure
-        // But for completeness, we should.
-      }
+      console.log(`[IG_EVENT] Creating new lead for customerId: ${customerId}`);
       const senderProfile = await fetchInstagramProfile(customerId, integration.userId);
       const newLeadData = {
         userId: integration.userId,
@@ -255,6 +252,9 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
       };
 
       existingLead = await storage.createLead(newLeadData);
+      console.log(`[IG_EVENT] Successfully created lead: ${existingLead.id}`);
+    } else {
+      console.log(`[IG_EVENT] Found existing lead: ${existingLead.id}`);
     }
 
     const lead = existingLead;
@@ -398,6 +398,7 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
     let existingLead = userLeads.find(l => l.externalId === from.id && l.channel === 'instagram');
 
     if (!existingLead) {
+      console.log(`[IG_EVENT] Creating new lead for comment from: ${from.username} (${from.id})`);
       // Comments usually don't give us phone/email, just username/name
       const newLeadData = {
         userId: integration.userId,
@@ -411,6 +412,9 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
         }
       };
       existingLead = await storage.createLead(newLeadData);
+      console.log(`[IG_EVENT] Successfully created lead from comment: ${existingLead.id}`);
+    } else {
+      console.log(`[IG_EVENT] Found existing lead for comment: ${existingLead.id}`);
     }
 
     const lead = existingLead;
