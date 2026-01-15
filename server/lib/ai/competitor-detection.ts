@@ -1,7 +1,7 @@
 import { storage } from '../../storage.js';
 import type { Message } from '../../../shared/schema.js';
 
-interface CompetitorMention {
+export interface CompetitorMentionResult {
   detected: boolean;
   competitor: string;
   context: 'positive' | 'negative' | 'neutral' | 'comparison';
@@ -65,7 +65,7 @@ const COMPETITORS = {
 /**
  * Detect competitor mentions in message
  */
-export function detectCompetitorMention(message: string): CompetitorMention {
+export function detectCompetitorMention(message: string): CompetitorMentionResult {
   const lowerMessage = message.toLowerCase();
 
   // Find which competitor was mentioned

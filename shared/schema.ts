@@ -374,6 +374,7 @@ export const oauthAccounts = pgTable("oauth_accounts", {
   scope: text("scope"),
   tokenType: text("token_type"),
   idToken: text("id_token"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -658,8 +659,7 @@ export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
 export type Organization = typeof organizations.$inferSelect;
 export type InsertOrganization = typeof organizations.$inferInsert;
-export type TeamMember = typeof teamMembers.$inferSelect;
-export type InsertTeamMember = typeof teamMembers.$inferInsert;
+// Duplicate TeamMember types removed
 export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
 export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;
@@ -840,19 +840,7 @@ export const notificationSchema = z.object({
   createdAt: z.date(),
 });
 
-// ========== TEAM MEMBERS ==========
-export const teamMemberSchema = z.object({
-  id: z.string().uuid(),
-  organizationId: z.string().uuid(),
-  userId: z.string().uuid(),
-  role: z.enum(["admin", "member"]).default("member"),
-  invitedBy: z.string().uuid().nullable(),
-  invitedAt: z.date(),
-  acceptedAt: z.date().nullable(),
-});
-
-export type TeamMember = z.infer<typeof teamMemberSchema>;
-export type InsertTeamMember = Omit<TeamMember, "id">;
+// Duplicate TEAM MEMBERS block removed
 
 // ========== WEBHOOKS ==========
 export const webhookSchema = z.object({

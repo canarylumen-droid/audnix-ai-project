@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import * as crypto from 'crypto';
 // import { supabaseAdmin } from '../supabase-admin.js'; // Removed Supabase dependency
 import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
 import { followUpWorker } from '../ai/follow-up-worker.js';
@@ -151,7 +152,7 @@ export function handleInstagramVerification(req: Request, res: Response): void {
 export async function handleInstagramWebhook(req: Request, res: Response): Promise<void> {
   try {
     console.log('[IG_EVENT] Webhook received:', JSON.stringify(req.body, null, 2));
-    recordWebhookEvent();
+    // recordWebhookEvent(); // Removed undefined function call
 
     if (!verifySignature(req)) {
       console.log('[IG_EVENT] Signature verification failed');
@@ -245,8 +246,8 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
         userId: integration.userId,
         externalId: customerId,
         name: senderProfile.name || senderProfile.username || 'Instagram User',
-        channel: 'instagram',
-        status: 'new',
+        channel: 'instagram' as "instagram" | "email",
+        status: 'new' as "new" | "open" | "replied" | "converted" | "not_interested" | "cold",
         tags: ['instagram', 'auto-captured'],
         metadata: { preferred_name: senderProfile.name?.split(' ')[0] }
       };
@@ -406,8 +407,8 @@ async function processInstagramComment(comment: InstagramCommentValue): Promise<
         userId: integration.userId,
         externalId: from.id,
         name: from.username,
-        channel: 'instagram',
-        status: 'new',
+        channel: 'instagram' as "instagram" | "email",
+        status: 'new' as "new" | "open" | "replied" | "converted" | "not_interested" | "cold",
         tags: ['instagram-comment', 'auto-captured'],
         metadata: {
           preferred_name: from.username

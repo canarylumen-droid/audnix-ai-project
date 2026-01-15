@@ -189,11 +189,11 @@ export class MemStorage implements IStorage {
 
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {
     const id = randomUUID();
-    const newMember: TeamMember = { 
-      ...member, 
-      id, 
-      invitedAt: new Date(), 
-      acceptedAt: null, 
+    const newMember: TeamMember = {
+      ...member,
+      id,
+      invitedAt: new Date(),
+      acceptedAt: null,
       invitedBy: member.invitedBy ?? null,
       role: member.role ?? "member"
     };
@@ -321,8 +321,8 @@ export class MemStorage implements IStorage {
     const user = this.users.get(id);
     if (!user) return undefined;
 
-    const updatedUser = { 
-      ...user, 
+    const updatedUser = {
+      ...user,
       ...updates,
       metadata: updates.metadata ? { ...user.metadata, ...updates.metadata } : user.metadata
     };
@@ -667,10 +667,6 @@ export class MemStorage implements IStorage {
   // Usage tracking
   private usageHistory: Map<string, any[]> = new Map();
 
-  async createPayment(data: any): Promise<any> {
-    return { id: randomUUID(), ...data, createdAt: new Date() };
-  }
-
   async createUsageTopup(data: any): Promise<any> {
     const id = randomUUID();
     const now = new Date();
@@ -852,6 +848,7 @@ export class MemStorage implements IStorage {
       scope: data.scope || null,
       tokenType: data.tokenType || null,
       idToken: data.idToken || null,
+      metadata: data.metadata || {},
       createdAt: existing ? existing.createdAt : now,
       updatedAt: now,
     };

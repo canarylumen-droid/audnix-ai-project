@@ -1,7 +1,7 @@
 import { storage } from '../../storage.js';
 import type { Message } from '../../../shared/schema.js';
 
-interface LanguageDetection {
+export interface LanguageDetection {
   language: string;
   confidence: number;
   code: string; // ISO 639-1 code
@@ -50,28 +50,28 @@ const LANGUAGE_PATTERNS = {
  */
 export function detectLanguage(text: string): LanguageDetection {
   const lowerText = text.toLowerCase();
-  
+
   let bestMatch = { language: 'English', code: 'en', confidence: 0.5 };
-  
+
   for (const [code, data] of Object.entries(LANGUAGE_PATTERNS)) {
     let matchCount = 0;
-    
+
     // Check keywords
     for (const keyword of data.keywords) {
       if (lowerText.includes(keyword.toLowerCase())) {
         matchCount++;
       }
     }
-    
+
     // Check greetings (higher weight)
     for (const greeting of data.greetings) {
       if (lowerText.includes(greeting.toLowerCase())) {
         matchCount += 2;
       }
     }
-    
+
     const confidence = Math.min(matchCount / data.keywords.length, 1);
-    
+
     if (confidence > bestMatch.confidence) {
       bestMatch = {
         language: data.name,
@@ -80,7 +80,7 @@ export function detectLanguage(text: string): LanguageDetection {
       };
     }
   }
-  
+
   return bestMatch;
 }
 
@@ -122,11 +122,11 @@ export async function getLocalizedResponse(
       closing: ['Pronto para pedir?', 'Posso ajudá-lo com mais alguma coisa?']
     }
   };
-  
+
   if (detectedLang.code === 'en' || !responses[detectedLang.code]) {
     return message; // Return original English message
   }
-  
+
   const langResponses = responses[detectedLang.code][responseType];
   return langResponses[Math.floor(Math.random() * langResponses.length)];
 }
@@ -137,7 +137,7 @@ export async function getLocalizedResponse(
 export async function updateLeadLanguage(leadId: string, language: LanguageDetection): Promise<void> {
   const lead = await storage.getLeadById(leadId);
   if (!lead) return;
-  
+
   await storage.updateLead(leadId, {
     metadata: {
       ...lead.metadata,

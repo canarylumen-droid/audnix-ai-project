@@ -1,7 +1,7 @@
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 
-interface PriceObjection {
+export interface PriceObjectionResult {
   detected: boolean;
   severity: 'low' | 'medium' | 'high';
   keywords: string[];
@@ -24,11 +24,11 @@ const PRICE_OBJECTION_KEYWORDS = {
 /**
  * Detect price objections in message
  */
-export async function detectPriceObjection(message: string): Promise<PriceObjection> {
+export async function detectPriceObjection(message: string): Promise<PriceObjectionResult> {
   const lowerMessage = message.toLowerCase();
   let severity: 'low' | 'medium' | 'high' = 'low';
   const foundKeywords: string[] = [];
-  
+
   // Check high severity first
   for (const keyword of PRICE_OBJECTION_KEYWORDS.high) {
     if (lowerMessage.includes(keyword)) {
@@ -36,7 +36,7 @@ export async function detectPriceObjection(message: string): Promise<PriceObject
       foundKeywords.push(keyword);
     }
   }
-  
+
   // Check medium severity
   if (severity !== 'high') {
     for (const keyword of PRICE_OBJECTION_KEYWORDS.medium) {
@@ -46,7 +46,7 @@ export async function detectPriceObjection(message: string): Promise<PriceObject
       }
     }
   }
-  
+
   // Check low severity
   if (severity === 'low') {
     for (const keyword of PRICE_OBJECTION_KEYWORDS.low) {
@@ -55,9 +55,9 @@ export async function detectPriceObjection(message: string): Promise<PriceObject
       }
     }
   }
-  
+
   const detected = foundKeywords.length > 0;
-  
+
   return {
     detected,
     severity,
@@ -75,7 +75,7 @@ export async function calculateOptimalDiscount(
   leadId: string | null
 ): Promise<number> {
   let baseDiscount = 0;
-  
+
   // Base discount by severity
   switch (severity) {
     case 'high':
@@ -88,7 +88,7 @@ export async function calculateOptimalDiscount(
       baseDiscount = 5; // 5%
       break;
   }
-  
+
   // Adjust based on lead score
   if (leadId) {
     const lead = await storage.getLeadById(leadId);
@@ -99,7 +99,7 @@ export async function calculateOptimalDiscount(
         baseDiscount -= 3; // Cold lead - offer less
       }
     }
-    
+
     // Check negotiation history
     const history = await getNegotiationHistory(leadId);
     if (history.discountsOffered.length > 0) {
@@ -108,7 +108,7 @@ export async function calculateOptimalDiscount(
       baseDiscount = Math.min(baseDiscount, maxOffered + 2);
     }
   }
-  
+
   return Math.min(Math.max(baseDiscount, 5), 25); // Cap between 5-25%
 }
 
@@ -120,7 +120,7 @@ export async function generateNegotiationResponse(
   leadId: string | null
 ): Promise<string> {
   const discount = await calculateOptimalDiscount(severity, leadId);
-  
+
   const responses = {
     high: [
       `I totally understand! Let me see what I can do... I can offer you ${discount}% off if you decide today! 🎉`,
@@ -138,7 +138,7 @@ export async function generateNegotiationResponse(
       `How about ${discount}% off to get you started? 🚀`
     ]
   };
-  
+
   const options = responses[severity];
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -164,14 +164,14 @@ export async function saveNegotiationAttempt(
 ): Promise<void> {
   const lead = await storage.getLeadById(leadId);
   if (!lead) return;
-  
+
   const history = await getNegotiationHistory(leadId);
   history.discountsOffered.push(discountOffered);
-  
+
   if (accepted) {
     history.acceptedDiscount = discountOffered;
   }
-  
+
   await storage.updateLead(leadId, {
     metadata: {
       ...lead.metadata,
@@ -187,13 +187,13 @@ export async function saveNegotiationAttempt(
 export async function learnOptimalDiscount(userId: string): Promise<number> {
   const leads = await storage.getLeads({ userId, limit: 1000 });
   const convertedLeads = leads.filter(l => l.status === 'converted');
-  
+
   const acceptedDiscounts = convertedLeads
     .map(l => l.metadata?.negotiationHistory?.acceptedDiscount)
     .filter(d => d !== undefined) as number[];
-  
+
   if (acceptedDiscounts.length === 0) return 10; // Default 10%
-  
+
   // Calculate average successful discount
   const avgDiscount = acceptedDiscounts.reduce((sum, d) => sum + d, 0) / acceptedDiscounts.length;
   return Math.round(avgDiscount);

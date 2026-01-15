@@ -163,12 +163,12 @@ router.post('/webhook/stripe', async (req: Request, res: Response): Promise<void
           await storage.createPayment({
             userId,
             stripePaymentId: (session.payment_intent as string) ?? undefined,
-            amount: session.amount_total,
-            currency: session.currency,
+            amount: session.amount_total || 0,
+            currency: session.currency || 'usd',
             status: 'completed',
             plan: planKey,
             paymentLink: session.url ?? undefined,
-            webhookPayload: event,
+            webhookPayload: event as any,
           });
 
           await storage.createNotification({

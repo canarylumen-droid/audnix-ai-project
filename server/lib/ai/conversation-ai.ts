@@ -162,7 +162,9 @@ export interface AIReplyResult {
 }
 
 export interface MemoryRetrievalResult {
+  success: boolean;
   context: string;
+  conversations?: any[];
   metadata?: any;
 }
 

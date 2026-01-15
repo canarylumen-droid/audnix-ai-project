@@ -170,7 +170,7 @@ export class GmailOAuth {
    * Get valid access token (refresh if needed)
    */
   async getValidToken(userId: string): Promise<string | null> {
-    const tokenData = await storage.getOAuthAccount(userId, 'gmail');
+    const tokenData = await storage.getOAuthAccount(userId, 'google');
 
     if (!tokenData) {
       return null;
@@ -200,7 +200,7 @@ export class GmailOAuth {
 
         await storage.saveOAuthAccount({
           userId: userId,
-          provider: 'gmail',
+          provider: 'google',
           providerAccountId: tokenData.providerAccountId,
           accessToken: encryptedNewAccessToken,
           refreshToken: tokenData.refreshToken, // Keep existing encrypted refresh token unless new one provided?
@@ -231,7 +231,7 @@ export class GmailOAuth {
   static async refreshExpiredTokens(): Promise<void> {
     try {
       // Get tokens expiring in next 10 mins
-      const expiredAccounts = await storage.getSoonExpiringOAuthAccounts('gmail', 10);
+      const expiredAccounts = await storage.getSoonExpiringOAuthAccounts('google', 10);
 
       if (!expiredAccounts || expiredAccounts.length === 0) return;
 
@@ -262,7 +262,7 @@ export class GmailOAuth {
     }
 
     // Remove from database
-    await storage.deleteOAuthAccount(userId, 'gmail');
+    await storage.deleteOAuthAccount(userId, 'google');
 
     // Update user record
     await storage.updateUser(userId, {
