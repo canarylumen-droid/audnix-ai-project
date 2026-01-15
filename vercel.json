@@ -4,13 +4,6 @@
     "outputDirectory": "dist/public",
     "installCommand": "npm install --legacy-peer-deps",
     "framework": null,
-    "functions": {
-        "server/index.ts": {
-            "runtime": "@vercel/node@3.0.0",
-            "maxDuration": 60,
-            "memory": 1024
-        }
-    },
     "rewrites": [
         {
             "source": "/api/:path*",
@@ -31,6 +24,10 @@
         {
             "source": "/socket.io/:path*",
             "destination": "/server/index.ts"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ],
     "headers": [
