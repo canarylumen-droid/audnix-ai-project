@@ -7,6 +7,7 @@ if (!process.env.NODE_ENV) {
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import { registerRoutes } from "./routes/index.js";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
@@ -142,15 +143,22 @@ let sessionStore: session.Store | undefined;
 
 // Use connection pooling for session store if possible
 if (process.env.DATABASE_URL) {
+  const pool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // Required for Neon
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  });
+
   sessionStore = new PgSession({
-    conString: process.env.DATABASE_URL,
+    pool: pool,
     tableName: 'user_sessions',
     createTableIfMissing: true,
     pruneSessionInterval: 60 * 15,
-    // Add connection pooling options if supported by the library
     schemaName: 'public',
   });
-  console.log('✅ Using PostgreSQL session store (persistent across restarts)');
+  console.log('✅ Using PostgreSQL session store with SSL (persistent)');
 }
 
 const sessionConfig: session.SessionOptions = {
@@ -175,8 +183,15 @@ app.use(session(sessionConfig));
 // CSRF Protection
 const csrfProtection = csrf({ cookie: false }); // Using session-based CSRF
 app.use((req, res, next) => {
-  // Skip CSRF for webhooks or specific APIs if needed
-  if (req.path.startsWith('/api/webhooks')) {
+  // Skip CSRF for webhooks, callbacks, or specifically configured APIs
+  const skipPaths = [
+    '/api/webhooks',
+    '/api/instagram/callback',
+    '/api/instagram/webhook',
+    '/api/facebook/webhook'
+  ];
+
+  if (skipPaths.some(path => req.path.startsWith(path))) {
     return next();
   }
   csrfProtection(req, res, next);
@@ -439,8 +454,14 @@ async function runMigrations() {
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+
+    // Check if headers already sent to avoid secondary crashes
+    if (res.headersSent) {
+      console.error('⚠️ Critical: Error occurred after headers were sent:', err);
+      return;
+    }
+
     res.status(status).json({ message });
-    throw err;
   });
 
   // Setup Vite (dev only) or static serving (production only)
