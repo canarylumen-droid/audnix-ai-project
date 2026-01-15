@@ -42,6 +42,7 @@ import expertChatRoutes from "./expert-chat.js";
 import userSettingsRoutes from "./user-settings-routes.js";
 import prospectingRoutes from "./prospecting.js";
 import { organizationRouter } from "./organization-routes.js";
+import adminMigrationsRouter from "./admin-migrations.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
   // Mount all routes
@@ -96,6 +97,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/sales-engine", salesEngine);
   app.use("/api/expert-chat", expertChatRoutes);
   app.use("/api/prospecting", prospectingRoutes);
+  app.use("/api/admin", adminMigrationsRouter); // Admin-only migration controls
 
   // Create HTTP server
   const server = http.createServer(app);
