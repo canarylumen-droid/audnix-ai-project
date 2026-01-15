@@ -75,6 +75,18 @@ if (hasSupabaseUrl && hasSupabaseKey) {
   console.log('✅ Supabase Auth configured');
 }
 
+// CRITICAL DEBUG: Log Email Configuration
+const hasEmailKey = Boolean(process.env.TWILIO_SENDGRID_API_KEY);
+const senderEmail = process.env.TWILIO_EMAIL_FROM;
+console.log(`📧 Email Configuration Check:
+  - API Key Present: ${hasEmailKey ? 'YES ✅' : 'NO ❌'}
+  - Sender Email: ${senderEmail || 'Default (auth@audnixai.com)'}
+`);
+
+if (!hasEmailKey) {
+  console.error("❌ CRITICAL: TWILIO_SENDGRID_API_KEY is missing! Emails will fail.");
+}
+
 // Warn about optional variables but don't exit
 const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENAI_API_KEY'];
 
