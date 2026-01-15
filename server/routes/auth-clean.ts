@@ -28,6 +28,7 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     }
 
     if (!twilioEmailOTP.isConfigured()) {
+      console.error('❌ Signup failed: Email service not configured (TWILIO_SENDGRID_API_KEY missing)');
       res.status(503).json({ error: 'Email service not configured' });
       return;
     }
