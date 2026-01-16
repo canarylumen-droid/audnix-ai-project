@@ -3,6 +3,7 @@ import { MODELS } from './model-config.js';
 import { storage } from '../../storage.js';
 import type { Lead, Message } from '../../../shared/schema.js';
 import { formatDMWithButton, formatCommentReply, prepareMetaButton, type DMButton } from './dm-formatter.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
 const openai = process.env.OPENAI_API_KEY
@@ -514,7 +515,9 @@ export async function executeCommentFollowUps(): Promise<void> {
         }
       }
     }
-  } catch (error) {
+    workerHealthMonitor.recordSuccess('video-comment-monitor');
+  } catch (error: any) {
     console.error('Error executing comment follow-ups:', error);
+    workerHealthMonitor.recordError('video-comment-monitor', error?.message || 'Unknown error');
   }
 }

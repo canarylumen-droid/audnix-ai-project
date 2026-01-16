@@ -1,4 +1,5 @@
 import { storage } from "../../storage.js";
+import { workerHealthMonitor } from "../monitoring/worker-health.js";
 
 interface AutoApprovalStats {
   checked: number;
@@ -112,12 +113,12 @@ class PaymentAutoApprovalWorker {
       // 3. Process whitelisted users (Dynamic check from ENV)
       const whitelistRaw = process.env.WHITELISTED_EMAILS || '';
       const whitelist = whitelistRaw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-      
+
       if (whitelist.length > 0) {
-        const usersToUpgrade = users.filter(u => 
+        const usersToUpgrade = users.filter(u =>
           whitelist.includes(u.email.toLowerCase()) && u.plan !== 'pro'
         );
-        
+
         for (const user of usersToUpgrade) {
           try {
             await storage.updateUser(user.id, {
@@ -134,9 +135,12 @@ class PaymentAutoApprovalWorker {
 
       this.stats.lastRun = now;
       this.lastLogTime = currentTime; // Update last log time when activity occurs
+
+      workerHealthMonitor.recordSuccess('payment-auto-approval-worker');
     } catch (error: any) {
       this.stats.errors += 1;
       console.error("❌ Error in payment auto-approval worker:", error.message);
+      workerHealthMonitor.recordError('payment-auto-approval-worker', error.message || 'Unknown error');
     } finally {
       this.isProcessing = false;
     }

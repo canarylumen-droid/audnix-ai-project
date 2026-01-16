@@ -2,6 +2,7 @@ import { storage } from '../../storage.js';
 import { decrypt } from '../crypto/encryption.js';
 import { importCustomEmails } from '../channels/email.js';
 import { pagedEmailImport } from '../imports/paged-email-importer.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { Integration, Lead } from '../../../shared/schema.js';
 
 /**
@@ -96,8 +97,10 @@ class EmailSyncWorker {
           console.error(`Email sync failed for user ${integration.userId}:`, errorMessage);
         }
       }
-    } catch (error) {
+      workerHealthMonitor.recordSuccess('email-sync-worker');
+    } catch (error: any) {
       console.error('Email sync worker error:', error);
+      workerHealthMonitor.recordError('email-sync-worker', error?.message || 'Unknown error');
     }
   }
 

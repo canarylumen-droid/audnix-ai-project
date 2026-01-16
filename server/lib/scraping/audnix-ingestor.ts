@@ -115,8 +115,8 @@ export class AudnixIngestor {
                 await Promise.all(batch.map(async (enriched) => {
                     try {
                         if (!enriched.email) return;
-                        if (enriched.email.match(/^(info|contact|support|hello|admin|noreply|no-reply|hr|sales|team|office)@/i)) return;
-                        if (enriched.leadScore < 70) return;
+                        if (enriched.email.match(/^(info|support|admin|noreply|no-reply|hr)@/i)) return;
+                        if (enriched.leadScore < 60) return;
 
                         const verification = await this.verifier.verify(enriched.email);
                         if (!verification.valid) return;
@@ -124,7 +124,7 @@ export class AudnixIngestor {
                         const existing = await db.select().from(prospects).where(eq(prospects.email, enriched.email)).limit(1);
                         if (existing.length > 0) return;
 
-                        const temperature = enriched.leadScore >= 90 ? '🔥 HOT' : (enriched.leadScore >= 70 ? '⚡ WARM' : '❄️ COLD');
+                        const temperature = enriched.leadScore >= 85 ? '🔥 HOT' : (enriched.leadScore >= 60 ? '⚡ WARM' : '❄️ COLD');
                         const [inserted] = await db.insert(prospects).values({
                             userId: this.userId,
                             entity: enriched.entity,

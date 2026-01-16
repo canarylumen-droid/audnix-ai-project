@@ -152,24 +152,28 @@ export const calendarEvents = pgTable("calendar_events", {
 });
 
 export const videoMonitors = pgTable("video_monitors", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   videoId: text("video_id").notNull(),
   videoUrl: text("video_url").notNull(),
   productLink: text("product_link").notNull(),
-  ctaText: text("cta_text").notNull(),
+  ctaText: text("cta_text").notNull().default('Check it out'),
   isActive: boolean("is_active").notNull().default(true),
   autoReplyEnabled: boolean("auto_reply_enabled").notNull().default(true),
-  metadata: jsonb("metadata"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const processedComments = pgTable("processed_comments", {
-  id: text("id").primaryKey(),
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   commentId: text("comment_id").notNull().unique(),
-  action: text("action").notNull(),
+  videoMonitorId: uuid("video_monitor_id").references(() => videoMonitors.id, { onDelete: 'cascade' }),
+  commenterUsername: text("commenter_username").notNull(),
+  commentText: text("comment_text").notNull(),
   intentType: text("intent_type").notNull(),
+  status: text("status", { enum: ['dm_sent', 'ignored', 'failed'] }).notNull().default('dm_sent'),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
   processedAt: timestamp("processed_at").notNull().defaultNow()
 });
 

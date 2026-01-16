@@ -268,7 +268,7 @@ export class AdvancedCrawler {
         }
 
         // 2. Parallel Search across all platforms including "Ghost" businesses with location rotation
-        const searchTasks = [];
+        const searchTasks: Promise<RawLead[]>[] = [];
         for (const loc of locations) {
             const locBatch = Math.ceil(batchSize / locations.length);
             sources.forEach(source => {
@@ -286,8 +286,11 @@ export class AdvancedCrawler {
         // 3. Deep Social Exhaustion (IG/LinkedIn Bios) - Force retrieval if results are low
         if (results.length < limit * 0.5) {
             this.log(`[Pulse] Exhausting social archives for ${niche}...`, 'warning');
-            const dorkBatch = await this.searchSocialViaDork(niche, locations[0], limit - results.length);
-            results.push(...dorkBatch);
+            for (const platform of ['instagram.com', 'linkedin.com', 'twitter.com']) {
+                const dorkBatch = await this.searchSocialViaDork(niche, locations[0], Math.ceil((limit - results.length) / 3), platform);
+                results.push(...dorkBatch);
+                if (results.length >= limit) break;
+            }
         }
 
         let unique = this.deduplicateLeads(results);
@@ -613,7 +616,7 @@ export class AdvancedCrawler {
     private async searchGoogle(niche: string, location: string, limit: number): Promise<RawLead[]> {
         const results: RawLead[] = [];
         try {
-            const query = `${niche} ${location} contact email -linkedin -facebook -yelp`;
+            const query = `${niche} ${location}`;
             const pagesToScrape = Math.min(5, Math.ceil(limit / 10)); // Scrape up to 5 pages
 
             for (let page = 0; page < pagesToScrape; page++) {
@@ -757,13 +760,19 @@ export class AdvancedCrawler {
                 this.log(`[Deep Scan] Analyzing YouTube channel descriptions and video tags...`, 'info');
             }
 
-            const response = await axios.get(validUrl, {
-                headers: this.getSmartHeaders(),
-                timeout: this.timeout,
-                maxRedirects: 3,
-                proxy: this.getProxyConfig(), // Proxy rotation
-                validateStatus: (status) => status < 500
-            });
+            let response;
+            try {
+                response = await axios.get(validUrl, {
+                    headers: this.getSmartHeaders(),
+                    timeout: this.timeout,
+                    maxRedirects: 3,
+                    proxy: this.getProxyConfig(), // Proxy rotation
+                    validateStatus: (status) => status < 500
+                });
+            } catch (error) {
+                this.log(`[Connectivity] Website unresponsive: ${validUrl}. Skipping deep enrichment.`, 'warning');
+                return enriched; // Skip unresponsive sites as requested
+            }
 
             const $ = cheerio.load(response.data);
             const html = response.data;
@@ -815,7 +824,9 @@ export class AdvancedCrawler {
 
             enriched.personalEmail = personalEmails[0];
             enriched.founderEmail = businessEmails.find(e => this.isFounderEmail(e));
-            enriched.email = enriched.personalEmail || enriched.founderEmail || businessEmails[0];
+
+            // Priority: Founder > Business > Personal (Gmail/etc)
+            enriched.email = enriched.founderEmail || businessEmails[0] || enriched.personalEmail;
 
             if (enriched.email) {
                 // SMTPS Verification
@@ -1096,9 +1107,14 @@ Return ONLY JSON:
             'site:instagram.com "AI Automation Agency" "@gmail.com"',
             'site:linkedin.com/in "AI Automation" "Founder" "email"',
             'site:twitter.com "AI Automation Agency" "contact"',
+            'site:instagram.com "DM Automation" "creators" "@gmail.com"',
+            'site:linkedin.com/in "Sales Automation" "expert" "email"',
+            'site:twitter.com "Lead Generation" "creator" "contact"',
             // Volume Boosters
             '"AI Automation" "Agency" "Owner" email',
-            'intitle:"AI Automation Agency" "USA"'
+            '"DM Automation" "Sales Automation" "Lead Gen" email',
+            'intitle:"AI Automation Agency" "USA"',
+            'intitle:"Lead Generation Expert" "Global"'
         ];
 
         const results: RawLead[] = [];

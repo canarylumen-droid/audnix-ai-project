@@ -27,8 +27,18 @@ router.post(
         return res.status(400).json({ error: "No PDF provided" });
       }
 
-      // Extract PDF content (basic text extraction)
-      const pdfContent = req.file.buffer.toString("utf-8").toLowerCase();
+      // Robust PDF text extraction
+      let pdfText = "";
+      try {
+        const { default: pdfParse } = await import('pdf-parse');
+        const data = await pdfParse(req.file.buffer);
+        pdfText = data.text;
+      } catch (parseError) {
+        console.warn("⚠️ PDF Parse failed, falling back to raw string conversion:", parseError);
+        pdfText = req.file.buffer.toString("utf-8");
+      }
+
+      const pdfContent = pdfText.toLowerCase();
       const fileSize = req.file.size;
       const fileName = req.file.originalname;
 
@@ -202,14 +212,14 @@ router.post(
         recommendations.push("Add your preferred language and phrases to use");
       }
 
-      const aiAssistanceMessage = overallScore < 60 
+      const aiAssistanceMessage = overallScore < 60
         ? "Don't worry — our AI will research your industry and fill in the gaps. You can upload now and we'll handle the rest."
-        : overallScore < 80 
-        ? "Good foundation! Our AI will enhance any missing details using industry research."
-        : "Excellent! Your brand profile is comprehensive — AI will perform at its best.";
+        : overallScore < 80
+          ? "Good foundation! Our AI will enhance any missing details using industry research."
+          : "Excellent! Your brand profile is comprehensive — AI will perform at its best.";
 
       const canProceedAnyway = true;
-      const proceedMessage = overallScore < 50 
+      const proceedMessage = overallScore < 50
         ? "You can still proceed. Our AI will use deep research to find relevant data about your industry, competitors, and target audience to fill gaps."
         : "Ready to proceed. AI has enough context to generate high-quality responses.";
 

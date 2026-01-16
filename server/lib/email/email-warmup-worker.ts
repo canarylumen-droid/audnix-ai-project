@@ -2,6 +2,7 @@ import { db } from '../../db.js';
 import { emailWarmupSchedules, users, type EmailWarmupSchedule, type User } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 
 /**
  * Email Warm-up System
@@ -112,8 +113,10 @@ class EmailWarmupWorker {
       for (const user of activeUsers) {
         await this.updateUserWarmupSchedule(user.id);
       }
-    } catch (error) {
+      workerHealthMonitor.recordSuccess('email-warmup-worker');
+    } catch (error: any) {
       console.error('Warmup check error:', error);
+      workerHealthMonitor.recordError('email-warmup-worker', error?.message || 'Unknown error');
     }
   }
 

@@ -1,5 +1,6 @@
 // CRITICAL: Ensure NODE_ENV is set BEFORE any other code runs
 // This prevents Vite/Rollup from being loaded in production
+import 'dotenv/config';
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
 }
@@ -17,6 +18,23 @@ import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
 import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
+import * as fs from "fs";
+import * as path from "path";
+
+// Ensure upload directories exist
+const uploadDirs = [
+  "uploads",
+  "public/uploads",
+  "public/uploads/voice",
+  "public/uploads/pdf",
+  "public/uploads/avatars"
+];
+uploadDirs.forEach(dir => {
+  const fullPath = path.join(process.cwd(), dir);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+  }
+});
 import crypto from "crypto";
 import hpp from 'hpp';
 import csrf from 'csurf';
@@ -191,15 +209,15 @@ app.use((req, res, next) => {
     '/api/facebook/webhook'
   ];
 
-  if (skipPaths.some(path => req.path.startsWith(path))) {
+  if (skipPaths.some(path => req.path.startsWith(path)) || req.path === '/api/csrf-token') {
     return next();
   }
   csrfProtection(req as any, res as any, next);
 });
 
-// Provide CSRF token to client
-app.get('/api/csrf-token', (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+// CSRF Token endpoint
+app.get("/api/csrf-token", (req, res) => {
+  res.json({ csrfToken: (req as any).csrfToken() });
 });
 
 // CORS Middleware - Restricted to allowlist for credential safety
@@ -354,8 +372,8 @@ async function runMigrations() {
     }
 
     const dbHost = new URL(process.env.DATABASE_URL).hostname;
-    console.log(`🔌 Connecting to database at: ${dbHost}`);
-    console.log('🚀 Running database migrations...');
+    console.log(`🔌 [Database] Connecting to: ${dbHost}`);
+    console.log('🚀 [Migration] Initializing neural schema synchronization...');
 
     // Use Drizzle's db connection directly
     const { db } = await import('./db.js');
@@ -427,8 +445,8 @@ async function runMigrations() {
       }
     }
 
-    console.log('✅ All migrations complete!');
-    console.log('📊 Your database is ready to use');
+    console.log('✅ [Migration] Neural Gateway synchronization complete!');
+    console.log('📊 [System] Database core optimized and ready for High-Velocity scale.');
   } catch (error: any) {
     console.log('⚠️  Migrations skipped:', error.message);
     console.log('💡 Application will run in demo mode without database features');
@@ -535,8 +553,11 @@ async function runMigrations() {
           console.log('🤖 Initializing AI services...');
           workerHealthMonitor.registerWorker('follow-up-worker');
           workerHealthMonitor.registerWorker('video-comment-monitor');
-          workerHealthMonitor.registerWorker('lead-learning');
           workerHealthMonitor.registerWorker('oauth-token-refresh');
+          workerHealthMonitor.registerWorker('email-sync-worker');
+          workerHealthMonitor.registerWorker('email-warmup-worker');
+          workerHealthMonitor.registerWorker('payment-auto-approval-worker');
+          workerHealthMonitor.registerWorker('lead-learning');
           workerHealthMonitor.start();
 
           followUpWorker.start();

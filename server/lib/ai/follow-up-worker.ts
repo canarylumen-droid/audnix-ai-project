@@ -8,6 +8,7 @@ import { sendInstagramMessage } from '../channels/instagram.js';
 import { sendEmail } from '../channels/email.js';
 import { executeCommentFollowUps } from './comment-detection.js';
 import { storage } from '../../storage.js';
+import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import MultiChannelOrchestrator from '../multi-channel-orchestrator.js';
 import DayAwareSequence from './day-aware-sequence.js';
 import { getMessageScript, personalizeScript } from './message-scripts.js';
@@ -186,8 +187,10 @@ export class FollowUpWorker {
         results.push(...batchResults);
         console.log(`✅ Batch complete in ${Date.now() - batchStartTime}ms`);
       }
-    } catch (error) {
+      workerHealthMonitor.recordSuccess('follow-up-worker');
+    } catch (error: any) {
       console.error('Queue processing error:', error);
+      workerHealthMonitor.recordError('follow-up-worker', error?.message || 'Unknown error');
     }
   }
 
