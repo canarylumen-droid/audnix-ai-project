@@ -47,7 +47,36 @@ export class EmailVerifier {
             return result;
         }
 
-        // 4. Role-based Email Detection
+        // 4. Advanced SMTP Handshake (Primary Check)
+        try {
+            const smtpCheck = await this.checkSMTP(email);
+            if (smtpCheck.valid) {
+                result.valid = true;
+                result.reason = 'Verified via SMTP handshake';
+                result.riskLevel = 'low';
+                return result;
+            } else if (smtpCheck.log.includes('Mailbox address rejected') || smtpCheck.log.includes('550')) {
+                result.valid = false;
+                result.reason = 'Mailbox does not exist (SMTP rejected)';
+                result.riskLevel = 'high';
+                return result;
+            } else if (smtpCheck.log.includes('Timeout') || smtpCheck.log.includes('Error')) {
+                // If handshake times out or errors locally, we fall back to MX check
+                // but mark as 'medium' risk to be safe
+                result.valid = true;
+                result.reason = 'Valid MX (SMTP handshake timed out)';
+                result.riskLevel = 'medium';
+                return result;
+            }
+        } catch (e) {
+            // Unexpected error during SMTP check
+            result.valid = true;
+            result.reason = 'Valid MX (SMTP process failed)';
+            result.riskLevel = 'medium';
+            return result;
+        }
+
+        // 5. Final fallback (Role-based check if SMTP failed/indeterminate)
         if (this.isRoleBased(email)) {
             result.valid = true;
             result.reason = 'Role-based email (info@, contact@, etc.)';
@@ -55,30 +84,8 @@ export class EmailVerifier {
             return result;
         }
 
-        // 5. Advanced SMTP Handshake (Optional / Advanced)
-        // Note: We perform this but if it fails (timeout/block), we fall back to MX valid
-        // because we don't want to discard valid emails just because dev environment can't speak SMTP.
-        try {
-            const smtpCheck = await this.checkSMTP(email);
-            if (smtpCheck.valid) {
-                result.reason = 'Verified via SMTP handshake';
-                result.riskLevel = 'low';
-            } else if (smtpCheck.log.includes('Mailbox address rejected')) {
-                result.valid = false;
-                result.reason = 'Mailbox does not exist (SMTP rejected)';
-                result.riskLevel = 'high';
-                return result; // Explicit reject
-            } else {
-                // Indeterminate (likely timeout or block), fallback to MX check
-                result.reason = 'Valid MX (SMTP handshake skipped/failed)';
-                result.riskLevel = 'low'; // Assume low risk if MX exists but we can't connect
-            }
-        } catch (e) {
-            result.reason = 'Valid MX (SMTP check error)';
-        }
-
-        // If all checks pass
         result.valid = true;
+        result.riskLevel = 'medium';
         return result;
     }
 

@@ -208,11 +208,11 @@
   --popover-border: 220 6% 22%;
 
   --primary: 191 100% 50%;
-  --primary-glow: 191 100% 50% / 0.15;
+  --primary-glow: 191 100% 50% / 0.35;
+  --secondary: 280 100% 65%;
+  --secondary-glow: 280 100% 65% / 0.25;
 
   --primary-foreground: 210 40% 98%;
-
-  --secondary: 280 60% 60%;
 
   --secondary-foreground: 0 0% 100%;
 
@@ -392,14 +392,50 @@
 /* Refined Lightweight Glass - Optimized for Performance */
 .glass-premium {
   /* Default: High Performance (Real Blur) */
-  --glass-bg: hsla(var(--background) / 0.4);
-  --glass-blur: blur(12px);
-  --glass-border: hsla(var(--foreground) / 0.05);
+  --glass-bg: hsla(230, 35%, 10%, 0.6);
+  --glass-blur: blur(25px);
+  --glass-border: hsla(var(--primary) / 0.1);
   
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
+  box-shadow: inset 0 0 40px hsla(var(--primary) / 0.05);
+}
+
+/* HUD Accents for Futuristic Terminals */
+.hud-corner {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid hsla(var(--primary) / 0.4);
+  pointer-events: none;
+}
+
+.hud-corner-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+.hud-corner-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+.hud-corner-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+.hud-corner-br { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+.neural-panel {
+  background: hsla(var(--background) / 0.8);
+  border: 1px solid hsla(var(--primary) / 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.neural-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    hsla(var(--primary) / 0.02) 1px,
+    hsla(var(--primary) / 0.02) 2px
+  );
+  pointer-events: none;
 }
 
 /* Low Performance Mode (Reduced Motion / Low Power) */

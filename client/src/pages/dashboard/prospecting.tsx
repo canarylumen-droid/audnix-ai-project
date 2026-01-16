@@ -141,18 +141,16 @@ export default function ProspectingPage() {
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                    <div className="text-center md:text-left">
-                        <div className="flex flex-col md:flex-row items-center gap-2 mb-2">
-                            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic">
-                                Neural <span className="text-primary not-italic">Prospecting.</span>
-                            </h1>
-                            <div className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest leading-none">Global Pool: 500M+ Nodes</span>
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Neural Core Alpha</h2>
+                            <div className="px-3 py-1 rounded bg-primary/10 border border-primary/20 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,180,255,0.2)]">
+                                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none">Scanning Engine Active</span>
                             </div>
                         </div>
-                        <p className="text-white/40 text-xs md:text-sm font-medium">Global proxy mesh • Distributed neural crawlers • Real-time enrichment</p>
+                        <p className="text-white/40 text-sm md:text-base font-medium tracking-tight">Worldwide Residential Proxy Mesh • Distributed Neural Nodes • Real-Time Delivery Handshakes</p>
                     </div>
                     <div className="flex items-center justify-center md:justify-end gap-3">
                         <Button
@@ -244,9 +242,18 @@ export default function ProspectingPage() {
 
                 {/* Results Table */}
                 {leads.length > 0 ? (
-                    <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
-                        <CardHeader>
-                            <CardTitle className="text-foreground">Discovered Leads ({leads.length})</CardTitle>
+                    <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative neural-panel">
+                        {/* HUD Decorations */}
+                        <div className="hud-corner hud-corner-tl opacity-60" />
+                        <div className="hud-corner hud-corner-tr opacity-30" />
+                        <div className="hud-corner hud-corner-bl opacity-60" />
+                        <div className="hud-corner hud-corner-br opacity-30" />
+
+                        <CardHeader className="px-10 py-8 border-b border-white/5">
+                            <CardTitle className="text-white text-xl font-black uppercase tracking-widest flex items-center gap-4">
+                                <Activity className="w-5 h-5 text-primary" />
+                                Hardened Leads Cluster ({leads.length})
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">

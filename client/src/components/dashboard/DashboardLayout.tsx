@@ -263,9 +263,15 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <motion.aside
-        className="hidden md:flex flex-col border-r border-border/40 bg-card/60 backdrop-blur-xl z-50 transition-all duration-500 ease-out"
+        className="hidden md:flex flex-col border-r border-border/40 bg-[#030303]/90 backdrop-blur-3xl z-50 transition-all duration-500 ease-out relative"
         animate={{ width: sidebarCollapsed ? "5rem" : "20rem" }}
       >
+        {/* HUD Corners for Sidebar */}
+        <div className="hud-corner hud-corner-tl opacity-40" />
+        <div className="hud-corner hud-corner-tr opacity-20" />
+        <div className="hud-corner hud-corner-bl opacity-40" />
+        <div className="hud-corner hud-corner-br opacity-20" />
+
         {/* Sidebar Header */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-border/40">
           <Logo className="h-10 w-10" textClassName="text-xl font-bold" />
@@ -404,9 +410,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-40">
+        <header className="h-20 border-b border-border/40 bg-background/90 backdrop-blur-2xl flex items-center justify-between px-8 sticky top-0 z-40">
           <div className="flex items-center gap-4 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

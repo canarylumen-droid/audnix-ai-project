@@ -124,11 +124,33 @@ export class AudnixIngestor {
                             return;
                         }
 
-                        // Lower hurdle (40) to include more authentic personal/creator leads as requested
-                        if (enriched.leadScore < 40) return;
+                        // Quality hurdle (50) for advanced verification
+                        if (enriched.leadScore < 50) return;
 
+                        // 4. Neural Verification (Advanced Domain Check)
+                        await this.log(`[Neural Verify] Cross-checking domain: ${enriched.website}...`, 'raw');
+
+                        // Check if website actually belongs to entity (AI-powered sanity check)
+                        const crossCheckModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
+                        const crossCheckPrompt = `ENTITY: ${enriched.entity}\nWEBSITE: ${enriched.website}\nDoes this website realistically belong to this entity? Return only "YES" or "NO".`;
+
+                        try {
+                            const checkResult = await crossCheckModel.generateContent(crossCheckPrompt);
+                            const answer = checkResult.response.text().trim().toUpperCase();
+                            if (answer === 'NO') {
+                                await this.log(`[Neural Filter] Domain mismatch detected: ${enriched.website} is not ${enriched.entity}`, 'warning');
+                                return;
+                            }
+                        } catch (e) {
+                            // If AI check fails, we proceed with caution
+                        }
+
+                        // ADVANCED SMTP Verification
                         const verification = await this.verifier.verify(enriched.email);
-                        if (!verification.valid) return;
+                        if (!verification.valid) {
+                            await this.log(`[SMTP Rejection] ${enriched.email} failed deliverability check`, 'error');
+                            return;
+                        }
 
                         const existing = await db.select().from(prospects).where(eq(prospects.email, enriched.email)).limit(1);
                         if (existing.length > 0) return;
@@ -152,7 +174,8 @@ export class AudnixIngestor {
                                 intent,
                                 temperature,
                                 role: (enriched as any).role,
-                                socialProfiles: enriched.socialProfiles
+                                socialProfiles: enriched.socialProfiles,
+                                verification_reason: verification.reason
                             }
                         } as any).returning();
 
