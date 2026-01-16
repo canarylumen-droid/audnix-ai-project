@@ -6,32 +6,36 @@ import ws from "ws";
 // CRITICAL: Configure neon to use ws for pooling in Node environments
 neonConfig.webSocketConstructor = ws;
 
-// Allow app to run without database (demo mode)
-let db: any = null;
-let dbPool: any = null;
+let _db: any = null;
+let _pool: any = null;
 
-if (process.env.DATABASE_URL) {
+function initializeDb() {
+  if (_db) return { db: _db, pool: _pool };
+
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    console.warn('⚠️ DATABASE_URL not set. Running in demo mode.');
+    return { db: null, pool: null };
+  }
+
   try {
-    dbPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-    });
-    db = drizzle(dbPool, { schema });
+    _pool = new Pool({ connectionString: url });
+    _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless - Live Protocol)');
-    console.log(`📊 Database: ${process.env.DATABASE_URL.split('@')[1]?.split('/')[0] || 'unknown'} `);
-
-    // EXPLICIT CONNECTION TEST
-    dbPool.query('SELECT NOW()')
-      .then(() => console.log('🚀 Database Query Test: SUCCESS'))
-      .catch((e: any) => console.error('❌ Database Query Test: FAILED', e));
+    return { db: _db, pool: _pool };
   } catch (error) {
     console.error('❌ Database connection failed:', error);
-    console.error('💡 Check your DATABASE_URL in Vercel environment variables');
-    db = null;
-    dbPool = null;
+    return { db: null, pool: null };
   }
-} else {
-  console.error('❌ DATABASE_URL not set');
-  console.error('💡 Add DATABASE_URL to Vercel environment variables');
 }
 
-export { db, dbPool as pool };
+// For compatibility with existing imports
+const result = initializeDb();
+export const db = result.db;
+export const pool = result.pool;
+
+// Add a getter for dynamic access (useful for scripts)
+export function getDatabase() {
+  if (!_db) return initializeDb().db;
+  return _db;
+}

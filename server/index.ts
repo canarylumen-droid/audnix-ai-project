@@ -194,7 +194,7 @@ app.use((req, res, next) => {
   if (skipPaths.some(path => req.path.startsWith(path))) {
     return next();
   }
-  csrfProtection(req, res, next);
+  csrfProtection(req as any, res as any, next);
 });
 
 // Provide CSRF token to client

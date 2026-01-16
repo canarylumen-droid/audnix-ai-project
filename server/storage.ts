@@ -216,7 +216,10 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
       stripePaymentId: data.stripePaymentId ?? null,
       plan: data.plan ?? null,
-      paymentLink: data.paymentLink ?? null
+      paymentLink: data.paymentLink ?? null,
+      status: (data as any).status || "pending",
+      currency: (data as any).currency || "USD",
+      webhookPayload: (data as any).webhookPayload || {}
     };
     this.payments.set(id, payment);
     return payment;
@@ -805,7 +808,7 @@ export class MemStorage implements IStorage {
   async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {
     const followUp = this.followUps.get(id);
     if (followUp) {
-      followUp.status = status;
+      followUp.status = status as any;
       if (errorMessage !== undefined) followUp.errorMessage = errorMessage;
       followUp.processedAt = new Date();
       this.followUps.set(id, followUp);

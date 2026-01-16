@@ -202,7 +202,7 @@ export class DrizzleStorage implements IStorage {
       .innerJoin(users, eq(teamMembers.userId, users.id))
       .where(eq(teamMembers.organizationId, orgId));
 
-    return result.map(r => ({ ...r.member, user: r.user }));
+    return result.map((r: any) => ({ ...r.member, user: r.user }));
   }
 
   async getUserOrganizations(userId: string): Promise<(Organization & { role: TeamMember["role"] })[]> {
@@ -215,7 +215,7 @@ export class DrizzleStorage implements IStorage {
       .innerJoin(organizations, eq(teamMembers.organizationId, organizations.id))
       .where(eq(teamMembers.userId, userId));
 
-    return result.map(r => ({ ...r.org, role: r.role }));
+    return result.map((r: any) => ({ ...r.org, role: r.role }));
   }
 
   async addTeamMember(member: InsertTeamMember): Promise<TeamMember> {

@@ -3,9 +3,9 @@ import { MODELS } from "./model-config.js";
 import { storage } from "../../storage.js";
 import type { Message, Lead } from "../../../shared/schema.js";
 import { storeConversationMemory, retrieveConversationMemory } from "./super-memory.js";
-import { detectLanguage, getLocalizedResponse, updateLeadLanguage } from './language-detector.js';
-import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse } from './price-negotiation.js';
-import { detectCompetitorMention, trackCompetitorMention } from './competitor-detection.js';
+import { detectLanguage, getLocalizedResponse, updateLeadLanguage, type LanguageDetection } from './language-detector.js';
+import { detectPriceObjection, saveNegotiationAttempt, generateNegotiationResponse, type PriceObjectionResult } from './price-negotiation.js';
+import { detectCompetitorMention, trackCompetitorMention, type CompetitorMentionResult } from './competitor-detection.js';
 import { optimizeSalesLanguage } from './sales-language-optimizer.js';
 import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
 import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
@@ -163,7 +163,7 @@ export interface AIReplyResult {
 
 export interface MemoryRetrievalResult {
   success: boolean;
-  context: string;
+  context?: string;
   conversations?: any[];
   metadata?: any;
 }

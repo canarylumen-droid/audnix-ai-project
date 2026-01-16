@@ -108,21 +108,24 @@ export default function ProspectingPage() {
     };
 
     const downloadCSV = () => {
-        const headers = ['Entity', 'Email', 'Phone', 'Location', 'Website', 'Platforms', 'Lead Score', 'Wealth Signal', 'Revenue', 'Role', 'Instagram', 'LinkedIn', 'YouTube'];
+        const headers = ['Entity', 'Email', 'Phone', 'Location', 'Website', 'Intensity', 'Score', 'Signal', 'Revenue', 'Role', 'Instagram', 'LinkedIn', 'YouTube', 'X (Twitter)', 'Facebook', 'TikTok'];
         const rows = leads.map(lead => [
             lead.entity,
             lead.email,
             lead.phone || '',
             lead.location || '',
             lead.website,
-            lead.platforms.join(', '),
+            lead.metadata?.temperature || (lead.leadScore >= 90 ? 'HOT' : 'WARM'),
             lead.leadScore,
             lead.wealthSignal,
             lead.estimatedRevenue || '',
             lead.role || '',
             lead.socialProfiles?.instagram || '',
             lead.socialProfiles?.linkedin || '',
-            lead.socialProfiles?.youtube || ''
+            lead.socialProfiles?.youtube || '',
+            lead.socialProfiles?.twitter || lead.socialProfiles?.x || '',
+            lead.socialProfiles?.facebook || '',
+            lead.socialProfiles?.tiktok || ''
         ]);
 
         const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -258,6 +261,11 @@ export default function ProspectingPage() {
                                             <div className="space-y-3 flex-1">
                                                 <div className="flex items-center gap-3">
                                                     <h3 className="text-lg font-bold text-foreground">{lead.entity}</h3>
+                                                    {lead.metadata?.temperature && (
+                                                        <Badge className={`${lead.metadata.temperature.includes('HOT') ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                                                            {lead.metadata.temperature}
+                                                        </Badge>
+                                                    )}
                                                     {lead.verified && (
                                                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                                                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -267,6 +275,16 @@ export default function ProspectingPage() {
                                                     <Badge className="bg-primary/20 text-primary border-primary/30">
                                                         Score: {lead.leadScore}%
                                                     </Badge>
+                                                    {!lead.website && (
+                                                        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold tracking-tighter shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                                            GHOST (No Website)
+                                                        </Badge>
+                                                    )}
+                                                    {lead.metadata?.painPoint && (
+                                                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+                                                            {lead.metadata.painPoint}
+                                                        </Badge>
+                                                    )}
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-4 text-sm">

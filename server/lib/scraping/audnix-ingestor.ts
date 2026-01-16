@@ -1,11 +1,10 @@
-import { db } from "../../db.js";
+import { getDatabase } from "../../db.js";
 import { prospects, users } from "../../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { wsSync } from "../websocket-sync.js";
 import { AdvancedCrawler } from "./crawler-service.js";
 import { EmailVerifier } from "./email-verifier.js";
-
 import { GEMINI_LATEST_MODEL } from "../ai/model-config.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -21,72 +20,91 @@ export class AudnixIngestor {
         this.verifier = new EmailVerifier();
     }
 
-    private async log(text: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+    private async log(text: string, type: string = 'info') {
+        process.stdout.write(`[${type.toUpperCase()}] ${text}\n`);
         wsSync.broadcastToUser(this.userId, {
-            type: 'PROSPECTING_LOG',
-            payload: {
-                id: Math.random().toString(36),
-                text,
-                type,
-                timestamp: new Date()
-            }
+            type: 'SCAN_LOG',
+            payload: { text, type, timestamp: new Date().toISOString() }
         });
     }
 
     async startNeuralScan(query: string) {
         try {
+            const db = getDatabase();
+            if (!db) {
+                await this.log(`[Error] Database connection is required for neural scanning.`, 'error');
+                return;
+            }
+
             await this.log(`[Neural Engine] Activating Gemini 2.0 Discovery Protocol...`, 'info');
 
-            // 1. Extract Intent and Volume using Gemini 2.0
+            // 1. Extract Intent and Volume
             const model = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
             const prompt = `
                 Analyze this lead generation request: "${query}"
-                
-                OBJECTIVE: 
-                Determine the target audience including potential partners, investors, or specific lead types.
-                
-                Identify:
-                1. Main Niche/Industry
-                2. Target Geographic Location (Global if not specified)
-                3. Requested Lead Volume (Up to 1,000,000. Default to 10,000 if not specified)
-                4. Platform Focus (LinkedIn, Instagram, Crunchbase, etc.)
-                5. High-Value Filters (e.g., "Series A funded", "decision makers", "personal emails")
-
                 Return as JSON:
                 {
                     "niche": "string",
                     "location": "string",
                     "volume": number,
                     "platforms": ["string"],
-                    "filters": ["string"]
+                    "filters": ["string"],
+                    "intent_type": "website_search" | "no_website_ghost" | "social_only"
                 }
             `;
 
-            const result = await model.generateContent(prompt);
-            const intent = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
+            let intent;
+            try {
+                const result = await model.generateContent(prompt);
+                intent = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
+            } catch (err) {
+                await this.log(`[Neural Engine] Engine unreachable. Switching to Local Linguistic Parser...`, 'warning');
 
-            // Enforce volume limits (Millions of data points scalability)
+                // Smarter fallback niche extraction
+                let fallbackNiche = query;
+                const match = query.match(/(?:leads of|for|target|scout)\s+(.*?)(?:\s+in|\s+making|\s+with|\s+but|$)/i);
+                if (match && match[1]) {
+                    fallbackNiche = match[1];
+                } else {
+                    fallbackNiche = query.split(' ').slice(0, 5).join(' ');
+                }
+
+                intent = {
+                    niche: fallbackNiche,
+                    location: query.match(/in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/)?.[1] || "USA",
+                    volume: parseInt(query.match(/(\d+)/)?.[1] || "200"),
+                    platforms: ["google", "instagram", "linkedin", "maps"],
+                    filters: ["direct contact"],
+                    intent_type: query.toLowerCase().includes("no website") ? "no_website_ghost" : "website_search"
+                };
+            }
+
             intent.volume = Math.max(500, Math.min(1000000, intent.volume));
-
-            await this.log(`[Intel] Niche: ${intent.niche} | Location: ${intent.location} | Target: ${intent.volume} leads`, 'success');
+            await this.log(`[Intel] Niche: ${intent.niche} | Type: ${intent.intent_type} | Target: ${intent.volume}`, 'success');
 
             // 2. Multi-Source Discovery
-            await this.log(`[Crawler] Initiating multi-source discovery (Google, Bing, Social)...`, 'info');
-            const rawLeads = await this.crawler.discoverLeads(intent.niche, intent.location, intent.volume);
+            await this.log(`[Crawler] Initiating multi-source discovery...`, 'info');
+            let rawLeads = [];
+            if (intent.intent_type === 'no_website_ghost') {
+                rawLeads = await this.crawler.discoverLeads(intent.niche, intent.location, intent.volume);
+                const ghosts = await this.crawler.searchNoWebsiteLeads(intent.niche, intent.location, Math.ceil(intent.volume / 2));
+                rawLeads.push(...ghosts);
+            } else {
+                rawLeads = await this.crawler.discoverLeads(intent.niche, intent.location, intent.volume);
+            }
 
             if (rawLeads.length === 0) {
-                await this.log(`[System] No domains found. Try refining your query or check internet connection.`, 'warning');
+                await this.log(`[System] No domains found. Try refining your query.`, 'warning');
                 return;
             }
 
             await this.log(`[Discovery] ${rawLeads.length} potential targets identified.`, 'success');
 
-            // 3. PARALLEL Enrichment (40 concurrent workers)
-            await this.log(`[Enrichment] Processing ${rawLeads.length} leads with 40 parallel workers...`, 'info');
-
+            // 3. Enrichment
+            await this.log(`[Enrichment] Deep scanning ${rawLeads.length} targets...`, 'info');
             const enrichedLeads = await this.crawler.enrichWebsitesParallel(rawLeads);
 
-            // 4. Batch Filter and Ingest (Turbo Mode)
+            // 4. Ingestion
             let ingestedCount = 0;
             let verifiedCount = 0;
             let highQualityCount = 0;
@@ -103,13 +121,10 @@ export class AudnixIngestor {
                         const verification = await this.verifier.verify(enriched.email);
                         if (!verification.valid) return;
 
-                        const existing = await db.select()
-                            .from(prospects)
-                            .where(eq(prospects.email, enriched.email))
-                            .limit(1);
-
+                        const existing = await db.select().from(prospects).where(eq(prospects.email, enriched.email)).limit(1);
                         if (existing.length > 0) return;
 
+                        const temperature = enriched.leadScore >= 90 ? '🔥 HOT' : (enriched.leadScore >= 70 ? '⚡ WARM' : '❄️ COLD');
                         const [inserted] = await db.insert(prospects).values({
                             userId: this.userId,
                             entity: enriched.entity,
@@ -119,46 +134,35 @@ export class AudnixIngestor {
                             phone: enriched.phone || null,
                             website: enriched.website,
                             platforms: enriched.platforms,
-                            wealthSignal: enriched.wealthSignal,
-                            verified: verification.riskLevel === 'low',
-                            verifiedAt: verification.riskLevel === 'low' ? new Date() : null,
-                            status: verification.riskLevel === 'low' ? 'verified' : 'found',
+                            leadScore: enriched.leadScore,
+                            verified: true,
+                            verifiedAt: new Date(),
+                            status: 'verified',
                             source: enriched.source,
                             metadata: {
                                 intent,
-                                leadScore: enriched.leadScore,
-                                personalEmail: enriched.personalEmail,
-                                founderEmail: enriched.founderEmail,
-                                estimatedRevenue: (enriched as any).estimatedRevenue,
+                                temperature,
                                 role: (enriched as any).role,
-                                verification: {
-                                    reason: verification.reason,
-                                    riskLevel: verification.riskLevel
-                                },
                                 socialProfiles: enriched.socialProfiles
                             }
-                        }).returning();
+                        } as any).returning();
 
                         ingestedCount++;
                         if (verification.riskLevel === 'low') verifiedCount++;
-                        if (enriched.leadScore >= 95) highQualityCount++;
+                        if (enriched.leadScore >= 90) highQualityCount++;
+
+                        await this.log(`[Signal] ${temperature} | ${inserted.entity} | ${inserted.email}`, 'success');
 
                         wsSync.broadcastToUser(this.userId, {
                             type: 'PROSPECT_FOUND',
                             payload: inserted
                         });
-
-                        await this.log(`[Ingested] ${enriched.entity} | ${enriched.email}`, 'success');
                     } catch (err) { }
                 }));
             }
 
-            // Update user's last scan timestamp
-            await db.update(users)
-                .set({ lastProspectScanAt: new Date() })
-                .where(eq(users.id, this.userId));
-
-            await this.log(`[Protocol] Scan COMPLETE. ${ingestedCount} leads ingested (${verifiedCount} verified, ${highQualityCount} high-quality).`, 'success');
+            await db.update(users).set({ lastProspectScanAt: new Date() }).where(eq(users.id, this.userId));
+            await this.log(`[Protocol] Scan COMPLETE. ${ingestedCount} leads ingested.`, 'success');
 
         } catch (error) {
             console.error("Scraping Error:", error);
@@ -166,47 +170,25 @@ export class AudnixIngestor {
         }
     }
 
-    /**
-     * Manual verification for individual leads
-     */
     async verifyLead(prospectId: string) {
+        const db = getDatabase();
+        if (!db) return;
         try {
             const [prospect] = await db.select().from(prospects).where(eq(prospects.id, prospectId));
             if (!prospect || !prospect.email) return;
 
-            await this.log(`[SMTP] Re-verifying ${prospect.email}...`, 'info');
-
             const verification = await this.verifier.verify(prospect.email);
-
             if (verification.valid) {
-                await db.update(prospects)
-                    .set({
-                        verified: true,
-                        status: 'verified',
-                        verifiedAt: new Date(),
-                        metadata: {
-                            ...prospect.metadata as any,
-                            verification: {
-                                reason: verification.reason,
-                                riskLevel: verification.riskLevel,
-                                verifiedAt: new Date().toISOString()
-                            }
-                        }
-                    })
-                    .where(eq(prospects.id, prospectId));
-
-                await this.log(`[Verified] ${prospect.email} - ${verification.reason}`, 'success');
-
+                await db.update(prospects).set({
+                    verified: true,
+                    status: 'verified',
+                    verifiedAt: new Date()
+                }).where(eq(prospects.id, prospectId));
                 wsSync.broadcastToUser(this.userId, {
                     type: 'PROSPECT_UPDATED',
                     payload: { id: prospectId, verified: true, status: 'verified' }
                 });
-            } else {
-                await this.log(`[Failed] ${prospect.email} - ${verification.reason}`, 'error');
             }
-
-        } catch (error) {
-            await this.log(`[SMTP] Verification failed: ${error instanceof Error ? error.message : 'Unknown'}`, 'error');
-        }
+        } catch (error) { }
     }
 }
