@@ -247,8 +247,14 @@ export class AdvancedCrawler {
      */
     async discoverLeads(niche: string, location: string, limit: number = 2000): Promise<RawLead[]> {
         await this.ensureProxies();
-        this.log(`[Neural Link] Handshake successful. Rotating 500,000,000+ residential endpoints...`, 'info');
-        this.log(`[Discovery] Target: ${limit} REAL leads | Multichannel: Instagram, LinkedIn, X, Google, Bing`, 'info');
+
+        // Multi-location expansion for Global coverage
+        const locations = location.toLowerCase().includes('global') || location.toLowerCase().includes('world')
+            ? ['USA', 'UK', 'Canada', 'Australia', 'Europe', 'UAE']
+            : [location];
+
+        this.log(`[Neural Link] Scale mode active. Target: ${limit} | Multi-Location: ${locations.join(', ')}`, 'info');
+        this.log(`[Pulse] Rotating high-resolution endpoints for ${niche} domain...`, 'info');
 
         const results: RawLead[] = [];
         const sources = ['google', 'bing', 'instagram', 'maps', 'youtube', 'facebook', 'twitter', 'tiktok', 'linkedin', 'no_website'];
@@ -261,15 +267,28 @@ export class AdvancedCrawler {
             results.push(...specializedLeads);
         }
 
-        // 2. Parallel Search across all platforms including "Ghost" businesses
-        const searchTasks = sources.map(source => {
-            if (source === 'no_website') {
-                return this.searchNoWebsiteLeads(niche, location, batchSize);
-            }
-            return this.parallelSearch(niche, location, batchSize, source);
-        });
+        // 2. Parallel Search across all platforms including "Ghost" businesses with location rotation
+        const searchTasks = [];
+        for (const loc of locations) {
+            const locBatch = Math.ceil(batchSize / locations.length);
+            sources.forEach(source => {
+                if (source === 'no_website') {
+                    searchTasks.push(this.searchNoWebsiteLeads(niche, loc, locBatch));
+                } else {
+                    searchTasks.push(this.parallelSearch(niche, loc, locBatch, source));
+                }
+            });
+        }
+
         const batchResults = await Promise.all(searchTasks);
         batchResults.forEach(batch => results.push(...batch));
+
+        // 3. Deep Social Exhaustion (IG/LinkedIn Bios) - Force retrieval if results are low
+        if (results.length < limit * 0.5) {
+            this.log(`[Pulse] Exhausting social archives for ${niche}...`, 'warning');
+            const dorkBatch = await this.searchSocialViaDork(niche, locations[0], limit - results.length);
+            results.push(...dorkBatch);
+        }
 
         let unique = this.deduplicateLeads(results);
 
