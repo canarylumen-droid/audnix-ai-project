@@ -23,7 +23,7 @@ export class AudnixIngestor {
     private async log(text: string, type: string = 'info') {
         process.stdout.write(`[${type.toUpperCase()}] ${text}\n`);
         wsSync.broadcastToUser(this.userId, {
-            type: 'SCAN_LOG',
+            type: 'PROSPECTING_LOG',
             payload: { text, type, timestamp: new Date().toISOString() }
         });
     }
@@ -115,8 +115,17 @@ export class AudnixIngestor {
                 await Promise.all(batch.map(async (enriched) => {
                     try {
                         if (!enriched.email) return;
-                        if (enriched.email.match(/^(info|support|admin|noreply|no-reply|hr)@/i)) return;
-                        if (enriched.leadScore < 60) return;
+
+                        // Terminal Aesthetic: Detailed progress
+                        await this.log(`[Neural Decrypt] Breaking SSL on node: ${enriched.entity || enriched.email.split('@')[1]}...`, 'raw');
+
+                        if (enriched.email.match(/^(info|support|admin|noreply|no-reply|hr)@/i)) {
+                            await this.log(`[Filter] Skipping generic node: ${enriched.email}`, 'warning');
+                            return;
+                        }
+
+                        // Lower hurdle (40) to include more authentic personal/creator leads as requested
+                        if (enriched.leadScore < 40) return;
 
                         const verification = await this.verifier.verify(enriched.email);
                         if (!verification.valid) return;

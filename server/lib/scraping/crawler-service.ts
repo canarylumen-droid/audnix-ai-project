@@ -822,8 +822,9 @@ export class AdvancedCrawler {
             const personalEmails = emails.filter(e => this.isPersonalEmail(e));
             const businessEmails = emails.filter(e => !this.isPersonalEmail(e) && !this.isGenericEmail(e));
 
+            // Search ALL emails for founder/owner keywords, including personal ones
+            enriched.founderEmail = emails.find(e => this.isFounderEmail(e));
             enriched.personalEmail = personalEmails[0];
-            enriched.founderEmail = businessEmails.find(e => this.isFounderEmail(e));
 
             // Priority: Founder > Business > Personal (Gmail/etc)
             enriched.email = enriched.founderEmail || businessEmails[0] || enriched.personalEmail;

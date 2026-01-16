@@ -20,28 +20,32 @@ import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-w
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import * as fs from "fs";
 import * as path from "path";
-
-// Ensure upload directories exist
-const uploadDirs = [
-  "uploads",
-  "public/uploads",
-  "public/uploads/voice",
-  "public/uploads/pdf",
-  "public/uploads/avatars"
-];
-uploadDirs.forEach(dir => {
-  const fullPath = path.join(process.cwd(), dir);
-  if (!fs.existsSync(fullPath)) {
-    fs.mkdirSync(fullPath, { recursive: true });
-  }
-});
 import crypto from "crypto";
 import hpp from 'hpp';
 import csrf from 'csurf';
-import fs from 'fs';
-import path from 'path';
 import { sql } from "drizzle-orm";
 import { users } from "../shared/schema.js";
+
+// Ensure upload directories exist (Skip on Vercel read-only system)
+if (!process.env.VERCEL) {
+  const uploadDirs = [
+    "uploads",
+    "public/uploads",
+    "public/uploads/voice",
+    "public/uploads/pdf",
+    "public/uploads/avatars"
+  ];
+  uploadDirs.forEach(dir => {
+    try {
+      const fullPath = path.join(process.cwd(), dir);
+      if (!fs.existsSync(fullPath)) {
+        fs.mkdirSync(fullPath, { recursive: true });
+      }
+    } catch (err) {
+      console.warn(`Could not create directory ${dir}:`, err);
+    }
+  });
+}
 
 const app = express();
 

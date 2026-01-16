@@ -30,7 +30,9 @@ router.post(
       // Robust PDF text extraction
       let pdfText = "";
       try {
-        const { default: pdfParse } = await import('pdf-parse');
+        const pdfParseModule = await import('pdf-parse');
+        // Handle different export styles (ESM/CJS)
+        const pdfParse = (pdfParseModule as any).default || pdfParseModule;
         const data = await pdfParse(req.file.buffer);
         pdfText = data.text;
       } catch (parseError) {
