@@ -91,6 +91,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
         provider: 'custom_email',
         encryptedMeta,
         connected: true,
+        accountType: email,
       });
     } catch (dbError: unknown) {
       const msg = dbError instanceof Error ? dbError.message : 'Database error';

@@ -63,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/bulk", bulkActionsRoutes);
   app.use("/api/calendar", calendarRoutes);
   app.use("/api/comments", commentAutomationRoutes);
-  app.use("/api/email/custom", customEmailRoutes);
+  app.use("/api/custom-email", customEmailRoutes);
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api", dashboardRoutes);
   app.use("/api/email/otp", emailOtpRoutes);
