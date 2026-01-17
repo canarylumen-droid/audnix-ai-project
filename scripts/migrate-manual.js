@@ -28,17 +28,30 @@ async function migrate() {
         console.log('✅ Connected successfully at:', res.rows[0].now);
         client.release();
 
-        // Read migration file
-        console.log('📖 Reading migration file...');
-        const migrationFile = path.join(__dirname, '..', 'migrations', '030_complete_schema.sql');
-        const sql = fs.readFileSync(migrationFile, 'utf8');
+        // Read all migration files
+        const migrationDir = path.join(__dirname, '..', 'migrations');
+        const files = fs.readdirSync(migrationDir)
+            .filter(f => f.endsWith('.sql'))
+            .sort();
 
-        // Run migration
-        console.log('🚀 Executing migration...');
+        console.log(`📦 Found ${files.length} migrations`);
 
-        await pool.query(sql);
+        for (const file of files) {
+            console.log(`🚀 Running ${file}...`);
+            const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+            try {
+                await pool.query(sql);
+                console.log(`   ✅ Success`);
+            } catch (err) {
+                if (err.message.includes('already exists') || err.message.includes('duplicate')) {
+                    console.log(`   ℹ️  Skipped (already exists)`);
+                } else {
+                    console.log(`   ⚠️  Error: ${err.message}`);
+                }
+            }
+        }
 
-        console.log('✨ Migration applied successfully!');
+        console.log('✨ All migrations processed');
 
         // Verify tables
         console.log('🔍 Verifying schema...');

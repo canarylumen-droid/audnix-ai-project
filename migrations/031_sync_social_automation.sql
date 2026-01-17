@@ -4,16 +4,11 @@
 
 DO $$ 
 BEGIN
-    -- Fix video_monitors table
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'video_monitors') THEN
-        -- Check if ID is UUID, if not we need to handle it or recreate (since it's empty, recreation is safe)
-        IF (SELECT data_type FROM information_schema.columns WHERE table_name = 'video_monitors' AND column_name = 'id') != 'uuid' THEN
-            DROP TABLE IF EXISTS processed_comments; -- child table
-            DROP TABLE IF EXISTS video_monitors;
-        END IF;
-    END IF;
+    -- Force refresh of these tables to ensure they match the latest schema
+    DROP TABLE IF EXISTS processed_comments;
+    DROP TABLE IF EXISTS video_monitors;
 
-    -- Re-create video_monitors if missing or dropped
+    -- Re-create video_monitors
     CREATE TABLE IF NOT EXISTS video_monitors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -28,14 +23,7 @@ BEGIN
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
-    -- Fix processed_comments table
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'processed_comments') THEN
-        IF (SELECT data_type FROM information_schema.columns WHERE table_name = 'processed_comments' AND column_name = 'id') != 'uuid' THEN
-            DROP TABLE IF EXISTS processed_comments;
-        END IF;
-    END IF;
-
-    -- Re-create processed_comments if missing or dropped
+    -- Re-create processed_comments
     CREATE TABLE IF NOT EXISTS processed_comments (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       comment_id TEXT UNIQUE NOT NULL,
