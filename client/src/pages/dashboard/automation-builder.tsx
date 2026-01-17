@@ -15,15 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Brain, 
-  Settings2, 
-  Zap, 
-  Clock, 
-  MessageSquare, 
-  Calendar, 
+import {
+  Brain,
+  Settings2,
+  Zap,
+  Clock,
+  MessageSquare,
+  Calendar,
   Mail,
   Plus,
+  Target,
   Trash2,
   Loader2,
   CheckCircle,
@@ -161,7 +162,7 @@ export default function AutomationBuilderPage() {
             <div>
               <h3 className="font-semibold">Intelligence-Governed Automation</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                AI NEVER acts without decision engine approval. Every action requires minimum intent 
+                AI NEVER acts without decision engine approval. Every action requires minimum intent
                 and confidence scores. All decisions are logged with reasoning for full transparency.
               </p>
             </div>

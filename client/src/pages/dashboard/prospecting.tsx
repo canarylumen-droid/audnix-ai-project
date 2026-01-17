@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Search, Download, CheckCircle, XCircle, Loader2, Zap, Globe, Mail, Phone, MapPin, Terminal, Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Search, Download, CheckCircle, XCircle, Loader2, Zap, Globe, Mail, Phone, MapPin, Terminal, Activity, AlertTriangle, ShieldCheck, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/hooks/use-user';
 import { useRealtime } from '@/hooks/use-realtime';
@@ -144,10 +144,10 @@ export default function ProspectingPage() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
                     <div className="space-y-4">
                         <div className="flex items-center gap-4">
-                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Neural Core Alpha</h2>
+                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Lead Prospecting</h2>
                             <div className="px-3 py-1 rounded bg-primary/10 border border-primary/20 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,180,255,0.2)]">
                                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none">Scanning Engine Active</span>
+                                <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none">Scraper Active</span>
                             </div>
                         </div>
                         <p className="text-white/40 text-sm md:text-base font-medium tracking-tight">Worldwide Residential Proxy Mesh • Distributed Neural Nodes • Real-Time Delivery Handshakes</p>

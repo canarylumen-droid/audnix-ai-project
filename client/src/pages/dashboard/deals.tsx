@@ -15,6 +15,7 @@ import {
   BarChart3,
   ArrowRight,
   Filter,
+  Activity,
   Plus
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";

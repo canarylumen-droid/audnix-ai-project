@@ -27,6 +27,8 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
+  ShieldAlert,
 } from "lucide-react";
 
 interface Objection {

@@ -16,6 +16,7 @@ import {
   Loader2,
   Shield,
   Search,
+  Target,
   Gift,
   CheckCircle2,
   XCircle,

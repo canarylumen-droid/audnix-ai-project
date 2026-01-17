@@ -20,6 +20,9 @@ import {
   MessageSquare,
   Calendar,
   X,
+  RefreshCw,
+  Target,
+  Activity,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";

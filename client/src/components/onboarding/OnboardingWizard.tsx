@@ -13,7 +13,8 @@ import {
   Building,
   Search,
   Check,
-  ChevronRight
+  ChevronRight,
+  Zap
 } from "lucide-react";
 import { useReducedMotion } from "@/lib/animation-utils";
 import { useToast } from "@/hooks/use-toast";
@@ -226,9 +227,9 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h2 className="text-4xl font-extrabold tracking-tighter">Neural Core Initialized</h2>
+                    <h2 className="text-4xl font-extrabold tracking-tighter">Intelligence Core Initialized</h2>
                     <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                      Connecting to your personal <span className="text-primary font-bold">1M+ Global Proxy Mesh</span> and calibrating the Gemini 2.0 Sales Brain.
+                      Connecting to the <span className="text-primary font-bold">1M+ Global Proxy Mesh</span> and calibrating the Gemini 2.0 Sales Brain.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto pt-6">
@@ -472,8 +473,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
                       <Zap className="w-8 h-8 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Neural Signature</h2>
-                    <p className="text-muted-foreground">Finalize the core profile with your brand identity</p>
+                    <h2 className="text-3xl font-extrabold tracking-tight">Setup Signature</h2>
+                    <p className="text-muted-foreground">Finalize your profile with your brand identity</p>
                   </div>
 
                   <div className="space-y-4 mt-8">

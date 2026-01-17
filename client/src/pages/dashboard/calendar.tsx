@@ -24,6 +24,7 @@ import {
   Bot,
   Target,
   Timer,
+  Activity,
   Zap,
   Brain,
   Sparkles,
