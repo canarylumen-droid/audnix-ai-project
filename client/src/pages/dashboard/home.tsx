@@ -15,7 +15,11 @@ import {
   ShieldCheck,
   AlertCircle,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  ArrowDown,
+  ArrowRight,
+  Minus
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
