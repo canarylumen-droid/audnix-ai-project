@@ -7,7 +7,6 @@ import { TrialExpiredOverlay } from "@/components/TrialExpiredOverlay";
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 import { InstallPWAPrompt } from "@/components/InstallPWAPrompt";
 import { GuidedTour, useTour } from "@/components/ui/GuidedTour";
-import { ActivationChecklist, useActivationChecklist, ActivationState } from "@/components/ui/ActivationChecklist";
 import {
   Home,
   Inbox,
@@ -66,7 +65,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   adminOnly?: boolean;
-  requiresStep?: keyof ActivationState;
+  requiresStep?: string;
   badge?: React.ReactNode;
 }
 
@@ -137,7 +136,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const { showChecklist, isComplete: activationComplete, closeChecklist, handleComplete, activationState } = useActivationChecklist();
+
 
   const navGroups: NavGroup[] = [
     {
@@ -168,10 +167,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const isFeatureUnlocked = useCallback((step?: keyof ActivationState): boolean => {
-    if (!step) return true;
-    return activationState[step] || false;
-  }, [activationState]);
+  const isFeatureUnlocked = useCallback((_step?: string): boolean => {
+    return true;
+  }, []);
 
   const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
@@ -259,7 +257,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       <InternetConnectionBanner />
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
-      <ActivationChecklist isOpen={showChecklist} onClose={closeChecklist} onComplete={handleComplete} />
+
 
       {/* Desktop Sidebar */}
       <motion.aside
