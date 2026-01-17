@@ -245,7 +245,7 @@ export default function DashboardHome() {
               Welcome back, {user?.name?.split(' ')[0] || user?.username || 'Operator'}
             </h1>
             <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
-              {hasAnyActivity ? "Your automated neural core is performing optimally." : "Scale your outreach with high-precision AI automation."}
+              {hasAnyActivity ? "Your automated system is performing optimally." : "Scale your outreach with high-precision AI automation."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -258,7 +258,7 @@ export default function DashboardHome() {
                 queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
               }}
             >
-              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Sync Live Network
+              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Refresh Data
             </Button>
             {trialDaysLeft > 0 && (
               <Badge variant="outline" className="px-6 py-2 bg-primary/5 text-primary border-primary/20 rounded-2xl font-bold text-xs shadow-sm shadow-primary/5">
@@ -299,7 +299,7 @@ export default function DashboardHome() {
                           <TrendIcon className="h-3 w-3 mr-0.5" />
                           {kpi.percentage}
                         </span>
-                        <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">Network Growth</span>
+                        <span className="text-[10px] font-bold text-muted-foreground/30 uppercase tracking-widest">Growth</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between mt-8 opacity-0 group-hover:opacity-100 transition-all transform translate-y-3 group-hover:translate-y-0 duration-300">
@@ -415,7 +415,7 @@ export default function DashboardHome() {
               <CardHeader className="pb-3 border-b border-white/5">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                   <ShieldCheck className="h-3 w-3" />
-                  Neural Delivery Ecosystem
+                  Deliverability Status
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6 space-y-5">
@@ -429,10 +429,10 @@ export default function DashboardHome() {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Neural Recoveries</p>
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">AI Recoveries</p>
                     <p className="text-xl font-black text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
                   </div>
-                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-black uppercase tracking-widest">AI Fixed</Badge>
+                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-black uppercase tracking-widest">Fixed</Badge>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -453,7 +453,7 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    Neural Core
+                    AI Engine
                   </span>
                   <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Healthy</Badge>
                 </div>
