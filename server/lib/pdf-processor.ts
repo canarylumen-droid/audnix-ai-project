@@ -3,6 +3,7 @@ import { storage } from '../storage.js';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';
 import { MODELS } from './ai/model-config.js';
+import { EmailVerifier } from './scraping/email-verifier.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
 
 const openaiKey = process.env.OPENAI_API_KEY;
@@ -79,23 +80,68 @@ export async function processPDF(
     }
 
     // Create leads in database with extracted contact info
+    const verifier = new EmailVerifier();
     const createdLeads = [];
     for (const leadData of parsedLeads) {
       try {
         const leadChannel = leadData.email ? 'email' : 'instagram';
+
+        let status = 'new';
+        let verified = false;
+        let recoveryTarget = leadData.email;
+        let isRecovered = false;
+
+        if (leadData.email) {
+          let verification = await verifier.verify(leadData.email);
+          if (verification.valid) {
+            verified = true;
+            status = 'hardened';
+          } else {
+            // Neural Recovery Path (Optional for PDF leads, but let's be consistent)
+            if (leadData.company || leadData.name) {
+              try {
+                const { GoogleGenerativeAI } = await import("@google/generative-ai");
+                const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+                const recoveryModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+                const recoveryPrompt = `BUSINESS: ${leadData.company || leadData.name}\nEMAIL: ${leadData.email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
+                const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
+                const correctedEmail = recoveryResult.response.text().trim();
+
+                if (correctedEmail !== 'NONE' && correctedEmail !== leadData.email && correctedEmail.includes('@')) {
+                  const secondaryVerification = await verifier.verify(correctedEmail);
+                  if (secondaryVerification.valid) {
+                    recoveryTarget = correctedEmail;
+                    verified = true;
+                    isRecovered = true;
+                    status = 'recovered';
+                  }
+                }
+              } catch (e) { }
+            }
+
+            if (!verified) {
+              status = 'bouncy';
+            }
+          }
+        }
+
         const lead = await storage.createLead({
           userId,
           name: leadData.name,
-          email: leadData.email,
+          email: recoveryTarget || undefined,
           phone: leadData.phone,
           channel: leadChannel as 'email' | 'instagram',
-          status: 'new',
+          status: status as any,
+          verified: verified,
+          verifiedAt: verified ? new Date() : null,
           metadata: {
             source: 'pdf_import',
             company: leadData.company,
             pdf_extracted: true,
             has_email: !!leadData.email,
             has_phone: !!leadData.phone,
+            deliverability: verified ? 'safe' : 'bouncy',
+            is_recovered: isRecovered
           }
         });
 

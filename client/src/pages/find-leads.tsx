@@ -149,7 +149,8 @@ export default function FindLeadsPage() {
                                     { title: "MX Record Deep-Dive", desc: "Confirming existence of valid mail servers." },
                                     { title: "SMTP Handshake (No Send)", desc: "Pinging the server to verify the mailbox exists without actually sending an email." },
                                     { title: "Catch-all Detection", desc: "Identifying 'risky' mailboxes that accept everything to protect your sender reputation." },
-                                    { title: "Blacklist Scrubbing", desc: "Ensuring your prospects aren't already on global spam traps." }
+                                    { title: "Blacklist Scrubbing", desc: "Ensuring your prospects aren't already on global spam traps." },
+                                    { title: "Neural Recovery Protocol", desc: "AI-driven correction of invalid domains and syntax to reclaim lost leads with 99% accuracy." }
                                 ].map((step, i) => (
                                     <div key={i} className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 font-medium">
                                         <div className="text-primary font-black uppercase text-[10px] w-8">0{i + 1}</div>

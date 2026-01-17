@@ -20,10 +20,13 @@ import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
 import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
 import { importInstagramLeads, importGmailLeads, importManychatLeads } from "../lib/imports/lead-importer.js";
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar.js";
-import { generateSmartReplies } from '../lib/ai/smart-replies.js';
-import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
-import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
 import { processPDF } from "../lib/pdf-processor.js";
+import { EmailVerifier } from "../lib/scraping/email-verifier.js";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
+
+const verifier = new EmailVerifier();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 import type { ProviderType, ChannelType } from '../../shared/types.js';
 
 type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
@@ -352,17 +355,31 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           continue;
         }
 
+        // Check deliverability before finalizing
+        let status = 'new';
+        let verified = false;
+
+        if (leadData.email) {
+          const verification = await verifier.verify(leadData.email);
+          if (verification.valid) {
+            verified = true;
+          } else {
+            status = 'bouncy';
+          }
+        }
+
         await storage.createLead({
           userId,
           name: leadData.name || identifier.split('@')[0] || 'Unknown',
           email: leadData.email || null,
           phone: leadData.phone || null,
           channel: channel as 'email' | 'instagram',
-          status: 'new',
+          status: status as any,
           metadata: {
             imported_from_csv: true,
             company: leadData.company,
-            import_date: new Date().toISOString()
+            import_date: new Date().toISOString(),
+            deliverability: status === 'bouncy' ? 'failed' : 'verified'
           }
         });
 
@@ -919,17 +936,57 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
           continue;
         }
 
+        // Deliverability Check with Neural Recovery
+        let status = 'new';
+        let verified = false;
+        let recoveryTarget = email;
+        let isRecovered = false;
+
+        if (email) {
+          let verification = await verifier.verify(email);
+          if (verification.valid) {
+            verified = true;
+            status = 'hardened';
+          } else {
+            // Neural Discovery Path
+            try {
+              const recoveryModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
+              const recoveryPrompt = `BUSINESS: ${company || name}\nEMAIL: ${email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
+              const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
+              const correctedEmail = recoveryResult.response.text().trim();
+
+              if (correctedEmail !== 'NONE' && correctedEmail !== email && correctedEmail.includes('@')) {
+                const secondaryVerification = await verifier.verify(correctedEmail);
+                if (secondaryVerification.valid) {
+                  recoveryTarget = correctedEmail;
+                  verified = true;
+                  isRecovered = true;
+                  status = 'recovered';
+                }
+              }
+            } catch (e) { }
+
+            if (!verified) {
+              status = 'bouncy';
+            }
+          }
+        }
+
         await storage.createLead({
           userId,
           name: name,
-          email: email || undefined,
+          email: recoveryTarget || undefined,
           phone: phone || undefined,
           channel: 'email',
-          status: 'new',
+          status: status as any,
+          verified: verified,
+          verifiedAt: verified ? new Date() : null,
           metadata: {
             imported_from_csv: true,
             company: company,
-            import_date: new Date().toISOString()
+            import_date: new Date().toISOString(),
+            deliverability: verified ? 'safe' : 'bouncy',
+            is_recovered: isRecovered
           }
         });
 

@@ -1,13 +1,13 @@
 import { getDatabase } from "../server/db.js";
 import { prospects } from "../shared/schema.js";
-import { eq, and, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { EmailVerifier } from "../server/lib/scraping/email-verifier.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_LATEST_MODEL } from "../server/lib/ai/model-config.js";
 import 'dotenv/config';
 
 async function performIntensiveCleanup() {
-    console.log("🚀 Starting Intensive Database Cleanup...");
+    console.log("🚀 Starting Graceful Neural Cleanup...");
     const db = getDatabase();
     if (!db) {
         console.error("❌ Database connection failed");
@@ -23,80 +23,94 @@ async function performIntensiveCleanup() {
     console.log(`📊 Found ${allLeads.length} leads in database.`);
 
     let validCount = 0;
-    let removedCount = 0;
+    let bouncyCount = 0;
+    let recoveredCount = 0;
     let domainFixedCount = 0;
 
     for (const lead of allLeads) {
         try {
-            console.log(`\n🔍 Verifying: ${lead.entity} (${lead.email})`);
+            console.log(`\n🔍 Checking: ${lead.entity} (${lead.email})`);
 
-            // --- STEP 1: SMTP HANDSHAKE ---
-            console.log("   ⚡ Performing SMTP Handshake...");
-            const verification = await verifier.verify(lead.email);
+            // --- STEP 1: VERIFICATION ---
+            let verification = await verifier.verify(lead.email || "");
 
-            if (!verification.valid) {
-                console.log(`   ❌ REJECTED: ${verification.reason}`);
-                await db.delete(prospects).where(eq(prospects.id, lead.id));
-                removedCount++;
-                continue;
-            }
-
-            // --- STEP 2: DOMAIN VERIFICATION & AI AUDIT ---
-            if (lead.website) {
-                console.log(`   🌐 Auditing Domain: ${lead.website}`);
-
-                const prompt = `
-                    Analyze this business and its website:
-                    ENTITY: ${lead.entity}
+            // --- STEP 2: NEURAL RECOVERY (If invalid) ---
+            if (!verification.valid && lead.email && lead.website) {
+                console.log(`   ⚠️ Invalid Deliverability. Attempting Neural Discovery...`);
+                const recoveryPrompt = `
+                    BUSINESS: ${lead.entity}
+                    CURRENT EMAIL: ${lead.email}
                     WEBSITE: ${lead.website}
                     
-                    Does this website correctly belong to this business? 
-                    Some leads might have wrong TLDs (e.g. .co instead of .org).
-                    If the website is WRONG, suggest the CORRECT one if you are certain.
+                    The current email failed deliverability (No MX or Rejection). 
+                    Use your knowledge to find or correct the likely valid business email.
+                    Common issues: Wrong TLD (.co instead of .com) or wrong domain structure.
                     
-                    Return as JSON:
-                    {
-                        "is_correct": boolean,
-                        "suggested_website": "string | null",
-                        "reason": "string"
-                    }
+                    Return ONLY the corrected email string or "NONE".
                 `;
 
                 try {
-                    const result = await model.generateContent(prompt);
-                    const audit = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
+                    const recoveryResult = await model.generateContent(recoveryPrompt);
+                    const correctedEmail = recoveryResult.response.text().trim();
 
-                    if (!audit.is_correct) {
-                        if (audit.suggested_website) {
-                            console.log(`   ⚠️ CORRECTING DOMAIN: ${lead.website} -> ${audit.suggested_website}`);
+                    if (correctedEmail !== 'NONE' && correctedEmail !== lead.email && correctedEmail.includes('@')) {
+                        console.log(`   ✨ Neural Discovery found candidate: ${correctedEmail}`);
+                        const secondaryCheck = await verifier.verify(correctedEmail);
+                        if (secondaryCheck.valid) {
+                            console.log(`   ✅ RECOVERY SUCCESSFUL: ${correctedEmail}`);
                             await db.update(prospects)
                                 .set({
-                                    website: audit.suggested_website,
-                                    metadata: { ...(lead.metadata as any), domain_audit: audit }
+                                    email: correctedEmail,
+                                    status: 'recovered',
+                                    verified: true,
+                                    verifiedAt: new Date()
                                 })
                                 .where(eq(prospects.id, lead.id));
-                            domainFixedCount++;
-                        } else {
-                            console.log(`   ❌ INVALID DOMAIN: ${audit.reason}`);
-                            await db.delete(prospects).where(eq(prospects.id, lead.id));
-                            removedCount++;
+                            recoveredCount++;
+                            validCount++;
                             continue;
                         }
-                    } else {
-                        console.log("   ✅ Domain Verified");
                     }
                 } catch (e) {
-                    console.warn("   ⚠️ AI Domain Audit failed, skipping to next step.");
+                    console.warn("   ⚠️ Neural recovery failed.");
                 }
             }
 
-            // If it survived, update status
+            if (!verification.valid) {
+                console.log(`   ❄️ Marking as BOUNCY: ${verification.reason}`);
+                await db.update(prospects)
+                    .set({
+                        status: 'bouncy',
+                        verified: false,
+                        verifiedAt: new Date()
+                    })
+                    .where(eq(prospects.id, lead.id));
+                bouncyCount++;
+                continue;
+            }
+
+            // --- STEP 3: DOMAIN AUDIT (For valid leads) ---
+            if (lead.website) {
+                // ... same domain audit logic but update status to 'hardened'
+                const auditPrompt = `ENTITY: ${lead.entity}\nWEBSITE: ${lead.website}\nCorrect? Return JSON: {"is_correct": boolean, "suggested": "string|null"}`;
+                try {
+                    const auditRes = await model.generateContent(auditPrompt);
+                    const audit = JSON.parse(auditRes.response.text().replace(/```json|```/g, "").trim());
+                    if (!audit.is_correct && audit.suggested) {
+                        console.log(`   🛠️ Updating Domain: ${lead.website} -> ${audit.suggested}`);
+                        await db.update(prospects).set({ website: audit.suggested }).where(eq(prospects.id, lead.id));
+                        domainFixedCount++;
+                    }
+                } catch (e) { }
+            }
+
+            // Survived all checks
             await db.update(prospects)
                 .set({
-                    status: 'verified',
+                    status: 'hardened',
                     verified: true,
                     verifiedAt: new Date(),
-                    leadScore: Math.max(lead.leadScore || 0, 50) // Ensure floor of 50
+                    leadScore: Math.max(lead.leadScore || 0, 50)
                 })
                 .where(eq(prospects.id, lead.id));
 
@@ -108,10 +122,11 @@ async function performIntensiveCleanup() {
         }
     }
 
-    console.log(`\n✨ CLEANUP COMPLETE ✨`);
-    console.log(`✅ Leads Hardened: ${validCount}`);
-    console.log(`🛠️ Domains Fixed: ${domainFixedCount}`);
-    console.log(`🗑️ Invalid Leads Removed: ${removedCount}`);
+    console.log(`\n✨ GRACEFUL CLEANUP COMPLETE ✨`);
+    console.log(`✅ Verified Leads: ${validCount}`);
+    console.log(`✨ Recovered by AI: ${recoveredCount}`);
+    console.log(`❄️ Questionable/Bouncy: ${bouncyCount}`);
+    console.log(`🛠️ Domains Corrected: ${domainFixedCount}`);
     process.exit(0);
 }
 

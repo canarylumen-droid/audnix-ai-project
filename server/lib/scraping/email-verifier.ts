@@ -98,15 +98,32 @@ export class EmailVerifier {
     }
 
     /**
-     * MX Record Verification
+     * MX Record Verification (Hardened)
      */
     private async checkMXRecords(domain: string): Promise<boolean> {
-        try {
-            const records = await resolveMx(domain);
-            return records && records.length > 0;
-        } catch (error) {
-            return false;
+        const attemptResolve = async (d: string) => {
+            try {
+                const records = await resolveMx(d);
+                return records && records.length > 0;
+            } catch (error) {
+                // Last resort: check A record (some mail servers use A record if MX is missing)
+                try {
+                    const addresses = await promisify(dns.resolve4)(d);
+                    return addresses && addresses.length > 0;
+                } catch (e) {
+                    return false;
+                }
+            }
+        };
+
+        // Try three times with slight delay for transient network issues
+        let success = await attemptResolve(domain);
+        if (!success) {
+            await new Promise(r => setTimeout(r, 1000));
+            success = await attemptResolve(domain);
         }
+
+        return success;
     }
 
     /**

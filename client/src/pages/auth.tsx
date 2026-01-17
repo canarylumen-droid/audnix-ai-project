@@ -467,7 +467,7 @@ export default function AuthPage() {
     let accountCreated = false;
 
     try {
-      const response = await fetch('/api/auth/set-username', {
+      const response = await fetch('/api/user/auth/set-username', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),

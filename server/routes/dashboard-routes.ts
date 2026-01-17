@@ -30,14 +30,18 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const activeLeads = leads.filter(l => l.status === 'open').length;
     const convertedLeads = leads.filter(l => l.status === 'converted').length;
 
-    // Use lead count as message estimate (avoid timeout)
-    const totalMessages = leads.length * 2;
+    const hardenedLeads = leads.filter(l => l.verified).length;
+    const bouncyLeads = leads.filter(l => l.status === 'bouncy').length;
+    const recoveredLeads = leads.filter(l => l.status === 'recovered').length;
 
     res.json({
       totalLeads: leads.length,
       newLeads,
       activeLeads,
       convertedLeads,
+      hardenedLeads,
+      bouncyLeads,
+      recoveredLeads,
       conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : 0,
       totalMessages,
       averageResponseTime: '2.5h',

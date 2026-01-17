@@ -11,13 +11,11 @@ import {
   Zap,
   Mail,
   ArrowUp,
-  ArrowDown,
-  Minus,
-  Sparkles,
-  ArrowRight,
+  Download,
+  ShieldCheck,
+  AlertCircle,
   Activity,
-  RefreshCw,
-  Download
+  RefreshCw
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
@@ -53,6 +51,9 @@ interface DashboardStats {
   activeLeads?: number;
   convertedLeads?: number;
   totalMessages?: number;
+  hardenedLeads?: number;
+  bouncyLeads?: number;
+  recoveredLeads?: number;
 }
 
 interface PreviousDashboardStats {
@@ -406,6 +407,41 @@ export default function DashboardHome() {
                     <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-40 group-hover:translate-x-1 transition-all" />
                   </Button>
                 ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50 rounded-2xl bg-[#030303]/40 backdrop-blur-xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full transition-opacity group-hover:opacity-20" />
+              <CardHeader className="pb-3 border-b border-white/5">
+                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                  <ShieldCheck className="h-3 w-3" />
+                  Neural Delivery Ecosystem
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Hardened Capacity</p>
+                    <p className="text-xl font-black text-emerald-400 tracking-tighter">{stats?.hardenedLeads || 0}</p>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] font-black uppercase tracking-widest">99.9% Safe</Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Neural Recoveries</p>
+                    <p className="text-xl font-black text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
+                  </div>
+                  <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-black uppercase tracking-widest">AI Fixed</Badge>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Bounce Mitigation</p>
+                    <p className="text-xl font-black text-red-400 tracking-tighter">{stats?.bouncyLeads || 0}</p>
+                  </div>
+                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[8px] font-black uppercase tracking-widest">Filtered</Badge>
+                </div>
               </CardContent>
             </Card>
 

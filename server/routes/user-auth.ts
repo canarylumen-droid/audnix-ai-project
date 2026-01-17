@@ -737,4 +737,75 @@ router.post('/metadata', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+/**
+ * POST /api/user/auth/set-username
+ * After OTP verified → User selects username → Saved to DB
+ */
+router.post('/set-username', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    const { username } = req.body as { username: string };
+
+    console.log('📝 [set-username] Request received');
+    console.log('📝 [set-username] Session data:', JSON.stringify({
+      userId: req.session?.userId,
+      email: req.session?.email,
+      cookie: req.session?.cookie
+    }));
+
+    if (!userId) {
+      console.error('❌ [set-username] Session missing or expired');
+      res.status(401).json({
+        error: 'Not authenticated',
+        hint: 'Session may have expired. Please login again.'
+      });
+      return;
+    }
+
+    if (!username || username.length < 3 || username.length > 30) {
+      res.status(400).json({ error: 'Username must be 3-30 characters' });
+      return;
+    }
+
+    // Validate username format
+    if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+      res.status(400).json({ error: 'Only letters, numbers, hyphens and underscores allowed' });
+      return;
+    }
+
+    // Check if username taken
+    const existing = await storage.getUserByUsername(username);
+    if (existing && existing.id !== userId) {
+      res.status(400).json({ error: 'Username already taken' });
+      return;
+    }
+
+    // Update user
+    const user = await storage.updateUser(userId, { username });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    console.log(`✅ Username updated successfully for user ${userId}: ${username}`);
+
+    res.json({
+      success: true,
+      message: 'Username set successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        plan: user.plan,
+        role: user.role
+      },
+      nextStep: '/dashboard',
+    });
+  } catch (error: unknown) {
+    console.error('Error setting username:', error);
+    res.status(500).json({ error: 'Failed to set username' });
+  }
+});
+
 export default router;

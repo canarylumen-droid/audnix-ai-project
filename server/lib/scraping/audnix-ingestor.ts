@@ -145,11 +145,34 @@ export class AudnixIngestor {
                             // If AI check fails, we proceed with caution
                         }
 
-                        // ADVANCED SMTP Verification
-                        const verification = await this.verifier.verify(enriched.email);
+                        // 5. Hardened SMTP Verification with Neural Recovery
+                        let verification = await this.verifier.verify(enriched.email);
+
                         if (!verification.valid) {
-                            await this.log(`[SMTP Rejection] ${enriched.email} failed deliverability check`, 'error');
-                            return;
+                            // Try Neural Recovery: Maybe domain TLD is wrong?
+                            await this.log(`[Neural Path] Deliverability failed for ${enriched.email}. Attempting domain recovery...`, 'raw');
+                            const recoveryModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
+                            const recoveryPrompt = `BUSINESS: ${enriched.entity}\nEMAIL: ${enriched.email}\nWEBSITE: ${enriched.website}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
+
+                            try {
+                                const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
+                                const correctedEmail = recoveryResult.response.text().trim();
+                                if (correctedEmail !== 'NONE' && correctedEmail !== enriched.email && correctedEmail.includes('@')) {
+                                    await this.log(`[Neural recovery] Found potential correction: ${correctedEmail}. Re-checking...`, 'info');
+                                    const secondaryVerification = await this.verifier.verify(correctedEmail);
+                                    if (secondaryVerification.valid) {
+                                        enriched.email = correctedEmail;
+                                        verification = secondaryVerification;
+                                        (enriched as any).recovered = true;
+                                        await this.log(`[Neural Success] Domain recovered! Using ${correctedEmail}`, 'success');
+                                    }
+                                }
+                            } catch (e) { }
+                        }
+
+                        if (!verification.valid) {
+                            await this.log(`[SMTP Rejection] ${enriched.email} failed final check. Marking as questionable.`, 'warning');
+                            // We'll still proceed but mark clearly as unverified/bouncy
                         }
 
                         const existing = await db.select().from(prospects).where(eq(prospects.email, enriched.email)).limit(1);
@@ -166,16 +189,17 @@ export class AudnixIngestor {
                             website: enriched.website,
                             platforms: enriched.platforms,
                             leadScore: enriched.leadScore,
-                            verified: true,
+                            verified: verification.valid,
                             verifiedAt: new Date(),
-                            status: 'verified',
+                            status: (enriched as any).recovered ? 'recovered' : (verification.valid ? 'hardened' : 'bouncy'),
                             source: enriched.source,
                             metadata: {
                                 intent,
                                 temperature,
                                 role: (enriched as any).role,
                                 socialProfiles: enriched.socialProfiles,
-                                verification_reason: verification.reason
+                                verification_reason: verification.reason,
+                                deliverability: verification.valid ? 'safe' : 'bouncy'
                             }
                         } as any).returning();
 
@@ -213,12 +237,12 @@ export class AudnixIngestor {
             if (verification.valid) {
                 await db.update(prospects).set({
                     verified: true,
-                    status: 'verified',
+                    status: 'hardened',
                     verifiedAt: new Date()
                 }).where(eq(prospects.id, prospectId));
                 wsSync.broadcastToUser(this.userId, {
                     type: 'PROSPECT_UPDATED',
-                    payload: { id: prospectId, verified: true, status: 'verified' }
+                    payload: { id: prospectId, verified: true, status: 'hardened' }
                 });
             }
         } catch (error) { }
