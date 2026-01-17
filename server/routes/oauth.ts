@@ -301,7 +301,7 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
     await storage.createIntegration({
       userId: stateData.userId,
       provider: 'gmail',
-      accountType: gmailProfile.emailAddress as any,
+      accountType: gmailProfile.emailAddress,
       encryptedMeta: encrypt(JSON.stringify({
         email: gmailProfile.emailAddress,
         name: userProfile.name,
@@ -631,7 +631,7 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
     await storage.createIntegration({
       userId: userId,
       provider: 'calendly',
-      accountType: (tokenData.user?.email || 'Calendly (OAuth)') as any,
+      accountType: (tokenData.user?.email || 'Calendly (OAuth)'),
       encryptedMeta: encryptedMeta,
       connected: true,
       lastSync: new Date()

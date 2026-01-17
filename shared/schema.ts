@@ -84,7 +84,7 @@ export const integrations = pgTable("integrations", {
   provider: text("provider", { enum: ["instagram", "gmail", "outlook", "manychat", "custom_email", "google_calendar", "calendly"] }).notNull(),
   encryptedMeta: text("encrypted_meta").notNull(),
   connected: boolean("connected").notNull().default(false),
-  accountType: text("account_type", { enum: ["personal", "creator", "business"] }),
+  accountType: text("account_type"),
   lastSync: timestamp("last_sync"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
