@@ -53,9 +53,18 @@ VALUES ('admin@audnixai.com', 'admin', 'admin', 'America/New_York', 'enterprise'
 ON CONFLICT (email) DO UPDATE 
 SET role = 'admin', plan = 'enterprise', subscription_tier = 'enterprise';
 
--- Add core automation rules if missing
-INSERT INTO automation_rules (name, rule_type, channel, is_active, min_intent_score, allowed_actions)
-VALUES 
-('Friendly Follow-up', 'follow_up', 'all', true, 50, '["reply"]'::jsonb),
-('Direct Pitch', 're_engagement', 'all', true, 80, '["reply", "video", "cta"]'::jsonb)
-ON CONFLICT DO NOTHING;
+-- Add core automation rules if missing (Associate with the admin user)
+DO $$
+DECLARE
+    admin_id UUID;
+BEGIN
+    SELECT id INTO admin_id FROM users WHERE email = 'admin@audnixai.com' LIMIT 1;
+
+    IF admin_id IS NOT NULL THEN
+        INSERT INTO automation_rules (user_id, name, rule_type, channel, is_active, min_intent_score, allowed_actions)
+        VALUES 
+        (admin_id, 'Friendly Follow-up', 'follow_up', 'all', true, 50, '["reply"]'::jsonb),
+        (admin_id, 'Direct Pitch', 're_engagement', 'all', true, 80, '["reply", "video", "cta"]'::jsonb)
+        ON CONFLICT DO NOTHING;
+    END IF;
+END $$;
