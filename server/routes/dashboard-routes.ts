@@ -34,6 +34,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const bouncyLeads = leads.filter(l => l.status === 'bouncy').length;
     const recoveredLeads = leads.filter(l => l.status === 'recovered').length;
 
+    const totalMessages = (await storage.getAllMessages(userId)).length;
+
     res.json({
       totalLeads: leads.length,
       newLeads,

@@ -409,6 +409,8 @@ export class MemStorage implements IStorage {
       warm: insertLead.warm || false,
       lastMessageAt: insertLead.lastMessageAt || null,
       aiPaused: insertLead.aiPaused || false,
+      verified: insertLead.verified || false,
+      verifiedAt: insertLead.verifiedAt || null,
       pdfConfidence: insertLead.pdfConfidence || null,
       tags: insertLead.tags || [],
       metadata: insertLead.metadata || {},

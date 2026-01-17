@@ -16,6 +16,9 @@ import {
   getConversationContext,
   autoUpdateLeadStatus
 } from '../lib/ai/conversation-ai.js';
+import { generateSmartReplies } from '../lib/ai/smart-replies.js';
+import { calculateLeadScore, updateAllLeadScores } from '../lib/ai/lead-scoring.js';
+import { generateAnalyticsInsights } from '../lib/ai/analytics-engine.js';
 import { getCompetitorAnalytics } from '../lib/ai/competitor-detection.js';
 import { learnOptimalDiscount } from '../lib/ai/price-negotiation.js';
 import { importInstagramLeads, importGmailLeads, importManychatLeads } from "../lib/imports/lead-importer.js";

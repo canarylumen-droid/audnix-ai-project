@@ -16,12 +16,19 @@ async function cleanup() {
     try {
         const client = await pool.connect();
 
-        console.log('🧹 Clearing leads table...');
-        const res = await client.query('DELETE FROM leads');
-        console.log(`✅ Deleted ${res.rowCount} rows from leads table.`);
+        console.log('🧹 Clearing prospects table...');
+        const resProspects = await client.query('DELETE FROM prospects');
+        console.log(`✅ Deleted ${resProspects.rowCount} rows from prospects table.`);
 
-        // Force reset the dashboard cache if any (table is now empty)
-        console.log('✨ Leads table is now empty.');
+        console.log('🧹 Clearing scraping_sessions table...');
+        const resSessions = await client.query('DELETE FROM scraping_sessions');
+        console.log(`✅ Deleted ${resSessions.rowCount} rows from scraping_sessions table.`);
+
+        console.log('🧹 Clearing leads table...');
+        const resLeads = await client.query('DELETE FROM leads');
+        console.log(`✅ Deleted ${resLeads.rowCount} rows from leads table.`);
+
+        console.log('✨ All lead data cleared.');
 
         client.release();
     } catch (err: any) {
