@@ -375,6 +375,15 @@ CREATE INDEX IF NOT EXISTS idx_follow_up_queue_scheduled ON follow_up_queue(sche
 
 -- Notifications
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+
+-- Migration Fix: specific rename if drift occurred
+DO $$
+BEGIN
+  IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN
+    ALTER TABLE notifications RENAME COLUMN "read" TO is_read;
+  END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read);
 
 -- Payments
@@ -385,19 +394,27 @@ CREATE INDEX IF NOT EXISTS idx_payments_stripe_id ON payments(stripe_payment_id)
 CREATE INDEX IF NOT EXISTS idx_brand_embeddings_user ON brand_embeddings(user_id);
 CREATE INDEX IF NOT EXISTS idx_semantic_memory_user ON semantic_memory(user_id);
 
--- Vector similarity search indexes (only if pgvector is available)
+-- Vector similarity search indexes (only if pgvector is available AND column is vector)
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings 
-      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
-    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory 
-      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+    -- Only create index if embedding is actually a vector type or we can cast it, but here we just try/catch safely
+    BEGIN
+      EXECUTE 'CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings 
+        USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping brand_embeddings vector index: %', SQLERRM;
+    END;
+
+    BEGIN
+      EXECUTE 'CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory 
+        USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Skipping semantic_memory vector index: %', SQLERRM;
+    END;
   ELSE
     RAISE NOTICE 'pgvector not available, skipping vector indexes';
   END IF;
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Vector indexes skipped: %', SQLERRM;
 END $$;
 
 -- ============================================================================

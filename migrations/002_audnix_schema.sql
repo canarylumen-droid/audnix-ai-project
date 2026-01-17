@@ -239,8 +239,61 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
 
 -- Vector indexes for similarity search
-CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+DO $$
+BEGIN
+  -- Ensure pgvector extension exists
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    
+    -- Fix brand_embeddings.embedding type if necessary
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'brand_embeddings' AND column_name = 'embedding' AND data_type != 'USER-DEFINED'
+    ) THEN
+      BEGIN
+        ALTER TABLE brand_embeddings 
+        ALTER COLUMN embedding TYPE vector(1536) 
+        USING (
+          CASE 
+            WHEN substring(embedding::text, 1, 1) = '[' THEN embedding::text::vector 
+            ELSE NULL 
+          END
+        );
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Could not convert brand_embeddings.embedding to vector: %', SQLERRM;
+      END;
+    END IF;
+
+    -- Fix semantic_memory.embedding type if necessary
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns 
+      WHERE table_name = 'semantic_memory' AND column_name = 'embedding' AND data_type != 'USER-DEFINED'
+    ) THEN
+      BEGIN
+        ALTER TABLE semantic_memory 
+        ALTER COLUMN embedding TYPE vector(1536) 
+        USING (
+          CASE 
+            WHEN substring(embedding::text, 1, 1) = '[' THEN embedding::text::vector 
+            ELSE NULL 
+          END
+        );
+      EXCEPTION WHEN OTHERS THEN
+        RAISE NOTICE 'Could not convert semantic_memory.embedding to vector: %', SQLERRM;
+      END;
+    END IF;
+
+    -- Create/Recreate indexes
+    -- We drop first to ensure fresh creation with correct operator class
+    DROP INDEX IF EXISTS idx_brand_embeddings_vector;
+    CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+    
+    DROP INDEX IF EXISTS idx_semantic_memory_vector;
+    CREATE INDEX IF NOT EXISTS idx_semantic_memory_vector ON semantic_memory USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+    
+  ELSE
+    RAISE NOTICE 'pgvector not available, skipping vector indexes in 002';
+  END IF;
+END $$;
 
 -- Row Level Security (RLS) Policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
