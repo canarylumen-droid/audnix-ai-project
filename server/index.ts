@@ -231,6 +231,7 @@ app.use((req, res, next) => {
     '/api/prospecting/scan',
     '/api/user/avatar',
     '/api/prospecting/leads',
+    '/api/prospecting/verify',
     '/api/leads',
     '/api/user/profile',
     '/api/video/test-intent',
