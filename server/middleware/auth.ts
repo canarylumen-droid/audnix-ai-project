@@ -27,11 +27,12 @@ declare global {
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
-  
+
   if (!userId) {
+    console.warn(`[Auth] Rejected 401: No userId in session for ${req.method} ${req.path}. Cookies: ${JSON.stringify(req.headers.cookie)}`);
     // Security: Add small delay to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, 100));
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Authentication required",
       message: "Please log in to access this resource"
     });
@@ -42,11 +43,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   if (!user) {
     // Security: Add small delay to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     // Security: Destroy invalid session to prevent fixation attacks
-    req.session.destroy(() => {});
-    
-    return res.status(401).json({ 
+    req.session.destroy(() => { });
+
+    return res.status(401).json({
       error: "Invalid session",
       message: "User not found"
     });
@@ -69,14 +70,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
  */
 export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
-  
+
   if (userId) {
     const user = await storage.getUserById(userId);
     if (user) {
       req.user = user;
     }
   }
-  
+
   next();
 }
 
@@ -86,9 +87,9 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
  */
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
-  
+
   if (!userId) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Authentication required",
       message: "Please log in to access this resource"
     });
@@ -96,7 +97,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
   const user = await storage.getUserById(userId);
   if (!user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Invalid session",
       message: "User not found"
     });
@@ -106,7 +107,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
   try {
     const { db } = await import("../db.js");
     const { sql } = await import("drizzle-orm");
-    
+
     const whitelistCheck = await db.execute(sql`
       SELECT id, email, status FROM admin_whitelist 
       WHERE LOWER(email) = LOWER(${user.email})
@@ -116,7 +117,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
     if (!whitelistCheck.rows || whitelistCheck.rows.length === 0) {
       console.warn(`[SECURITY] Non-whitelisted user attempted admin access: ${user.email}`);
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: "Forbidden",
         message: "Admin access denied"
       });
@@ -131,7 +132,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     }
   } catch (error) {
     console.error("[SECURITY] Admin whitelist check failed:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Internal server error",
       message: "Unable to verify admin access"
     });
@@ -147,7 +148,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 function isDevMode(): boolean {
   const hasSupabase = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
   const hasStripe = !!process.env.STRIPE_SECRET_KEY;
-  
+
   return !hasSupabase || !hasStripe;
 }
 
@@ -158,9 +159,9 @@ function isDevMode(): boolean {
  */
 export async function requireActiveSubscription(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
-  
+
   if (!userId) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Authentication required",
       message: "Please log in to access this resource"
     });
@@ -168,7 +169,7 @@ export async function requireActiveSubscription(req: Request, res: Response, nex
 
   const user = await storage.getUserById(userId);
   if (!user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: "Invalid session",
       message: "User not found"
     });

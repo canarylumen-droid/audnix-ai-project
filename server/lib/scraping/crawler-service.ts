@@ -15,8 +15,9 @@ let PROXY_POOL: any[] = [
 
 async function scrapePublicProxies(): Promise<any[]> {
     const sources = [
-        'https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all',
-        'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt',
+        'https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=5000&country=US&ssl=all&anonymity=all',
+        'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt', // Backup global
+
         'https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt',
         'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt',
         'https://raw.githubusercontent.com/clketlow/proxy-list/master/http.txt',
@@ -257,7 +258,7 @@ export class AdvancedCrawler {
         this.log(`[Pulse] Rotating high-resolution endpoints for ${niche} domain...`, 'info');
 
         const results: RawLead[] = [];
-        const sources = ['google', 'bing', 'instagram', 'maps', 'youtube', 'facebook', 'twitter', 'tiktok', 'linkedin', 'no_website'];
+        const sources = ['bing', 'maps', 'duckduckgo', 'scout_social'];
         const batchSize = Math.ceil(limit / sources.length);
 
         // 1. Primary Specialized Discovery (AI/Agency Specific)
@@ -306,35 +307,6 @@ export class AdvancedCrawler {
         return unique.slice(0, limit);
     }
 
-    private generateSyntheticLeads(niche: string, location: string, count: number): RawLead[] {
-        const leads: RawLead[] = [];
-        const domains = ['com', 'io', 'ai', 'co', 'net', 'agency'];
-        const types = ['Strategy', 'Solutions', 'Global', 'Growth', 'Neural', 'Cloud'];
-        const bizNames = ['Roofing', 'Plumbing', 'Construction', 'Design', 'Media', 'Consulting'];
-
-        for (let i = 0; i < count; i++) {
-            const hasWebsite = i % 3 !== 0; // 33% leads without website
-            const name = `${niche.charAt(0).toUpperCase() + niche.slice(1)} ${types[i % types.length]} ${i + 1}`;
-            const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const domain = domains[i % domains.length];
-
-            leads.push({
-                entity: name,
-                website: hasWebsite ? `https://${slug}.${domain}` : '',
-                snippet: hasWebsite
-                    ? `Top-rated ${niche} specialist serving ${location}. Full-service ${niche} implementation.`
-                    : `${niche.charAt(0).toUpperCase() + niche.slice(1)} local business in ${location}. Contact via phone or maps.`,
-                source: 'neural_synthetic',
-                email: (process.env.NODE_ENV === 'development') ? `contact@${slug}.local` : `founder@${slug}.${domain}`,
-                role: 'Founder',
-                socialProfiles: {
-                    instagram: `https://instagram.com/${slug}`,
-                    linkedin: `https://linkedin.com/company/${slug}`
-                }
-            } as any);
-        }
-        return leads;
-    }
 
     /**
      * Parallel search worker with retry logic for "No 200"
@@ -350,16 +322,10 @@ export class AdvancedCrawler {
 
                 let found: RawLead[] = [];
                 switch (source) {
-                    case 'google': found = await this.searchGoogle(niche, location, limit); break;
                     case 'bing': found = await this.searchBing(niche, location, limit); break;
-                    case 'instagram': found = await this.searchInstagramWithBios(niche, location, limit); break;
-                    case 'linkedin': found = await this.searchSocialViaDork(niche, location, limit, 'linkedin.com/in'); break;
-                    case 'twitter': found = await this.searchSocialViaDork(niche, location, limit, 'twitter.com'); break;
-                    case 'facebook': found = await this.searchSocialViaDork(niche, location, limit, 'facebook.com'); break;
-                    case 'youtube': found = await this.searchYouTube(niche, location, limit); break;
-                    case 'tiktok': found = await this.searchSocialViaDork(niche, location, limit, 'tiktok.com'); break;
-                    case 'maps': found = await this.searchGoogleMaps(niche, location, limit); break;
-                    case 'no_website': found = await this.searchNoWebsiteLeads(niche, location, limit); break;
+                    case 'maps': found = await this.searchGoogleMaps(niche, location, limit); break; // Maps is distinct
+                    case 'duckduckgo': found = await this.searchDuckDuckGo(niche, location, limit); break;
+                    case 'scout_social': found = await this.searchSocialViaBing(niche, location, limit); break;
                 }
 
                 if (found.length > 0) {
@@ -495,7 +461,7 @@ export class AdvancedCrawler {
      */
     private async searchInstagramWithBios(niche: string, location: string, limit: number): Promise<RawLead[]> {
         try {
-            const hashtag = niche.replace(/\s+/g, '').toLowerCase();
+            const hashtag = niche.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
             this.log(`[Instagram] Scraping #${hashtag} bios for emails...`, 'info');
 
             // Step 1: Get hashtag page
@@ -616,14 +582,14 @@ export class AdvancedCrawler {
     private async searchGoogle(niche: string, location: string, limit: number): Promise<RawLead[]> {
         const results: RawLead[] = [];
         try {
-            const query = `${niche} ${location}`;
+            const query = `${niche} ${location} -site:help.* -site:support.* -site:community.* -site:*.edu -site:*.gov`;
             const pagesToScrape = Math.min(5, Math.ceil(limit / 10)); // Scrape up to 5 pages
 
             for (let page = 0; page < pagesToScrape; page++) {
                 if (results.length >= limit) break;
 
                 const response = await this.fetchPage(`https://www.google.com/search`, {
-                    params: { q: query, start: page * 10, hl: 'en' }
+                    params: { q: query, start: page * 10, hl: 'en', gl: 'us', lr: 'lang_en' }
                 });
 
                 const $ = cheerio.load(response.data);
@@ -663,7 +629,7 @@ export class AdvancedCrawler {
                 if (results.length >= limit) break;
 
                 const response = await this.fetchPage(`https://www.bing.com/search`, {
-                    params: { q: query, first: page * 10 + 1 }
+                    params: { q: query, first: page * 10 + 1, setLang: 'en-US', setmkt: 'en-US' }
                 });
 
                 const $ = cheerio.load(response.data);
@@ -672,7 +638,7 @@ export class AdvancedCrawler {
                     const link = $(elem).find('a').attr('href');
                     const snippet = $(elem).find('.b_caption p, .b_snippet, .b_lineclamp3, .st').text().trim();
 
-                    if (!link || this.isBlacklisted(link, true)) return;
+                    if (!link || this.isBlacklisted(link, false)) return;
 
                     const emailMatch = (snippet + title).match(/[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}/gi);
 
@@ -736,6 +702,11 @@ export class AdvancedCrawler {
             return enriched;
         }
 
+        // PRESERVE SNIPPET EMAIL if deep scan fails
+        if (lead.email) {
+            enriched.email = lead.email;
+        }
+
         if (!lead.website) return enriched;
 
         try {
@@ -752,6 +723,8 @@ export class AdvancedCrawler {
             const hostname = parsedUrl.hostname.toLowerCase();
 
             if (hostname === 'instagram.com' || hostname.endsWith('.instagram.com')) {
+                // Only allow deep profile pages, reject root/login
+                if (parsedUrl.pathname === '/' || parsedUrl.pathname.startsWith('/accounts/')) return enriched;
                 this.log(`[Deep Scan] Scraping Instagram bio for @${parsedUrl.pathname.split('/').filter(Boolean).pop()} via proxy mesh...`, 'info');
                 this.log(`[Intelligence] Extracting email patterns and IG verification data...`, 'raw');
             } else if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) {
@@ -820,14 +793,10 @@ export class AdvancedCrawler {
             }
 
             const personalEmails = emails.filter(e => this.isPersonalEmail(e));
-            const businessEmails = emails.filter(e => !this.isPersonalEmail(e) && !this.isGenericEmail(e));
+            const genericEmails = emails.filter(e => this.isGenericEmail(e));
 
-            // Search ALL emails for founder/owner keywords, including personal ones
-            enriched.founderEmail = emails.find(e => this.isFounderEmail(e));
-            enriched.personalEmail = personalEmails[0];
-
-            // Priority: Founder > Business > Personal (Gmail/etc)
-            enriched.email = enriched.founderEmail || businessEmails[0] || enriched.personalEmail;
+            // Priority: Founder > Business > Personal > Generic
+            enriched.email = enriched.founderEmail || businessEmails[0] || enriched.personalEmail || genericEmails[0];
 
             if (enriched.email) {
                 // SMTPS Verification
@@ -988,38 +957,24 @@ export class AdvancedCrawler {
         leadScore: number;
         estimatedRevenue: string;
     }> {
-        try {
-            const model = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
-            const prompt = `Analyze this business and estimate revenue.
+        // HEURISTIC-BASED ANALYSIS (NO AI HALLUCINATION)
+        let score = 50;
+        const text = (entity + ' ' + content).toLowerCase();
 
-Business: ${entity}
-Email: ${email}
-Content: ${content}
+        // Positive signals
+        if (text.includes('agency')) score += 10;
+        if (text.includes('founder') || text.includes('ceo') || text.includes('owner')) score += 15;
+        if (text.includes('services') || text.includes('clients')) score += 5;
+        if (email && !this.isGenericEmail(email) && !this.isPersonalEmail(email)) score += 10;
 
-Provide:
-1. Lead Score (0-100)
-2. Wealth Signal (High/Medium/Low)
-3. Estimated Monthly Revenue (e.g., "$10k-$50k", "$50k-$100k", "$100k+")
+        const wealthSignal = score >= 80 ? 'High' : (score >= 65 ? 'Medium' : 'Low');
+        const estRevenue = wealthSignal === 'High' ? '$100k+' : (wealthSignal === 'Medium' ? '$50k-$100k' : '$10k-$50k');
 
-Return ONLY JSON:
-{
-    "leadScore": number,
-    "wealthSignal": "High" | "Medium" | "Low",
-    "estimatedRevenue": "string"
-}`;
-
-            const result = await model.generateContent(prompt);
-            const analysis = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
-
-            return {
-                leadScore: Math.min(100, Math.max(0, analysis.leadScore)),
-                wealthSignal: analysis.wealthSignal,
-                estimatedRevenue: analysis.estimatedRevenue
-            };
-
-        } catch (error) {
-            return { leadScore: 50, wealthSignal: 'Medium', estimatedRevenue: 'Unknown' };
-        }
+        return {
+            leadScore: Math.min(100, score),
+            wealthSignal: wealthSignal as any,
+            estimatedRevenue: estRevenue
+        };
     }
 
     private deduplicateLeads(leads: RawLead[]): RawLead[] {
@@ -1039,11 +994,27 @@ Return ONLY JSON:
     private isBlacklisted(url: string, allowSocial: boolean = false): boolean {
         // When specifically crawling social platforms, don't blacklist them
         const socialPlatforms = ['facebook.com', 'linkedin.com', 'instagram.com', 'youtube.com', 'twitter.com', 'x.com', 'tiktok.com', 'pinterest.com'];
-        const generalBlacklist = ['yelp.com', 'yellowpages.com', 'bbb.org', 'wikipedia.org', 'amazon.com', 'ebay.com'];
+        const generalBlacklist = ['yelp.com', 'yellowpages.com', 'bbb.org', 'wikipedia.org', 'amazon.com', 'ebay.com', 'clutch.co', 'upwork.com', 'sortlist.com', 'themanifest.com', 'goodfirms.co', 'linkedin.com/pulse', 'play.google.com', 'apps.apple.com'];
 
         if (allowSocial) {
             return generalBlacklist.some(domain => url.includes(domain));
         }
+
+        // Filter out obviously non-agency titles/URLs
+        const badKeywords = [
+            // Tech support / Login
+            'login', 'signup', 'register', 'signin', 'password', 'account', 'recovery', 'unlock',
+            'help', 'support', 'faq', 'community', 'forum', 'guide', 'tutorial', 'issues', 'down',
+            // International/Other languages commonly found in bad proxies
+            '如何', '注册', '登录', '指南', 'pembantu', 'pomoc', 'yardım',
+            // Platform actions
+            'download', 'install', 'apk', 'mod', 'hack', 'generator',
+            // News/Blog spam
+            'article', 'news', 'blog'
+        ];
+
+        const lowerUrl = url.toLowerCase();
+        if (badKeywords.some(w => lowerUrl.includes(w))) return true;
 
         return [...socialPlatforms, ...generalBlacklist].some(domain => url.includes(domain));
     }
@@ -1100,6 +1071,48 @@ Return ONLY JSON:
     /**
      * Specialized AI Agency discovery via domain-specific dorks
      */
+    private async searchDuckDuckGo(niche: string, location: string, limit: number): Promise<RawLead[]> {
+        const results: RawLead[] = [];
+        try {
+            const query = `${niche} ${location} site:.com "contact"`;
+            const response = await this.fetchPage(`https://html.duckduckgo.com/html/`, {
+                params: { q: query },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+
+            const $ = cheerio.load(response.data);
+            $('.result').each((i, elem) => {
+                const title = $(elem).find('.result__title a').text().trim();
+                const link = $(elem).find('.result__title a').attr('href');
+                const snippet = $(elem).find('.result__snippet').text().trim();
+
+                if (link && !this.isBlacklisted(link)) {
+                    results.push({
+                        entity: this.cleanTitle(title),
+                        website: link,
+                        snippet: snippet,
+                        source: 'duckduckgo'
+                    });
+                }
+            });
+            return results;
+        } catch (e) { return results; }
+    }
+
+    private async searchSocialViaBing(niche: string, location: string, limit: number): Promise<RawLead[]> {
+        const platforms = ['linkedin.com', 'instagram.com', 'twitter.com', 'facebook.com'];
+        const results: RawLead[] = [];
+
+        for (const platform of platforms) {
+            try {
+                const query = `site:${platform} "${niche}" ${location} "gmail.com"`;
+                const batch = await this.searchBing(query, "", Math.ceil(limit / platforms.length));
+                results.push(...batch);
+            } catch (e) { }
+        }
+        return results;
+    }
+
     public async discoverAiAgencies(limit: number): Promise<RawLead[]> {
         await this.ensureProxies();
         const queries = [

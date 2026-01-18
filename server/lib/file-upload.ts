@@ -26,27 +26,27 @@ async function uploadToLocalStorage(
   // Security: Sanitize filePath to prevent path traversal attacks
   const sanitizedBucket = path.basename(bucket);
   const sanitizedPath = filePath.replace(/\.\./g, '').replace(/^\/+/, '');
-  
+
   if (sanitizedPath.includes('..') || path.isAbsolute(sanitizedPath)) {
     throw new Error("Invalid file path: path traversal detected");
   }
-  
+
   const bucketDir = path.join(localStorageDir, sanitizedBucket);
   const localPath = path.join(bucketDir, sanitizedPath);
-  
+
   // Verify resolved path is within uploads directory
   const resolvedPath = path.resolve(localPath);
   const resolvedBucketDir = path.resolve(bucketDir);
   if (!resolvedPath.startsWith(resolvedBucketDir)) {
     throw new Error("Invalid file path: path traversal detected");
   }
-  
+
   try {
     await fs.mkdir(bucketDir, { recursive: true });
   } catch (err: any) {
     console.error('Error creating local storage directory:', err?.message);
   }
-  
+
   let buffer: Buffer;
   if (typeof fileBuffer === 'string') {
     buffer = await fs.readFile(fileBuffer);
@@ -55,33 +55,28 @@ async function uploadToLocalStorage(
   } else {
     throw new Error("No file data provided");
   }
-  
+
   const localDir = path.dirname(resolvedPath);
   await fs.mkdir(localDir, { recursive: true });
   await fs.writeFile(resolvedPath, buffer);
-  
+
   // Return a public URL path
   const publicUrl = `/uploads/${sanitizedBucket}/${sanitizedPath}`;
   console.log(`✅ File saved to local storage: ${publicUrl}`);
   return publicUrl;
 }
 
-// Safely create uploads directory (optional - files use memory storage)
-// Don't crash if directory can't be created (e.g., in serverless environments)
-// Wrap in IIFE to properly handle async errors
+// Ensure uploads directories exist
 (async () => {
   try {
-    await fs.mkdir(uploadDir, { recursive: true });
-  } catch (err: any) {
-    if (err?.code === 'ENOENT' || err?.code === 'EACCES') {
-      console.warn(`⚠️  Could not create uploads directory (${err.code}). Using memory storage instead.`);
-    } else {
-      console.error('Error creating uploads directory:', err?.message || err);
+    const dirs = [uploadDir, localStorageDir];
+    for (const dir of dirs) {
+      await fs.mkdir(dir, { recursive: true });
     }
+  } catch (err: any) {
+    // Ignore errors in serverless/locked environments where directory creation might fail
   }
-})().catch(() => {
-  // Silently ignore - directory creation is optional
-});
+})().catch(() => { });
 
 const voiceFileFilter = (
   _req: Request,
@@ -90,11 +85,11 @@ const voiceFileFilter = (
 ): void => {
   const allowedMimes = ['audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/mp4'];
   const allowedExts = ['.mp3', '.wav', '.m4a'];
-  
+
   const ext = path.extname(file.originalname).toLowerCase();
   const mimeOk = allowedMimes.includes(file.mimetype);
   const extOk = allowedExts.includes(ext);
-  
+
   if (mimeOk && extOk) {
     cb(null, true);
   } else {
@@ -136,7 +131,7 @@ const avatarFileFilter = (
   cb: multer.FileFilterCallback
 ): void => {
   const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-  
+
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -157,7 +152,7 @@ export const uploadAvatar = multer({
  */
 async function ensureBucketExists(bucketName: string): Promise<void> {
   if (!supabase) return;
-  
+
   try {
     // Try to list files in bucket - if it doesn't exist, this will fail
     await supabase.storage.from(bucketName).list('', { limit: 1 });
@@ -197,18 +192,18 @@ export async function uploadToSupabase(
   if (typeof fileBuffer === 'string') {
     const resolvedPath = path.resolve(fileBuffer);
     const uploadDirResolved = path.resolve(uploadDir);
-    
+
     const relativePath = path.relative(uploadDirResolved, resolvedPath);
-    const isInsideUploadDir = relativePath && 
-      !relativePath.startsWith('..') && 
+    const isInsideUploadDir = relativePath &&
+      !relativePath.startsWith('..') &&
       !path.isAbsolute(relativePath);
-    
+
     if (!isInsideUploadDir) {
       throw new Error("Invalid file path: path traversal detected");
     }
 
     buffer = await fs.readFile(resolvedPath);
-    
+
     // Clean up local file
     await fs.unlink(resolvedPath).catch(console.error);
   } else if (Buffer.isBuffer(fileBuffer)) {
@@ -299,7 +294,7 @@ export async function processPDFEmbeddings(
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Error processing PDF ${fileName}:`, errorMessage);
-    
+
     if (supabase) {
       try {
         await supabase
@@ -355,12 +350,12 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
     const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
     const fileBuffer = await fs.readFile(filePath);
     const pdfData = await pdfParse(fileBuffer);
-    
+
     let fullText = '';
     if (pdfData.text) {
       fullText = pdfData.text;
     }
-    
+
     return fullText || '';
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -373,12 +368,12 @@ async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
   try {
     const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
     const pdfData = await pdfParse(fileBuffer);
-    
+
     let fullText = '';
     if (pdfData.text) {
       fullText = pdfData.text;
     }
-    
+
     return fullText || '';
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -421,13 +416,13 @@ export async function generateAndStoreEmbeddings(
 function chunkText(text: string, maxChunkSize: number): string[] {
   const chunks: string[] = [];
   const sentences = text.split(/[.!?]+/);
-  
+
   let currentChunk = "";
-  
+
   for (const sentence of sentences) {
     const trimmedSentence = sentence.trim();
     if (!trimmedSentence) continue;
-    
+
     if (currentChunk.length + trimmedSentence.length + 1 > maxChunkSize) {
       if (currentChunk) {
         chunks.push(currentChunk.trim());
@@ -437,11 +432,11 @@ function chunkText(text: string, maxChunkSize: number): string[] {
       currentChunk += (currentChunk ? ". " : "") + trimmedSentence;
     }
   }
-  
+
   if (currentChunk) {
     chunks.push(currentChunk.trim());
   }
-  
+
   return chunks;
 }
 

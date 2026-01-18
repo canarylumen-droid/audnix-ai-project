@@ -226,7 +226,12 @@ app.use((req, res, next) => {
     '/api/instagram/webhook',
     '/api/facebook/webhook',
     '/api/user/auth',
-    '/api/auth'
+    '/api/auth',
+    '/api/custom-email/connect',
+    '/api/prospecting/scan',
+    '/api/user/avatar',
+    '/api/prospecting/leads',
+    '/api/leads'
   ];
 
   if (skipPaths.some(path => req.path.startsWith(path)) || req.path === '/api/csrf-token') {

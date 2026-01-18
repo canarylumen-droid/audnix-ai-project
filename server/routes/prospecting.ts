@@ -55,7 +55,7 @@ router.get('/leads', async (req: Request, res: Response) => {
             .from(prospects)
             .where(eq(prospects.userId, userId))
             .orderBy(prospects.createdAt)
-            .limit(1000);
+            .limit(2000);
 
         res.json(leads);
 

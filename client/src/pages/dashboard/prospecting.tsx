@@ -190,7 +190,7 @@ export default function ProspectingPage() {
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     disabled={scanMutation.isPending}
-                                    placeholder="Ask Neural Core to find leads (e.g., 'CEO of SaaS in Austin with $5M+ revenue')..."
+                                    placeholder="Search verified agency database (e.g., 'Miami Instagram Agency')..."
                                     className="h-20 bg-transparent border-none text-xl md:text-2xl text-white placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 font-medium px-2"
                                 />
 
