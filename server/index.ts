@@ -231,7 +231,12 @@ app.use((req, res, next) => {
     '/api/prospecting/scan',
     '/api/user/avatar',
     '/api/prospecting/leads',
-    '/api/leads'
+    '/api/leads',
+    '/api/user/profile',
+    '/api/video/test-intent',
+    '/api/pdf/upload',
+    '/api/brand-pdf',
+    '/api/organizations'
   ];
 
   if (skipPaths.some(path => req.path.startsWith(path)) || req.path === '/api/csrf-token') {
