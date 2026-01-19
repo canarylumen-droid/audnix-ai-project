@@ -11,8 +11,8 @@
 
 import type { ConversationMessage, BrandContext, LeadProfile } from "../../../shared/types.js";
 import type { Lead } from "../../../shared/schema.js";
-import { 
-  generateOptimizedMessage, 
+import {
+  generateOptimizedMessage,
   universalSalesAI,
   type SalesLeadProfile,
   type SalesBrandContext,
@@ -20,22 +20,32 @@ import {
   type OptimizedMessageResult
 } from "./universal-sales-agent.js";
 import { calculateLeadScore } from "./lead-management.js";
-import { 
-  detectLeadIntent, 
-  suggestSmartReply, 
-  predictDealAmount, 
+import {
+  detectLeadIntent,
+  suggestSmartReply,
+  predictDealAmount,
   assessChurnRisk,
   type IntentDetectionResult,
   type ChurnRiskAssessment,
   type SmartReplyOption
 } from "./lead-intelligence.js";
-import { 
-  generateAutonomousObjectionResponse, 
-  recordObjectionLearning 
+import {
+  generateAutonomousObjectionResponse,
+  recordObjectionLearning
 } from "./autonomous-objection-responder.js";
+import {
+  generateFollowRequest,
+  shouldAskForFollow,
+  handleFollowResponse
+} from "./follow-request-handler.js";
 
 interface LeadWithProfile extends SalesLeadProfile {
   id: string;
+  userId: string;
+  organizationId?: string | null;
+  externalId?: string | null;
+  verified?: boolean;
+  verifiedAt?: Date | null;
   name?: string;
   brandName?: string;
   userIndustry?: string;
@@ -89,19 +99,22 @@ interface FollowUpResult {
 function convertToSchemaLead(lead: LeadWithProfile): Lead {
   return {
     id: lead.id,
-    userId: lead.id,
-    externalId: null,
+    userId: lead.userId,
+    organizationId: lead.organizationId || null,
+    externalId: lead.externalId || null,
     name: lead.name || lead.firstName || "Lead",
     email: lead.email || null,
     phone: lead.phone || null,
     channel: "email" as const,
     status: "new" as const,
+    verified: lead.verified || false,
+    verifiedAt: lead.verifiedAt || null,
     score: 0,
     warm: false,
     lastMessageAt: null,
     aiPaused: false,
     pdfConfidence: null,
-    tags: [],
+    tags: lead.tags || [],
     metadata: lead.metadata || {},
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -111,7 +124,7 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
 function convertToLeadProfile(lead: LeadWithProfile): LeadProfile {
   return {
     id: lead.id,
-    userId: lead.id,
+    userId: lead.userId,
     name: lead.name || lead.firstName || "Lead",
     firstName: lead.firstName,
     email: lead.email,
@@ -122,6 +135,9 @@ function convertToLeadProfile(lead: LeadWithProfile): LeadProfile {
     warm: false,
     tags: [],
     metadata: lead.metadata || {},
+    organizationId: lead.organizationId || null,
+    verified: lead.verified || false,
+    verifiedAt: lead.verifiedAt || null,
     createdAt: new Date(),
     updatedAt: new Date(),
     aiPaused: false,
@@ -247,25 +263,48 @@ export async function handleLeadResponseWithLearning(
   // Get intent immediately
   const intent = await detectLeadIntent(messages, leadProfile);
 
+  // CHECK: Did they agree to follow us? (Instagram specific logic)
+  if (lead.channel === 'instagram') {
+    const followResult = await handleFollowResponse(lead.id, theirMessage, 'instagram');
+    if (followResult.wantsToFollow && followResult.followButtonUrl) {
+      return {
+        intent: { intentLevel: "high", buyerStage: "decision", confidence: 1.0 }, // Treat as high intent positive signal
+        suggestedReplies: [{
+          reply: `That's great! Here is the link to follow our page: ${followResult.followButtonUrl} \n\nLooking forward to staying connected!`,
+          confidence: 1.0,
+          type: "social_proof",
+          tone: "friendly"
+        }],
+        autonomousResponse: {
+          response: `Awesome! You can follow us right here: ${followResult.followButtonUrl} \n\nI share exclusive tips there daily. Let me know once you've followed!`,
+          strategy: "social_conversion",
+          confidence: 1.0,
+          nextAction: "Monitor for follow based on platform webhook"
+        },
+        nextAction: "Send Instagram Profile Link"
+      };
+    }
+  }
+
   // AUTONOMOUS OBJECTION HANDLING: If they said "no", "maybe", or raised objection
   let autonomousResponse: AutoObjectionResponse | null = null;
 
   const lowerMessage = theirMessage.toLowerCase();
-  if (intent.intentLevel === "low" || intent.intentLevel === "not_interested" || 
-      lowerMessage.includes("let me") || 
-      lowerMessage.includes("not sure") ||
-      lowerMessage.includes("no") ||
-      lowerMessage.includes("maybe") ||
-      lowerMessage.includes("think")) {
-    
+  if (intent.intentLevel === "low" || intent.intentLevel === "not_interested" ||
+    lowerMessage.includes("let me") ||
+    lowerMessage.includes("not sure") ||
+    lowerMessage.includes("no") ||
+    lowerMessage.includes("maybe") ||
+    lowerMessage.includes("think")) {
+
     // GENERATE AUTONOMOUS CLOSING RESPONSE
     autonomousResponse = await generateAutonomousObjectionResponse(theirMessage, {
       leadName: lead.name || lead.firstName || "there",
       leadCompany: lead.company || lead.companyName,
       leadIndustry: (lead.metadata?.industry as string) || "general",
-      previousMessages: messages.map((m) => ({ 
-        role: m.direction === "inbound" ? "user" : "assistant", 
-        content: m.body 
+      previousMessages: messages.map((m) => ({
+        role: m.direction === "inbound" ? "user" : "assistant",
+        content: m.body
       })),
       brandName: lead.brandName || "Our platform",
       userIndustry: lead.userIndustry || "all",
@@ -286,6 +325,27 @@ export async function handleLeadResponseWithLearning(
   // Get smart reply suggestions (backup)
   const smartReplies = await suggestSmartReply(theirMessage, leadProfile, brandContext, messages);
 
+  // CHECK: Should we ask for a follow? (Growth Hack)
+  if (lead.channel === 'instagram') {
+    const shouldAsk = await shouldAskForFollow(lead.id);
+    if (shouldAsk) {
+      const followRequestMsg = await generateFollowRequest({
+        leadName: lead.name || "friend",
+        leadStatus: lead.status as any, // Cast status to match
+        isBrand: !!lead.organizationId,
+        channel: 'instagram'
+      });
+
+      // Add as a high-confidence suggestion
+      smartReplies.unshift({
+        reply: followRequestMsg,
+        confidence: 0.95,
+        type: "growth_hack",
+        tone: "friendly"
+      });
+    }
+  }
+
   // Learn from this interaction
   await universalSalesAI.learnFromInteraction({
     leadId: lead.id,
@@ -300,15 +360,15 @@ export async function handleLeadResponseWithLearning(
     intent,
     suggestedReplies: smartReplies,
     autonomousResponse,
-    nextAction: autonomousResponse 
-      ? "Send autonomous closing response - turn objection to YES" 
+    nextAction: autonomousResponse
+      ? "Send autonomous closing response - turn objection to YES"
       : intent.intentLevel === "high" ? "Schedule call" : "Send case study",
   };
 }
 
 export async function autoGenerateFollowUp(
-  lead: LeadWithProfile, 
-  messages: ConversationMessage[], 
+  lead: LeadWithProfile,
+  messages: ConversationMessage[],
   daysSinceLastContact: number
 ): Promise<FollowUpResult> {
   /**

@@ -11,24 +11,24 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
-  const capitalizedUsername = username 
-    ? username.charAt(0).toUpperCase() + username.slice(1).toLowerCase() 
+  const capitalizedUsername = username
+    ? username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
     : 'there';
   const fullText = `Hey ${capitalizedUsername}!`;
 
   const fireCelebration = useCallback(() => {
-    const duration = 4000;
+    const duration = 2500;
     const animationEnd = Date.now() + duration;
-    
+
     const colors = ['#00d4ff', '#7c3aed', '#f59e0b', '#10b981', '#ec4899', '#ffffff'];
 
     const frame = () => {
       const timeLeft = animationEnd - Date.now();
-      
+
       if (timeLeft <= 0) return;
 
       const particleCount = 4;
-      
+
       confetti({
         particleCount,
         angle: 60,
@@ -42,7 +42,7 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
         shapes: ['square', 'circle'],
         scalar: 1.2
       });
-      
+
       confetti({
         particleCount,
         angle: 120,
@@ -138,7 +138,7 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
           className="mb-6"
         >
           <div className="inline-block p-4 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 backdrop-blur-sm border border-white/10">
-            <motion.span 
+            <motion.span
               className="text-5xl"
               animate={{ rotate: [0, -10, 10, -10, 0] }}
               transition={{ duration: 0.5, delay: 0.5 }}

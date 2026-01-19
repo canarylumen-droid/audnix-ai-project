@@ -1,6 +1,16 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
+  if (res.status === 401) {
+    // If we're on a dashboard page and get a 401, redirect to login
+    if (window.location.pathname.startsWith('/dashboard')) {
+      console.warn('Unauthorized access detected, redirecting to auth...');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('user');
+      window.location.href = '/auth';
+    }
+  }
+
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);

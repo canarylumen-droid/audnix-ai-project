@@ -10,10 +10,15 @@ import { Upload, Loader2, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 
+
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
 export default function LeadImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
   const [importResults, setImportResults] = useState<{ imported: number; skipped: number } | null>(null);
 
@@ -52,6 +57,9 @@ export default function LeadImportPage() {
     } else {
       formData.append('csv', file);
     }
+
+    // Pass the aiPaused flag (inverted trigger)
+    formData.append('aiPaused', (!enableAi).toString());
 
     try {
       setProgress(30);
@@ -124,6 +132,20 @@ export default function LeadImportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
+            <div className="space-y-1">
+              <Label className="text-sm font-bold flex items-center gap-2">
+                Enable AI Agent?
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-primary/20 text-primary uppercase tracking-widest">Recommended</Badge>
+              </Label>
+              <p className="text-xs text-muted-foreground">Automatically qualify and engage leads immediately after import.</p>
+            </div>
+            <Switch
+              checked={enableAi}
+              onCheckedChange={setEnableAi}
+            />
+          </div>
+
           <div className="border-2 border-dashed border-border/40 rounded-[2rem] p-16 text-center hover:bg-primary/5 hover:border-primary/20 transition-all cursor-pointer group/upload relative overflow-hidden">
             <Input
               type="file"

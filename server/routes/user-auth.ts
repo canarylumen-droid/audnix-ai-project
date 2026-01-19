@@ -4,6 +4,7 @@ import multer from 'multer';
 import { twilioEmailOTP } from '../lib/auth/twilio-email-otp.js';
 import { storage } from '../storage.js';
 import { rateLimit } from 'express-rate-limit';
+import { wsSync } from '../lib/websocket-sync.js';
 
 const router = Router();
 const avatarUpload = multer({
@@ -597,6 +598,10 @@ router.post('/logout', async (req: Request, res: Response): Promise<void> => {
     });
 
     console.log(`👋 User logged out: ${userId || 'unknown'}`);
+
+    if (userId) {
+      wsSync.broadcastToUser(userId, { type: 'TERMINATE_SESSION', payload: {} });
+    }
 
     res.json({
       success: true,

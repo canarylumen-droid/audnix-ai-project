@@ -1,3 +1,4 @@
+import { storage } from "../../storage.js";
 
 interface FollowRequestContext {
   leadName: string;
@@ -70,10 +71,10 @@ export async function handleFollowResponse(
     const lead = await storage.getLeadById(leadId);
     if (lead) {
       const integrations = await storage.getIntegrations(lead.userId);
-      const igIntegration = integrations.find(i => i.provider === 'instagram');
+      const igIntegration = integrations.find((i: any) => i.provider === 'instagram');
 
       if (igIntegration && igIntegration.encryptedMeta) {
-        const { decrypt } = await import('../../crypto/encryption.js');
+        const { decrypt } = await import('../crypto/encryption.js');
         const meta = JSON.parse(decrypt(igIntegration.encryptedMeta));
 
         return {

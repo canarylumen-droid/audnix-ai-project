@@ -107,6 +107,36 @@ const integrationCards = [
   }
 ];
 
+
+function DisconnectConfirmationDialog({
+  isOpen,
+  onOpenChange,
+  onConfirm,
+  providerName
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  providerName: string;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Disconnect {providerName}?</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to disconnect? The AI will stop processing leads from this source immediately.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="destructive" onClick={() => { onConfirm(); onOpenChange(false); }}>Yes, Disconnect</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function IntegrationsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -119,7 +149,12 @@ export default function IntegrationsPage() {
     password: '',
     fromName: ''
   });
+  const [testEmailData, setTestEmailData] = useState({ recipient: "", subject: "Test Email", content: "This is a test email." });
+  const [isTestEmailOpen, setIsTestEmailOpen] = useState(false);
   const [isEditingCustomEmail, setIsEditingCustomEmail] = useState(false);
+  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false);
+  const [disconnectProvider, setDisconnectProvider] = useState<string | null>(null);
+
   const [isUploadingVoice, setIsUploadingVoice] = useState(false);
   const voiceInputRef = useRef<HTMLInputElement>(null);
 
@@ -164,6 +199,24 @@ export default function IntegrationsPage() {
     }
   });
 
+  const sendTestEmailMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/custom-email/send-test", {
+        recipientEmail: data.recipient,
+        subject: data.subject,
+        content: data.content
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      setIsTestEmailOpen(false);
+      toast({ title: "Test Email Sent", description: "Check your inbox." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to Send", description: err.message, variant: "destructive" });
+    }
+  });
+
   const uploadVoiceMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -200,8 +253,70 @@ export default function IntegrationsPage() {
     }
   };
 
+  const confirmDisconnect = (provider: string) => {
+    setDisconnectProvider(provider);
+    setIsDisconnectDialogOpen(true);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <DisconnectConfirmationDialog
+        isOpen={isDisconnectDialogOpen}
+        onOpenChange={setIsDisconnectDialogOpen}
+        providerName={disconnectProvider === 'custom_email' ? 'Custom Email' : disconnectProvider || 'Integration'}
+        onConfirm={() => {
+          if (disconnectProvider === 'custom_email') {
+            disconnectCustomEmailMutation.mutate();
+          } else if (disconnectProvider) {
+            disconnectProviderMutation.mutate(disconnectProvider);
+          }
+        }}
+      />
+
+      {/* Send Test Email Dialog */}
+      <Dialog open={isTestEmailOpen} onOpenChange={setIsTestEmailOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Test Email</DialogTitle>
+            <DialogDescription>Verify your SMTP connection by sending a real email.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Recipient</Label>
+              <Input
+                placeholder="recipient@example.com"
+                value={testEmailData.recipient}
+                onChange={e => setTestEmailData({ ...testEmailData, recipient: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Input
+                placeholder="Test Subject"
+                value={testEmailData.subject}
+                onChange={e => setTestEmailData({ ...testEmailData, subject: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Message</Label>
+              <Input
+                placeholder="Hello world..."
+                value={testEmailData.content}
+                onChange={e => setTestEmailData({ ...testEmailData, content: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTestEmailOpen(false)}>Cancel</Button>
+            <Button onClick={() => sendTestEmailMutation.mutate(testEmailData)} disabled={sendTestEmailMutation.isPending}>
+              {sendTestEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b">
         <div className="space-y-1">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -270,10 +385,13 @@ export default function IntegrationsPage() {
                     </div>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
+                    <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => setIsTestEmailOpen(true)}>
+                      <Mail className="h-3.5 w-3.5 mr-2" /> Test Send
+                    </Button>
                     <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => setIsEditingCustomEmail(true)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                     </Button>
-                    <Button variant="ghost" size="sm" className="rounded-lg h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => disconnectCustomEmailMutation.mutate()}>
+                    <Button variant="ghost" size="sm" className="rounded-lg h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email')}>
                       <Unplug className="h-3.5 w-3.5 mr-2" /> Disconnect
                     </Button>
                   </div>
@@ -312,7 +430,7 @@ export default function IntegrationsPage() {
                       <Cpu className="h-4 w-4 text-emerald-500" />
                     </div>
                     <div className="flex items-end gap-2">
-                      <span className="text-2xl font-bold text-foreground">250</span>
+                      <span className="text-2xl font-bold text-foreground">500</span>
                       <span className="text-[10px] font-bold text-muted-foreground pb-1">/ day</span>
                     </div>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Predictive limit for zero blocks</p>
@@ -323,11 +441,22 @@ export default function IntegrationsPage() {
               {(!isCustomEmailConnected || isEditingCustomEmail) && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label className="text-xs font-semibold text-muted-foreground ml-1">From Name (Displayed to recipients)</Label>
+                      <Input
+                        placeholder="John Doe"
+                        value={customEmailConfig.fromName}
+                        onChange={(e) => setCustomEmailConfig({ ...customEmailConfig, fromName: e.target.value })}
+                        className="rounded-xl border-border/50 focus:ring-primary/20"
+                      />
+                    </div>
                     {[
                       { label: "SMTP Host", key: "smtpHost", placeholder: "e.g. smtp.gmail.com" },
                       { label: "SMTP Port", key: "smtpPort", placeholder: "587" },
                       { label: "Email Address", key: "email", placeholder: "your@email.com" },
-                      { label: "App Password", key: "password", placeholder: "Minimum 16 characters", type: "password" }
+                      { label: "App Password", key: "password", placeholder: "Minimum 16 characters", type: "password" },
+                      { label: "IMAP Host (Optional)", key: "imapHost", placeholder: "e.g. imap.gmail.com" },
+                      { label: "IMAP Port", key: "imapPort", placeholder: "993" }
                     ].map((field) => (
                       <div key={field.key} className="space-y-1.5">
                         <Label className="text-xs font-semibold text-muted-foreground ml-1">{field.label}</Label>
@@ -341,14 +470,20 @@ export default function IntegrationsPage() {
                       </div>
                     ))}
                   </div>
-                  <Button
-                    className="rounded-xl px-8 font-semibold h-11"
-                    disabled={connectCustomEmailMutation.isPending}
-                    onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
-                  >
-                    {connectCustomEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Configuration
-                  </Button>
+                  <div className="flex gap-4">
+                    <Button
+                      className="rounded-xl px-8 font-semibold h-11 flex-1"
+                      disabled={connectCustomEmailMutation.isPending}
+                      onClick={() => connectCustomEmailMutation.mutate(customEmailConfig)}
+                    >
+                      {connectCustomEmailMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Save Configuration
+                    </Button>
+                    {isEditingCustomEmail && (
+                      <Button variant="outline" className="rounded-xl px-8 font-semibold h-11" onClick={() => setIsEditingCustomEmail(false)}>Cancel</Button>
+                    )}
+                  </div>
+
                 </div>
               )}
             </CardContent>
@@ -384,7 +519,7 @@ export default function IntegrationsPage() {
                         variant="outline"
                         size="sm"
                         className="w-full rounded-lg text-xs font-semibold text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => disconnectProviderMutation.mutate(card.id)}
+                        onClick={() => confirmDisconnect(card.id)}
                       >
                         Disconnect
                       </Button>
@@ -405,6 +540,7 @@ export default function IntegrationsPage() {
             })}
           </div>
         </TabsContent>
+
 
         <TabsContent value="voice">
           <Card className="rounded-2xl border-border/50 overflow-hidden">

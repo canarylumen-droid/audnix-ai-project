@@ -46,7 +46,7 @@ interface BrandExtraction {
   successStories?: string[];
   offer?: string;
   tone?: string;
-  positioning?: string;
+  positioning?: "premium" | "mid" | "volume";
   objections?: Record<string, string>;
   brandLanguage?: {
     prefer?: string[];

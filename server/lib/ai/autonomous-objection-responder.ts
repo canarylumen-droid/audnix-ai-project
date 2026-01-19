@@ -17,7 +17,8 @@ import { MODELS } from "./model-config.js";
 import {
   OBJECTIONS_DATABASE,
   getObjectionsByIndustry,
-} from "./sales-engine/objections-database.js";
+  type Objection
+} from "../sales-engine/objections-database.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
 const openai = process.env.OPENAI_API_KEY
@@ -41,7 +42,7 @@ interface LeadObjectionContext {
 /**
  * EXPAND OBJECTIONS DATABASE WITH AI-GENERATED EDGE CASES
  */
-export const EXPANDED_OBJECTIONS = [
+export const EXPANDED_OBJECTIONS: Objection[] = [
   // User's original 50+
   ...OBJECTIONS_DATABASE,
   // AI-GENERATED ADDITIONAL OBJECTIONS FOR EDGE CASES
@@ -285,12 +286,12 @@ function identifyObjection(leadMessage: string, industry: string) {
   );
 
   // Score each objection
-  const scored = relevantObjections.map((obj) => {
+  const scored = relevantObjections.map((obj: Objection) => {
     const score = obj.objection
       .toLowerCase()
       .split(" ")
-      .filter((word) => word.length > 3)
-      .filter((word) => cleanMessage.includes(word)).length;
+      .filter((word: string) => word.length > 3)
+      .filter((word: string) => cleanMessage.includes(word)).length;
     return { objection: obj, score };
   });
 

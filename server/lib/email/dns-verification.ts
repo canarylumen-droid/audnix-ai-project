@@ -11,7 +11,7 @@ export interface DnsVerificationResult {
     valid: boolean;
     record?: string;
     issues: string[];
-    suggestions: string[]; ar
+    suggestions: string[];
   };
   dkim: {
     found: boolean;

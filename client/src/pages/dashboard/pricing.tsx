@@ -20,7 +20,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const pricingTiers = getSortedPricingTiers();
 
-  const { data: user } = useQuery<UserProfile>({
+  const { data: user } = useQuery({
     queryKey: ["/api/user/profile"],
     retry: false,
   });

@@ -351,7 +351,8 @@ router.post("/generate-message-with-intelligence", requireAuth, async (req: Requ
       industry: lead.industry,
       email: lead.email || undefined,
       phone: lead.phone || undefined,
-      metadata: lead.metadata
+      metadata: lead.metadata,
+      userId: lead.userId || lead.user_id // Handle both naming conventions if present
     };
 
     const message = await generateContextAwareMessage(

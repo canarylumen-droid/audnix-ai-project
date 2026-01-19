@@ -34,7 +34,7 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
 
   // Fetch real admin metrics from backend
-  const { data: metricsData, isLoading, error } = useQuery({
+  const { data: metricsData, isLoading, error } = useQuery<any>({
     queryKey: ["/api/admin/metrics"],
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false,

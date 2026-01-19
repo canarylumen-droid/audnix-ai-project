@@ -141,7 +141,7 @@ app.use('/api/instagram/callback', express.json({
   }
 }));
 
-// Trust proxy for Railway/Vercel/Cloudflare
+// Trust proxy for Railway/Vercel/Cloudflare/Replit
 app.set("trust proxy", 1);
 
 // CRITICAL: Global JSON body parser for ALL other routes
@@ -253,7 +253,7 @@ app.use((req, res, next) => {
     '/api/health'
   ];
 
-  const path = req.originalUrl.split('?')[0];
+  const path = req.path; // Use req.path for clean matching without query strings
   const shouldSkip = skipPaths.some(p => path.startsWith(p)) || path === '/api/csrf-token';
 
   if (shouldSkip || process.env.NODE_ENV === 'development') {
@@ -262,6 +262,8 @@ app.use((req, res, next) => {
 
   // ORIGIN VALIDATION (Cross-Site Request Protection)
   const origin = req.get('origin') || req.get('referer');
+  const host = req.get('host');
+
   if (origin && process.env.NODE_ENV === 'production') {
     try {
       const originUrl = new URL(origin);
@@ -277,22 +279,32 @@ app.use((req, res, next) => {
       const isAllowedSuffix = originUrl.host.endsWith('.vercel.app') ||
         originUrl.host.endsWith('.replit.app') ||
         originUrl.host.endsWith('.replit.dev') ||
-        originUrl.host.endsWith('.railway.app');
+        originUrl.host.endsWith('.railway.app') ||
+        originUrl.host === host; // Also allow same-host requests
 
       if (!isAllowed && !isAllowedSuffix) {
-        console.warn(`[CSRF] Forbidden Origin: ${originUrl.host} for ${req.method} ${path}`);
-        return res.status(403).json({ error: 'Invalid request origin' });
+        console.warn(`[SECURITY] Forbidden Origin: ${originUrl.host} for ${req.method} ${path}. Expected one of: ${ALLOWED_ORIGINS.join(', ')} or ${host}`);
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Invalid request origin',
+          details: process.env.NODE_ENV === 'development' ? `Origin ${originUrl.host} not allowed` : undefined
+        });
       }
     } catch (e) {
-      return res.status(403).json({ error: 'Invalid origin' });
+      console.warn(`[SECURITY] Invalid Origin Header: ${origin} for ${req.method} ${path}`);
+      return res.status(403).json({ error: 'Forbidden', message: 'Invalid origin header' });
     }
   }
 
   // TOKEN VALIDATION (csurf)
   csrfProtection(req as any, res as any, (err: any) => {
     if (err) {
-      console.warn(`[CSRF] Blocked request to ${req.method} ${path}: ${err.message}`);
-      return res.status(403).json({ error: 'Invalid CSRF token', message: err.message });
+      console.warn(`[SECURITY] CSRF Blocked: ${req.method} ${path} - Error: ${err.message}. Cookies present: ${Boolean(req.headers.cookie)}`);
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: 'Invalid CSRF token',
+        code: 'EBADCSRFTOKEN'
+      });
     }
     next();
   });

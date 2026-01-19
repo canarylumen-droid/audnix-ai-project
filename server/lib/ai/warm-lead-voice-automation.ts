@@ -1,4 +1,5 @@
 import { voiceAI } from './voice-ai-service.js';
+import { storage } from '../../storage.js';
 
 /**
  * Send 2 voice notes to a warm lead (max 15 seconds each = 30 seconds total)

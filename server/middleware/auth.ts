@@ -27,20 +27,32 @@ declare global {
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const userId = req.session?.userId;
+  const sessionID = req.sessionID;
 
   if (!userId) {
-    console.warn(`[Auth] Rejected 401: No userId in session for ${req.method} ${req.path}. Cookies: ${JSON.stringify(req.headers.cookie)}`);
+    console.warn(`[AUTH] Rejected 401: No userId in session.
+      - Method: ${req.method}
+      - Path: ${req.path}
+      - SessionID: ${sessionID?.slice(0, 8)}...
+      - Has Cookie header: ${Boolean(req.headers.cookie)}
+      - Cookie length: ${req.headers.cookie?.length || 0}
+      - Session keys: ${Object.keys(req.session || {}).join(', ')}
+    `);
+
     // Security: Add small delay to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, 100));
     return res.status(401).json({
-      error: "Authentication required",
-      message: "Please log in to access this resource"
+      error: "Unauthorized",
+      message: "Authentication required. Please log in to access this resource.",
+      code: "AUTH_REQUIRED"
     });
   }
 
   // Verify user exists in database
   const user = await storage.getUserById(userId);
   if (!user) {
+    console.warn(`[AUTH] Rejected 401: User ${userId} not found in database. Possible deleted user with active session.`);
+
     // Security: Add small delay to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -48,16 +60,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     req.session.destroy(() => { });
 
     return res.status(401).json({
-      error: "Invalid session",
-      message: "User not found"
+      error: "Unauthorized",
+      message: "Session invalid or expired. Please log in again.",
+      code: "SESSION_INVALID"
     });
   }
-
-  // Note: Session regeneration removed to prevent session data loss
-  // The session is already secured via:
-  // - httpOnly cookies (prevents XSS)
-  // - SameSite=None with Secure (prevents CSRF)
-  // - Session ID is regenerated on login/signup (prevents fixation)
 
   // Attach user to request for downstream handlers
   req.user = user;

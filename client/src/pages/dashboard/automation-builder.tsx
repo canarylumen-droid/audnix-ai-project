@@ -69,6 +69,7 @@ const RULE_TYPES = [
 export default function AutomationBuilderPage() {
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isAdvancedMode, setIsAdvancedMode] = useState(false); // Default to simple mode
   const [newRule, setNewRule] = useState({
     name: '',
     ruleType: 'follow_up',
@@ -230,65 +231,81 @@ export default function AutomationBuilderPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Minimum Intent Score</Label>
-                    <Badge variant="outline">{newRule.minIntentScore}%</Badge>
-                  </div>
-                  <Slider
-                    value={[newRule.minIntentScore]}
-                    onValueChange={([value]) => setNewRule({ ...newRule, minIntentScore: value })}
-                    max={100}
-                    step={5}
-                    className="py-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    AI only acts when lead intent exceeds this threshold
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Minimum Confidence</Label>
-                    <Badge variant="outline">{newRule.minConfidence}%</Badge>
-                  </div>
-                  <Slider
-                    value={[newRule.minConfidence]}
-                    onValueChange={([value]) => setNewRule({ ...newRule, minConfidence: value })}
-                    max={100}
-                    step={5}
-                    className="py-2"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    AI confidence required before taking action
-                  </p>
-                </div>
-              </div>
+            {/* Simple / Advanced Toggle */}
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="advanced-mode"
+                checked={isAdvancedMode}
+                onCheckedChange={setIsAdvancedMode}
+              />
+              <Label htmlFor="advanced-mode" className="cursor-pointer">
+                Advanced Mode (Custom Thresholds)
+              </Label>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Cooldown Period</Label>
-                  <Badge variant="outline">{Math.floor(newRule.cooldownMinutes / 60)}h {newRule.cooldownMinutes % 60}m</Badge>
+            {isAdvancedMode && (
+              <>
+                <div className="grid grid-cols-2 gap-6 pt-4 border-t">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Minimum Intent Score</Label>
+                        <Badge variant="outline">{newRule.minIntentScore}%</Badge>
+                      </div>
+                      <Slider
+                        value={[newRule.minIntentScore]}
+                        onValueChange={([value]) => setNewRule({ ...newRule, minIntentScore: value })}
+                        max={100}
+                        step={5}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        AI only acts when lead intent exceeds this threshold
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Minimum Confidence</Label>
+                        <Badge variant="outline">{newRule.minConfidence}%</Badge>
+                      </div>
+                      <Slider
+                        value={[newRule.minConfidence]}
+                        onValueChange={([value]) => setNewRule({ ...newRule, minConfidence: value })}
+                        max={100}
+                        step={5}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        AI confidence required before taking action
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <Slider
-                  value={[newRule.cooldownMinutes]}
-                  onValueChange={([value]) => setNewRule({ ...newRule, cooldownMinutes: value })}
-                  min={30}
-                  max={4320}
-                  step={30}
-                  className="py-2"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimum time between automated actions to the same lead
-                </p>
-              </div>
-            </div>
+
+                <div className="space-y-4 border-b pb-6">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Cooldown Period</Label>
+                      <Badge variant="outline">{Math.floor(newRule.cooldownMinutes / 60)}h {newRule.cooldownMinutes % 60}m</Badge>
+                    </div>
+                    <Slider
+                      value={[newRule.cooldownMinutes]}
+                      onValueChange={([value]) => setNewRule({ ...newRule, cooldownMinutes: value })}
+                      min={30}
+                      max={4320}
+                      step={30}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Minimum time between automated actions to the same lead
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="space-y-3">
               <Label>Allowed Actions</Label>

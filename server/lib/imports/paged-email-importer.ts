@@ -145,6 +145,62 @@ async function processEmailForLead(
     }
 
     results.imported++;
+
+    // AUTO-REPLY TRIGGER: If this is an inbound message, queue an AI reply
+    if (direction === 'inbound') {
+      try {
+        // Check if we should auto-reply (lead not paused, not recently replied)
+        const existingOutbound = existingMessages.filter(m => m.direction === 'outbound');
+        const lastOutbound = existingOutbound[existingOutbound.length - 1];
+        const hoursSinceLastOutbound = lastOutbound
+          ? (Date.now() - new Date(lastOutbound.createdAt).getTime()) / (1000 * 60 * 60)
+          : Infinity;
+
+
+        // Only auto-reply if:
+        // 1. Lead doesn't have AI paused
+        // 2. We haven't replied in the last 2 hours (avoid rapid back-and-forth)
+        // 3. Lead is not converted or not_interested
+        // 4. Email is RECENT (within last 1 hour) - SAFETY CHECK for imports
+        const isRecent = new Date(email.date).getTime() > Date.now() - 1000 * 60 * 60;
+
+        if (!lead.aiPaused &&
+          hoursSinceLastOutbound > 2 &&
+          !['converted', 'not_interested'].includes(lead.status) &&
+          isRecent) {
+
+          // Schedule QUICK follow-up (2-8 minutes like Instagram DMs)
+          // This is different from initial outreach which uses 2-4 hours
+          const { db: followUpDb } = await import('../../db.js');
+          const { followUpQueue } = await import('../../../shared/schema.js');
+
+          if (followUpDb) {
+            const quickDelay = (2 + Math.random() * 6) * 60 * 1000; // 2-8 minutes
+            const scheduledTime = new Date(Date.now() + quickDelay);
+
+            await followUpDb.insert(followUpQueue).values({
+              userId,
+              leadId: lead.id,
+              channel: 'email',
+              scheduledAt: scheduledTime,
+              context: {
+                follow_up_number: existingOutbound.length + 1,
+                source: 'inbound_reply',
+                temperature: 'hot', // Inbound emails are hot leads
+                campaign_day: 0,
+                sequence_number: 1,
+                inbound_message: email.text?.substring(0, 200) || email.html?.substring(0, 200) || '',
+                quick_reply: true
+              }
+            });
+
+            console.log(`🤖 Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
+          }
+        }
+      } catch (autoReplyError) {
+        console.warn('Auto-reply scheduling failed (non-critical):', autoReplyError);
+      }
+    }
   } catch (error) {
     console.error('Error processing email:', error);
   }

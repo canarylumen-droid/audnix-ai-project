@@ -20,22 +20,22 @@ interface SmtpRateLimit {
 
 const RATE_LIMITS: Record<string, SmtpRateLimit> = {
   'free': {
-    perHour: 75,
-    perDay: 750,
+    perHour: 30,
+    perDay: 200,
     minDelay: 3,
     maxDelay: 10,
     enabled: true
   },
   'starter': {
-    perHour: 150,
-    perDay: 2000,
+    perHour: 100,
+    perDay: 500,
     minDelay: 2,
     maxDelay: 8,
     enabled: true
   },
   'pro': {
     perHour: 300,
-    perDay: 5000,
+    perDay: 2000,
     minDelay: 1,
     maxDelay: 5,
     enabled: true
@@ -73,10 +73,10 @@ class SmtpAbuseProtection {
 
       const now = Date.now();
       const tracking = this.sendingTracking.get(userId) || [];
-      
+
       // Clean up old entries (older than 1 hour)
       const recentSends = tracking.filter(t => now - t.timestamp < 60 * 60 * 1000);
-      
+
       // Check hourly limit
       const lastHour = recentSends.filter(t => now - t.timestamp < 60 * 60 * 1000);
       if (lastHour.length >= limit.perHour) {
@@ -101,7 +101,7 @@ class SmtpAbuseProtection {
 
       // Calculate random delay for human-like timing
       const delay = this.getRandomDelay(limit.minDelay, limit.maxDelay);
-      
+
       return { allowed: true, delay };
     } catch (error) {
       console.error('SMTP abuse protection check failed:', error);
@@ -117,7 +117,7 @@ class SmtpAbuseProtection {
     const now = Date.now();
     const tracking = this.sendingTracking.get(userId) || [];
     tracking.push({ count: 1, timestamp: now });
-    
+
     // Clean old entries
     const recent = tracking.filter(t => now - t.timestamp < 24 * 60 * 60 * 1000);
     this.sendingTracking.set(userId, recent);

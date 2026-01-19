@@ -391,9 +391,9 @@
 
 /* Refined Lightweight Glass - Optimized for Performance */
 .glass-premium {
-  /* Default: High Performance (Real Blur) */
-  --glass-bg: hsla(230, 35%, 10%, 0.6);
-  --glass-blur: blur(25px);
+  /* Default: Standard Dashboard (Conservative Blur) */
+  --glass-bg: hsla(230, 35%, 10%, 0.9);
+  --glass-blur: blur(10px);
   --glass-border: hsla(var(--primary) / 0.1);
 
   background: var(--glass-bg);

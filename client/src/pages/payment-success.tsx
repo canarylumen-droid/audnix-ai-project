@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearch } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 
 export default function PaymentSuccess() {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [marked, setMarked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<string>("");
@@ -93,7 +93,7 @@ export default function PaymentSuccess() {
 
             <div className="space-y-4">
               <Button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => setLocation("/dashboard")}
                 className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 Enter Dashboard
@@ -116,7 +116,7 @@ export default function PaymentSuccess() {
             </div>
 
             <Button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => setLocation("/dashboard")}
               className="w-full h-14 border border-border/40 hover:bg-muted font-bold rounded-2xl transition-all"
             >
               Contact Support

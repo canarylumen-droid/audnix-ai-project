@@ -39,6 +39,9 @@ export interface LeadProfile {
   industry?: string;
   tags: string[];
   metadata: Record<string, any>;
+  organizationId?: string | null;
+  verified?: boolean;
+  verifiedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   lastMessageAt?: Date | null;

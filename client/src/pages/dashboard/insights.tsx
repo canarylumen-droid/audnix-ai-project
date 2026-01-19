@@ -156,29 +156,47 @@ export default function InsightsPage() {
 
       {!hasData ? (
         <div className="grid gap-6">
-          <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-purple-500/5">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-6">
-              <div className="h-20 w-20 bg-background rounded-full shadow-lg flex items-center justify-center text-primary border border-border/50">
-                <TrendingUp className="h-10 w-10" />
-              </div>
-              <div className="max-w-md space-y-2">
-                <h3 className="text-xl font-semibold">Awaiting Data</h3>
-                <p className="text-muted-foreground">
-                  Audnix is ready to analyze your traffic. Connect an integration or start an automation to generate insights.
+          <Card className="border-none bg-gradient-to-br from-primary/10 via-background to-purple-500/10 shadow-2xl overflow-hidden relative group">
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px]" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full -mr-20 -mt-20 animate-pulse" />
+
+            <CardContent className="flex flex-col items-center justify-center py-24 text-center space-y-8 relative z-10">
+              <motion.div
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="h-28 w-28 bg-background/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl flex items-center justify-center text-primary border border-primary/20"
+              >
+                <Sparkles className="h-14 w-14" />
+              </motion.div>
+
+              <div className="max-w-md space-y-4">
+                <h3 className="text-3xl font-bold tracking-tight">Intelligence is Warming Up</h3>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Our neural engines are ready to dissect your outreach. Connect your first integration to start generating real-time performance insights.
                 </p>
               </div>
-              <div className="flex gap-4">
-                <Button onClick={() => window.location.href = '/dashboard/integrations'}>
-                  Connect Instagram <ArrowRight className="ml-2 h-4 w-4" />
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button size="lg" className="rounded-full px-8 h-14 text-md font-semibold" onClick={() => window.location.href = '/dashboard/integrations'}>
+                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-md font-semibold backdrop-blur-md" onClick={() => refetch()}>
+                  <RefreshCw className="mr-2 h-5 w-5" /> Check Status
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 opacity-50 pointer-events-none grayscale-[0.5]">
-            {/* Mock cards to show potential */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40">
             {[1, 2, 3].map(i => (
-              <Card key={i} className="h-32 bg-muted/20" />
+              <Card key={i} className="h-44 bg-muted/20 border-dashed border-2 animate-pulse" />
             ))}
           </div>
         </div>

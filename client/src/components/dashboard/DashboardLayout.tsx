@@ -59,6 +59,9 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/ui/Logo";
 import { PremiumLoader } from "@/components/ui/premium-loader";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { BellRing, ShieldCheck, Info } from "lucide-react";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface NavItem {
   label: string;
@@ -129,12 +132,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     "Reports": true
   });
 
+  const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
+
+  const { permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
+
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
       setLocation(`/dashboard/inbox?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery("");
     }
   };
+
+  const { socket } = useRealtime(user?.id);
+
+  // Custom alert effect
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('notification', (payload: any) => {
+      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
+        setCurrentAlert({
+          title: payload.title,
+          message: payload.message,
+          type: payload.type
+        });
+        setTimeout(() => setCurrentAlert(null), 10000);
+      }
+    });
+    return () => { socket.off('notification'); };
+  }, [socket]);
 
 
 
@@ -192,9 +217,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const recentNotifications = notificationsData?.notifications.slice(0, 5) || [];
 
   const handleSignOut = async () => {
-    await apiRequest('POST', '/api/auth/signout');
-    queryClient.clear();
-    window.location.href = '/';
+    try {
+      await apiRequest('POST', '/api/auth/signout');
+    } catch (e) {
+      console.error('Signout request failed', e);
+    } finally {
+      queryClient.clear();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/';
+    }
   };
 
   const toggleGroup = useCallback((groupLabel: string) => {
@@ -261,7 +293,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Desktop Sidebar */}
       <motion.aside
-        className="hidden md:flex flex-col border-r border-border/40 bg-[#030303]/90 backdrop-blur-3xl z-50 transition-all duration-500 ease-out relative"
+        className="hidden md:flex flex-col border-r border-border/40 bg-sidebar z-50 transition-all duration-500 ease-out relative"
         animate={{ width: sidebarCollapsed ? "5rem" : "20rem" }}
       >
 
@@ -406,7 +438,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background/90 backdrop-blur-2xl flex items-center justify-between px-8 sticky top-0 z-40">
+        <header className="h-20 border-b border-border/40 bg-background flex items-center justify-between px-8 sticky top-0 z-40">
           <div className="flex items-center gap-4 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -457,6 +489,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-4">
+            {permission === 'default' && !isSubscribed && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-[11px] font-bold text-primary cursor-pointer hover:bg-primary/20 transition-all"
+                onClick={subscribe}
+              >
+                <BellRing className="h-3 w-3 animate-pulse" />
+                Enable Desktop Alerts
+              </motion.div>
+            )}
             <ThemeSwitcher />
 
             <DropdownMenu>
@@ -514,7 +557,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-background/50">
+        <main className="flex-1 overflow-auto bg-background/50 relative">
+          <AnimatePresence>
+            {currentAlert && (
+              <motion.div
+                initial={{ height: 0, opacity: 0, y: -20 }}
+                animate={{ height: "auto", opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: -20 }}
+                className={cn(
+                  "mx-8 mt-4 p-4 rounded-2xl border flex items-center justify-between gap-4 shadow-lg backdrop-blur-xl z-30",
+                  currentAlert.type === 'billing_issue' ? "bg-destructive/10 border-destructive/20 text-destructive" : "bg-primary/10 border-primary/20 text-primary"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-xl", currentAlert.type === 'billing_issue' ? "bg-destructive/20" : "bg-primary/20")}>
+                    {currentAlert.type === 'billing_issue' ? <ShieldCheck className="h-5 w-5" /> : <Info className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-sm">{currentAlert.title}</h5>
+                    <p className="text-xs opacity-80">{currentAlert.message}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl opacity-50 hover:opacity-100" onClick={() => setCurrentAlert(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="max-w-7xl mx-auto p-6 md:p-8 lg:p-10">
             {children}
           </div>

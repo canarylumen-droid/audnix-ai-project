@@ -1,18 +1,21 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRealtime } from "@/hooks/use-realtime";
+import { EmptyState } from "@/components/shared/EmptyState";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Search,
@@ -25,12 +28,18 @@ import {
   Mail,
   RefreshCw,
   MoreVertical,
-  Check
+  Check,
+  Play,
+  Pause,
+  Circle,
+  Zap,
+  Download
 } from "lucide-react";
 import { Link, useSearch } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { PremiumLoader } from "@/components/ui/premium-loader";
+import { useToast } from "@/hooks/use-toast";
 
 const channelIcons = {
   instagram: Instagram,
@@ -48,6 +57,8 @@ const statusStyles = {
 };
 
 export default function InboxPage() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const searchParams = useSearch();
   const urlSearchQuery = new URLSearchParams(searchParams).get("search") || "";
 
@@ -62,9 +73,37 @@ export default function InboxPage() {
   const { data: user } = useQuery({ queryKey: ["/api/user/profile"] });
   useRealtime(user?.id);
 
-  const { data: leadsData, isLoading } = useQuery({
+  const { data: leadsData, isLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: 50, offset }],
     refetchInterval: 5000,
+  });
+
+  // Toggle AI Pause Mutation
+  const toggleAi = useMutation({
+    mutationFn: async ({ id, paused }: { id: string; paused: boolean }) => {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aiPaused: paused })
+      });
+      if (!res.ok) throw new Error("Failed to update lead");
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.setQueryData(["/api/leads", { limit: 50, offset }], (old: any) => {
+        if (!old?.leads) return old;
+        return {
+          ...old,
+          leads: old.leads.map((l: any) =>
+            l.id === variables.id ? { ...l, aiPaused: variables.paused } : l
+          )
+        };
+      });
+      toast({
+        title: variables.paused ? "AI Agent Paused" : "AI Agent Resumed",
+        description: variables.paused ? "AI will stop replying to this lead." : "AI will resume autonomous replies.",
+      });
+    }
   });
 
   useEffect(() => {
@@ -88,8 +127,7 @@ export default function InboxPage() {
       // Mock tab filtering
       let matchesTab = true;
       if (activeTab === 'starred') matchesTab = lead.isStarred;
-      if (activeTab === 'archived') matchesTab = lead.status === 'archived'; // Assuming status logic
-      // Real app would use specific fields
+      if (activeTab === 'archived') matchesTab = lead.status === 'archived';
 
       return matchesSearch && matchesChannel && matchesTab;
     });
@@ -102,6 +140,38 @@ export default function InboxPage() {
     setSelectedLeads(next);
   };
 
+  const exportLeads = () => {
+    if (allLeads.length === 0) return;
+
+    const headers = ["Name", "Email", "Channel", "Status", "Score", "Created At"];
+    const csvContent = [
+      headers.join(","),
+      ...allLeads.map(l => [
+        `"${l.name || ""}"`,
+        `"${l.email || ""}"`,
+        `"${l.channel || ""}"`,
+        `"${l.status || ""}"`,
+        l.score || 0,
+        `"${l.createdAt || ""}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audnix-leads-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Data Exported",
+      description: `Successfully downloaded ${allLeads.length} leads.`,
+    });
+  };
+
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -112,6 +182,12 @@ export default function InboxPage() {
     if (hours < 24) return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     if (hours < 48) return 'Yesterday';
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return "text-emerald-500";
+    if (score >= 50) return "text-amber-500";
+    return "text-muted-foreground";
   };
 
   const InboxSkeleton = () => (
@@ -211,6 +287,9 @@ export default function InboxPage() {
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"><Archive className="h-3.5 w-3.5" /></Button>
               </div>
             )}
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors" onClick={exportLeads} title="Export to CSV">
+              <Download className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setOffset(0)} disabled={isLoading}>
               <RefreshCw className={cn("h-4 w-4", isLoading ? "animate-spin" : "")} />
             </Button>
@@ -222,12 +301,12 @@ export default function InboxPage() {
           {isLoading && filteredLeads.length === 0 ? (
             <InboxSkeleton />
           ) : filteredLeads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8 text-muted-foreground">
-              <div className="h-16 w-16 rounded-2xl bg-muted/20 flex items-center justify-center mb-4">
-                <InboxIcon className="h-8 w-8 opacity-30" />
-              </div>
-              <p className="font-medium">All caught up</p>
-              <p className="text-sm opacity-60 mt-1">No messages in this view</p>
+            <div className="h-full flex items-center justify-center">
+              <EmptyState
+                icon={InboxIcon}
+                title="No messages found"
+                description="Your inbox is empty. Import leads or wait for new messages."
+              />
             </div>
           ) : (
             <div className="divide-y divide-border/20">
@@ -237,6 +316,7 @@ export default function InboxPage() {
                 const isSelected = selectedLeads.has(lead.id);
                 // "New" messages glow slightly
                 const isUnread = lead.status === 'new';
+                const score = lead.score || 0; // Default score
 
                 return (
                   <motion.div
@@ -261,12 +341,27 @@ export default function InboxPage() {
                       </div>
                     </div>
 
-                    <div className={cn("transition-all duration-300", isSelected || "group-hover:opacity-0 group-hover:scale-95")}>
+                    <div className={cn("relative transition-all duration-300", isSelected || "group-hover:opacity-0 group-hover:scale-95")}>
                       <Avatar className="h-12 w-12 border-2 border-white/5 shadow-2xl transition-transform group-hover:scale-110">
                         <AvatarFallback className={cn("text-xs font-black bg-background/50 backdrop-blur-md", isUnread ? "text-primary" : "text-white/20")}>
                           {lead.name ? lead.name.slice(0, 2).toUpperCase() : "??"}
                         </AvatarFallback>
                       </Avatar>
+
+                      {/* Pause/Play Button Overlay */}
+                      <div
+                        className="absolute inset-0 flex items-center justify-center z-30 opacity-0 hover:opacity-100 transition-opacity bg-background/60 backdrop-blur-sm rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAi.mutate({ id: lead.id, paused: !lead.aiPaused });
+                        }}
+                      >
+                        {lead.aiPaused ? (
+                          <Play className="h-5 w-5 text-primary fill-primary" />
+                        ) : (
+                          <Pause className="h-5 w-5 text-muted-foreground fill-muted-foreground" />
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex-1 min-w-0 grid grid-cols-12 gap-x-4 gap-y-1 items-center">
@@ -288,8 +383,43 @@ export default function InboxPage() {
                         </span>
                       </div>
 
-                      <div className="col-span-12 md:col-span-2 flex justify-end">
-                        <span className={cn("text-xs whitespace-nowrap", isUnread ? "text-primary font-medium" : "text-muted-foreground/60")}>
+                      <div className="col-span-12 md:col-span-2 flex justify-end items-center gap-3">
+                        {/* Circular Score Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/20">
+                              <div className="relative flex items-center justify-center">
+                                <svg className="h-8 w-8 transform -rotate-90">
+                                  <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-muted/20" />
+                                  <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" fill="transparent" strokeDasharray={88} strokeDashoffset={88 - (88 * score) / 100} className={cn(getScoreColor(score))} />
+                                </svg>
+                                <span className={cn("absolute text-[9px] font-bold", getScoreColor(score))}>{score}</span>
+                              </div>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56 bg-background/95 backdrop-blur-xl border-border/50">
+                            <DropdownMenuLabel className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lead Intelligence</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <div className="p-3 space-y-2">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Intent Score</span>
+                                <span className={cn("font-bold", getScoreColor(score))}>{score}/100</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Status</span>
+                                <span className="capitalize text-foreground">{lead.status.replace('_', ' ')}</span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">AI Agent</span>
+                                <Badge variant="outline" className={cn("text-[9px] h-4", lead.aiPaused ? "border-amber-500/50 text-amber-500" : "border-green-500/50 text-green-500")}>
+                                  {lead.aiPaused ? 'PAUSED' : 'ACTIVE'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <span className={cn("text-xs whitespace-nowrap hidden lg:block", isUnread ? "text-primary font-medium" : "text-muted-foreground/60")}>
                           {formatDate(lead.lastMessageAt || lead.createdAt)}
                         </span>
                       </div>

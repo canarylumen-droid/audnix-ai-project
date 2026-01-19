@@ -72,7 +72,8 @@ const DEMO_VIDEOS: VideoMetadata[] = [
 export function VideoAutomationGrid({
     loading = false,
     videos = DEMO_VIDEOS,
-    onSelect
+    onSelect,
+    onContextMenu
 }: VideoAutomationGridProps) {
     const [selectedVideo, setSelectedVideo] = React.useState<VideoMetadata | null>(null);
 

@@ -8,7 +8,7 @@ export interface AccessGate {
 }
 
 export function useAccessGate(featureKey?: FeatureKey): AccessGate {
-  const { user } = useUser();
+  const { data: user } = useUser();
 
   if (!user) {
     return {
@@ -50,7 +50,7 @@ export function useAccessGate(featureKey?: FeatureKey): AccessGate {
 }
 
 export function useCanSendMessages(): AccessGate {
-  const { user } = useUser();
+  const { data: user } = useUser();
 
   if (!user) {
     return { canAccess: false, showUpgradePrompt: false };

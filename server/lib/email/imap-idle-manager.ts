@@ -176,6 +176,15 @@ class ImapIdleManager {
                 });
                 if (results.imported > 0) {
                     console.log(`✨ Real-time sync: Imported ${results.imported} new leads for user ${userId}`);
+
+                    // Emit real-time update to frontend
+                    try {
+                        const { wsSync } = await import('../websocket-sync.js');
+                        wsSync.notifyLeadsUpdated(userId, { type: 'INSERT', count: results.imported });
+                        wsSync.notifyMessagesUpdated(userId, { type: 'INSERT', count: results.imported });
+                    } catch (wsError) {
+                        console.warn('Failed to emit WebSocket update:', wsError);
+                    }
                 }
             }
 

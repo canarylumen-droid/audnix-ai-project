@@ -1,7 +1,21 @@
 import { z } from "zod";
-import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real, bytea, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real, uniqueIndex, customType } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+
+// Custom type for PostgreSQL bytea
+export const bytea = customType<{ data: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+  fromDriver(value: unknown) {
+    if (Buffer.isBuffer(value)) return value;
+    return Buffer.from(value as any);
+  },
+  toDriver(value: Buffer) {
+    return value;
+  },
+});
 
 // ========== DRIZZLE DATABASE TABLES ==========
 
@@ -372,7 +386,7 @@ export const onboardingProfiles = pgTable("onboarding_profiles", {
 export const oauthAccounts = pgTable("oauth_accounts", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  provider: text("provider", { enum: ["github", "google", "linkedin", "instagram", "facebook"] }).notNull(),
+  provider: text("provider", { enum: ["github", "google", "linkedin", "instagram", "facebook", "outlook"] }).notNull(),
   providerAccountId: text("provider_account_id").notNull(),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
@@ -731,6 +745,18 @@ export type InsertAdminWhitelist = typeof adminWhitelist.$inferInsert;
 
 export type FollowUpQueue = typeof followUpQueue.$inferSelect;
 export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(), // Use simple object instead of complex parsing
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
 
 export type AuditTrail = typeof auditTrail.$inferSelect;
 export type InsertAuditTrail = typeof auditTrail.$inferInsert;

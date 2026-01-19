@@ -16,8 +16,10 @@ import {
   ArrowRight,
   Filter,
   Activity,
-  Plus
+  Plus,
+  Download
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -60,6 +62,7 @@ const channelIcons: Record<string, typeof Instagram | typeof Mail> = {
 };
 
 export default function DealsPage() {
+  const { toast } = useToast();
   const { data: dealsData, isLoading } = useQuery<DealsApiResponse>({
     queryKey: ["/api/deals"],
     refetchInterval: 5000,
@@ -101,6 +104,37 @@ export default function DealsPage() {
     return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  const exportDeals = () => {
+    if (deals.length === 0) return;
+
+    const headers = ["Lead Name", "Value", "Status", "Channel", "Created At"];
+    const csvContent = [
+      headers.join(","),
+      ...deals.map(d => [
+        `"${d.leadName || "Unknown"}"`,
+        d.value || 0,
+        `"${d.status || ""}"`,
+        `"${d.channel || ""}"`,
+        `"${d.createdAt || ""}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `audnix-pipeline-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Pipeline Exported",
+      description: `Downloaded ${deals.length} deals as CSV.`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="h-[60vh] flex items-center justify-center">
@@ -124,6 +158,9 @@ export default function DealsPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" className="hidden sm:flex">
             <Filter className="mr-2 h-4 w-4" /> Filter
+          </Button>
+          <Button variant="outline" onClick={exportDeals}>
+            <Download className="mr-2 h-4 w-4" /> Export
           </Button>
           <Button>
             <Plus className="mr-2 h-4 w-4" /> Add Deal

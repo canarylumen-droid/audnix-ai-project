@@ -13,6 +13,7 @@ interface EmailConfig {
   imap_port?: number;
   smtp_user?: string;
   smtp_pass?: string;
+  from_name?: string;
   oauth_token?: string;
   provider?: 'gmail' | 'outlook' | 'smtp' | 'custom';
 }
@@ -111,8 +112,13 @@ async function sendCustomSMTP(
     },
   });
 
+  // Use from_name if provided (RFC 5322 format: "Name <email>")
+  const fromAddress = config.from_name
+    ? `"${config.from_name}" <${config.smtp_user}>`
+    : config.smtp_user;
+
   await transporter.sendMail({
-    from: config.smtp_user,
+    from: fromAddress,
     to,
     subject,
     [isHtml ? 'html' : 'text']: body,
@@ -243,11 +249,31 @@ export async function importCustomEmails(
  */
 async function getUserBrandColors(userId: string): Promise<BrandColors | undefined> {
   try {
+    const user = await storage.getUser(userId);
+    if (!user) return undefined;
+
+    const metadata = user.metadata as Record<string, unknown> | undefined;
+    if (!metadata) return undefined;
+
+    // Check for brand colors from PDF extraction (stored in brand_colors or extracted_brand)
+    const brandColors = metadata.brand_colors as Record<string, string> | undefined;
+    const extractedBrand = metadata.extracted_brand as { colors?: Record<string, string> } | undefined;
+
+    // Priority: explicit brand_colors > extracted_brand.colors
+    const colors = brandColors || extractedBrand?.colors;
+
+    if (colors && (colors.primary || colors.accent || colors.secondary)) {
+      return {
+        primary: colors.primary || colors.accent || '#3B82F6',
+        accent: colors.accent || colors.secondary || colors.primary || '#10B981',
+      };
+    }
+
     return undefined;
   } catch (error) {
     console.error('Error fetching brand colors:', error);
+    return undefined;
   }
-  return undefined;
 }
 
 interface EmailOptions {

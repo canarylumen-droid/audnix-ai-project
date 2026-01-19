@@ -193,12 +193,13 @@ router.post('/refresh-session', async (req: Request, res: Response): Promise<voi
   }
 });
 
-router.post('/logout', (req: Request, res: Response): void => {
+router.post(['/logout', '/signout'], (req: Request, res: Response): void => {
   req.session.destroy((err: Error | undefined) => {
     if (err) {
       res.status(500).json({ error: 'Logout failed' });
       return;
     }
+    res.clearCookie('connect.sid'); // Explicitly clear cookie
     res.json({ success: true, message: 'Logged out successfully' });
   });
 });

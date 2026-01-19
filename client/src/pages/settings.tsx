@@ -1,5 +1,5 @@
 import React from 'react';
-import { DashboardLayout } from '../components/dashboard-layout';
+import { DashboardLayout } from '../components/dashboard/DashboardLayout';
 import { EmailSetupUI } from '../components/email-setup-ui';
 import { CalendlyConnectUI } from '../components/calendly-connect-ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';

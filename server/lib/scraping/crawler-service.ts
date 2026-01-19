@@ -794,6 +794,7 @@ export class AdvancedCrawler {
 
             const personalEmails = emails.filter(e => this.isPersonalEmail(e));
             const genericEmails = emails.filter(e => this.isGenericEmail(e));
+            const businessEmails = emails.filter(e => !this.isPersonalEmail(e) && !this.isGenericEmail(e));
 
             // Priority: Founder > Business > Personal > Generic
             enriched.email = enriched.founderEmail || businessEmails[0] || enriched.personalEmail || genericEmails[0];
@@ -993,12 +994,8 @@ export class AdvancedCrawler {
 
     private isBlacklisted(url: string, allowSocial: boolean = false): boolean {
         // When specifically crawling social platforms, don't blacklist them
-        const socialPlatforms = ['facebook.com', 'linkedin.com', 'instagram.com', 'youtube.com', 'twitter.com', 'x.com', 'tiktok.com', 'pinterest.com'];
-        const generalBlacklist = ['yelp.com', 'yellowpages.com', 'bbb.org', 'wikipedia.org', 'amazon.com', 'ebay.com', 'clutch.co', 'upwork.com', 'sortlist.com', 'themanifest.com', 'goodfirms.co', 'linkedin.com/pulse', 'play.google.com', 'apps.apple.com'];
-
-        if (allowSocial) {
-            return generalBlacklist.some(domain => url.includes(domain));
-        }
+        const socialPlatforms = ['facebook.com', 'linkedin.com', 'youtube.com', 'twitter.com', 'x.com', 'tiktok.com', 'pinterest.com']; // Instagram removed to allow generic discovery
+        const generalBlacklist = ['yelp.com', 'yellowpages.com', 'bbb.org', 'wikipedia.org', 'amazon.com', 'ebay.com', 'upwork.com', 'sortlist.com', 'themanifest.com', 'goodfirms.co', 'linkedin.com/pulse', 'play.google.com', 'apps.apple.com']; // Clutch removed
 
         // Filter out obviously non-agency titles/URLs
         const badKeywords = [

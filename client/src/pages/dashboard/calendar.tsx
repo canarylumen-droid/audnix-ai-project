@@ -28,7 +28,8 @@ import {
   Zap,
   Brain,
   Sparkles,
-  MoreHorizontal
+  MoreHorizontal,
+  Globe
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -339,12 +340,10 @@ export default function CalendarPage() {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.bookingPreference === 'autonomous'}
-                        onCheckedChange={(checked) =>
-                          updateSettingsMutation.mutate({
-                            bookingPreference: checked ? 'autonomous' : 'link'
-                          })
-                        }
+                        checked={settings?.bookingPreference === 'autonomous'}
+                        onCheckedChange={(checked) => updateSettingsMutation.mutate({
+                          bookingPreference: checked ? 'autonomous' : 'link'
+                        })}
                         className="data-[state=checked]:bg-purple-500"
                       />
                     </div>
@@ -360,7 +359,7 @@ export default function CalendarPage() {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.autoBookingEnabled}
+                        checked={settings?.autoBookingEnabled}
                         onCheckedChange={(checked) =>
                           updateSettingsMutation.mutate({ autoBookingEnabled: checked })
                         }

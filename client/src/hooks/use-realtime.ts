@@ -232,6 +232,18 @@ export function useRealtime(userId?: string) {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     });
 
+    socket.on('insights_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
+    });
+
+    // FORCE DISCONNECT/LOGOUT
+    socket.on('TERMINATE_SESSION', () => {
+      console.warn('Session terminated by server');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('user');
+      window.location.href = '/auth';
+    });
+
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();

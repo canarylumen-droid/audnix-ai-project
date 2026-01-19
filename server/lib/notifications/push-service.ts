@@ -1,10 +1,13 @@
 
 import webpush from 'web-push';
+import { db } from "../../db.js";
+import { pushSubscriptions } from "../../../shared/schema.js";
+import { eq } from "drizzle-orm";
 
 // Initialize web-push with VAPID keys
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
-    'mailto:support@audnix.ai',
+    'mailto:auth@audnix.ai',
     process.env.VAPID_PUBLIC_KEY,
     process.env.VAPID_PRIVATE_KEY
   );
@@ -36,12 +39,42 @@ export async function sendPushNotification(
   });
 
   try {
-    await webpush.sendNotification(subscription, payload);
+    await webpush.sendNotification(subscription as any, payload);
   } catch (error: any) {
-    if (error.statusCode === 410) {
-      // Subscription expired - remove from database
-      console.log('Push subscription expired, should be removed');
-    }
     throw error;
+  }
+}
+
+export async function notifyUser(
+  userId: string,
+  notification: PushNotification
+): Promise<void> {
+  if (!process.env.VAPID_PUBLIC_KEY) return;
+
+  try {
+    const subs = await db
+      .select()
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+
+    await Promise.allSettled(
+      subs.map((sub) => {
+        // Construct the subscription object for web-push
+        const subscription = {
+          endpoint: sub.endpoint,
+          keys: sub.keys as { p256dh: string; auth: string }
+        };
+
+        return sendPushNotification(subscription as any, notification)
+          .catch(async (err) => {
+            if (err.statusCode === 410 || err.statusCode === 404) {
+              console.log(`Removing expired subscription: ${sub.endpoint}`);
+              await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, sub.id));
+            }
+          });
+      })
+    );
+  } catch (error) {
+    console.error('Error in notifyUser push:', error);
   }
 }

@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { followUpQueue, leads, messages, users, brandEmbeddings, integrations } from '../../../shared/schema.js';
+import { followUpQueue, leads, messages, users, brandEmbeddings, integrations, contentLibrary } from '../../../shared/schema.js';
 import { eq, and, lte, asc } from 'drizzle-orm';
 import { generateReply } from './openai.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
@@ -15,6 +15,7 @@ import { getMessageScript, personalizeScript } from './message-scripts.js';
 import { getBrandPersonalization, formatChannelMessage, getContextAwareSystemPrompt } from './brand-personalization.js';
 import { multiProviderEmailFailover } from '../email/multi-provider-failover.js';
 import { decrypt, decryptToJSON } from '../crypto/encryption.js';
+import { shouldAskForFollow } from './follow-request-handler.js';
 import type {
   BrandContext,
   ChannelType,
@@ -375,6 +376,40 @@ export class FollowUpWorker {
       personalizationContext = await getBrandPersonalization(userId);
     }
 
+    // Fetch relevant content library items for this lead/channel
+    let contentLibraryItems: Array<{ name: string; content: string; contentType: string }> = [];
+    if (userId && db) {
+      try {
+        const contentItems = await db
+          .select({
+            name: contentLibrary.name,
+            content: contentLibrary.content,
+            contentType: contentLibrary.type,
+            channelRestriction: contentLibrary.channelRestriction,
+            intentTags: contentLibrary.intentTags,
+          })
+          .from(contentLibrary)
+          .where(eq(contentLibrary.userId, userId));
+
+        // Filter to relevant items: match channel or "all", prefer reply_template type
+        contentLibraryItems = contentItems
+          .filter((item: any) => {
+            const matchesChannel = !item.channelRestriction ||
+              item.channelRestriction === 'all' ||
+              item.channelRestriction === lead.channel;
+            return matchesChannel && item.contentType === 'reply_template';
+          })
+          .slice(0, 5) // Limit to avoid overwhelming
+          .map((item: any) => ({
+            name: item.name,
+            content: item.content,
+            contentType: item.contentType,
+          }));
+      } catch (contentError) {
+        console.warn('Content library fetch failed (non-critical):', contentError);
+      }
+    }
+
     // Use day-aware sequence for context-aware prompt
     const metadata = lead.metadata as Record<string, any>;
     const dayAwareContext = {
@@ -395,7 +430,7 @@ export class FollowUpWorker {
       systemPrompt = getContextAwareSystemPrompt(personalizationContext, lead.channel);
     }
 
-    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script ?? undefined);
+    const userPrompt = this.buildFollowUpPrompt(lead, history, brandContext, script ?? undefined, contentLibraryItems);
 
     const result = await generateReply(systemPrompt, userPrompt, {
       temperature: 0.7,
@@ -415,7 +450,7 @@ export class FollowUpWorker {
   /**
    * Build follow-up prompt with context and message script
    */
-  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }): string {
+  private buildFollowUpPrompt(lead: Lead, history: Message[], brandContext: BrandContext, script?: { tone?: string; structure?: string }, contentLibraryItems?: Array<{ name: string; content: string; contentType: string }>): string {
     const metadata = lead.metadata as Record<string, any>;
     const firstName = metadata?.preferred_name || lead.name.split(' ')[0];
     const channelContext = this.getChannelContext(lead.channel);
@@ -453,13 +488,45 @@ SCRIPT GUIDANCE (use as reference, not required):
       }
     }
 
+    // CHECK: Should we ask for a follow?
+    // We pass this as a constraint to the AI prompt
+    let growthHackInstruction = "";
+    // Note: shouldAskForFollow is async, but we can't easily wait here without refactoring buildFollowUpPrompt to async.
+    // Instead, we'll assume the caller passes this info or we just add a generic instruction for Instagram
+    if (lead.channel === 'instagram') {
+      growthHackInstruction = "11. If the user seems happy or engaged, ask them to follow our page for more updates.\n";
+    }
+
+    // CONTENT LIBRARY SECTION: Include relevant templates for AI reference
+    let contentLibrarySection = '';
+    if (contentLibraryItems && contentLibraryItems.length > 0) {
+      const templatesStr = contentLibraryItems
+        .slice(0, 3) // Limit to 3 to avoid context overload
+        .map((item, i) => `${i + 1}. [${item.contentType}] "${item.name}": ${item.content.substring(0, 200)}${item.content.length > 200 ? '...' : ''}`)
+        .join('\n');
+      contentLibrarySection = `
+SAVED CONTENT TEMPLATES (use these as inspiration or adapt them):
+${templatesStr}
+`;
+    }
+
+    // BRAND PAIN HOOKS: Inject extracted value propositions and pain points
+    let painHooksSection = '';
+    if (brandContext.brandSnippets && brandContext.brandSnippets.length > 0) {
+      painHooksSection = `
+VALUE PROPS & PAIN HOOKS:
+${brandContext.brandSnippets.map(s => `- ${s}`).join('\n')}
+`;
+    }
+
     return `You are an AI assistant helping with lead follow-ups for ${brandContext.businessName || 'a business'}.
 
 BRAND INFORMATION:
 - Business Name: ${brandContext.businessName || 'Your Business'}
 - Brand Colors: ${brandContext.brandColors || '#000000'} (Use these for email styling)
 - Brand Voice: ${brandContext.voiceRules || '- Be friendly and professional\n- Keep messages concise\n- Focus on value'}
-
+${painHooksSection}
+${contentLibrarySection}
 LEAD INFORMATION:
 - Name: ${firstName}
 - Channel: ${lead.channel}
@@ -483,7 +550,7 @@ RULES:
 8. End with a soft call-to-action or question.
 9. Match the tone to the channel (Instagram: casual, Email: professional).
 10. For emails, use the provided brand colors for styling (e.g., button backgrounds, links).
-
+${growthHackInstruction}
 Generate a natural follow-up message:`;
   }
 

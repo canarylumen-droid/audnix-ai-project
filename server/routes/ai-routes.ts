@@ -293,9 +293,10 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 router.post("/import-csv", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
-    const { leads: leadsData, channel = 'email' } = req.body as {
+    const { leads: leadsData, channel = 'email', aiPaused = false } = req.body as {
       leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
       channel?: 'email' | 'instagram';
+      aiPaused?: boolean;
     };
 
     if (!Array.isArray(leadsData) || leadsData.length === 0) {
@@ -378,6 +379,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           phone: leadData.phone || null,
           channel: channel as 'email' | 'instagram',
           status: status as any,
+          aiPaused: aiPaused,
           metadata: {
             imported_from_csv: true,
             company: leadData.company,

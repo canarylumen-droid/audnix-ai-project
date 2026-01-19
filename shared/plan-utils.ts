@@ -68,17 +68,17 @@ export function canAccessFeature(featureKey: FeatureKey, planId: string): boolea
   const capabilities = getPlanCapabilities(planId);
 
   const featureMap: Record<FeatureKey, boolean> = {
-    voiceNotes: capabilities.hasVoiceNotes,
-    analytics: capabilities.hasAnalytics,
-    fullAnalytics: capabilities.hasFullAnalytics,
-    autoBooking: capabilities.hasAutoBooking,
-    objectionHandling: capabilities.hasObjectionHandling,
-    advancedSequencing: capabilities.hasAdvancedSequencing,
-    teamWorkflows: capabilities.hasTeamWorkflows,
-    apiAccess: capabilities.hasAPIAccess,
-    prioritySupport: capabilities.hasPrioritySupport,
-    videoAutomation: capabilities.hasVideoAutomation,
-    email: capabilities.hasEmail
+    voiceNotes: !!capabilities.hasVoiceNotes,
+    analytics: !!capabilities.hasAnalytics,
+    fullAnalytics: !!capabilities.hasFullAnalytics,
+    autoBooking: !!capabilities.hasAutoBooking,
+    objectionHandling: !!capabilities.hasObjectionHandling,
+    advancedSequencing: !!capabilities.hasAdvancedSequencing,
+    teamWorkflows: !!capabilities.hasTeamWorkflows,
+    apiAccess: !!capabilities.hasAPIAccess,
+    prioritySupport: !!capabilities.hasPrioritySupport,
+    videoAutomation: !!capabilities.hasVideoAutomation,
+    email: !!capabilities.hasEmail
   };
 
   return featureMap[featureKey] || false;

@@ -25,7 +25,7 @@ export async function recordBounce(
         recordedAt: new Date().toISOString()
       }
     });
-    
+
     // If hard bounce or spam, mark lead as invalid
     if (bounceType === 'hard' || bounceType === 'spam') {
       await db
@@ -38,7 +38,7 @@ export async function recordBounce(
           }
         })
         .where(eq(leadsTable.id, leadId));
-      
+
       console.log(`Lead ${leadId} marked as invalid due to ${bounceType} bounce`);
     } else if (bounceType === 'soft') {
       // Soft bounces: retry later
@@ -59,13 +59,13 @@ export async function getBounceStats(userId: string): Promise<{
       .select()
       .from(bounceTracker)
       .where(eq(bounceTracker.userId, userId));
-    
+
     const stats = {
-      hardBounces: results.filter(r => r.bounceType === 'hard').length,
-      softBounces: results.filter(r => r.bounceType === 'soft').length,
-      spamComplaints: results.filter(r => r.bounceType === 'spam').length
+      hardBounces: results.filter((r: any) => r.bounceType === 'hard').length,
+      softBounces: results.filter((r: any) => r.bounceType === 'soft').length,
+      spamComplaints: results.filter((r: any) => r.bounceType === 'spam').length
     };
-    
+
     return stats;
   } catch (error) {
     console.error('Error getting bounce stats:', error);

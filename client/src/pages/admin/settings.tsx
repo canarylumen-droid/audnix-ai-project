@@ -33,7 +33,7 @@ export default function AdminSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: whitelist, isLoading } = useQuery({
+  const { data: whitelist, isLoading } = useQuery<any>({
     queryKey: ["/api/admin/whitelist"],
   });
 
@@ -133,7 +133,7 @@ export default function AdminSettings() {
                   className="pl-10"
                 />
               </div>
-              <Button 
+              <Button
                 onClick={handleAddAdmin}
                 disabled={addAdminMutation.isPending}
               >
@@ -162,7 +162,7 @@ export default function AdminSettings() {
                     <TableRow key={admin.id}>
                       <TableCell className="font-medium">{admin.email}</TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={admin.status === "active" ? "outline" : "secondary"}
                           className={
                             admin.status === "active"

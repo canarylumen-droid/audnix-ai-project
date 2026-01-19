@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useUser } from "@/hooks/use-user";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -26,7 +26,8 @@ zxcvbnOptions.setOptions(options);
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
-  const { user } = useUser();
+  const search = useSearch();
+  const { data: user } = useUser();
   const { toast } = useToast();
 
   // Signup flow: 1 = Email+Password, 2 = OTP/Skip, 3 = Username, 4 = Success
@@ -34,7 +35,12 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(false);
 
   // Form state
-  const [email, setEmail] = useState("");
+  // Auto-fill email from URL if present
+  const [email, setEmail] = useState(() => {
+    const params = new URLSearchParams(search);
+    return params.get("email") || "";
+  });
+
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [username, setUsername] = useState("");
@@ -705,7 +711,9 @@ export default function AuthPage() {
                         <Label htmlFor="email" className="text-white/90">Email</Label>
                         <Input
                           id="email"
+                          name="email"
                           type="email"
+                          autoComplete="email"
                           placeholder="your@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -720,7 +728,9 @@ export default function AuthPage() {
                         <div className="relative">
                           <Input
                             id="password"
+                            name="password"
                             type={showPassword ? "text" : "password"}
+                            autoComplete={isLogin ? "current-password" : "new-password"}
                             placeholder="••••••••"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
