@@ -82,7 +82,7 @@ class ImapIdleManager {
                 password: config.smtp_pass!,
                 host: imapHost,
                 port: imapPort,
-                tls: true,
+                tls: imapPort === 993,
                 tlsOptions: { rejectUnauthorized: false },
                 keepalive: {
                     interval: 10000,

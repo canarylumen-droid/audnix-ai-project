@@ -4,6 +4,7 @@ import type { LeadProfile, ConversationMessage, BrandContext } from "../../share
 import { calculateLeadScore, findDuplicateLeads, enrichLeadCompany, addTimelineEvent, addLeadTag, setCustomFieldValue } from "../lib/ai/lead-management.js";
 import { detectLeadIntent, suggestSmartReply, detectObjection, predictDealAmount, assessChurnRisk, generateLeadIntelligenceDashboard } from "../lib/ai/lead-intelligence.js";
 import { generateOptimizedMessage } from "../lib/ai/universal-sales-agent.js";
+import { generateContextAwareMessage } from "../lib/ai/universal-sales-agent-integrated.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import { storage } from "../storage.js";
 
@@ -343,19 +344,21 @@ router.post("/generate-message-with-intelligence", requireAuth, async (req: Requ
     const intelligence = await generateLeadIntelligenceDashboard(lead, []);
 
     const salesLeadProfile = {
+      id: lead.id,
       name: lead.name,
       firstName: lead.firstName || lead.name.split(" ")[0],
       company: lead.company,
       industry: lead.industry,
       email: lead.email || undefined,
       phone: lead.phone || undefined,
+      metadata: lead.metadata
     };
 
-    const message = await generateOptimizedMessage(
+    const message = await generateContextAwareMessage(
       salesLeadProfile,
       brandContext || {} as BrandContext,
       testimonials || [],
-      stage || "cold"
+      []
     );
 
     res.json({

@@ -4,17 +4,16 @@ import { prospects } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { AudnixIngestor } from '../lib/scraping/audnix-ingestor.js';
 
+import { requireAuth } from '../middleware/auth.js';
+
 const router = Router();
 
 /**
  * Start Neural Scan (NO MOCK DATA)
  */
-router.post('/scan', async (req: Request, res: Response) => {
+router.post('/scan', requireAuth, async (req: Request, res: Response) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = req.user!.id;
 
         const { query } = req.body;
         if (!query) {
@@ -43,12 +42,9 @@ router.post('/scan', async (req: Request, res: Response) => {
 /**
  * Get Leads (REAL DATA ONLY)
  */
-router.get('/leads', async (req: Request, res: Response) => {
+router.get('/leads', requireAuth, async (req: Request, res: Response) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = req.user!.id;
 
         // Fetch REAL leads from database
         const leads = await db.select()
@@ -68,12 +64,9 @@ router.get('/leads', async (req: Request, res: Response) => {
 /**
  * Verify Lead (REAL SMTP)
  */
-router.post('/verify/:id', async (req: Request, res: Response) => {
+router.post('/verify/:id', requireAuth, async (req: Request, res: Response) => {
     try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
+        const userId = req.user!.id;
 
         const { id } = req.params;
 

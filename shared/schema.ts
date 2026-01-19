@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, boolean, integer, jsonb, varchar, real, bytea, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
@@ -596,6 +596,35 @@ export const scrapingSessions = pgTable("scraping_sessions", {
   completedAt: timestamp("completed_at"),
 });
 
+export const brandPdfCache = pgTable("brand_pdf_cache", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  brandContext: jsonb("brand_context").notNull().default(sql`'{}'::jsonb`),
+  pdfContent: bytea("pdf_content"), // Store actual PDF buffer
+  extractedText: text("extracted_text").notNull(),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  fileHash: text("file_hash"),
+  analysisScore: integer("analysis_score"),
+  analysisItems: jsonb("analysis_items"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => {
+  return {
+    userIdHashIdx: uniqueIndex("user_id_file_hash_idx").on(table.userId, table.fileHash),
+  };
+});
+
+
+export const adminWhitelist = pgTable("admin_whitelist", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  status: text("status").notNull().default("active"),
+  role: text("role", { enum: ["admin", "superadmin"] }).notNull().default("admin"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+
 // ========== ZOD VALIDATION SCHEMAS ==========
 
 // Generate insert schemas from Drizzle tables
@@ -629,6 +658,8 @@ export const insertProspectSchema = createInsertSchema(prospects);
 export const insertScrapingSessionSchema = createInsertSchema(scrapingSessions);
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
 export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({ id: true, invitedAt: true });
+export const insertBrandPdfCacheSchema = createInsertSchema(brandPdfCache);
+export const insertAdminWhitelistSchema = createInsertSchema(adminWhitelist);
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -692,6 +723,11 @@ export type ConversationEvent = typeof conversationEvents.$inferSelect;
 export type InsertConversationEvent = typeof conversationEvents.$inferInsert;
 export type Prospect = typeof prospects.$inferSelect;
 export type InsertProspect = typeof prospects.$inferInsert;
+
+export type BrandPdfCache = typeof brandPdfCache.$inferSelect;
+export type InsertBrandPdfCache = typeof brandPdfCache.$inferInsert;
+export type AdminWhitelist = typeof adminWhitelist.$inferSelect;
+export type InsertAdminWhitelist = typeof adminWhitelist.$inferInsert;
 
 export type FollowUpQueue = typeof followUpQueue.$inferSelect;
 export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;

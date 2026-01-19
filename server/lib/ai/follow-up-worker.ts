@@ -133,7 +133,7 @@ export class FollowUpWorker {
   /**
    * Process pending jobs in the queue
    */
-  private async processQueue(): Promise<void> {
+  public async processQueue(): Promise<void> {
     try {
       // Execute comment automation follow-ups first
       await executeCommentFollowUps();

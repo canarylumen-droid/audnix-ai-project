@@ -167,4 +167,28 @@ router.post('/worker/trigger/:leadId', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Manually process the queue (useful for Vercel Crons)
+ */
+router.post('/worker/process', async (req: Request, res: Response) => {
+  try {
+    // Basic auth check or secret check
+    const secret = req.headers['x-cron-secret'];
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    console.log('🤖 [Cron] Manually triggering follow-up queue processing...');
+    await followUpWorker.processQueue();
+
+    res.json({
+      success: true,
+      message: 'Queue processing triggered'
+    });
+  } catch (error) {
+    console.error('Error processing queue:', error);
+    res.status(500).json({ error: 'Failed to process queue' });
+  }
+});
+
 export default router;

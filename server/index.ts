@@ -216,42 +216,7 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
-// CSRF Protection
-const csrfProtection = csrf({ cookie: false }); // Using session-based CSRF
-app.use((req, res, next) => {
-  // Skip CSRF for webhooks, callbacks, or specifically configured APIs
-  const skipPaths = [
-    '/api/webhooks',
-    '/api/instagram/callback',
-    '/api/instagram/webhook',
-    '/api/facebook/webhook',
-    '/api/user/auth',
-    '/api/auth',
-    '/api/custom-email/connect',
-    '/api/prospecting/scan',
-    '/api/user/avatar',
-    '/api/prospecting/leads',
-    '/api/prospecting/verify',
-    '/api/leads',
-    '/api/user/profile',
-    '/api/video/test-intent',
-    '/api/pdf/upload',
-    '/api/brand-pdf',
-    '/api/organizations'
-  ];
-
-  if (skipPaths.some(path => req.path.startsWith(path)) || req.path === '/api/csrf-token') {
-    return next();
-  }
-  csrfProtection(req as any, res as any, next);
-});
-
-// CSRF Token endpoint
-app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: (req as any).csrfToken() });
-});
-
-// CORS Middleware - Restricted to allowlist for credential safety
+// CORS/CSRF Configuration
 const ALLOWED_ORIGINS = [
   'https://www.audnixai.com',
   'https://audnixai.com',
@@ -263,6 +228,82 @@ const ALLOWED_ORIGINS = [
   process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null,
 ].flat().filter(Boolean) as string[];
 
+const csrfProtection = csrf({ cookie: false }); // Using session-based CSRF
+
+app.use((req, res, next) => {
+  // Skip CSRF for webhooks, callbacks, or specifically configured APIs
+  const skipPaths = [
+    '/api/webhooks',
+    '/api/webhook',
+    '/api/instagram/callback',
+    '/api/instagram/webhook',
+    '/api/facebook/webhook',
+    '/api/user/auth',
+    '/api/auth',
+    '/api/custom-email',
+    '/api/brand-pdf',
+    '/api/pdf/upload',
+    '/api/prospecting',
+    '/api/user/avatar',
+    '/api/user/profile',
+    '/api/video',
+    '/api/leads',
+    '/auth/instagram',
+    '/health',
+    '/api/health'
+  ];
+
+  const path = req.originalUrl.split('?')[0];
+  const shouldSkip = skipPaths.some(p => path.startsWith(p)) || path === '/api/csrf-token';
+
+  if (shouldSkip || process.env.NODE_ENV === 'development') {
+    return next();
+  }
+
+  // ORIGIN VALIDATION (Cross-Site Request Protection)
+  const origin = req.get('origin') || req.get('referer');
+  if (origin && process.env.NODE_ENV === 'production') {
+    try {
+      const originUrl = new URL(origin);
+      const isAllowed = ALLOWED_ORIGINS.some(allowed => {
+        try {
+          const allowedUrl = new URL(allowed);
+          return originUrl.host === allowedUrl.host;
+        } catch {
+          return originUrl.host === allowed;
+        }
+      });
+
+      const isAllowedSuffix = originUrl.host.endsWith('.vercel.app') ||
+        originUrl.host.endsWith('.replit.app') ||
+        originUrl.host.endsWith('.replit.dev') ||
+        originUrl.host.endsWith('.railway.app');
+
+      if (!isAllowed && !isAllowedSuffix) {
+        console.warn(`[CSRF] Forbidden Origin: ${originUrl.host} for ${req.method} ${path}`);
+        return res.status(403).json({ error: 'Invalid request origin' });
+      }
+    } catch (e) {
+      return res.status(403).json({ error: 'Invalid origin' });
+    }
+  }
+
+  // TOKEN VALIDATION (csurf)
+  csrfProtection(req as any, res as any, (err: any) => {
+    if (err) {
+      console.warn(`[CSRF] Blocked request to ${req.method} ${path}: ${err.message}`);
+      return res.status(403).json({ error: 'Invalid CSRF token', message: err.message });
+    }
+    next();
+  });
+});
+
+// CSRF Token endpoint
+app.get("/api/csrf-token", (req, res) => {
+  res.json({ csrfToken: (req as any).csrfToken() });
+});
+
+// CORS Middleware - Restricted to allowlist for credential safety
 app.use((req, res, next) => {
   const origin = req.get('origin');
 
@@ -290,77 +331,6 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
-  next();
-});
-
-// CSRF Protection via SameSite cookies + Origin validation
-app.use((req, res, next) => {
-  // Skip CSRF check in development
-  if (process.env.NODE_ENV === 'development') {
-    return next();
-  }
-  // Skip CSRF check for GET, HEAD, OPTIONS
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    return next();
-  }
-
-  // Skip CSRF check for webhooks (they use signature verification)
-  if (req.path.startsWith('/webhook/') || req.path.startsWith('/api/webhook/')) {
-    return next();
-  }
-
-  // Skip CSRF check for auth endpoints (they use rate limiting + OTP verification)
-  // This also allows auth endpoints to work without X-Requested-With header
-  if (req.path.startsWith('/api/user/auth/') || req.path.startsWith('/api/auth/')) {
-    return next();
-  }
-
-  // Verify origin header matches allowed domains
-  const allowedOrigins = [
-    process.env.NEXT_PUBLIC_APP_URL,
-    'https://audnixai.com',
-    'https://www.audnixai.com',
-    'http://localhost:5000',
-    'https://localhost:5000',
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null,
-    process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',').map(d => `https://${d.trim()}`) : [],
-    process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null
-  ].flat().filter((url): url is string => Boolean(url));
-
-  const origin = req.get('origin') || req.get('referer');
-  const host = req.get('host');
-
-  if (origin && host && process.env.NODE_ENV === 'production') {
-    try {
-      const originUrl = new URL(origin);
-      const isAllowed = allowedOrigins.some(allowed => {
-        try {
-          const allowedUrl = new URL(allowed);
-          return originUrl.host === allowedUrl.host;
-        } catch {
-          // If allowed entry isn't a full URL, compare hosts directly
-          return originUrl.host === allowed || originUrl.host === host;
-        }
-      });
-
-      const isAllowedSuffix = originUrl.host.endsWith('.replit.dev') ||
-        originUrl.host.endsWith('.replit.app') ||
-        originUrl.host.endsWith('.vercel.app') ||
-        originUrl.host.endsWith('.railway.app');
-
-      // The original instruction snippet seems to be for a different CSRF logic.
-      // The existing code already has a skip for auth endpoints.
-      // The primary origin validation check below should still apply for non-skipped paths.
-      if (!isAllowed && !isAllowedSuffix) {
-        console.warn(`CSRF attempt detected: origin ${originUrl.host} not in allowed list`);
-        return res.status(403).json({ error: 'Invalid request origin' });
-      }
-    } catch (e) {
-      // Invalid origin URL - reject for security
-      return res.status(403).json({ error: 'Invalid origin' });
-    }
-  }
-
   next();
 });
 

@@ -593,7 +593,6 @@ router.post('/logout', async (req: Request, res: Response): Promise<void> => {
     });
 
     res.clearCookie('audnix.sid', {
-      domain: process.env.NODE_ENV === 'production' ? '.audnixai.com' : undefined,
       path: '/',
     });
 

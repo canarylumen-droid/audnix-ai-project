@@ -6,6 +6,7 @@ import { db } from "../db.js";
 import { sql } from "drizzle-orm";
 import OpenAI from "openai";
 import crypto from "crypto";
+import { detectUVP } from "../lib/ai/universal-sales-agent.js";
 
 const router = Router();
 const upload = multer({
@@ -299,6 +300,27 @@ Only include fields you can confidently extract. Return valid JSON only.`
           const response = completion.choices[0].message.content;
           if (response) {
             brandContext = JSON.parse(response) as BrandExtraction;
+
+            // ENHANCED ANALYSIS: Detect UVP and positioning automatically
+            try {
+              console.log("🔍 [AI] Detecting UVP and positioning from extracted context...");
+              const uvpResult = await detectUVP(brandContext);
+
+              // Merge UVP result into brand context
+              brandContext = {
+                ...brandContext,
+                uniqueValue: uvpResult.uvp || brandContext.uniqueValue,
+                positioning: uvpResult.positioning || brandContext.positioning,
+              };
+
+              // Add differentiators and "why you win" to objections or a new field
+              if (uvpResult.differentiators?.length > 0) {
+                brandContext.positioning = (brandContext.positioning || "") +
+                  "\n\nKey Differentiators:\n- " + uvpResult.differentiators.join("\n- ");
+              }
+            } catch (uvpError) {
+              console.warn("UVP detection failed, continuing with extracted context:", uvpError);
+            }
           }
         } catch (aiError: unknown) {
           console.warn("AI extraction failed, using regex fallback:", aiError);
@@ -672,6 +694,50 @@ router.delete(
       res.json({ success: true, message: "PDF cache cleared" });
     } catch (error: unknown) {
       console.error("Error clearing PDF cache:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  }
+);
+
+/**
+ * GET /api/brand-pdf/context
+ * Retrieve the current brand context from user metadata
+ */
+router.get(
+  "/context",
+  requireAuth,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = getCurrentUserId(req);
+      if (!userId) {
+        res.status(401).json({ error: "Not authenticated" });
+        return;
+      }
+
+      const user = await storage.getUserById(userId);
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      // Check if we have cached context in metadata
+      const metadata = user.metadata as any;
+
+      res.json({
+        success: true,
+        companyName: user.businessName || metadata?.companyName,
+        industry: metadata?.industry,
+        uniqueValue: metadata?.uniqueValue,
+        targetAudience: metadata?.targetAudience,
+        tone: metadata?.tone,
+        positioning: metadata?.positioning,
+        offer: metadata?.offer,
+        hasPdf: !!metadata?.brandPdfUploadedAt,
+        uploadedAt: metadata?.brandPdfUploadedAt,
+        fileName: metadata?.brandPdfFileName,
+      });
+    } catch (error: unknown) {
+      console.error("Error fetching brand context:", error);
       res.status(500).json({ error: getErrorMessage(error) });
     }
   }
