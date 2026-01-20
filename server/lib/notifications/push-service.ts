@@ -58,7 +58,7 @@ export async function notifyUser(
       .where(eq(pushSubscriptions.userId, userId));
 
     await Promise.allSettled(
-      subs.map((sub) => {
+      subs.map((sub: any) => {
         // Construct the subscription object for web-push
         const subscription = {
           endpoint: sub.endpoint,

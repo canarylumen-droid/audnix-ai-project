@@ -1,5 +1,4 @@
-
-#!/usr/bin / env tsx
+#!/usr/bin/env tsx
 
 /**
  * Audnix AI Setup Verification

@@ -20,7 +20,7 @@ export default function PricingPage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const pricingTiers = getSortedPricingTiers();
 
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<UserProfile>({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
@@ -33,16 +33,11 @@ export default function PricingPage() {
 
     setLoadingPlan(planId);
     try {
-      const response = await apiRequest<{ url: string }>('/api/billing/payment-link', {
-        method: 'POST',
-        body: JSON.stringify({ planKey: planId }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiRequest('POST', '/api/billing/payment-link', { planKey: planId });
+      const data = await response.json();
 
-      if (response.url) {
-        window.location.href = response.url;
+      if (data.url) {
+        window.location.href = data.url;
       } else {
         throw new Error('No payment link returned');
       }

@@ -29,12 +29,14 @@ export interface IntentDetectionResult {
   buyerStage: "awareness" | "consideration" | "decision";
   signals: string[];
   reasoning: string;
+  confidence?: number;
 }
 
 export interface SmartReplyOption {
   reply: string;
   confidence: number;
   reasoning: string;
+  type?: "follow_up" | "objection" | "close" | "other";
 }
 
 export interface ObjectionDetectionResult {

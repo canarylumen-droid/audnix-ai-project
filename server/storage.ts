@@ -111,6 +111,9 @@ export interface IStorage {
 
   // Audit Trail (Recent Activities)
   createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
+
+  // Voice Balance
+  getVoiceMinutesBalance(userId: string): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -910,6 +913,11 @@ export class MemStorage implements IStorage {
     };
     this.auditLogs.set(id, log);
     return log;
+  }
+
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    const user = this.users.get(userId);
+    return (user?.voiceMinutesUsed || 0) + (user?.voiceMinutesTopup || 0);
   }
 }
 

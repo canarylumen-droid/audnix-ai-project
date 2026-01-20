@@ -271,7 +271,7 @@ export function useTour(onboardingCompleted: boolean = false) {
     if (!tourCompleted) {
       const timer = setTimeout(() => {
         setShowTour(true);
-      }, 1500);
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [onboardingCompleted, user]);

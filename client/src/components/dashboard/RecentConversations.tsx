@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,8 +66,8 @@ export function RecentConversations() {
     enabled: !!selectedLead,
   });
 
-  const leads = leadsData?.leads || [];
-  const messages = messagesData?.messages || [];
+  const leads = (leadsData as any)?.leads || [];
+  const messages = (messagesData as any)?.messages || [];
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -158,8 +159,8 @@ export function RecentConversations() {
                 >
                   <div
                     className={`max-w-[80%] rounded-lg p-3 ${message.direction === "outbound"
-                        ? `bg-gradient-to-r ${channelConfig[selectedLead.channel].color} text-white`
-                        : "bg-muted"
+                      ? `bg-gradient-to-r ${channelConfig[selectedLead.channel].color} text-white`
+                      : "bg-muted"
                       }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.body}</p>
@@ -172,8 +173,8 @@ export function RecentConversations() {
                     )}
                     <div
                       className={`flex items-center gap-1 mt-1 text-xs ${message.direction === "outbound"
-                          ? "text-white/70"
-                          : "text-muted-foreground"
+                        ? "text-white/70"
+                        : "text-muted-foreground"
                         }`}
                     >
                       <Clock className="h-3 w-3" />

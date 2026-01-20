@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Link } from "wouter";
 import { AlertTriangle, TrendingDown, TrendingUp, DollarSign, Zap, ArrowRight, Cpu, Activity } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const presets = {
   creator: { leads: 500, dealValue: 150, closeRate: 2 },

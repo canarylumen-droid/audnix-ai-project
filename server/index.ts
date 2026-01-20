@@ -10,7 +10,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { registerRoutes } from "./routes/index.js";
-import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js";
+// import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js"; // Removed: Supabase no longer used
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
@@ -287,7 +287,7 @@ app.use((req, res, next) => {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'Invalid request origin',
-          details: process.env.NODE_ENV === 'development' ? `Origin ${originUrl.host} not allowed` : undefined
+          details: String(process.env.NODE_ENV) === 'development' ? `Origin ${originUrl.host} not allowed` : undefined
         });
       }
     } catch (e) {

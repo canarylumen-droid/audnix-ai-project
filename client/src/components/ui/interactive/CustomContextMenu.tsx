@@ -33,8 +33,17 @@ export function CustomContextMenu({
 
     if (!config.visible) return null;
 
+    interface MenuItem {
+        icon?: any;
+        label?: string;
+        shortcut?: string;
+        id?: string;
+        type?: 'divider';
+        variant?: 'destructive';
+    }
+
     // Default items
-    let menuItems = [
+    let menuItems: MenuItem[] = [
         { icon: Scissors, label: 'Cut', shortcut: '⌘X', id: 'cut' },
         { icon: Copy, label: 'Copy', shortcut: '⌘C', id: 'copy' },
         { icon: ClipboardPaste, label: 'Paste', shortcut: '⌘V', id: 'paste' },
@@ -42,29 +51,29 @@ export function CustomContextMenu({
 
     // Context-specific items
     if (config.type === 'video') {
-        const videoItems = [
+        const videoItems: MenuItem[] = [
             { type: 'divider' },
             { icon: Link2, label: 'Copy Video URL', id: 'copy_link' },
             { icon: Download, label: 'Automate Processing', id: 'automate_video' }, // Specific to video
             { icon: Download, label: 'Download Thumbnail', id: 'save_thumbnail' },
         ];
-        menuItems = [...menuItems, ...videoItems as any];
+        menuItems = [...menuItems, ...videoItems];
     } else if (config.type === 'inbox') {
-        const inboxItems = [
+        const inboxItems: MenuItem[] = [
             { type: 'divider' },
             { icon: Link2, label: 'Mark as Unread', id: 'mark_unread' },
             { icon: Trash2, label: 'Archive Thread', id: 'archive', variant: 'destructive' },
         ];
-        menuItems = [...menuItems, ...inboxItems as any];
+        menuItems = [...menuItems, ...inboxItems];
     } else {
         // Default / Dashboard
-        const defaultExtras = [
+        const defaultExtras: MenuItem[] = [
             { type: 'divider' },
             { icon: Link2, label: 'Copy Page Link', id: 'copy_link' },
             { icon: Download, label: 'Export Leads (CSV)', id: 'export_data' },
             { icon: Scissors, label: 'Refresh Feed', id: 'refresh' },
         ];
-        menuItems = [...menuItems, ...defaultExtras as any];
+        menuItems = [...menuItems, ...defaultExtras];
     }
 
     return (

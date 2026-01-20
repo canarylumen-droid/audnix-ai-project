@@ -68,6 +68,12 @@ const calendlyOAuth = new CalendlyOAuth();
 
 // ==================== INSTAGRAM OAUTH ====================
 
+
+
+// GET /auth/instagram - Redirect to Instagram OAuth authorization page
+// This route is mounted at /api/oauth/instagram, but might be aliased
+import { authLimiter } from '../middleware/rate-limit.js';
+
 router.get('/connect/instagram', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest);
@@ -78,6 +84,7 @@ router.get('/connect/instagram', async (req: Request, res: Response): Promise<vo
     }
 
     const authUrl = instagramOAuth.getAuthorizationUrl(userId);
+    console.log('[Instagram Connect] Generated JSON URL for user:', userId);
     res.json({ authUrl });
   } catch (error) {
     console.error('Error initiating Instagram OAuth:', error);
@@ -85,18 +92,25 @@ router.get('/connect/instagram', async (req: Request, res: Response): Promise<vo
   }
 });
 
-// GET /auth/instagram - Redirect to Instagram OAuth authorization page
-router.get('/instagram', async (req: Request, res: Response): Promise<void> => {
+router.get('/instagram', authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getUserId(req as AuthenticatedRequest);
+    const callbackUrl = process.env.META_CALLBACK_URL || "NOT SET IN ENV";
+
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("[Instagram OAuth] /api/oauth/instagram called");
+    console.log("[Instagram OAuth] META_CALLBACK_URL: %s", callbackUrl);
+    console.log("[Instagram OAuth] User ID from session: %s", userId || "NOT AUTHENTICATED");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     if (!userId) {
       // Redirect to login page if not authenticated
-      res.redirect('/auth?error=not_authenticated&redirect=/auth/instagram');
+      res.redirect('/auth?error=not_authenticated&redirect=/dashboard/integrations');
       return;
     }
 
     const authUrl = instagramOAuth.getAuthorizationUrl(userId);
+    console.log("[Instagram OAuth] Redirecting to:", authUrl);
     res.redirect(authUrl);
   } catch (error) {
     console.error('Error initiating Instagram OAuth:', error);

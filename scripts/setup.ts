@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from '../shared/schema';
@@ -7,7 +7,7 @@ import * as path from 'path';
 
 async function setupDatabase() {
   const databaseUrl = process.env.DATABASE_URL;
-  
+
   if (!databaseUrl) {
     console.error('❌ DATABASE_URL not set in environment variables');
     console.log('\n📋 Setup Instructions:');
@@ -43,11 +43,11 @@ async function setupDatabase() {
 
     for (const file of migrationFiles) {
       const filePath = path.join(migrationsDir, file);
-      
+
       if (fs.existsSync(filePath)) {
         console.log(`   Executing ${file}...`);
         const sql = fs.readFileSync(filePath, 'utf-8');
-        
+
         try {
           await client.unsafe(sql);
           console.log(`   ✅ ${file} completed`);

@@ -279,7 +279,7 @@ async function neuralIdentifyObjection(leadMessage: string, context: LeadObjecti
   }
 }
 
-function identifyObjection(leadMessage: string, industry: string) {
+export async function identifyObjection(leadMessage: string, industry: string) {
   const cleanMessage = leadMessage.toLowerCase();
   const relevantObjections = EXPANDED_OBJECTIONS.filter(
     (o) => o.industries.includes(industry) || o.industries.includes("all")
@@ -390,7 +390,7 @@ export async function recordObjectionLearning(data: {
   // For now: Log for monitoring
 }
 
-export default {
+export {
   generateAutonomousObjectionResponse,
   identifyObjection,
   recordObjectionLearning,

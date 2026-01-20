@@ -322,7 +322,7 @@ router.get("/analytics/user-growth", async (req: Request, res: Response): Promis
         COUNT(*) as new_users,
         SUM(COUNT(*)) OVER (ORDER BY DATE(created_at)) as total_users
       FROM users
-      WHERE created_at >= NOW() - INTERVAL '${sql.raw(days.toString())} days'
+      WHERE created_at >= NOW() - make_interval(days => ${days})
       GROUP BY DATE(created_at)
       ORDER BY date DESC
     `);
@@ -352,7 +352,7 @@ router.get("/analytics/revenue", async (req: Request, res: Response): Promise<vo
         plan,
         COUNT(*) as subscriptions
       FROM users
-      WHERE created_at >= NOW() - INTERVAL '${sql.raw(days.toString())} days'
+      WHERE created_at >= NOW() - make_interval(days => ${days})
         AND stripe_subscription_id IS NOT NULL
         AND plan != 'trial'
       GROUP BY DATE(created_at), plan

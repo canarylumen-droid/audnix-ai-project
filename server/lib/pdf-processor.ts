@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase-admin.js';
+// import { supabaseAdmin } from './supabase-admin.js'; // REMOVED: Unused Supabase dependency
 import { storage } from '../storage.js';
 import { scheduleInitialFollowUp } from './ai/follow-up-worker.js';
 import OpenAI from 'openai';

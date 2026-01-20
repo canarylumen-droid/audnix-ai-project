@@ -435,72 +435,65 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
 
     if (createEvent && startTime) {
       try {
-        const { supabaseAdmin } = await import('../lib/supabase-admin.js');
         const { GoogleCalendarOAuth } = await import('../lib/oauth/google-calendar.js');
 
-        if (supabaseAdmin) {
-          const { data: integration } = await supabaseAdmin
-            .from('integrations')
-            .select('encrypted_meta')
-            .eq('user_id', userId)
-            .eq('provider', 'google_calendar')
-            .eq('connected', true)
-            .single();
+        const integration = await storage.getIntegration(userId, 'google_calendar');
 
-          if (integration) {
-            const tokens = JSON.parse(integration.encrypted_meta);
-            const googleCalendar = new GoogleCalendarOAuth();
+        if (integration && integration.connected && integration.encryptedMeta) {
+          const { decrypt } = await import('../crypto/encryption.js');
+          const tokensStr = await decrypt(integration.encryptedMeta);
+          const tokens = JSON.parse(tokensStr);
+          const googleCalendar = new GoogleCalendarOAuth();
 
-            const requestedStart = new Date(startTime);
-            const leadTimezone = (lead.metadata as Record<string, unknown>)?.timezone as string || 'America/New_York';
+          const requestedStart = new Date(startTime);
+          const leadTimezone = (lead.metadata as Record<string, unknown>)?.timezone as string || 'America/New_York';
 
-            const availabilityCheck = await googleCalendar.findNextAvailableSlot(
-              tokens.accessToken,
-              requestedStart,
-              duration,
-              leadTimezone
-            );
+          const availabilityCheck = await googleCalendar.findNextAvailableSlot(
+            tokens.accessToken,
+            requestedStart,
+            duration,
+            leadTimezone
+          );
 
-            eventData = await googleCalendar.createEvent(tokens.accessToken, {
-              summary: `Meeting with ${lead.name}`,
-              description: `AI Scheduled meeting with lead ${lead.name}`,
-              startTime: availabilityCheck.suggestedStart,
-              endTime: availabilityCheck.suggestedEnd,
-              attendeeEmail: lead.email || undefined,
-            });
+          eventData = await googleCalendar.createEvent(tokens.accessToken, {
+            summary: `Meeting with ${lead.name}`,
+            description: `AI Scheduled meeting with lead ${lead.name}`,
+            startTime: availabilityCheck.suggestedStart,
+            endTime: availabilityCheck.suggestedEnd,
+            attendeeEmail: lead.email || undefined,
+          });
 
-            bookingLink = eventData?.hangoutLink || eventData?.htmlLink || bookingLink;
+          bookingLink = eventData?.hangoutLink || eventData?.htmlLink || bookingLink;
 
-            if (!availabilityCheck.isOriginalTimeAvailable) {
-              await storage.createMessage({
-                leadId,
-                userId,
-                provider: lead.channel as ProviderType,
-                direction: "outbound",
-                body: availabilityCheck.message,
-                metadata: {
-                  rescheduled: true,
-                  originalTime: requestedStart.toISOString(),
-                  newTime: availabilityCheck.suggestedStart.toISOString()
-                }
-              });
-            }
-
-            await storage.createNotification({
+          if (!availabilityCheck.isOriginalTimeAvailable) {
+            await storage.createMessage({
+              leadId,
               userId,
-              type: 'system',
-              title: '📅 Meeting Booked',
-              message: `Meeting scheduled with ${lead.name} for ${availabilityCheck.suggestedStart.toLocaleString()}${!availabilityCheck.isOriginalTimeAvailable ? ' (rescheduled)' : ''}`,
+              provider: lead.channel as ProviderType,
+              direction: "outbound",
+              body: availabilityCheck.message,
               metadata: {
-                leadId,
-                leadName: lead.name,
-                meetingTime: availabilityCheck.suggestedStart.toISOString(),
-                meetingUrl: bookingLink,
-                activityType: 'meeting_booked',
-                wasRescheduled: !availabilityCheck.isOriginalTimeAvailable
+                rescheduled: true,
+                originalTime: requestedStart.toISOString(),
+                newTime: availabilityCheck.suggestedStart.toISOString()
               }
             });
           }
+
+          await storage.createNotification({
+            userId,
+            type: 'system',
+            title: '📅 Meeting Booked',
+            message: `Meeting scheduled with ${lead.name} for ${availabilityCheck.suggestedStart.toLocaleString()}${!availabilityCheck.isOriginalTimeAvailable ? ' (rescheduled)' : ''}`,
+            metadata: {
+              leadId,
+              leadName: lead.name,
+              meetingTime: availabilityCheck.suggestedStart.toISOString(),
+              meetingUrl: bookingLink,
+              activityType: 'meeting_booked',
+              wasRescheduled: !availabilityCheck.isOriginalTimeAvailable
+            }
+          });
         }
       } catch (eventError) {
         console.error("Error creating calendar event:", eventError);

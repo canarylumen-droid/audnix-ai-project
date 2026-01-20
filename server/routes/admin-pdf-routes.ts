@@ -315,7 +315,7 @@ Only include fields you can confidently extract. Return valid JSON only.`
 
               // Add differentiators and "why you win" to objections or a new field
               if (uvpResult.differentiators?.length > 0) {
-                brandContext.positioning = (brandContext.positioning || "") +
+                brandContext.businessDescription = (brandContext.businessDescription || "") +
                   "\n\nKey Differentiators:\n- " + uvpResult.differentiators.join("\n- ");
               }
             } catch (uvpError) {

@@ -10,6 +10,8 @@ export interface User {
   avatar?: string;
   supabaseId?: string;
   metadata?: Record<string, any>;
+  leadCount?: number;
+  voiceMinutesUsed?: number;
 }
 
 async function fetchUser(): Promise<User | null> {

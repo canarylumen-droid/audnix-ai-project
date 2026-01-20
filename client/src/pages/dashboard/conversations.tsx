@@ -111,7 +111,7 @@ export default function ConversationsPage() {
   }, [toast]);
 
   // Get user for real-time subscriptions
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<{ id: string }>({
     queryKey: ["/api/user/profile"],
     retry: false,
   });
@@ -136,7 +136,7 @@ export default function ConversationsPage() {
   // Accumulate messages as user loads more
   useEffect(() => {
     if (messagesData?.messages) {
-      const mappedMessages = messagesData.messages.map((msg: any) => ({
+      const mappedMessages: Message[] = messagesData.messages.map((msg: any) => ({
         id: msg.id,
         content: msg.body,
         sender: msg.direction === 'inbound' ? 'lead' : (msg.metadata?.aiGenerated ? 'assistant' : 'user'),

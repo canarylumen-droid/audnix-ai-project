@@ -50,6 +50,8 @@ interface LeadWithProfile extends SalesLeadProfile {
   brandName?: string;
   userIndustry?: string;
   pdfContext?: string;
+  channel?: string;
+  status?: string;
 }
 
 interface ScoringMessage {
@@ -268,12 +270,17 @@ export async function handleLeadResponseWithLearning(
     const followResult = await handleFollowResponse(lead.id, theirMessage, 'instagram');
     if (followResult.wantsToFollow && followResult.followButtonUrl) {
       return {
-        intent: { intentLevel: "high", buyerStage: "decision", confidence: 1.0 }, // Treat as high intent positive signal
+        intent: {
+          intentLevel: "high",
+          intentScore: 0.9,
+          buyerStage: "decision",
+          signals: ["confirmed_follow"],
+          reasoning: "Lead expressed strong interest by agreeing to follow."
+        },
         suggestedReplies: [{
           reply: `That's great! Here is the link to follow our page: ${followResult.followButtonUrl} \n\nLooking forward to staying connected!`,
           confidence: 1.0,
-          type: "social_proof",
-          tone: "friendly"
+          reasoning: "Encourages social follow as requested"
         }],
         autonomousResponse: {
           response: `Awesome! You can follow us right here: ${followResult.followButtonUrl} \n\nI share exclusive tips there daily. Let me know once you've followed!`,
@@ -340,8 +347,7 @@ export async function handleLeadResponseWithLearning(
       smartReplies.unshift({
         reply: followRequestMsg,
         confidence: 0.95,
-        type: "growth_hack",
-        tone: "friendly"
+        reasoning: "Growth hack: Encourages engagement via follow request"
       });
     }
   }

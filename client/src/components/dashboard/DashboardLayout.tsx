@@ -1,4 +1,5 @@
-import { useState, useCallback, KeyboardEvent } from "react";
+import { useState, useCallback, KeyboardEvent, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -143,23 +144,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const { socket } = useRealtime(user?.id);
 
-  // Custom alert effect
-  useEffect(() => {
-    if (!socket) return;
-    socket.on('notification', (payload: any) => {
-      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
-        setCurrentAlert({
-          title: payload.title,
-          message: payload.message,
-          type: payload.type
-        });
-        setTimeout(() => setCurrentAlert(null), 10000);
-      }
-    });
-    return () => { socket.off('notification'); };
-  }, [socket]);
 
 
 
@@ -201,7 +186,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     staleTime: Infinity,
   });
 
-  const onboardingCompleted = user?.metadata?.onboardingCompleted || false;
+  const { socket } = useRealtime(user?.id);
+
+  // Custom alert effect
+  useEffect(() => {
+    if (!socket) return;
+    const handleNotification = (payload: any) => {
+      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
+        setCurrentAlert({
+          title: payload.title,
+          message: payload.message,
+          type: payload.type
+        });
+        setTimeout(() => setCurrentAlert(null), 10000);
+      }
+    };
+    socket.on('notification', handleNotification);
+    return () => { socket.off('notification', handleNotification); };
+  }, [socket]);
+
+  const onboardingCompleted = !!user?.metadata?.onboardingCompleted;
   const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
@@ -347,7 +351,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden space-y-1"
                     >
-                      {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                      {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -460,7 +464,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     {navGroups.map(group => (
                       <div key={group.label} className="space-y-1">
                         <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-2">{group.label}</h4>
-                        {group.items.map(item => renderNavItem(item, item.requiresStep && !isFeatureUnlocked(item.requiresStep)))}
+                        {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
                       </div>
                     ))}
                     <div className="pt-4 border-t border-border/20">

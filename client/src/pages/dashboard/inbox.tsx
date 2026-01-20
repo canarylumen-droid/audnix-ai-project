@@ -70,7 +70,7 @@ export default function InboxPage() {
   const [offset, setOffset] = useState(0);
 
   // Get user for realtime
-  const { data: user } = useQuery({ queryKey: ["/api/user/profile"] });
+  const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
   useRealtime(user?.id);
 
   const { data: leadsData, isLoading } = useQuery<any>({

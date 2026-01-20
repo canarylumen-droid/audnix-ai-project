@@ -131,13 +131,16 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
     try {
       // Call the backend to save onboarding profile and mark as complete
-      await apiClient.post('/api/onboarding', {
-        userRole,
-        source: source === 'Other' ? customSource : source,
-        useCase: useCase || selectedTags.join(', '),
-        businessSize,
-        tags: selectedTags,
-        companyName: companyName.trim(),
+      await apiClient('/api/onboarding', {
+        method: 'POST',
+        body: JSON.stringify({
+          userRole,
+          source: source === 'Other' ? customSource : source,
+          useCase: useCase || selectedTags.join(', '),
+          businessSize,
+          tags: selectedTags,
+          companyName: companyName.trim(),
+        }),
       });
 
       toast({

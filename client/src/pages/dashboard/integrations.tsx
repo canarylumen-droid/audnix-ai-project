@@ -234,7 +234,7 @@ export default function IntegrationsPage() {
 
   const handleConnect = async (provider: string) => {
     try {
-      const response = await fetch(`/api/connect/${provider}`);
+      const response = await fetch(`/api/oauth/connect/${provider}`);
       const { authUrl } = await response.json();
       if (authUrl) window.location.href = authUrl;
     } catch (e) {
