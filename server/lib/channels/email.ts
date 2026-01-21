@@ -191,7 +191,7 @@ export async function importCustomEmails(
 
         fetch.on('message', (msg: { on: (event: string, callback: (stream: NodeJS.ReadableStream) => void) => void }) => {
           msg.on('body', (stream: NodeJS.ReadableStream) => {
-            simpleParser(stream as any, (parseErr: Error | null, parsed: ParsedEmail) => {
+            simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
               if (!parseErr && parsed) {
                 emails.push({
                   from: parsed.from?.text,
