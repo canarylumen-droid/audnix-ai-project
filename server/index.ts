@@ -89,12 +89,13 @@ app.set('trust proxy', 1);
 if (!process.env.SESSION_SECRET) {
   console.error('❌ SESSION_SECRET is missing in production! Using fallback (UNSAFE for real users).');
   // Fallback to allow app to start and log errors instead of crashing silent
-  process.env.SESSION_SECRET = 'fallback-production-secret-' + crypto.randomBytes(32).toString('hex');
+  // CRITICAL FIX: Use a STABLE secret based on project ID or fixed string to prevent session invalidation on restart
+  process.env.SESSION_SECRET = 'fallback-production-secret-STABLE-DO-NOT-CHANGE-' + (process.env.PROJECT_ID || 'default');
 }
 
 if (!process.env.ENCRYPTION_KEY) {
   console.error('❌ ENCRYPTION_KEY is missing in production! Using fallback.');
-  process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+  process.env.ENCRYPTION_KEY = 'fallback-encryption-key-STABLE-DO-NOT-CHANGE';
 }
 
 // Supabase is optional (used only for auth if configured)
@@ -299,7 +300,7 @@ app.use((req, res, next) => {
   // TOKEN VALIDATION (csurf)
   csrfProtection(req as any, res as any, (err: any) => {
     if (err) {
-      console.warn(`[SECURITY] CSRF Blocked: ${req.method} ${path} - Error: ${err.message}. Cookies present: ${Boolean(req.headers.cookie)}`);
+      console.warn(`[SECURITY] CSRF Blocked: ${req.method} ${path} - Error: ${err.message}. Cookies present: ${Boolean(req.headers.cookie)}. SessionID: ${req.sessionID}`);
       return res.status(403).json({
         error: 'Forbidden',
         message: 'Invalid CSRF token',

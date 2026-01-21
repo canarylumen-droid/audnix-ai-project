@@ -311,7 +311,7 @@ export async function sendEmail(
         emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
       }
     } else {
-      emailBody = generateBrandedEmail(content, { text: 'View Details', url: '#' }, brandColors, businessName);
+      emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
     }
 
     await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
@@ -356,12 +356,7 @@ export async function sendEmail(
     }
     options.isHtml = true;
   } else {
-    emailBody = generateBrandedEmail(
-      content,
-      { text: 'View Details', url: '#' },
-      brandColors,
-      businessName
-    );
+    emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
     options.isHtml = true;
   }
 
