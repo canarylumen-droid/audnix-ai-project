@@ -390,8 +390,4 @@ export async function recordObjectionLearning(data: {
   // For now: Log for monitoring
 }
 
-export {
-  generateAutonomousObjectionResponse,
-  identifyObjection,
-  recordObjectionLearning,
-};
+

@@ -637,12 +637,7 @@ async function getOutlookInbox(credentials: { accessToken: string, email: string
   return data.value || [];
 }
 
-import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter.js';
-import { storage } from '../../storage.js';
 
-/**
- * Email messaging functions with branded templates using extracted PDF brand colors
- */
 
 interface EmailConfig {
   smtp_host?: string;

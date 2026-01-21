@@ -440,7 +440,7 @@ router.post("/calendar/:leadId", requireAuth, async (req: Request, res: Response
         const integration = await storage.getIntegration(userId, 'google_calendar');
 
         if (integration && integration.connected && integration.encryptedMeta) {
-          const { decrypt } = await import('../crypto/encryption.js');
+          const { decrypt } = await import('../lib/crypto/encryption.js');
           const tokensStr = await decrypt(integration.encryptedMeta);
           const tokens = JSON.parse(tokensStr);
           const googleCalendar = new GoogleCalendarOAuth();
