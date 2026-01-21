@@ -25,6 +25,7 @@ import { importInstagramLeads, importGmailLeads, importManychatLeads } from "../
 import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/calendar/google-calendar.js";
 import { processPDF } from "../lib/pdf-processor.js";
 import { EmailVerifier } from "../lib/scraping/email-verifier.js";
+import { mapCSVColumnsToSchema, extractLeadFromRow, extractExtraFieldsAsMetadata, type LeadColumnMapping } from "../lib/ai/csv-mapper.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
 
@@ -893,6 +894,35 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
         .on('error', reject);
     });
 
+    if (leadsData.length === 0) {
+      res.status(400).json({ error: "CSV file is empty or could not be parsed" });
+      return;
+    }
+
+    // Get headers from first row and use AI to map columns
+    const headers = Object.keys(leadsData[0]);
+    console.log(`📊 CSV headers detected: ${headers.join(', ')}`);
+
+    let mapping: LeadColumnMapping;
+    try {
+      const mappingResult = await mapCSVColumnsToSchema(headers, leadsData.slice(0, 3));
+      mapping = mappingResult.mapping;
+      console.log(`🤖 AI column mapping: ${JSON.stringify(mapping)} (confidence: ${mappingResult.confidence})`);
+
+      if (!mapping.email && !mapping.phone) {
+        res.status(400).json({
+          error: "Could not identify email or phone columns in your CSV",
+          headers: headers,
+          suggestion: "Please ensure your CSV has columns for email or phone"
+        });
+        return;
+      }
+    } catch (mappingError) {
+      console.error("Column mapping failed:", mappingError);
+      res.status(400).json({ error: "Failed to analyze CSV columns" });
+      return;
+    }
+
     const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
     const importedIdentifiers = new Set<string>();
     const existingEmails = new Set(existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean));
@@ -902,10 +932,9 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
       const row = leadsData[i];
 
       try {
-        const email = (row.email || row.Email || row.EMAIL || row.emailAddress || row.EmailAddress)?.trim();
-        const phone = (row.phone || row.Phone || row.PHONE || row.mobile || row.Mobile || row.phoneNumber)?.trim();
-        let name = (row.name || row.Name || row.NAME || row.full_name || row.fullName || row.Firstname || row.FirstName)?.trim();
-        const company = (row.company || row.Company || row.COMPANY || row.organization || row.Organization)?.trim();
+        // Use AI-mapped columns instead of hardcoded lookups
+        const extracted = extractLeadFromRow(row, mapping);
+        let { name, email, phone, company } = extracted;
 
         // Better name extraction: if name is generic or missing, try extracting from email
         if (!name || name.toLowerCase() === 'unknown' || name === 'Unknown Lead') {
@@ -970,6 +999,9 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
           }
         }
 
+        // Extract extra CSV columns (industry, notes, etc.) as metadata
+        const extraFields = extractExtraFieldsAsMetadata(row, mapping);
+
         await storage.createLead({
           userId,
           name: name,
@@ -984,7 +1016,9 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
             company: company,
             import_date: new Date().toISOString(),
             deliverability: verified ? 'safe' : 'bouncy',
-            is_recovered: isRecovered
+            is_recovered: isRecovered,
+            ai_column_mapping: mapping,
+            ...extraFields  // Include any extra CSV columns like industry, notes, etc.
           }
         });
 
