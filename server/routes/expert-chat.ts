@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GEMINI_STABLE_MODEL } from "../lib/ai/model-config.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -35,42 +36,62 @@ BEHAVIORAL RULES:
 
 router.post('/chat', async (req: Request, res: Response) => {
     try {
-        // Defensive check for missing body
         if (!req.body) {
-            return res.json({ content: "I'm momentarily recalibrating. Please try again." });
+            return res.json({ content: "Protocol error: Empty communication packet. Please retry." });
         }
 
-        const { message, history = [], isAuthenticated = false, userEmail = null } = req.body;
+        const { message, history = [], isAuthenticated = false } = req.body;
 
         if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
+            return res.status(400).json({ error: 'Message payload required' });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        // Logic for the first user message (after the initial system welcome)
+        // If history is just the initial AI welcome message (length 1)
+        const isFirstUserMessage = history.length <= 1;
+        const greetingWords = ['hi', 'hello', 'hey', 'greetings', 'yo', 'hi there'];
+        const isGreeting = greetingWords.some(word => message.toLowerCase().trim().startsWith(word));
+
+        if (isFirstUserMessage && isGreeting) {
             return res.json({
-                content: "I am currently in disconnected mode (Syncing API Key). However, I can still tell you that Audnix is the world's most advanced autonomous sales engine. You should visit the Access Protocol (Signup) to get started."
+                content: "Initialization confirmed. I am the Audnix AI Assistant, your neural interface for autonomous sales. I can help you architect high-conversion outreach or troubleshoot your sales engine. What specific sector shall we optimize first?"
             });
         }
 
+        if (!process.env.GEMINI_API_KEY) {
+            console.warn("[AI] Expert Chat: GEMINI_API_KEY is missing. Falling back to static knowledge.");
+            return res.json({
+                content: "I am currently in disconnected mode (API Sync Required). However, I can tell you that Audnix is the world's most advanced autonomous salesRepresentative. You should visit the Access Protocol (Signup) to initialize the full neural brain."
+            });
+        }
+
+        // Use standardized stable model
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash-exp",
+            model: GEMINI_STABLE_MODEL,
             systemInstruction: AUDNIX_KNOWLEDGE
         });
 
         const chat = model.startChat({
             history: history.map((m: any) => ({
                 role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.content }]
+                parts: [{ text: String(m.content) }]
             })),
         });
 
         const result = await chat.sendMessage(message);
-        const content = result.response.text() || "I'm having trouble retrieving the protocol response. Please try again.";
+        const response = await result.response;
+        const content = response.text() || "Neural processing interrupted. Please re-send your inquiry.";
 
         res.json({ content });
-    } catch (error) {
-        console.error('Expert Chat Error:', error);
-        res.json({ content: "I'm momentarily recalibrating. Please try again or sign up to experience the full neural engine." });
+    } catch (error: any) {
+        console.error('Expert Chat Neural Error:', error);
+
+        // Provide a more dynamic fallback even on error
+        const errorContent = error?.message?.includes('429')
+            ? "Neural pathways are currenty congested. Please wait a moment while I optimize the bandwidth."
+            : "I'm momentarily recalibrating. Please sign up to experience our full dedicated neural processing power.";
+
+        res.json({ content: errorContent });
     }
 });
 
