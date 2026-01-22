@@ -84,6 +84,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/sales", salesEngine);
   app.use("/api/stripe/confirmation", stripePaymentConfirmation);
   app.use("/api/video", videoAutomationRoutes);
+  app.use("/api/video-automation", videoAutomationRoutes);
   app.use("/api/voice", voiceRoutes);
   app.use("/api/webhook", webhookRouter);
   app.use("/webhook", webhookMetaRoutes); // Root-level Meta webhook

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import multer from "multer";
+import pdfParse from "pdf-parse";
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { sql } from "drizzle-orm";
@@ -115,7 +116,6 @@ router.post(
         return;
       }
 
-      const pdfParse = require("pdf-parse");
       const data = await pdfParse(req.file.buffer);
       const pdfText = data.text.toLowerCase();
 
@@ -246,8 +246,6 @@ router.post(
         console.warn("Cache check failed (table may not exist yet):", cacheError);
       }
 
-      // Parse PDF
-      const pdfParse = require("pdf-parse");
       const data = await pdfParse(req.file.buffer);
       const pdfText: string = data.text;
 

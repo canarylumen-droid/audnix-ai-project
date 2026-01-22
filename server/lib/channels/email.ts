@@ -221,7 +221,15 @@ export async function importCustomEmails(
     imap.once('error', (err: Error) => {
       if (!completed) {
         cleanup();
-        reject(new Error(`IMAP connection error: ${err.message}`));
+        let errorMessage = `IMAP connection error: ${err.message}`;
+        if (err.message.includes('ENOTFOUND')) {
+          errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
+        } else if (err.message.includes('ETIMEDOUT')) {
+          errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
+        } else if (err.message.includes('ECONNREFUSED')) {
+          errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
+        }
+        reject(new Error(errorMessage));
       }
     });
 

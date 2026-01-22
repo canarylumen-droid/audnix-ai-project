@@ -28,7 +28,8 @@ export async function processPDF(
   }
 ): Promise<PDFProcessingResult> {
   try {
-    const pdfParse = require('pdf-parse');
+    // Dynamic import for pdf-parse (CommonJS legacy)
+    const { default: pdfParse } = await import('pdf-parse');
 
     // Handle large files (>10MB) with max buffer size
     const maxBufferSize = 50 * 1024 * 1024; // 50MB max
@@ -331,16 +332,31 @@ Return ALL colors found, even if more than 3. Be thorough - this is critical for
       colors: mergedColors
     };
 
-    // Store both offer and brand in user's profile for future auto-responses
+    // Store both offer and brand in user's profile and settings for future auto-responses
     if (result.offer?.productName || result.brand?.companyName) {
       await storage.updateUser(userId, {
         metadata: {
           extracted_offer: result.offer || {},
           extracted_brand: result.brand || {},
           brand_colors: mergedColors,
+          extraction_source: 'pdf_import',
           extraction_updated_at: new Date().toISOString()
         }
       });
+
+      // Synchronize with user_settings brand_context for the Command Center
+      try {
+        const { db } = await import('../db.js');
+        const { sql } = await import('drizzle-orm');
+        await db.execute(sql`
+          UPDATE user_settings 
+          SET brand_context = ${JSON.stringify(result.brand || {})}::jsonb,
+              updated_at = NOW()
+          WHERE user_id = ${userId}
+        `);
+      } catch (settingsError) {
+        console.warn('Failed to sync brand_context to user_settings:', settingsError);
+      }
     }
 
     return {

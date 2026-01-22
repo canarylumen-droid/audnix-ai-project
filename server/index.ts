@@ -251,8 +251,10 @@ app.use((req, res, next) => {
     '/api/leads',
     '/api/expert-chat',
     '/auth/instagram',
-    '/health',
-    '/api/health'
+    '/api/health',
+    '/api/automation/content',
+    '/api/video-automation',
+    '/api/prospecting/v2'
   ];
 
   const path = req.path; // Use req.path for clean matching without query strings

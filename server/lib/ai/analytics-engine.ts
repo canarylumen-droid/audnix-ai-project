@@ -80,9 +80,9 @@ async function calculateTrends(userId: string, daysBack: number) {
   );
 
   // Calculate engagement (messages per lead)
-  const previousEngagement = previousLeads.length > 0 ? 
+  const previousEngagement = previousLeads.length > 0 ?
     await getAverageMessageCount(previousLeads.map(l => l.id)) : 0;
-  const currentEngagement = currentLeads.length > 0 ? 
+  const currentEngagement = currentLeads.length > 0 ?
     await getAverageMessageCount(currentLeads.map(l => l.id)) : 0;
   const engagementGrowth = calculateGrowth(previousEngagement, currentEngagement);
 
@@ -94,19 +94,20 @@ async function calculateTrends(userId: string, daysBack: number) {
 }
 
 function calculateGrowth(previous: number, current: number): number {
-  if (previous === 0) return current > 0 ? 100 : 0;
+  if (previous === 0 && current === 0) return 0;
+  if (previous === 0) return 100;
   return Math.round(((current - previous) / previous) * 100);
 }
 
 async function getAverageMessageCount(leadIds: string[]): Promise<number> {
   if (leadIds.length === 0) return 0;
-  
+
   let totalMessages = 0;
   for (const leadId of leadIds) {
     const messages = await storage.getMessagesByLeadId(leadId);
     totalMessages += messages.length;
   }
-  
+
   return totalMessages / leadIds.length;
 }
 
@@ -126,7 +127,7 @@ async function generatePredictions(leads: Lead[]) {
   // Identify at-risk leads (warm/hot but no recent activity)
   const oneDayAgo = new Date();
   oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-  
+
   const riskLeads = [...hotLeads, ...warmLeads]
     .filter(l => {
       const lastMessage = l.lastMessageAt ? new Date(l.lastMessageAt) : new Date(l.createdAt);
@@ -144,6 +145,12 @@ async function generatePredictions(leads: Lead[]) {
 
 async function generateRecommendations(leads: Lead[], trends: any): Promise<string[]> {
   const recommendations: string[] = [];
+
+  if (leads.length === 0) {
+    recommendations.push('👋 Welcome to Audnix! Connect your mailbox to see real-time lead sync and AI outreach in action.');
+    recommendations.push('💡 Tip: Upload a Brand PDF to help the AI understand your messaging style.');
+    return recommendations;
+  }
 
   // Lead growth recommendation
   if (trends.leadGrowth < 0) {
@@ -172,8 +179,10 @@ async function generateRecommendations(leads: Lead[], trends: any): Promise<stri
     }))
     .sort((a, b) => b.rate - a.rate)[0];
 
-  if (bestChannel) {
+  if (bestChannel && bestChannel.rate > 0) {
     recommendations.push(`🎯 ${bestChannel.channel} has the highest conversion rate (${bestChannel.rate.toFixed(1)}%). Focus more efforts here.`);
+  } else if (leads.length > 0) {
+    recommendations.push('📊 No conversions detected yet. Try A/B testing different messaging scripts in the Command Center.');
   }
 
   // Engagement recommendation
@@ -217,4 +226,27 @@ async function findTopPerformers(leads: Lead[]) {
     channels: channels.slice(0, 5),
     times: times.slice(0, 5)
   };
+}
+
+export async function calculateAvgResponseTime(userId: string): Promise<string> {
+  const leads = await storage.getLeads({ userId, limit: 100 });
+  let totalDiff = 0;
+  let count = 0;
+
+  for (const lead of leads) {
+    const messages = await storage.getMessagesByLeadId(lead.id);
+    const sorted = messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (sorted[i].direction === 'inbound' && sorted[i + 1].direction === 'outbound') {
+        const diff = new Date(sorted[i + 1].createdAt).getTime() - new Date(sorted[i].createdAt).getTime();
+        totalDiff += diff;
+        count++;
+      }
+    }
+  }
+
+  if (count === 0) return "No data";
+  const avgMinutes = Math.round(totalDiff / count / 60000);
+  return `${avgMinutes} minutes`;
 }

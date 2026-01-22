@@ -24,53 +24,53 @@ export interface Objection {
  */
 
 export const OBJECTIONS_DATABASE: Objection[] = [
-  // TIMING OBJECTIONS (12)
+  // TIMING OBJECTIONS
   {
     id: 'timing-1',
     objection: 'Let me think about it',
     category: 'timing',
     industries: ['all'],
     reframes: [
-      'Think about what specifically? Let\'s address those concerns right now',
-      'Most people who think about it later get busy and forget. Why wait?',
-      'What\'s the risk of waiting? Your leads aren\'t waiting - they\'re choosing competitors',
+      'Thinking about it is the #1 reason businesses stay stagnant while competitors automate. What specific detail can we clear up so you can move forward today?',
+      'If you wait, you\'re essentially deciding to keep doing manual outreach for another month. Is that the "thinking" part or just a comfort zone barrier?',
+      'Let\'s be honest: usually "thinking about it" means you have a specific doubt. Is it the implementation speed, the cost, or the AI accuracy?',
     ],
     stories: [
-      'Had a coach who said "let me think" - lost 3 deals that week to a competitor who moved fast',
-      'Founder waited 2 weeks, by then their competitor had already captured 15 leads',
+      'We had a Digital Agency founder who "thought about it" for 3 months. In that time, their main local competitor signed up and automated their entire LinkedIn reach. By the time they rejoined us, they had lost $15k in potential pipeline.',
+      'A real estate broker used this reframe to realize that every minute of "thinking" was a minute they weren\'t following up with Zillow leads.',
     ],
     questions: [
-      'What specific concern would help us address right now?',
-      'Is it about price, setup, or how it works?',
-      'If you had the answers now, would you start today?',
+      'What specifically is the #1 hurdle stopping you from starting right now?',
+      'If we took care of the setup FOR you, would you still need to think about it?',
+      'On a scale of 1-10, how confident are you that your current process is better than this?',
     ],
     closingTactics: [
-      'Create urgency: "Your competitor might be setting up right now"',
-      'Assume the close: "Let\'s get you started - I\'ll send the link"',
-      'Risk reversal: "Try it free for 48 hours, no credit card"',
+      'The "What If" Close: Ask what happens if they DON\'T start.',
+      'The "Setup" Close: Offer to do the initial knowledge base import for them.',
+      'Urgency: Mention that we only take 3 new users per industry per week for quality control.',
     ],
   },
   {
     id: 'timing-2',
-    objection: 'I need to pray about it / Let me pray on it',
+    objection: 'I need to pray about it',
     category: 'timing',
     industries: ['all'],
     reframes: [
-      'I respect that. While you pray, let me ask: what would be the perfect solution for you?',
-      'Prayer is about making wise decisions - let\'s make sure you have all the facts',
-      'God helps those who help themselves - let\'s take action on what we know works',
+      'I deeply respect that. How about we look at the case studies together so you have the clearest "vision" possible for your prayer?',
+      'God gives us tools to amplify our work. Audnix is just a high-speed tool for the mission you\'re already on.',
+      'Usually, wait-and-see isn\'t a spiritual strategy, it\'s a fear strategy. Let\'s look at some results from similar faith-based organizations.',
     ],
     stories: [
-      'Told a pastor "pray about it" - he prayed and realized his competitor was already automating',
-      'Religious founder said prayer made them realize speed matters - they started same day',
+      'A non-profit leader prayed on it and felt a "nudge" that they were wasting too much time on admin instead of ministry. Automating their outreach freed up 20 hours a week.',
+      'A Christian entrepreneur realized that being a good steward meant using the most efficient technology available.',
     ],
     questions: [
-      'What would need to be true for this to feel like the right decision?',
-      'Are there concerns we haven\'t addressed?',
+      'What part of the mission is currently taking up most of your time?',
+      'Do you feel that your current outreach method is as effective as it could be?',
     ],
     closingTactics: [
-      'Respect + urgency: "I understand. Meanwhile, let me show you proof from your industry"',
-      'Facts help faith: "Here are 3 similar businesses seeing 40% more conversions"',
+      'Stewardship Close: Frame it as being a better steward of their time.',
+      'Vision Close: Describe how much more impact they can make with automation.',
     ],
   },
   {

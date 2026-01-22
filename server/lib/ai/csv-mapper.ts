@@ -177,6 +177,15 @@ function fallbackMapping(headers: string[]): MappingResult {
         ],
         channel: [
             /^channel$/i, /^source$/i, /^platform$/i
+        ],
+        industry: [
+            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i
+        ],
+        website: [
+            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i
+        ],
+        notes: [
+            /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i
         ]
     };
 
@@ -211,10 +220,33 @@ export function extractLeadFromRow(
     row: Record<string, string>,
     mapping: LeadColumnMapping
 ): { name?: string; email?: string; phone?: string; company?: string; channel?: string } {
+    let email = mapping.email ? row[mapping.email]?.trim() : undefined;
+    let phone = mapping.phone ? row[mapping.phone]?.trim() : undefined;
+
+    // Fallback: If no email was mapped, search all columns for an email pattern
+    if (!email) {
+        for (const value of Object.values(row)) {
+            if (typeof value === 'string' && value.includes('@') && value.includes('.')) {
+                email = value.trim();
+                break;
+            }
+        }
+    }
+
+    // Fallback: If no phone was mapped, search all columns for a phone-like pattern
+    if (!phone) {
+        for (const value of Object.values(row)) {
+            if (typeof value === 'string' && /^\+?[\d\s-]{10,15}$/.test(value.trim())) {
+                phone = value.trim();
+                break;
+            }
+        }
+    }
+
     return {
         name: mapping.name ? row[mapping.name]?.trim() : undefined,
-        email: mapping.email ? row[mapping.email]?.trim() : undefined,
-        phone: mapping.phone ? row[mapping.phone]?.trim() : undefined,
+        email,
+        phone,
         company: mapping.company ? row[mapping.company]?.trim() : undefined,
         channel: mapping.channel ? row[mapping.channel]?.trim() : undefined,
     };

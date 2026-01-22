@@ -70,6 +70,159 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
 });
 
 /**
+ * Get advanced AI insights
+ * GET /api/ai/insights
+ */
+router.get("/insights", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { period = '30d' } = req.query;
+
+    const insights = await generateAnalyticsInsights(userId, period as string);
+
+    res.json(insights);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate insights";
+    console.error("Advanced insights error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Get AI-powered insights and analytics
+ * GET /api/ai/analytics
+ */
+router.get("/analytics", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { period = '30d' } = req.query;
+
+    const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    const allLeads = await storage.getLeads({ userId, limit: 10000 });
+
+    const leads = allLeads.filter(l => new Date(l.createdAt) >= startDate);
+
+    const byStatus = leads.reduce<Record<string, number>>((acc, lead) => {
+      acc[lead.status] = (acc[lead.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const byChannel = leads.reduce<Record<string, number>>((acc, lead) => {
+      acc[lead.channel] = (acc[lead.channel] || 0) + 1;
+      return acc;
+    }, {});
+
+    const conversions = leads.filter(l => l.status === 'converted').length;
+    const ghosted = leads.filter(l => l.status === 'cold').length;
+    const notInterested = leads.filter(l => l.status === 'not_interested').length;
+    const active = leads.filter(l => l.status === 'open' || l.status === 'replied').length;
+    const leadsReplied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
+
+    const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
+
+    let bestReplyHour: number | null = null;
+    const replyHours: Record<number, number> = {};
+    for (const lead of leads) {
+      if (lead.lastMessageAt) {
+        const hour = new Date(lead.lastMessageAt).getHours();
+        replyHours[hour] = (replyHours[hour] || 0) + 1;
+      }
+    }
+    if (Object.keys(replyHours).length > 0) {
+      bestReplyHour = parseInt(Object.entries(replyHours).sort((a, b) => b[1] - a[1])[0][0]);
+    }
+
+    const channelBreakdown = Object.entries(byChannel).map(([channel, count]) => ({
+      channel,
+      count,
+      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
+    }));
+
+    const statusBreakdown = Object.entries(byStatus).map(([status, count]) => ({
+      status,
+      count,
+      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
+    }));
+
+    const timeline: Array<{ date: string; leads: number; conversions: number }> = [];
+    for (let i = daysBack; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      const dayLeads = leads.filter(l => {
+        const createdAt = new Date(l.createdAt);
+        return createdAt >= date && createdAt < nextDate;
+      });
+
+      timeline.push({
+        date: date.toISOString().split('T')[0],
+        leads: dayLeads.length,
+        conversions: dayLeads.filter(l => l.status === 'converted').length
+      });
+    }
+
+    res.json({
+      period,
+      summary: {
+        totalLeads: leads.length,
+        conversions,
+        conversionRate: conversionRate.toFixed(1),
+        active,
+        ghosted,
+        notInterested,
+        leadsReplied,
+        bestReplyHour
+      },
+      channelBreakdown,
+      statusBreakdown,
+      timeline,
+      behaviorInsights: {
+        bestReplyHour,
+        replyRate: leads.length > 0 ? ((leadsReplied / leads.length) * 100).toFixed(1) : '0',
+        avgResponseTime: await (await import('../lib/ai/analytics-engine.js')).calculateAvgResponseTime(userId)
+      }
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate analytics";
+    console.error("Analytics error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Update all lead scores
+ * POST /api/ai/score-all
+ */
+router.post("/score-all", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+
+    await updateAllLeadScores(userId);
+
+    res.json({
+      success: true,
+      message: "All leads scored successfully"
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to score leads";
+    console.error("Bulk scoring error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Import leads from CSV file upload
+ * POST /api/leads/import-csv
+ */
+/**
  * GET /api/leads/:leadId
  * Get a single lead by ID
  */
@@ -84,7 +237,7 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
       return;
     }
 
-    res.json({ lead });
+    res.json(lead);
   } catch (error: unknown) {
     console.error("Get lead error:", error);
     res.status(500).json({ error: "Failed to fetch lead" });
@@ -631,24 +784,6 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response): Prom
   }
 });
 
-/**
- * Get advanced AI insights
- * GET /api/ai/insights
- */
-router.get("/insights", requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getCurrentUserId(req)!;
-    const { period = '30d' } = req.query;
-
-    const insights = await generateAnalyticsInsights(userId, period as string);
-
-    res.json(insights);
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate insights";
-    console.error("Advanced insights error:", error);
-    res.status(500).json({ error: errorMessage });
-  }
-});
 
 /**
  * Get AI-powered insights and analytics
@@ -748,7 +883,7 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
       behaviorInsights: {
         bestReplyHour,
         replyRate: leads.length > 0 ? ((leadsReplied / leads.length) * 100).toFixed(1) : '0',
-        avgResponseTime: '4.2 minutes'
+        avgResponseTime: await (await import('../lib/ai/analytics-engine.js')).calculateAvgResponseTime(userId)
       }
     });
 
@@ -890,12 +1025,22 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
       stream
         .pipe(csvParser())
         .on('data', (row: Record<string, string>) => leadsData.push(row))
-        .on('end', () => resolve())
-        .on('error', reject);
+        .on('end', () => {
+          console.log(`✅ CSV Parsing complete. Found ${leadsData.length} rows.`);
+          resolve();
+        })
+        .on('error', (err) => {
+          console.error(`❌ CSV Parsing error:`, err);
+          reject(err);
+        });
     });
 
     if (leadsData.length === 0) {
-      res.status(400).json({ error: "CSV file is empty or could not be parsed" });
+      console.warn("⚠️ CSV file parsed but yielded 0 rows. Content length:", req.file!.buffer.length);
+      res.status(400).json({
+        error: "No lead data provided or CSV format not recognized",
+        details: "Ensure your CSV has headers and at least one row of data."
+      });
       return;
     }
 

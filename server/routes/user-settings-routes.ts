@@ -35,6 +35,8 @@ interface UserSettings {
     intervalSeconds: number;
     lastSyncAt: string | null;
   };
+  meetingLink: string | null;
+  brandContext: any;
 }
 
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -102,6 +104,8 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
         intervalSeconds: row.sync_interval_seconds || 30,
         lastSyncAt: row.last_sync_at?.toISOString() || null,
       },
+      meetingLink: row.meeting_link || null,
+      brandContext: row.brand_context || {},
     };
 
     res.json(settings);
@@ -210,12 +214,26 @@ router.post('/smtp/test', requireAuth, async (req: Request, res: Response): Prom
       WHERE user_id = ${userId}
     `);
 
-    res.json({ success: true, message: 'SMTP connection verified successfully!' });
+    // Trigger immediate historic sync for the inbox
+    try {
+      const { emailSyncWorker } = await import('../lib/email/email-sync-worker.js');
+      const integration = await storage.getIntegration(userId, 'custom_email');
+      if (integration) {
+        // Run in background to not block the response
+        emailSyncWorker.syncHistoricEmails(userId, integration).catch(err =>
+          console.error(`[DeepSync] background sync failed for ${userId}:`, err)
+        );
+      }
+    } catch (syncErr) {
+      console.warn('Failed to trigger background deep sync:', syncErr);
+    }
+
+    res.json({ success: true, message: 'SMTP connection verified successfully! Initial inbox sync started.' });
   } catch (error: any) {
     console.error('SMTP test failed:', error);
-    res.status(400).json({ 
-      error: 'SMTP connection failed', 
-      details: error.message || 'Check your credentials and server settings' 
+    res.status(400).json({
+      error: 'SMTP connection failed',
+      details: error.message || 'Check your credentials and server settings'
     });
   }
 });
@@ -274,6 +292,32 @@ router.put('/automation', requireAuth, async (req: Request, res: Response): Prom
   }
 });
 
+router.put('/profile', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { meetingLink, brandContext } = req.body;
+
+    await db.execute(sql`
+      INSERT INTO user_settings (user_id, meeting_link, brand_context)
+      VALUES (${userId}, ${meetingLink || null}, ${brandContext || '{}'})
+      ON CONFLICT (user_id) DO UPDATE SET
+        meeting_link = ${meetingLink || null},
+        brand_context = ${brandContext || '{}'},
+        updated_at = NOW()
+    `);
+
+    res.json({ success: true, message: 'Profile settings saved' });
+  } catch (error) {
+    console.error('Error saving profile settings:', error);
+    res.status(500).json({ error: 'Failed to save profile settings' });
+  }
+});
+
 router.post('/sync', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req);
@@ -290,6 +334,45 @@ router.post('/sync', requireAuth, async (req: Request, res: Response): Promise<v
   } catch (error) {
     console.error('Error updating sync:', error);
     res.status(500).json({ error: 'Failed to update sync' });
+  }
+});
+
+router.post('/sync/force', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    // Trigger immediate deep sync across all providers
+    const integrations = await storage.getIntegrations(userId);
+    const emailIntegrations = integrations.filter(i =>
+      ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
+    );
+
+    if (emailIntegrations.length === 0) {
+      res.status(400).json({ error: 'No email accounts connected' });
+      return;
+    }
+
+    const { emailSyncWorker } = await import('../lib/email/email-sync-worker.js');
+
+    // Sync each integration in background
+    for (const integration of emailIntegrations) {
+      emailSyncWorker.syncUserEmails(userId, integration, 500).catch(err =>
+        console.error(`Force sync failed for ${userId} (${integration.provider}):`, err)
+      );
+    }
+
+    await db.execute(sql`
+      UPDATE user_settings SET last_sync_at = NOW() WHERE user_id = ${userId}
+    `);
+
+    res.json({ success: true, message: 'Deep sync triggered for all connected mailboxes.' });
+  } catch (error) {
+    console.error('Error in force sync:', error);
+    res.status(500).json({ error: 'Failed to trigger sync' });
   }
 });
 

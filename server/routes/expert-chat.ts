@@ -71,11 +71,18 @@ router.post('/chat', async (req: Request, res: Response) => {
             systemInstruction: AUDNIX_KNOWLEDGE
         });
 
+        // Gemini requires the first message in history to be from the 'user' role.
+        let sanitizedHistory = history.map((m: any) => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: String(m.content) }]
+        }));
+
+        if (sanitizedHistory.length > 0 && sanitizedHistory[0].role === 'model') {
+            sanitizedHistory = sanitizedHistory.slice(1);
+        }
+
         const chat = model.startChat({
-            history: history.map((m: any) => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: String(m.content) }]
-            })),
+            history: sanitizedHistory,
         });
 
         const result = await chat.sendMessage(message);
@@ -86,10 +93,16 @@ router.post('/chat', async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Expert Chat Neural Error:', error);
 
-        // Provide a more dynamic fallback even on error
-        const errorContent = error?.message?.includes('429')
-            ? "Neural pathways are currenty congested. Please wait a moment while I optimize the bandwidth."
-            : "I'm momentarily recalibrating. Please sign up to experience our full dedicated neural processing power.";
+        // Specific error handling for more helpful fallbacks
+        let errorContent = "I'm momentarily recalibrating. This usually happens during high neural load. Please try again or initialize your full account access.";
+
+        if (error?.message?.includes('429')) {
+            errorContent = "Neural pathways are currently congested (Rate Limited). Please wait 30 seconds while I optimize the bandwidth.";
+        } else if (error?.message?.includes('Safety') || error?.message?.includes('HARM_CATEGORY')) {
+            errorContent = "Query flagged by safety protocols. I am designed for elite sales performance within ethical boundaries. Please rephrase.";
+        } else if (isAuthenticated) {
+            errorContent = "I encountered a minor neural desync, commander. Your data is safe—please re-send that last directive.";
+        }
 
         res.json({ content: errorContent });
     }
