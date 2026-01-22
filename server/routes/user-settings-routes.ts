@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
+import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import { encrypt, decrypt } from '../lib/crypto/encryption.js';
@@ -220,11 +221,11 @@ router.post('/smtp/test', requireAuth, async (req: Request, res: Response): Prom
       const integration = await storage.getIntegration(userId, 'custom_email');
       if (integration) {
         // Run in background to not block the response
-        emailSyncWorker.syncHistoricEmails(userId, integration).catch(err =>
+        emailSyncWorker.syncUserEmails(userId, integration).catch((err: any) =>
           console.error(`[DeepSync] background sync failed for ${userId}:`, err)
         );
       }
-    } catch (syncErr) {
+    } catch (syncErr: any) {
       console.warn('Failed to trigger background deep sync:', syncErr);
     }
 
@@ -347,7 +348,7 @@ router.post('/sync/force', requireAuth, async (req: Request, res: Response): Pro
 
     // Trigger immediate deep sync across all providers
     const integrations = await storage.getIntegrations(userId);
-    const emailIntegrations = integrations.filter(i =>
+    const emailIntegrations = integrations.filter((i: any) =>
       ['custom_email', 'gmail', 'outlook'].includes(i.provider) && i.connected
     );
 

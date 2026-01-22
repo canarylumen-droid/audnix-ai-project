@@ -35,12 +35,14 @@ BEHAVIORAL RULES:
 `;
 
 router.post('/chat', async (req: Request, res: Response) => {
+    let isAuthenticated = false;
     try {
         if (!req.body) {
             return res.json({ content: "Protocol error: Empty communication packet. Please retry." });
         }
 
-        const { message, history = [], isAuthenticated = false } = req.body;
+        const { message, history = [] } = req.body;
+        isAuthenticated = req.body.isAuthenticated === true;
 
         if (!message) {
             return res.status(400).json({ error: 'Message payload required' });

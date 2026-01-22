@@ -29,7 +29,8 @@ export async function processPDF(
 ): Promise<PDFProcessingResult> {
   try {
     // Dynamic import for pdf-parse (CommonJS legacy)
-    const { default: pdfParse } = await import('pdf-parse');
+    const pdfModule = await import('pdf-parse/lib/pdf-parse.js');
+    const pdfParse = pdfModule.default || pdfModule;
 
     // Handle large files (>10MB) with max buffer size
     const maxBufferSize = 50 * 1024 * 1024; // 50MB max

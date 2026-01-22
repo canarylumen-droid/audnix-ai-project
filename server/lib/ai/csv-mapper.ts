@@ -21,6 +21,9 @@ export type LeadColumnMapping = {
     phone?: string;
     company?: string;
     channel?: string;
+    industry?: string;
+    website?: string;
+    notes?: string;
 };
 
 export interface MappingResult {
@@ -159,7 +162,7 @@ function fallbackMapping(headers: string[]): MappingResult {
     const mappedColumns = new Set<string>();
 
     // Common variations for each field
-    const patterns: Record<keyof LeadColumnMapping, RegExp[]> = {
+    const patterns: Record<string, RegExp[]> = {
         name: [
             /^name$/i, /^full[_\s-]?name$/i, /^contact[_\s-]?name$/i,
             /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i
