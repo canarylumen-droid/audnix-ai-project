@@ -249,6 +249,7 @@ app.use((req, res, next) => {
     '/api/user/profile',
     '/api/video',
     '/api/leads',
+    '/api/expert-chat',
     '/auth/instagram',
     '/health',
     '/api/health'

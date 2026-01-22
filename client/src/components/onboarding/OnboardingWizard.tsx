@@ -131,7 +131,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
     try {
       // Call the backend to save onboarding profile and mark as complete
-      await apiClient('/api/onboarding', {
+      await apiClient('/api/auth/complete-onboarding', {
         method: 'POST',
         body: JSON.stringify({
           userRole,

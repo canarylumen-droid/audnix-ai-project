@@ -73,7 +73,7 @@ interface InsightsApiResponse {
 export default function InsightsPage() {
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
-    queryKey: ["/api/insights"],
+    queryKey: ["/api/ai/insights"],
     refetchInterval: 10000,
     retry: false,
   });
