@@ -373,4 +373,52 @@ export class GmailOAuth {
       return null;
     }
   }
+
+  /**
+   * List recent messages from Gmail
+   */
+  async listMessages(userId: string, limit: number = 20): Promise<any[]> {
+    const token = await this.getValidToken(userId);
+    if (!token) {
+      throw new Error('Gmail not connected or token expired');
+    }
+
+    this.oauth2Client.setCredentials({ access_token: token });
+    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+    try {
+      const response = await gmail.users.messages.list({
+        userId: 'me',
+        maxResults: limit
+      });
+
+      return response.data.messages || [];
+    } catch (error: any) {
+      throw new Error(`Failed to list messages: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get full message details from Gmail
+   */
+  async getMessageDetails(userId: string, messageId: string): Promise<any> {
+    const token = await this.getValidToken(userId);
+    if (!token) {
+      throw new Error('Gmail not connected or token expired');
+    }
+
+    this.oauth2Client.setCredentials({ access_token: token });
+    const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
+
+    try {
+      const response = await gmail.users.messages.get({
+        userId: 'me',
+        id: messageId
+      });
+
+      return response.data;
+    } catch (error: any) {
+      throw new Error(`Failed to get message details: ${error.message}`);
+    }
+  }
 }

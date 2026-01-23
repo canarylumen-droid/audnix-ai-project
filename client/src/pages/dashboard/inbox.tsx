@@ -212,7 +212,7 @@ export default function InboxPage() {
       {/* Sidebar */}
       <div className="w-64 border-r border-border/40 bg-muted/5 hidden md:flex flex-col p-3 space-y-6">
         <div className="space-y-1">
-          <h4 className="text-[10px] font-black text-white/20 px-4 mb-4 uppercase tracking-[0.2em]">Priority Hub</h4>
+          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Priority Hub</h4>
           {[
             { id: 'inbox', label: 'Inbox', icon: InboxIcon, count: allLeads.length },
             { id: 'starred', label: 'Starred', icon: Star, count: 0 },
@@ -223,7 +223,7 @@ export default function InboxPage() {
               variant={activeTab === item.id ? 'secondary' : 'ghost'}
               className={cn(
                 "w-full justify-between font-bold h-11 rounded-xl px-4 transition-all duration-300",
-                activeTab === item.id ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "text-white/40 hover:text-white hover:bg-white/5"
+                activeTab === item.id ? "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
               onClick={() => setActiveTab(item.id as any)}
             >
@@ -241,7 +241,7 @@ export default function InboxPage() {
         </div>
 
         <div className="space-y-1 pt-8">
-          <h4 className="text-[10px] font-black text-white/20 px-4 mb-4 uppercase tracking-[0.2em]">Neural Channels</h4>
+          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Neural Channels</h4>
           {[
             { id: 'all', label: 'All Channels', icon: InboxIcon },
             { id: 'instagram', label: 'Instagram', icon: Instagram },
@@ -252,7 +252,7 @@ export default function InboxPage() {
               variant={filterChannel === item.id ? 'secondary' : 'ghost'}
               className={cn(
                 "w-full justify-start font-bold h-11 rounded-xl px-4 transition-all duration-300",
-                filterChannel === item.id ? "bg-primary/10 text-primary border border-primary/20" : "text-white/40 hover:text-white hover:bg-white/5"
+                filterChannel === item.id ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               )}
               onClick={() => setFilterChannel(item.id)}
             >
@@ -343,7 +343,7 @@ export default function InboxPage() {
 
                     <div className={cn("relative transition-all duration-300", isSelected || "group-hover:opacity-0 group-hover:scale-95")}>
                       <Avatar className="h-12 w-12 border-2 border-white/5 shadow-2xl transition-transform group-hover:scale-110">
-                        <AvatarFallback className={cn("text-xs font-black bg-background/50 backdrop-blur-md", isUnread ? "text-primary" : "text-white/20")}>
+                        <AvatarFallback className={cn("text-xs font-black bg-muted/50 backdrop-blur-md", isUnread ? "text-primary" : "text-muted-foreground/40")}>
                           {lead.name ? lead.name.slice(0, 2).toUpperCase() : "??"}
                         </AvatarFallback>
                       </Avatar>
@@ -378,7 +378,7 @@ export default function InboxPage() {
                             {lead.status.replace('_', ' ')}
                           </Badge>
                         )}
-                        <span className={cn("text-sm truncate font-bold tracking-tight", isUnread ? "text-white" : "text-white/40")}>
+                        <span className={cn("text-sm truncate font-bold tracking-tight", isUnread ? "text-foreground" : "text-muted-foreground/40")}>
                           {lead.lastMessageSnippet || "Neural sync active..."}
                         </span>
                       </div>

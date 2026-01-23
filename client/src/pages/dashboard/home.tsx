@@ -415,9 +415,9 @@ export default function DashboardHome() {
               </CardContent>
             </Card>
 
-            <Card className="border-border/50 rounded-2xl bg-[#030303]/40 backdrop-blur-xl relative overflow-hidden group">
+            <Card className="border-border/50 rounded-2xl bg-card/40 backdrop-blur-xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full transition-opacity group-hover:opacity-20" />
-              <CardHeader className="pb-3 border-b border-white/5">
+              <CardHeader className="pb-3 border-b border-border/10">
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
                   <ShieldCheck className="h-3 w-3" />
                   Deliverability Status

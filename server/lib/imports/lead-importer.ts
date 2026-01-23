@@ -130,3 +130,79 @@ export async function importManychatLeads(userId: string): Promise<{
     return results;
   } catch (e: any) { results.errors.push(e.message); return results; }
 }
+
+/**
+ * Import leads and messages from Gmail
+ */
+export async function importGmailLeads(userId: string): Promise<{
+  leadsImported: number;
+  messagesImported: number;
+  errors: string[];
+}> {
+  const results = { leadsImported: 0, messagesImported: 0, errors: [] as string[] };
+  try {
+    const { GmailOAuth } = await import('../oauth/gmail.js');
+    const gmailOAuth = new GmailOAuth();
+
+    // Get recent messages
+    const messages = await gmailOAuth.listMessages(userId, 50);
+
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+
+    for (const msgSummary of messages) {
+      try {
+        const fullMsg = await gmailOAuth.getMessageDetails(userId, msgSummary.id);
+        const headers = fullMsg.payload?.headers || [];
+
+        const fromHeader = headers.find((h: any) => h.name === 'From')?.value || '';
+        const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
+        const date = headers.find((h: any) => h.name === 'Date')?.value || '';
+
+        // Extract email and name
+        const match = fromHeader.match(/(?:"?([^"]*)"?\s*)?<?([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})>?/);
+        const name = match?.[1] || fromHeader.split('<')[0].trim() || 'Gmail User';
+        const email = match?.[2] || fromHeader;
+
+        if (!email) continue;
+
+        let lead = existingLeads.find(l => l.email === email);
+        if (!lead) {
+          lead = await storage.createLead({
+            userId,
+            name,
+            email,
+            channel: 'email',
+            status: 'new',
+            lastMessageAt: date ? new Date(date) : null,
+            metadata: { imported_from_gmail: true }
+          });
+          results.leadsImported++;
+        }
+
+        const existingMessages = await storage.getMessages(lead.id);
+        const exists = existingMessages.some(m => (m.metadata as any)?.gmail_message_id === fullMsg.id);
+
+        if (!exists) {
+          // Extract snippet or body
+          const body = fullMsg.snippet || '';
+
+          await storage.createMessage({
+            leadId: lead.id,
+            userId,
+            provider: 'gmail',
+            direction: 'inbound',
+            body: body,
+            metadata: { gmail_message_id: fullMsg.id, subject, timestamp: date }
+          });
+          results.messagesImported++;
+        }
+      } catch (e: any) {
+        results.errors.push(e.message);
+      }
+    }
+    return results;
+  } catch (error: any) {
+    results.errors.push(error.message);
+    return results;
+  }
+}

@@ -157,7 +157,7 @@ export default function InsightsPage() {
       {!hasData ? (
         <div className="grid gap-6">
           <Card className="border-none bg-gradient-to-br from-primary/10 via-background to-purple-500/10 shadow-2xl overflow-hidden relative group">
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:32px]" />
+            <div className="absolute inset-0 bg-grid-foreground/[0.02] bg-[size:32px]" />
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full -mr-20 -mt-20 animate-pulse" />
 
             <CardContent className="flex flex-col items-center justify-center py-24 text-center space-y-8 relative z-10">
@@ -293,7 +293,7 @@ export default function InsightsPage() {
                         dataKey="leads"
                         strokeWidth={4}
                         stroke="hsl(var(--primary))"
-                        dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "#fff" }}
+                        dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
                         activeDot={{ r: 6, strokeWidth: 0 }}
                       />
                     </LineChart>

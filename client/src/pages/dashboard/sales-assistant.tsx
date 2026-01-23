@@ -187,7 +187,7 @@ export default function SalesAssistant() {
           className="w-full p-4 flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-background/50 border border-white/5`}>
+            <div className={`p-2 rounded-lg bg-card border border-border/10`}>
               <Icon className={`w-4 h-4 ${theme.icon}`} />
             </div>
             <span className="font-semibold text-foreground">{title}</span>
@@ -252,13 +252,13 @@ export default function SalesAssistant() {
         >
           <Card className="h-full border-border/40 shadow-2xl bg-card/40 backdrop-blur-xl rounded-[2.5rem] overflow-hidden grayscale-[0.5] hover:grayscale-0 transition-all duration-700">
             <CardHeader className="p-10 pb-4">
-              <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-white">
+              <CardTitle className="flex items-center gap-3 text-2xl font-black uppercase tracking-tight text-foreground">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
                   <MessageSquare className="w-6 h-6" />
                 </div>
                 Prospect Input
               </CardTitle>
-              <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
+              <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
                 Verbatim Neural Analysis
               </CardDescription>
             </CardHeader>
@@ -268,7 +268,7 @@ export default function SalesAssistant() {
                   placeholder='e.g., "I need to think about it..." or "Send me more info"'
                   value={prospectText}
                   onChange={(e) => setProspectText(e.target.value)}
-                  className="min-h-[300px] resize-none p-4 text-base leading-relaxed bg-muted/20 border-border focus:border-cyan-500/50 transition-colors rounded-xl"
+                  className="min-h-[300px] resize-none p-4 text-base leading-relaxed bg-muted/40 border-border focus:border-cyan-500/50 transition-colors rounded-xl shadow-inner"
                 />
                 <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded-md border border-border/50">
                   {prospectText.length} chars
@@ -321,11 +321,11 @@ export default function SalesAssistant() {
                       <AlertCircle className="w-5 h-5 text-emerald-500" />
                       Analysis Complete
                     </CardTitle>
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-500 bg-emerald-500/10">
                       {analysis.confidence}% Match
                     </Badge>
                   </div>
-                  <div className="mt-2 p-3 rounded-lg bg-background/60 border border-emerald-500/20 backdrop-blur-sm">
+                  <div className="mt-2 p-3 rounded-lg bg-card/60 border border-emerald-500/20 backdrop-blur-sm shadow-inner">
                     <p className="text-sm font-medium text-foreground">
                       Detected: <span className="text-emerald-500">{analysis.hiddenObjection || analysis.category}</span>
                     </p>

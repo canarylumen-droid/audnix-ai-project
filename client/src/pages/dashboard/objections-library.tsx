@@ -63,7 +63,7 @@ const CATEGORY_STYLES: Record<string, string> = {
   price: "border-primary/20 bg-primary/5 text-primary",
   fit: "border-purple-500/20 bg-purple-500/5 text-purple-500",
   timing: "border-primary/20 bg-primary/5 text-primary",
-  generic: "border-white/5 bg-white/5 text-white/40",
+  generic: "border-border/10 bg-muted/50 text-muted-foreground",
 };
 
 // Helper function for copying text
@@ -93,27 +93,27 @@ function ObjectionCard({ objection, index }: {
       <Card className={`overflow-hidden border group transition-all duration-500 hover:scale-[1.02] cursor-pointer rounded-[2rem] ${CATEGORY_STYLES[objection.category] || CATEGORY_STYLES.generic}`}>
         <CardHeader className="p-8 pb-4">
           <div className="flex items-center justify-between mb-4">
-            <Badge variant="outline" className="font-black uppercase tracking-[0.2em] text-[10px] bg-white/5 border-white/5">
+            <Badge variant="outline" className="font-black uppercase tracking-[0.2em] text-[10px] bg-muted/20 border-border/10">
               {objection.category.toUpperCase()} PATTERN
             </Badge>
-            <ShieldAlert className="h-4 w-4 opacity-20" />
+            <ShieldAlert className="h-4 w-4 text-muted-foreground/30" />
           </div>
-          <CardTitle className="text-xl font-black text-white uppercase tracking-tight leading-none group-hover:text-primary transition-colors">{objection.name}</CardTitle>
+          <CardTitle className="text-xl font-black text-foreground uppercase tracking-tight leading-none group-hover:text-primary transition-colors">{objection.name}</CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0 space-y-4">
-          <div className="p-6 rounded-2xl bg-black/40 border border-white/5">
-            <p className="text-sm font-bold text-white/80 leading-relaxed tracking-tight">{objection.content}</p>
+          <div className="p-6 rounded-2xl bg-card border border-border/40">
+            <p className="text-sm font-bold text-foreground/80 leading-relaxed tracking-tight">{objection.content}</p>
           </div>
           <div className="flex items-center justify-between pt-2">
             <div className="flex gap-2">
               <button
                 onClick={(e) => { e.stopPropagation(); copyToClipboard(objection.content, 'Neural Response', toast); }}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-primary/20 transition-all text-white/40 hover:text-primary active:scale-90"
+                className="p-2.5 rounded-xl bg-muted/50 hover:bg-primary/20 transition-all text-muted-foreground hover:text-primary active:scale-90"
               >
                 <Copy className="h-4 w-4" />
               </button>
             </div>
-            <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-primary h-auto p-0">
+            <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary h-auto p-0">
               Evolution Logic <ArrowRight className="ml-1 h-3 w-3" />
             </Button>
           </div>
@@ -160,11 +160,11 @@ export default function ObjectionsLibraryPage() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-primary" />
             Objections Library
           </h1>
-          <p className="text-white/60 mt-1">
+          <p className="text-muted-foreground mt-1">
             110+ proven responses for Email, Instagram, and manual copy-paste
           </p>
         </div>
@@ -175,23 +175,23 @@ export default function ObjectionsLibraryPage() {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative group flex-1">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
           <Input
             placeholder="Search neural patterns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 bg-white/5 border-white/10 rounded-2xl h-12 focus:border-primary/50 transition-all font-bold tracking-tight"
+            className="pl-12 bg-muted/40 border-border/40 rounded-2xl h-12 focus:border-primary/50 transition-all font-bold tracking-tight"
           />
         </div>
         <div className="flex gap-2">
           <Tabs value={selectedChannel} onValueChange={setSelectedChannel}>
-            <TabsList className="bg-white/5 border border-white/10">
-              <TabsTrigger value="all" className="data-[state=active]:bg-white/10">All</TabsTrigger>
-              <TabsTrigger value="email" className="data-[state=active]:bg-white/10">
+            <TabsList className="bg-muted/40 border border-border/40">
+              <TabsTrigger value="all" className="data-[state=active]:bg-background">All</TabsTrigger>
+              <TabsTrigger value="email" className="data-[state=active]:bg-background">
                 <Mail className="w-4 h-4 mr-1" />
                 Email
               </TabsTrigger>
-              <TabsTrigger value="instagram" className="data-[state=active]:bg-white/10">
+              <TabsTrigger value="instagram" className="data-[state=active]:bg-background">
                 <Instagram className="w-4 h-4 mr-1" />
                 Instagram
               </TabsTrigger>
@@ -211,7 +211,7 @@ export default function ObjectionsLibraryPage() {
               onClick={() => setSelectedCategory(cat.id)}
               className={selectedCategory === cat.id
                 ? "bg-primary/20 text-primary border-primary/30 hover:bg-primary/30"
-                : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                : "bg-muted/50 border-border/40 text-muted-foreground hover:bg-muted hover:text-foreground"
               }
             >
               <Icon className="w-3.5 h-3.5 mr-1.5" />
@@ -225,15 +225,15 @@ export default function ObjectionsLibraryPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(9)].map((_, i) => (
-            <Skeleton key={i} className="h-24 bg-white/5 rounded-xl" />
+            <Skeleton key={i} className="h-24 bg-muted animate-pulse rounded-xl" />
           ))}
         </div>
       ) : filteredObjections.length === 0 ? (
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-muted/40 border-border/40">
           <CardContent className="py-12 text-center">
-            <MessageSquare className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white/80">No objections found</h3>
-            <p className="text-white/50 mt-1">Try a different search or category</p>
+            <MessageSquare className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground/80">No objections found</h3>
+            <p className="text-muted-foreground mt-1">Try a different search or category</p>
           </CardContent>
         </Card>
       ) : (
@@ -259,7 +259,7 @@ export default function ObjectionsLibraryPage() {
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase leading-[0.9]">
               Custom Neural <br /> <span className="text-primary">Logic Required?</span>
             </h2>
-            <p className="text-white/40 font-bold max-w-md tracking-tight text-lg">
+            <p className="text-white/60 font-bold max-w-md tracking-tight text-lg">
               Train your personal objection patterns into the neural core for deterministic close rates. Automated evolution active.
             </p>
           </div>

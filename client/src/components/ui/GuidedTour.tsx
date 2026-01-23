@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight, Sparkles, Navigation, Upload, MessageSqua
 import { createPortal } from "react-dom";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 interface TourStep {
   id: string;
@@ -175,14 +176,24 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           />
         )}
 
-        {/* Tour Modal */}
-        <div className={`fixed z-[10001] pointer-events-auto flex items-center justify-center inset-0 ${step.position === 'center' ? '' : 'sm:inset-auto sm:right-12 sm:bottom-12'}`}>
+        {/* Tour Modal Container */}
+        <div
+          className={cn(
+            "fixed z-[10001] pointer-events-auto flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            step.position === 'center' ? "inset-0" : ""
+          )}
+          style={step.position !== 'center' && targetRect ? {
+            top: targetRect.top + targetRect.height + 24,
+            left: targetRect.left + (targetRect.width / 2) - 200, // Center relative to target
+            position: 'fixed'
+          } : undefined}
+        >
           <motion.div
             key={currentStep}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="w-full max-w-[400px] mx-4 glass-card rounded-[2.5rem] border-white/10 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.8)] p-8 bg-black/80"
+            className="w-full max-w-[400px] mx-4 glass-card rounded-[2.5rem] border-white/10 shadow-[0_32px_96px_-16px_rgba(0,0,0,0.8)] p-8 bg-black/90 backdrop-blur-2xl"
           >
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
@@ -196,7 +207,11 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
                   </p>
                 </div>
               </div>
-              <button onClick={onSkip} className="p-2 hover:bg-white/5 rounded-full transition-all group">
+              <button
+                onClick={onSkip}
+                className="p-2 hover:bg-white/5 rounded-full transition-all group flex flex-col items-center gap-1"
+                title="Skip tour forever"
+              >
                 <X className="w-4 h-4 text-white/20 group-hover:text-white" />
               </button>
             </div>
@@ -218,12 +233,10 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleBack}
-                  disabled={currentStep === 0}
-                  className="rounded-xl text-white/40 hover:text-white hover:bg-white/5"
+                  onClick={onSkip}
+                  className="rounded-xl text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white hover:bg-white/5"
                 >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Back
+                  Dismiss
                 </Button>
                 <Button
                   onClick={handleNext}

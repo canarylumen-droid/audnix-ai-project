@@ -143,12 +143,12 @@ export default function AIDecisionsPage() {
       <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20 rounded-[2.5rem] overflow-hidden">
         <CardContent className="p-8">
           <div className="flex items-start gap-6">
-            <div className="p-4 bg-primary/20 rounded-2xl shadow-inner">
+            <div className="p-4 bg-primary/10 rounded-2xl shadow-inner border border-primary/20">
               <Brain className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-white uppercase tracking-tight">Intelligence Governance Protocol</h3>
-              <p className="text-sm text-white/40 mt-2 font-bold leading-relaxed max-w-2xl">
+              <h3 className="text-lg font-black text-foreground uppercase tracking-tight">Intelligence Governance Protocol</h3>
+              <p className="text-sm text-muted-foreground/60 mt-2 font-bold leading-relaxed max-w-2xl">
                 AI NEVER acts without decision engine approval. Every action requires minimum intent
                 thresholds and confidence scores. Each decision is logged as: <span className="text-emerald-500">ACT</span>, <span className="text-orange-500">WAIT</span>,
                 <span className="text-red-500">SKIP</span>, or <span className="text-purple-500">ESCALATE</span>.
@@ -256,12 +256,12 @@ function StatCard({
     <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
       <CardContent className="p-6">
         <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl bg-white/5 border border-white/5 group-hover:scale-110 transition-transform`}>
+          <div className={`p-3 rounded-2xl bg-muted/20 border border-border/10 group-hover:scale-110 transition-transform`}>
             <Icon className={`h-6 w-6 ${color}`} />
           </div>
           <div>
-            <div className="text-2xl font-black text-white tracking-tighter">{value}</div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">{label}</div>
+            <div className="text-2xl font-black text-foreground tracking-tighter">{value}</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">{label}</div>
             {subtext && (
               <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60 mt-1">{subtext}</div>
             )}
@@ -285,15 +285,15 @@ function DecisionTypeCard({
   const colorClass = DECISION_COLORS[type];
 
   return (
-    <Card className={`rounded-[1.5rem] border-white/5 overflow-hidden transition-all duration-300 ${count > 0 ? 'bg-white/5 hover:bg-white/10' : 'opacity-20'}`}>
+    <Card className={`rounded-[1.5rem] border-border/10 overflow-hidden transition-all duration-300 ${count > 0 ? 'bg-muted/10 hover:bg-muted/20' : 'opacity-20'}`}>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-xl ${colorClass}`}>
             <Icon className="h-4 w-4" />
           </div>
           <div>
-            <div className="text-lg font-black tracking-tight text-white">{count}</div>
-            <div className="text-[9px] font-black uppercase tracking-widest text-white/20">{label}</div>
+            <div className="text-lg font-black tracking-tight text-foreground">{count}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">{label}</div>
           </div>
         </div>
       </CardContent>
@@ -310,14 +310,14 @@ function DecisionRow({ decision }: { decision: AIDecision }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex items-start gap-4 p-6 rounded-[2rem] border border-white/5 bg-background/20 hover:bg-white/5 transition-all group"
+      className="flex items-start gap-4 p-6 rounded-[2rem] border border-border/10 bg-muted/10 hover:bg-muted/20 transition-all group shadow-sm"
     >
       <div className={`p-3 rounded-2xl ${colorClass} shadow-lg`}>
         <DecisionIcon className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="gap-2 text-[10px] font-black uppercase tracking-widest bg-white/5 border-white/10 h-7 px-3">
+          <Badge variant="outline" className="gap-2 text-[10px] font-black uppercase tracking-widest bg-muted/10 border-border/10 h-7 px-3">
             <ActionIcon className="h-3.5 w-3.5" />
             {decision.actionType.replace('_', ' ')}
           </Badge>
@@ -328,19 +328,19 @@ function DecisionRow({ decision }: { decision: AIDecision }) {
             {decision.decision}
           </Badge>
         </div>
-        <p className="text-md font-bold text-white/80 mt-4 leading-relaxed tracking-tight">{decision.reasoning}</p>
-        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-white/5">
+        <p className="text-md font-bold text-foreground/80 mt-4 leading-relaxed tracking-tight">{decision.reasoning}</p>
+        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-border/10">
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Intent Score</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">Intent Score</span>
             <span className="text-[10px] font-black text-orange-500">{decision.intentScore}%</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Confidence</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">Confidence</span>
             <span className="text-[10px] font-black text-primary">{Math.round((decision.confidence || 0) * 100)}%</span>
           </div>
           <div className="flex items-center gap-2 ml-auto">
-            <Clock className="h-3 w-3 text-white/20" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-white/20">{format(new Date(decision.createdAt), 'MMM d, h:mm a')}</span>
+            <Clock className="h-3 w-3 text-muted-foreground/30" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/30">{format(new Date(decision.createdAt), 'MMM d, h:mm a')}</span>
           </div>
         </div>
       </div>

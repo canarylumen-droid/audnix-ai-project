@@ -442,51 +442,67 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background flex items-center justify-between px-8 sticky top-0 z-40">
-          <div className="flex items-center gap-4 flex-1">
+        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
+          <div className="flex items-center gap-6 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-muted-foreground hover:bg-muted/50 rounded-xl">
-                  <Menu className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-foreground/80 hover:bg-primary/10 hover:text-primary rounded-2xl w-12 h-12 transition-all shadow-sm border border-border/10">
+                  <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-80 bg-background border-r border-border/40">
-                <div className="h-20 flex items-center px-6 border-b border-border/40 mb-4">
-                  <Logo className="h-8 w-8" textClassName="text-lg font-bold" />
+              <SheetContent side="left" className="p-0 w-full sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
+                <div className="h-24 flex items-center px-8 border-b border-border/40 bg-muted/20">
+                  <Logo className="h-10 w-10" textClassName="text-2xl font-black italic tracking-tighter" />
                 </div>
-                <ScrollArea className="h-[calc(100vh-6rem)] px-4">
-                  <div className="space-y-6">
+                <ScrollArea className="flex-1 px-4 py-8">
+                  <div className="space-y-10">
                     <div>
-                      <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3">Platform</h4>
-                      {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
-                      {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+                      <h4 className="px-6 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] mb-4">Command Center</h4>
+                      <div className="space-y-1">
+                        {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+                        {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
+                      </div>
                     </div>
                     {navGroups.map(group => (
-                      <div key={group.label} className="space-y-1">
-                        <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-2">{group.label}</h4>
-                        {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
+                      <div key={group.label} className="space-y-2">
+                        <h4 className="px-6 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] mb-4">{group.label}</h4>
+                        <div className="space-y-1">
+                          {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
+                        </div>
                       </div>
                     ))}
-                    <div className="pt-4 border-t border-border/20">
+                    <div className="pt-6 border-t border-border/10">
                       {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
                     </div>
                   </div>
                 </ScrollArea>
+                <div className="p-8 border-t border-border/10 bg-muted/10">
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-background border border-border/40">
+                    <Avatar className="h-12 w-12 rounded-2xl">
+                      <AvatarImage src={user?.avatar} />
+                      <AvatarFallback className="font-black bg-primary text-black">{(user?.name || "U")[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black truncate">{user?.name || "Member"}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{user?.plan || "Free"} node active</p>
+                    </div>
+                  </div>
+                </div>
               </SheetContent>
             </Sheet>
 
-            <div className="relative max-w-md w-full hidden md:block group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <div className="relative max-w-lg w-full hidden md:block group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search leads, actions, or tools..."
-                className="h-11 pl-11 bg-muted/40 border-border/10 focus:bg-background focus:ring-2 focus:ring-primary/20 rounded-xl font-medium placeholder:text-muted-foreground transition-all"
+                placeholder="Neural search system initialized..."
+                className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-40 group-focus-within:opacity-100 transition-opacity">
-                <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border border-border bg-muted/50 font-mono text-[10px] font-bold text-muted-foreground">
-                  ⌘K
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-20 group-focus-within:opacity-100 transition-opacity">
+                <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg border border-border bg-muted/80 font-mono text-[9px] font-black text-muted-foreground">
+                  CTRL K
                 </kbd>
               </div>
             </div>
