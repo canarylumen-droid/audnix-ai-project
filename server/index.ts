@@ -546,26 +546,26 @@ async function runMigrations() {
   // Run migrations and start workers in background AFTER server starts
   (async () => {
     try {
-      const isVercel = false; // Forced to false to enable full backend logic on all platforms
+    const isVercel = process.env.VERCEL === '1';
 
-      // 1. Run migrations
-      if (!isVercel) {
-        try {
-          await runMigrations();
-
-          // Seed initial data if database is empty (disabled for production)
-          const { db } = await import('./db.js');
-          const userCount = await db.select({ count: sql`count(*)` }).from(users);
-          if (Number(userCount[0].count) === 0) {
-            console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
-          }
-        } catch (err) {
-          console.error('❌ Migration or seeding failed, continuing...', err);
+    // 1. Run migrations
+    if (!isVercel) {
+      try {
+        await runMigrations();
+        
+        // Seed initial data if database is empty (disabled for production)
+        const { db } = await import('./db.js');
+        const userCount = await db.select({ count: sql`count(*)` }).from(users);
+        if (Number(userCount[0].count) === 0) {
+          console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
         }
+      } catch (err) {
+        console.error('❌ Migration or seeding failed, continuing...', err);
       }
+    }
 
-      // Always start workers on persistent environments (Replit, Railway, etc.)
-      if (!isVercel) {
+    // Always start workers on persistent environments (Replit, Railway, etc.)
+    if (!isVercel) {
         // 2. Start workers
         const { db } = await import('./db.js');
         const hasDatabase = process.env.DATABASE_URL && db;

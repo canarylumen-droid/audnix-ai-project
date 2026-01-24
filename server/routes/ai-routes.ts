@@ -479,9 +479,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
       return;
     }
 
-    import { verifyDomainDns } from "../lib/email/dns-verification.js";
-
-    // ... (existing imports)
+    const { verifyDomainDns } = await import("../lib/email/dns-verification.js");
 
     const results = {
       leadsImported: 0,
