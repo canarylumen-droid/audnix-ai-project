@@ -20,29 +20,29 @@ interface SmtpRateLimit {
 
 const RATE_LIMITS: Record<string, SmtpRateLimit> = {
   'free': {
-    perHour: 30,
-    perDay: 200,
+    perHour: 50,
+    perDay: 300,
     minDelay: 3,
     maxDelay: 10,
     enabled: true
   },
   'starter': {
-    perHour: 100,
-    perDay: 500,
+    perHour: 150,
+    perDay: 1000,
     minDelay: 2,
     maxDelay: 8,
     enabled: true
   },
   'pro': {
-    perHour: 300,
-    perDay: 2000,
+    perHour: 500,
+    perDay: 5000,
     minDelay: 1,
     maxDelay: 5,
     enabled: true
   },
   'enterprise': {
-    perHour: 1000,
-    perDay: 20000,
+    perHour: 2000,
+    perDay: 50000,
     minDelay: 0,
     maxDelay: 2,
     enabled: true

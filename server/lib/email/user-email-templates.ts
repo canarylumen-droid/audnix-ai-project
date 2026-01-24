@@ -104,8 +104,8 @@ export function generateTrialReminderEmail(options: TrialReminderOptions): { htm
     brandColor = '#00D9FF'
   } = options;
 
-  const urgencyText = daysRemaining <= 1 
-    ? 'Final day to lock in your AI closer' 
+  const urgencyText = daysRemaining <= 1
+    ? 'Final day to lock in your AI closer'
     : `${daysRemaining} days left to keep your AI working`;
 
   const html = `
@@ -263,4 +263,44 @@ Starter plan is just $49/month. That's one closed deal.
 Need help? Just reply. Team ${companyName}`;
 
   return { html, text };
+}
+
+/**
+ * Outreach Email with Plain Text Priority
+ * Default to plain text unless high-fidelity brand colors are provided.
+ */
+export function generateOutreachEmail(options: {
+  subject: string;
+  body: string;
+  brandColor?: string;
+  companyName?: string;
+}): { html: string; text: string } {
+  const hasColor = options.brandColor &&
+    options.brandColor !== '#000000' &&
+    options.brandColor !== '#ffffff';
+
+  const textBody = options.body;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .content { white-space: pre-wrap; font-size: 16px; }
+    ${hasColor ? `.brand-accent { border-left: 4px solid ${options.brandColor}; padding-left: 20px; }` : ''}
+    .footer { margin-top: 40px; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="content ${hasColor ? 'brand-accent' : ''}">${textBody}</div>
+    <div class="footer">Sent via ${options.companyName || 'Audnix AI'}</div>
+  </div>
+</body>
+</html>
+`;
+
+  return { html: htmlBody, text: textBody };
 }

@@ -171,7 +171,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       label: "Reports",
       items: [
         { label: "Audit Logs", icon: Activity, path: "/dashboard/ai-decisions" },
-        { label: "Analytics", icon: BarChart3, path: "/dashboard/insights" },
+        { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
+        { label: "Insights", icon: Sparkles, path: "/dashboard/insights" },
         { label: "Engagement Map", icon: Globe, path: "/dashboard/video-automation" },
       ],
     },

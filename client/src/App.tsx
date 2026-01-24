@@ -30,6 +30,7 @@ const ApiDocsPage = lazy(() => import("./pages/resources/api-docs"));
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
 const ConversationsPage = lazy(() => import("./pages/dashboard/conversations"));
 const CalendarPage = lazy(() => import("./pages/dashboard/calendar"));
+const AnalyticsPage = lazy(() => import("./pages/dashboard/analytics"));
 const InsightsPage = lazy(() => import("./pages/dashboard/insights"));
 const VideoAutomationPage = lazy(() => import("./pages/dashboard/video-automation"));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -162,6 +163,13 @@ function Router() {
         {() => (
           <AuthGuard>
             <Suspense fallback={null}><CalendarPage /></Suspense>
+          </AuthGuard>
+        )}
+      </Route>
+      <Route path="/dashboard/analytics">
+        {() => (
+          <AuthGuard>
+            <Suspense fallback={null}><AnalyticsPage /></Suspense>
           </AuthGuard>
         )}
       </Route>

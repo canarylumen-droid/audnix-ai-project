@@ -545,75 +545,86 @@ export default function CalendarPage() {
           </motion.div>
         )}
 
-        {allEvents.length === 0 ? (
-          <div className="py-20 text-center space-y-4 bg-muted/5 rounded-3xl border-2 border-dashed border-border/40">
-            <div className="w-16 h-16 bg-muted rounded-full mx-auto flex items-center justify-center">
-              <CalendarDays className="h-8 w-8 opacity-20" />
+        <div className="min-h-[400px]">
+          {allEvents.length === 0 ? (
+            <div className="py-20 text-center space-y-6 bg-[#050505] rounded-[3rem] border border-white/5 border-dashed">
+              <div className="w-20 h-20 bg-primary/5 rounded-3xl mx-auto flex items-center justify-center border border-primary/10">
+                <CalendarDays className="h-10 w-10 text-primary/40 animate-pulse" />
+              </div>
+              <div className="max-w-xs mx-auto space-y-2">
+                <h3 className="text-sm font-black uppercase tracking-widest text-white">No active nodes scheduled</h3>
+                <p className="text-[10px] uppercase font-bold text-white/20 tracking-tighter">Your neural scheduling grid is currently clear. Once deals are initialized, slots will populate here.</p>
+              </div>
+              {!settings?.calendlyEnabled && (
+                <Button
+                  onClick={() => setShowSettingsSheet(true)}
+                  className="rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold h-10 px-6 transition-all"
+                >
+                  Configure Mesh Connection
+                </Button>
+              )}
             </div>
-            <p className="text-muted-foreground">No events scheduled yet. Connect your calendar to get started.</p>
-            <Button onClick={() => setShowSettingsSheet(true)}>Connect Calendar</Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {allEvents.map((event, index) => (
-              <motion.div key={event.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
-                <Card className="hover:border-primary/30 transition-colors group">
-                  <CardContent className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl ${event.isAiBooked ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-muted text-muted-foreground'}`}>
-                        <span className="text-xs font-medium uppercase truncate w-full text-center px-1">{new Date(event.startTime).toLocaleString('default', { month: 'short' })}</span>
-                        <span className="text-2xl font-bold">{new Date(event.startTime).getDate()}</span>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2">
-                          {event.title}
-                          {event.isAiBooked && <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 text-[10px] h-5">AI Booked</Badge>}
-                        </h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          {event.leadName && <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {event.leadName}</span>}
+          ) : (
+            <div className="space-y-4">
+              {allEvents.map((event, index) => (
+                <motion.div key={event.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
+                  <Card className="hover:border-primary/30 transition-colors group">
+                    <CardContent className="p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl ${event.isAiBooked ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+                          <span className="text-xs font-medium uppercase truncate w-full text-center px-1">{new Date(event.startTime).toLocaleString('default', { month: 'short' })}</span>
+                          <span className="text-2xl font-bold">{new Date(event.startTime).getDate()}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                            {event.title}
+                            {event.isAiBooked && <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 text-[10px] h-5">AI Booked</Badge>}
+                          </h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            {event.leadName && <span className="flex items-center gap-1"><Target className="h-3 w-3" /> {event.leadName}</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-auto">
-                      {event.meetingUrl && (
-                        <Button size="sm" variant="outline" className="gap-2" asChild>
-                          <a href={event.meetingUrl} target="_blank" rel="noopener noreferrer">
-                            <Video className="h-4 w-4" /> Join
-                          </a>
+                      <div className="flex items-center gap-2 ml-auto">
+                        {event.meetingUrl && (
+                          <Button size="sm" variant="outline" className="gap-2" asChild>
+                            <a href={event.meetingUrl} target="_blank" rel="noopener noreferrer">
+                              <Video className="h-4 w-4" /> Join
+                            </a>
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
-          {/* Kept Create Dialog Simple */}
-          <DialogHeader>
-            <DialogTitle>Details</DialogTitle>
-          </DialogHeader>
-          {/* ... existing fields ... */}
-          <div className="space-y-4 pt-4">
-            <Input placeholder="Event Title" value={newEvent.summary} onChange={(e) => setNewEvent({ ...newEvent, summary: e.target.value })} />
-            <div className="grid grid-cols-2 gap-4">
-              <Input type="datetime-local" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} />
-              <Input type="datetime-local" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
-            <Input placeholder="Description" value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} />
-            <Input placeholder="Attendee Email" value={newEvent.attendeeEmail} onChange={(e) => setNewEvent({ ...newEvent, attendeeEmail: e.target.value })} />
-            <Button className="w-full" onClick={() => createEventMutation.mutate(newEvent)}>Schedule</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+          )}
+        </div>
+
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogContent>
+            {/* Kept Create Dialog Simple */}
+            <DialogHeader>
+              <DialogTitle>Details</DialogTitle>
+            </DialogHeader>
+            {/* ... existing fields ... */}
+            <div className="space-y-4 pt-4">
+              <Input placeholder="Event Title" value={newEvent.summary} onChange={(e) => setNewEvent({ ...newEvent, summary: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <Input type="datetime-local" value={newEvent.startTime} onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })} />
+                <Input type="datetime-local" value={newEvent.endTime} onChange={(e) => setNewEvent({ ...newEvent, endTime: e.target.value })} />
+              </div>
+              <Input placeholder="Description" value={newEvent.description} onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })} />
+              <Input placeholder="Attendee Email" value={newEvent.attendeeEmail} onChange={(e) => setNewEvent({ ...newEvent, attendeeEmail: e.target.value })} />
+              <Button className="w-full" onClick={() => createEventMutation.mutate(newEvent)}>Schedule</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+      );
 }

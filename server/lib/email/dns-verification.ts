@@ -4,6 +4,20 @@ import { promisify } from 'util';
 const resolveTxt = promisify(dns.resolveTxt);
 const resolveMx = promisify(dns.resolveMx);
 
+// Neural DNS Cache Node
+const dnsResolutionCache = new Map<string, { result: any; expires: number }>();
+const CACHE_TTL = 300000; // 5 minutes node retention
+
+function getCachedResult<T>(key: string): T | null {
+  const cached = dnsResolutionCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.result as T;
+  return null;
+}
+
+function setCachedResult(key: string, result: any) {
+  dnsResolutionCache.set(key, { result, expires: Date.now() + CACHE_TTL });
+}
+
 export interface DnsVerificationResult {
   domain: string;
   spf: {
@@ -221,12 +235,28 @@ export async function verifyDomainDns(domain: string, dkimSelector?: string): Pr
     cleanDomain = cleanDomain.split('/')[0];
   }
 
+  // Check Neural Cache First
+  const cacheKey = `${cleanDomain}:${dkimSelector || 'default'}`;
+  const cached = getCachedResult<DnsVerificationResult>(cacheKey);
+  if (cached) return cached;
+
   const [spf, dkim, dmarc, mx] = await Promise.all([
     checkSpf(cleanDomain),
     checkDkim(cleanDomain, dkimSelector),
     checkDmarc(cleanDomain),
     checkMx(cleanDomain),
   ]);
+
+  const result: DnsVerificationResult = {
+    domain: cleanDomain,
+    spf,
+    dkim,
+    dmarc,
+    mx,
+    overallScore: 0,
+    overallStatus: 'fair',
+    recommendations: []
+  };
 
   let score = 0;
   const recommendations: string[] = [];
