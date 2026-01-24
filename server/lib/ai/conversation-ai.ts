@@ -675,3 +675,70 @@ export async function getConversationContext(
     return [];
   }
 }
+/**
+ * Generate an elite "Day 1 Hook" outreach message
+ * Focuses on curiosity, personality, and getting that FIRST reply.
+ */
+export async function generateExpertOutreach(
+  lead: Lead,
+  userId: string
+): Promise<{ subject: string, body: string, alternatives: string[] }> {
+  try {
+    const brandContext = await getBrandContext(userId);
+    const offer = (brandContext?.metadata as any)?.offer || null;
+
+    const systemPrompt = `You are an elite high-ticket sales copywriting agent. Your goal is to get a REPLY on the FIRST email.
+    
+    STRATEGY:
+    1. THE HOOK: Never start with "I am [Name] from [Company]". Start with a personalized observation or a "disruptive" question.
+    2. THE CURIOSITY GAP: Don't explain everything. Leave them wanting to know "How?".
+    3. THE OFFER: Use the provided Offer context to highlight a single, massive transformation.
+    4. CLICKBAIT SUBJECTS: Generate 3 variations. They should look like they're from a friend or a high-value peer, not a marketing bot.
+    
+    BRAND CONTEXT:
+    ${formatBrandContextForPrompt(brandContext)}
+    
+    OFFER DETAILS:
+    ${JSON.stringify(offer)}
+    
+    LEAD NAME: ${lead.name}
+    COMPANY: ${lead.company || 'their business'}
+    
+    OUTPUT FORMAT (JSON):
+    {
+      "subjects": [
+        "best clickbait version (short, punchy)",
+        "curiosity version",
+        "direct value version"
+      ],
+      "best_subject_index": 0,
+      "body_html": "Concise, 3-4 sentence plain-text style HTML (use <p> and <br> only). No fluff."
+    }`;
+
+    if (!openai) throw new Error("Neural Engine Offline");
+
+    const completion = await openai.chat.completions.create({
+      model: MODELS.sales_reasoning,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Generate outreach for ${lead.name} at ${lead.company}.` }
+      ],
+      response_format: { type: 'json_object' }
+    });
+
+    const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+
+    return {
+      subject: result.subjects[result.best_subject_index] || result.subjects[0],
+      body: result.body_html,
+      alternatives: result.subjects
+    };
+  } catch (error) {
+    console.error("Expert Outreach Error:", error);
+    return {
+      subject: `Quick thought for ${lead.name}`,
+      body: `<p>Hey ${lead.name},</p><p>I saw what you're doing at ${lead.company} and had a quick observation I wanted to share.</p><p>Interested in a quick chat about it?</p>`,
+      alternatives: [`Question for ${lead.name}`, `Idea for ${lead.company}`]
+    };
+  }
+}

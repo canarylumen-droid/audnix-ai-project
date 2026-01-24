@@ -6,8 +6,34 @@ import { Router } from 'express';
 import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine.js';
 import { requireAuth } from '../middleware/auth.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
+import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
 
 const router = Router();
+
+/**
+ * POST /api/outreach/preview
+ * Generate a high-fidelity outreach preview for a lead
+ */
+router.post('/preview', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId!;
+    const { lead } = req.body;
+
+    if (!lead) {
+      return res.status(400).json({ error: 'Lead data required for preview' });
+    }
+
+    const preview = await generateExpertOutreach(lead, userId);
+
+    return res.json({
+      success: true,
+      preview
+    });
+  } catch (error) {
+    console.error('Preview error:', error);
+    res.status(500).json({ error: 'Failed to generate neural preview' });
+  }
+});
 
 /**
  * POST /api/outreach/campaign/create

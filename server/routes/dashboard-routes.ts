@@ -387,7 +387,7 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
       .orderBy(sql`DATE_TRUNC('day', ${messages.createdAt})`);
 
     // Format for frontend (e.g., Recharts)
-    const formattedData = stats.reduce((acc: any[], curr) => {
+    const formattedData = stats.reduce((acc: any[], curr: any) => {
       const dayStr = new Date(curr.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       let existing = acc.find(d => d.name === dayStr);
       if (!existing) {
@@ -403,8 +403,8 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
       success: true,
       data: formattedData,
       summary: {
-        totalSent: formattedData.reduce((sum, d) => sum + d.sent, 0),
-        totalReceived: formattedData.reduce((sum, d) => sum + d.received, 0),
+        totalSent: formattedData.reduce((sum: number, d: any) => sum + d.sent, 0),
+        totalReceived: formattedData.reduce((sum: number, d: any) => sum + d.received, 0),
       }
     });
   } catch (error) {

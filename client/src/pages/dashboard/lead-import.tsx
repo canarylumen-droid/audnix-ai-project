@@ -17,10 +17,39 @@ import { Label } from "@/components/ui/label";
 export default function LeadImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
+  const [mPreviewOpen, setMPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{ subject: string; body: string }>({
+    subject: "Neural Collaboration Proposal",
+    body: "I saw your work in the industry..."
+  });
   const [importing, setImporting] = useState(false);
   const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
   const [importResults, setImportResults] = useState<{ imported: number; skipped: number } | null>(null);
+
+  const handleOpenPreview = async () => {
+    try {
+      setImporting(true); // Reusing importing state for loading indicator
+      const response = await fetch('/api/outreach/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead: { name: "Sample Prospect", company: "Growth Corp", email: "target@prospect.com" }
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPreviewData(data.preview);
+        setMPreviewOpen(true);
+      }
+    } catch (e) {
+      toast({ title: "Preview failed", variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -212,8 +241,9 @@ export default function LeadImportPage() {
 
           <div className="flex gap-4 items-center">
             <Button
-              onClick={() => setMPreviewOpen(true)}
+              onClick={handleOpenPreview}
               variant="outline"
+              disabled={importing}
               className="px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5 h-14"
             >
               Preview Outreach
@@ -237,8 +267,8 @@ export default function LeadImportPage() {
           <EmailPreview
             isOpen={mPreviewOpen}
             onClose={() => setMPreviewOpen(false)}
-            subject="Neural Collaboration Proposal"
-            body="I saw your work in the industry and wanted to reach out regarding a high-velocity partnership..."
+            subject={previewData.subject}
+            body={previewData.body}
           />
 
           {importResults && importResults.filtered > 0 && (

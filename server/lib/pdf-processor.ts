@@ -292,6 +292,7 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
     const response = await openai.chat.completions.create({
       model: MODELS.lead_intelligence,
       messages: [{
+        role: 'system',
         content: `You are an elite brand and product analyst. Extract exhaustive product/service and brand identity data from this document. 
 
 Return JSON with two primary objects:
