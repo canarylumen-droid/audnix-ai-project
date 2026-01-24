@@ -292,19 +292,24 @@ async function extractOfferAndBrandWithAI(text: string, userId: string): Promise
     const response = await openai.chat.completions.create({
       model: MODELS.lead_intelligence,
       messages: [{
-        role: 'system',
-        content: `Extract BOTH product/service AND brand identity from this document. Return JSON with two objects:
+        content: `You are an elite brand and product analyst. Extract exhaustive product/service and brand identity data from this document. 
 
-1. "offer": Extract product name, description, pricing, features (array), benefits (array), CTA text, support/contact email, and any links
-2. "brand": Extract brand colors (hex codes like #FF5733, RGB values, or color names), company name, tagline, website URL, logo description
+Return JSON with two primary objects:
 
-For colors, aggressively extract:
-- ALL hex codes (#RRGGBB or #RGB)
-- ALL RGB/RGBA values
-- Color names mentioned in branding context (navy, coral, teal, etc.)
-- Primary, secondary, and accent colors explicitly
+1. "offer": Extract product name, comprehensive description, pricing models, all features mentioned, key benefits, call-to-action text, support/contact emails, and any website/product links.
+2. "brand": Extract ALL brand colors (prioritize hex codes, then RGB, then names), company name (be precise, check headers/footers), tagline, website URL, and visual identity description.
 
-Return ALL colors found, even if more than 3. Be thorough - this is critical for email branding.`
+For company name, look for:
+- "Company Name: [Name]"
+- "Business: [Name]"
+- Headers, copyright notices, or logo alt-text patterns.
+
+For colors, scan the text for:
+- Hex patterns like #FFFFFF or #FFF.
+- RGB/RGBA strings.
+- Explicit mentions like "Our primary color is..." or "Brand palette: ...".
+
+Return valid JSON with these fields. Be thorough - missing data reduces sales accuracy.`
       }, {
         role: 'user',
         content: text.substring(0, 12000)
@@ -473,25 +478,27 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
       model: MODELS.lead_intelligence,
       messages: [{
         role: 'system',
-        content: `You are a high-precision data extraction expert. Extract all lead contact information from the provided text.
-        
-        RULES:
-        1. "name" must be the person's full name. If only a username is found, use that.
-        2. BE CAREFUL not to mismatch company names with person names.
-        3. If a name is followed by a title (e.g., "John Doe, CEO"), extract only "John Doe".
-        4. Look for patterns like "To: [Name]", "Attention: [Name]", or signature lines.
-        5. "company" should be the organization name associated with the lead.
-        
-        Return a JSON object with a "leads" array. Each lead must have:
-        {
-          "name": "Full Name",
-          "email": "email@example.com (optional)",
-          "phone": "Phone Number (optional)",
-          "company": "Company Name (optional)"
-        }`
+        content: `You are a world-class lead data extraction engine. Your task is to identify and extract every single lead and contact point from the source text.
+
+RULES:
+1. "name": Extract full human names. If only a username is found, use it.
+2. "company": Identify the business name associated with the contact.
+3. "email": Extract valid email addresses.
+4. "phone": Extract phone numbers, cleaning them of non-numeric chars but preserving '+' if present.
+5. "channel": Determine if the lead is best contacted via "email" or "instagram".
+
+PRECISION GUIDELINES:
+- Look for "To:", "Attn:", "From:", "CEO:", or signatures.
+- Avoid mixing up company names with human names.
+- If multiple contacts exist for one company, create separate lead entries.
+
+Return a JSON object with a "leads" array. 
+Example Output: { "leads": [{ "name": "...", "email": "...", "company": "...", "phone": "...", "channel": "..." }] }
+
+Be aggressive - if it looks like a lead, include it.`
       }, {
         role: 'user',
-        content: text.substring(0, 8000)
+        content: text.substring(0, 10000)
       }],
       response_format: { type: 'json_object' },
       max_completion_tokens: 1000

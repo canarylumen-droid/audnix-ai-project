@@ -125,71 +125,99 @@ class ImapIdleManager {
             console.log(`✅ IMAP IDLE active for user ${userId}`);
 
             // Initial sync on connection
-            this.fetchNewEmails(userId, imap);
+            this.fetchNewEmails(userId, imap, 'INBOX', 'inbound');
 
             imap.on('mail', (numNewMsgs: number) => {
                 console.log(`📬 User ${userId} received ${numNewMsgs} new messages`);
-                this.fetchNewEmails(userId, imap);
+                this.fetchNewEmails(userId, imap, 'INBOX', 'inbound');
             });
+
+            // Periodically check Sent folders for outbound synchronization
+            const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
+            setInterval(() => {
+                for (const folder of sentFolders) {
+                    this.fetchNewEmails(userId, imap, folder, 'outbound').catch(() => { });
+                }
+            }, 10 * 60 * 1000); // Every 10 minutes
 
             // Start IDLE
             (imap as any).idle();
         });
     }
 
-    private async fetchNewEmails(userId: string, imap: Imap): Promise<void> {
-        // We fetch the last 10 emails to be safe and catch up
-        const fetch = imap.seq.fetch('-10:*', {
-            bodies: '',
-            struct: true
-        });
+    private async fetchNewEmails(userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound'): Promise<void> {
+        return new Promise((resolve) => {
+            imap.openBox(folderName, true, (err: any) => {
+                if (err) {
+                    resolve();
+                    return;
+                }
 
-        const emails: any[] = [];
+                // We fetch the last 10 emails to be safe and catch up
+                const fetch = imap.seq.fetch('-10:*', {
+                    bodies: '',
+                    struct: true
+                });
 
-        fetch.on('message', (msg: any) => {
-            msg.on('body', (stream: any) => {
-                simpleParser(stream, async (err: any, parsed: any) => {
-                    if (!err && parsed) {
-                        emails.push({
-                            from: parsed.from?.text,
-                            subject: parsed.subject,
-                            text: parsed.text || parsed.html || '',
-                            date: parsed.date,
-                            html: parsed.html
+                const emails: any[] = [];
+
+                fetch.on('message', (msg: any) => {
+                    msg.on('body', (stream: any) => {
+                        simpleParser(stream, async (err: any, parsed: any) => {
+                            if (!err && parsed) {
+                                emails.push({
+                                    from: parsed.from?.text,
+                                    to: parsed.to?.text,
+                                    subject: parsed.subject,
+                                    text: parsed.text || parsed.html || '',
+                                    date: parsed.date,
+                                    html: parsed.html
+                                });
+                            }
                         });
+                    });
+                });
+
+                fetch.once('end', async () => {
+                    if (emails.length > 0) {
+                        console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for user ${userId}`);
+                        const results = await pagedEmailImport(userId, emails.map(e => ({
+                            from: e.from?.split('<')[1]?.split('>')[0] || e.from,
+                            to: e.to?.split('<')[1]?.split('>')[0] || e.to,
+                            subject: e.subject,
+                            text: e.text,
+                            date: e.date,
+                            html: e.html
+                        })), (progress) => {
+                            // Log progress if needed
+                        }, direction);
+
+                        if (results.imported > 0) {
+                            console.log(`✨ Real-time sync: Imported ${results.imported} new ${direction} messages for user ${userId}`);
+
+                            // Emit real-time update to frontend
+                            try {
+                                const { wsSync } = await import('../websocket-sync.js');
+                                wsSync.notifyLeadsUpdated(userId, { type: 'UPDATE', count: results.imported });
+                                wsSync.notifyMessagesUpdated(userId, { type: 'INSERT', count: results.imported });
+                            } catch (wsError) {
+                                // WebSocket might not be available or initialized
+                            }
+                        }
+                    }
+
+                    // Return to INBOX and resume IDLE if we were scanning a sent folder
+                    if (folderName !== 'INBOX') {
+                        imap.openBox('INBOX', false, () => {
+                            (imap as any).idle();
+                            resolve();
+                        });
+                    } else {
+                        (imap as any).idle();
+                        resolve();
                     }
                 });
             });
-        });
-
-        fetch.once('end', async () => {
-            if (emails.length > 0) {
-                console.log(`📥 Processing ${emails.length} emails for user ${userId}`);
-                const results = await pagedEmailImport(userId, emails.map(e => ({
-                    from: e.from?.split('<')[1]?.split('>')[0] || e.from,
-                    subject: e.subject,
-                    text: e.text,
-                    date: e.date,
-                    html: e.html
-                })), (progress) => {
-                    // Log progress if needed
-                });
-                if (results.imported > 0) {
-                    console.log(`✨ Real-time sync: Imported ${results.imported} new leads for user ${userId}`);
-
-                    // Emit real-time update to frontend
-                    try {
-                        const { wsSync } = await import('../websocket-sync.js');
-                        wsSync.notifyLeadsUpdated(userId, { type: 'INSERT', count: results.imported });
-                        wsSync.notifyMessagesUpdated(userId, { type: 'INSERT', count: results.imported });
-                    } catch (wsError) {
-                        console.warn('Failed to emit WebSocket update:', wsError);
-                    }
-                }
-            }
-
-            // Resume IDLE after fetching
-            (imap as any).idle();
         });
     }
 

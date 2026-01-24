@@ -8,12 +8,12 @@ import { workerHealthMonitor } from '../monitoring/worker-health.js';
  * Email Warm-up System
  * 
  * ULTRA-AGGRESSIVE warmup for handling 5K+ leads in 3-4 days:
- * - Day 1: 1,500 emails (~60-65/hour)
- * - Day 2: 1,600 emails (~65-70/hour)
- * - Day 3: 1,680 emails (~70/hour)
- * - Day 4+: 1,680 emails (~70/hour) - Full speed
+ * - Day 1: 300 emails (~12-15/hour)
+ * - Day 2: 450 emails (~20/hour)
+ * - Day 3: 500 emails (~21/hour)
+ * - Day 4+: 500+ emails - Sustained flow
  * 
- * Total: 5,000+ emails in 3-4 days at 60-70 emails/hour
+ * Total: 5,000+ emails handled over time with safe throughput
  * Auto-adjusts based on bounce rate
  */
 
@@ -23,45 +23,31 @@ interface WarmupSchedule {
 }
 
 /**
- * ULTRA-AGGRESSIVE WARMUP SCHEDULE for handling 5K+ leads in 3-4 days
+ * ULTRA-AGGRESSIVE WARMUP SCHEDULE for rapid lead handling
  * 
- * Faster email sending rates (60-70/hour):
- * - Day 1: 1,500 emails/day (~60/hour over 24h) - Fast start
- * - Day 2: 1,600 emails/day (~65/hour) - Accelerating
- * - Day 3: 1,680 emails/day (~70/hour) - Full speed
- * - Day 4+: 1,680 emails/day (~70/hour) - Sustained max
- * 
- * NOTE: 60-70/hour is SAFE if you have:
- * - Verified domain with SPF/DKIM/DMARC
- * - Low bounce rate (<5%)
- * - Good engagement (opens/replies)
- * - Proper list hygiene (verified emails)
- * 
- * TIMELINE: 5,000 leads in 3-4 days
- * - Day 1: 1,500 emails
- * - Day 2: 1,600 emails (total: 3,100)
- * - Day 3: 1,680 emails (total: 4,780)
- * - Day 4: 220+ emails (total: 5,000+)
+ * - Day 1: 300 emails/day (~12-15/hour)
+ * - Day 2: 450 emails/day (~20/hour)
+ * - Day 3: 500 emails/day (~21/hour)
+ * - Day 4+: 500 emails/day (sustained)
  */
 const WARMUP_SCHEDULE: WarmupSchedule[] = [
-  { day: 1, emailsToSend: 1500 },  // ~60 emails/hour over 24h
-  { day: 2, emailsToSend: 1600 },  // ~65 emails/hour
-  { day: 3, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 4, emailsToSend: 1680 },  // ~70 emails/hour (sustained)
-  { day: 5, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 6, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 7, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 8, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 9, emailsToSend: 1680 },  // ~70 emails/hour
-  { day: 10, emailsToSend: 1680 }, // ~70 emails/hour
+  { day: 1, emailsToSend: 300 },
+  { day: 2, emailsToSend: 450 },
+  { day: 3, emailsToSend: 500 },
+  { day: 4, emailsToSend: 500 },
+  { day: 5, emailsToSend: 500 },
+  { day: 6, emailsToSend: 500 },
+  { day: 7, emailsToSend: 500 },
+  { day: 8, emailsToSend: 500 },
+  { day: 9, emailsToSend: 500 },
+  { day: 10, emailsToSend: 500 },
 ];
 
 /**
- * HOURLY LIMITS for faster sending (60-70/hour)
- * Optimized for reaching 5K leads in 3-4 days
+ * HOURLY LIMITS for safe but fast sending
  */
-export const HOURLY_EMAIL_LIMIT = 70; // 60-70 emails/hour for fast warmup
-export const EMAILS_PER_MINUTE = 2; // ~2 emails/minute for steady flow
+export const HOURLY_EMAIL_LIMIT = 25; // Safe default for warmed domains
+export const EMAILS_PER_MINUTE = 1; // ~1 email/minute for natural flow
 
 class EmailWarmupWorker {
   private isRunning = false;

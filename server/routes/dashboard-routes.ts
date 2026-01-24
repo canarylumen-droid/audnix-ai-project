@@ -348,4 +348,67 @@ router.get('/instagram/media', requireAuth, async (req: Request, res: Response):
   }
 });
 
+/**
+ * GET /api/dashboard/analytics/outreach
+ * Get daily outreach stats (sent/received) for analytics charts
+ */
+router.get('/analytics/outreach', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { db } = await import('../db.js');
+    const { messages } = await import('../../shared/schema.js');
+    const { sql, and, eq, gte } = await import('drizzle-orm');
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Group messages by day and direction
+    const stats = await db
+      .select({
+        day: sql<string>`DATE_TRUNC('day', ${messages.createdAt})`,
+        direction: messages.direction,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.userId, userId),
+          gte(messages.createdAt, thirtyDaysAgo)
+        )
+      )
+      .groupBy(sql`DATE_TRUNC('day', ${messages.createdAt})`, messages.direction)
+      .orderBy(sql`DATE_TRUNC('day', ${messages.createdAt})`);
+
+    // Format for frontend (e.g., Recharts)
+    const formattedData = stats.reduce((acc: any[], curr) => {
+      const dayStr = new Date(curr.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      let existing = acc.find(d => d.name === dayStr);
+      if (!existing) {
+        existing = { name: dayStr, sent: 0, received: 0 };
+        acc.push(existing);
+      }
+      if (curr.direction === 'outbound') existing.sent += curr.count;
+      else if (curr.direction === 'inbound') existing.received += curr.count;
+      return acc;
+    }, []);
+
+    res.json({
+      success: true,
+      data: formattedData,
+      summary: {
+        totalSent: formattedData.reduce((sum, d) => sum + d.sent, 0),
+        totalReceived: formattedData.reduce((sum, d) => sum + d.received, 0),
+      }
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
 export default router;

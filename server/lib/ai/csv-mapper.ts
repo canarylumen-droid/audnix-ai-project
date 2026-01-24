@@ -55,30 +55,30 @@ export async function mapCSVColumnsToSchema(
         headers.map(h => `${h}: ${row[h] || ''}`).join(', ')
     ).join('\n');
 
-    const prompt = `You are a data mapping expert. Map the user's CSV columns to our target schema.
+    const prompt = `You are an elite data architect specialized in messy CSV ingestion. Your task is to accurately map foreign CSV headers to our standardized leads schema.
 
-TARGET SCHEMA (fields we need):
+TARGET SCHEMA (Internal Fields):
 ${targetFields.map(f => `- ${f}: ${LEADS_SCHEMA[f as keyof typeof LEADS_SCHEMA].description}`).join('\n')}
 
-USER CSV HEADERS:
+IMPORT SOURCE HEADERS:
 ${headers.map(h => `- "${h}"`).join('\n')}
 
-${sampleContext ? `SAMPLE DATA:\n${sampleContext}` : ''}
+${sampleContext ? `REAL SAMPLE DATA FROM FILE (First 3 rows):\n${sampleContext}` : ''}
 
-TASK: Return a JSON object mapping USER HEADERS to TARGET FIELDS.
-Only map columns you're confident about. Each target field should have at most one source column.
+TASK:
+Identify which user column corresponds to which target field. 
+- Use the sample data to disambiguate (e.g., if a column is named "ID" but contains "john@doe.com", it's an email).
+- If multiple columns could match (e.g., "First Name", "Last Name"), prioritize the one with full content.
+- Be precise with "Company" vs "Name".
 
-Return format:
+Return ONLY a JSON object:
 {
-  "mapping": { "targetField": "sourceColumnName", ... },
+  "mapping": { "name": "UserHeaderA", "email": "UserHeaderB", ... },
   "confidence": 0.0-1.0,
-  "unmappedColumns": ["columns that don't map to any field"]
+  "unmappedColumns": ["list of headers that don't match our schema"]
 }
 
-IMPORTANT: 
-- "mapping" values should be the EXACT column names from the user's headers
-- Only include mappings you're confident about
-- Return valid JSON only`;
+IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values must be EXACT headers from the USER CSV.`;
 
     try {
         // Try Gemini first

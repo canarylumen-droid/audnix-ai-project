@@ -17,7 +17,7 @@ import { eq } from 'drizzle-orm';
 
 export async function initializeWarmupSchedule(userId: string): Promise<void> {
   const schedule = generateWarmupSchedule();
-  
+
   for (const day of schedule) {
     await db.insert(emailWarmupSchedules).values({
       userId,
@@ -30,19 +30,14 @@ export async function initializeWarmupSchedule(userId: string): Promise<void> {
 
 export function generateWarmupSchedule(): Array<{ day: number; limit: number }> {
   return [
-    { day: 1, limit: 30 },
-    { day: 2, limit: 50 },
-    { day: 3, limit: 80 },
-    { day: 4, limit: 120 },
-    { day: 5, limit: 200 },
-    { day: 6, limit: 250 },
-    { day: 7, limit: 300 },
-    { day: 8, limit: 400 },
-    { day: 9, limit: 500 },
-    { day: 10, limit: 600 },
-    ...Array.from({ length: 20 }, (_, i) => ({
-      day: 11 + i,
-      limit: 700 + i * 50
+    { day: 1, limit: 300 },
+    { day: 2, limit: 450 },
+    { day: 3, limit: 500 },
+    { day: 4, limit: 500 },
+    { day: 5, limit: 500 },
+    ...Array.from({ length: 25 }, (_, i) => ({
+      day: 6 + i,
+      limit: 500 + i * 50
     }))
   ];
 }
@@ -57,14 +52,14 @@ export async function getDailyLimit(userId: string, day: number): Promise<number
         eq(emailWarmupSchedules.day, day)
       )
       .limit(1);
-    
+
     if (result.length > 0) {
       return result[0].dailyLimit;
     }
   } catch (error) {
     console.error('Error getting daily limit:', error);
   }
-  
+
   // Default: moderate sending
   return 150;
 }
