@@ -137,7 +137,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getUser(id: string): Promise<User | undefined> {
-  async getUser(id: string): Promise<User | undefined> {
     checkDatabase();
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
