@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import multer from "multer";
-import pdfParse from "pdf-parse/lib/pdf-parse.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pdfParse = require("pdf-parse");
 import { storage } from "../storage.js";
 import { db } from "../db.js";
 import { sql } from "drizzle-orm";
