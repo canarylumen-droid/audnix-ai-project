@@ -480,6 +480,7 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     }
 
     const { verifyDomainDns } = await (eval('import("../lib/email/dns-verification.js")') as Promise<any>);
+    const { generateContextAwareMessage } = await import("../lib/ai/universal-sales-agent-integrated.js");
 
     const results = {
       leadsImported: 0,

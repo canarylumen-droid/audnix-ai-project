@@ -86,19 +86,23 @@ export function generateSendSchedule(
         const leadId = leadsRemaining.shift();
         if (!leadId) break;
 
+        // Humanization: Add 5-15 minute randomized jitter per lead
+        const jitterMinutes = 5 + (Math.random() * 10);
+        const scheduledTime = new Date(currentLeadTime.getTime() + (jitterMinutes * 60 * 1000));
+
         batchSchedules.push({
           batchId: `send_${leadId}_${Date.now()}_${i}`,
           segmentId: segmentId as keyof typeof OUTREACH_STRATEGY,
           leadIds: [leadId],
-          scheduledTime: new Date(currentLeadTime),
+          scheduledTime: scheduledTime,
           intervalBetweenLeads: intervalMinutes * 60 * 1000,
           status: 'pending',
           sentCount: 0,
           failedCount: 0,
         });
 
-        // Increment time for next lead
-        currentLeadTime = new Date(currentLeadTime.getTime() + (intervalMinutes * 60 * 1000));
+        // Increment time for next lead calculation
+        currentLeadTime = new Date(scheduledTime.getTime() + (intervalMinutes * 60 * 1000));
 
         // If moved into quiet hours (after 7 PM), jump to next day 9 AM
         if (currentLeadTime.getHours() >= 19) {
