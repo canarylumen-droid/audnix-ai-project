@@ -347,7 +347,13 @@ async function updateQueueStatus(leadId: string, status: string, errorMessage: s
     const pending = await storage.getPendingFollowUp(leadId);
     if (!pending) return;
 
-    await storage.updateFollowUpStatus(pending.id, mappedStatus, errorMessage);
+    await storage.updateFollowUp(pending.id, {
+      status: mappedStatus,
+      metadata: {
+        ...(pending.metadata as Record<string, any>),
+        error: errorMessage
+      }
+    });
   } catch (error) {
     console.log('[DM_AUTO] Queue status update info:', error);
   }

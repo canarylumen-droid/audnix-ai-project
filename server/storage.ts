@@ -131,6 +131,9 @@ export class MemStorage implements IStorage {
   private teamMembers: Map<string, TeamMember>;
   private payments: Map<string, Payment>;
 
+  private followUps: Map<string, FollowUpQueue>;
+  private learningPatterns: Map<string, AiLearningPattern>;
+
   constructor() {
     this.users = new Map();
     this.leads = new Map();
@@ -139,6 +142,13 @@ export class MemStorage implements IStorage {
     this.organizations = new Map();
     this.teamMembers = new Map();
     this.payments = new Map();
+    this.followUps = new Map();
+    this.learningPatterns = new Map();
+  }
+
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    const user = this.users.get(userId);
+    return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
   }
 
   // --- Organization Methods ---
@@ -215,7 +225,42 @@ export class MemStorage implements IStorage {
     if (member) this.teamMembers.delete(member.id);
   }
 
-  // --- Payment Methods ---
+  async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> {
+    return Array.from(this.followUps.values()).find(f => f.id === id);
+  }
+  async updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined> {
+    const followUp = this.followUps.get(id);
+    if (!followUp) return undefined;
+    const updated = { ...followUp, ...updates, updatedAt: new Date() };
+    this.followUps.set(id, updated);
+    return updated;
+  }
+  async getDueFollowUps(): Promise<FollowUpQueue[]> {
+    const now = new Date();
+    return Array.from(this.followUps.values())
+      .filter(f => f.status === 'pending' && f.scheduledTime <= now)
+      .sort((a, b) => b.scheduledTime.getTime() - a.scheduledTime.getTime());
+  }
+  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
+    return Array.from(this.learningPatterns.values()).filter(p => p.userId === userId);
+  }
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
+    const id = randomUUID();
+    const existing = Array.from(this.learningPatterns.values()).find(p => p.userId === userId && p.patternKey === key);
+    if (existing) {
+      existing.strength = success ? existing.strength + 1 : Math.max(0, existing.strength - 1);
+      existing.lastUsedAt = new Date();
+    } else {
+      this.learningPatterns.set(id, {
+        id,
+        userId,
+        patternKey: key,
+        strength: success ? 1 : 0,
+        metadata: {},
+        lastUsedAt: new Date()
+      });
+    }
+  }
   async createPayment(data: InsertPayment): Promise<Payment> {
     const id = randomUUID();
     const payment: Payment = {
@@ -252,6 +297,10 @@ export class MemStorage implements IStorage {
 
 
   // ========== User Methods ==========
+
+  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
+    return Array.from(this.followUps.values()).find(f => f.leadId === leadId && f.status === 'pending');
+  }
 
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);

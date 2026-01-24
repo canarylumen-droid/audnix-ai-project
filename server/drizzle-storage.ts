@@ -19,10 +19,35 @@ function checkDatabase() {
 }
 
 export class DrizzleStorage implements IStorage {
+  async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> {
+    checkDatabase();
+    const [result] = await db.select().from(followUpQueue).where(eq(followUpQueue.id, id)).limit(1);
+    return result;
+  }
+
+  async updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .update(followUpQueue)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(followUpQueue.id, id))
+      .returning();
+    return result;
+  }
+
+  async getDueFollowUps(): Promise<FollowUpQueue[]> {
+    checkDatabase();
+    const now = new Date();
+    return await db
+      .select()
+      .from(followUpQueue)
+      .where(and(eq(followUpQueue.status, 'pending'), lte(followUpQueue.scheduledTime, now)))
+      .orderBy(desc(followUpQueue.scheduledTime));
+  }
   async getVoiceMinutesBalance(userId: string): Promise<number> {
     checkDatabase();
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    return (user?.voiceMinutesUsed || 0) + (user?.voiceMinutesTopup || 0);
+    return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
   }
 
   async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
@@ -59,6 +84,59 @@ export class DrizzleStorage implements IStorage {
       });
     }
   }
+
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    checkDatabase();
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
+  }
+
+  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(aiLearningPatterns)
+      .where(eq(aiLearningPatterns.userId, userId))
+      .orderBy(desc(aiLearningPatterns.strength));
+  }
+
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
+    checkDatabase();
+    const [existing] = await db
+      .select()
+      .from(aiLearningPatterns)
+      .where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key)))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(aiLearningPatterns)
+        .set({
+          strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
+          lastUsedAt: new Date()
+        })
+        .where(eq(aiLearningPatterns.id, existing.id));
+    } else {
+      await db.insert(aiLearningPatterns).values({
+        userId,
+        patternKey: key,
+        strength: success ? 1 : 0,
+        metadata: {}
+      });
+    }
+  }
+
+  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(followUpQueue)
+      .where(and(eq(followUpQueue.leadId, leadId), eq(followUpQueue.status, 'pending')))
+      .limit(1);
+    return result;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
   async getUser(id: string): Promise<User | undefined> {
     checkDatabase();
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);

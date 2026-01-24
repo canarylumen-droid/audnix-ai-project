@@ -111,7 +111,7 @@ export function generateSendSchedule(
       // If we finished the daily limit but still have leads, jump to next day
       if (leadsRemaining.length > 0 && currentLeadTime.getHours() < 19) {
         currentLeadTime.setDate(currentLeadTime.getDate() + 1);
-        currentLeadTime.setHours(9, i % 60, 0, 0); // Slight jitter
+        currentLeadTime.setHours(9, 0, 0, 0); 
         dayIndex++;
       }
     }

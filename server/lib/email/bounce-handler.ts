@@ -71,10 +71,12 @@ class BounceHandler {
       console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email}`);
 
       // Update Neural UI Dashboard in real-time
-      wsSync.broadcastChange(event.userId, 'stats_update', {
-        bounceType: event.bounceType,
-        leadId: event.leadId
-      });
+      if ((wsSync as any).broadcastChange) {
+        (wsSync as any).broadcastChange(event.userId, 'stats_update', {
+          bounceType: event.bounceType,
+          leadId: event.leadId
+        });
+      }
     } catch (error) {
       console.error('Error recording bounce:', error);
     }
