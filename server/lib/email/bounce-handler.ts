@@ -2,6 +2,7 @@ import { db } from '../../db.js';
 import { bounceTracker, leads, Lead } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { storage } from '../../storage.js';
+import { wsSync } from '../websocket-sync.js';
 
 /**
  * Bounce Handling System
@@ -68,6 +69,12 @@ class BounceHandler {
       }
 
       console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email}`);
+
+      // Update Neural UI Dashboard in real-time
+      wsSync.broadcastChange(event.userId, 'stats_update', {
+        bounceType: event.bounceType,
+        leadId: event.leadId
+      });
     } catch (error) {
       console.error('Error recording bounce:', error);
     }
@@ -108,8 +115,8 @@ class BounceHandler {
 
     try {
       const leadMetadata = lead.metadata as Record<string, unknown>;
-      const softBounceCount = (typeof leadMetadata?.soft_bounce_count === 'number' 
-        ? leadMetadata.soft_bounce_count 
+      const softBounceCount = (typeof leadMetadata?.soft_bounce_count === 'number'
+        ? leadMetadata.soft_bounce_count
         : 0) + 1;
 
       // After 3 soft bounces, mark as cold

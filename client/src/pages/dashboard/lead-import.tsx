@@ -210,20 +210,46 @@ export default function LeadImportPage() {
             </div>
           )}
 
-          <Button
-            onClick={handleImport}
-            disabled={!file || importing}
-            className="w-full h-14 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all"
-          >
-            {importing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Synchronizing Network...
-              </>
-            ) : (
-              'Initialize Data Import'
-            )}
-          </Button>
+          <div className="flex gap-4 items-center">
+            <Button
+              onClick={() => setMPreviewOpen(true)}
+              variant="outline"
+              className="px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5 h-14"
+            >
+              Preview Outreach
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={!file || importing}
+              className="flex-1 h-14 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all"
+            >
+              {importing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Synchronizing Network...
+                </>
+              ) : (
+                'Initialize Data Import'
+              )}
+            </Button>
+          </div>
+
+          <EmailPreview
+            isOpen={mPreviewOpen}
+            onClose={() => setMPreviewOpen(false)}
+            subject="Neural Collaboration Proposal"
+            body="I saw your work in the industry and wanted to reach out regarding a high-velocity partnership..."
+          />
+
+          {importResults && importResults.filtered > 0 && (
+            <div className="p-4 rounded-xl bg-orange-400/5 border border-orange-400/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-4 w-4 text-orange-400" />
+                <span className="text-xs font-bold text-orange-400/80 uppercase tracking-widest">Neural Filter Active</span>
+              </div>
+              <span className="text-xs font-black text-orange-400">{importResults.filtered} Leads Blocked</span>
+            </div>
+          )}
 
           {/* Subtle Glow */}
           <div className="absolute -bottom-10 -right-10 w-40 h-40 blur-[100px] opacity-10 bg-primary rounded-full group-hover:opacity-20 transition-opacity" />

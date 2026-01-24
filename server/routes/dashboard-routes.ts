@@ -48,8 +48,9 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       totalMessages,
       averageResponseTime: '2.5h',
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
-      instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
+      facebookThisMonth: leads.filter(l => l.channel === 'instagram').length,
       plan: user?.plan || 'trial',
+      filteredLeadsCount: user?.filteredLeadsCount || 0,
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
     });
   } catch (error) {
@@ -157,6 +158,7 @@ router.get('/user', requireAuth, async (req: Request, res: Response): Promise<vo
       avatar: user.avatar,
       subscriptionTier: user.subscriptionTier,
       businessName: user.businessName,
+      filteredLeadsCount: user.filteredLeadsCount || 0,
       trialExpiresAt: user.trialExpiresAt,
       voiceNotesEnabled,
       createdAt: user.createdAt,
@@ -408,6 +410,65 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
   } catch (error) {
     console.error('Analytics error:', error);
     res.status(500).json({ error: 'Failed to fetch analytics' });
+  }
+});
+
+/**
+ * GET /api/dashboard/analytics/full
+ * Consistently high-performance consolidated analytics node
+ */
+router.get('/analytics/full', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.session?.userId!;
+    const user = await storage.getUserById(userId);
+    const leads = await storage.getLeads({ userId, limit: 10000 });
+
+    // Performance calculation
+    const conversions = leads.filter(l => l.status === 'converted').length;
+    const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
+    const sent = (await storage.getAllMessages(userId)).filter(m => m.direction === 'outbound').length;
+
+    // Time series (last 7 days)
+    const timeSeries = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      timeSeries.push({
+        name: dayStr,
+        sent: Math.floor(Math.random() * 20), // Mock for now, replace with real message counts if needed
+        replied: Math.floor(Math.random() * 5),
+        booked: Math.floor(Math.random() * 2)
+      });
+    }
+
+    res.json({
+      metrics: {
+        sent,
+        replied,
+        booked: conversions,
+        leadsFiltered: user?.filteredLeadsCount || 0,
+        conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
+        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0
+      },
+      timeSeries,
+      channelPerformance: [
+        { channel: 'Email', value: leads.filter(l => l.channel === 'email').length },
+        { channel: 'Instagram', value: leads.filter(l => l.channel === 'instagram').length }
+      ],
+      recentEvents: leads
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+        .slice(0, 5)
+        .map(l => ({
+          id: l.id,
+          type: 'interaction',
+          description: `${l.name} updated status to ${l.status}`,
+          time: new Date(l.updatedAt || l.createdAt).toLocaleTimeString()
+        }))
+    });
+  } catch (error) {
+    console.error('Full analytics error:', error);
+    res.status(500).json({ error: 'Failed to synchronize neural analytics' });
   }
 });
 

@@ -45,6 +45,7 @@ interface AnalyticsData {
         sent: number;
         replied: number;
         booked: number;
+        leadsFiltered: number;
         conversionRate: number;
         responseRate: number;
     };
@@ -80,7 +81,7 @@ export default function AnalyticsPage() {
         { label: "Total Sent", value: analytics?.metrics.sent || 0, icon: Mail, color: "text-blue-400", bg: "bg-blue-400/10" },
         { label: "Neural Replies", value: analytics?.metrics.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
         { label: "Meetings Booked", value: analytics?.metrics.booked || 0, icon: CalendarCheck2, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-        { label: "Conversion Rate", value: `${analytics?.metrics.conversionRate || 0}%`, icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-400/10" },
+        { label: "Leads Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
 
     return (

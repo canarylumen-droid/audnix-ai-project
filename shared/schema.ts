@@ -55,6 +55,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastLogin: timestamp("last_login"),
   updatedAt: timestamp("updated_at").defaultNow(),
+  filteredLeadsCount: integer("filtered_leads_count").notNull().default(0),
 });
 
 export const leads = pgTable("leads", {

@@ -479,13 +479,17 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
       return;
     }
 
+    import { verifyDomainDns } from "../lib/email/dns-verification.js";
+
+    // ... (existing imports)
+
     const results = {
       leadsImported: 0,
+      leadsFiltered: 0,
       errors: [] as string[]
     };
 
     const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
-
     const importedIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsToImport; i++) {
@@ -513,16 +517,25 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           continue;
         }
 
-        // Check deliverability before finalizing
-        let status = 'new';
-        let verified = false;
-
+        // --- NEW: NEURAL FILTER (Real-time DNS Check) ---
         if (leadData.email) {
+          const domain = leadData.email.split('@')[1];
+          if (domain) {
+            const dnsCheck = await verifyDomainDns(domain);
+            // If domain is 'poor' or has no MX records, filter it out
+            if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
+              results.leadsFiltered++;
+              results.errors.push(`Row ${i + 1}: Undeliverable domain (Neural Filter)`);
+              continue;
+            }
+          }
+
+          // Also use our existing verifier for deep-level mailbox checks
           const verification = await verifier.verify(leadData.email);
-          if (verification.valid) {
-            verified = true;
-          } else {
-            status = 'bouncy';
+          if (!verification.valid) {
+            results.leadsFiltered++;
+            results.errors.push(`Row ${i + 1}: Invalid email (Verification Filter)`);
+            continue;
           }
         }
 
@@ -532,13 +545,13 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
           email: leadData.email || null,
           phone: leadData.phone || null,
           channel: channel as 'email' | 'instagram',
-          status: status as any,
+          status: 'new', // Leads are "good" now if they pass here
           aiPaused: aiPaused,
           metadata: {
             imported_from_csv: true,
             company: leadData.company,
             import_date: new Date().toISOString(),
-            deliverability: status === 'bouncy' ? 'failed' : 'verified'
+            deliverability: 'verified'
           }
         });
 
@@ -550,6 +563,16 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
       }
     }
 
+    // UPDATE: Persist filtered count in user profile for long-term tracking
+    if (results.leadsFiltered > 0) {
+      const dbUser = await storage.getUserById(userId);
+      if (dbUser) {
+        await storage.updateUser(userId, {
+          filteredLeadsCount: (dbUser.filteredLeadsCount || 0) + results.leadsFiltered
+        });
+      }
+    }
+
     if (leadsData.length > leadsToImport) {
       results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
     }
@@ -557,8 +580,9 @@ router.post("/import-csv", requireAuth, async (req: Request, res: Response): Pro
     res.json({
       success: results.leadsImported > 0,
       leadsImported: results.leadsImported,
+      leadsFiltered: results.leadsFiltered,
       errors: results.errors,
-      message: `Imported ${results.leadsImported} leads successfully`
+      message: `Imported ${results.leadsImported} leads successfully. Filtered ${results.leadsFiltered} low-quality contacts.`
     });
 
   } catch (error: unknown) {

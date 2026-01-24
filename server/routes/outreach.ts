@@ -5,6 +5,7 @@
 import { Router } from 'express';
 import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine.js';
 import { requireAuth } from '../middleware/auth.js';
+import { verifyDomainDns } from '../lib/email/dns-verification.js';
 
 const router = Router();
 
@@ -24,8 +25,30 @@ router.post('/campaign/create', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Campaign name required' });
     }
 
-    // Create campaign
-    const campaign = await createOutreachCampaign(leads, campaignName);
+    // --- NEW: PRE-FLIGHT NEURAL CHECK ---
+    const filteredLeads = [];
+    let blockedCount = 0;
+
+    for (const lead of leads) {
+      if (lead.email) {
+        const domain = lead.email.split('@')[1];
+        if (domain) {
+          const dnsCheck = await verifyDomainDns(domain);
+          if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
+            blockedCount++;
+            continue;
+          }
+        }
+      }
+      filteredLeads.push(lead);
+    }
+
+    if (filteredLeads.length === 0) {
+      return res.status(400).json({ error: 'No deliverable leads in batch after neural filtering' });
+    }
+
+    // Create campaign with filtered leads
+    const campaign = await createOutreachCampaign(filteredLeads, campaignName);
 
     // Validate safety
     const safety = validateCampaignSafety(campaign);
@@ -41,6 +64,7 @@ router.post('/campaign/create', requireAuth, async (req, res) => {
       success: true,
       campaign,
       safety,
+      blockedByNeuralFilter: blockedCount,
       metrics: formatCampaignMetrics(campaign),
     });
   } catch (error: any) {
