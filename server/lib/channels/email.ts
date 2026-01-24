@@ -1,5 +1,6 @@
 import { generateBrandedEmail, generateMeetingEmail, type BrandColors } from '../ai/dm-formatter.js';
 import { storage } from '../../storage.js';
+import * as cheerio from 'cheerio';
 
 /**
  * Email messaging functions with branded templates using extracted PDF brand colors
@@ -514,7 +515,6 @@ function createMimeMessage(
   const stripHtml = (html: string): string => {
     if (!html) return '';
     try {
-      const cheerio = require('cheerio');
       const $ = cheerio.load(html);
 
       // Remove dangerous tags

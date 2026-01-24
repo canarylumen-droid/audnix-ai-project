@@ -347,7 +347,8 @@ interface PDFParseResult {
 
 async function extractTextFromPDF(filePath: string): Promise<string> {
   try {
-    const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
+    const pdfParseModule = await import('pdf-parse');
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
     const fileBuffer = await fs.readFile(filePath);
     const pdfData = await pdfParse(fileBuffer);
 
@@ -366,7 +367,8 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
 
 async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
   try {
-    const pdfParse = require('pdf-parse') as (dataBuffer: Buffer) => Promise<PDFParseResult>;
+    const pdfParseModule = await import('pdf-parse');
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
     const pdfData = await pdfParse(fileBuffer);
 
     let fullText = '';

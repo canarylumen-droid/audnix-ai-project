@@ -522,7 +522,6 @@ router.post("/analyze-pdf", requireAuth, upload.single("pdf"), async (req: Reque
       return;
     }
 
-    const pdfParse = require("pdf-parse");
     const data = await pdfParse(req.file.buffer);
     const pdfText = data.text.toLowerCase();
 
@@ -571,7 +570,6 @@ router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: 
       return;
     }
 
-    const pdfParse = require("pdf-parse");
     const data = await pdfParse(req.file.buffer);
     const pdfText: string = data.text;
 
