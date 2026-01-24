@@ -51,7 +51,7 @@ export function InstallPWAPrompt() {
           <Card className="p-4 bg-card/95 backdrop-blur-lg border-primary/20 shadow-xl">
             <div className="flex items-start gap-3">
               <div className="flex-1">
-                <h3 className="font-semibold text-sm mb-1">Install Audnix AI</h3>
+                <h3 className="font-semibold text-sm mb-1">Install audnixai.com</h3>
                 <p className="text-xs text-muted-foreground mb-3">
                   Get instant notifications and faster access by installing our app
                 </p>

@@ -65,7 +65,7 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                 animate={{ y: 0, opacity: 1 }}
                 className="w-full h-full md:h-[90vh] md:max-w-6xl bg-[#030303] md:border border-white/10 md:rounded-[3rem] shadow-[0_0_150px_rgba(0,180,255,0.2)] flex flex-col overflow-hidden relative"
             >
-                {/* Neural Scanline Effect */}
+                {/* Search Progress Effect */}
                 <div className="absolute inset-0 pointer-events-none z-50 opacity-[0.03] overflow-hidden">
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
                     <motion.div
@@ -86,10 +86,10 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase">Neural Core Alpha</h3>
+                                <h3 className="text-xl md:text-2xl font-black text-white tracking-tighter uppercase">Search Engine v4.2</h3>
                                 <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] font-black uppercase">Active</Badge>
                             </div>
-                            <p className="text-[9px] md:text-[10px] font-black text-white/40 tracking-[0.3em] uppercase mt-1">Global Proxy Mesh V4.2 • Handshake: 1.5M Residential Nodes</p>
+                            <p className="text-[9px] md:text-[10px] font-black text-white/40 tracking-[0.3em] uppercase mt-1">Enterprise Network V4.2 • Connection: Distributed Verified Nodes</p>
                         </div>
                     </div>
 
@@ -142,13 +142,13 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                     {/* Stats Sidebar (High-End Terminal Info) */}
                     <div className="w-80 p-10 bg-black/80 hidden lg:block space-y-10 overflow-y-auto select-none">
                         <section>
-                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-6">Neural Cluster Metrics</p>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-6">Search Engine Metrics</p>
                             <div className="space-y-8">
                                 {[
-                                    { label: 'Cloud Endpoints', value: stats.proxies.toLocaleString(), icon: Shield, color: 'text-primary' },
-                                    { label: 'Neural Threads', value: stats.threads, icon: Cpu, color: 'text-indigo-400' },
-                                    { label: 'Neural Hits', value: stats.requests.toLocaleString(), icon: Database, color: 'text-purple-400' },
-                                    { label: 'WAF Bypass Rate', value: `${stats.successRate.toFixed(1)}%`, icon: CheckCircle, color: 'text-emerald-400' },
+                                    { label: 'Active Connections', value: stats.proxies.toLocaleString(), icon: Shield, color: 'text-primary' },
+                                    { label: 'Processing Units', value: stats.threads, icon: Cpu, color: 'text-indigo-400' },
+                                    { label: 'Data Points Found', value: stats.requests.toLocaleString(), icon: Database, color: 'text-purple-400' },
+                                    { label: 'Verification Success Rate', value: `${stats.successRate.toFixed(1)}%`, icon: CheckCircle, color: 'text-emerald-400' },
                                 ].map((stat, i) => (
                                     <div key={i} className="group/stat">
                                         <div className="flex items-center justify-between mb-2">
@@ -193,7 +193,7 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                         <div className="pt-10 border-t border-white/5">
                             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
-                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Neural Engine v4.2 stable</span>
+                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Search Engine v4.2 stable</span>
                             </div>
                         </div>
                     </div>
@@ -202,7 +202,7 @@ export const ScraperConsole = ({ logs, isVisible, onClose }: ScraperConsoleProps
                 {/* Footer / Info Bar */}
                 <div className="px-6 md:px-10 py-4 bg-black border-t border-white/5 flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-white/20">
                     <div className="flex gap-6">
-                        <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Distributed Node Alpha-01</span>
+                        <span className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Search Node Primary-01</span>
                         <span className="hidden md:flex items-center gap-2"><Globe className="w-3 h-3 text-primary" /> Routing: Worldwide Residential</span>
                     </div>
                 </div>

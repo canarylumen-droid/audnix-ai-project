@@ -156,7 +156,7 @@ export default function DataDeletion() {
               <ul className="space-y-2 text-muted-foreground">
                 <li><strong>Privacy Email:</strong> <a href="mailto:privacy@audnixai.com" className="text-primary hover:underline">privacy@audnixai.com</a></li>
                 <li><strong>Data Protection Officer:</strong> <a href="mailto:dpo@audnixai.com" className="text-primary hover:underline">dpo@audnixai.com</a></li>
-                <li><strong>Mailing Address:</strong> Audnix AI, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
+                <li><strong>Mailing Address:</strong> audnixai.com, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
               </ul>
             </Card>
           </motion.div>

@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 import { wsSync } from './lib/websocket-sync.js';
@@ -19,6 +19,46 @@ function checkDatabase() {
 }
 
 export class DrizzleStorage implements IStorage {
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    checkDatabase();
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    return (user?.voiceMinutesUsed || 0) + (user?.voiceMinutesTopup || 0);
+  }
+
+  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(aiLearningPatterns)
+      .where(eq(aiLearningPatterns.userId, userId))
+      .orderBy(desc(aiLearningPatterns.strength));
+  }
+
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
+    checkDatabase();
+    const [existing] = await db
+      .select()
+      .from(aiLearningPatterns)
+      .where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key)))
+      .limit(1);
+
+    if (existing) {
+      await db
+        .update(aiLearningPatterns)
+        .set({
+          strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
+          lastUsedAt: new Date()
+        })
+        .where(eq(aiLearningPatterns.id, existing.id));
+    } else {
+      await db.insert(aiLearningPatterns).values({
+        userId,
+        patternKey: key,
+        strength: success ? 1 : 0,
+        metadata: {}
+      });
+    }
+  }
   async getUser(id: string): Promise<User | undefined> {
     checkDatabase();
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);

@@ -5,7 +5,7 @@ And it imports their leads very fast if they don't have any leads also say it  a
 Don't be offended some page are locked when they signup ornlimda hidden is it the pro features or what conversation please don't be so harsh there and also  hope our AI actually connects their calendly via oauth and web hook we have everything already and if a lead wants to book meeting for our users when they connect calendly it asks  in conversing with them goes to calendly vreate new meeting for them I'm their account and send meeting link like that on email then if on instgram if needed in conversation it wraps it up in a button for them too confirm it's there too
 
 """
-You are a senior full-stack developer + AI prompt engineer. You are tasked with implementing the *Instagram DM Leads Import UI + AI Filtering* for Audnix AI. The goal is to make the flow *fully automated, fast, and visually clear* while keeping plan-based lead limits and ensuring AI filters for real leads. Follow these requirements:
+You are a senior full-stack developer + AI prompt engineer. You are tasked with implementing the *Instagram DM Leads Import UI + AI Filtering* for audnixai.com. The goal is to make the flow *fully automated, fast, and visually clear* while keeping plan-based lead limits and ensuring AI filters for real leads. Follow these requirements:
 
 ---
 
@@ -81,14 +81,14 @@ You are a senior full-stack developer + AI prompt engineer. You are tasked with 
 - AI accurately filters low-quality leads.  
 - Lead counts displayed, progress shown.  
 - User acknowledgment handled correctly.  
-- Fully integrated with existing Audnix AI backend and webhook APIs.  
+- Fully integrated with existing audnixai.com backend and webhook APIs.  
 
 ---
 
-Generate *React/Next.js frontend + backend endpoints* with fully working AI import logic, plan-based limits, animated progress, acknowledgment button, and conversation filtering. Ensure the AI reads the latest messages first, filters effectively, and logs all actions for auditing. UI must match Audnix AI branding and be production-ready.
+Generate *React/Next.js frontend + backend endpoints* with fully working AI import logic, plan-based limits, animated progress, acknowledgment button, and conversation filtering. Ensure the AI reads the latest messages first, filters effectively, and logs all actions for auditing. UI must match audnixai.com branding and be production-ready.
 """
 """
-You are a senior full-stack developer and AI prompt engineer tasked to fully redesign and implement the *Instagram Reels Comment Monitoring and DM Automation Tab* for Audnix AI. Your goal is to *completely update the UI, backend, and AI flows*, while preserving all existing AI intelligence and functionality. This includes objection handling, comment-to-DM flows, context-aware replies, CTA buttons, PDF/brand knowledge overrides, emoji understanding, and adaptive AI decision-making. Everything must be production-ready and fully integrated with existing APIs and webhooks.  
+You are a senior full-stack developer and AI prompt engineer tasked to fully redesign and implement the *Instagram Reels Comment Monitoring and DM Automation Tab* for audnixai.com. Your goal is to *completely update the UI, backend, and AI flows*, while preserving all existing AI intelligence and functionality. This includes objection handling, comment-to-DM flows, context-aware replies, CTA buttons, PDF/brand knowledge overrides, emoji understanding, and adaptive AI decision-making. Everything must be production-ready and fully integrated with existing APIs and webhooks.  
 
 ---
 
@@ -166,7 +166,7 @@ You are a senior full-stack developer and AI prompt engineer tasked to fully red
 # 5. Technical Stack
 
 - Frontend: React / Next.js, responsive, component-based.  
-- Backend: Node.js/Express or preferred stack, connected to Audnix AI brain.  
+- Backend: Node.js/Express or preferred stack, connected to audnixai.com brain.  
 - AI: Context-aware, objection handling, adaptive learning, CTA integration.  
 - Webhook/API: fully integrated to accept external triggers, update status, and confirm delivery.  
 - Real-time processing and notifications for users.  
@@ -208,10 +208,10 @@ You are a senior full-stack developer and AI prompt engineer tasked to fully red
 
 ---
 
-Generate *full React/Next.js frontend + backend endpoints* implementing the above, ready to deploy on Replit. Ensure the code is modular, clean, and matches the Audnix AI brand style and colors. All AI logic must function exactly as described, preserving full context, objection handling, and comment-to-DM flows.
+Generate *full React/Next.js frontend + backend endpoints* implementing the above, ready to deploy on Replit. Ensure the code is modular, clean, and matches the audnixai.com brand style and colors. All AI logic must function exactly as described, preserving full context, objection handling, and comment-to-DM flows.
 """
 """
-You are a senior full-stack engineer + AI prompt architect. You are tasked to fully redesign and implement the *Instagram Reels Comment Monitoring Tab* in the Audnix AI app. The goal is a *modern, professional, intuitive, automated UI* where everything is seamless once Instagram OAuth is connected. Manual steps must be removed wherever possible. Below are the functional, UI, and AI requirements. Follow them strictly.
+You are a senior full-stack engineer + AI prompt architect. You are tasked to fully redesign and implement the *Instagram Reels Comment Monitoring Tab* in the audnixai.com app. The goal is a *modern, professional, intuitive, automated UI* where everything is seamless once Instagram OAuth is connected. Manual steps must be removed wherever possible. Below are the functional, UI, and AI requirements. Follow them strictly.
 
 ---
 
@@ -299,7 +299,7 @@ You are a senior full-stack engineer + AI prompt architect. You are tasked to fu
 
 - React / Next.js frontend preferred.
 - Use Instagram Graph API v20 or latest.
-- Backend handles AI processing via Audnix AI APIs.
+- Backend handles AI processing via audnixai.com APIs.
 - Real-time updates for comments and AI replies.
 - Ensure scalability: can handle thousands of comments per reel.
 - Modular code: UI components reusable for other social channels later.

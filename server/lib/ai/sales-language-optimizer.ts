@@ -169,15 +169,15 @@ export const OBJECTION_RESPONSES: Record<string, string> = {
 
 // ============ ENGINE 5: RE-ENGAGEMENT ENGINE ============
 export const REENGAGEMENT_PATTERNS: string[] = [
-  "Just reconnecting — based on others in your [INDUSTRY], this is usually the point where they see the biggest jump in conversions.",
+  "Noticed a friction point in your current [INDUSTRY] roadmap — most miss the 20% shift that drives 80% of the conversion velocity. Worth a quick sync?",
 
-  "Circling back — the window is still open to activate this and start recovering the leads dropping off right now.",
+  "Circling back because the gap we identified in [INDUSTRY] usually doesn't stay open long. Ready to bridge the scale gap with a strategy session?",
 
-  "Following up because timing matters here — teams that activate early always see better results. You ready to move forward?",
+  "One nuance I missed — the speed of the [INDUSTRY] breakthrough is exactly where your competitive edge lies. Should we sync on the implementation?",
 
-  "Quick thought — most people in [INDUSTRY] wait too long on this. What's holding you back from starting this week?",
+  "Question specifically for the [ROLE] perspective — is efficiency at [COMPANY] still the priority this quarter or have targets shifted?",
 
-  "Haven't heard from you — and honestly, if the timing's not right, that's totally fine. But before I stop reaching out, what would make this worth revisiting?",
+  "Closing the loop here — if the high-velocity optimization isn't a fit for [COMPANY], totally understand. But I'll archive this roadmap theory unless you want to sync.",
 ];
 
 // ============ ENGINE 6: BRAND CONTEXT ENGINE ============
@@ -235,7 +235,7 @@ export const CLOSE_VARIATIONS: string[] = [
 // ============ ENGINE 9: PERSONALITY ADAPTATION ENGINE ============
 export function detectLeadTone(messages: string[]): LeadTone {
   if (!messages || messages.length === 0) return "warm";
-  
+
   const combined = messages.join(" ").toLowerCase();
 
   const formalWords = ["regarding", "furthermore", "proposed", "hereby"];
@@ -254,7 +254,7 @@ export function detectLeadTone(messages: string[]): LeadTone {
 
 export function adjustToneForLead(text: string, leadTone: LeadTone): string {
   if (!text) return text;
-  
+
   switch (leadTone) {
     case "casual":
       return text.replace(/\./g, "").toLowerCase() + ".";
@@ -290,7 +290,7 @@ export function injectMemoryCallbacks(text: string, conversationHistory: string[
 // ============ NON-NEGOTIABLE RULES ENFORCEMENT ============
 export function enforceNonNegotiableRules(text: string): string {
   if (!text) return text;
-  
+
   let result = text;
 
   // Rule 1: NEVER DEFENSIVE
@@ -353,9 +353,9 @@ export function optimizeSalesLanguage(text: string, context?: SalesOptimizationC
  */
 export function makeConversational(text: string): string {
   if (!text) return text;
-  
+
   let result = text;
-  
+
   // Remove corporate jargon
   result = result.replace(/at your earliest convenience/gi, 'when you can');
   result = result.replace(/moving forward/gi, 'next');
@@ -367,7 +367,7 @@ export function makeConversational(text: string): string {
   result = result.replace(/utilize/gi, 'use');
   result = result.replace(/facilitate/gi, 'help');
   result = result.replace(/regarding/gi, 'about');
-  
+
   // Add contractions for natural flow
   result = result.replace(/\bI am\b/g, "I'm");
   result = result.replace(/\bYou are\b/g, "You're");
@@ -379,7 +379,7 @@ export function makeConversational(text: string): string {
   result = result.replace(/\bCan not\b/g, "Can't");
   result = result.replace(/\bShould not\b/g, "Shouldn't");
   result = result.replace(/\bWould not\b/g, "Wouldn't");
-  
+
   return result;
 }
 
@@ -387,27 +387,27 @@ export function makeConversational(text: string): string {
  * Handle objections with sales-optimized language
  */
 export function handleObjectionWithSalesLanguage(
-  objection: string, 
-  response: string, 
+  objection: string,
+  response: string,
   context?: ObjectionHandlerContext | null
 ): string {
   if (!response) return response;
-  
+
   let optimized = response;
-  
+
   // Apply word replacements
   optimized = applyWordReplacements(optimized);
-  
+
   // Apply tone engine
   optimized = applyMillionaireCloserTone(optimized);
-  
+
   // Industry-specific framing
   if (context?.industry) {
     optimized = injectBrandContext(optimized, context);
   }
-  
+
   // Enforce non-negotiable rules
   optimized = enforceNonNegotiableRules(optimized);
-  
+
   return optimized;
 }

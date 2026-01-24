@@ -1,7 +1,7 @@
 <<<<<<< HEAD
 02:13:50.481 Running build in Washington, D.C., USA (East) – iad1
 02:13:50.482 Build machine configuration: 2 cores, 8 GB
-02:13:50.743 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: d684616)
+02:13:50.743 Cloning github.com/canarylumen-droid/audnixai.com-project (Branch: main, Commit: d684616)
 02:13:52.732 Cloning completed: 1.989s
 02:13:52.817 Found .vercelignore
 02:13:52.823 Removed 1 ignored files defined in .vercelignore
@@ -100,7 +100,7 @@
 =======
 02:13:50.481 Running build in Washington, D.C., USA (East) – iad1
 02:13:50.482 Build machine configuration: 2 cores, 8 GB
-02:13:50.743 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: d684616)
+02:13:50.743 Cloning github.com/canarylumen-droid/audnixai.com-project (Branch: main, Commit: d684616)
 02:13:52.732 Cloning completed: 1.989s
 02:13:52.817 Found .vercelignore
 02:13:52.823 Removed 1 ignored files defined in .vercelignore
@@ -196,5 +196,5 @@
 02:15:37.335 Creating build cache...
 02:16:24.674 Created build cache: 47.332s
 02:16:24.674 Uploading build cache [316.46 MB]
->>>>>>> 007582b (Initial commit from Audnix AI Project extraction)
+>>>>>>> 007582b (Initial commit from audnixai.com Project extraction)
 02:16:28.934 Build cache uploaded: 4.265s

@@ -1,4 +1,4 @@
-# AUDNIX AI Project Complete Codebase Map
+# audnixai.com Project Complete Codebase Map
 
 ## Table of Contents
 1. [Folder Structure](#folder-structure)
@@ -48,7 +48,7 @@ Every feature is built modularly, allowing for easy updates and scalability.
 
 ## Complete Summary
 
-This documentation provides a comprehensive overview of the AUDNIX AI Project's codebase, offering insights into how the code is structured, the dependencies that exist, and the architecture of the data and features. Understanding this structure is crucial for developers working on the project and contributes to maintaining and enhancing the system effectively.
+This documentation provides a comprehensive overview of the audnixai.com Project's codebase, offering insights into how the code is structured, the dependencies that exist, and the architecture of the data and features. Understanding this structure is crucial for developers working on the project and contributes to maintaining and enhancing the system effectively.
 
 ---
 

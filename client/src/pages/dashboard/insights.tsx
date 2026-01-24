@@ -37,6 +37,7 @@ import {
 import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-access-gate";
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import { PremiumLoader } from "@/components/ui/premium-loader";
+import { NeuralTypingLogo } from "@/components/ui/CustomIcons";
 
 interface ChannelData {
   channel: string;
@@ -156,43 +157,43 @@ export default function InsightsPage() {
 
       {!hasData ? (
         <div className="grid gap-6">
-          <Card className="border-none bg-gradient-to-br from-primary/10 via-background to-purple-500/10 shadow-2xl overflow-hidden relative group">
-            <div className="absolute inset-0 bg-grid-foreground/[0.02] bg-[size:32px]" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] rounded-full -mr-20 -mt-20 animate-pulse" />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="bg-black/40 backdrop-blur-3xl p-12 rounded-[3.5rem] border border-white/5 shadow-2xl relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent" />
 
-            <CardContent className="flex flex-col items-center justify-center py-24 text-center space-y-8 relative z-10">
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-                className="h-28 w-28 bg-background/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl flex items-center justify-center text-primary border border-primary/20"
-              >
-                <Sparkles className="h-14 w-14" />
-              </motion.div>
+            <div className="flex flex-col items-center justify-center text-center space-y-12 relative z-10">
+              <div className="scale-125 pb-8">
+                <NeuralTypingLogo />
+              </div>
 
-              <div className="max-w-md space-y-4">
-                <h3 className="text-3xl font-bold tracking-tight">Intelligence is Warming Up</h3>
-                <p className="text-muted-foreground text-lg leading-relaxed">
-                  Our neural engines are ready to dissect your outreach. Connect your first integration to start generating real-time performance insights.
+              <div className="max-w-xl space-y-4">
+                <h3 className="text-4xl font-black tracking-tight text-white leading-tight">Analyzing Outreach Patterns...</h3>
+                <p className="text-zinc-400 text-lg leading-relaxed font-medium">
+                  Audnix is currently analyzing your outreach performance. Connect an integration to activate performance tracking and closing stats.
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button size="lg" className="rounded-full px-8 h-14 text-md font-semibold" onClick={() => window.location.href = '/dashboard/integrations'}>
-                  Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button size="lg" variant="outline" className="rounded-full px-8 h-14 text-md font-semibold backdrop-blur-md" onClick={() => refetch()}>
-                  <RefreshCw className="mr-2 h-5 w-5" /> Check Status
-                </Button>
+              <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                  <Button size="lg" className="rounded-full px-10 h-16 text-lg font-black shadow-[0_20px_40px_-10px_rgba(59,130,246,0.5)] transition-all hover:scale-105" onClick={() => window.location.href = '/dashboard/integrations'}>
+                    Connect Integrations <ArrowRight className="ml-2 h-6 w-6" />
+                  </Button>
+                  <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg font-black backdrop-blur-md border-white/10 text-white hover:bg-white/5" onClick={() => refetch()}>
+                    <RefreshCw className="mr-2 h-5 w-5" /> Refresh Analytics
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-3 py-4 px-6 rounded-full bg-white/5 border border-white/10">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Connect 10+ leads to activate AI optimization</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40">
             {[1, 2, 3].map(i => (
@@ -221,91 +222,61 @@ export default function InsightsPage() {
           )}
 
           {/* Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="col-span-full lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Lead Velocity</CardTitle>
+                <CardDescription>Leads generated over time.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={timeSeriesData}
+                    margin={{
+                      top: 5,
+                      right: 10,
+                      left: 10,
+                      bottom: 0,
+                    }}
+                  >
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      tickLine={false}
+                      axisLine={false}
+                      stroke={COLORS.grid}
+                      className="text-[10px] text-muted-foreground"
+                    />
+                    <YAxis className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line
+                      type="monotone"
+                      dataKey="leads"
+                      strokeWidth={4}
+                      stroke="hsl(var(--primary))"
+                      dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
             <MetricCard
-              title="Avg Response Time"
-              value={insightsData?.metrics?.avgResponseTime || "--"}
-              color="text-primary"
-              icon={BarChart}
-            />
-            <MetricCard
-              title="Conversion Rate"
-              value={(insightsData?.metrics?.conversionRate || "0") + "%"}
-              color="text-emerald-500"
-              progress={parseFloat(insightsData?.metrics?.conversionRate || "0")}
-              icon={TrendingUp}
-            />
-            <MetricCard
-              title="Engagement Score"
-              value={(insightsData?.metrics?.engagementScore || "0") + "%"}
-              color="text-purple-500"
-              progress={parseFloat(insightsData?.metrics?.engagementScore || "0")}
-              icon={Sparkles}
+              title="Network Health"
+              value={insightsData?.metrics?.engagementScore || "0"}
+              icon={<Sparkles className="h-5 w-5 text-purple-500" />}
+              description="Average lead interest"
+              trend="Stable"
             />
           </div>
 
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {channelData.length > 0 && (
-              <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">Channel Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={channelData}
-                        dataKey="count"
-                        nameKey="channel"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {channelData.map((e, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-
-            {timeSeriesData.length > 0 && (
-              <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground/60">Lead Volume</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={timeSeriesData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/10" />
-                      <XAxis dataKey="date" className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
-                      <YAxis className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="leads"
-                        strokeWidth={4}
-                        stroke="hsl(var(--primary))"
-                        dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
-                        activeDot={{ r: 6, strokeWidth: 0 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Feature Lock for advanced if needed */}
           {!canAccessFullAnalytics && (
-            <FeatureLock featureName="Advanced Analytics" description="Unlock deep channel analysis." requiredPlan="Pro" />
+            <FeatureLock
+              featureName="Advanced Analytics"
+              description="Unlock deep channel analysis."
+              requiredPlan="Pro"
+            />
           )}
         </>
       )}
@@ -313,43 +284,46 @@ export default function InsightsPage() {
   );
 }
 
-function MetricCard({ title, value, color, icon: Icon, progress }: { title: string, value: string, color: string, icon: any, progress?: number }) {
+function MetricCard({ title, value, icon, description, trend, trendColor }: {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  description: string;
+  trend?: string;
+  trendColor?: string;
+}) {
   return (
-    <Card className="border-border/40 hover:border-primary/20 transition-all bg-card/40 backdrop-blur-xl rounded-[2rem] group relative overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60">{title}</CardTitle>
-        <Icon className={cn("h-4 w-4 transition-colors", color)} />
-      </CardHeader>
-      <CardContent className="flex flex-col items-center text-center pt-2">
-        {progress !== undefined ? (
-          <div className="relative h-24 w-24 mb-4 flex items-center justify-center">
-            <svg className="h-full w-full rotate-[-90deg]" viewBox="0 0 36 36">
-              <path className="text-muted/10" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2.5" />
-              <motion.path
-                initial={{ strokeDasharray: "0, 100" }}
-                animate={{ strokeDasharray: `${progress}, 100` }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className={color}
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute flex flex-col items-center">
-              <span className="text-2xl font-bold tracking-tighter">{value}</span>
-            </div>
+    <motion.div
+      whileHover={{ y: -5, scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300 }}
+    >
+      <Card className="bg-black/40 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">{title}</CardTitle>
+          <div className="h-10 w-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+            {icon}
           </div>
-        ) : (
-          <div className="text-3xl font-bold tracking-tighter mb-4 py-3">{value}</div>
-        )}
-
-        <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/40 mb-2">Network Health</p>
-
-        {/* Apple-style background glow */}
-        <div className={cn("absolute -bottom-10 -right-10 w-32 h-32 blur-[80px] opacity-10 rounded-full", color.replace('text-', 'bg-'))} />
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <div className="text-3xl font-black tracking-tighter mb-1 select-none">
+            {value}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] text-zinc-500 font-medium">
+              {description}
+            </p>
+            {trend && (
+              <span className={cn(
+                "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                trendColor || "bg-primary/10 border-primary/20 text-primary"
+              )}>
+                {trend}
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

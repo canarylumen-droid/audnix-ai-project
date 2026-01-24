@@ -105,7 +105,7 @@ export default function PrivacyPolicy() {
                     Why We Need Email Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates lead follow-ups via email. Connect your business email using Custom SMTP
+                    audnixai.com automates lead follow-ups via email. Connect your business email using Custom SMTP
                     to send and receive messages through your own email server.
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
                     Auto-Booking with Calendly
                   </h3>
                   <p className="text-sm">
-                    Audnix AI integrates with Calendly to automatically book calls with leads. When a lead shows interest,
+                    audnixai.com integrates with Calendly to automatically book calls with leads. When a lead shows interest,
                     our AI sends them your Calendly link so they can book directly on your calendar.
                   </p>
                 </div>
@@ -218,7 +218,7 @@ export default function PrivacyPolicy() {
                     Why We Need Instagram Access
                   </h3>
                   <p className="text-sm">
-                    Audnix AI automates Instagram DM replies and comment engagement. We need access to read incoming messages,
+                    audnixai.com automates Instagram DM replies and comment engagement. We need access to read incoming messages,
                     detect buying intent in comments, and send personalized follow-ups.
                   </p>
                 </div>
@@ -279,11 +279,11 @@ export default function PrivacyPolicy() {
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
                   <h4 className="font-semibold text-emerald-400 mb-2">✅ Official Instagram Graph API</h4>
                   <p className="text-sm">
-                    Audnix AI uses the official Instagram Graph API for all Instagram integrations. This ensures full compliance
+                    audnixai.com uses the official Instagram Graph API for all Instagram integrations. This ensures full compliance
                     with Meta's platform policies and provides secure, reliable access to messaging and content features.
                   </p>
                   <p className="text-sm mt-2">
-                    <strong>OAuth Authentication:</strong> We use Meta's official OAuth flow. Your credentials are never accessed or stored by Audnix AI.
+                    <strong>OAuth Authentication:</strong> We use Meta's official OAuth flow. Your credentials are never accessed or stored by audnixai.com.
                   </p>
                 </div>
               </div>
@@ -316,7 +316,7 @@ export default function PrivacyPolicy() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">3. Password & Credential Security</h3>
                   <ul className="list-disc list-inside space-y-1">
-                    <li><strong>OAuth-Only Authentication:</strong> We use official OAuth flows for Instagram and other integrations. Your passwords are never accessed or stored by Audnix AI.</li>
+                    <li><strong>OAuth-Only Authentication:</strong> We use official OAuth flows for Instagram and other integrations. Your passwords are never accessed or stored by audnixai.com.</li>
                     <li><strong>SMTP Credentials:</strong> Business email credentials are encrypted with AES-256-GCM</li>
                     <li><strong>Session Tokens:</strong> Encrypted with AES-256-GCM and automatically rotated every 7 days</li>
                     <li><strong>Token Revocation:</strong> You can instantly revoke all access tokens from your dashboard</li>
@@ -340,7 +340,7 @@ export default function PrivacyPolicy() {
                 How We Use Your Data (Transparent Data Processing)
               </h2>
               <div className="space-y-3 text-muted-foreground">
-                <p><strong>We use your information solely to provide and improve Audnix AI services:</strong></p>
+                <p><strong>We use your information solely to provide and improve audnixai.com services:</strong></p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Process and manage your account:</strong> Authentication, subscription management, billing</li>
                   <li><strong>Enable AI automation:</strong> Generate intelligent replies, detect buying intent, handle objections</li>
@@ -422,7 +422,7 @@ export default function PrivacyPolicy() {
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4">Children's Privacy</h2>
               <p className="text-muted-foreground">
-                Audnix AI is not intended for users under 18 years of age. We do not knowingly collect information from children.
+                audnixai.com is not intended for users under 18 years of age. We do not knowingly collect information from children.
                 If you believe a child has provided us with personal information, please contact us immediately at <strong className="text-primary">privacy@audnixai.com</strong>
                 and we will delete the account within 24 hours.
               </p>
@@ -432,7 +432,7 @@ export default function PrivacyPolicy() {
               <h2 className="text-2xl font-bold mb-4">International Data Transfers</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  Audnix AI operates globally. Your data may be transferred to and processed in countries outside your residence,
+                  audnixai.com operates globally. Your data may be transferred to and processed in countries outside your residence,
                   including the United States and European Union.
                 </p>
                 <p>
@@ -470,7 +470,7 @@ export default function PrivacyPolicy() {
               </h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  When you use Audnix AI to send automated messages, we process the following data:
+                  When you use audnixai.com to send automated messages, we process the following data:
                 </p>
 
                 <div className="bg-background/50 p-4 rounded-lg border border-blue-500/20">
@@ -523,7 +523,7 @@ export default function PrivacyPolicy() {
               <p className="text-muted-foreground">
                 We may update this Privacy Policy periodically to reflect changes in our practices, technology, or legal requirements.
                 We will notify you of significant changes via email at least <strong>30 days before</strong> they take effect.
-                Your continued use of Audnix AI after changes constitutes acceptance of the updated policy.
+                Your continued use of audnixai.com after changes constitutes acceptance of the updated policy.
               </p>
               <p className="text-muted-foreground mt-2">
                 <strong>Version History:</strong> All previous versions are archived and available upon request.
@@ -534,7 +534,7 @@ export default function PrivacyPolicy() {
               <h2 className="text-2xl font-bold mb-4">Your Consent & Control</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  <strong>By using Audnix AI, you consent to this Privacy Policy.</strong> However, you can:
+                  <strong>By using audnixai.com, you consent to this Privacy Policy.</strong> However, you can:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>✅ Disconnect any integration at any time (Settings → Integrations)</li>
@@ -559,7 +559,7 @@ export default function PrivacyPolicy() {
                 <li><strong>Data Protection Officer:</strong> <a href="mailto:dpo@audnixai.com" className="text-primary hover:underline">dpo@audnixai.com</a></li>
                 <li><strong>Security Reports:</strong> <a href="mailto:security@audnixai.com" className="text-primary hover:underline">security@audnixai.com</a></li>
                 <li><strong>General Support:</strong> <a href="mailto:support@audnixai.com" className="text-primary hover:underline">support@audnixai.com</a></li>
-                <li><strong>Mailing Address:</strong> Audnix AI, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
+                <li><strong>Mailing Address:</strong> audnixai.com, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
               </ul>
               <p className="text-muted-foreground mt-4">
                 <strong>Response Time:</strong> We respond to privacy requests within 48 hours (business days).

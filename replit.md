@@ -1,8 +1,8 @@
-# Audnix AI - Intelligent Sales Automation Platform
+# audnixai.com - Intelligent Sales Automation Platform
 
 ## Overview
 
-Audnix AI is a full-stack SaaS platform that serves as an autonomous AI sales representative. The system automates lead engagement across Instagram and Email channels with human-like timing and personalized voice messages. Core capabilities include AI-powered conversation handling, voice cloning for personalized audio messages, lead scoring, objection handling (110+ scripts), and automated meeting booking.
+audnixai.com is a full-stack SaaS platform that serves as an autonomous AI sales representative. The system automates lead engagement across Instagram and Email channels with human-like timing and personalized voice messages. Core capabilities include AI-powered conversation handling, voice cloning for personalized audio messages, lead scoring, objection handling (110+ scripts), and automated meeting booking.
 
 The platform targets creators, coaches, agencies, and founders who need 24/7 sales automation without manual follow-up overhead.
 

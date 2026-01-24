@@ -165,7 +165,7 @@ export class AdvancedCrawler {
             ...header,
             'X-Forwarded-For': fakeIp,
             'X-Real-IP': fakeIp,
-            'Via': '1.1 proxy-mesh.audnix.ai',
+            'Via': '1.1 proxy-mesh.audnixai.com',
             'Upgrade-Insecure-Requests': '1',
             'Sec-Fetch-Site': 'cross-site',
             'Sec-Fetch-Mode': 'navigate',

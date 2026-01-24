@@ -138,6 +138,7 @@ export async function processPDF(
           verifiedAt: verified ? new Date() : null,
           metadata: {
             source: 'pdf_import',
+            role: leadData.role,
             company: leadData.company,
             pdf_extracted: true,
             has_email: !!leadData.email,
@@ -483,10 +484,11 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
 
 RULES:
 1. "name": Extract full human names. If only a username is found, use it.
-2. "company": Identify the business name associated with the contact.
-3. "email": Extract valid email addresses.
-4. "phone": Extract phone numbers, cleaning them of non-numeric chars but preserving '+' if present.
-5. "channel": Determine if the lead is best contacted via "email" or "instagram".
+2. "role": Identify their position (e.g. CEO, Founder, Agency Owner, CMO). Be specific.
+3. "company": Identify the business name associated with the contact.
+4. "email": Extract valid email addresses.
+5. "phone": Extract phone numbers, cleaning them of non-numeric chars but preserving '+' if present.
+6. "channel": Determine if the lead is best contacted via "email" or "instagram".
 
 PRECISION GUIDELINES:
 - Look for "To:", "Attn:", "From:", "CEO:", or signatures.
@@ -494,7 +496,7 @@ PRECISION GUIDELINES:
 - If multiple contacts exist for one company, create separate lead entries.
 
 Return a JSON object with a "leads" array. 
-Example Output: { "leads": [{ "name": "...", "email": "...", "company": "...", "phone": "...", "channel": "..." }] }
+Example Output: { "leads": [{ "name": "...", "role": "...", "email": "...", "company": "...", "phone": "...", "channel": "..." }] }
 
 Be aggressive - if it looks like a lead, include it.`
       }, {

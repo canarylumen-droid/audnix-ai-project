@@ -20,7 +20,7 @@ Unlike a standard sales pitch, investor outreach requires a "Value-Exchange" ton
 
 ## 🛠 Audnix vs. Common Scraping Tools (Apollo, Phantombuster, etc.)
 
-| Feature | Common Scraping Tools | Audnix AI Prospecting Engine |
+| Feature | Common Scraping Tools | audnixai.com Prospecting Engine |
 |:---|:---|:---|
 | **Primary Output** | A static CSV list of emails/numbers. | A live, converted meeting in your calendar. |
 | **Effort Required** | 10+ hours/week to clean and email. | 0 hours. The agents handle the "First Touch." |

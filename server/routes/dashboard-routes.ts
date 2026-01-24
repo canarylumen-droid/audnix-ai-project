@@ -34,7 +34,19 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const bouncyLeads = leads.filter(l => l.status === 'bouncy').length;
     const recoveredLeads = leads.filter(l => l.status === 'recovered').length;
 
-    const totalMessages = (await storage.getAllMessages(userId)).length;
+    const totalMessages = await storage.getAllMessages(userId);
+
+    const messagesToday = totalMessages.filter(m => {
+      const d = new Date(m.createdAt);
+      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).filter(m => m.direction === 'outbound').length;
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const messagesYesterday = totalMessages.filter(m => {
+      const d = new Date(m.createdAt);
+      return d.getDate() === yesterday.getDate() && d.getMonth() === yesterday.getMonth() && d.getFullYear() === yesterday.getFullYear();
+    }).filter(m => m.direction === 'outbound').length;
 
     res.json({
       totalLeads: leads.length,
@@ -45,7 +57,9 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       bouncyLeads,
       recoveredLeads,
       conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : 0,
-      totalMessages,
+      totalMessages: totalMessages.length,
+      messagesToday,
+      messagesYesterday,
       averageResponseTime: '2.5h',
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
       facebookThisMonth: leads.filter(l => l.channel === 'instagram').length,

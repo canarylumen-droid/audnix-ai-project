@@ -268,9 +268,9 @@ export default function CalendarPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black tracking-tighter uppercase text-white inline-flex items-center gap-3">
-            Neural Mesh <Activity className="h-8 w-8 text-primary" />
+            Calendar Sync <Activity className="h-8 w-8 text-primary" />
           </h1>
-          <p className="text-white/40 font-medium mt-1 uppercase tracking-widest text-xs">High-Velocity Scheduling Grid</p>
+          <p className="text-white/40 font-medium mt-1 uppercase tracking-widest text-xs">Professional Schedule Management</p>
         </div>
         <div className="flex items-center gap-3">
           <Button
@@ -278,14 +278,14 @@ export default function CalendarPage() {
             className="rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold h-12 px-6"
           >
             <Settings className="mr-2 h-4 w-4" />
-            Config Node
+            Settings
           </Button>
           <Button
             onClick={() => setShowCreateDialog(true)}
             className="rounded-xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] h-12 px-6 shadow-lg shadow-primary/20"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Initialize Slot
+            Add Event
           </Button>
         </div>
       </div>
@@ -293,7 +293,7 @@ export default function CalendarPage() {
         <SheetTrigger asChild>
           <Button variant="outline" className="rounded-xl border-white/10 bg-white/5 hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest h-10 md:h-12 px-6">
             <Settings className="h-4 w-4 mr-2" />
-            Neural Config
+            Calendar Settings
           </Button>
         </SheetTrigger>
         <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto border-l-primary/10 bg-background/95 backdrop-blur-xl">
@@ -336,10 +336,10 @@ export default function CalendarPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-purple-400 group-hover:animate-pulse" />
-                    <Label className="text-base font-medium">Autonomous Slot Proposals</Label>
+                    <Label className="text-base font-medium">Automated Time Suggestions</Label>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    AI will suggest specific meeting times based on real-time availability instead of just sending a link.
+                    AI will suggest specific meeting times based on real-time availability.
                   </p>
                 </div>
                 <Switch
@@ -355,10 +355,10 @@ export default function CalendarPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Bot className="w-4 h-4 text-blue-400 group-hover:animate-bounce" />
-                    <Label className="text-base font-medium">Neural Availability Guard</Label>
+                    <Label className="text-base font-medium">Smart Availability Guard</Label>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Automatically block times when your intent scores are tracking high for other deals.
+                    Automatically block times for high-priority leads.
                   </p>
                 </div>
                 <Switch
@@ -374,12 +374,12 @@ export default function CalendarPage() {
             <Separator className="bg-border/40" />
             <div className="space-y-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
-                <Brain className="h-4 w-4" /> Neural Proposer
+                <Brain className="h-4 w-4" /> AI Scheduling
               </h3>
               <div className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/10">
                 <div>
-                  <p className="font-medium">Auto-Booking</p>
-                  <p className="text-xs text-muted-foreground">Allow AI to propose times</p>
+                  <p className="font-medium">Automated Scheduling</p>
+                  <p className="text-xs text-muted-foreground">Allow AI to automatically schedule meetings</p>
                 </div>
                 <Switch checked={settings?.autoBookingEnabled ?? false} onCheckedChange={(c) => updateSettingsMutation.mutate({ autoBookingEnabled: c })} />
               </div>
@@ -387,7 +387,7 @@ export default function CalendarPage() {
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <Label>Min Intent Score</Label>
+                    <Label>Minimum Intent Score</Label>
                     <span className="text-primary font-bold">{settings?.minIntentScore}%</span>
                   </div>
                   <Slider
@@ -396,11 +396,11 @@ export default function CalendarPage() {
                     step={5}
                     onValueChange={([v]) => updateSettingsMutation.mutate({ minIntentScore: v })}
                   />
-                  <p className="text-[10px] text-muted-foreground">Target only leads with this minimum neural confidence.</p>
+                  <p className="text-[10px] text-muted-foreground">Only schedule meetings for leads with this minimum intent score.</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Standard Meeting Duration</Label>
+                  <Label>Default Meeting Duration</Label>
                   <Select
                     value={String(settings?.meetingDuration || 30)}
                     onValueChange={(v) => updateSettingsMutation.mutate({ meetingDuration: Number(v) })}
@@ -422,7 +422,7 @@ export default function CalendarPage() {
             <Separator className="bg-border/40" />
             <div className="space-y-4">
               <h3 className="font-semibold flex items-center gap-2 text-primary">
-                <Timer className="h-4 w-4" /> Availability Guard
+                <Timer className="h-4 w-4" /> Buffer Settings
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -446,19 +446,16 @@ export default function CalendarPage() {
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">System prevents back-to-back fatigue by enforcing guards.</p>
+              <p className="text-[10px] text-muted-foreground">Add buffer time before and after meetings.</p>
             </div>
           </div>
         </SheetContent>
       </Sheet>
-    </div>
-        </div >
-      </div >
 
-    {/* Integration Ecosystem Status */ }
-    < div className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" >
-      {/* Calendly Card */ }
-      < Card className = "bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-primary/20 transition-all overflow-hidden relative" >
+      {/* Integration Status */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Calendly Card */}
+        <Card className="bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-primary/20 transition-all overflow-hidden relative">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
             <CalendarIcon className="w-24 h-24" />
           </div>
@@ -467,15 +464,15 @@ export default function CalendarPage() {
               <LinkIcon className={`w-6 h-6 ${settings?.calendlyEnabled ? 'text-primary' : 'text-white/20'}`} />
             </div>
             <Badge className={`${settings?.calendlyEnabled ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-white/5 text-white/30 border-white/10'} font-black text-[9px] uppercase tracking-widest`}>
-              {settings?.calendlyEnabled ? 'Operational' : 'Disconnected'}
+              {settings?.calendlyEnabled ? 'Connected' : 'Disconnected'}
             </Badge>
           </div>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Calendly Mesh</h3>
-          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Inbound availability engine</p>
-        </Card >
+          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Calendly</h3>
+          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Meeting link connection</p>
+        </Card>
 
-    {/* Google Calendar Card */ }
-    < Card className = "bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-indigo-500/20 transition-all overflow-hidden relative" >
+        {/* Google Calendar Card */}
+        <Card className="bg-[#050505] border-white/5 rounded-[2rem] p-6 group hover:border-indigo-500/20 transition-all overflow-hidden relative">
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
             <Globe className="w-24 h-24" />
           </div>
@@ -484,34 +481,34 @@ export default function CalendarPage() {
               <CalendarDays className={`w-6 h-6 ${settings?.googleCalendarEnabled ? 'text-indigo-400' : 'text-white/20'}`} />
             </div>
             <Badge className={`${settings?.googleCalendarEnabled ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' : 'bg-white/5 text-white/30 border-white/10'} font-black text-[9px] uppercase tracking-widest`}>
-              {settings?.googleCalendarEnabled ? 'Operational' : 'Disconnected'}
+              {settings?.googleCalendarEnabled ? 'Connected' : 'Disconnected'}
             </Badge>
           </div>
-          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Google Core</h3>
-          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Main schedule synchronization</p>
-        </Card >
+          <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1">Google Calendar</h3>
+          <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Standard calendar sync</p>
+        </Card>
 
-    {/* AI Scheduled Stat */ }
-    < Card className = "bg-primary/5 border-primary/10 rounded-[2rem] p-6 relative overflow-hidden group" >
+        {/* AI Scheduled Stat */}
+        <Card className="bg-primary/5 border-primary/10 rounded-[2rem] p-6 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-50" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 text-primary mb-4">
               <Brain className="w-5 h-5 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Neural Output</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">AI Performance</span>
             </div>
             <div className="text-4xl font-black text-white tracking-tighter mb-1">{aiScheduledCount}</div>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Autonomous Bookings Fully Handled</p>
+            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Automated appointments</p>
           </div>
-        </Card >
+        </Card>
 
-    {/* Intelligence Mode */ }
-    < Card className = "bg-[#0d0d0d] border-white/5 rounded-[2rem] p-6 flex flex-col justify-between" >
+        {/* Intelligence Mode */}
+        <Card className="bg-[#0d0d0d] border-white/5 rounded-[2rem] p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-3 text-amber-500 mb-4">
               <Zap className="w-5 h-5" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Core State</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Booking Status</span>
             </div>
-            <div className="text-2xl font-black text-white tracking-tight uppercase">{settings?.autoBookingEnabled ? "Active Protocol" : "Monitoring Only"}</div>
+            <div className="text-2xl font-black text-white tracking-tight uppercase">{settings?.autoBookingEnabled ? "Status: Automated" : "View Only"}</div>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full mt-4 overflow-hidden">
             <motion.div
@@ -520,51 +517,50 @@ export default function CalendarPage() {
               className={`h-full ${settings?.autoBookingEnabled ? 'bg-primary shadow-[0_0_15px_#00d2ff]' : 'bg-white/20'}`}
             />
           </div>
-        </Card >
-      </div >
+        </Card>
+      </div>
 
-    {/* Main Content */ }
-    < div className = "space-y-6" >
-      { settings?.autoBookingEnabled && aiLogs.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Sparkles className="h-4 w-4 text-primary" /> AI Activity Stream
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {aiLogs.slice(0, 3).map(log => (
-                <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
-                  <div className="flex items-center gap-3">
-                    <Badge variant={log.decision === 'act' ? 'default' : 'secondary'}>{log.decision}</Badge>
-                    <span className="text-sm text-muted-foreground">{log.reasoning}</span>
+      {/* Main Content */}
+      <div className="space-y-6">
+        {settings?.autoBookingEnabled && aiLogs.length > 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="h-4 w-4 text-primary" /> AI Activity Stream
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3">
+                {aiLogs.slice(0, 3).map(log => (
+                  <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border/50">
+                    <div className="flex items-center gap-3">
+                      <Badge variant={log.decision === 'act' ? 'default' : 'secondary'}>{log.decision}</Badge>
+                      <span className="text-sm text-muted-foreground">{log.reasoning}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground opacity-50">{new Date(log.createdAt).toLocaleTimeString()}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground opacity-50">{new Date(log.createdAt).toLocaleTimeString()}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-      )
-}
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         <div className="min-h-[400px]">
           {allEvents.length === 0 ? (
             <div className="py-20 text-center space-y-6 bg-[#050505] rounded-[3rem] border border-white/5 border-dashed">
               <div className="w-20 h-20 bg-primary/5 rounded-3xl mx-auto flex items-center justify-center border border-primary/10">
-                <CalendarDays className="h-10 w-10 text-primary/40 animate-pulse" />
+                <CalendarDays className="h-10 w-10 text-primary/40" />
               </div>
               <div className="max-w-xs mx-auto space-y-2">
-                <h3 className="text-sm font-black uppercase tracking-widest text-white">No active nodes scheduled</h3>
-                <p className="text-[10px] uppercase font-bold text-white/20 tracking-tighter">Your neural scheduling grid is currently clear. Once deals are initialized, slots will populate here.</p>
+                <h3 className="text-sm font-black uppercase tracking-widest text-white">No events scheduled</h3>
+                <p className="text-[10px] uppercase font-bold text-white/20 tracking-tighter">Your calendar is currently clear. Scheduled events will appear here.</p>
               </div>
               {!settings?.calendlyEnabled && (
                 <Button
                   onClick={() => setShowSettingsSheet(true)}
                   className="rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold h-10 px-6 transition-all"
                 >
-                  Configure Mesh Connection
+                  Connect Calendar
                 </Button>
               )}
             </div>
@@ -629,7 +625,7 @@ export default function CalendarPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }

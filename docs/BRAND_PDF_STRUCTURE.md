@@ -1,6 +1,6 @@
-# Brand PDF Structure Guide for Audnix AI
+# Brand PDF Structure Guide for audnixai.com
 
-To ensure Audnix AI perfectly understands your agency/business, please structure your Brand PDF (or text document) using the following sections. The AI is trained to look for these specific headers and content blocks.
+To ensure audnixai.com perfectly understands your agency/business, please structure your Brand PDF (or text document) using the following sections. The AI is trained to look for these specific headers and content blocks.
 
 ## 1. Company Overview
 **Header:** `COMPANY PROFILE` or `ABOUT US`

@@ -12,6 +12,8 @@ export const LEADS_SCHEMA = {
     email: { description: "Email address", required: false },
     phone: { description: "Phone/mobile number", required: false },
     company: { description: "Company/organization name", required: false },
+    role: { description: "Job title or role (e.g. Founder, CEO)", required: false },
+    bio: { description: "Brief background or specific info about the lead", required: false },
     channel: { description: "Communication channel (instagram/email)", required: false },
 };
 
@@ -20,6 +22,8 @@ export type LeadColumnMapping = {
     email?: string;
     phone?: string;
     company?: string;
+    role?: string;
+    bio?: string;
     channel?: string;
     industry?: string;
     website?: string;
@@ -222,7 +226,7 @@ function fallbackMapping(headers: string[]): MappingResult {
 export function extractLeadFromRow(
     row: Record<string, string>,
     mapping: LeadColumnMapping
-): { name?: string; email?: string; phone?: string; company?: string; channel?: string } {
+): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string } {
     let email = mapping.email ? row[mapping.email]?.trim() : undefined;
     let phone = mapping.phone ? row[mapping.phone]?.trim() : undefined;
 
@@ -251,6 +255,8 @@ export function extractLeadFromRow(
         email,
         phone,
         company: mapping.company ? row[mapping.company]?.trim() : undefined,
+        role: mapping.role ? row[mapping.role]?.trim() : undefined,
+        bio: mapping.bio ? row[mapping.bio]?.trim() : (mapping.notes ? row[mapping.notes]?.trim() : undefined),
         channel: mapping.channel ? row[mapping.channel]?.trim() : undefined,
     };
 }

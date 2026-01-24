@@ -1,4 +1,4 @@
-# AUDNIX AI: Intelligent Sales Automation
+# audnixai.com: Intelligent Sales Automation
 
 Audnix is an intelligent sales automation platform designed to optimize lead engagement and maximize revenue recovery. It provides a behavioral engagement layer that eliminates response latency and ensures no lead is left behind.
 

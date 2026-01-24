@@ -61,3 +61,105 @@ export const CursorIcon = ({ className }: { className?: string }) => (
         />
     </svg>
 );
+
+import { motion } from "framer-motion";
+
+export const NeuralTypingLogo = () => {
+    const text = "audnixai.com";
+
+    return (
+        <div className="flex flex-col items-center gap-6">
+            <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="relative h-20 w-20"
+            >
+                {/* Outer Glow matches landing page aura */}
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl animate-pulse" />
+
+                <svg viewBox="0 0 40 40" fill="none" className="w-full h-full relative z-10 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+                    <defs>
+                        <linearGradient id="premium-neural-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#60a5fa" />
+                        </linearGradient>
+                    </defs>
+
+                    {/* Background Brand Triangle (Ghost Layer) */}
+                    <path
+                        d="M20 4L34 31H6L20 4Z"
+                        stroke="url(#premium-neural-grad)"
+                        strokeWidth="2.5"
+                        strokeLinejoin="round"
+                        className="opacity-10"
+                    />
+
+                    {/* Animated Neural Brand Path - High Detail */}
+                    <motion.path
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{
+                            duration: 1.8,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            repeatDelay: 0.5
+                        }}
+                        d="M20 7L30 28H10L20 7Z"
+                        stroke="url(#premium-neural-grad)"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+
+                    {/* Pulsing Core Node - Centered Logic */}
+                    <motion.circle
+                        animate={{
+                            scale: [1, 1.6, 1],
+                            opacity: [0.6, 1, 0.6]
+                        }}
+                        transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                        cx="20" cy="19" r="3.5"
+                        fill="url(#premium-neural-grad)"
+                    />
+                </svg>
+            </motion.div>
+
+            <div className="flex overflow-hidden">
+                {text.split("").map((char, i) => (
+                    <motion.span
+                        key={i}
+                        initial={{ opacity: 0, scale: 0.4, y: 5 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{
+                            duration: 0.3,
+                            delay: i * 0.1,
+                            ease: [0.16, 1, 0.3, 1]
+                        }}
+                        className="text-4xl font-black tracking-tighter text-white uppercase"
+                    >
+                        {char}
+                    </motion.span>
+                ))}
+                <motion.div
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 0.8, repeat: Infinity }}
+                    className="w-1 h-10 bg-primary ml-1 rounded-full shadow-[0_0_15px_rgba(59,130,246,1)]"
+                />
+            </div>
+
+            <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.5 }}
+                className="text-[10px] font-black uppercase tracking-[0.8em] text-primary/40"
+            >
+                Neural Sync In Progress
+            </motion.p>
+        </div>
+    );
+};

@@ -485,7 +485,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-black truncate">{user?.name || "Member"}</p>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{user?.plan || "Free"} node active</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{user?.plan || "Free"} plan active</p>
                     </div>
                   </div>
                 </div>
@@ -493,9 +493,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </Sheet>
 
             <div className="relative max-w-lg w-full hidden md:block group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input
-                placeholder="Neural search system initialized..."
+                placeholder="Search system active..."
                 className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

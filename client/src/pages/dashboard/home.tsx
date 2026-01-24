@@ -247,10 +247,10 @@ export default function DashboardHome() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-foreground via-foreground/90 to-primary/80 bg-clip-text text-transparent">
-              Welcome back, {user?.name?.split(' ')[0] || user?.username || 'Operator'}
+              Welcome back, {user?.name?.split(' ')[0] || user?.username || 'User'}
             </h1>
             <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
-              {hasAnyActivity ? "Your automated system is performing optimally." : "Scale your outreach with high-precision AI automation."}
+              {hasAnyActivity ? "Your outreach system is performing optimally." : "Scale your outreach with personalized AI automation."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -426,15 +426,37 @@ export default function DashboardHome() {
               <CardContent className="pt-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Hardened Capacity</p>
-                    <p className="text-xl font-black text-emerald-400 tracking-tighter">{stats?.hardenedLeads || 0}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
+                    <p className="text-xl font-black text-emerald-400 tracking-tighter">
+                      {stats?.totalLeads && stats?.bouncyLeads !== undefined
+                        ? Math.max(0, 100 - (stats.bouncyLeads / (stats.totalLeads || 1) * 100)).toFixed(1)
+                        : "99.9"}%
+                    </p>
                   </div>
-                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] font-black uppercase tracking-widest">99.9% Safe</Badge>
+                  <Badge className={cn(
+                    "border-0 text-[8px] font-black uppercase tracking-widest",
+                    (stats?.bouncyLeads || 0) < 5 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                  )}>
+                    {(stats?.bouncyLeads || 0) < 5 ? "Excellent" : "Needs Attention"}
+                  </Badge>
+                </div>
+
+                {/* Real-time Advisory */}
+                <div className="p-3 rounded-xl bg-primary/5 border border-primary/10">
+                  <p className="text-[9px] font-bold text-primary uppercase mb-1 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    Reputation Advisory
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    {(stats?.bouncyLeads || 0) > 10
+                      ? "High bounce detected. Pause outreach and verify your lead list to avoid domain blacklisting."
+                      : "Your sender reputation is high. Continue 1-by-1 sending to maintain optimal deliverability."}
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">AI Recoveries</p>
+                    <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">AI Deliverability Fixes</p>
                     <p className="text-xl font-black text-cyan-400 tracking-tighter">{stats?.recoveredLeads || 0}</p>
                   </div>
                   <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-[8px] font-black uppercase tracking-widest">Fixed</Badge>
@@ -458,14 +480,14 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    AI Engine
+                    AI Automation
                   </span>
                   <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Healthy</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    Messaging Relay
+                    Email Integration
                   </span>
                   <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Active</Badge>
                 </div>

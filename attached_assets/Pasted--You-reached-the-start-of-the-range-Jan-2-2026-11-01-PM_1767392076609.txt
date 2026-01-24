@@ -194,5 +194,5 @@ Supabase admin client initialized successfully
 ✅ Supabase Auth configured
 ✅ Using PostgreSQL session store (persistent across restarts)
 /app/server/index.ts:149
->>>>>>> 007582b (Initial commit from Audnix AI Project extraction)
+>>>>>>> 007582b (Initial commit from audnixai.com Project extraction)
       domain: process.env.NODE_ENV === 'production' && !req.get('host')?.includes('railway.app') ? '.audnixai.com' : undefined,

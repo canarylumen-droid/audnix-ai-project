@@ -1,5 +1,5 @@
 It was working on this before it stopped so check if some have been implemented check it review the one that's there already add the ones left fix all bugs too
-Update Audnix AI backend to use voice minutes instead of seconds.
+Update audnixai.com backend to use voice minutes instead of seconds.
 Show live usage per user, lock voice features when exhausted, and allow Stripe top-ups that sync in real time.
 Maintain ≥ 85% profit margin on every tier and top-up.
 

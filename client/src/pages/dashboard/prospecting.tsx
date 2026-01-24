@@ -70,7 +70,7 @@ export default function ProspectingPage() {
         },
         onSuccess: () => {
             setShowConsole(true);
-            setLogs([{ id: 'init', text: '[System] Neural scan protocol initiated. Connecting to global proxy mesh...', type: 'info', timestamp: new Date() }]);
+            setLogs([{ id: 'init', text: '[System] Search system initialized. Establishing secure connections...', type: 'info', timestamp: new Date() }]);
         }
     });
 
@@ -150,7 +150,7 @@ export default function ProspectingPage() {
                                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none">Scraper Active</span>
                             </div>
                         </div>
-                        <p className="text-white/40 text-sm md:text-base font-medium tracking-tight">Worldwide Residential Proxy Mesh • Distributed Neural Nodes • Real-Time Delivery Handshakes</p>
+                        <p className="text-white/40 text-sm md:text-base font-medium tracking-tight">Enterprise Infrastructure • Worldwide Coverage • Real-Time Data Verification</p>
                     </div>
                     <div className="flex items-center justify-center md:justify-end gap-3">
                         <Button
@@ -190,7 +190,7 @@ export default function ProspectingPage() {
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     disabled={scanMutation.isPending}
-                                    placeholder="Search verified agency database (e.g., 'Miami Instagram Agency')..."
+                                    placeholder="Search verified business database (e.g., 'Miami Real Estate')..."
                                     className="h-20 bg-transparent border-none text-xl md:text-2xl text-white placeholder:text-white/20 focus-visible:ring-0 focus-visible:ring-offset-0 font-medium px-2"
                                 />
 
@@ -214,7 +214,7 @@ export default function ProspectingPage() {
 
                             {/* Feature Tags */}
                             <div className="px-6 pb-4 pt-2 flex flex-wrap gap-2">
-                                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-2 py-1.5">Active Protocols:</span>
+                                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest mr-2 py-1.5">Search Filters:</span>
                                 {['Only 95%+ Verified', 'Decision Makers', 'Revenue > $1M', 'Mobile + Email'].map((tag, i) => (
                                     <div key={i} className="px-3 py-1 rounded-full bg-white/5 border border-white/5 text-[10px] font-medium text-white/60 flex items-center gap-1.5 hover:bg-white/10 transition-colors">
                                         <div className={`w-1 h-1 rounded-full ${i % 2 === 0 ? 'bg-emerald-500' : 'bg-blue-500'}`} />
@@ -267,7 +267,7 @@ export default function ProspectingPage() {
                         <CardHeader className="px-10 py-8 border-b border-white/5">
                             <CardTitle className="text-white text-xl font-black uppercase tracking-widest flex items-center gap-4">
                                 <Activity className="w-5 h-5 text-primary" />
-                                Hardened Leads Cluster ({leads.length})
+                                Verified Leads List ({leads.length})
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -307,12 +307,12 @@ export default function ProspectingPage() {
                                                     ) : lead.status === 'recovered' ? (
                                                         <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-bold tracking-widest text-[9px] uppercase animate-pulse">
                                                             <Zap className="w-3 h-3 mr-1" />
-                                                            Neural Recovery
+                                                            Deliverability Fix
                                                         </Badge>
                                                     ) : lead.verified ? (
                                                         <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-bold tracking-widest text-[9px] uppercase">
                                                             <ShieldCheck className="w-3 h-3 mr-1 shadow-emerald-500/50" />
-                                                            Hardened & Safe
+                                                            Verified & Safe
                                                         </Badge>
                                                     ) : null}
 
@@ -390,7 +390,7 @@ export default function ProspectingPage() {
                 ) : (
                     <Card className="bg-card/50 backdrop-blur-sm border-border/40 rounded-2xl">
                         <CardContent className="p-12 text-center">
-                            <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a neural scan to discover prospects.</div>
+                            <div className="text-muted-foreground/40 text-sm font-medium">No leads yet. Start a new search to discover prospects.</div>
                         </CardContent>
                     </Card>
                 )}

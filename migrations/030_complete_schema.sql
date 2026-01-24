@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUDNIX AI - COMPLETE DATABASE SCHEMA (Consolidated Migration)
+-- audnixai.com - COMPLETE DATABASE SCHEMA (Consolidated Migration)
 -- All 37 tables with full columns and relationships
 -- =============================================================================
 

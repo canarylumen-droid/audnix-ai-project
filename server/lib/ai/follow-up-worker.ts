@@ -260,6 +260,10 @@ export class FollowUpWorker {
       // Get user's brand context
       const brandContext = await this.getBrandContext(job.userId);
 
+      // EXTRACT ROLE: Priority extraction for high-ticket disruption
+      const leadRole = (lead.metadata as any)?.role || "Founder";
+      const leadCompany = (lead.metadata as any)?.company || "the team";
+
       // Calculate campaign day (how many days since lead was created)
       const campaignDay = Math.floor(
         (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
@@ -267,6 +271,10 @@ export class FollowUpWorker {
 
       // Generate AI reply with day-aware context and brand personalization
       let aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+
+      // DEEP TRACKING: Generate unique ID for engagement detection
+      const { TrackingEngine } = await import('../email/tracking-engine.js');
+      const trackingId = TrackingEngine.generateTrackingId();
 
       // Prepend disclaimer for legal compliance (UI use only)
       let disclaimerPrefix = '';
@@ -278,7 +286,6 @@ export class FollowUpWorker {
           brandContext?.businessName || 'Audnix'
         );
         disclaimerPrefix = disclaimerResult.disclaimerPrefix;
-        // aiReply remains unmodified by prependDisclaimerToMessage
       } catch (disclaimerError) {
         console.warn('Failed to add disclaimer context:', disclaimerError);
       }
@@ -287,11 +294,12 @@ export class FollowUpWorker {
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
 
       if (sent) {
-        // Save message to database with disclaimer in metadata
+        // Save message to database with tracking ID
         const savedMessage = await this.saveMessage(job.userId, job.leadId, aiReply, 'assistant', {
           aiGenerated: true,
           disclaimer: disclaimerPrefix,
-          channel: job.channel
+          channel: job.channel,
+          trackingId: trackingId
         });
 
         // UPDATE: Log to audit trail
@@ -755,6 +763,7 @@ Generate a natural follow-up message:`;
         body: content,
         direction: role === 'user' ? 'inbound' : 'outbound',
         provider: (metadata.channel as ProviderType) || 'instagram',
+        trackingId: metadata.trackingId || null,
         metadata
       });
     } catch (error) {
@@ -855,55 +864,31 @@ Generate a natural follow-up message:`;
 
   /**
    * Get follow-up delay based on follow-up count and lead temperature
-   * HUMAN RHYTHM TIMING:
-   * - Email Day 1: 24 hours (not 4 hours - avoids desperation vibes)
-   * - Email Day 2: 48 hours  
-   * - Email Day 3: Day 5 (120 hours)
-   * - Email Day 4: Day 7 (168 hours)
-   * 
-   * Multi-channel spacing:
-   * - Email → +72 hours IG DM
+   * STRATEGIC GAPS (1, 3, 7):
+   * - Follow-up 1: Day 1 (24 hours)
+   * - Follow-up 2: Day 3 (72 hours)
+   * - Follow-up 3: Day 7 (168 hours)
    */
   private getFollowUpDelay(followUpCount: number, temperature: 'hot' | 'warm' | 'cold'): number {
-    // Hot leads - respond quickly but HUMAN (not desperate)
-    if (temperature === 'hot') {
-      const hotDelays: Record<number, number> = {
-        0: 24 * 60 * 60 * 1000,    // 24 hours (Day 1 - initial follow-up)
-        1: 48 * 60 * 60 * 1000,    // 48 hours (Day 2 - second follow-up)
-        2: 120 * 60 * 60 * 1000,   // 5 days (Day 5 - re-engagement)
-        3: 168 * 60 * 60 * 1000,   // 7 days (Day 7 - final touch)
-        4: 336 * 60 * 60 * 1000    // 14 days (archive if no response)
-      };
+    const dayInMs = 24 * 60 * 60 * 1000;
 
-      const baseDelay = hotDelays[followUpCount] || 24 * 60 * 60 * 1000;
-      const jitter = baseDelay * (Math.random() * 0.3 - 0.15); // +/- 15%
-      return Math.max(1000 * 60 * 5, baseDelay + jitter);
-    }
-
-    // Warm leads - moderate timing
-    if (temperature === 'warm') {
-      const warmDelays: Record<number, number> = {
-        0: 6 * 60 * 60 * 1000,      // 6 hours
-        1: 24 * 60 * 60 * 1000,     // 24 hours
-        2: 72 * 60 * 60 * 1000,     // 3 days
-        3: 120 * 60 * 60 * 1000,    // 5 days
-        4: 240 * 60 * 60 * 1000     // 10 days
-      };
-      const baseDelay = warmDelays[followUpCount] || 72 * 60 * 60 * 1000;
-      const jitter = baseDelay * (Math.random() * 0.4 - 0.2); // +/- 20%
-      return Math.max(1000 * 60 * 30, baseDelay + jitter);
-    }
-
-    // Cold leads - slower, more spaced out
-    const coldDelays: Record<number, number> = {
-      0: 24 * 60 * 60 * 1000,     // 1 day
-      1: 72 * 60 * 60 * 1000,     // 3 days
-      2: 168 * 60 * 60 * 1000,    // 1 week
-      3: 336 * 60 * 60 * 1000,    // 2 weeks
-      4: 720 * 60 * 60 * 1000     // 30 days
+    // Strategic sequence map: follow_up_count -> delay from previous
+    const sequenceMap: Record<number, number> = {
+      0: 24 * dayInMs,    // Day 1
+      1: 48 * dayInMs,    // Day 3 (24 + 48 = 72)
+      2: 96 * dayInMs,    // Day 7 (72 + 96 = 168)
     };
-    const baseDelay = coldDelays[followUpCount] || 720 * 60 * 60 * 1000;
-    const jitter = baseDelay * (Math.random() * 0.5 - 0.25); // +/- 25%
+
+    let baseDelay = sequenceMap[followUpCount] || 168 * dayInMs;
+
+    // Adjust based on lead temperature
+    if (temperature === 'hot') {
+      baseDelay *= 0.8; // Accelerate hot leads by 20%
+    } else if (temperature === 'cold') {
+      baseDelay *= 1.5; // Decelerate cold leads
+    }
+
+    const jitter = baseDelay * (Math.random() * 0.2 - 0.1); // +/- 10%
     return Math.max(1000 * 60 * 60, baseDelay + jitter);
   }
 

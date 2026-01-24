@@ -15,9 +15,9 @@ import {
 export interface ScheduledBatch {
   batchId: string;
   segmentId: keyof typeof OUTREACH_STRATEGY;
-  leadIds: string[];
+  leadIds: string[]; // Still keep leadIds but length will be 1 for 1-by-1
   scheduledTime: Date;
-  intervalBetweenLeads: number; // milliseconds
+  intervalBetweenLeads: number; // For 1-by-1, this is the delay to next send
   status: 'pending' | 'sending' | 'completed' | 'failed';
   sentCount: number;
   failedCount: number;
@@ -25,7 +25,7 @@ export interface ScheduledBatch {
 
 export interface SendSchedule {
   totalLeads: number;
-  totalBatches: number;
+  totalBatches: number; // Now represents total messages
   segmentDistribution: Record<string, number>;
   estimatedCompletionDate: Date;
   batchSchedules: ScheduledBatch[];
@@ -42,10 +42,24 @@ export function generateSendSchedule(
   const batchSchedules: ScheduledBatch[] = [];
   const segmentDistribution: Record<string, number> = {};
 
-  let currentTime = new Date(startTime);
   let totalLeads = 0;
+  const startDay = new Date(startTime);
 
-  // Process each segment
+  // Align to next available business hour if currently in quiet hours
+  if (startDay.getHours() >= 22 || startDay.getHours() < 7) {
+    startDay.setHours(8, 0, 0, 0);
+    if (startTime.getHours() >= 22) startDay.setDate(startDay.getDate() + 1);
+  }
+
+  // Distribution settings for the campaign
+  const campaignDays = {
+    day1: 300,
+    day2: 400,
+    day3: 500,
+    standard: 500
+  };
+
+  // Process all leads into a 1-by-1 queue
   Object.entries(leadsBySegment).forEach(([segmentId, leadIds]) => {
     const segment = OUTREACH_STRATEGY[segmentId as keyof typeof OUTREACH_STRATEGY];
     if (!segment || leadIds.length === 0) return;
@@ -54,58 +68,64 @@ export function generateSendSchedule(
     totalLeads += leadIds.length;
 
     const leadsRemaining = [...leadIds];
-    let day = 0;
+    let currentLeadTime = new Date(startDay);
+    let dayIndex = 0;
 
-    // Spread across days
-    while (leadsRemaining.length > 0 && day < segment.spreadDays) {
-      // 2-4 batches per day per segment
-      const batchesPerDay = Math.random() > 0.5 ? 2 : 3;
+    while (leadsRemaining.length > 0) {
+      // Determine daily limit for this day of the campaign
+      const dayKey = `day${dayIndex + 1}` as keyof typeof campaignDays;
+      const dailyLimit = campaignDays[dayKey] || campaignDays.standard;
 
-      for (let i = 0; i < batchesPerDay && leadsRemaining.length > 0; i++) {
-        // Randomize batch size to avoid pattern
-        const batchSize = getRandomBatchSize(
-          leadsRemaining.length,
-          Math.floor(segment.dailyLimit / batchesPerDay) - 30,
-          Math.floor(segment.dailyLimit / batchesPerDay) + 30
-        );
+      // Calculate interval: 60 mins / (dailyLimit / 9 active hours)
+      // 9 AM to 6 PM = 9 hours
+      const activeHoursPerDay = 9;
+      const leadsPerHour = dailyLimit / activeHoursPerDay;
+      const intervalMinutes = 60 / leadsPerHour;
 
-        const batchLeads = leadsRemaining.splice(0, batchSize);
-        const intervalMs =
-          getRandomInterval(segment.intervalMin, segment.intervalMax) * 60 * 1000;
+      for (let i = 0; i < dailyLimit && leadsRemaining.length > 0; i++) {
+        const leadId = leadsRemaining.shift();
+        if (!leadId) break;
 
         batchSchedules.push({
-          batchId: `${segmentId}_day${day}_batch${i}_${Date.now()}`,
+          batchId: `send_${leadId}_${Date.now()}_${i}`,
           segmentId: segmentId as keyof typeof OUTREACH_STRATEGY,
-          leadIds: batchLeads,
-          scheduledTime: new Date(currentTime),
-          intervalBetweenLeads: intervalMs,
+          leadIds: [leadId],
+          scheduledTime: new Date(currentLeadTime),
+          intervalBetweenLeads: intervalMinutes * 60 * 1000,
           status: 'pending',
           sentCount: 0,
           failedCount: 0,
         });
 
-        // Space out batches throughout the day (9 AM - 6 PM)
-        currentTime = new Date(
-          currentTime.getTime() +
-            getRandomInterval(90, 240) * 60 * 1000 // 90-240 min between batches
-        );
+        // Increment time for next lead
+        currentLeadTime = new Date(currentLeadTime.getTime() + (intervalMinutes * 60 * 1000));
+
+        // If moved into quiet hours (after 7 PM), jump to next day 9 AM
+        if (currentLeadTime.getHours() >= 19) {
+          currentLeadTime.setDate(currentLeadTime.getDate() + 1);
+          currentLeadTime.setHours(9, 0, 0, 0);
+          dayIndex++;
+        }
       }
 
-      // Next day, 8-10 AM
-      day++;
-      const nextDay = new Date(currentTime);
-      nextDay.setDate(nextDay.getDate() + 1);
-      nextDay.setHours(8 + Math.floor(Math.random() * 2), Math.floor(Math.random() * 60), 0, 0);
-      currentTime = nextDay;
+      // If we finished the daily limit but still have leads, jump to next day
+      if (leadsRemaining.length > 0 && currentLeadTime.getHours() < 19) {
+        currentLeadTime.setDate(currentLeadTime.getDate() + 1);
+        currentLeadTime.setHours(9, i % 60, 0, 0); // Slight jitter
+        dayIndex++;
+      }
     }
   });
 
+  // Sort global queue by time
+  const sortedQueue = batchSchedules.sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime());
+
   return {
     totalLeads,
-    totalBatches: batchSchedules.length,
+    totalBatches: sortedQueue.length,
     segmentDistribution,
-    estimatedCompletionDate: currentTime,
-    batchSchedules: batchSchedules.sort((a, b) => a.scheduledTime.getTime() - b.scheduledTime.getTime()),
+    estimatedCompletionDate: sortedQueue.length > 0 ? sortedQueue[sortedQueue.length - 1].scheduledTime : new Date(),
+    batchSchedules: sortedQueue,
   };
 }
 

@@ -21,6 +21,7 @@
 import OpenAI from "openai";
 import { MODELS } from "./model-config.js";
 import type { BrandContext } from "../../../shared/types.js";
+import { storage } from "../../storage.js";
 
 // Initialize OpenAI if key is present, otherwise use fallback
 const openai = process.env.OPENAI_API_KEY
@@ -376,34 +377,46 @@ export interface SalesLearnData {
 }
 
 export class UniversalSalesAI {
-  private learnData: SalesLearnData[] = [];
-  private successPatterns: Record<string, number> = {}; // Track what works
+  private patterns: Record<string, number> = {};
 
   async learnFromInteraction(data: SalesLearnData): Promise<void> {
-    this.learnData.push(data);
+    const isSuccess = data.leadResponse === "converted" || data.leadResponse === "interested";
+    const key = `${data.messageType}_${data.sentiment}`;
 
-    // Track patterns that lead to conversions
-    if (data.leadResponse === "converted" || data.leadResponse === "interested") {
-      const key = `${data.messageType}_${data.sentiment}`;
-      this.successPatterns[key] = (this.successPatterns[key] || 0) + 1;
+    // Track in memory for immediate use
+    this.patterns[key] = (this.patterns[key] || 0) + (isSuccess ? 1 : -1);
+
+    // Persist to database
+    try {
+      await storage.recordLearningPattern(data.leadId, key, isSuccess);
+    } catch (error) {
+      console.warn('⚠️ Pattern persistence failed, using memory fallback');
     }
 
-    console.log(`📚 Learned: ${data.messageType} + ${data.leadResponse} (pattern strength: ${JSON.stringify(this.successPatterns)})`);
+    console.log(`📚 Learned: ${key} + ${data.leadResponse} (pattern strength: ${this.patterns[key]})`);
   }
 
-  getTopPerformingStrategy(): string {
-    const sorted = Object.entries(this.successPatterns).sort((a, b) => b[1] - a[1]);
+  async getTopPerformingStrategy(userId: string): Promise<string> {
+    try {
+      const dbPatterns = await storage.getLearningPatterns(userId);
+      if (dbPatterns && dbPatterns.length > 0) {
+        return dbPatterns[0].patternKey;
+      }
+    } catch (error) {
+      console.warn('⚠️ Pattern retrieval failed');
+    }
+
+    const sorted = Object.entries(this.patterns).sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || "cold_outreach_positive";
   }
 
-  async adaptMessageBasedOnLearning(baseMessage: string, _leadProfile: SalesLeadProfile): Promise<string> {
-    const topStrategy = this.getTopPerformingStrategy();
+  async adaptMessageBasedOnLearning(baseMessage: string, leadProfile: SalesLeadProfile): Promise<string> {
+    const userId = (leadProfile as any).userId || "system";
+    const topStrategy = await this.getTopPerformingStrategy(userId);
 
     if (topStrategy.includes("positive")) {
-      // They respond well to positive framing
       return baseMessage.replace(/challenge|difficult/gi, "opportunity");
     } else if (topStrategy.includes("urgent")) {
-      // They respond well to urgency
       return "⏰ " + baseMessage;
     }
 

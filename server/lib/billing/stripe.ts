@@ -283,7 +283,7 @@ export async function getTopupPaymentLink(
   // Try to create a checkout session with the price ID
   try {
     console.log(`Creating checkout session with price ID: ${priceId}`);
-    
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -293,8 +293,8 @@ export async function getTopupPaymentLink(
           quantity: 1,
         },
       ],
-      success_url: `${process.env.VITE_API_URL || 'https://audnix.ai'}/dashboard/pricing?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.VITE_API_URL || 'https://audnix.ai'}/dashboard/pricing?cancelled=true`,
+      success_url: `${process.env.VITE_API_URL || 'https://audnixai.com'}/dashboard/pricing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${process.env.VITE_API_URL || 'https://audnixai.com'}/dashboard/pricing?cancelled=true`,
       client_reference_id: userId,
     });
 

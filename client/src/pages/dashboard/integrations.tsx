@@ -1,5 +1,5 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -137,6 +137,42 @@ function DisconnectConfirmationDialog({
   );
 }
 
+const CircularProgress = ({ value, label, sublabel, color = "primary" }: { value: number, label: string, sublabel: string, color?: string }) => (
+  <div className="flex flex-col items-center gap-2">
+    <div className="relative h-24 w-24">
+      <svg className="h-full w-full rotate-[-90deg]">
+        <circle
+          cx="48"
+          cy="48"
+          r="36"
+          stroke="currentColor"
+          strokeWidth="8"
+          fill="transparent"
+          className="text-muted/10"
+        />
+        <motion.circle
+          cx="48"
+          cy="48"
+          r="36"
+          stroke="currentColor"
+          strokeWidth="8"
+          fill="transparent"
+          strokeDasharray="226.2"
+          initial={{ strokeDashoffset: 226.2 }}
+          animate={{ strokeDashoffset: 226.2 - (226.2 * Math.min(value, 100)) / 100 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className={cn(color === "primary" ? "text-primary" : "text-emerald-500")}
+          style={{ strokeLinecap: "round" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xl font-black tracking-tighter">{label}</span>
+      </div>
+    </div>
+    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{sublabel}</span>
+  </div>
+);
+
 export default function IntegrationsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -160,6 +196,28 @@ export default function IntegrationsPage() {
 
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({ queryKey: ["/api/integrations"] });
   const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({ queryKey: ["/api/custom-email/status"] });
+  const { data: stats } = useQuery<any>({ queryKey: ["/api/dashboard/stats"] });
+  const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
+
+  const [tickerTime, setTickerTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTickerTime(Date.now()), 47); // ~21fps for high-fidelity ticker
+    return () => clearInterval(timer);
+  }, []);
+
+  const getDailyLimit = () => {
+    const tier = userData?.user?.subscriptionTier?.toLowerCase();
+    if (tier === 'enterprise') return 500;
+    if (tier === 'pro') return 400;
+    return 300; // Default / Starter
+  };
+
+  const calculateReputation = () => {
+    if (!stats?.totalLeads) return "99.9";
+    const bounceRate = (stats.bouncyLeads || 0) / stats.totalLeads;
+    return Math.max(0, 100 - (bounceRate * 100)).toFixed(1);
+  };
 
   const integrations = integrationsData?.integrations ?? [];
   const isCustomEmailConnected = customEmailStatus?.connected || false;
@@ -399,41 +457,69 @@ export default function IntegrationsPage() {
               ) : null}
 
               {isCustomEmailConnected && !isEditingCustomEmail && (
-                <div className="mt-8 pt-8 border-t grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">Domain Reputation</span>
-                      <ShieldCheck className="h-4 w-4 text-blue-500" />
+                <div className="mt-8 pt-8 border-t grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="flex items-center justify-around p-6 rounded-2xl bg-muted/20 border border-border/40 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full" />
+                    <CircularProgress
+                      value={stats?.messagesToday ? (stats.messagesToday / 500) * 100 : 0}
+                      label={stats?.messagesToday || "0"}
+                      sublabel="Sent Today"
+                    />
+                    <CircularProgress
+                      value={stats?.messagesYesterday ? (stats.messagesYesterday / 500) * 100 : 0}
+                      label={stats?.messagesYesterday || "0"}
+                      sublabel="Sent Yesterday"
+                      color="secondary"
+                    />
+                    <div className="absolute bottom-3 right-4 flex items-center gap-1.5">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[9px] font-black text-emerald-500/80 uppercase tracking-widest">Real-time Feed</span>
                     </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-2xl font-bold text-foreground">98.4</span>
-                      <span className="text-xs font-semibold text-emerald-500 pb-1">Excellent</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Optimized for high-volume outreach</p>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-purple-500">Neural Spacing</span>
-                      <Activity className="h-4 w-4 text-purple-500" />
+                  <div className="p-6 rounded-2xl bg-muted/20 border border-border/40 space-y-6">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-foreground flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-primary" />
+                          Domain Health Monitor
+                        </h3>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase">Last synced: Just now</p>
+                      </div>
+                      <Badge className={cn(
+                        "text-[9px] font-black border-0 uppercase tracking-tighter",
+                        parseFloat(calculateReputation()) > 90 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                      )}>
+                        {parseFloat(calculateReputation()) > 90 ? "Healthy" : "Attention Required"}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-foreground uppercase">Active</span>
-                      <div className="px-1.5 py-0.5 rounded bg-purple-500/10 text-[8px] font-black text-purple-500 uppercase">Jitter v4.1</div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Staggered sends to look 100% human</p>
-                  </div>
 
-                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Safe Send Vol</span>
-                      <Cpu className="h-4 w-4 text-emerald-500" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Domain Grade</p>
+                        <p className="text-3xl font-black tracking-tighter text-foreground">{calculateReputation()}%</p>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Engine Status</p>
+                        <p className={cn(
+                          "text-xs font-black uppercase tracking-widest pt-2",
+                          parseFloat(calculateReputation()) > 90 ? "text-emerald-500" : "text-amber-500"
+                        )}>
+                          {parseFloat(calculateReputation()) > 95 ? "Autonomous" : "User Oversight Recommended"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-end gap-2">
-                      <span className="text-2xl font-bold text-foreground">500</span>
-                      <span className="text-[10px] font-bold text-muted-foreground pb-1">/ day</span>
+
+                    <div className={cn(
+                      "p-3 rounded-xl border text-[10px] leading-tight font-medium",
+                      parseFloat(calculateReputation()) > 90
+                        ? "bg-primary/5 border-primary/10 text-muted-foreground"
+                        : "bg-red-500/5 border-red-500/10 text-red-400"
+                    )}>
+                      {parseFloat(calculateReputation()) > 90
+                        ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
+                        : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Predictive limit for zero blocks</p>
                   </div>
                 </div>
               )}

@@ -30,4 +30,4 @@ Allow: /
 User-agent: OAI-SearchBot
 Allow: /
 
-Sitemap: https://audnix.ai/sitemap.xml
+Sitemap: https://audnixai.com/sitemap.xml

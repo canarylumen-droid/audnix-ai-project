@@ -10,6 +10,10 @@ import { optimizeSalesLanguage } from './sales-language-optimizer.js';
 import { getBrandContext, formatBrandContextForPrompt } from './brand-context.js';
 import { appendLinkIfNeeded, detectAndGenerateLinkResponse } from './link-intent-detector.js';
 import { BookingProposer } from '../calendar/booking-proposer.js';
+import { analyzeLeadIntent } from './intent-analyzer.js';
+import { generateAutonomousObjectionResponse } from './autonomous-objection-responder.js';
+import { universalSalesAI } from './universal-sales-agent.js';
+import { evaluateAndLogDecision } from './decision-engine.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
 const openai = process.env.OPENAI_API_KEY
@@ -130,6 +134,7 @@ export async function autoUpdateLeadStatus(
     if (oldStatus !== newStatus) {
       await storage.updateLead(leadId, {
         status: newStatus,
+        aiPaused: false, // ENSURE AI is NOT paused on reply for autonomous mastery
         metadata: {
           ...(lead.metadata as Record<string, unknown> || {}),
           statusAutoUpdated: true,
@@ -140,7 +145,7 @@ export async function autoUpdateLeadStatus(
         }
       });
 
-      console.log(`✅ Auto-updated lead ${leadId} status: ${oldStatus} → ${newStatus} (${statusDetection.reason})`);
+      console.log(`✅ Auto-updated lead ${leadId} status: ${oldStatus} → ${newStatus} (AI Active)`);
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -243,6 +248,52 @@ export async function generateAIReply(
   const memoryResult: MemoryRetrievalResult = await retrieveConversationMemory(lead.userId, lead.id);
   const memoryMessages = await getConversationContext(lead.userId, lead.id);
   const allMessages = [...memoryMessages, ...conversationHistory];
+  const lastLeadMessage = conversationHistory.filter(m => m.direction === 'inbound').pop();
+
+  // --- NEURAL INTENT ANALYSIS ---
+  const intent = lastLeadMessage
+    ? await analyzeLeadIntent(lastLeadMessage.body, {
+      id: lead.id,
+      name: lead.name || "Lead",
+      channel: lead.channel,
+      status: lead.status,
+      tags: lead.tags || []
+    })
+    : null;
+
+  // --- OBJECTION HANDLING LOOP ---
+  if (intent?.hasObjection || intent?.isNegative) {
+    console.log(`🛡️ Objection detected for lead ${lead.id}. Triggering closer logic.`);
+    const objectionResponse = await generateAutonomousObjectionResponse(lastLeadMessage?.body || "", {
+      leadName: lead.name || "there",
+      leadIndustry: (lead.metadata?.industry as string) || "general",
+      previousMessages: allMessages.slice(-5).map(m => ({
+        role: m.direction === 'inbound' ? 'user' : 'assistant',
+        content: m.body
+      })),
+      brandName: (brandContext as any)?.businessName || "Our platform",
+      userIndustry: (brandContext as any)?.industry || "all"
+    });
+
+    return {
+      text: objectionResponse.response,
+      useVoice: false,
+      detections: intent
+    };
+  }
+
+  // --- STRATEGIC DECISION LOGGING ---
+  if (intent) {
+    await evaluateAndLogDecision({
+      userId: lead.userId,
+      leadId: lead.id,
+      actionType: intent.wantsToSchedule ? 'calendar_booking' : 'dm_sent',
+      intentScore: intent.confidence * 100,
+      timingScore: 80, // Default for active conversation
+      confidence: intent.confidence,
+      metadata: { intent }
+    });
+  }
 
   const messageContext: Array<{ role: 'user' | 'assistant'; content: string }> = allMessages.slice(-10).map(m => ({
     role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
@@ -258,23 +309,21 @@ export async function generateAIReply(
     email: 'professional yet approachable, well-structured'
   };
 
-  const systemPrompt = `You're a real person - not a bot, not overly formal - just genuinely good at connecting with people and helping them solve problems.
+  const systemPrompt = `You are an elite high-ticket sales advisor. You're a real person - not a bot - and your ONLY objective is to guide this conversation towards a BOOKED STRATEGY CALL.
 
 ${brandPromptSection}
 
 Platform: ${platform}
 Tone: ${platformTone[platform]}
 Lead Name: ${lead.name}
-Lead Status: ${isWarm ? 'WARM & ENGAGED 🔥' : 'NEW/COLD ❄️'}
+Lead Status: ${isWarm ? 'WARM - READY FOR BOOKING 🔥' : 'NEW - BUILDING AUTHORITY ❄️'}
 
 How You Talk:
-- Like you text your friends - natural, relaxed, no corporate BS
+- Like a peer, not a subordinate. You are a strategic advisor, not a salesperson.
 - Use contractions (you're, don't, let's, can't) - it sounds real
-- No "I appreciate your interest" or "kindly" or "as per" - talk normal
-- Short sentences. Especially on Instagram. Keep it snappy.
-- 2-3 sentences max for DMs, a short paragraph for email
-- Use their name only if it feels organic - don't overdo it
-- Emojis? Only if they fit the vibe. Max 1-2. No emoji spam.
+- No "I appreciate your interest" or "kindly". Start with the insight.
+- Every message must be a bridge. If they ask a question, answer it and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
+- Short sentences. 2-3 sentences max for DMs, a short paragraph for email.
 
 Your Personality:
 - Confident but chill - you know what you're offering is good
@@ -472,11 +521,18 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
 
     let responseText = completion.choices[0]?.message?.content || "";
 
-    // Append meeting/payment/app link if detected with lower confidence
-    responseText = await appendLinkIfNeeded(lead.userId, lastMessage.body, responseText);
+    // Conditional Link Injection: NO tracking/links in 1st email
+    const isFirstTouch = conversationHistory.length <= 1;
 
-    if (platform === 'email' && brandContext.signature) {
-      responseText += brandContext.signature;
+    if (!isFirstTouch) {
+      // Append meeting/payment/app link if detected with lower confidence
+      responseText = await appendLinkIfNeeded(lead.userId, lastMessage.body, responseText);
+
+      if (platform === 'email' && brandContext.signature) {
+        responseText += brandContext.signature;
+      }
+    } else {
+      console.log(`🛡️ First touch detected for ${lead.email} - Sending plain text outreach (No tracking)`);
     }
 
     return {
@@ -677,42 +733,55 @@ export async function getConversationContext(
 }
 /**
  * Generate an elite "Day 1 Hook" outreach message
- * Focuses on curiosity, personality, and getting that FIRST reply.
+ * Focuses on curiosity, psychological triggers, and getting that FIRST reply.
  */
 export async function generateExpertOutreach(
   lead: Lead,
   userId: string
 ): Promise<{ subject: string, body: string, alternatives: string[] }> {
-  try {
-    const brandContext = await getBrandContext(userId);
-    const offer = (brandContext?.metadata as any)?.offer || null;
+  const brandContext = await getBrandContext(userId);
+  const offer = brandContext.offer || "your premium solution";
+  const leadRole = lead.role || "Founder";
+  const industry = (lead.metadata as any)?.industry || "your industry";
+  const leadBio = lead.bio || "";
 
-    const systemPrompt = `You are an elite high-ticket sales copywriting agent. Your goal is to get a REPLY on the FIRST email.
+  try {
+    const systemPrompt = `You are an elite high-ticket sales copywriting expert (Think Joe Sugarman + Chris Voss). 
+    Your ONLY objective is to get a REPLY that serves as a bridge to booking a STRATEGY CALL.
     
-    STRATEGY:
-    1. THE HOOK: Never start with "I am [Name] from [Company]". Start with a personalized observation or a "disruptive" question.
-    2. THE CURIOSITY GAP: Don't explain everything. Leave them wanting to know "How?".
-    3. THE OFFER: Use the provided Offer context to highlight a single, massive transformation.
-    4. CLICKBAIT SUBJECTS: Generate 3 variations. They should look like they're from a friend or a high-value peer, not a marketing bot.
-    
+    CORE STRATEGY:
+    1. PSYCHOLOGICAL CLICKBAIT: Subjects must evoke FOMO, curiosity, or a "disruption" of their current routine.
+    2. THE CURIOSITY GAP: Use "Disruptive Questions". E.g. "Is [Company] prepared for [specific industry shift]?" or "One thing missing from your [role] workflow...".
+    3. THE TRANSFORMATION: Do not sell features. Highlight a Massive Closing Velocity. Use the Offer context to find the 'Unique Breakthrough'.
+    4. ROLE PERSONALIZATION: You are talking to a ${leadRole} in ${industry}. Speak their language.
+
     BRAND CONTEXT:
     ${formatBrandContextForPrompt(brandContext)}
-    
-    OFFER DETAILS:
+    COPYWRITING DIRECTIVES:
+    1. PEER-TO-PEER AUTHORITY: You are a high-level strategic advisor, not a salesperson. Speak with authority to ${leadRole}s.
+    2. THE CURIOSITY GAP: Start with a disruptive observation about ${industry} or their specific business type (e.g. Agency).
+    3. THE BOOKING PIVOT: Every word must advance theClose. The goal is to get them to ask "How does this work?" so we can book the call.
+    4. NO FLUFF: Start the email directly with the "A-ha" moment. No intros or "How are you".
+    5. PROFILE AWARENESS: Use this info about them: ${leadBio}
+
+    BRAND OFFER INTEL (Synthesize this into the ROI transformation):
     ${JSON.stringify(offer)}
-    
-    LEAD NAME: ${lead.name}
-    COMPANY: ${lead.company || 'their business'}
-    
+
+    LEAD INTEL:
+    Name: ${lead.name}
+    Company: ${lead.company || "their company"}
+    Role: ${leadRole}
+    Industry: ${industry}
+
     OUTPUT FORMAT (JSON):
     {
       "subjects": [
-        "best clickbait version (short, punchy)",
-        "curiosity version",
-        "direct value version"
+        "short provocative version (Fear of Missing Out / Professional)",
+        "result-oriented version",
+        "human peer-to-peer version"
       ],
       "best_subject_index": 0,
-      "body_html": "Concise, 3-4 sentence plain-text style HTML (use <p> and <br> only). No fluff."
+      "body_html": "3-4 punchy sentences. High-contrast plain text style HTML (<p>). Focus on the 20% shift that drives 80% results. End with a curiosity-focused question."
     }`;
 
     if (!openai) throw new Error("Neural Engine Offline");
@@ -721,12 +790,14 @@ export async function generateExpertOutreach(
       model: MODELS.sales_reasoning,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Generate outreach for ${lead.name} at ${lead.company}.` }
+        { role: "user", content: `Craft the opening disruption for ${lead.name} (${leadRole}) at ${lead.company || "their company"}. Use the brand offer to bridge their ${industry} gap and set up the bridge to a booked call.` }
       ],
       response_format: { type: 'json_object' }
     });
 
     const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+
+    if (!result.subjects || !result.body_html) throw new Error("Incomplete Intel Generation");
 
     return {
       subject: result.subjects[result.best_subject_index] || result.subjects[0],
@@ -734,11 +805,20 @@ export async function generateExpertOutreach(
       alternatives: result.subjects
     };
   } catch (error) {
-    console.error("Expert Outreach Error:", error);
+    console.error("Expert Outreach Error (Switching to Elite Fallback):", error);
+
+    // Elite Fallback Engine - No generic strings
+    const usp = typeof offer === 'string' ? offer.substring(0, 80) : "high-velocity neural optimization";
+    const leadTarget = leadRole === 'Founder' || leadRole === 'CEO' ? 'roadmap' : 'workflow';
+
     return {
-      subject: `Quick thought for ${lead.name}`,
-      body: `<p>Hey ${lead.name},</p><p>I saw what you're doing at ${lead.company} and had a quick observation I wanted to share.</p><p>Interested in a quick chat about it?</p>`,
-      alternatives: [`Question for ${lead.name}`, `Idea for ${lead.company}`]
+      subject: `The ${leadRole} gap in ${industry} implementation ([Live Context])`,
+      body: `<p>Hey ${lead.name},</p><p>I noticed a specific friction point in how ${lead.company || "your team"} is scaling its ${industry} operations. Most teams in your space miss the 20% shift that drives 80% of the conversion velocity.</p><p>I have a theory on how ${usp} maps to your current ${leadTarget}. Is efficiency a core focus for the team this quarter?</p>`,
+      alternatives: [
+        `Disruptive question for ${lead.company || "the team"}`,
+        `Regarding the ${leadRole} roadmap at ${lead.company || "the company"}`,
+        `Quick theory on ${industry} scalability`
+      ]
     };
   }
 }

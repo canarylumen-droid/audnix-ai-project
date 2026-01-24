@@ -170,7 +170,7 @@ export default function AdminDashboard() {
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">
-              Monitor and manage your Audnix AI platform
+              Monitor and manage your audnixai.com platform
             </p>
           </div>
           <Button variant="outline" onClick={() => setLocation("/dashboard")}>

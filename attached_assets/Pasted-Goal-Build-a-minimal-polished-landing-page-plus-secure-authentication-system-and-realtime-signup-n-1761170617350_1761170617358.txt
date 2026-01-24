@@ -19,7 +19,7 @@ Deliverables (what generator must output):
 
 1. Landing page (single-page, responsive) with:
 
-Hero (headline, tagline: “Follow up like a human, close deals like a pro — Audnix AI.”)
+Hero (headline, tagline: “Follow up like a human, close deals like a pro — audnixai.com.”)
 
 Short features section (3 bullets)
 

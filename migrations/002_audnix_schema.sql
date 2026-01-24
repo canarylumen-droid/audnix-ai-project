@@ -2,7 +2,7 @@
 -- Skip if not using Supabase (migration 000 handles standard PostgreSQL)
 -- All functionality is already provided by 000_SETUP_SUPABASE.sql
 
--- Audnix AI Production Database Schema
+-- audnixai.com Production Database Schema
 -- Run this migration in Supabase SQL Editor after enabling pgvector extension
 
 -- Enable pgvector extension for embeddings

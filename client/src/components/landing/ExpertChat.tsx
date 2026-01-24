@@ -32,11 +32,11 @@ const SUGGESTED_QUESTIONS = [
 
 // 20 Preset Answers for fallback or common queries
 const PRESET_ANSWERS: Record<string, string> = {
-    "default": "I am the Audnix AI Assistant. I'm here to help you automate your sales outreach and scale your business with autonomous intelligence. What specific protocol can I assist you with?",
+    "default": "I am the audnixai.com Assistant. I'm here to help you automate your sales outreach and scale your business with autonomous intelligence. What specific protocol can I assist you with?",
     "pricing": "Audnix offers flexible tiers starting from our Base Layer for individual closers to Enterprise Protocols for global sales teams. You can view full details in the 'Pricing' section.",
     "demo": "You can initialize a live demo by selecting 'Book a Demo' or by signing up for a free trial to explore the interface directly.",
     "scale": "Audnix scales by deploying multiple autonomous agents across Email and Instagram, handling thousands of conversations with zero human latency.",
-    "support": "Our technical support team is available 24/7 via the 'Support' link in your dashboard or by emailing support@audnix.ai.",
+    "support": "Our technical support team is available 24/7 via the 'Support' link in your dashboard or by emailing support@audnixai.com.",
     "how it works": "Audnix syncs with your brand's communication style, analyzes leads autonomously, handles objections using deterministic logic, and books meetings directly into your calendar.",
     "integrations": "Currently, we offer deep integrations with Gmail, Outlook, and Instagram, with more CRM bridges being deployed soon.",
     "security": "We use enterprise-grade SOC2 Type II encryption and deterministic logic to ensure every interaction is brand-safe and secure.",
@@ -51,7 +51,7 @@ const PRESET_ANSWERS: Record<string, string> = {
     "automation": "Our automation builder allows you to orchestrate human-like follow-up sequences that adapt to prospect sentiment in real-time.",
     "analytics": "The dashboard provides deep analytics on lead scoring, conversion velocity, and agent performance.",
     "setup": "Setup is completely frictionless. No complex coding required—just plug in your communication links and go.",
-    "ai assistant": "I am your dedicated Audnix AI Assistant, here to provide guidance on all aspects of the platform.",
+    "ai assistant": "I am your dedicated audnixai.com Assistant, here to provide guidance on all aspects of the platform.",
     "founder": "Audnix was architected by a team of sales operations engineers who realized legacy CRMs were the primary bottleneck to scaling high-ticket offers.",
     "market": "The intelligence layer is designed for high-growth sectors: Agencies, B2B Sales Teams, and Personal Brand Creators.",
     "future": "We are currently developing neural expansion packs that will allow Audnix to handle multi-stage complex negotiation without any human oversight.",

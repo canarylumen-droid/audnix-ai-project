@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -98,7 +98,13 @@ export interface IStorage {
   // Follow Up Queue
   createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue>;
   getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined>;
-  updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined>;
+  getFollowUpById(id: string): Promise<FollowUpQueue | undefined>;
+  updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined>;
+  getDueFollowUps(): Promise<FollowUpQueue[]>;
+
+  // AI Learning Patterns
+  getLearningPatterns(userId: string): Promise<AiLearningPattern[]>;
+  recordLearningPattern(userId: string, key: string, success: boolean): Promise<void>;
 
   // OAuth Accounts
   getOAuthAccount(userId: string, provider: string): Promise<OAuthAccount | undefined>;

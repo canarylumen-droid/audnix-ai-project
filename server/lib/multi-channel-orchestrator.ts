@@ -36,27 +36,27 @@ export class MultiChannelOrchestrator {
 
     const schedules: FollowUpSchedule[] = [];
 
-    // EMAIL SEQUENCE (always runs first)
+    // EMAIL SEQUENCE (High-Impact Gaps)
     const emailSchedules = [
-      { day: 0, sequenceNumber: 1, label: 'initial' },    // Day 0: Initial pitch
-      { day: 1, sequenceNumber: 2, label: 'followup_1' }, // Day 1 (18-24h): Follow-up 1
-      { day: 2, sequenceNumber: 3, label: 'followup_2' }, // Day 2 (48h): Follow-up 2
-      { day: 5, sequenceNumber: 4, label: 'followup_3' }, // Day 5: Soft check-in
-      { day: 7, sequenceNumber: 5, label: 'final' },      // Day 7-8: Final close
+      { day: 0, sequenceNumber: 1, label: 'initial' },    // Day 0: Initial Transformation
+      { day: 1, sequenceNumber: 2, label: 'followup_1' }, // Day 1: Disruptive Hook
+      { day: 3, sequenceNumber: 3, label: 'followup_2' }, // Day 3: Curiosity Gap
+      { day: 7, sequenceNumber: 4, label: 'final' },      // Day 7: Strategic Archive Theory
     ];
 
     for (const schedule of emailSchedules) {
       if (daysSinceCampaignStart >= schedule.day) {
         const scheduledDate = new Date(campaignDayCreated);
         scheduledDate.setDate(scheduledDate.getDate() + schedule.day);
-        // Add random hours (18-24 for day 1, 48-72 for day 2, etc.)
+
+        // Human-like randomization windows
         const randomHours = schedule.day === 0 ?
-          Math.random() * 4 : // Initial: 0-4 hours after campaign
+          Math.random() * 2 : // Immediate: 0-2 hours
           schedule.day === 1 ?
-            18 + Math.random() * 6 : // Day 1: 18-24 hours
-            schedule.day === 2 ?
-              48 + Math.random() * 24 : // Day 2: 48-72 hours
-              Math.random() * 24; // Other days: random within day
+            18 + Math.random() * 8 : // Day 1: 18-26 hours (Next day peak)
+            schedule.day === 3 ?
+              65 + Math.random() * 12 : // Day 3: Peak flow
+              Math.random() * 24; // Day 7: Strategic timing
 
         scheduledDate.setHours(scheduledDate.getHours() + randomHours);
 

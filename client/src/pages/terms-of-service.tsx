@@ -54,7 +54,7 @@ export default function TermsOfService() {
             <Card className="p-6 mb-12 bg-primary/5 border-primary/20">
               <h2 className="text-xl font-bold mb-4">Agreement Summary</h2>
               <p className="text-muted-foreground mb-4">
-                By using Audnix AI, you agree to these terms. Here's what you need to know:
+                By using audnixai.com, you agree to these terms. Here's what you need to know:
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
@@ -86,10 +86,10 @@ export default function TermsOfService() {
               </h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  By accessing or using Audnix AI's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you disagree with any part of these terms, you may not access our service.
+                  By accessing or using audnixai.com's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you disagree with any part of these terms, you may not access our service.
                 </p>
                 <p>
-                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses using Audnix AI for sales automation.
+                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses using audnixai.com for sales automation.
                 </p>
               </div>
             </Card>
@@ -149,7 +149,7 @@ export default function TermsOfService() {
               <div className="space-y-4 text-muted-foreground">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Acceptable Use</h3>
-                  <p>You agree to use Audnix AI only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
+                  <p>You agree to use audnixai.com only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Sending spam, unsolicited messages, or violating CAN-SPAM Act / GDPR</li>
                     <li>Violating Instagram or other platform terms of service</li>
@@ -168,7 +168,7 @@ export default function TermsOfService() {
                       ✅ Official Instagram Graph API Integration
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Audnix AI uses the official Instagram Graph API for all Instagram features</li>
+                      <li>audnixai.com uses the official Instagram Graph API for all Instagram features</li>
                       <li>Requires an Instagram Business or Creator account connected to a Facebook Page</li>
                       <li>Uses Meta's official OAuth authentication flow for secure access</li>
                       <li>Complies with Instagram Platform Policy and Meta's terms of service</li>
@@ -188,7 +188,7 @@ export default function TermsOfService() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Platform-Specific Policies</h3>
-                  <p className="text-sm mb-2">By using Audnix AI, you also agree to comply with:</p>
+                  <p className="text-sm mb-2">By using audnixai.com, you also agree to comply with:</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     <li><strong>Instagram:</strong> <a href="https://help.instagram.com/581066165581870" className="text-primary hover:underline" target="_blank">Instagram Community Guidelines</a> and <a href="https://www.facebook.com/help/instagram/477434105621119" className="text-primary hover:underline" target="_blank">Terms of Use</a></li>
                     <li><strong>Email:</strong> Your email provider's terms of service and anti-spam policies (CAN-SPAM, GDPR)</li>
@@ -265,7 +265,7 @@ export default function TermsOfService() {
               <div className="space-y-3 text-muted-foreground">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Your Content</h3>
-                  <p>You retain all rights to content you create using Audnix AI, including:</p>
+                  <p>You retain all rights to content you create using audnixai.com, including:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Voice recordings and AI-generated voice clones</li>
                     <li>Lead data, conversation transcripts, and message content</li>
@@ -274,13 +274,13 @@ export default function TermsOfService() {
                   </ul>
                   <p className="mt-2">
                     <strong>License Grant:</strong> By using our service, you grant us a limited, non-exclusive, royalty-free license to process, store, and use your content
-                    solely to provide Audnix AI services. This license terminates when you delete the content or close your account.
+                    solely to provide audnixai.com services. This license terminates when you delete the content or close your account.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Our Platform</h3>
                   <p>
-                    Audnix AI, including our software, AI models, algorithms, brand assets, logos, and documentation, are protected by copyright, trademark,
+                    audnixai.com, including our software, AI models, algorithms, brand assets, logos, and documentation, are protected by copyright, trademark,
                     and intellectual property laws. You may not:
                   </p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
@@ -293,7 +293,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">AI-Generated Content</h3>
                   <p className="text-sm">
-                    <strong>Ownership:</strong> You own AI-generated messages created by Audnix AI for your leads. However, you are responsible for ensuring
+                    <strong>Ownership:</strong> You own AI-generated messages created by audnixai.com for your leads. However, you are responsible for ensuring
                     these messages comply with platform policies and legal regulations.
                   </p>
                   <p className="text-sm mt-2">
@@ -307,7 +307,7 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-bold mb-4">7. Disclaimer of Warranties</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p className="font-semibold text-foreground">
-                  AUDNIX AI IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
+                  audnixai.com IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.
                 </p>
                 <p>We do not guarantee:</p>
                 <ul className="list-disc list-inside space-y-1">
@@ -329,7 +329,7 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-bold mb-4">8. Limitation of Liability</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, AUDNIX AI AND ITS AFFILIATES SHALL NOT BE LIABLE FOR:
+                  TO THE MAXIMUM EXTENT PERMITTED BY LAW, audnixai.com AND ITS AFFILIATES SHALL NOT BE LIABLE FOR:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Lost Profits or Revenue:</strong> Any loss of business, sales, or opportunities</li>
@@ -340,7 +340,7 @@ export default function TermsOfService() {
                   <li><strong>Unauthorized Access:</strong> Security breaches caused by user negligence (weak passwords, shared credentials)</li>
                 </ul>
                 <p className="mt-4">
-                  <strong>Maximum Liability:</strong> Our total liability to you for any claims arising from these Terms shall not exceed the amount you paid to Audnix AI
+                  <strong>Maximum Liability:</strong> Our total liability to you for any claims arising from these Terms shall not exceed the amount you paid to audnixai.com
                   in the 12 months preceding the claim.
                 </p>
                 <p className="mt-2 text-sm">
@@ -353,12 +353,12 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-bold mb-4">9. Indemnification</h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  You agree to indemnify, defend, and hold harmless Audnix AI, its affiliates, officers, directors, employees, and agents from any claims, damages,
+                  You agree to indemnify, defend, and hold harmless audnixai.com, its affiliates, officers, directors, employees, and agents from any claims, damages,
                   losses, liabilities, and expenses (including legal fees) arising from:
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Your violation of these Terms or third-party platform policies</li>
-                  <li>Your use of Audnix AI in an unlawful, fraudulent, or abusive manner</li>
+                  <li>Your use of audnixai.com in an unlawful, fraudulent, or abusive manner</li>
                   <li>Infringement of third-party intellectual property rights (e.g., using copyrighted content without permission)</li>
                   <li>Your lead data or messaging content violating privacy laws (GDPR, CCPA, CAN-SPAM)</li>
                   <li>Claims by leads, customers, or third parties arising from your use of our platform</li>
@@ -378,7 +378,7 @@ export default function TermsOfService() {
                   <li><strong>Data Protection Laws:</strong> Ensure you have legal permission to contact and store lead data.</li>
                 </ul>
                 <p className="mt-2 text-sm">
-                  <strong>Your Responsibility:</strong> You are solely responsible for ensuring your use of Audnix AI complies with laws in your jurisdiction and your leads' jurisdictions.
+                  <strong>Your Responsibility:</strong> You are solely responsible for ensuring your use of audnixai.com complies with laws in your jurisdiction and your leads' jurisdictions.
                 </p>
               </div>
             </Card>
@@ -389,7 +389,7 @@ export default function TermsOfService() {
                 We may modify these Terms at any time. We will notify you of significant changes via email or in-app notification at least <strong>30 days before</strong> they take effect.
               </p>
               <p className="text-muted-foreground mt-2">
-                Your continued use of Audnix AI after changes constitutes acceptance of the new terms. If you disagree, you must cancel your subscription before the effective date.
+                Your continued use of audnixai.com after changes constitutes acceptance of the new terms. If you disagree, you must cancel your subscription before the effective date.
               </p>
               <p className="text-muted-foreground mt-2">
                 <strong>Version History:</strong> All previous versions are archived at <a href="/terms-history" className="text-primary hover:underline">audnixai.com/terms-history</a>
@@ -424,7 +424,7 @@ export default function TermsOfService() {
               </h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  <strong>Important:</strong> Audnix AI uses artificial intelligence to generate and send automated messages on your behalf (email, Instagram, voice). Please understand the following:
+                  <strong>Important:</strong> audnixai.com uses artificial intelligence to generate and send automated messages on your behalf (email, Instagram, voice). Please understand the following:
                 </p>
 
                 <div className="bg-background/50 p-4 rounded-lg border border-amber-500/20">
@@ -440,7 +440,7 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Your Responsibility</h3>
                   <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li>You are responsible for the content of all AI-generated messages sent through Audnix AI</li>
+                    <li>You are responsible for the content of all AI-generated messages sent through audnixai.com</li>
                     <li>You must ensure AI messages comply with all applicable laws (CAN-SPAM, GDPR, CCPA, TCPA, etc.)</li>
                     <li>You must ensure you have permission to contact all recipients with automated messages</li>
                     <li>You must regularly review AI-generated content to ensure accuracy and compliance</li>
@@ -470,7 +470,7 @@ export default function TermsOfService() {
               <h2 className="text-2xl font-bold mb-4">14. Miscellaneous</h2>
               <div className="space-y-3 text-muted-foreground">
                 <ul className="list-disc list-inside space-y-2">
-                  <li><strong>Entire Agreement:</strong> These Terms, along with our Privacy Policy, constitute the entire agreement between you and Audnix AI</li>
+                  <li><strong>Entire Agreement:</strong> These Terms, along with our Privacy Policy, constitute the entire agreement between you and audnixai.com</li>
                   <li><strong>Severability:</strong> If any provision is found invalid, the remaining provisions remain in effect</li>
                   <li><strong>No Waiver:</strong> Our failure to enforce any right does not waive that right</li>
                   <li><strong>Assignment:</strong> You may not assign these Terms. We may assign them to affiliates or acquirers</li>
@@ -488,7 +488,7 @@ export default function TermsOfService() {
                   EU users' data may be replicated to EU-based Supabase servers for compliance.
                 </p>
                 <p>
-                  Audnix AI operates globally. Your data may be transferred to and processed in countries outside your residence,
+                  audnixai.com operates globally. Your data may be transferred to and processed in countries outside your residence,
                   including the United States and European Union.
                 </p>
                 <p>
@@ -510,7 +510,7 @@ export default function TermsOfService() {
                 <li><strong>Legal Inquiries:</strong> <a href="mailto:legal@audnixai.com" className="text-primary hover:underline">legal@audnixai.com</a></li>
                 <li><strong>General Support:</strong> <a href="mailto:support@audnixai.com" className="text-primary hover:underline">support@audnixai.com</a></li>
                 <li><strong>Billing Questions:</strong> <a href="mailto:billing@audnixai.com" className="text-primary hover:underline">billing@audnixai.com</a></li>
-                <li><strong>Mailing Address:</strong> Audnix AI, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
+                <li><strong>Mailing Address:</strong> audnixai.com, Inc., 251 18th Street, 7th Floor, New York, NY 10011, USA</li>
               </ul>
             </Card>
           </motion.div>

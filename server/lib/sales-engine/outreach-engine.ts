@@ -4,9 +4,10 @@
  */
 
 import { generateSendSchedule, optimizeForRevenue, estimateRevenue, ScheduledBatch, SendSchedule } from './batch-scheduler.js';
-import { getNextTemplate, personalizeMessage, shouldRotateTemplate } from './message-rotator.js';
+import { generateStrategicSequenceMessage, shouldRotateTemplate } from './message-rotator.js';
 import { rankLeadQuality } from './outreach-strategy.js';
-import type { MessageTemplate } from './message-rotator.js';
+import type { MessageTemplate, MessageType } from './message-rotator.js';
+import type { Lead } from '../../../shared/schema.js';
 
 export interface OutreachCampaign {
   campaignId: string;
@@ -14,7 +15,7 @@ export interface OutreachCampaign {
   totalLeads: number;
   startTime: Date;
   schedule: SendSchedule;
-  optimizedBatches: ScheduledBatch[];
+  queuedSends: ScheduledBatch[];
   estimatedRevenue: number;
   status: 'draft' | 'scheduled' | 'active' | 'completed';
   metrics: {
@@ -75,7 +76,7 @@ export async function createOutreachCampaign(
     totalLeads: leads.length,
     startTime: new Date(),
     schedule,
-    optimizedBatches,
+    queuedSends: optimizedBatches,
     estimatedRevenue,
     status: 'draft',
     metrics: {
@@ -119,32 +120,32 @@ function segmentByQuality(
 
 /**
  * Get next message for a lead
- * Handles: Message type progression, template rotation, personalization
+ * Handles: Message type progression, AI strategic generation
  */
-export function getNextOutreachMessage(
+export async function getNextOutreachMessage(
   leadState: LeadOutreachState,
-  leadEmail: string,
-  leadData: Record<string, string>
-): { template: MessageTemplate; message: string } {
+  lead: Lead
+): Promise<{ template: MessageTemplate; message: string }> {
   const sendCount = leadState.sendHistory.length;
 
   // Message sequence: Hook → Value → Social Proof → Urgency → Followup
-  const messageTypes = ['hook', 'value', 'social_proof', 'urgency', 'followup'];
+  const messageTypes: MessageType[] = ['hook', 'value', 'social_proof', 'urgency', 'followup'];
 
   // For initial sends: cycle through types
-  let messageType: any = messageTypes[Math.min(sendCount, messageTypes.length - 1)];
+  let messageType = messageTypes[Math.min(sendCount, messageTypes.length - 1)];
 
-  // Determine if we need template rotation (every 3rd send to same lead)
-  const needsRotation = shouldRotateTemplate(sendCount, messageType);
+  // Generate dynamic strategic message
+  const template = await generateStrategicSequenceMessage(
+    lead,
+    lead.userId,
+    messageType,
+    lead.channel as 'email' | 'instagram'
+  );
 
-  // Get template
-  const previousId = leadState.sendHistory[sendCount - 1]?.templateId;
-  const template = getNextTemplate(messageType, needsRotation ? previousId : undefined);
-
-  // Personalize
-  const message = personalizeMessage(template, leadData);
-
-  return { template, message };
+  return {
+    template,
+    message: template.subject ? `${template.subject}\n\n${template.body}` : template.body
+  };
 }
 
 /**
@@ -178,7 +179,7 @@ export function formatCampaignMetrics(campaign: OutreachCampaign): string {
     '',
     '📊 Volume:',
     `  Total Leads: ${campaign.totalLeads}`,
-    `  Batches: ${campaign.optimizedBatches.length}`,
+    `  Queued Sends: ${campaign.queuedSends.length}`,
     `  Spread Over: ${campaign.schedule.estimatedCompletionDate.toLocaleDateString()}`,
     '',
     '💰 Revenue Projection:',
@@ -204,7 +205,7 @@ export function formatCampaignMetrics(campaign: OutreachCampaign): string {
 export const SAFETY_GUARDRAILS = {
   maxSendsPerHour: 100,
   maxSendsPerDay: 1000,
-  minIntervalBetweenBatches: 60, // 60 minutes
+  minIntervalBetweenSends: 1, // 1 minute minimum
   maxFollowupsPerLead: 3,
   bounceRateThreshold: 0.05, // 5% bounce = pause
   spamComplaintThreshold: 0.01, // 1% complaints = review
@@ -225,7 +226,7 @@ export function validateCampaignSafety(campaign: OutreachCampaign): { safe: bool
   }
 
   if (campaign.schedule.totalBatches < 3) {
-    warnings.push('⚠️  Very few batches - consider spreading leads more to improve deliverability.');
+    warnings.push('⚠️  Low volume scheduled - consider adding more leads for better scalability.');
   }
 
   if (campaign.estimatedRevenue < 5000) {

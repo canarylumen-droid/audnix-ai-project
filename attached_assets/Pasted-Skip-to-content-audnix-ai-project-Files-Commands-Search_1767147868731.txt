@@ -2,7 +2,7 @@
 Skip to content
 
 
-audnix-ai-project
+audnixai.com-project
 Files
 Commands
 Search
@@ -432,7 +432,7 @@ Let me be real with you - I need to check this more carefully. Looking at the co
 Checkpoint made
 Add inbox message functionality and improve loading states
 Worked for 5 minutes
-Set up a Node.js + Express backend that does the following for Audnix AI:
+Set up a Node.js + Express backend that does the following for audnixai.com:
 When I visit /auth/instagram, it generates the Instagram OAuth redirect URL using META_CALLBACK_URL from .env and logs it, showing that it correctly uses the callback URL.
 Handle the /auth/instagram/callback route separately, logging any code parameter received.
 Set up a /webhook route that listens for GET verification requests from Meta using META_VERIFY_TOKEN and responds with the challenge.
@@ -487,12 +487,12 @@ Working...
 Scroll to latest
 
 Make, test, iterate…
-audnix-ai-project - Replit
+audnixai.com-project - Replit
 =======
 Skip to content
 
 
-audnix-ai-project
+audnixai.com-project
 Files
 Commands
 Search
@@ -922,7 +922,7 @@ Let me be real with you - I need to check this more carefully. Looking at the co
 Checkpoint made
 Add inbox message functionality and improve loading states
 Worked for 5 minutes
-Set up a Node.js + Express backend that does the following for Audnix AI:
+Set up a Node.js + Express backend that does the following for audnixai.com:
 When I visit /auth/instagram, it generates the Instagram OAuth redirect URL using META_CALLBACK_URL from .env and logs it, showing that it correctly uses the callback URL.
 Handle the /auth/instagram/callback route separately, logging any code parameter received.
 Set up a /webhook route that listens for GET verification requests from Meta using META_VERIFY_TOKEN and responds with the challenge.
@@ -977,5 +977,5 @@ Working...
 Scroll to latest
 
 Make, test, iterate…
-audnix-ai-project - Replit
->>>>>>> 007582b (Initial commit from Audnix AI Project extraction)
+audnixai.com-project - Replit
+>>>>>>> 007582b (Initial commit from audnixai.com Project extraction)

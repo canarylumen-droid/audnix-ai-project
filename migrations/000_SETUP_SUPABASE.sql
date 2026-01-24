@@ -1,8 +1,8 @@
 -- ============================================================================
--- AUDNIX AI - COMPLETE DATABASE SETUP (Standard PostgreSQL)
+-- audnixai.com - COMPLETE DATABASE SETUP (Standard PostgreSQL)
 -- ============================================================================
 -- Run this in your PostgreSQL database
--- This creates all tables needed for Audnix AI
+-- This creates all tables needed for audnixai.com
 -- ============================================================================
 
 -- Enable required extensions

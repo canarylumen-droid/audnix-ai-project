@@ -47,7 +47,7 @@ The result? Your leads hit dead-ends, get frustrated, and bounce. Meanwhile, you
 **The Core Problem:** ManyChat treats every conversation like a flowchart. But real sales conversations are fluid, emotional, and unpredictable. A lead might start with "How much?" and pivot to "I'm worried about X" in the same message.`
             },
             {
-                title: "ManyChat vs Audnix AI - Feature Comparison",
+                title: "ManyChat vs audnixai.com - Feature Comparison",
                 type: "comparison",
                 items: [
                     { feature: "Conversation Logic", manychat: "IF/THEN Flows", audnix: "Neural Intent Detection" },
@@ -97,7 +97,7 @@ But if you're doing high-ticket sales, appointment setting, or complex B2B lead 
 Every Make.com workflow is a tower of technical debt. One API change, one rate limit, one malformed response—and your entire lead engine stops.`
             },
             {
-                title: "Make.com vs Audnix AI - Architecture",
+                title: "Make.com vs audnixai.com - Architecture",
                 type: "comparison",
                 items: [
                     { feature: "Setup Time", manychat: "Hours/Days", audnix: "30 Minutes" },
@@ -140,7 +140,7 @@ Audnix handles all of this natively. Instagram, Email, CRM sync—it just works.
 And when n8n goes down? Your leads aren't waiting. They're moving to your competitors who actually replied.`
             },
             {
-                title: "n8n vs Audnix AI - Operational Reality",
+                title: "n8n vs audnixai.com - Operational Reality",
                 type: "comparison",
                 items: [
                     { feature: "Hosting", manychat: "Self-Managed", audnix: "Fully Managed Cloud" },
@@ -183,7 +183,7 @@ But Zapier has no concept of:
 It's a pipe, not a brain. And pipes don't close deals.`
             },
             {
-                title: "Zapier vs Audnix AI - Sales Capabilities",
+                title: "Zapier vs audnixai.com - Sales Capabilities",
                 type: "comparison",
                 items: [
                     { feature: "Lead Analysis", manychat: "None", audnix: "Deep Intent Scoring" },
@@ -237,7 +237,7 @@ Meanwhile, Instagram DM reply rates are hitting 35%+. Voice notes? 67% response 
 Email should be part of your stack. But it shouldn't be your entire stack.`
             },
             {
-                title: "Instantly vs Audnix AI - Channel Comparison",
+                title: "Instantly vs audnixai.com - Channel Comparison",
                 type: "comparison",
                 items: [
                     { feature: "Email Outreach", manychat: "✓ Core Feature", audnix: "✓ Included" },
@@ -284,7 +284,7 @@ But here's what they don't tell you:
 You can send 10,000 emails or 1,000 intelligent messages. The 1,000 will outperform every time.`
             },
             {
-                title: "SmartLead vs Audnix AI - Quality vs Quantity",
+                title: "SmartLead vs audnixai.com - Quality vs Quantity",
                 type: "comparison",
                 items: [
                     { feature: "Personalization", manychat: "Variable Merge Tags", audnix: "AI-Generated Custom Copy" },
@@ -330,7 +330,7 @@ But when you try to do everything, you rarely do anything exceptionally well.
 • No true conversational AI for handling objections`
             },
             {
-                title: "GoHighLevel vs Audnix AI - Focus Areas",
+                title: "GoHighLevel vs audnixai.com - Focus Areas",
                 type: "comparison",
                 items: [
                     { feature: "Primary Focus", manychat: "All-in-One Platform", audnix: "Sales AI Excellence" },
@@ -366,7 +366,7 @@ const ComparisonTable = ({ items, competitorName }: { items: any[], competitorNa
                 <tr className="border-b border-white/10">
                     <th className="py-4 px-4 text-sm font-bold text-white/60 uppercase tracking-wider">Feature</th>
                     <th className="py-4 px-4 text-sm font-bold text-red-400 uppercase tracking-wider">{competitorName}</th>
-                    <th className="py-4 px-4 text-sm font-bold text-emerald-400 uppercase tracking-wider">Audnix AI</th>
+                    <th className="py-4 px-4 text-sm font-bold text-emerald-400 uppercase tracking-wider">audnixai.com</th>
                 </tr>
             </thead>
             <tbody>
@@ -476,7 +476,7 @@ export default function ComparePage() {
                             <span className="text-primary">Switching to Audnix.</span>
                         </h1>
                         <p className="text-xl text-white/50 max-w-xl leading-relaxed">
-                            Detailed breakdowns of how Audnix AI compares to popular automation tools. No marketing fluff—just features, facts, and real outcomes.
+                            Detailed breakdowns of how audnixai.com compares to popular automation tools. No marketing fluff—just features, facts, and real outcomes.
                         </p>
                     </motion.div>
                 </div>

@@ -64,6 +64,9 @@ export const leads = pgTable("leads", {
   organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
   externalId: text("external_id"),
   name: text("name").notNull(),
+  company: text("company"),
+  role: text("role"),
+  bio: text("bio"),
   channel: text("channel", { enum: ["instagram", "email"] }).notNull(),
   email: text("email"),
   phone: text("phone"),
@@ -89,6 +92,10 @@ export const messages = pgTable("messages", {
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
   body: text("body").notNull(),
   audioUrl: text("audio_url"),
+  trackingId: text("tracking_id"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  repliedAt: timestamp("replied_at"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -589,6 +596,20 @@ export const conversationEvents = pgTable("conversation_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const aiLearningPatterns = pgTable("ai_learning_patterns", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  patternKey: text("pattern_key").notNull(),
+  strength: integer("strength").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => {
+  return {
+    userPatternIdx: uniqueIndex("user_pattern_idx").on(table.userId, table.patternKey),
+  };
+});
+
 // ========== SCRAPING SESSIONS ==========
 
 // Scraping session tracking
@@ -675,6 +696,7 @@ export const insertOrganizationSchema = createInsertSchema(organizations).omit({
 export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({ id: true, invitedAt: true });
 export const insertBrandPdfCacheSchema = createInsertSchema(brandPdfCache);
 export const insertAdminWhitelistSchema = createInsertSchema(adminWhitelist);
+export const insertAiLearningPatternSchema = createInsertSchema(aiLearningPatterns);
 
 // Types from Drizzle
 export type User = typeof users.$inferSelect;
@@ -747,6 +769,9 @@ export type InsertAdminWhitelist = typeof adminWhitelist.$inferInsert;
 export type FollowUpQueue = typeof followUpQueue.$inferSelect;
 export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;
 
+export type AiLearningPattern = typeof aiLearningPatterns.$inferSelect;
+export type InsertAiLearningPattern = typeof aiLearningPatterns.$inferInsert;
+
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -791,6 +816,9 @@ export const leadSchema = z.object({
   channel: z.enum(["instagram", "email"]),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
+  company: z.string().nullable(),
+  role: z.string().nullable(),
+  bio: z.string().nullable(),
   status: z.enum(["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy"]).default("new"),
   verified: z.boolean().default(false),
   verifiedAt: z.date().nullable(),
@@ -812,6 +840,10 @@ export const messageSchema = z.object({
   direction: z.enum(["inbound", "outbound"]),
   body: z.string(),
   audioUrl: z.string().url().nullable(),
+  trackingId: z.string().nullable(),
+  openedAt: z.date().nullable(),
+  clickedAt: z.date().nullable(),
+  repliedAt: z.date().nullable(),
   metadata: z.record(z.any()).default({}),
   createdAt: z.date(),
 });

@@ -62,7 +62,7 @@ self.addEventListener('push', (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Audnix AI', options)
+    self.registration.showNotification(data.title || 'audnixai.com', options)
   );
 });
 

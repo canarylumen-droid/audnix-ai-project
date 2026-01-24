@@ -1,12 +1,12 @@
-Absolutely. We can upgrade your backend prompt to be fully production-ready for Audnix AI, integrating real-time lead capture, AI follow-ups, and Instagram OAuth, so that once a lead is captured and the user is signed up, the AI automatically follows up without any manual token pasting. Here's a carefully structured updated prompt for Rocket.new or your Replit backend build:
+Absolutely. We can upgrade your backend prompt to be fully production-ready for audnixai.com, integrating real-time lead capture, AI follow-ups, and Instagram OAuth, so that once a lead is captured and the user is signed up, the AI automatically follows up without any manual token pasting. Here's a carefully structured updated prompt for Rocket.new or your Replit backend build:
 
 
 ---
 
-🔥 Audnix AI Backend Prompt v4.0 — Real-Time Follow-Up & Instagram OAuth
+🔥 audnixai.com Backend Prompt v4.0 — Real-Time Follow-Up & Instagram OAuth
 
 Goal:
-Build a production-ready, fully automated SaaS backend for Audnix AI. Once a lead is captured, the system autonomously follows up across Instagram, WhatsApp, and Email with human-like timing, smart personalization, and optional voice messages. Include secure OAuth token storage, automatic token refresh, payment integration via links, and real-time analytics.
+Build a production-ready, fully automated SaaS backend for audnixai.com. Once a lead is captured, the system autonomously follows up across Instagram, WhatsApp, and Email with human-like timing, smart personalization, and optional voice messages. Include secure OAuth token storage, automatic token refresh, payment integration via links, and real-time analytics.
 
 
 ---
