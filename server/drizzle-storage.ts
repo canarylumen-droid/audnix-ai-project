@@ -41,50 +41,9 @@ export class DrizzleStorage implements IStorage {
     return await db
       .select()
       .from(followUpQueue)
-      .where(and(eq(followUpQueue.status, 'pending'), lte(followUpQueue.scheduledTime, now)))
-      .orderBy(desc(followUpQueue.scheduledTime));
+      .where(and(eq(followUpQueue.status, 'pending'), lte(followUpQueue.scheduledAt, now)))
+      .orderBy(desc(followUpQueue.scheduledAt));
   }
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    checkDatabase();
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
-  }
-
-  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
-    checkDatabase();
-    return await db
-      .select()
-      .from(aiLearningPatterns)
-      .where(eq(aiLearningPatterns.userId, userId))
-      .orderBy(desc(aiLearningPatterns.strength));
-  }
-
-  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
-    checkDatabase();
-    const [existing] = await db
-      .select()
-      .from(aiLearningPatterns)
-      .where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key)))
-      .limit(1);
-
-    if (existing) {
-      await db
-        .update(aiLearningPatterns)
-        .set({
-          strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
-          lastUsedAt: new Date()
-        })
-        .where(eq(aiLearningPatterns.id, existing.id));
-    } else {
-      await db.insert(aiLearningPatterns).values({
-        userId,
-        patternKey: key,
-        strength: success ? 1 : 0,
-        metadata: {}
-      });
-    }
-  }
-
   async getVoiceMinutesBalance(userId: string): Promise<number> {
     checkDatabase();
     const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -411,8 +370,12 @@ export class DrizzleStorage implements IStorage {
       .insert(leads)
       .values({
         userId: insertLead.userId,
+        organizationId: insertLead.organizationId || null,
         externalId: insertLead.externalId || null,
         name: insertLead.name,
+        company: insertLead.company || null,
+        role: insertLead.role || null,
+        bio: insertLead.bio || null,
         channel: insertLead.channel as any,
         email: insertLead.email || null,
         phone: insertLead.phone || null,
@@ -420,6 +383,10 @@ export class DrizzleStorage implements IStorage {
         score: insertLead.score || 0,
         warm: insertLead.warm || false,
         lastMessageAt: insertLead.lastMessageAt || null,
+        aiPaused: insertLead.aiPaused || false,
+        verified: insertLead.verified || false,
+        verifiedAt: insertLead.verifiedAt || null,
+        pdfConfidence: insertLead.pdfConfidence || null,
         tags: insertLead.tags || [],
         metadata: insertLead.metadata || {},
       })
@@ -506,6 +473,10 @@ export class DrizzleStorage implements IStorage {
         direction: message.direction,
         body: message.body,
         provider: message.provider || 'system',
+        trackingId: message.trackingId || null,
+        openedAt: message.openedAt || null,
+        clickedAt: message.clickedAt || null,
+        repliedAt: message.repliedAt || null,
         createdAt: new Date(),
         metadata: message.metadata || {},
       })
@@ -513,9 +484,6 @@ export class DrizzleStorage implements IStorage {
 
     if (result[0]) {
       wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
-      // Also notify leads updated because lastMessageAt usually changes, handled by separate updateLead call?
-      // Usually logic calls updateLead separately. If not, we might want to trigger it here.
-      // But let's stick to notifying about the message.
     }
     return result[0];
   }

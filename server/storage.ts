@@ -238,8 +238,8 @@ export class MemStorage implements IStorage {
   async getDueFollowUps(): Promise<FollowUpQueue[]> {
     const now = new Date();
     return Array.from(this.followUps.values())
-      .filter(f => f.status === 'pending' && f.scheduledTime <= now)
-      .sort((a, b) => b.scheduledTime.getTime() - a.scheduledTime.getTime());
+      .filter(f => f.status === 'pending' && f.scheduledAt <= now)
+      .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
   }
   async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
     return Array.from(this.learningPatterns.values()).filter(p => p.userId === userId);
@@ -251,13 +251,15 @@ export class MemStorage implements IStorage {
       existing.strength = success ? existing.strength + 1 : Math.max(0, existing.strength - 1);
       existing.lastUsedAt = new Date();
     } else {
+      const now = new Date();
       this.learningPatterns.set(id, {
         id,
         userId,
         patternKey: key,
         strength: success ? 1 : 0,
         metadata: {},
-        lastUsedAt: new Date()
+        lastUsedAt: now,
+        createdAt: now
       });
     }
   }
@@ -372,6 +374,7 @@ export class MemStorage implements IStorage {
       createdAt: now,
       lastLogin: now,
       updatedAt: now,
+      filteredLeadsCount: insertUser.filteredLeadsCount || 0,
     };
 
     this.users.set(id, user);
@@ -459,6 +462,9 @@ export class MemStorage implements IStorage {
       organizationId: insertLead.organizationId || null,
       externalId: insertLead.externalId || null,
       name: insertLead.name,
+      company: insertLead.company || null,
+      role: insertLead.role || null,
+      bio: insertLead.bio || null,
       channel: insertLead.channel as "instagram" | "email",
       email: insertLead.email || null,
       phone: insertLead.phone || null,
@@ -534,6 +540,10 @@ export class MemStorage implements IStorage {
       direction: message.direction,
       body: message.body,
       audioUrl: message.audioUrl || null,
+      trackingId: message.trackingId || null,
+      openedAt: message.openedAt || null,
+      clickedAt: message.clickedAt || null,
+      repliedAt: message.repliedAt || null,
       metadata: message.metadata || {},
       createdAt: now,
     };
