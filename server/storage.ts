@@ -869,22 +869,6 @@ export class MemStorage implements IStorage {
     return followUp;
   }
 
-  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
-    return Array.from(this.followUps.values()).find(
-      f => f.leadId === leadId && f.status === 'pending'
-    );
-  }
-
-  async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {
-    const followUp = this.followUps.get(id);
-    if (followUp) {
-      followUp.status = status as any;
-      if (errorMessage !== undefined) followUp.errorMessage = errorMessage;
-      followUp.processedAt = new Date();
-      this.followUps.set(id, followUp);
-    }
-    return followUp;
-  }
 
   // ========== OAuth Accounts ==========
   private oauthAccounts: Map<string, OAuthAccount> = new Map();

@@ -44,47 +44,6 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(followUpQueue.status, 'pending'), lte(followUpQueue.scheduledAt, now)))
       .orderBy(desc(followUpQueue.scheduledAt));
   }
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    checkDatabase();
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-    return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
-  }
-
-  async getLearningPatterns(userId: string): Promise<AiLearningPattern[]> {
-    checkDatabase();
-    return await db
-      .select()
-      .from(aiLearningPatterns)
-      .where(eq(aiLearningPatterns.userId, userId))
-      .orderBy(desc(aiLearningPatterns.strength));
-  }
-
-  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
-    checkDatabase();
-    const [existing] = await db
-      .select()
-      .from(aiLearningPatterns)
-      .where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key)))
-      .limit(1);
-
-    if (existing) {
-      await db
-        .update(aiLearningPatterns)
-        .set({
-          strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
-          lastUsedAt: new Date()
-        })
-        .where(eq(aiLearningPatterns.id, existing.id));
-    } else {
-      await db.insert(aiLearningPatterns).values({
-        userId,
-        patternKey: key,
-        strength: success ? 1 : 0,
-        metadata: {}
-      });
-    }
-  }
-
   async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
     const [result] = await db
