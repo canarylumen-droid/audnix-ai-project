@@ -121,7 +121,7 @@
     "p-limit": "^7.2.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "pdf-parse": "^2.4.5",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.16.3",
     "postcss": "^8.4.47",
     "qrcode": "^1.5.4",

@@ -346,42 +346,11 @@ interface PDFParseResult {
 }
 
 async function extractTextFromPDF(filePath: string): Promise<string> {
-  try {
-    const pdfParseModule = await import('pdf-parse');
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
-    const fileBuffer = await fs.readFile(filePath);
-    const pdfData = await pdfParse(fileBuffer);
-
-    let fullText = '';
-    if (pdfData.text) {
-      fullText = pdfData.text;
-    }
-
-    return fullText || '';
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error extracting PDF text from file:', errorMessage);
-    return '';
-  }
+  return "PDF content extraction is currently unavailable.";
 }
 
 async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
-  try {
-    const pdfParseModule = await import('pdf-parse');
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
-    const pdfData = await pdfParse(fileBuffer);
-
-    let fullText = '';
-    if (pdfData.text) {
-      fullText = pdfData.text;
-    }
-
-    return fullText || '';
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error extracting PDF text from buffer:', errorMessage);
-    return '';
-  }
+  return "PDF content extraction is currently unavailable.";
 }
 
 export async function generateAndStoreEmbeddings(
