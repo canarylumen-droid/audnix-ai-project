@@ -171,7 +171,7 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center pt-24 pb-20 px-4 overflow-hidden bg-black font-sans"
+      className="relative min-h-[85vh] flex items-center pt-24 pb-12 px-4 overflow-hidden bg-black font-sans"
     >
       <GridPattern />
 
@@ -210,7 +210,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9]"
+              className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.95] lg:max-w-2xl"
             >
               Not just Automation.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50">
@@ -223,9 +223,9 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 1 }}
-              className="text-lg md:text-xl text-white/50 max-w-lg font-medium leading-relaxed"
+              className="text-base md:text-lg text-white/50 max-w-md font-medium leading-relaxed"
             >
-              Stop chasing AI Hypes. Make.com and n8n save you time. <span className="text-white">Audnix makes you money.</span> We use <strong className="text-primary font-bold">Predictive Timing</strong> (2-8m humanized delays) and <strong className="text-primary font-bold">Intent Detection</strong> to actually close deals, not just reply.
+              Stop wasting time on manual follow-ups. Audnix uses <strong className="text-primary font-bold">Predictive Timing</strong> and <strong className="text-primary font-bold">Intent Detection</strong> to turn cold leads into booked meetings automatically.
             </motion.p>
 
             {/* CTAs */}

@@ -234,15 +234,14 @@ export function Navigation() {
         </div>
       </motion.nav>
 
-      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <>
+          <div className="fixed inset-0 z-[110] lg:hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-background/80 backdrop-blur-md z-40 lg:hidden"
+              className="absolute inset-0 bg-black/60 backdrop-blur-xl"
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div
@@ -250,15 +249,17 @@ export function Navigation() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-[80%] max-w-sm bg-card border-l z-50 p-8 flex flex-col lg:hidden shadow-2xl"
+              className="absolute right-0 top-0 bottom-0 w-[280px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl"
             >
-              <div className="flex items-center justify-between mb-12">
-                <span className="text-lg font-bold tracking-tight">AUDNIX<span className="text-primary">.AI</span></span>
-                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-full">
+              <div className="flex items-center justify-between mb-10">
+                <span className="text-lg font-black tracking-tighter">AUDNIX<span className="text-primary">.AI</span></span>
+                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-xl hover:bg-white/5">
                   <ChevronDown className="w-5 h-5 rotate-90" />
                 </Button>
               </div>
-              <div className="flex flex-col gap-6">
+              
+              <div className="flex flex-col gap-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Navigation</p>
                 {navLinks.map((link) => (
                   <a
                     key={link.name}
@@ -270,22 +271,35 @@ export function Navigation() {
                         document.getElementById(link.href.slice(1))?.scrollIntoView({ behavior: 'smooth' });
                       }
                     }}
-                    className="text-2xl font-bold tracking-tight hover:text-primary transition-colors"
+                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-2 border-b border-white/5"
                   >
                     {link.name}
                   </a>
                 ))}
               </div>
-              <div className="mt-auto flex flex-col gap-4">
+
+              <div className="mt-8 flex flex-col gap-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Solutions</p>
+                {SOLUTIONS.map((sol) => (
+                  <Link key={sol.name} href={sol.href}>
+                    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent transition-all" onClick={() => setMobileMenuOpen(false)}>
+                      <sol.icon className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-bold text-white/60">{sol.name}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-auto flex flex-col gap-4 pt-10">
                 <Link href="/auth">
-                  <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-xl shadow-primary/20">
+                  <Button className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-black" onClick={() => setMobileMenuOpen(false)}>
                     Get Started
                   </Button>
                 </Link>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">v4.0.0 Stable</p>
+                <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.4em] text-center">v4.0.0 Stable</p>
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
     </div>
