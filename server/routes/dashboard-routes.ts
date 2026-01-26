@@ -86,7 +86,6 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response): 
     }
 
     const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
-
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -96,13 +95,24 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response): 
       return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo;
     }).length;
 
+    const previousOpenLeads = leads.filter(l => {
+      const createdAt = new Date(l.createdAt);
+      return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo && l.status === 'open';
+    }).length;
+
+    const previousConvertedLeads = leads.filter(l => {
+      const createdAt = new Date(l.createdAt);
+      return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo && l.status === 'converted';
+    }).length;
+
     res.json({
       totalLeads: previousLeads,
       newLeads: previousLeads,
-      activeLeads: leads.filter(l => l.status === 'open').length,
-      convertedLeads: leads.filter(l => l.status === 'converted').length,
+      activeLeads: previousOpenLeads,
+      convertedLeads: previousConvertedLeads,
     });
   } catch (error) {
+    console.error('Previous stats error:', error);
     res.status(500).json({ error: 'Failed to fetch previous stats' });
   }
 });
