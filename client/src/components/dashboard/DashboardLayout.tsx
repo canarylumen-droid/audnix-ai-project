@@ -38,7 +38,8 @@ import {
   Command,
   CreditCard,
   User,
-  Check
+  Check,
+  Sparkles
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
