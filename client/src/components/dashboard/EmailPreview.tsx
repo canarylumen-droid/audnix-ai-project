@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Smartphone, Maximize2, Minimize2, ZoomIn, ZoomOut, Mail, Apple, Smartphone as AndroidIcon } from "lucide-react";
+import { X, Smartphone, Maximize2, Minimize2, ZoomIn, ZoomOut, Mail, Apple, Smartphone as AndroidIcon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
