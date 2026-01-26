@@ -52,6 +52,8 @@ interface LeadWithProfile extends SalesLeadProfile {
   pdfContext?: string;
   channel?: string;
   status?: string;
+  role?: string | null;
+  bio?: string | null;
 }
 
 interface ScoringMessage {
