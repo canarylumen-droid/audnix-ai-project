@@ -1017,16 +1017,6 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
-    checkDatabase();
-    const [result] = await db
-      .select()
-      .from(followUpQueue)
-      .where(and(eq(followUpQueue.leadId, leadId), eq(followUpQueue.status, 'pending')))
-      .limit(1);
-    return result;
-  }
-
   async updateFollowUpStatus(id: string, status: string, errorMessage?: string | null): Promise<FollowUpQueue | undefined> {
     checkDatabase();
     const updateData: any = { status, processedAt: new Date() };
@@ -1107,6 +1097,50 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     const [result] = await db.insert(auditTrail).values(data).returning();
     return result;
+  }
+
+  // ========== AI Learning Patterns ==========
+  async getLearningPatterns(userId: string): Promise<any[]> {
+    checkDatabase();
+    try {
+      const results = await db
+        .select()
+        .from(aiLearningPatterns)
+        .where(eq(aiLearningPatterns.userId, userId));
+      return results;
+    } catch (error) {
+      console.warn('getLearningPatterns: table may not exist, returning empty array');
+      return [];
+    }
+  }
+
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
+    checkDatabase();
+    try {
+      const existing = await db
+        .select()
+        .from(aiLearningPatterns)
+        .where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key)))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const newStrength = success ? existing[0].strength + 1 : Math.max(0, existing[0].strength - 1);
+        await db
+          .update(aiLearningPatterns)
+          .set({ strength: newStrength, lastUsedAt: new Date() })
+          .where(eq(aiLearningPatterns.id, existing[0].id));
+      } else {
+        await db.insert(aiLearningPatterns).values({
+          userId,
+          patternKey: key,
+          strength: success ? 1 : 0,
+          metadata: {},
+          lastUsedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.warn('recordLearningPattern: error recording pattern, table may not exist');
+    }
   }
 }
 

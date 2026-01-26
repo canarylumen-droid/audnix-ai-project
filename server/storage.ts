@@ -964,10 +964,6 @@ export class MemStorage implements IStorage {
     return log;
   }
 
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    const user = this.users.get(userId);
-    return (user?.voiceMinutesUsed || 0) + (user?.voiceMinutesTopup || 0);
-  }
 }
 
 // Use DrizzleStorage with Replit PostgreSQL database

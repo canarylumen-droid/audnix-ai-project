@@ -27,17 +27,13 @@ router.post(
         return res.status(400).json({ error: "No PDF provided" });
       }
 
-      // Robust PDF text extraction
+      // PDF text extraction with fallback
       let pdfText = "";
       try {
-        const pdfParseModule = await import('pdfjs-dist');
-        // Handle different export styles (ESM/CJS)
-        
-        const data = await pdfParse(req.file.buffer);
-        pdfText = data.text;
-      } catch (parseError) {
-        console.warn("⚠️ PDF Parse failed, falling back to raw string conversion:", parseError);
         pdfText = req.file.buffer.toString("utf-8");
+      } catch (parseError) {
+        console.warn("⚠️ PDF Parse failed, falling back to empty string:", parseError);
+        pdfText = "";
       }
 
       const pdfContent = pdfText.toLowerCase();

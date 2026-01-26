@@ -6,6 +6,13 @@ audnixai.com is a full-stack SaaS platform that serves as an autonomous AI sales
 
 The platform targets creators, coaches, agencies, and founders who need 24/7 sales automation without manual follow-up overhead.
 
+## Recent Changes (January 2026)
+
+- Imported from GitHub and configured for Replit environment
+- Set up PostgreSQL database with Neon Serverless
+- Fixed TypeScript compilation errors in PDF routes and storage classes
+- Configured deployment for autoscale with build and start commands
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

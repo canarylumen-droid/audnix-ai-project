@@ -526,8 +526,8 @@ router.post("/analyze-pdf", requireAuth, upload.single("pdf"), async (req: Reque
       return;
     }
 
-    const data = await pdfParse(req.file.buffer);
-    const pdfText = data.text.toLowerCase();
+    const pdfTextRaw = await extractPdfText(req.file.buffer);
+    const pdfText = pdfTextRaw.toLowerCase();
 
     const checks = [
       { name: "Company Overview", present: /company|business|about|overview|who we are/.test(pdfText), required: true },
