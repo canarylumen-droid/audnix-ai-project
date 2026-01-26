@@ -258,7 +258,10 @@ app.use((req, res, next) => {
   ];
 
   const path = req.path; // Use req.path for clean matching without query strings
-  const shouldSkip = skipPaths.some(p => path.startsWith(p)) || path === '/api/csrf-token';
+  const shouldSkip = skipPaths.some(p => path.startsWith(p)) || 
+                     path === '/api/csrf-token' || 
+                     path === '/auth' || 
+                     path.startsWith('/auth/');
 
   if (shouldSkip || process.env.NODE_ENV === 'development') {
     return next();
