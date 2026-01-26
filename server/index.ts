@@ -203,13 +203,13 @@ const sessionConfig: session.SessionOptions = {
   resave: false,
   saveUninitialized: false,
   name: 'audnix.sid',
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-    sameSite: 'lax',
-    path: '/',
-  },
+    cookie: {
+      secure: true,
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      sameSite: 'lax',
+      path: '/',
+    },
   store: sessionStore,
   rolling: true,
   proxy: true,
@@ -283,11 +283,12 @@ app.use((req, res, next) => {
         }
       });
 
-      const isAllowedSuffix = originUrl.host.endsWith('.vercel.app') ||
-        originUrl.host.endsWith('.replit.app') ||
-        originUrl.host.endsWith('.replit.dev') ||
-        originUrl.host.endsWith('.railway.app') ||
-        originUrl.host === host; // Also allow same-host requests
+  const isAllowedSuffix = originUrl.host.endsWith('.vercel.app') ||
+    originUrl.host.endsWith('.replit.app') ||
+    originUrl.host.endsWith('.replit.dev') ||
+    originUrl.host.endsWith('.railway.app') ||
+    originUrl.host.endsWith('audnixai.com') ||
+    originUrl.host === host; // Also allow same-host requests
 
       if (!isAllowed && !isAllowedSuffix) {
         console.warn(`[SECURITY] Forbidden Origin: ${originUrl.host} for ${req.method} ${path}. Expected one of: ${ALLOWED_ORIGINS.join(', ')} or ${host}`);
@@ -319,7 +320,13 @@ app.use((req, res, next) => {
 
 // CSRF Token endpoint
 app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: (req as any).csrfToken() });
+  const token = (req as any).csrfToken();
+  res.cookie('XSRF-TOKEN', token, {
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+  res.json({ csrfToken: token });
 });
 
 // CORS Middleware - Restricted to allowlist for credential safety
