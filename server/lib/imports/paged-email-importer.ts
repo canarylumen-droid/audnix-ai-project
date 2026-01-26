@@ -169,13 +169,13 @@ async function processEmailForLead(
           !['converted', 'not_interested'].includes(lead.status) &&
           isRecent) {
 
-          // Schedule QUICK follow-up (2-8 minutes like Instagram DMs)
+          // Schedule QUICK follow-up (2-4 minutes like Instagram DMs)
           // This is different from initial outreach which uses 2-4 hours
           const { db: followUpDb } = await import('../../db.js');
           const { followUpQueue } = await import('../../../shared/schema.js');
 
           if (followUpDb) {
-            const quickDelay = (2 + Math.random() * 6) * 60 * 1000; // 2-8 minutes
+            const quickDelay = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes
             const scheduledTime = new Date(Date.now() + quickDelay);
 
             await followUpDb.insert(followUpQueue).values({

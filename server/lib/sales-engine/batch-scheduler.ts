@@ -86,8 +86,8 @@ export function generateSendSchedule(
         const leadId = leadsRemaining.shift();
         if (!leadId) break;
 
-        // Humanization: Add 5-15 minute randomized jitter per lead
-        const jitterMinutes = 5 + (Math.random() * 10);
+        // Humanization: Add 2-4 minute randomized jitter per lead
+        const jitterMinutes = 2 + (Math.random() * 2);
         const scheduledTime = new Date(currentLeadTime.getTime() + (jitterMinutes * 60 * 1000));
 
         batchSchedules.push({

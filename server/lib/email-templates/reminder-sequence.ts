@@ -60,7 +60,7 @@ strong{color:#1B1F3A;font-weight:600}
 </div>
 </div>
 
-<p>Your AI will contact them within 2-8 minutes. No setup. No manual follow-ups. Just results.</p>
+<p>Your AI will contact them within 2-4 minutes. No setup. No manual follow-ups. Just results.</p>
 
 <table cellpadding="0" cellspacing="0" style="margin-top:28px"><tr><td><a href="https://audnixai.com/dashboard/lead-import" class="cta-button">Import Leads Now →</a></td></tr></table>
 
@@ -86,7 +86,7 @@ Next 3 minutes:
 2. Import 10-20 of your hottest leads
 3. Watch your AI start closing deals
 
-Your AI will contact them within 2-8 minutes. No setup. No manual follow-ups. Just results.
+Your AI will contact them within 2-4 minutes. No setup. No manual follow-ups. Just results.
 
 → Import Leads Now: https://audnixai.com/dashboard/lead-import
 

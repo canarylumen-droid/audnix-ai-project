@@ -120,7 +120,7 @@ export async function scheduleAutomatedDMReply(
 
 function calculateSmartDelay(intent?: IntentAnalysis, history?: Message[]): number {
   const MIN_DELAY = 2 * 60 * 1000;
-  const MAX_DELAY = 8 * 60 * 1000;
+  const MAX_DELAY = 4 * 60 * 1000;
 
   let minDelay = MIN_DELAY;
   let maxDelay = MAX_DELAY;

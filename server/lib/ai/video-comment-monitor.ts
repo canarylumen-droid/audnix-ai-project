@@ -505,7 +505,7 @@ async function fetchVideoComments(provider: InstagramProvider, videoId: string):
 export function startVideoCommentMonitoring(): void {
   console.log('🎥 Starting video comment monitoring worker...');
   console.log('📊 Comment sync: Every 30 seconds');
-  console.log('⏰ Reply timing: 2-8 minutes (human-like, based on lead status)');
+  console.log('⏰ Reply timing: 2-4 minutes (human-like, based on lead status)');
 
   setInterval(async () => {
     try {

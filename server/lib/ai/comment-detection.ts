@@ -403,8 +403,8 @@ export async function processCommentAutomation(
     // Step 5: Generate initial DM with ManyChat-style CTA button
     const initialDM = await generateInitialDM(username, intent, postContext, ctaButton);
 
-    // Step 6: Schedule DM for 2-8 minutes later (human-like timing)
-    const delayMinutes = Math.floor(Math.random() * 6) + 2; // Random 2-8 minutes
+    // Step 6: Schedule DM for 2-4 minutes later (human-like timing)
+    const delayMinutes = Math.floor(Math.random() * 2) + 2; // Random 2-4 minutes
     const dmTime = new Date(Date.now() + delayMinutes * 60 * 1000);
 
     await storage.createNotification({
