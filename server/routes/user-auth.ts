@@ -379,9 +379,10 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     });
 
     console.log(`✅ User logged in: ${email}${incompleteSetup ? ` (restoring to: ${nextStep})` : ''}`);
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
+    return;
   }
 });
 
@@ -465,9 +466,10 @@ router.get('/check-state', async (req: Request, res: Response): Promise<void> =>
         username: user.username,
       },
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Check state error:', error);
     res.status(500).json({ error: 'Failed to check state' });
+    return;
   }
 });
 
