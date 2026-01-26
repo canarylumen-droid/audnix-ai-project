@@ -339,9 +339,10 @@ async function getConversationHistory(leadId: string): Promise<Message[]> {
 
 async function updateQueueStatus(leadId: string, status: string, errorMessage: string | null): Promise<void> {
   // Determine mapped status
-  let mappedStatus = status;
-  if (status === 'sent') mappedStatus = 'completed';
-  if (status === 'skipped') mappedStatus = 'completed'; // Treat skipped as completed processing
+  let mappedStatus: "pending" | "failed" | "processing" | "completed" = "pending";
+  if (status === 'sent' || status === 'completed' || status === 'skipped') mappedStatus = 'completed';
+  else if (status === 'failed') mappedStatus = 'failed';
+  else if (status === 'processing') mappedStatus = 'processing';
 
   try {
     const pending = await storage.getPendingFollowUp(leadId);
@@ -349,8 +350,8 @@ async function updateQueueStatus(leadId: string, status: string, errorMessage: s
 
     await storage.updateFollowUp(pending.id, {
       status: mappedStatus,
-      metadata: {
-        ...(pending.metadata as Record<string, any>),
+      context: {
+        ...(pending.context as Record<string, any>),
         error: errorMessage
       }
     });

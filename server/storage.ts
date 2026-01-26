@@ -849,7 +849,6 @@ export class MemStorage implements IStorage {
   // If a distinct getUserByEmail for OTP context is needed, it would be implemented here.
 
   // ========== Follow Up Queue ==========
-  private followUps: Map<string, FollowUpQueue> = new Map();
 
   async createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue> {
     const id = randomUUID();

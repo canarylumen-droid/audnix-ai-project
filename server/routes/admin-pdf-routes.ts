@@ -547,7 +547,7 @@ router.post("/analyze-pdf", requireAuth, upload.single("pdf"), async (req: Reque
       overall_score: score,
       items: checks,
       missing_critical: missingCritical,
-      text_length: data.text.length,
+      text_length: pdfTextRaw.length,
     });
   } catch (error: unknown) {
     console.error("Error analyzing PDF:", error);

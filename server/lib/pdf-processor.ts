@@ -478,6 +478,7 @@ async function extractLeadsWithAI(text: string): Promise<Array<{
   email?: string;
   phone?: string;
   company?: string;
+  role?: string;
 }>> {
   if (!process.env.OPENAI_API_KEY) {
     return [];
@@ -534,12 +535,14 @@ function parseLeadsFromText(text: string): Array<{
   email?: string;
   phone?: string;
   company?: string;
+  role?: string;
 }> {
   const leads: Array<{
     name: string;
     email?: string;
     phone?: string;
     company?: string;
+    role?: string;
   }> = [];
 
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
