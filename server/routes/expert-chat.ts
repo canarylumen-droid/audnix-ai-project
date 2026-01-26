@@ -63,11 +63,34 @@ router.post('/chat', async (req: Request, res: Response) => {
             });
         }
 
-        // Use standardized stable model
-        const model = genAI.getGenerativeModel({
-            model: GEMINI_STABLE_MODEL,
-            systemInstruction: AUDNIX_KNOWLEDGE
-        });
+        // Use standardized stable model with fallback
+        let model;
+        try {
+            model = genAI.getGenerativeModel({
+                model: GEMINI_STABLE_MODEL,
+                systemInstruction: AUDNIX_KNOWLEDGE
+            });
+        } catch (e) {
+            console.warn("[AI] Gemini 1.5 failed, falling back to 2.0");
+            model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash-latest",
+                systemInstruction: AUDNIX_KNOWLEDGE
+            });
+        }
+
+        // Preset Answers for standard SaaS support
+        const PRESET_ANSWERS: Record<string, string> = {
+            "pricing": "Audnix offers flexible plans: Starter, Pro, and Enterprise. Check the 'Billing' section in your Command Center for details.",
+            "smtp": "To initialize your revenue stream, navigate to Settings > Email Integration and provide your SMTP/IMAP credentials.",
+            "leads": "You can upload leads via CSV or PDF. Our Neural Lead Scoring will then analyze and verify them automatically.",
+        };
+
+        const lowerMessage = message.toLowerCase();
+        for (const [key, answer] of Object.entries(PRESET_ANSWERS)) {
+            if (lowerMessage.includes(key)) {
+                return res.json({ content: answer });
+            }
+        }
 
         // Gemini requires the first message in history to be from the 'user' role.
         let sanitizedHistory = history.map((m: any) => ({

@@ -30,14 +30,14 @@ export async function initializeWarmupSchedule(userId: string): Promise<void> {
 
 export function generateWarmupSchedule(): Array<{ day: number; limit: number }> {
   return [
-    { day: 1, limit: 300 },
-    { day: 2, limit: 450 },
-    { day: 3, limit: 500 },
-    { day: 4, limit: 500 },
-    { day: 5, limit: 500 },
+    { day: 1, limit: 200 },
+    { day: 2, limit: 300 },
+    { day: 3, limit: 300 },
+    { day: 4, limit: 400 },
+    { day: 5, limit: 450 },
     ...Array.from({ length: 25 }, (_, i) => ({
       day: 6 + i,
-      limit: 500 + i * 50
+      limit: 450
     }))
   ];
 }
@@ -65,6 +65,6 @@ export async function getDailyLimit(userId: string, day: number): Promise<number
 }
 
 export async function getRandomDelay(): Promise<number> {
-  // Random delay between 2-12 seconds
-  return Math.floor(Math.random() * (12000 - 2000 + 1)) + 2000;
+  // 1 email per 2-3 minutes (120,000ms - 180,000ms)
+  return Math.floor(Math.random() * (180000 - 120000 + 1)) + 120000;
 }

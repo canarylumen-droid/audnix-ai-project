@@ -6,7 +6,8 @@
 // Gemini Models - Standardize on 1.5 Flash for best cost/performance stable
 // and 2.0 Flash for experimental/advanced reasoning where needed
 export const GEMINI_STABLE_MODEL = "gemini-1.5-flash-latest";
-export const GEMINI_LATEST_MODEL = "gemini-2.0-flash-exp";
+export const GEMINI_LATEST_MODEL = "gemini-2.0-flash-latest"; // Updated to latest
+export const GEMINI_FALLBACK_MODEL = "gemini-1.5-pro-latest"; // Fallback to Pro if needed
 
 // OpenAI Models
 export const OPENAI_INTELLIGENCE_MODEL = "gpt-4o";     // Flagship for complex sales reasoning
