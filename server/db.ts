@@ -18,8 +18,15 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
+  // Handle SSL mode security warning by explicitly using verify-full
+  const dbUrl = new URL(url);
+  if (!dbUrl.searchParams.has('sslmode')) {
+    dbUrl.searchParams.set('sslmode', 'verify-full');
+  }
+  const connectionString = dbUrl.toString();
+
   try {
-    _pool = new Pool({ connectionString: url });
+    _pool = new Pool({ connectionString });
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless - Live Protocol)');
     return { db: _db, pool: _pool };
