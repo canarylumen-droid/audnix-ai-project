@@ -8,8 +8,7 @@ vite.config.ts.*
 .env.local
 .env.*.local
 *.log
-.replit
-replit.nix
+# Keep Replit config files in repo for environment setup
 
 # WhatsApp session files (sensitive)
 .wwebjs_auth/
