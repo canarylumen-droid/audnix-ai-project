@@ -3,9 +3,9 @@
  * Ensures consistency across the entire application
  */
 
-// Gemini Models - Standardize on stable model IDs
-export const GEMINI_STABLE_MODEL = "gemini-1.5-flash"; // Removed -latest to avoid versioning issues
-export const GEMINI_LATEST_MODEL = "gemini-2.0-flash-exp"; // 2.0 experimental
+// Gemini Models - Standardize on 2.0 Flash for all core intelligence
+export const GEMINI_STABLE_MODEL = "gemini-2.0-flash-exp"; 
+export const GEMINI_LATEST_MODEL = "gemini-2.0-flash-exp";
 export const GEMINI_FALLBACK_MODEL = "gemini-1.5-pro"; 
 
 // OpenAI Models
