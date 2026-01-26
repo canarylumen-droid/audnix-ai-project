@@ -41,6 +41,18 @@ export const CustomCursor = () => {
         const handleMouseMove = (e: MouseEvent) => {
             positionRef.current = { x: e.clientX, y: e.clientY };
 
+            // Check if hovering over a button or link
+            const target = e.target as HTMLElement;
+            const isClickable = target.closest('button, a, [role="button"]');
+            
+            if (cursorRef.current) {
+                if (isClickable) {
+                    cursorRef.current.classList.add('is-grabbing');
+                } else {
+                    cursorRef.current.classList.remove('is-grabbing');
+                }
+            }
+
             // Use requestAnimationFrame for smooth 60fps updates
             if (rafRef.current) cancelAnimationFrame(rafRef.current);
             rafRef.current = requestAnimationFrame(updateCursorPosition);
@@ -131,13 +143,24 @@ export const CustomCursor = () => {
             {/* Main cursor - uses will-change for GPU acceleration */}
             <div
                 ref={cursorRef}
-                className="fixed top-0 left-0 pointer-events-none z-[999999] hidden lg:block"
+                className="fixed top-0 left-0 pointer-events-none z-[999999] hidden lg:block custom-cursor-main"
                 style={{
                     opacity: 0,
                     willChange: 'transform',
                     transition: 'opacity 0.15s ease',
                 }}
             >
+                <style>{`
+                    .custom-cursor-main.is-grabbing svg {
+                        display: none;
+                    }
+                    .custom-cursor-main.is-grabbing::after {
+                        content: '✋🏻';
+                        font-size: 24px;
+                        display: block;
+                        transform: translate(-50%, -50%);
+                    }
+                `}</style>
                 {/* Premium Unified MacBook-style Arrow */}
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
