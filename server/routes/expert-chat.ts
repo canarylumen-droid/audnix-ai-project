@@ -61,13 +61,13 @@ router.post('/chat', async (req: Request, res: Response) => {
         let model;
         try {
             model = genAI.getGenerativeModel({
-                model: GEMINI_STABLE_MODEL,
+                model: "gemini-1.5-flash",
                 systemInstruction: AUDNIX_KNOWLEDGE
             });
         } catch (e) {
             console.warn("[AI] Gemini 1.5 failed, falling back to 2.0");
             model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash-latest",
+                model: "gemini-2.0-flash-exp",
                 systemInstruction: AUDNIX_KNOWLEDGE
             });
         }
@@ -106,17 +106,15 @@ router.post('/chat', async (req: Request, res: Response) => {
 
         res.json({ content });
     } catch (error: any) {
-        console.error('Expert Chat Neural Error:', error);
+        console.error('Expert Chat Error:', error);
 
         // Specific error handling for more helpful fallbacks
-        let errorContent = "I'm momentarily recalibrating. This usually happens during high neural load. Please try again or initialize your full account access.";
+        let errorContent = "I'm having a bit of trouble connecting right now. Please try again in a moment.";
 
         if (error?.message?.includes('429')) {
-            errorContent = "Neural pathways are currently congested (Rate Limited). Please wait 30 seconds while I optimize the bandwidth.";
+            errorContent = "I'm receiving too many requests at once. Please wait a few seconds and try again.";
         } else if (error?.message?.includes('Safety') || error?.message?.includes('HARM_CATEGORY')) {
-            errorContent = "Query flagged by safety protocols. I am designed for elite sales performance within ethical boundaries. Please rephrase.";
-        } else if (isAuthenticated) {
-            errorContent = "I encountered a minor neural desync, commander. Your data is safe—please re-send that last directive.";
+            errorContent = "I can't answer that specific question due to safety filters. Is there something else I can help with?";
         }
 
         res.json({ content: errorContent });
