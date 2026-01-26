@@ -12,7 +12,7 @@ import {
   Instagram,
   Calendar,
   UserCheck,
-  Sparkles,
+  Sparkles as SparklesIcon,
   Server,
   Activity,
   ShieldCheck

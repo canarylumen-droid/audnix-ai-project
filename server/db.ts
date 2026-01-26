@@ -22,6 +22,8 @@ function initializeDb() {
   const dbUrl = new URL(url);
   if (!dbUrl.searchParams.has('sslmode')) {
     dbUrl.searchParams.set('sslmode', 'verify-full');
+  } else if (['prefer', 'require', 'verify-ca'].includes(dbUrl.searchParams.get('sslmode') || '')) {
+    dbUrl.searchParams.set('sslmode', 'verify-full');
   }
   const connectionString = dbUrl.toString();
 

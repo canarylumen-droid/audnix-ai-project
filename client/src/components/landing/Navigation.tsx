@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
-import { Sparkles, ChevronDown, Shield, FileText, LayoutGrid, Zap, Brain } from "lucide-react";
+import { Sparkles as SparklesIcon, ChevronDown, Shield, FileText, LayoutGrid, Zap, Brain } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Magnetic } from "@/components/ui/Magnetic";
 

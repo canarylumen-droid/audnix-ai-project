@@ -4,7 +4,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { CheckCircle2, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle2, Sparkles as SparklesIcon, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface AlreadyJoinedBannerProps {
@@ -53,7 +53,7 @@ export function AlreadyJoinedBanner({ featureName, eta = "Q1 2026" }: AlreadyJoi
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="font-semibold text-foreground">You're all set!</h3>
-                <Sparkles className="h-4 w-4 text-amber-500" />
+                <SparklesIcon className="h-4 w-4 text-amber-500" />
               </div>
               <p className="text-sm text-muted-foreground">
                 You've joined early access for <span className="font-medium text-foreground">{featureName}</span>. 

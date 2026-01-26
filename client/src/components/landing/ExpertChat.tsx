@@ -10,7 +10,7 @@ import {
     ArrowUpRight,
     Globe,
     Rocket,
-    Sparkles,
+    Sparkles as SparklesIcon,
     Headphones,
     MessageSquare
 } from "lucide-react";
@@ -129,7 +129,7 @@ export function ExpertChat() {
         setIsTyping(true);
 
         try {
-            const response = await fetch('/api/expert-chat/chat', {
+            const response = await fetch('/api/expert-chat/chat-v2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -193,7 +193,7 @@ export function ExpertChat() {
                         <div className="p-5 border-b border-white/5 flex items-center justify-between bg-black/50 backdrop-blur-md">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/5">
-                                    <Sparkles className="w-4 h-4" />
+                                    <SparklesIcon className="w-4 h-4" />
                                 </div>
                                 <div>
                                     <h4 className="text-white font-medium text-sm">Audnix Assistant</h4>

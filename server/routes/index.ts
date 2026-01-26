@@ -98,6 +98,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/settings", userSettingsRoutes);
   app.use("/api/sales-engine", salesEngine);
   app.use("/api/expert-chat", expertChatRoutes);
+  app.use("/api/expert-chat-v2", expertChatRoutes);
   app.use("/api/prospecting", prospectingRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/admin", adminMigrationsRouter); // Admin-only migration controls
