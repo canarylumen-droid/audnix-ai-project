@@ -115,7 +115,7 @@ export async function processPDF(
               try {
                 const { GoogleGenerativeAI } = await import("@google/generative-ai");
                 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-                const recoveryModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+                const recoveryModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
                 const recoveryPrompt = `BUSINESS: ${leadData.company || leadData.name}\nEMAIL: ${leadData.email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
                 const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
                 const correctedEmail = recoveryResult.response.text().trim();

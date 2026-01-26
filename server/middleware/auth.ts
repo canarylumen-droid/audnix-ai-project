@@ -41,6 +41,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
     // Security: Add small delay to prevent timing attacks
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (req.path.startsWith('/auth')) {
+      return next();
+    }
+
     return res.status(401).json({
       error: "Unauthorized",
       message: "Authentication required. Please log in to access this resource.",

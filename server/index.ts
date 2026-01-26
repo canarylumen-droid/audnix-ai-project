@@ -261,7 +261,7 @@ app.use((req, res, next) => {
   const shouldSkip = skipPaths.some(p => path.startsWith(p)) || 
                      path === '/api/csrf-token' || 
                      path === '/auth' || 
-                     path.startsWith('/auth/');
+                     path.startsWith('/auth');
 
   if (shouldSkip || process.env.NODE_ENV === 'development') {
     return next();

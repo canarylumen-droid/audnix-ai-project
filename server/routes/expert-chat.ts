@@ -61,11 +61,11 @@ router.post('/chat', async (req: Request, res: Response) => {
         let model;
         try {
             model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash",
+                model: "gemini-2.0-flash",
                 systemInstruction: AUDNIX_KNOWLEDGE
             });
         } catch (e) {
-            console.warn("[AI] Gemini 1.5 failed, falling back to 2.0");
+            console.warn("[AI] Gemini 2.0 failed, falling back to 2.0 experimental");
             model = genAI.getGenerativeModel({
                 model: "gemini-2.0-flash-exp",
                 systemInstruction: AUDNIX_KNOWLEDGE
