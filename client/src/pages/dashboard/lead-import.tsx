@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
