@@ -1,0 +1,65 @@
+
+
+Try Again like the emty state bro analtyics should show insights page should say no acitivyt yet analytic will say connect channel to see analytic once any channel email or instagram emtpy state clear show the analytics the graph even if at ero should ahow mak esure it has real time udate at backend bro and sync too
+
+and then when they connected smtp wnet to inbox it didnt fetch their emails 
+and why is inbox reloaind on its own please let it not reload okay?
+
+
+and bro in home page hoe in dahbpard eveythting are harcoded dudeeee why
+Welcome back, Trex
+Scale your outreach with personalized AI automation.
+
+Refresh Data
+TOTAL LEADS
+0
+Export Data
+TOTAL MESSAGES
+0
+Export Data
+AI REPLIES
+0
+Export Data
+CONVERSION RATE
+0%
+Export Data
+Live Activity
+No activity yet
+
+Connect your Instagram or Email account to start tracking lead responses in real-time.
+
+Connect Integration
+Quick Actions
+
+Find Prospects
+
+Create Automation
+
+Connect Channels
+Deliverability Status
+Sender Reputation
+
+99.9%
+
+Excellent
+Reputation Advisory
+
+Your sender reputation is high. Continue 1-by-1 sending to maintain optimal deliverability.
+
+AI Deliverability Fixes
+
+0
+
+Fixed
+Bounce Mitigation
+
+0
+
+Filtered
+System Health
+AI Automation
+Healthy
+Email Integration
+
+ even if disconnected still lies also when smtp connected reputation percent there hardcoded also go to dashboard in text anything that u see neural please change it to standard saas english bro
+even in home those percnthardocded no real time stuff even in analytics email right and insights and entire app ceck anywhere percent and numbers are hardcoded change all and once inbox is connected i mean smtp goes to their  business email any mailbox it is in and fetch their whole mails okay existing emails too inside ours an let it not refresh instead use backend  in real time not reload that section okay? even the live activityh too in deal tab the pipeline numbers are hardcded i want you to analyze entre chat and emails check their offer and those currently booked calls thats what will be there bro the numbers of how much worth of calls was made via booked calls okay? the export tab in that deal pieline download add doesnt work hardcoded bro all buttons that are meant to work please work on them bro

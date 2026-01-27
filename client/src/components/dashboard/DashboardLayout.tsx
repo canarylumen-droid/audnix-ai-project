@@ -212,11 +212,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
-    refetchInterval: 60000,
+    refetchInterval: 3000,
+    staleTime: 0,
   });
+
+  useEffect(() => {
+    if (notificationsData?.unreadCount && notificationsData.unreadCount > (localStorage.getItem('last_unread_count') ? parseInt(localStorage.getItem('last_unread_count')!) : 0)) {
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.play().catch(e => console.log('Audio play blocked:', e));
+      localStorage.setItem('last_unread_count', notificationsData.unreadCount.toString());
+    }
+  }, [notificationsData]);
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
+    refetchInterval: 5000,
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;

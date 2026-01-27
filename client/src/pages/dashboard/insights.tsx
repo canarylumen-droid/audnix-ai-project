@@ -75,14 +75,16 @@ export default function InsightsPage() {
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
     queryKey: ["/api/ai/insights"],
-    refetchInterval: 10000,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
     retry: false,
   });
 
   const insights = insightsData?.summary || null;
   const channelData = insightsData?.channels || [];
   const conversionFunnel = insightsData?.funnel || [];
-  const hasData = insightsData?.hasData || false;
+  const hasData = insightsData?.hasData || (channelData.length > 0 || conversionFunnel.length > 0);
   const timeSeriesData = insightsData?.timeSeries || [];
 
   const PIE_COLORS = [
@@ -122,20 +124,6 @@ export default function InsightsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <NeuralTypingLogo />
-        <h3 className="text-2xl font-bold text-white">No Activity Detected</h3>
-        <p className="max-w-md">We couldn't find any recent outreach data. Connect an integration or import leads to start generating AI insights.</p>
-        <div className="flex gap-4">
-          <Button variant="outline" onClick={() => window.location.href = '/dashboard/integrations'}>Integrations</Button>
-          <Button variant="default" onClick={() => refetch()}>Sync Now</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -147,20 +135,18 @@ export default function InsightsPage() {
             Real-time analysis to optimize your outreach strategy.
           </p>
         </div>
-        {hasData && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => window.location.href = '/api/bulk/export'}>
-              <Download className="mr-2 h-4 w-4" /> Export CSV
-            </Button>
-            <Button onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = '/api/bulk/export'}>
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {!hasData ? (
+      {(!hasData && !insights) ? (
         <div className="grid gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -199,12 +185,6 @@ export default function InsightsPage() {
               </div>
             </div>
           </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-40">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="h-44 bg-muted/20 border-dashed border-2 animate-pulse" />
-            ))}
-          </div>
         </div>
       ) : (
         <>

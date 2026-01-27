@@ -57,8 +57,9 @@ interface AnalyticsData {
 export default function AnalyticsPage() {
     const { data: analytics, isLoading, refetch, isFetching } = useQuery<AnalyticsData>({
         queryKey: ["/api/dashboard/analytics/full"],
-        // Real-time requirement: Refresh frequently or use WebSocket
-        refetchInterval: 5000,
+        refetchInterval: 3000,
+        refetchOnWindowFocus: true,
+        staleTime: 0,
     });
 
     const COLORS = {
