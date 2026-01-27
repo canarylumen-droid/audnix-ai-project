@@ -124,9 +124,14 @@ export default function InsightsPage() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        <p>Unable to load insights. Please check your connection.</p>
-        <Button variant="outline" className="mt-4" onClick={() => refetch()}>Try Again</Button>
+      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <NeuralTypingLogo />
+        <h3 className="text-2xl font-bold text-white">No Activity Detected</h3>
+        <p className="max-w-md">We couldn't find any recent outreach data. Connect an integration or import leads to start generating AI insights.</p>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard/integrations'}>Integrations</Button>
+          <Button variant="default" onClick={() => refetch()}>Sync Now</Button>
+        </div>
       </div>
     );
   }

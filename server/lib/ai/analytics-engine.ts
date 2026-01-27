@@ -34,6 +34,16 @@ export async function generateAnalyticsInsights(
   const allLeads = await storage.getLeads({ userId, limit: 10000 });
   const leads = allLeads.filter(l => new Date(l.createdAt) >= startDate);
 
+  if (leads.length === 0 && allLeads.length === 0) {
+    return {
+      period,
+      trends: { leadGrowth: 0, conversionGrowth: 0, engagementGrowth: 0 },
+      predictions: { expectedConversions: 0, projectedRevenue: 0, riskLeads: [] },
+      recommendations: ['👋 Welcome to Audnix! Connect your mailbox to see real-time lead sync and AI outreach in action.'],
+      topPerformers: { channels: [], times: [] }
+    };
+  }
+
   // Calculate trends
   const trends = await calculateTrends(userId, daysBack);
 
