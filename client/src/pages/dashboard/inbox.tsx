@@ -75,7 +75,9 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: 50, offset }],
-    refetchInterval: 5000,
+    refetchInterval: 3000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   // Toggle AI Pause Mutation
@@ -212,7 +214,7 @@ export default function InboxPage() {
       {/* Sidebar */}
       <div className="w-64 border-r border-border/40 bg-muted/5 hidden md:flex flex-col p-3 space-y-6">
         <div className="space-y-1">
-          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Priority Hub</h4>
+          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Activity Hub</h4>
           {[
             { id: 'inbox', label: 'Inbox', icon: InboxIcon, count: allLeads.length },
             { id: 'starred', label: 'Starred', icon: Star, count: 0 },
@@ -241,7 +243,7 @@ export default function InboxPage() {
         </div>
 
         <div className="space-y-1 pt-8">
-          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Neural Channels</h4>
+          <h4 className="text-[10px] font-black text-muted-foreground/30 px-4 mb-4 uppercase tracking-[0.2em]">Channels</h4>
           {[
             { id: 'all', label: 'All Channels', icon: InboxIcon },
             { id: 'instagram', label: 'Instagram', icon: Instagram },
@@ -379,7 +381,7 @@ export default function InboxPage() {
                           </Badge>
                         )}
                         <span className={cn("text-sm truncate font-bold tracking-tight", isUnread ? "text-foreground" : "text-muted-foreground/40")}>
-                          {lead.lastMessageSnippet || "Neural sync active..."}
+                          {lead.lastMessageSnippet || "Sync active..."}
                         </span>
                       </div>
 
@@ -398,7 +400,7 @@ export default function InboxPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56 bg-background/95 backdrop-blur-xl border-border/50">
-                            <DropdownMenuLabel className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lead Intelligence</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lead Details</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <div className="p-3 space-y-2">
                               <div className="flex justify-between items-center text-sm">

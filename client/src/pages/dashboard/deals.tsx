@@ -176,7 +176,7 @@ export default function DealsPage() {
             <DollarSign className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalValue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${totalValue > 0 ? totalValue.toLocaleString() : "0"}</div>
             <p className="text-xs text-muted-foreground mt-1">Lifetime value</p>
           </CardContent>
         </Card>
@@ -187,7 +187,7 @@ export default function DealsPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${weekRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${weekRevenue > 0 ? weekRevenue.toLocaleString() : "0"}</div>
             <div className="flex items-center gap-1 mt-1">
               <span className={`text-xs font-medium ${weekGrowth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {weekGrowth > 0 ? '+' : ''}{weekGrowth}%

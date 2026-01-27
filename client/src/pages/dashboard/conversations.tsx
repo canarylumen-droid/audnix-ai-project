@@ -213,8 +213,8 @@ export default function ConversationsPage() {
     } catch (err) {
       console.error("AI Reply Error:", err);
       toast({
-        title: "AI Brain Latency",
-        description: "The neural core took too long to respond. Please try again.",
+        title: "AI Response Error",
+        description: "The AI assistant took too long to respond. Please try again.",
         variant: "destructive",
       });
       setIsGenerating(false);
@@ -572,7 +572,7 @@ export default function ConversationsPage() {
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg border-0 font-bold rounded-xl h-11"
             onClick={() => setShowIntelligence(true)}
           >
-            <Sparkles className="h-4 w-4 mr-2" /> View Intelligence Dossier
+            <Sparkles className="h-4 w-4 mr-2" /> View Lead Dossier
           </Button>
         </div>
       </Card>

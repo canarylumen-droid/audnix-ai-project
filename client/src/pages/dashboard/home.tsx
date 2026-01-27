@@ -204,7 +204,7 @@ export default function DashboardHome() {
       glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
     {
-      label: "AI REPLIES",
+      label: "REPLIES",
       value: stats?.aiReplies || 0,
       icon: Zap,
       percentage: calculatePercentageChange(stats?.aiReplies || 0, previousStats?.aiReplies),

@@ -73,14 +73,14 @@ export default function AnalyticsPage() {
     if (isLoading) {
         return (
             <div className="h-[70vh] flex items-center justify-center">
-                <PremiumLoader text="Initializing Neural Analytics..." />
+                <PremiumLoader text="Initializing Analytics..." />
             </div>
         );
     }
 
     const stats = [
         { label: "Total Sent", value: analytics?.metrics.sent || 0, icon: Mail, color: "text-blue-400", bg: "bg-blue-400/10" },
-        { label: "Neural Replies", value: analytics?.metrics.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
+        { label: "Replies", value: analytics?.metrics.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
         { label: "Meetings Booked", value: analytics?.metrics.booked || 0, icon: CalendarCheck2, color: "text-emerald-400", bg: "bg-emerald-400/10" },
         { label: "Leads Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
@@ -90,9 +90,9 @@ export default function AnalyticsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-4xl font-black tracking-tighter uppercase text-white inline-flex items-center gap-3">
-                        Neural Analytics <Activity className="h-8 w-8 text-primary animate-pulse" />
+                        Analytics <Activity className="h-8 w-8 text-primary animate-pulse" />
                     </h1>
-                    <p className="text-white/40 font-medium mt-1 uppercase tracking-widest text-xs">Real-time performance distribution node</p>
+                    <p className="text-white/40 font-medium mt-1 uppercase tracking-widest text-xs">Real-time performance distribution</p>
                 </div>
                 <Button
                     onClick={() => refetch()}
@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
                     className="rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold h-12 px-6"
                 >
                     <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
-                    Sync Intelligence
+                    Sync Data
                 </Button>
             </div>
 
@@ -172,7 +172,7 @@ export default function AnalyticsPage() {
                         ) : (
                             <div className="h-full flex flex-col items-center justify-center text-center opacity-20">
                                 <Zap className="w-12 h-12 mb-4" />
-                                <p className="text-xs font-black uppercase tracking-widest">Waiting for neural triggers...</p>
+                                <p className="text-xs font-black uppercase tracking-widest">Waiting for activity...</p>
                             </div>
                         )}
                     </div>

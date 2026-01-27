@@ -162,9 +162,9 @@ export default function InsightsPage() {
               </div>
 
               <div className="max-w-xl space-y-4">
-                <h3 className="text-4xl font-black tracking-tight text-white leading-tight">Analyzing Outreach Patterns...</h3>
+                <h3 className="text-4xl font-black tracking-tight text-white leading-tight">Analyzing Performance...</h3>
                 <p className="text-zinc-400 text-lg leading-relaxed font-medium">
-                  Audnix is currently analyzing your outreach performance. Connect an integration to activate performance tracking and closing stats.
+                  Audnix is currently analyzing your outreach performance. Connect an integration to activate performance tracking.
                 </p>
               </div>
 
