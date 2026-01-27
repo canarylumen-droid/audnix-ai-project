@@ -137,7 +137,9 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
         id: lead.id,
         type: lead.status === 'converted' ? 'lead_converted' : 'lead_updated',
         title: lead.status === 'converted' ? `${lead.name} converted` : `${lead.name} updated`,
+        message: lead.status === 'converted' ? `Lead converted from ${lead.channel}` : `Lead updated from ${lead.channel}`,
         description: `From ${lead.channel}`,
+        time: lead.updatedAt || lead.createdAt,
         timestamp: lead.updatedAt || lead.createdAt,
         channel: lead.channel,
         leadId: lead.id,
@@ -452,17 +454,36 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
     const sent = (await storage.getAllMessages(userId)).filter(m => m.direction === 'outbound').length;
 
-    // Time series (last 7 days)
+    // Time series (last 7 days) - Real data only
     const timeSeries = [];
+    const allMessages = await storage.getAllMessages(userId);
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const daySent = allMessages.filter(m => 
+        m.direction === 'outbound' && 
+        new Date(m.createdAt) >= dayStart && 
+        new Date(m.createdAt) <= dayEnd
+      ).length;
+
+      const dayReplied = leads.filter(l => 
+        (l.status === 'replied' || l.status === 'converted') &&
+        l.updatedAt && new Date(l.updatedAt) >= dayStart && 
+        new Date(l.updatedAt) <= dayEnd
+      ).length;
+
       timeSeries.push({
         name: dayStr,
-        sent: Math.floor(Math.random() * 20), // Mock for now, replace with real message counts if needed
-        replied: Math.floor(Math.random() * 5),
-        booked: Math.floor(Math.random() * 2)
+        sent: daySent,
+        replied: dayReplied,
+        booked: 0 // Will be updated when deals system is fully integrated
       });
     }
 

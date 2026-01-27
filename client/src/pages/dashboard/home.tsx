@@ -429,16 +429,16 @@ export default function DashboardHome() {
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
                     <p className="text-xl font-black text-emerald-400 tracking-tighter">
-                      {stats?.totalLeads && stats?.bouncyLeads !== undefined
-                        ? Math.max(0, 100 - (stats.bouncyLeads / (stats.totalLeads || 1) * 100)).toFixed(1)
-                        : "99.9"}%
+                      {stats?.totalLeads && stats?.bouncyLeads !== undefined && stats.totalLeads > 0
+                        ? Math.max(0, 100 - (stats.bouncyLeads / stats.totalLeads * 100)).toFixed(1)
+                        : "0.0"}%
                     </p>
                   </div>
                   <Badge className={cn(
                     "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.bouncyLeads || 0) < 5 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                    (stats?.bouncyLeads || 0) < 5 && stats?.totalLeads && stats.totalLeads > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
                   )}>
-                    {(stats?.bouncyLeads || 0) < 5 ? "Excellent" : "Needs Attention"}
+                    {(stats?.bouncyLeads || 0) < 5 && stats?.totalLeads && stats.totalLeads > 0 ? "Excellent" : "Initializing"}
                   </Badge>
                 </div>
 

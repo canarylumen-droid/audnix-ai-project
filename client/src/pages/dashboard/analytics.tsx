@@ -85,6 +85,9 @@ export default function AnalyticsPage() {
         { label: "Leads Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
 
+    // Time series (last 7 days)
+    const timeSeries = analytics?.timeSeries || [];
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

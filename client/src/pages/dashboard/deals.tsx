@@ -162,7 +162,7 @@ export default function DealsPage() {
           <Button variant="outline" onClick={exportDeals}>
             <Download className="mr-2 h-4 w-4" /> Export
           </Button>
-          <Button>
+          <Button onClick={() => setLocation('/dashboard/conversations')}>
             <Plus className="mr-2 h-4 w-4" /> Add Deal
           </Button>
         </div>
