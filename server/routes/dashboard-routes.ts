@@ -56,7 +56,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       hardenedLeads,
       bouncyLeads,
       recoveredLeads,
-      conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : 0,
+      conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : "0.0",
       totalMessages: totalMessages.length,
       messagesToday,
       messagesYesterday,
@@ -137,8 +137,8 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
         id: lead.id,
         type: lead.status === 'converted' ? 'lead_converted' : 'lead_updated',
         title: lead.status === 'converted' ? `${lead.name} converted` : `${lead.name} updated`,
-        message: lead.status === 'converted' ? `Lead converted from ${lead.channel}` : `Lead updated from ${lead.channel}`,
-        description: `From ${lead.channel}`,
+        message: lead.status === 'converted' ? `Lead converted via ${lead.channel}` : `Lead updated via ${lead.channel}`,
+        description: `Source: ${lead.channel}`,
         time: lead.updatedAt || lead.createdAt,
         timestamp: lead.updatedAt || lead.createdAt,
         channel: lead.channel,
@@ -147,7 +147,8 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
 
     res.json({ activities });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch activity' });
+    console.error('[ACTIVITY] Failed to fetch dashboard activity:', error);
+    res.status(500).json({ error: 'Failed to fetch activity feed' });
   }
 });
 

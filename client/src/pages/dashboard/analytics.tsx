@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
         { label: "Total Sent", value: analytics?.metrics.sent || 0, icon: Mail, color: "text-blue-400", bg: "bg-blue-400/10" },
         { label: "Replies", value: analytics?.metrics.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
         { label: "Meetings Booked", value: analytics?.metrics.booked || 0, icon: CalendarCheck2, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-        { label: "Leads Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
+        { label: "Lead Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
 
     // Time series (last 7 days)
@@ -122,7 +122,9 @@ export default function AnalyticsPage() {
                                 <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border border-white/5", stat.bg)}>
                                     <stat.icon className={cn("w-6 h-6", stat.color)} />
                                 </div>
-                                <div className="text-4xl font-black text-white tracking-tighter mb-1">{stat.value}</div>
+                                <div className="text-4xl font-black text-white tracking-tighter mb-1">
+                                    {stat.value > 0 ? stat.value : "0"}
+                                </div>
                                 <div className="text-[10px] font-black uppercase tracking-widest text-white/30">{stat.label}</div>
                             </div>
                         </Card>

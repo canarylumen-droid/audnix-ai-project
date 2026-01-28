@@ -215,7 +215,7 @@ export default function DealsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {deals.length > 0 ? Math.round((convertedDeals.length / deals.length) * 100) : 0}%
+              {deals.length > 0 ? Math.round((convertedDeals.length / deals.length) * 100) : "0"}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">Conversion avg</p>
           </CardContent>
@@ -304,7 +304,7 @@ export default function DealsPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle font-medium">
-                          ${deal.value?.toLocaleString()}
+                          ${deal.value ? deal.value.toLocaleString() : "0"}
                         </td>
                         <td className="p-4 align-middle">
                           <Badge variant={deal.status === 'converted' ? 'default' : 'secondary'} className="capitalize">

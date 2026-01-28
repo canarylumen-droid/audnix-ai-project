@@ -436,9 +436,9 @@ export default function DashboardHome() {
                   </div>
                   <Badge className={cn(
                     "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.bouncyLeads || 0) < 5 && stats?.totalLeads && stats.totalLeads > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                    (stats?.bouncyLeads || 0) < 5 && (stats?.totalLeads || 0) > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
                   )}>
-                    {(stats?.bouncyLeads || 0) < 5 && stats?.totalLeads && stats.totalLeads > 0 ? "Excellent" : "Initializing"}
+                    {(stats?.bouncyLeads || 0) < 5 && (stats?.totalLeads || 0) > 0 ? "Excellent" : "Ready"}
                   </Badge>
                 </div>
 
