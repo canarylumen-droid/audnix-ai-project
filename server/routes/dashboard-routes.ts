@@ -48,6 +48,15 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       return d.getDate() === yesterday.getDate() && d.getMonth() === yesterday.getMonth() && d.getFullYear() === yesterday.getFullYear();
     }).filter(m => m.direction === 'outbound').length;
 
+    // AI-Driven Deal Valuation Extraction
+    const deals = await storage.getDeals(userId);
+    const convertedDealsList = deals.filter(d => d.status === 'converted' || d.status === 'closed_won');
+    
+    // In a real scenario, we would use an LLM here to analyze the chat for the offer amount.
+    // For now, we ensure we use the extracted value if present, else fallback to 0.
+    const totalPipelineValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const closedRevenue = convertedDealsList.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
     res.json({
       totalLeads: leads.length,
       newLeads,
@@ -66,6 +75,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       plan: user?.plan || 'trial',
       filteredLeadsCount: user?.filteredLeadsCount || 0,
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
+      pipelineValue: totalPipelineValue,
+      closedRevenue: closedRevenue
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

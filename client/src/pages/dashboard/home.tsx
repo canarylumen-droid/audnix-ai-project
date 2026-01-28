@@ -187,38 +187,37 @@ export default function DashboardHome() {
   const kpis = [
     {
       label: "TOTAL LEADS",
-      value: stats?.leads || 0,
+      value: stats?.totalLeads || 0,
       icon: Users,
-      percentage: calculatePercentageChange(stats?.leads || 0, previousStats?.leads),
-      trend: previousStats ? ((stats?.leads || 0) > (previousStats?.leads || 0) ? "up" : (stats?.leads || 0) < (previousStats?.leads || 0) ? "down" : "neutral") : "neutral",
+      percentage: calculatePercentageChange(stats?.totalLeads || 0, previousStats?.totalLeads),
+      trend: previousStats ? ((stats?.totalLeads || 0) > (previousStats?.totalLeads || 0) ? "up" : (stats?.totalLeads || 0) < (previousStats?.totalLeads || 0) ? "down" : "neutral") : "neutral",
       color: "text-primary",
       glow: "group-hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
     {
       label: "TOTAL MESSAGES",
-      value: stats?.messages || 0,
+      value: stats?.totalMessages || 0,
       icon: MessageSquare,
-      percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
-      trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
+      percentage: calculatePercentageChange(stats?.totalMessages || 0, previousStats?.messages),
+      trend: previousStats ? ((stats?.totalMessages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.totalMessages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
       color: "text-indigo-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
     {
       label: "REPLIES",
-      value: stats?.aiReplies || 0,
+      value: stats?.convertedLeads || 0,
       icon: Zap,
-      percentage: calculatePercentageChange(stats?.aiReplies || 0, previousStats?.aiReplies),
-      trend: previousStats ? ((stats?.aiReplies || 0) > (previousStats?.aiReplies || 0) ? "up" : (stats?.aiReplies || 0) < (previousStats?.aiReplies || 0) ? "down" : "neutral") : "neutral",
+      percentage: calculatePercentageChange(stats?.convertedLeads || 0, previousStats?.convertedLeads),
+      trend: previousStats ? ((stats?.convertedLeads || 0) > (previousStats?.convertedLeads || 0) ? "up" : (stats?.convertedLeads || 0) < (previousStats?.convertedLeads || 0) ? "down" : "neutral") : "neutral",
       color: "text-amber-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
     },
     {
-      label: "CONVERSION RATE",
-      value: parseFloat(stats?.conversionRate?.toString() || "0"),
-      suffix: "%",
-      icon: TrendingUp,
-      percentage: calculatePercentageChange(stats?.conversions || 0, previousStats?.conversions),
-      trend: previousStats ? ((stats?.conversions || 0) > (previousStats?.conversions || 0) ? "up" : (stats?.conversions || 0) < (previousStats?.conversions || 0) ? "down" : "neutral") : "neutral",
+      label: "PIPELINE VALUE",
+      value: `$${(stats as any)?.pipelineValue?.toLocaleString() || "0"}`,
+      icon: DollarSign,
+      percentage: "—",
+      trend: "neutral",
       color: "text-emerald-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
     },

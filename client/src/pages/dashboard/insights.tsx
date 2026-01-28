@@ -158,7 +158,10 @@ export default function InsightsPage() {
 
             <div className="flex flex-col items-center justify-center text-center space-y-12 relative z-10">
               <div className="scale-125 pb-8">
-                <NeuralTypingLogo />
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                  <span className="text-2xl font-black text-white">Audnix AI</span>
+                </div>
               </div>
 
               <div className="max-w-xl space-y-4">
