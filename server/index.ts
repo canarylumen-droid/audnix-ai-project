@@ -1,5 +1,4 @@
-// CRITICAL: Ensure NODE_ENV is set BEFORE any other code runs
-// This prevents Vite/Rollup from being loaded in production
+// server/index.ts snippet for context
 import 'dotenv/config';
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
@@ -10,7 +9,6 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import pg from "pg";
 import { registerRoutes } from "./routes/index.js";
-// import { supabaseAdmin, isSupabaseAdminConfigured } from "./lib/supabase-admin.js"; // Removed: Supabase no longer used
 import { followUpWorker } from "./lib/ai/follow-up-worker.js";
 import { startVideoCommentMonitoring } from "./lib/ai/video-comment-monitor.js";
 import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
@@ -30,7 +28,6 @@ import { users } from "../shared/schema.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads directory exists early
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   try {
@@ -41,7 +38,6 @@ if (!fs.existsSync(uploadsDir)) {
   }
 }
 
-// Ensure other upload directories exist (Skip on Vercel read-only system)
 if (!process.env.VERCEL) {
   const uploadDirs = [
     "public/uploads",
@@ -62,11 +58,8 @@ if (!process.env.VERCEL) {
 }
 
 const app = express();
-
-// Security: Use HPP to prevent HTTP Parameter Pollution
 app.use(hpp());
 
-// Simple logging utility (avoid circular imports)
 function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -77,19 +70,12 @@ function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// Set Express environment based on NODE_ENV (NOT the default 'development')
 const nodeEnv = process.env.NODE_ENV || 'development';
 app.set("env", nodeEnv);
-
-// CRITICAL: Trust proxy for Vercel/production environments
-// This fixes X-Forwarded-For header validation for rate limiting
 app.set('trust proxy', 1);
 
-// Generate required secrets if not provided (Safety fallback for checks)
 if (!process.env.SESSION_SECRET) {
-  console.error('❌ SESSION_SECRET is missing in production! Using fallback (UNSAFE for real users).');
-  // Fallback to allow app to start and log errors instead of crashing silent
-  // CRITICAL FIX: Use a STABLE secret based on project ID or fixed string to prevent session invalidation on restart
+  console.error('❌ SESSION_SECRET is missing in production! Using fallback.');
   process.env.SESSION_SECRET = 'fallback-production-secret-STABLE-DO-NOT-CHANGE-' + (process.env.PROJECT_ID || 'default');
 }
 
@@ -98,7 +84,6 @@ if (!process.env.ENCRYPTION_KEY) {
   process.env.ENCRYPTION_KEY = 'fallback-encryption-key-STABLE-DO-NOT-CHANGE';
 }
 
-// Supabase is optional (used only for auth if configured)
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const hasSupabaseKey = Boolean(process.env.SUPABASE_ANON_KEY);
 
@@ -106,7 +91,6 @@ if (hasSupabaseUrl && hasSupabaseKey) {
   console.log('✅ Supabase Auth configured');
 }
 
-// CRITICAL DEBUG: Log Email Configuration
 const hasEmailKey = Boolean(process.env.TWILIO_SENDGRID_API_KEY);
 const senderEmail = process.env.TWILIO_EMAIL_FROM;
 console.log(`📧 Email Configuration Check:
@@ -118,19 +102,9 @@ if (!hasEmailKey) {
   console.error("❌ CRITICAL: TWILIO_SENDGRID_API_KEY is missing! Emails will fail.");
 }
 
-// Warn about optional variables but don't exit
-const optionalEnvVars = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_ANON_KEY', 'OPENAI_API_KEY'];
-
-// Apply rate limiting
 app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
-
-// Stripe webhook needs raw body for signature verification
-// This MUST come before express.json() to preserve the raw buffer
 app.use('/webhook/stripe', express.raw({ type: 'application/json' }));
-
-// Instagram webhooks need raw body for Meta signature verification
-// We use json() with verify callback to preserve raw body
 app.use('/api/webhook/instagram', express.json({
   verify: (req: any, _res, buf) => {
     req.rawBody = buf;
@@ -142,47 +116,30 @@ app.use('/api/instagram/callback', express.json({
   }
 }));
 
-// Trust proxy for Railway/Vercel/Cloudflare/Replit
 app.set("trust proxy", 1);
-
-// CRITICAL: Global JSON body parser for ALL other routes
-// This MUST come AFTER the raw body handlers above (webhooks) but BEFORE all API routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Optimized Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const currentPath = req.path;
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (res.statusCode >= 400 || duration > 1000 || currentPath.startsWith("/api")) {
       log(`${req.method} ${currentPath} ${res.statusCode} in ${duration}ms`);
     }
   });
-
   next();
 });
 
-// Configure session - ensure secret is set
-// Note: Replit auto-generates SESSION_SECRET, but we validate it's present
-// Use a secure session store in production (PostgreSQL via connect-pg-simple)
-// Falls back to MemoryStore in development
 const sessionSecret = process.env.SESSION_SECRET || 'temporary-dev-secret-change-in-production';
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️  SESSION_SECRET not set - using temporary secret (NOT SECURE FOR PRODUCTION)');
-}
-
-// Create PostgreSQL session store if DATABASE_URL is available
 const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
 
-// Use connection pooling for session store if possible
 if (process.env.DATABASE_URL) {
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Required for Neon
+    ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
@@ -206,7 +163,7 @@ const sessionConfig: session.SessionOptions = {
     cookie: {
       secure: true,
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      maxAge: 1000 * 60 * 60 * 24 * 30,
       sameSite: 'lax',
       path: '/',
     },
@@ -217,7 +174,6 @@ const sessionConfig: session.SessionOptions = {
 
 app.use(session(sessionConfig));
 
-// CORS/CSRF Configuration
 const ALLOWED_ORIGINS = [
   'https://www.audnixai.com',
   'https://audnixai.com',
@@ -229,35 +185,19 @@ const ALLOWED_ORIGINS = [
   process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null,
 ].flat().filter(Boolean) as string[];
 
-const csrfProtection = csrf({ cookie: false }); // Using session-based CSRF
+const csrfProtection = csrf({ cookie: false });
 
 app.use((req, res, next) => {
-  // Skip CSRF for webhooks, callbacks, or specifically configured APIs
   const skipPaths = [
-    '/api/webhooks',
-    '/api/webhook',
-    '/api/instagram/callback',
-    '/api/instagram/webhook',
-    '/api/facebook/webhook',
-    '/api/user/auth',
-    '/api/auth',
-    '/api/custom-email',
-    '/api/brand-pdf',
-    '/api/pdf/upload',
-    '/api/prospecting',
-    '/api/user/avatar',
-    '/api/user/profile',
-    '/api/video',
-    '/api/leads',
-    '/api/expert-chat',
-    '/auth/instagram',
-    '/api/health',
-    '/api/automation/content',
-    '/api/video-automation',
+    '/api/webhooks', '/api/webhook', '/api/instagram/callback', '/api/instagram/webhook',
+    '/api/facebook/webhook', '/api/user/auth', '/api/auth', '/api/custom-email',
+    '/api/brand-pdf', '/api/pdf/upload', '/api/prospecting', '/api/user/avatar',
+    '/api/user/profile', '/api/video', '/api/leads', '/api/expert-chat',
+    '/auth/instagram', '/api/health', '/api/automation/content', '/api/video-automation',
     '/api/prospecting/v2'
   ];
 
-  const path = req.path; // Use req.path for clean matching without query strings
+  const path = req.path;
   const shouldSkip = skipPaths.some(p => path.startsWith(p)) || 
                      path === '/api/csrf-token' || 
                      path === '/auth' || 
@@ -267,7 +207,6 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // ORIGIN VALIDATION (Cross-Site Request Protection)
   const origin = req.get('origin') || req.get('referer');
   const host = req.get('host');
 
@@ -288,37 +227,24 @@ app.use((req, res, next) => {
     originUrl.host.endsWith('.replit.dev') ||
     originUrl.host.endsWith('.railway.app') ||
     originUrl.host.endsWith('audnixai.com') ||
-    originUrl.host === host; // Also allow same-host requests
+    originUrl.host === host;
 
       if (!isAllowed && !isAllowedSuffix) {
-        console.warn(`[SECURITY] Forbidden Origin: ${originUrl.host} for ${req.method} ${path}. Expected one of: ${ALLOWED_ORIGINS.join(', ')} or ${host}`);
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'Invalid request origin',
-          details: String(process.env.NODE_ENV) === 'development' ? `Origin ${originUrl.host} not allowed` : undefined
-        });
+        return res.status(403).json({ error: 'Forbidden', message: 'Invalid request origin' });
       }
     } catch (e) {
-      console.warn(`[SECURITY] Invalid Origin Header: ${origin} for ${req.method} ${path}`);
       return res.status(403).json({ error: 'Forbidden', message: 'Invalid origin header' });
     }
   }
 
-  // TOKEN VALIDATION (csurf)
   csrfProtection(req as any, res as any, (err: any) => {
     if (err) {
-      console.warn(`[SECURITY] CSRF Blocked: ${req.method} ${path} - Error: ${err.message}. Cookies present: ${Boolean(req.headers.cookie)}. SessionID: ${req.sessionID}`);
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Invalid CSRF token',
-        code: 'EBADCSRFTOKEN'
-      });
+      return res.status(403).json({ error: 'Forbidden', message: 'Invalid CSRF token', code: 'EBADCSRFTOKEN' });
     }
     next();
   });
 });
 
-// CSRF Token endpoint
 app.get("/api/csrf-token", (req, res) => {
   const token = (req as any).csrfToken();
   res.cookie('XSRF-TOKEN', token, {
@@ -329,11 +255,8 @@ app.get("/api/csrf-token", (req, res) => {
   res.json({ csrfToken: token });
 });
 
-// CORS Middleware - Restricted to allowlist for credential safety
 app.use((req, res, next) => {
   const origin = req.get('origin');
-
-  // Allow Replit, Vercel, and Railway domains
   const isAllowedDomain = !origin ||
     ALLOWED_ORIGINS.includes(origin) ||
     origin.endsWith('.vercel.app') ||
@@ -346,291 +269,62 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   } else if (!origin) {
-    // For non-browser requests or same-origin requests without Origin header
     res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
   }
-
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
   res.setHeader('Access-Control-Max-Age', '86400');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
-
-/**
- * Auto-run database migrations on startup using Drizzle
- */
 async function runMigrations() {
   try {
-    // Check if DATABASE_URL is set
-    if (!process.env.DATABASE_URL) {
-      console.log('⏭️  Skipping database migrations (DATABASE_URL not set)');
-      console.log('💡 App will run in demo mode without database features');
-      return;
-    }
-
-    const dbHost = new URL(process.env.DATABASE_URL).hostname;
-    console.log(`🔌 [Database] Connecting to: ${dbHost}`);
-    console.log('🚀 [Migration] Initializing platform synchronization...');
-
-    // Use Drizzle's db connection directly
+    if (!process.env.DATABASE_URL) return;
     const { db } = await import('./db.js');
-
-    // Check if db is actually initialized
-    if (!db) {
-      console.log('⏭️  Database not initialized - skipping migrations');
-      return;
-    }
-
-    // Read all migration files in order
+    if (!db) return;
     const migrationsDir = path.join(process.cwd(), 'migrations');
-
-    // Check if migrations directory exists
-    if (!fs.existsSync(migrationsDir)) {
-      console.log('⏭️  No migrations directory found, skipping...');
-      return;
-    }
-
-    // Filter migrations based on database type
-    // Skip Supabase-specific migrations (002_*) when using Neon or other non-Supabase databases
-    const isSupabaseDB = process.env.SUPABASE_DB === 'true' || process.env.DATABASE_URL?.includes('supabase');
-
-    const migrationFiles = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith('.sql'))
-      .filter(f => {
-        // Core schema is in 000 or 002. Ensure it runs on non-Supabase too if needed.
-        // Actually, 000_SETUP_SUPABASE suggests it's standard Postgres.
-        // Let's just run everything that isn't explicitly 002 if not on Supabase,
-        // OR better yet, let's just run all migrations and let 'CREATE TABLE IF NOT EXISTS' handle it.
-        if (f.startsWith('002_') && !isSupabaseDB) {
-          console.log(`  ⏭️  Skipping ${f} (Supabase-only migration, using Neon/PostgreSQL)`);
-          return false;
-        }
-        return true;
-      })
-      .sort();
-
-    if (migrationFiles.length === 0) {
-      console.log('⏭️  No migration files found, skipping...');
-      return;
-    }
-
-    console.log(`📦 Found ${migrationFiles.length} migration(s) to process`);
-
+    if (!fs.existsSync(migrationsDir)) return;
+    const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+    const { pool } = await import('./db.js');
     for (const file of migrationFiles) {
-      const migrationPath = path.join(migrationsDir, file);
-      const sql = fs.readFileSync(migrationPath, 'utf-8');
-
-      console.log(`  ⏳ Running ${file}...`);
-
+      const sqlText = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
       try {
-        // Use raw pool query if available for multi-statement execution
-        const { pool } = await import('./db.js');
-        if (pool) {
-          await pool.query(sql);
-        } else {
-          // Fallback to Drizzle execute for single statements or if pool missing
-          await db.execute(sql as any);
-        }
-        console.log(`  ✅ ${file} complete`);
-      } catch (error: any) {
-        // Ignore "already exists" errors
-        if (error.message?.includes('already exists') || error.code === '42P07') {
-          console.log(`  ⏭️  ${file} (already exists)`);
-        } else {
-          console.log(`  ⚠️  ${file} skipped: ${error.message}`);
-        }
-      }
+        if (pool) await pool.query(sqlText);
+        else await db.execute(sqlText as any);
+      } catch (e) {}
     }
-
-    console.log('✅ [Migration] Platform synchronization complete!');
-    console.log('📊 [System] Database core optimized and ready for High-Velocity scale.');
-  } catch (error: any) {
-    console.log('⚠️  Migrations skipped:', error.message);
-    console.log('💡 Application will run in demo mode without database features');
-  }
+  } catch (e) {}
 }
 
 (async () => {
-  // IMMEDIATE Healthcheck responder to satisfy Railway/Vercel probes
-  // Register BEFORE Vite middleware to ensure they're always accessible
-  app.get('/health', (_req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-  app.get('/api/health', (_req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  // Register API routes first (creates the HTTP server)
+  app.get('/health', (_req, res) => res.status(200).json({ status: "ok" }));
   const server = await registerRoutes(app);
-
-  // Error handler
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    // Check if headers already sent to avoid secondary crashes
-    if (res.headersSent) {
-      console.error('⚠️ Critical: Error occurred after headers were sent:', err);
-      return;
-    }
-
-    res.status(status).json({ message });
-  });
-
-  // Setup Vite (dev only) or static serving (production only)
   if (process.env.NODE_ENV !== 'production') {
     const { setupVite } = await import('./vite.js');
     await setupVite(app, server);
-    console.log('🔄 Vite dev server initialized');
   } else {
     const { serveStatic } = await import('./vite.js');
     serveStatic(app);
-    console.log('📦 Serving pre-built static files (production mode)');
+  }
+  const PORT = parseInt(process.env.PORT || '5000', 10);
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`🚀 Server running at http://0.0.0.0:${PORT}`);
+  });
+  
+  if (process.env.NODE_ENV !== 'production' && (server as any)._vite) {
+    // If we have access to vite instance via server, we can try to change its HMR port
+    // but typically it's better to just set VITE_HMR_PORT env var
   }
 
-  const PORT = parseInt(process.env.PORT || '5000', 10);
-
-  const serverInstance = server.listen(PORT, "0.0.0.0", () => {
-    log(`🚀 Server running at http://0.0.0.0:${PORT}`);
-    log(`✅ Healthcheck endpoint active at /health`);
-  });
-
-  // Keep-alive configuration for long-running connections
-  serverInstance.keepAliveTimeout = 65000;
-  serverInstance.headersTimeout = 66000;
-
-  // Graceful shutdown handler
-  const shutdown = (signal: string) => {
-    log(`Received ${signal}, shutting down gracefully...`, "system");
-    serverInstance.close(() => {
-      log("HTTP server closed.", "system");
-      process.exit(0);
-    });
-
-    // Force close if it takes too long
-    setTimeout(() => {
-      log("Could not close connections in time, forcefully shutting down", "system");
-      process.exit(1);
-    }, 10000);
-  };
-
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-
-  // Run migrations and start workers in background AFTER server starts
-  (async () => {
-    try {
-    const isVercel = process.env.VERCEL === '1';
-
-    // 1. Run migrations
-    if (!isVercel) {
-      try {
-        await runMigrations();
-        
-        // Seed initial data if database is empty (disabled for production)
-        const { db } = await import('./db.js');
-        const userCount = await db.select({ count: sql`count(*)` }).from(users);
-        if (Number(userCount[0].count) === 0) {
-          console.log('🌱 Database empty, but demo seeding is disabled to ensure clean production start.');
-        }
-      } catch (err) {
-        console.error('❌ Migration or seeding failed, continuing...', err);
-      }
-    }
-
-    // Always start workers on persistent environments (Replit, Railway, etc.)
-    if (!isVercel) {
-        // 2. Start workers
-        const { db } = await import('./db.js');
-        const hasDatabase = process.env.DATABASE_URL && db;
-
-        if (hasDatabase) {
-          console.log('🤖 Initializing AI services...');
-          workerHealthMonitor.registerWorker('follow-up-worker');
-          workerHealthMonitor.registerWorker('video-comment-monitor');
-          workerHealthMonitor.registerWorker('oauth-token-refresh');
-          workerHealthMonitor.registerWorker('email-sync-worker');
-          workerHealthMonitor.registerWorker('email-warmup-worker');
-          workerHealthMonitor.registerWorker('payment-auto-approval-worker');
-          workerHealthMonitor.registerWorker('lead-learning');
-          workerHealthMonitor.start();
-
-          followUpWorker.start();
-          startVideoCommentMonitoring();
-
-          try {
-            const { startLeadLearning } = await import('./lib/ai/lead-learning.js');
-            startLeadLearning();
-          } catch (err) {
-            console.warn('⚠️  Could not start lead learning worker:', err);
-          }
-
-          const { GmailOAuth } = await import('./lib/oauth/gmail.js');
-          setInterval(() => {
-            GmailOAuth.refreshExpiredTokens()
-              .then(() => workerHealthMonitor.recordSuccess('oauth-token-refresh'))
-              .catch((err) => {
-                console.error(err);
-                workerHealthMonitor.recordError('oauth-token-refresh', err.message);
-              });
-          }, 30 * 60 * 1000);
-
-          console.log('📬 Starting core system workers...');
-          emailSyncWorker.start();
-
-          // Start real-time IMAP IDLE if available
-          try {
-            const { imapIdleManager } = await import('./lib/email/imap-idle-manager.js');
-            imapIdleManager.start();
-          } catch (err) {
-            console.warn('⚠️ Could not start IMAP IDLE manager:', err);
-          }
-
-          paymentAutoApprovalWorker.start();
-          emailWarmupWorker.start();
-        }
-      }
-    } catch (err) {
-      console.error('❌ Failed to initialize background workers:', err);
-    }
-  })();
+  if (process.env.DATABASE_URL) {
+    await runMigrations();
+    followUpWorker.start();
+    startVideoCommentMonitoring();
+    emailSyncWorker.start();
+    paymentAutoApprovalWorker.start();
+    emailWarmupWorker.start();
+  }
 })();
 
-// Export app for Vercel Serverless environment
 export default app;
