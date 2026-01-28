@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { NeuralTypingLogo } from "@/components/ui/CustomIcons";
+import { AudnixLogo } from "@/components/ui/CustomIcons";
 
 interface EmailPreviewProps {
     subject: string;
@@ -121,7 +121,7 @@ export function EmailPreview({ subject, body, brandColor, isOpen, onClose }: Ema
                                             exit={{ opacity: 0, scale: 1.1 }}
                                             className="absolute inset-0 z-[60] bg-black flex items-center justify-center p-12 text-center"
                                         >
-                                            <NeuralTypingLogo />
+                                            <AudnixLogo />
                                         </motion.div>
                                     )}
                                 </AnimatePresence>

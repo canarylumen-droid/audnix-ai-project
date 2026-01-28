@@ -404,7 +404,7 @@ async function runMigrations() {
 
     const dbHost = new URL(process.env.DATABASE_URL).hostname;
     console.log(`🔌 [Database] Connecting to: ${dbHost}`);
-    console.log('🚀 [Migration] Initializing neural schema synchronization...');
+    console.log('🚀 [Migration] Initializing platform synchronization...');
 
     // Use Drizzle's db connection directly
     const { db } = await import('./db.js');
@@ -476,7 +476,7 @@ async function runMigrations() {
       }
     }
 
-    console.log('✅ [Migration] Neural Gateway synchronization complete!');
+    console.log('✅ [Migration] Platform synchronization complete!');
     console.log('📊 [System] Database core optimized and ready for High-Velocity scale.');
   } catch (error: any) {
     console.log('⚠️  Migrations skipped:', error.message);

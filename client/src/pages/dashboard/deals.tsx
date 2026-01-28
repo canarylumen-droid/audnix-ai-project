@@ -105,7 +105,14 @@ export default function DealsPage() {
   };
 
   const exportDeals = () => {
-    if (deals.length === 0) return;
+    if (deals.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "Your pipeline is currently empty.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const headers = ["Lead Name", "Value", "Status", "Channel", "Created At"];
     const csvContent = [
@@ -115,7 +122,7 @@ export default function DealsPage() {
         d.value || 0,
         `"${d.status || ""}"`,
         `"${d.channel || ""}"`,
-        `"${d.createdAt || ""}"`
+        `"${new Date(d.createdAt).toLocaleString()}"`
       ].join(","))
     ].join("\n");
 

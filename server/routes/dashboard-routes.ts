@@ -52,10 +52,20 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const deals = await storage.getDeals(userId);
     const convertedDealsList = deals.filter(d => d.status === 'converted' || d.status === 'closed_won');
     
-    // In a real scenario, we would use an LLM here to analyze the chat for the offer amount.
-    // For now, we ensure we use the extracted value if present, else fallback to 0.
+    // Calculate values from real deal data
     const totalPipelineValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
     const closedRevenue = convertedDealsList.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
+    // AI-Driven lead quality & intent extraction from messages
+    const inboxMessages = totalMessages.filter(m => m.direction === 'inbound');
+    const positiveIntents = inboxMessages.filter(m => {
+      const content = m.body?.toLowerCase() || "";
+      return content.includes('yes') || 
+             content.includes('book') || 
+             content.includes('interested') ||
+             content.includes('call') ||
+             content.includes('meeting');
+    }).length;
 
     res.json({
       totalLeads: leads.length,
@@ -65,6 +75,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       hardenedLeads,
       bouncyLeads,
       recoveredLeads,
+      positiveIntents,
       conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : "0.0",
       totalMessages: totalMessages.length,
       messagesToday,

@@ -37,7 +37,7 @@ import {
 import { useCanAccessAnalytics, useCanAccessFullAnalytics } from "@/hooks/use-access-gate";
 import { FeatureLock } from "@/components/upgrade/FeatureLock";
 import { PremiumLoader } from "@/components/ui/premium-loader";
-import { NeuralTypingLogo } from "@/components/ui/CustomIcons";
+import { AudnixLogo } from "@/components/ui/CustomIcons";
 
 interface ChannelData {
   channel: string;
@@ -148,46 +148,17 @@ export default function InsightsPage() {
 
       {(!hasData && !insights) ? (
         <div className="grid gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="bg-black/40 backdrop-blur-3xl p-12 rounded-[3.5rem] border border-white/5 shadow-2xl relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent" />
-
-            <div className="flex flex-col items-center justify-center text-center space-y-12 relative z-10">
-              <div className="scale-125 pb-8">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-8 w-8 text-primary" />
-                  <span className="text-2xl font-black text-white">Audnix AI</span>
-                </div>
-              </div>
-
-              <div className="max-w-xl space-y-4">
-                <h3 className="text-4xl font-black tracking-tight text-white leading-tight">Analyzing Performance...</h3>
-                <p className="text-zinc-400 text-lg leading-relaxed font-medium">
-                  Audnix is currently analyzing your outreach performance. Connect an integration to activate performance tracking.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center gap-6">
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <Button size="lg" className="rounded-full px-10 h-16 text-lg font-black shadow-[0_20px_40px_-10px_rgba(59,130,246,0.5)] transition-all hover:scale-105" onClick={() => window.location.href = '/dashboard/integrations'}>
-                    Connect Integrations <ArrowRight className="ml-2 h-6 w-6" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="rounded-full px-10 h-16 text-lg font-black backdrop-blur-md border-white/10 text-white hover:bg-white/5" onClick={() => refetch()}>
-                    <RefreshCw className="mr-2 h-5 w-5" /> Refresh Analytics
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-3 py-4 px-6 rounded-full bg-white/5 border border-white/10">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Connect 10+ leads to activate AI optimization</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-20 text-center"
+            >
+              <AudnixLogo />
+              <h3 className="text-xl font-black mt-8 text-foreground">Analyzing Intelligence</h3>
+              <p className="text-muted-foreground font-medium max-w-xs mt-2">
+                Gathering real-time market signals and campaign data...
+              </p>
+            </motion.div>
         </div>
       ) : (
         <>
