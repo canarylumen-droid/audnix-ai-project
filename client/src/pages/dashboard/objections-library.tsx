@@ -49,7 +49,7 @@ interface ObjectionsResponse {
   total: number;
 }
 
-const categoryIcons: Record<string, typeof Clock> = {
+const categoryIcons: Record<string, any> = {
   timing: Clock,
   price: DollarSign,
   trust: Shield,

@@ -20,7 +20,8 @@ import {
   Sparkles,
   ArrowDown,
   ArrowRight,
-  Minus
+  Minus,
+  DollarSign
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";

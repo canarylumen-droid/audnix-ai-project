@@ -9,7 +9,17 @@ import {
   MessageSquare, 
   Target,
   Activity,
-  ArrowLeft 
+  ArrowLeft,
+  Zap,
+  Clock,
+  BarChart3,
+  Shield,
+  CheckCircle2,
+  AlertTriangle,
+  Brain,
+  Building2,
+  User,
+  ArrowRight
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useQuery } from "@tanstack/react-query";
