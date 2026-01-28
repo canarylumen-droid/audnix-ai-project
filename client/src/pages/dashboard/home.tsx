@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
+  ArrowRight,
+  Minus,
+  DollarSign,
   TrendingUp,
   Users,
   MessageSquare,
@@ -18,10 +21,7 @@ import {
   Activity,
   RefreshCw,
   Sparkles,
-  ArrowDown,
-  ArrowRight,
-  Minus,
-  DollarSign
+  ArrowDown
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
