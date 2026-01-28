@@ -488,7 +488,7 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                    Email Integration
+                    Deliverability Guard
                   </span>
                   <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Active</Badge>
                 </div>
