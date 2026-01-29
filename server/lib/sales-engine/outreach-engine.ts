@@ -238,3 +238,34 @@ export function validateCampaignSafety(campaign: OutreachCampaign): { safe: bool
     warnings,
   };
 }
+
+/**
+ * Triggers automatic outreach for all leads with 'new' or 'hardened' status
+ * that haven't been contacted yet.
+ */
+export async function triggerAutoOutreach(userId: string): Promise<void> {
+  try {
+    const { storage } = await import('../../storage.js');
+    const { scheduleInitialFollowUp } = await import('../ai/follow-up-worker.js');
+
+    // Get all leads for the user that are 'new' or 'hardened'
+    const [newLeads, hardenedLeads] = await Promise.all([
+      storage.getLeads({ userId, status: 'new' }),
+      storage.getLeads({ userId, status: 'hardened' })
+    ]);
+
+    const allLeads = [...newLeads, ...hardenedLeads];
+    console.log(`[AutoOutreach] Found ${allLeads.length} leads for user ${userId} to trigger outreach.`);
+
+    for (const lead of allLeads) {
+      // Check if they already have a follow-up scheduled to avoid duplicates
+      const existing = await storage.getPendingFollowUp(lead.id);
+      if (!existing) {
+        console.log(`[AutoOutreach] Scheduling initial follow-up for lead: ${lead.name}`);
+        await scheduleInitialFollowUp(userId, lead.id, lead.channel);
+      }
+    }
+  } catch (error) {
+    console.error('[AutoOutreach] Error triggering auto-outreach:', error);
+  }
+}

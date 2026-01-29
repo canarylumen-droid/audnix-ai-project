@@ -70,6 +70,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     // Real-time Engine Status & Synchronization
     const integrations = await storage.getIntegrations(userId);
     const monitors = await storage.getVideoMonitors(userId);
+    const recentBounces = await storage.getRecentBounces(userId, 168); // Last 7 days
+    const domainVerifications = await storage.getDomainVerifications(userId, 5);
 
     // Calculate most recent sync time from all integrations
     const lastSyncTimestamp = integrations.reduce((latest, current) => {
@@ -80,11 +82,23 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     const engineStatus = monitors.length > 0 ? "Autonomous" : "Paused";
 
-    // Domain Health Calculation (0-100)
-    // 100 - (bouncyLeads / totalLeads * 100). If no leads, 100%.
-    const domainHealth = leads.length > 0
-      ? Math.max(0, 100 - (bouncyLeads / leads.length * 100))
-      : 100;
+    // Enhanced Domain Health Calculation (0-100)
+    // Factor 1: Bounce rate (hard bounces are severe)
+    const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
+    const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
+
+    let reputationScore = 100;
+    if (leads.length > 0) {
+      // Each hard bounce removes 5%, soft bounce 2%, capped at 100% loss
+      const bouncePenalty = (hardBounces * 5) + (softBounces * 2);
+      reputationScore = Math.max(0, 100 - bouncePenalty);
+    }
+
+    // Factor 2: Domain Verification status
+    const unverifiedDomains = domainVerifications.filter(v => v.verification_result !== 'pass').length;
+    const verificationPenalty = unverifiedDomains * 10;
+
+    const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
     res.json({
       totalLeads: leads.length,
@@ -109,7 +123,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       closedRevenue: closedRevenue,
       lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,
       engineStatus,
-      domainHealth
+      domainHealth,
+      domainVerifications: domainVerifications.slice(0, 3) // Return brief status
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);

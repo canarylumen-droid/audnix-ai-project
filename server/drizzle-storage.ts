@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 import { wsSync } from './lib/websocket-sync.js';
@@ -1139,7 +1139,31 @@ export class DrizzleStorage implements IStorage {
         });
       }
     } catch (error) {
-      console.warn('recordLearningPattern: error recording pattern, table may not exist');
+      console.error('Error recording learning pattern:', error);
+    }
+  }
+  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
+    checkDatabase();
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return await db.select()
+      .from(bounceTracker)
+      .where(and(eq(bounceTracker.userId, userId), gte(bounceTracker.timestamp, since)))
+      .orderBy(desc(bounceTracker.timestamp));
+  }
+
+  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
+    checkDatabase();
+    try {
+      const result = await db.execute(sql`
+        SELECT domain, verification_result, created_at
+        FROM domain_verifications
+        WHERE user_id = ${userId}
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `);
+      return result.rows || [];
+    } catch (e) {
+      return [];
     }
   }
 }

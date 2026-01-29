@@ -112,6 +112,10 @@ export interface IStorage {
   saveOAuthAccount(data: InsertOAuthAccount): Promise<OAuthAccount>;
   deleteOAuthAccount(userId: string, provider: string): Promise<void>;
 
+  // Reputation & Delivery
+  getRecentBounces(userId: string, hours?: number): Promise<any[]>;
+  getDomainVerifications(userId: string, limit?: number): Promise<any[]>;
+
   // Calendar Events
   createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent>;
 
@@ -963,6 +967,13 @@ export class MemStorage implements IStorage {
     return log;
   }
 
+  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
+    return [];
+  }
+
+  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
+    return [];
+  }
 }
 
 // Use DrizzleStorage with Replit PostgreSQL database

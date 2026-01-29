@@ -7,12 +7,19 @@ import { sql } from "drizzle-orm";
 import OpenAI from "openai";
 import crypto from "crypto";
 import { detectUVP } from "../lib/ai/universal-sales-agent.js";
+import * as pdf from "pdf-parse";
 
 const router = Router();
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  // Temporary placeholder while resolving PDF library issues
-  return "PDF content extraction is currently unavailable.";
+  try {
+    const parse = (pdf as any).default || pdf;
+    const data = await parse(buffer);
+    return data.text || "";
+  } catch (error) {
+    console.error("PDF extraction error:", error);
+    return "";
+  }
 }
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -143,12 +150,12 @@ router.post(
         .filter((c) => c.required && !c.present)
         .map((c) => c.name);
 
-        res.json({
-          overall_score: score,
-          items: checks,
-          missing_critical: missingCritical,
-          text_length: pdfTextRaw.length,
-          recommendations: [
+      res.json({
+        overall_score: score,
+        items: checks,
+        missing_critical: missingCritical,
+        text_length: pdfTextRaw.length,
+        recommendations: [
           presentRequired < requiredCount
             ? "Add more details about your required fields"
             : null,
@@ -404,6 +411,14 @@ Only include fields you can confidently extract. Return valid JSON only.`
 
       console.log(`✅ Brand PDF uploaded and processed for user ${userId}`);
 
+      // TRIGGER: If leads exist, start outreach immediately (boom)
+      try {
+        const { triggerAutoOutreach } = await import("../lib/sales-engine/outreach-engine.js");
+        await triggerAutoOutreach(userId);
+      } catch (triggerError) {
+        console.warn("Failed to trigger auto-outreach after upload:", triggerError);
+      }
+
       res.json({
         success: true,
         message: "Brand PDF uploaded and processed successfully",
@@ -623,6 +638,13 @@ router.post("/upload-brand-pdf", requireAuth, upload.single("pdf"), async (req: 
     });
 
     console.log(`✅ Brand PDF uploaded for user ${userId}`);
+
+    // TRIGGER: Auto-reach out
+    try {
+      const { triggerAutoOutreach } = await import("../lib/sales-engine/outreach-engine.js");
+      await triggerAutoOutreach(userId);
+    } catch (e) { }
+
     res.json({ success: true, message: "Brand PDF uploaded successfully", brandContext });
   } catch (error: unknown) {
     console.error("Error uploading brand PDF:", error);

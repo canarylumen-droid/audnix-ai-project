@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { MODELS } from './ai/model-config.js';
 import { EmailVerifier } from './scraping/email-verifier.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
-import { PDFDocument } from 'pdf-lib';
+import * as pdf from 'pdf-parse';
 
 const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey ? new OpenAI({
@@ -38,24 +38,14 @@ export async function processPDF(
       };
     }
 
-    // Use pdf-lib to get metadata/info if needed, but for text extraction,
-    // since pdf-lib doesn't support text extraction directly and pdfjs-dist is failing,
-    // we'll use a safer approach.
-    const pdfDoc = await PDFDocument.load(fileBuffer);
-    const pages = pdfDoc.getPages();
-    
-    // Fallback: Since pdf-lib doesn't do text extraction well, we will use AI vision if possible
-    // or tell the user we need a different library. But for now, let's try to get what we can.
-    // Actually, let's use a simpler text extraction if possible or just rely on the AI to parse the buffer if it was a vision model.
-    // However, Gemini/OpenAI can't take buffers directly in this flow easily without more setup.
-    
-    // REAL FIX: Use a library that doesn't depend on DOM/Canvas or provides a Node-friendly build.
-    // For now, I'll allow even very short or empty-ish text to pass through if it's potentially valid.
-    let text = "PDF Content (Extraction limited)"; 
-    
-    // RELAXED VALIDATION: Even if text is short, we proceed.
-    // Only fail if it's truly null or undefined.
-    if (text === null || text === undefined) {
+    // Use pdf-parse for reliable Node.js text extraction
+    // Handle potential callability issues with different export formats
+    const parse = (pdf as any).default || pdf;
+    const pdfData = await parse(fileBuffer);
+    const text = pdfData.text;
+
+    // VALIDATION: Ensure we have some text
+    if (!text || text.trim().length === 0) {
       return {
         success: false,
         leadsCreated: 0,
@@ -70,6 +60,14 @@ export async function processPDF(
       const extractedData = await extractOfferAndBrandWithAI(text, userId);
       offerData = extractedData.offer;
       brandData = extractedData.brand;
+
+      // Trigger automatic outreach for existing leads now that we have brand context
+      try {
+        const { triggerAutoOutreach } = await import('./sales-engine/outreach-engine.js');
+        await triggerAutoOutreach(userId);
+      } catch (outreachError) {
+        console.warn('Failed to trigger auto-outreach after brand extraction:', outreachError);
+      }
     }
 
     // Extract leads with AI

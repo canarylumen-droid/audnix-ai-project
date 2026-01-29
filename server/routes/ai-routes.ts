@@ -173,7 +173,7 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
     const positiveLeads = leads.filter(l => positiveStatuses.includes(l.status)).length;
     const negativeLeads = leads.filter(l => negativeStatuses.includes(l.status)).length;
     const totalWithSentiment = positiveLeads + negativeLeads;
-    const positiveSentimentRate = totalWithSentiment > 0 
+    const positiveSentimentRate = totalWithSentiment > 0
       ? ((positiveLeads / totalWithSentiment) * 100).toFixed(1)
       : '0';
 
@@ -451,10 +451,10 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
 });
 
 /**
- * Import leads from CSV file
- * POST /api/ai/import-csv
+ * Bulk import leads from JSON
+ * POST /api/ai/import-bulk
  */
-router.post("/import-csv", requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = getCurrentUserId(req)!;
     const { leads: leadsData, channel = 'email', aiPaused = false } = req.body as {
@@ -1110,6 +1110,12 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
       message: `Imported ${results.leadsImported} leads successfully`
     });
 
+    // Start outreach boom if leads were imported
+    if (results.leadsImported > 0) {
+      const { triggerAutoOutreach } = await import('../lib/sales-engine/outreach-engine.js');
+      triggerAutoOutreach(userId).catch(e => console.error('Auto outreach failed:', e));
+    }
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
     console.error("CSV file import error:", error);
@@ -1168,6 +1174,12 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
       errors: [],
       message: `Successfully processed PDF and imported ${result.leadsCreated} leads`
     });
+
+    // Start outreach boom if leads were imported
+    if (result.leadsCreated > 0) {
+      const { triggerAutoOutreach } = await import('../lib/sales-engine/outreach-engine.js');
+      triggerAutoOutreach(userId).catch(e => console.error('Auto outreach failed:', e));
+    }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads from PDF";
     console.error("PDF import error:", error);

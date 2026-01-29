@@ -171,7 +171,7 @@ const sessionConfig: session.SessionOptions = {
   saveUninitialized: false,
   name: 'audnix.sid',
   cookie: {
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 30,
     sameSite: 'lax',
@@ -207,14 +207,15 @@ app.use((req, res, next) => {
     '/api/prospecting/v2'
   ];
 
-  const path = req.path;
+  const requestPath = req.path;
   // Skip security checks for: 
   // 1. API webhooks/auth endpoints
   // 2. Local development
   // 3. Static assets (images, icons, etc.) to prevent 403s on favicons
-  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(path);
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(requestPath);
+  const isSkippableRoute = skipPaths.some(p => requestPath === p || requestPath.startsWith(p + '/'));
 
-  if (shouldSkip || process.env.NODE_ENV === 'development' || isStaticAsset) {
+  if (isSkippableRoute || process.env.NODE_ENV === 'development' || isStaticAsset) {
     return next();
   }
 
