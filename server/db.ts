@@ -18,8 +18,9 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
-  // Handle SSL mode security warning by explicitly using verify-full
+  // Handle SSL mode security warning by explicitly using verify-full and libpq compat
   const dbUrl = new URL(url);
+  dbUrl.searchParams.set('uselibpqcompat', 'true');
   if (!dbUrl.searchParams.has('sslmode')) {
     dbUrl.searchParams.set('sslmode', 'verify-full');
   } else if (['prefer', 'require', 'verify-ca'].includes(dbUrl.searchParams.get('sslmode') || '')) {
