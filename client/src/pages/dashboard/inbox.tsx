@@ -76,13 +76,11 @@ export default function InboxPage() {
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: 50, offset: 0 }],
-    refetchInterval: 3000,
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
     queryKey: ["/api/messages", leadId],
     enabled: !!leadId,
-    refetchInterval: 2000,
   });
 
   const activeLead = useMemo(() => 

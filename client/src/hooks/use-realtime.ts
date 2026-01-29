@@ -164,7 +164,7 @@ export function useRealtime(userId?: string) {
       queryClient.invalidateQueries({ queryKey: ['/api/conversations'] });
       // Invalidate specific lead conversation if needed
       if (payload.message?.leadId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/conversations/${payload.message.leadId}`] });
+        queryClient.invalidateQueries({ queryKey: ["/api/messages", payload.message.leadId] });
       }
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });

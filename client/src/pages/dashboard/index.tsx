@@ -3,7 +3,6 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { lazy, Suspense } from "react";
 const DashboardHome = lazy(() => import("./home"));
 const InboxPage = lazy(() => import("./inbox"));
-const ConversationsPage = lazy(() => import("./conversations"));
 const DealsPage = lazy(() => import("./deals"));
 const CalendarPage = lazy(() => import("./calendar"));
 const IntegrationsPage = lazy(() => import("./integrations"));
@@ -29,7 +28,7 @@ export default function DashboardRoutes() {
         <Switch>
           <Route path="/dashboard" component={DashboardHome} />
           <Route path="/dashboard/inbox" component={InboxPage} />
-          <Route path="/dashboard/inbox/:id" component={ConversationsPage} />
+          <Route path="/dashboard/inbox/:id" component={InboxPage} />
           <Route path="/dashboard/deals" component={DealsPage} />
           <Route path="/dashboard/calendar" component={CalendarPage} />
           <Route path="/dashboard/integrations" component={IntegrationsPage} />
