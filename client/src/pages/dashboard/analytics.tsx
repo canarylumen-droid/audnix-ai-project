@@ -79,10 +79,10 @@ export default function AnalyticsPage() {
     }
 
     const stats = [
-        { label: "Total Sent", value: analytics?.metrics.sent || 0, icon: Mail, color: "text-blue-400", bg: "bg-blue-400/10" },
-        { label: "Replies", value: analytics?.metrics.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
-        { label: "Meetings", value: analytics?.metrics.booked || 0, icon: CalendarCheck2, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-        { label: "Lead Filtered", value: analytics?.metrics.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
+        { label: "Total Sent", value: analytics?.metrics?.sent || 0, icon: Mail, color: "text-blue-400", bg: "bg-blue-400/10" },
+        { label: "Replies", value: analytics?.metrics?.replied || 0, icon: Zap, color: "text-purple-400", bg: "bg-purple-400/10" },
+        { label: "Meetings", value: analytics?.metrics?.booked || 0, icon: CalendarCheck2, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+        { label: "Lead Filtered", value: analytics?.metrics?.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
 
     // Time series (last 7 days)

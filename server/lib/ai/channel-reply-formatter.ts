@@ -31,7 +31,7 @@ export async function formatReplyForChannel(
   options: ChannelFormattingOptions
 ): Promise<FormattedReply> {
   const firstName = options.leadName?.split(" ")[0] || "there";
-  
+
   if (channel === "instagram") {
     return formatForInstagram(rawReply, firstName, options);
   } else {
@@ -45,7 +45,7 @@ async function formatForInstagram(
   options: ChannelFormattingOptions
 ): Promise<FormattedReply> {
   const maxLength = 1000;
-  
+
   if (!openai) {
     return {
       message: formatInstagramFallback(rawReply, firstName, maxLength),
@@ -85,7 +85,7 @@ GOOD EXAMPLE: "yo ${firstName}! that's exactly what we help with 🔥 quick q - 
 Return ONLY the formatted DM message, nothing else.`;
 
     const completion = await openai.chat.completions.create({
-      model: MODELS.conversation,
+      model: MODELS.sales_reasoning,
       messages: [
         { role: "system", content: "You are an elite DM copywriter. Write like a real person, not a bot." },
         { role: "user", content: prompt }
@@ -95,7 +95,7 @@ Return ONLY the formatted DM message, nothing else.`;
     });
 
     const formatted = completion.choices[0].message?.content?.trim() || rawReply;
-    
+
     return {
       message: formatted.substring(0, maxLength),
       channel: "instagram",
@@ -125,7 +125,7 @@ async function formatForEmail(
   options: ChannelFormattingOptions
 ): Promise<FormattedReply> {
   const maxLength = 2000;
-  
+
   if (!openai) {
     return {
       message: formatEmailFallback(rawReply, firstName, maxLength),
@@ -172,7 +172,7 @@ GOOD: Short, punchy, value-focused emails
 Return ONLY the email body (no subject line, no signature).`;
 
     const completion = await openai.chat.completions.create({
-      model: MODELS.conversation,
+      model: MODELS.sales_reasoning,
       messages: [
         { role: "system", content: "You are an elite email copywriter. Write emails that get replies." },
         { role: "user", content: prompt }
@@ -182,7 +182,7 @@ Return ONLY the email body (no subject line, no signature).`;
     });
 
     const formatted = completion.choices[0].message?.content?.trim() || rawReply;
-    
+
     return {
       message: formatted.substring(0, maxLength),
       channel: "email",
@@ -214,58 +214,58 @@ function formatInstagramFallback(text: string, firstName: string, maxLength: num
     .replace(/Best regards,?\s*\w*\s*$/i, "")
     .replace(/Thank you for your interest\.?\s*/gi, "")
     .trim();
-  
+
   if (formatted.length > maxLength) {
     formatted = formatted.substring(0, maxLength - 3) + "...";
   }
-  
+
   formatted = formatted.replace(/\. /g, "! ");
-  
+
   if (!formatted.includes("?") && !formatted.includes("!")) {
     formatted += " 🔥";
   }
-  
+
   return formatted;
 }
 
 function formatEmailFallback(text: string, firstName: string, maxLength: number): string {
   let formatted = text;
-  
+
   if (!formatted.toLowerCase().startsWith("hi ") && !formatted.toLowerCase().startsWith("hey ")) {
     formatted = `${firstName},\n\n${formatted}`;
   }
-  
+
   if (formatted.length > maxLength) {
     formatted = formatted.substring(0, maxLength - 3) + "...";
   }
-  
+
   return formatted;
 }
 
 function generateEmailSubject(content: string, options: ChannelFormattingOptions): string {
   const firstName = options.leadName?.split(" ")[0] || "";
-  
+
   if (options.wantsToBook) {
     return `Quick chat, ${firstName}?`;
   }
-  
+
   if (options.hasObjection) {
     return `Re: Your question`;
   }
-  
+
   if (options.urgency === "critical" || options.urgency === "high") {
     return `${firstName} - quick update`;
   }
-  
+
   const contentLower = content.toLowerCase();
   if (contentLower.includes("pricing") || contentLower.includes("cost")) {
     return `${firstName} - pricing details`;
   }
-  
+
   if (contentLower.includes("meeting") || contentLower.includes("call")) {
     return `Let's connect, ${firstName}`;
   }
-  
+
   return `${firstName} - following up`;
 }
 
@@ -282,7 +282,7 @@ INSTAGRAM DM GUIDELINES:
 - End with question or CTA
     `.trim();
   }
-  
+
   return `
 EMAIL GUIDELINES:
 - Max 2000 characters (ideal: 300-500)

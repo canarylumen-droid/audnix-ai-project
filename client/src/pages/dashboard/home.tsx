@@ -380,8 +380,8 @@ export default function DashboardHome() {
                   <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <Activity className="h-12 w-12 text-muted-foreground/20" />
                     <div className="space-y-1">
-                      <p className="font-medium">No activity yet</p>
-                      <p className="text-sm text-muted-foreground px-8 max-w-sm">Connect your Instagram or Email account to start tracking lead responses in real-time.</p>
+                      <p className="font-bold text-lg text-muted-foreground/60">Your lead insights will appear here</p>
+                      <p className="text-sm text-muted-foreground px-8 max-w-sm">Connect your channels to start tracking real-time activity.</p>
                     </div>
                     <Button
                       variant="outline"

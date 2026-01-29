@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 @layer base {
-  body, button, a {
+  body {
     cursor: url('/src/assets/cursor.svg'), auto;
+  }
+
+  button,
+  a,
+  [role="button"],
+  .cursor-pointer,
+  input[type="submit"],
+  input[type="button"] {
+    cursor: url('/cursor-hand.svg'), pointer;
   }
 }
 
@@ -12,9 +21,11 @@
   .hover-bounce {
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
+
   .hover-bounce:hover {
     transform: scale(1.05);
   }
+
   .hover-bounce:active {
     transform: scale(0.95);
   }

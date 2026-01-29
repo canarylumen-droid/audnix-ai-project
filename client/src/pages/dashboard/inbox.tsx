@@ -62,7 +62,7 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [allLeads, setAllLeads] = useState<any[]>([]);
-  
+
   // Message Thread State
   const [replyMessage, setReplyMessage] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -83,7 +83,7 @@ export default function InboxPage() {
     enabled: !!leadId,
   });
 
-  const activeLead = useMemo(() => 
+  const activeLead = useMemo(() =>
     leadsData?.leads?.find((l: any) => l.id === leadId),
     [leadsData, leadId]
   );
@@ -106,7 +106,7 @@ export default function InboxPage() {
 
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead: any) => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
       return matchesSearch && matchesChannel;
@@ -129,7 +129,7 @@ export default function InboxPage() {
       const res = await apiRequest("POST", `/api/ai/reply/${leadId}`);
       const data = await res.json();
       const aiSuggestion = data.aiSuggestion || "";
-      
+
       // Typewriter effect from ConversationsPage
       let index = 0;
       const interval = setInterval(() => {
@@ -208,47 +208,53 @@ export default function InboxPage() {
         <div className="p-4 border-b space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search leads..." 
+            <Input
+              placeholder="Search leads..."
               className="pl-9 h-10 rounded-xl bg-muted/50 border-none"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
-             <Button variant="ghost" size="sm" onClick={() => setFilterChannel("all")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'all' && "bg-primary/10 text-primary")}>All</Button>
-             <Button variant="ghost" size="sm" onClick={() => setFilterChannel("instagram")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'instagram' && "bg-primary/10 text-primary")}>IG</Button>
-             <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'email' && "bg-primary/10 text-primary")}>Email</Button>
+            <Button variant="ghost" size="sm" onClick={() => setFilterChannel("all")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'all' && "bg-primary/10 text-primary")}>All</Button>
+            <Button variant="ghost" size="sm" onClick={() => setFilterChannel("instagram")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'instagram' && "bg-primary/10 text-primary")}>IG</Button>
+            <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 text-[10px] uppercase tracking-widest", filterChannel === 'email' && "bg-primary/10 text-primary")}>Email</Button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto divide-y divide-border/10">
           {leadsLoading ? (
             <div className="p-4 space-y-4">
-              {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+              {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
             </div>
           ) : filteredLeads.map(lead => (
-            <div 
+            <div
               key={lead.id}
               onClick={() => setLocation(`/dashboard/inbox/${lead.id}`)}
               onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
               className={cn(
-                "p-4 cursor-pointer hover:bg-muted/30 transition-all border-l-2 border-transparent",
-                leadId === lead.id && "bg-primary/5 border-l-primary",
-                lead.metadata?.isUnread && "bg-primary/5 border-l-primary"
+                "p-4 cursor-pointer hover:bg-muted/50 transition-all border-b border-border/5 group relative",
+                leadId === lead.id ? "bg-primary/5 shadow-[inset_3px_0_0_0_hsl(var(--primary))]" : "hover:pl-5",
+                lead.metadata?.isUnread && "font-semibold bg-muted/20"
               )}
             >
-              <div className="flex gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary/10 text-primary font-bold">{lead.name?.[0]}</AvatarFallback>
+              <div className="flex gap-3 items-center">
+                <Avatar className="h-10 w-10 border border-border/20 shadow-sm transition-transform group-hover:scale-105">
+                  <AvatarFallback className={cn(
+                    "font-bold text-xs",
+                    lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>{lead.name?.[0]}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm font-bold truncate">{lead.name}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {lead.channel === 'instagram' ? <Instagram className="h-3 w-3"/> : <Mail className="h-3 w-3"/>}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-bold truncate text-foreground/90">{lead.name}</span>
+                    <span className="text-[10px] text-muted-foreground/50 uppercase tracking-wider flex items-center gap-1">
+                      {lead.channel === 'instagram' ? <Instagram className="h-3 w-3 opacity-70" /> : <Mail className="h-3 w-3 opacity-70" />}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{lead.lastMessageSnippet || "No messages yet"}</p>
+                  <p className="text-xs text-muted-foreground/80 truncate font-medium group-hover:text-primary/80 transition-colors">
+                    {lead.metadata?.isUnread && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 animate-pulse" />}
+                    {lead.lastMessageSnippet || <span className="italic opacity-50">No messages yet</span>}
+                  </p>
                 </div>
               </div>
             </div>
@@ -266,7 +272,7 @@ export default function InboxPage() {
               {/* Thread Header */}
               <div className="h-16 border-b flex items-center px-6 justify-between bg-background/50 backdrop-blur-md shrink-0">
                 <div className="flex items-center gap-3">
-                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setLocation('/dashboard/inbox')}><Check className="h-4 w-4 rotate-180"/></Button>
+                  <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setLocation('/dashboard/inbox')}><Check className="h-4 w-4 rotate-180" /></Button>
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>{activeLead?.name?.[0]}</AvatarFallback>
                   </Avatar>
@@ -279,13 +285,13 @@ export default function InboxPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="h-8 rounded-full border-primary/20 text-primary font-bold text-[10px]"
                     onClick={() => toggleAi.mutate({ id: leadId, paused: !activeLead?.aiPaused })}
                   >
-                    {activeLead?.aiPaused ? <><Play className="h-3 w-3 mr-1 fill-primary"/> RESUME AI</> : <><Pause className="h-3 w-3 mr-1 fill-primary"/> PAUSE AI</>}
+                    {activeLead?.aiPaused ? <><Play className="h-3 w-3 mr-1 fill-primary" /> RESUME AI</> : <><Pause className="h-3 w-3 mr-1 fill-primary" /> PAUSE AI</>}
                   </Button>
                   <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[10px]">{activeLead?.score || 0}% INTENT</Badge>
                 </div>
@@ -295,8 +301,8 @@ export default function InboxPage() {
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {messagesLoading ? (
                   <div className="space-y-4">
-                     <Skeleton className="h-10 w-48 rounded-2xl" />
-                     <Skeleton className="h-10 w-48 ml-auto rounded-2xl" />
+                    <Skeleton className="h-10 w-48 rounded-2xl" />
+                    <Skeleton className="h-10 w-48 ml-auto rounded-2xl" />
                   </div>
                 ) : messagesData?.messages?.map((msg: any) => (
                   <div key={msg.id} className={cn("flex", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
@@ -311,8 +317,8 @@ export default function InboxPage() {
                         </div>
                       )}
                       <div className="text-[9px] mt-1 opacity-50 flex items-center gap-1">
-                         {msg.metadata?.aiGenerated && <Sparkles className="h-2 w-2"/>}
-                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {msg.metadata?.aiGenerated && <Sparkles className="h-2 w-2" />}
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
@@ -343,18 +349,18 @@ export default function InboxPage() {
                       placeholder="Type your message..."
                       className="w-full bg-muted/50 border-none rounded-2xl p-3 text-sm focus:ring-1 focus:ring-primary min-h-[44px] max-h-32 resize-none"
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={handleAiReply}
                       disabled={isGenerating}
                       className="absolute right-2 bottom-2 text-primary hover:bg-primary/10"
                     >
-                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>}
+                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <Button 
-                    onClick={() => sendMutation.mutate(replyMessage)} 
+                  <Button
+                    onClick={() => sendMutation.mutate(replyMessage)}
                     disabled={!replyMessage.trim() || sendMutation.isPending}
                     className="rounded-2xl h-11 w-11 p-0 shadow-lg shadow-primary/20"
                   >

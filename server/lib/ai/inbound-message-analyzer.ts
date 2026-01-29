@@ -13,7 +13,12 @@ export interface InboundMessageAnalysis {
   deepIntent: IntentDetectionResult | null;
   objection: ObjectionDetectionResult | null;
   churnRisk: ChurnRiskAssessment | null;
-  competitorMention: CompetitorMentionResult | null;
+  competitorMention: {
+    mentionFound: boolean;
+    competitors: string[];
+    context: 'positive' | 'negative' | 'neutral' | 'comparison';
+    actionSuggested: string;
+  } | null;
   qualityScore: number;
   suggestedAction: string;
   shouldAutoReply: boolean;
@@ -28,11 +33,11 @@ export async function analyzeInboundMessage(
 ): Promise<InboundMessageAnalysis> {
   const timestamp = new Date();
   const messageBody = message.body || "";
-  
+
   console.log(`🧠 [ANALYZER] Processing inbound message for lead ${leadId}`);
 
   const allMessages = await storage.getMessagesByLeadId(leadId);
-  
+
   const conversationMessages = allMessages.map(m => ({
     direction: m.direction as "inbound" | "outbound",
     body: m.body,
@@ -52,7 +57,15 @@ export async function analyzeInboundMessage(
     userId: lead.userId,
   };
 
-  const [intent, deepIntent, objection, churnRisk, competitorMention, qualityResult] = await Promise.all([
+  /* Synchronous call moved out of Promise.all for type safety and wrapped in try-catch if needed (though it's robust) */
+  let competitorMention: CompetitorMentionResult | null = null;
+  try {
+    competitorMention = detectCompetitorMention(messageBody);
+  } catch (err) {
+    console.error("Competitor detection failed:", err);
+  }
+
+  const [intent, deepIntent, objection, churnRisk, qualityResult] = await Promise.all([
     analyzeLeadIntent(messageBody, {
       id: lead.id,
       name: lead.name || "Lead",
@@ -63,27 +76,22 @@ export async function analyzeInboundMessage(
       console.error("Intent analysis failed:", err);
       return null;
     }),
-    
-    detectLeadIntent(conversationMessages, leadProfile).catch(err => {
+
+    detectLeadIntent(conversationMessages as any[], leadProfile as any).catch(err => {
       console.error("Deep intent analysis failed:", err);
       return null;
     }),
-    
+
     detectObjection(messageBody).catch(err => {
       console.error("Objection detection failed:", err);
       return null;
     }),
-    
-    assessChurnRisk(leadProfile, conversationMessages, calculateDaysAsLead(lead)).catch(err => {
+
+    assessChurnRisk(leadProfile as any, conversationMessages as any[], calculateDaysAsLead(lead)).catch(err => {
       console.error("Churn risk assessment failed:", err);
       return null;
     }),
-    
-    detectCompetitorMention(messageBody).catch(err => {
-      console.error("Competitor detection failed:", err);
-      return null;
-    }),
-    
+
     calculateLeadQualityScore({
       id: lead.id,
       name: lead.name || "Lead",
@@ -103,6 +111,17 @@ export async function analyzeInboundMessage(
 
   await autoUpdateLeadStatus(leadId, allMessages);
 
+  // Map back to expected output format
+  // Note: competitorMention has 'detected' instead of 'mentionFound'
+  // and 'competitor' (string) instead of 'competitors' (array)
+
+  const mappedCompetitorMention = competitorMention ? {
+    mentionFound: competitorMention.detected,
+    competitors: competitorMention.competitor ? [competitorMention.competitor] : [],
+    context: competitorMention.context,
+    actionSuggested: competitorMention.response // Mapping response to actionSuggested roughly 
+  } : null;
+
   const analysisResult: InboundMessageAnalysis = {
     leadId,
     messageId: message.id,
@@ -111,7 +130,7 @@ export async function analyzeInboundMessage(
     deepIntent,
     objection,
     churnRisk,
-    competitorMention,
+    competitorMention: mappedCompetitorMention, // mapped to match interface
     qualityScore: qualityResult?.score || 50,
     suggestedAction,
     shouldAutoReply,
@@ -137,7 +156,7 @@ export async function analyzeInboundMessage(
         qualityScore: qualityResult?.score,
         churnRisk: churnRisk?.churnRiskLevel,
         hasObjection: objection && objection.confidence > 0.5,
-        competitorMentioned: competitorMention?.mentionFound,
+        competitorMentioned: competitorMention?.detected,
       },
     },
   });
@@ -168,14 +187,14 @@ function determineUrgency(
 ): "critical" | "high" | "medium" | "low" {
   if (intent?.readyToBuy || intent?.wantsToSchedule) return "critical";
   if (deepIntent?.intentLevel === "high") return "critical";
-  
-  if (competitorMention?.mentionFound) return "high";
+
+  if (competitorMention && (competitorMention as any).detected) return "high";
   if (objection && objection.confidence > 0.7) return "high";
   if (churnRisk?.churnRiskLevel === "high") return "high";
-  
+
   if (intent?.isInterested && intent.confidence > 0.7) return "medium";
   if (deepIntent?.intentLevel === "medium") return "medium";
-  
+
   return "low";
 }
 
@@ -185,11 +204,11 @@ function determineShouldAutoReply(
   urgency: string
 ): boolean {
   if (lead.aiPaused) return false;
-  
+
   if (intent?.isNegative) return false;
-  
+
   if (urgency === "critical" || urgency === "high") return true;
-  
+
   return true;
 }
 
@@ -203,25 +222,26 @@ function determineBestAction(
 ): string {
   if (intent?.readyToBuy) return "🔥 CLOSE NOW: Lead is ready to buy - send booking link immediately";
   if (intent?.wantsToSchedule) return "📅 BOOK CALL: Lead wants to schedule - propose meeting times";
-  
-  if (competitorMention?.mentionFound) {
-    return `🚨 COMPETITOR ALERT: ${competitorMention.competitors.join(", ")} mentioned - differentiate and close`;
+
+  if (competitorMention && (competitorMention as any).detected) {
+    const competitorName = (competitorMention as any).competitor;
+    return `🚨 COMPETITOR ALERT: ${competitorName} mentioned - differentiate and close`;
   }
-  
+
   if (objection && objection.confidence > 0.6) {
     return `💬 HANDLE OBJECTION (${objection.category}): ${objection.suggestedResponse}`;
   }
-  
+
   if (churnRisk?.churnRiskLevel === "high") {
     return `⚠️ CHURN RISK HIGH: ${churnRisk.recommendedAction}`;
   }
-  
+
   if (deepIntent?.intentLevel === "high") return "🎯 HIGH INTENT: Push for booking - lead is warm";
   if (deepIntent?.intentLevel === "medium") return "📊 MEDIUM INTENT: Send case study or social proof";
-  
+
   if (intent?.hasQuestion) return "❓ ANSWER QUESTION: Lead needs information - respond helpfully";
   if (intent?.needsMoreInfo) return "📚 EDUCATE: Send relevant content to build interest";
-  
+
   return qualityResult?.recommendation || "📩 NURTURE: Continue conversation with value";
 }
 
@@ -239,7 +259,7 @@ export async function processInboundMessageWithAnalysis(
 
     const messages = await storage.getMessagesByLeadId(leadId);
     const latestMessage = messages.find(m => m.body === messageBody);
-    
+
     if (!latestMessage) {
       console.error("Could not find the message to analyze");
       return null;

@@ -459,11 +459,12 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
 
     // Ensure we have a default state even with no messages
     if (stats.length === 0) {
-      return res.json({
+      res.json({
         success: true,
         data: [],
         summary: { totalSent: 0, totalReceived: 0 }
       });
+      return;
     }
 
     // Format for frontend (e.g., Recharts)
