@@ -1,0 +1,22 @@
+
+
+i mean page shuldnt refresh i dont mean user check inbox and anywhere even automatically it shuldnt real time behind the scene okay users shoulnt se it refresh or something but backend should check the inbox though and that conversation page what was there before  which functions did it have or inbox already there or something? want to know though then all these insight page once they have 10 lead or something they can request for analysis if reply is coming already even if one it shoud do the deep nsight analysis and also eveyrthing real time all numbers that deal page our ai should analye neitre conversation with the lead for our user for the user who have those leads check conversation then  check those that have booked or interested or closed or converted then display the number in usd there itll display the offer value lets say 2 leads  were closed at $500 each so itll display $1,000 or something then the conversion or  value it to their total leads like th eway it is try make it match ll real time dont harcode numbers every 3 minutes itll check those who are converted display so they can see how much theyve closed and itll be based on the offer our user proposed to lead check anywhere thy were closed then their brand pdf to see the offer try all best analyze entire conversation with all lead differently very fast real time value them differently then bring the final numbers in deal with the kpis and many things calculte others i gave for dollar alue also plan for others and do man? whats best so ppl will like audnix ai software do it. Check email history fetching needs
+
+
+
+
+
+hey insturction check anything not done here yet
+inbox like eisting emails from their imap isnt pulled here in inbox and stop inbox and any age from refreshing it should update real time every kpi deal update real time bro
+even that deal tab it checks those who have been in converted leads or booked or anyone positive then check their conversation like entie thing check ffer and extract the number if offer is x amount then in deal tab displays and adds it to exisitng one real time sync wthin mlliseconds please evrything entire project
+
+editing dashboard-routes file u even sad will be updated when deal systen is fully integrated please integrate them all even if disconnected still lies also when smtp connected reputation percent there hardcoded also go to dashboard in text anything that u see neural please change it to standard saas english bro
+even in home those percnthardocded no real time stuff even in analytics email right and insights and entire app ceck anywhere percent and numbers are hardcoded change all and once inbox is connected i mean smtp goes to their business email any mailbox it is in and fetch their whole mails okay existing emails too inside ours an let it not refresh instead use backend in real time not reload that section okay? even the live activityh too in deal tab the pipeline numbers are hardcded i want you to analyze entre chat and emails check their offer and those currently booked calls thats what will be there bro the numbers of how much worth of calls was made via booked calls okay? the export tab in that deal pieline download add doesnt work hardcoded bro all buttons that are meant to work please work on them bro
+
+and also whats the difference between conversation tab i connected it empty tate didnt go nothing openeed is it not necessary what shows there is it same with inbox or what if not needed then hide it then automation rule is it a must to set for ai to act bro want all these autonomous but incase leads want contorl its optional right? then the audit log tried adiding soemthing it said failed to set or add
+
+9:12:13 PM [express] GET /api/dashboard/activity 500 in 29ms :: {"error":"Failed to fetch activity"}
+
+This task requires complex backend updates for IMAP/SMTP real-time fetching, lead analysis for deal valuation, and fixing structural API errors. I need more powerful tools to ensure a stable implementation.
+you stpped halfway at too
+This request involves complex real-time IMAP/SMTP synchronization, deep AI-driven lead analysis for deal valuation, and significant architectural fixes that require more advanced tools and investigation. I'd like to switch to a more powerful mode to handle these backend updates safely and thoroughly.
