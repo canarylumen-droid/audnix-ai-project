@@ -8,6 +8,7 @@ import { db } from '../../db.js';
 import { leads, messages, integrations } from '../../../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 import type { IntentAnalysis } from './intent-analyzer.js';
+import { PredictiveTimingAnalyzer } from './predictive-timing.js';
 
 interface AutomatedReplyJob {
   userId: string;
@@ -72,8 +73,11 @@ export async function scheduleAutomatedDMReply(
 
     const conversationHistory = await getConversationHistory(leadId);
 
-    const delayMs = calculateSmartDelay(intent, conversationHistory);
+    // Use predictive timing analyzer for optimal delay
+    const { delayMs, timingResult } = await calculateSmartDelayWithPrediction(leadId, intent, conversationHistory);
     const scheduledAt = new Date(Date.now() + delayMs);
+    
+    console.log(`[DM_AUTO] Predictive strategy: ${timingResult.followUpStrategy}, Expected ROI: ${timingResult.expectedROI}`);
 
     console.log(`[DM_AUTO] Reply scheduled in ${Math.round(delayMs / 1000)}s at ${scheduledAt.toISOString()}`);
 
@@ -118,6 +122,86 @@ export async function scheduleAutomatedDMReply(
   }
 }
 
+async function calculateSmartDelayWithPrediction(
+  leadId: string,
+  intent?: IntentAnalysis,
+  history?: Message[]
+): Promise<{ delayMs: number; timingResult: any }> {
+  const MIN_DELAY = 2 * 60 * 1000;
+  const MAX_DELAY = 4 * 60 * 1000;
+
+  // Analyze conversation behavior using PredictiveTimingAnalyzer
+  const conversationMessages = (history || []).map(m => ({
+    body: m.body,
+    direction: m.direction as 'inbound' | 'outbound',
+    createdAt: new Date(m.createdAt)
+  }));
+
+  const leadBehavior = PredictiveTimingAnalyzer.analyzeConversation(conversationMessages);
+  const conversationInsights = PredictiveTimingAnalyzer.analyzeConversationInsights(conversationMessages);
+
+  // Determine lead temperature based on intent
+  let temperature: 'hot' | 'warm' | 'cold' = 'warm';
+  if (intent?.readyToBuy || intent?.wantsToSchedule) {
+    temperature = 'hot';
+  } else if (intent?.isNegative || conversationInsights.isGhosting) {
+    temperature = 'cold';
+  } else if (intent?.isInterested || conversationInsights.showsBuyingIntent) {
+    temperature = 'hot';
+  }
+
+  // Get predictive timing
+  const timingResult = PredictiveTimingAnalyzer.predictOptimalTiming(
+    leadBehavior,
+    MIN_DELAY,
+    temperature,
+    conversationInsights
+  );
+
+  // Calculate delay based on predictive result
+  let delayMs = timingResult.optimalSendTime.getTime() - Date.now();
+  
+  // Ensure delay is within bounds for DM (2-4 minutes for immediate responses)
+  delayMs = Math.max(MIN_DELAY, Math.min(MAX_DELAY, delayMs));
+  
+  // Add some randomness for human-like timing
+  delayMs += Math.random() * 60 * 1000;
+
+  console.log(`[DM_AUTO] Predictive timing: temperature=${temperature}, ROI=${timingResult.expectedROI}, strategy="${timingResult.followUpStrategy}"`);
+
+  // Store timing behavior in lead metadata for learning
+  try {
+    const lead = await storage.getLeadById(leadId);
+    if (lead) {
+      const existingMetadata = (lead.metadata as Record<string, any>) || {};
+      await storage.updateLead(leadId, {
+        metadata: {
+          ...existingMetadata,
+          timingBehavior: {
+            preferredHours: leadBehavior.preferredHours,
+            preferredDays: leadBehavior.preferredDays,
+            avgResponseTimeMs: leadBehavior.averageResponseTimeMs,
+            engagementScore: leadBehavior.engagementScore,
+            lastAnalyzedAt: new Date().toISOString()
+          },
+          conversationInsights: {
+            sentimentTrend: conversationInsights.sentimentTrend,
+            showsBuyingIntent: conversationInsights.showsBuyingIntent,
+            hasObjections: conversationInsights.hasObjections,
+            isGhosting: conversationInsights.isGhosting,
+            readyToClose: conversationInsights.readyToClose
+          }
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[DM_AUTO] Error storing timing behavior:', err);
+  }
+
+  return { delayMs, timingResult };
+}
+
+// Legacy fallback for simple delay calculation
 function calculateSmartDelay(intent?: IntentAnalysis, history?: Message[]): number {
   const MIN_DELAY = 2 * 60 * 1000;
   const MAX_DELAY = 4 * 60 * 1000;

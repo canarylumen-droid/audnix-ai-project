@@ -106,7 +106,15 @@ export default function ConversationsPage() {
         toast({ title: "Error", description: "Failed to archive thread", variant: "destructive" });
       }
     } else if (action === 'mark_unread') {
-      toast({ title: "Marked as Unread", description: "Action simulated for UI demo" });
+      try {
+        await apiRequest("PATCH", `/api/leads/${data.id}`, {
+          metadata: { ...data.metadata, isUnread: true }
+        });
+        toast({ title: "Marked as Unread", description: "This conversation will appear as unread" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to mark as unread", variant: "destructive" });
+      }
     }
   }, [toast]);
 
