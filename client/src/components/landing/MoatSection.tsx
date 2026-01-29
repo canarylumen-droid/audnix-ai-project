@@ -12,7 +12,7 @@ export function MoatSection() {
                         viewport={{ once: true }}
                         className="text-4xl md:text-7xl font-bold tracking-tight text-foreground mb-6"
                     >
-                        Logic <br />
+                        Performance Edge <br />
                         <span className="text-primary">over templates.</span>
                     </motion.h2>
                 </div>
