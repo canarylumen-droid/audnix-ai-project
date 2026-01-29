@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
+import { io } from "socket.io-client";
 
 interface Integration {
   provider: string;
@@ -201,6 +202,24 @@ export default function IntegrationsPage() {
     refetchInterval: 300000, // 5 minutes
   });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
+
+  useEffect(() => {
+    if (!userData?.user?.id) return;
+
+    const socket = io({
+      path: '/socket.io',
+      query: { userId: userData.user.id }
+    });
+
+    socket.on('settings_updated', () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [userData?.user?.id, queryClient]);
 
   const [tickerTime, setTickerTime] = useState(Date.now());
 

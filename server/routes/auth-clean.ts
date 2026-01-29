@@ -91,11 +91,15 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com'];
+    const isVip = vipEmails.includes(email.toLowerCase());
+
     const user = await storage.createUser({
       email,
       username,
       password: hashedPassword,
-      plan: 'trial',
+      plan: isVip ? 'enterprise' : 'trial',
+      subscriptionTier: isVip ? 'enterprise' : undefined,
     });
 
     req.session.userId = user.id;

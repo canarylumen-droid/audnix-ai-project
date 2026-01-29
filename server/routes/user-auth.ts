@@ -173,12 +173,16 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     // Create temporary username (will be updated in step 3)
     const tempUsername = normalizedEmail.split('@')[0] + Date.now();
 
+    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com'];
+    const isVip = vipEmails.includes(normalizedEmail);
+
     const user = await storage.createUser({
       email: normalizedEmail,
       username: tempUsername,
       password: passwordHash,
-      plan: 'trial',
+      plan: isVip ? 'enterprise' : 'trial',
       role: 'member',
+      subscriptionTier: isVip ? 'enterprise' : undefined,
     });
 
     // Set session for logged-in user FIRST (before regenerate to preserve data)

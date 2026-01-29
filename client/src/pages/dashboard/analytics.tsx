@@ -57,13 +57,39 @@ interface AnalyticsData {
     isAnyConnected?: boolean;
 }
 
+import { useUser } from "@/hooks/use-user";
+import { useEffect } from "react";
+import { io } from "socket.io-client";
+import { useQueryClient } from "@tanstack/react-query";
+
 export default function AnalyticsPage() {
+    const { data: user } = useUser();
+    const queryClient = useQueryClient();
     const { data: analytics, isLoading, refetch, isFetching } = useQuery<AnalyticsData>({
         queryKey: ["/api/dashboard/analytics/full"],
-        refetchInterval: 3000,
-        refetchOnWindowFocus: true,
-        staleTime: 0,
+        staleTime: Infinity, // Rely on socket for updates
     });
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const socket = io({
+            path: '/socket.io',
+            query: { userId: user.id }
+        });
+
+        const handleUpdate = () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/dashboard/analytics/full"] });
+        };
+
+        socket.on('leads_updated', handleUpdate);
+        socket.on('messages_updated', handleUpdate);
+        socket.on('activity_updated', handleUpdate);
+
+        return () => {
+            socket.disconnect();
+        };
+    }, [user?.id, queryClient]);
 
     const COLORS = {
         primary: "hsl(var(--primary))",

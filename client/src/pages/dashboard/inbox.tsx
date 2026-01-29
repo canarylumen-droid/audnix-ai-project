@@ -1,6 +1,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { io } from "socket.io-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,8 +72,33 @@ export default function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
-  useRealtime(user?.id);
+  // useRealtime(user?.id); // Replacing with direct socket implementation
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const socket = io({
+      path: '/socket.io',
+      query: { userId: user.id }
+    });
+
+    const handleMessageUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      if (leadId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
+      }
+    };
+
+    socket.on('messages_updated', handleMessageUpdate);
+    socket.on('leads_updated', handleMessageUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user?.id, leadId, queryClient]);
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
     queryKey: ["/api/leads", { limit: 50, offset: 0 }],
