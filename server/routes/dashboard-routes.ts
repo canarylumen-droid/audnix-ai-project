@@ -82,7 +82,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       messagesYesterday,
       averageResponseTime: '2.5h',
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
-      facebookThisMonth: leads.filter(l => l.channel === 'instagram').length,
+      instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
       plan: user?.plan || 'trial',
       filteredLeadsCount: user?.filteredLeadsCount || 0,
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,

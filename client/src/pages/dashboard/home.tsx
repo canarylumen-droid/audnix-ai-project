@@ -196,10 +196,10 @@ export default function DashboardHome() {
     },
     {
       label: "LEADS SENT",
-      value: stats?.messages || 0,
+      value: stats?.totalMessages || 0,
       icon: Send,
-      percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
-      trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
+      percentage: calculatePercentageChange(stats?.totalMessages || 0, previousStats?.messages),
+      trend: previousStats ? ((stats?.totalMessages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.totalMessages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
       color: "text-indigo-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },

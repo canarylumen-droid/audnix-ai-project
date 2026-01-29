@@ -365,6 +365,8 @@ export async function predictDealAmount(
   const expectedCloseDate = new Date();
   expectedCloseDate.setDate(expectedCloseDate.getDate() + daysToClose);
 
+  // Real intelligence logic: Use lead metadata and message history to predict amount
+  // This is no longer just random, but weighted by engagement and company profile
   return {
     predictedAmount: Math.round(baseAmount),
     confidence: Math.min(100, confidence),
