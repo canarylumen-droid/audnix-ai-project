@@ -37,6 +37,8 @@ interface IntelligenceData {
         intentScore: number;
         confidence: number;
         signals: string[];
+        buyerStage?: string;
+        reasoning?: string;
     };
     predictions: {
         predictedAmount: number;
@@ -46,8 +48,18 @@ interface IntelligenceData {
     churnRisk: {
         churnRiskLevel: "high" | "medium" | "low";
         indicators: string[];
+        recommendedAction?: string;
     };
     nextBestAction: string;
+    suggestedActions?: string[];
+}
+
+interface Message {
+    id: string;
+    body: string;
+    direction: "inbound" | "outbound";
+    createdAt: string;
+    metadata?: Record<string, unknown>;
 }
 
 interface LeadIntelligenceModalProps {
@@ -57,37 +69,60 @@ interface LeadIntelligenceModalProps {
 }
 
 export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntelligenceModalProps) {
-    // Mock data fetching or real endpoint call
-    // Since the actual implementation might require complex types for the body,
-    // we'll simulate a fetch using the lead details or call the API if structure matches.
-    // For UI demo purposes, we will assume we can fetch this data.
+    // First fetch real message history for this lead
+    const { data: messagesData } = useQuery<{ messages: Message[] }>({
+        queryKey: ["/api/messages", lead?.id, { limit: 100, offset: 0 }],
+        enabled: isOpen && !!lead?.id,
+        retry: false,
+        staleTime: 30000,
+    });
 
-    const { data: intelligence, isLoading } = useQuery<IntelligenceData>({
-        queryKey: ["/api/lead-intelligence/intelligence-dashboard", lead?.id],
+    // Then fetch real AI intelligence analysis using actual messages
+    const { data: intelligence, isLoading, refetch } = useQuery<IntelligenceData>({
+        queryKey: ["/api/leads/intelligence/intelligence-dashboard", lead?.id],
         queryFn: async () => {
-            // In a real scenario, we might need to POST messages history too.
-            // For now, we'll try to just POST the lead profile to get a baseline.
-            const response = await fetch("/api/lead-intelligence/intelligence-dashboard", {
+            const messages = messagesData?.messages || [];
+            
+            // Transform messages to the format expected by the AI
+            const conversationMessages = messages.map(m => ({
+                direction: m.direction,
+                body: m.body,
+                createdAt: m.createdAt,
+                metadata: m.metadata,
+            }));
+
+            const response = await fetch("/api/leads/intelligence/intelligence-dashboard", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     lead: {
                         id: lead.id,
-                        firstName: lead.name.split(" ")[0],
-                        name: lead.name,
-                        company: lead.company,
-                        email: lead.email || "unknown@example.com",
-                        industry: lead.industry || "Technology",
+                        firstName: lead.name?.split(" ")[0] || "Lead",
+                        name: lead.name || "Unknown",
+                        company: lead.company || "",
+                        email: lead.email || "",
+                        industry: lead.industry || lead.metadata?.industry || "",
+                        phone: lead.phone || "",
+                        metadata: lead.metadata || {},
+                        userId: lead.userId,
                     },
-                    messages: [] // We'd pass messages here if we had them easily accessible or fetch them first
+                    messages: conversationMessages
                 }),
             });
             if (!response.ok) throw new Error("Failed to fetch intelligence");
             return response.json();
         },
-        enabled: isOpen && !!lead,
-        retry: false
+        enabled: isOpen && !!lead && !!messagesData,
+        retry: false,
+        staleTime: 60000,
     });
+
+    // Refetch intelligence when messages load
+    useEffect(() => {
+        if (messagesData?.messages && isOpen) {
+            refetch();
+        }
+    }, [messagesData, isOpen, refetch]);
 
     const getScoreColor = (score: number) => {
         if (score >= 80) return "text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]";

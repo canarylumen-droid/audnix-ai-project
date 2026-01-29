@@ -59,6 +59,7 @@ interface AnalyticsResponse {
     bestReplyHour: number | null;
     replyRate: string;
     avgResponseTime: string;
+    positiveSentimentRate: string;
   };
 }
 
@@ -355,19 +356,25 @@ export default function AIAnalyticsPage() {
                   <div className="flex-1">
                     <div className="flex justify-between mb-2 text-sm font-medium">
                       <span>Positive Interactions</span>
-                      <span className="text-purple-400">87%</span>
+                      <span className="text-purple-400">{analytics.behaviorInsights.positiveSentimentRate || '0'}%</span>
                     </div>
                     <div className="h-2 w-full bg-purple-500/10 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: "87%" }}
+                        animate={{ width: `${analytics.behaviorInsights.positiveSentimentRate || 0}%` }}
                         transition={{ duration: 1, delay: 0.5 }}
                         className="h-full bg-purple-500 rounded-full"
                       />
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-3">AI tone analysis indicates high satisfaction</p>
+                <p className="text-xs text-muted-foreground mt-3">
+                  {parseFloat(analytics.behaviorInsights.positiveSentimentRate || '0') >= 70 
+                    ? 'AI tone analysis indicates high satisfaction' 
+                    : parseFloat(analytics.behaviorInsights.positiveSentimentRate || '0') >= 50
+                      ? 'Moderate engagement - room for improvement'
+                      : 'Focus on lead nurturing to improve sentiment'}
+                </p>
               </CardContent>
             </Card>
           </div>

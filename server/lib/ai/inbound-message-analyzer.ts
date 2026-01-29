@@ -1,0 +1,253 @@
+import { storage } from "../../storage.js";
+import { analyzeLeadIntent, calculateLeadQualityScore, type IntentAnalysis } from "./intent-analyzer.js";
+import { detectLeadIntent, assessChurnRisk, detectObjection, type ChurnRiskAssessment, type ObjectionDetectionResult, type IntentDetectionResult } from "./lead-intelligence.js";
+import { detectCompetitorMention, type CompetitorMentionResult } from "./competitor-detection.js";
+import { autoUpdateLeadStatus, detectConversationStatus } from "./conversation-ai.js";
+import type { Message, Lead } from "../../../shared/schema.js";
+
+export interface InboundMessageAnalysis {
+  leadId: string;
+  messageId: string;
+  timestamp: Date;
+  intent: IntentAnalysis | null;
+  deepIntent: IntentDetectionResult | null;
+  objection: ObjectionDetectionResult | null;
+  churnRisk: ChurnRiskAssessment | null;
+  competitorMention: CompetitorMentionResult | null;
+  qualityScore: number;
+  suggestedAction: string;
+  shouldAutoReply: boolean;
+  urgencyLevel: "critical" | "high" | "medium" | "low";
+  analysisMetadata: Record<string, unknown>;
+}
+
+export async function analyzeInboundMessage(
+  leadId: string,
+  message: Message,
+  lead: Lead
+): Promise<InboundMessageAnalysis> {
+  const timestamp = new Date();
+  const messageBody = message.body || "";
+  
+  console.log(`🧠 [ANALYZER] Processing inbound message for lead ${leadId}`);
+
+  const allMessages = await storage.getMessagesByLeadId(leadId);
+  
+  const conversationMessages = allMessages.map(m => ({
+    direction: m.direction as "inbound" | "outbound",
+    body: m.body,
+    createdAt: m.createdAt,
+    metadata: m.metadata,
+  }));
+
+  const leadProfile = {
+    id: lead.id,
+    name: lead.name || "Lead",
+    firstName: lead.name?.split(" ")[0] || "Lead",
+    company: (lead.metadata as any)?.company || "",
+    email: lead.email || "",
+    industry: (lead.metadata as any)?.industry || "",
+    phone: lead.phone || "",
+    metadata: lead.metadata || {},
+    userId: lead.userId,
+  };
+
+  const [intent, deepIntent, objection, churnRisk, competitorMention, qualityResult] = await Promise.all([
+    analyzeLeadIntent(messageBody, {
+      id: lead.id,
+      name: lead.name || "Lead",
+      channel: lead.channel,
+      status: lead.status,
+      tags: (lead.tags as string[]) || [],
+    }).catch(err => {
+      console.error("Intent analysis failed:", err);
+      return null;
+    }),
+    
+    detectLeadIntent(conversationMessages, leadProfile).catch(err => {
+      console.error("Deep intent analysis failed:", err);
+      return null;
+    }),
+    
+    detectObjection(messageBody).catch(err => {
+      console.error("Objection detection failed:", err);
+      return null;
+    }),
+    
+    assessChurnRisk(leadProfile, conversationMessages, calculateDaysAsLead(lead)).catch(err => {
+      console.error("Churn risk assessment failed:", err);
+      return null;
+    }),
+    
+    detectCompetitorMention(messageBody).catch(err => {
+      console.error("Competitor detection failed:", err);
+      return null;
+    }),
+    
+    calculateLeadQualityScore({
+      id: lead.id,
+      name: lead.name || "Lead",
+      channel: lead.channel,
+      status: lead.status,
+      tags: (lead.tags as string[]) || [],
+      created_at: lead.createdAt?.toISOString(),
+    }).catch(err => {
+      console.error("Quality score calculation failed:", err);
+      return { score: 50, recommendation: "Continue nurturing" };
+    }),
+  ]);
+
+  const urgencyLevel = determineUrgency(intent, deepIntent, objection, churnRisk, competitorMention);
+  const shouldAutoReply = determineShouldAutoReply(lead, intent, urgencyLevel);
+  const suggestedAction = determineBestAction(intent, deepIntent, objection, churnRisk, competitorMention, qualityResult);
+
+  await autoUpdateLeadStatus(leadId, allMessages);
+
+  const analysisResult: InboundMessageAnalysis = {
+    leadId,
+    messageId: message.id,
+    timestamp,
+    intent,
+    deepIntent,
+    objection,
+    churnRisk,
+    competitorMention,
+    qualityScore: qualityResult?.score || 50,
+    suggestedAction,
+    shouldAutoReply,
+    urgencyLevel,
+    analysisMetadata: {
+      messageLength: messageBody.length,
+      wordCount: messageBody.split(/\s+/).length,
+      hasQuestion: messageBody.includes("?"),
+      channel: lead.channel,
+      conversationLength: allMessages.length,
+    },
+  };
+
+  await storage.updateLead(leadId, {
+    score: qualityResult?.score || lead.score,
+    metadata: {
+      ...(lead.metadata as Record<string, unknown> || {}),
+      lastAnalysis: {
+        timestamp: timestamp.toISOString(),
+        intent: intent?.sentiment,
+        urgency: urgencyLevel,
+        suggestedAction,
+        qualityScore: qualityResult?.score,
+        churnRisk: churnRisk?.churnRiskLevel,
+        hasObjection: objection && objection.confidence > 0.5,
+        competitorMentioned: competitorMention?.mentionFound,
+      },
+    },
+  });
+
+  console.log(`✅ [ANALYZER] Analysis complete for lead ${leadId}:`, {
+    urgency: urgencyLevel,
+    qualityScore: qualityResult?.score,
+    sentiment: intent?.sentiment,
+    shouldAutoReply,
+  });
+
+  return analysisResult;
+}
+
+function calculateDaysAsLead(lead: Lead): number {
+  if (!lead.createdAt) return 0;
+  const created = new Date(lead.createdAt);
+  const now = new Date();
+  return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function determineUrgency(
+  intent: IntentAnalysis | null,
+  deepIntent: IntentDetectionResult | null,
+  objection: ObjectionDetectionResult | null,
+  churnRisk: ChurnRiskAssessment | null,
+  competitorMention: CompetitorMentionResult | null
+): "critical" | "high" | "medium" | "low" {
+  if (intent?.readyToBuy || intent?.wantsToSchedule) return "critical";
+  if (deepIntent?.intentLevel === "high") return "critical";
+  
+  if (competitorMention?.mentionFound) return "high";
+  if (objection && objection.confidence > 0.7) return "high";
+  if (churnRisk?.churnRiskLevel === "high") return "high";
+  
+  if (intent?.isInterested && intent.confidence > 0.7) return "medium";
+  if (deepIntent?.intentLevel === "medium") return "medium";
+  
+  return "low";
+}
+
+function determineShouldAutoReply(
+  lead: Lead,
+  intent: IntentAnalysis | null,
+  urgency: string
+): boolean {
+  if (lead.aiPaused) return false;
+  
+  if (intent?.isNegative) return false;
+  
+  if (urgency === "critical" || urgency === "high") return true;
+  
+  return true;
+}
+
+function determineBestAction(
+  intent: IntentAnalysis | null,
+  deepIntent: IntentDetectionResult | null,
+  objection: ObjectionDetectionResult | null,
+  churnRisk: ChurnRiskAssessment | null,
+  competitorMention: CompetitorMentionResult | null,
+  qualityResult: { score: number; recommendation: string } | null
+): string {
+  if (intent?.readyToBuy) return "🔥 CLOSE NOW: Lead is ready to buy - send booking link immediately";
+  if (intent?.wantsToSchedule) return "📅 BOOK CALL: Lead wants to schedule - propose meeting times";
+  
+  if (competitorMention?.mentionFound) {
+    return `🚨 COMPETITOR ALERT: ${competitorMention.competitors.join(", ")} mentioned - differentiate and close`;
+  }
+  
+  if (objection && objection.confidence > 0.6) {
+    return `💬 HANDLE OBJECTION (${objection.category}): ${objection.suggestedResponse}`;
+  }
+  
+  if (churnRisk?.churnRiskLevel === "high") {
+    return `⚠️ CHURN RISK HIGH: ${churnRisk.recommendedAction}`;
+  }
+  
+  if (deepIntent?.intentLevel === "high") return "🎯 HIGH INTENT: Push for booking - lead is warm";
+  if (deepIntent?.intentLevel === "medium") return "📊 MEDIUM INTENT: Send case study or social proof";
+  
+  if (intent?.hasQuestion) return "❓ ANSWER QUESTION: Lead needs information - respond helpfully";
+  if (intent?.needsMoreInfo) return "📚 EDUCATE: Send relevant content to build interest";
+  
+  return qualityResult?.recommendation || "📩 NURTURE: Continue conversation with value";
+}
+
+export async function processInboundMessageWithAnalysis(
+  leadId: string,
+  messageBody: string,
+  channel: "instagram" | "email"
+): Promise<InboundMessageAnalysis | null> {
+  try {
+    const lead = await storage.getLeadById(leadId);
+    if (!lead) {
+      console.error(`Lead ${leadId} not found`);
+      return null;
+    }
+
+    const messages = await storage.getMessagesByLeadId(leadId);
+    const latestMessage = messages.find(m => m.body === messageBody);
+    
+    if (!latestMessage) {
+      console.error("Could not find the message to analyze");
+      return null;
+    }
+
+    return await analyzeInboundMessage(leadId, latestMessage, lead);
+  } catch (error) {
+    console.error("Error processing inbound message:", error);
+    return null;
+  }
+}

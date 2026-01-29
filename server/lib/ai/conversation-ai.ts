@@ -14,6 +14,7 @@ import { analyzeLeadIntent } from './intent-analyzer.js';
 import { generateAutonomousObjectionResponse } from './autonomous-objection-responder.js';
 import { universalSalesAI } from './universal-sales-agent.js';
 import { evaluateAndLogDecision } from './decision-engine.js';
+import { formatReplyForChannel } from './channel-reply-formatter.js';
 
 // Initialize OpenAI if key is present, otherwise use fallback
 const openai = process.env.OPENAI_API_KEY
@@ -535,9 +536,23 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       console.log(`🛡️ First touch detected for ${lead.email} - Sending plain text outreach (No tracking)`);
     }
 
+    const optimizedText = optimizeSalesLanguage(responseText);
+    
+    const formattedReply = await formatReplyForChannel(optimizedText, platform, {
+      leadName: lead.name || "there",
+      brandName: (brandContext as any)?.businessName,
+      replyContext: lastMessage?.body,
+      urgency: intent?.readyToBuy ? "critical" : intent?.isInterested ? "high" : "medium",
+      hasObjection: intent?.hasObjection,
+      wantsToBook: intent?.wantsToSchedule,
+    });
+
+    console.log(`📝 Channel-formatted reply for ${platform}: ${formattedReply.message.substring(0, 100)}...`);
+
     return {
-      text: optimizeSalesLanguage(responseText),
-      useVoice: detectionResult.shouldUseVoice === true && isWarm
+      text: formattedReply.message,
+      useVoice: detectionResult.shouldUseVoice === true && isWarm,
+      detections: { ...(intent || {}), channelFormatted: true }
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

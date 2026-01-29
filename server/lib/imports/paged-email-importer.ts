@@ -2,6 +2,7 @@ import { db } from '../../db.js';
 import { leads as leadsTable } from '../../../shared/schema.js';
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
+import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
 
 /**
  * Paged email importer - prevents timeout and memory issues
@@ -149,6 +150,19 @@ async function processEmailForLead(
     // AUTO-REPLY TRIGGER: If this is an inbound message, queue an AI reply
     if (direction === 'inbound') {
       try {
+        // Run full inbound message analysis for intent, objections, churn signals
+        const allMessages = await storage.getMessagesByLeadId(lead.id);
+        const latestMessage = allMessages.find(m => m.body === (email.text || email.html || ''));
+        
+        if (latestMessage) {
+          try {
+            const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
+            console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
+          } catch (analysisError) {
+            console.error('[EMAIL_IMPORT] Inbound message analysis error:', analysisError);
+          }
+        }
+
         // Check if we should auto-reply (lead not paused, not recently replied)
         const existingOutbound = existingMessages.filter(m => m.direction === 'outbound');
         const lastOutbound = existingOutbound[existingOutbound.length - 1];

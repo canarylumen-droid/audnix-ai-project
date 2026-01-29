@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import * as crypto from 'crypto';
-// import { supabaseAdmin } from '../supabase-admin.js'; // Removed Supabase dependency
 import { analyzeLeadIntent, IntentAnalysis } from '../ai/intent-analyzer.js';
 import { followUpWorker } from '../ai/follow-up-worker.js';
 import { saveConversationToMemory } from '../ai/conversation-ai.js';
 import { scheduleAutomatedDMReply, checkUserAutomationSettings } from '../ai/dm-automation.js';
+import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
 import { storage } from "../../storage.js";
 import { type Lead } from "../../../shared/schema.js";
 
@@ -274,12 +274,22 @@ async function processInstagramMessage(message: InstagramMessage): Promise<void>
     });
 
     if (isEcho) {
-      // If it's an echo, we skip AI analysis and automation
       return;
     }
 
-    // 4. Analyze Intent
-    const intent = await analyzeLeadIntent(messageText, lead as any); // cast for now
+    const messages = await storage.getMessagesByLeadId(lead.id);
+    const latestMessage = messages.find(m => m.body === messageText);
+    
+    if (latestMessage) {
+      try {
+        const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
+        console.log(`[IG_EVENT] Full inbound analysis: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}, action=${fullAnalysis.suggestedAction}`);
+      } catch (analysisError) {
+        console.error('[IG_EVENT] Inbound message analysis error:', analysisError);
+      }
+    }
+
+    const intent = await analyzeLeadIntent(messageText, lead as any);
 
     let newStatus = lead.status;
     let newTags = [...(lead.tags || [])];
