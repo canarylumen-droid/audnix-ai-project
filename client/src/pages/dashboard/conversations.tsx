@@ -107,8 +107,9 @@ export default function ConversationsPage() {
       }
     } else if (action === 'mark_unread') {
       try {
+        const currentMetadata = data.metadata || {};
         await apiRequest("PATCH", `/api/leads/${data.id}`, {
-          metadata: { ...data.metadata, isUnread: true }
+          metadata: { ...currentMetadata, isUnread: true }
         });
         toast({ title: "Marked as Unread", description: "This conversation will appear as unread" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
@@ -117,6 +118,21 @@ export default function ConversationsPage() {
       }
     }
   }, [toast]);
+
+  // Handle clicking a lead to show full conversation
+  const handleLeadClick = (lead: any) => {
+    setSelectedLead(lead);
+    // When a lead is clicked, clear the unread status if it exists
+    if (lead.metadata?.isUnread) {
+      const currentMetadata = lead.metadata || {};
+      const { isUnread, ...restMetadata } = currentMetadata;
+      apiRequest("PATCH", `/api/leads/${lead.id}`, {
+        metadata: restMetadata
+      }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      }).catch(err => console.error("Failed to clear unread status:", err));
+    }
+  };
 
   // Get user for real-time subscriptions
   const { data: user } = useQuery<{ id: string }>({
@@ -325,8 +341,8 @@ export default function ConversationsPage() {
           {/* Example Lead Item - replace with actual lead data */}
           <Card
             className={`p-3 cursor-pointer hover:bg-accent transition-all duration-200 ${selectedLead?.id === lead.id ? "bg-accent border-l-4 border-l-primary" : ""
-              }`}
-            onClick={() => setSelectedLead(lead)}
+              } ${lead.metadata?.isUnread ? "bg-primary/5 border-l-4 border-l-primary" : ""}`}
+            onClick={() => handleLeadClick(lead)}
             onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
           >
             <div className="flex items-center gap-3">

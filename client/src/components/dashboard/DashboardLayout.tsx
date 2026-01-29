@@ -173,7 +173,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         { label: "Audit Logs", icon: Activity, path: "/dashboard/ai-decisions" },
         { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
         { label: "Insights", icon: Sparkles, path: "/dashboard/insights" },
-        { label: "Engagement Map", icon: Globe, path: "/dashboard/video-automation" },
+        { label: "Visual Map", icon: Globe, path: "/dashboard/video-automation" },
       ],
     },
   ];
@@ -505,7 +505,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="relative max-w-lg w-full hidden md:block group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input
-                placeholder="Search system active..."
+                placeholder="Search leads and messages..."
                 className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
