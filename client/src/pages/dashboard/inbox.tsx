@@ -416,7 +416,7 @@ export default function InboxPage() {
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-xl h-10 text-xs"
                     onClick={() => setShowIntelligence(true)}
                   >
-                    <Sparkles className="h-3.5 w-3.5 mr-2" /> View Lead Dossier
+                    <Sparkles className="h-3.5 w-3.5 mr-2" /> View Lead Overview
                   </Button>
                   <Button
                     variant="outline"

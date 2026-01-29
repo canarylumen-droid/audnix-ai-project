@@ -145,7 +145,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                             <Brain className="h-6 w-6" />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl">Lead Intelligence Dossier</DialogTitle>
+                            <DialogTitle className="text-xl">Lead Overview</DialogTitle>
                             <DialogDescription>
                                 AI-generated analysis for <span className="font-semibold text-foreground">{lead?.name}</span>
                             </DialogDescription>
@@ -192,7 +192,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                         </motion.div>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Neural Pulse</p>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Pulse</p>
                                         <p className="text-sm font-bold text-foreground">Buying Affinity</p>
                                     </div>
                                 </CardContent>
@@ -265,7 +265,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 </h4>
                                 <div className="p-6 rounded-[2.5rem] bg-card/40 border border-border/40 space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intensity Logic</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intensity Analytics</span>
                                         <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className={intelligence.intent.intentLevel === 'high' ? "bg-orange-500/10 text-orange-500 border-orange-500/20 px-3 font-black" : "font-black"}>
                                             {intelligence.intent.intentLevel.toUpperCase()} INTENT
                                         </Badge>
@@ -318,7 +318,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                         </div>
 
                         <div className="text-center text-xs text-muted-foreground pt-4 flex items-center justify-center gap-1">
-                            <Shield className="h-3 w-3" /> Data enriched by Audnix Intelligence™
+                            <Shield className="h-3 w-3" /> Data enriched by Audnix Engine™
                         </div>
 
                     </div>

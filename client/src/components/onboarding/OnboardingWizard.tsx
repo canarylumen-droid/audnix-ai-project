@@ -230,9 +230,9 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h2 className="text-4xl font-extrabold tracking-tighter">Intelligence Core Initialized</h2>
+                    <h2 className="text-4xl font-extrabold tracking-tighter">System Initialized</h2>
                     <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                      Connecting to the <span className="text-primary font-bold">1M+ Global Proxy Mesh</span> and calibrating the Gemini 2.0 Sales Brain.
+                      Connecting to the high-speed network and calibrating the Sales Engine.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto pt-6">
@@ -249,7 +249,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     onClick={() => setStep(1)}
                     className="w-full max-w-sm h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 group"
                   >
-                    Enter Command Center
+                    Enter Dashboard
                     <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </motion.div>
@@ -269,7 +269,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                 >
                   <div className="text-center space-y-2">
                     <h2 className="text-3xl font-extrabold tracking-tight">Identify Your Strategy</h2>
-                    <p className="text-muted-foreground">We'll tailor the neural network to your specific business model</p>
+                    <p className="text-muted-foreground">We'll tailor the system to your specific business model</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
@@ -315,7 +315,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                       <Search className="w-8 h-8 text-primary" />
                     </div>
                     <h2 className="text-3xl font-extrabold tracking-tight">Channel Attribution</h2>
-                    <p className="text-muted-foreground">How did you first discover the Audnix ecosystem?</p>
+                    <p className="text-muted-foreground">How did you first discover the Audnix platform?</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
