@@ -234,6 +234,13 @@ export function useRealtime(userId?: string) {
 
     socket.on('insights_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
+    });
+
+    socket.on('activity_updated', (payload: any) => {
+      console.log('Activity update:', payload);
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     });
 
     // FORCE DISCONNECT/LOGOUT

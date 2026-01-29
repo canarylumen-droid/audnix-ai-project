@@ -123,6 +123,12 @@ class EmailSyncWorker {
         const inbound = await pagedEmailImport(userId, inboxEmails.map(mapEmail), () => { }, 'inbound');
         const outbound = await pagedEmailImport(userId, sentEmails.map(mapEmail), () => { }, 'outbound');
 
+        if (inbound.imported > 0 || outbound.imported > 0) {
+          const { wsSync } = await import('../websocket-sync.js');
+          wsSync.notifyMessagesUpdated(userId, { event: 'INSERT', count: inbound.imported + outbound.imported });
+          wsSync.notifyActivityUpdated(userId, { type: 'email_sync', count: inbound.imported + outbound.imported });
+        }
+
         result.imported = inbound.imported + outbound.imported;
         result.skipped = inbound.skipped + outbound.skipped;
         result.errors = inbound.errors.length + outbound.errors.length;

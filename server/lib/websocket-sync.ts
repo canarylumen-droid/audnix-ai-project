@@ -92,6 +92,14 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'calendar_updated', data);
   }
 
+  notifyInsightsUpdated(userId: string, data?: any) {
+    this.emitToUser(userId, 'insights_updated', data);
+  }
+
+  notifyActivityUpdated(userId: string, data?: any) {
+    this.emitToUser(userId, 'activity_updated', data);
+  }
+
   // Generic broadcast
   broadcastToUser(userId: string, message: { type: string, payload: any }) {
     this.emitToUser(userId, message.type as MessageType, message.payload);

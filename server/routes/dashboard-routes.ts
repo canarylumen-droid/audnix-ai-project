@@ -435,6 +435,15 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
       .groupBy(sql`DATE_TRUNC('day', ${messages.createdAt})`, messages.direction)
       .orderBy(sql`DATE_TRUNC('day', ${messages.createdAt})`);
 
+    // Ensure we have a default state even with no messages
+    if (stats.length === 0) {
+       return res.json({
+         success: true,
+         data: [],
+         summary: { totalSent: 0, totalReceived: 0 }
+       });
+    }
+
     // Format for frontend (e.g., Recharts)
     const formattedData = stats.reduce((acc: any[], curr: any) => {
       const dayStr = new Date(curr.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });

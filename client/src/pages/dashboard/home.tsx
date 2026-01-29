@@ -134,7 +134,7 @@ export default function DashboardHome() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    staleTime: 0,
+    staleTime: 30000, // Use cache but trust socket invalidation
   });
 
   const { data: previousStats } = useQuery<PreviousDashboardStats>({
@@ -147,7 +147,7 @@ export default function DashboardHome() {
     queryKey: ["/api/dashboard/activity"],
     refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 0,
+    staleTime: 30000,
   });
 
   const getTrialDaysLeft = () => {
