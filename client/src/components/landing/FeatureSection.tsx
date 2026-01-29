@@ -49,7 +49,7 @@ export function FeatureSection() {
                         viewport={{ once: true }}
                         className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12 inline-block shadow-[0_0_20px_rgba(var(--primary),0.1)]"
                     >
-                        Neural Architecture
+                        Built for Performance
                     </motion.div>
                     <motion.h2
                         initial={{ opacity: 0, y: 30 }}
@@ -135,9 +135,9 @@ export function FeatureSection() {
                                 <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mb-8 group-hover:scale-110 transition-transform duration-500">
                                     <Search className="w-6 h-6 text-primary" />
                                 </div>
-                                <h3 className="text-3xl font-black mb-4 tracking-tight uppercase">Deep Lead Insights</h3>
+                                <h3 className="text-3xl font-black mb-4 tracking-tight uppercase">Smart Lead Profile</h3>
                                 <p className="text-white/40 font-medium leading-relaxed mb-6">
-                                    Audnix scans public data to build a psychological profile of every lead before engaging.
+                                    Audnix scans public data to build a profile of every lead before engaging.
                                 </p>
                             </div>
 

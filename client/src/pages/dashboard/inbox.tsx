@@ -331,7 +331,7 @@ export default function InboxPage() {
                       isSelected && "bg-primary/5",
                       isUnread && "bg-primary/5 border-l-primary" // Glow effect
                     )}
-                    onClick={() => window.location.href = `/dashboard/conversations/${lead.id}`}
+                    onClick={() => window.location.href = `/dashboard/inbox/${lead.id}`}
                   >
                     {/* Checkbox Overlay */}
                     <div
@@ -381,7 +381,7 @@ export default function InboxPage() {
                           </Badge>
                         )}
                         <span className={cn("text-sm truncate font-bold tracking-tight", isUnread ? "text-foreground" : "text-muted-foreground/40")}>
-                          {lead.lastMessageSnippet || "Sync active..."}
+                          {lead.lastMessageSnippet || (lead.channel === 'email' ? "Email outreach active..." : "DM sync active...")}
                         </span>
                       </div>
 

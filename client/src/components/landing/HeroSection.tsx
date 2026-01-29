@@ -212,9 +212,9 @@ export function HeroSection() {
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
               className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.95] lg:max-w-2xl"
             >
-              Not just Automation.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50">
-                An AI Sales Rep.
+              Scale <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase italic">
+                Without Limits.
               </span>
             </motion.h1>
 
@@ -225,7 +225,7 @@ export function HeroSection() {
               transition={{ delay: 0.4, duration: 1 }}
               className="text-base md:text-lg text-white/50 max-w-md font-medium leading-relaxed"
             >
-              Stop wasting time on manual follow-ups. Audnix uses <strong className="text-primary font-bold">Predictive Timing</strong> and <strong className="text-primary font-bold">Intent Detection</strong> to turn cold leads into booked meetings automatically.
+              The AI Sales Rep that handles your Instagram and Email 24/7. Book meetings while you sleep.
             </motion.p>
 
             {/* CTAs */}

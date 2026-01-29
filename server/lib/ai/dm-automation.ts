@@ -271,10 +271,10 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
         ...m,
         leadId: job.leadId,
         userId: job.userId,
-        channel: 'instagram',
+        channel: job.channel,
         metadata: null
       })) as any[],
-      'instagram'
+      job.channel as 'instagram' | 'email'
     );
 
     if (!aiResult.text || aiResult.text.trim().length === 0) {

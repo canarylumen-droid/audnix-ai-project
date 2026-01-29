@@ -29,8 +29,7 @@ export default function DashboardRoutes() {
         <Switch>
           <Route path="/dashboard" component={DashboardHome} />
           <Route path="/dashboard/inbox" component={InboxPage} />
-          <Route path="/dashboard/conversations" component={ConversationsPage} />
-          <Route path="/dashboard/conversations/:id" component={ConversationsPage} />
+          <Route path="/dashboard/inbox/:id" component={ConversationsPage} />
           <Route path="/dashboard/deals" component={DealsPage} />
           <Route path="/dashboard/calendar" component={CalendarPage} />
           <Route path="/dashboard/integrations" component={IntegrationsPage} />
