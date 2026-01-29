@@ -160,13 +160,13 @@ const sessionConfig: session.SessionOptions = {
   resave: false,
   saveUninitialized: false,
   name: 'audnix.sid',
-    cookie: {
-      secure: true,
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 30,
-      sameSite: 'lax',
-      path: '/',
-    },
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30,
+    sameSite: 'lax',
+    path: '/',
+  },
   store: sessionStore,
   rolling: true,
   proxy: true,
@@ -198,12 +198,13 @@ app.use((req, res, next) => {
   ];
 
   const path = req.path;
-  const shouldSkip = skipPaths.some(p => path.startsWith(p)) || 
-                     path === '/api/csrf-token' || 
-                     path === '/auth' || 
-                     path.startsWith('/auth');
+  // Skip security checks for: 
+  // 1. API webhooks/auth endpoints
+  // 2. Local development
+  // 3. Static assets (images, icons, etc.) to prevent 403s on favicons
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(path);
 
-  if (shouldSkip || process.env.NODE_ENV === 'development') {
+  if (shouldSkip || process.env.NODE_ENV === 'development' || isStaticAsset) {
     return next();
   }
 
@@ -222,12 +223,14 @@ app.use((req, res, next) => {
         }
       });
 
-  const isAllowedSuffix = originUrl.host.endsWith('.vercel.app') ||
-    originUrl.host.endsWith('.replit.app') ||
-    originUrl.host.endsWith('.replit.dev') ||
-    originUrl.host.endsWith('.railway.app') ||
-    originUrl.host.endsWith('audnixai.com') ||
-    originUrl.host === host;
+      // Allow standard subdomains and common deployment platforms
+      const isAllowedSuffix = originUrl.hostname.endsWith('.vercel.app') ||
+        originUrl.hostname.endsWith('.replit.app') ||
+        originUrl.hostname.endsWith('.replit.dev') ||
+        originUrl.hostname.endsWith('.railway.app') ||
+        originUrl.hostname === 'audnixai.com' ||
+        originUrl.hostname.endsWith('.audnixai.com') ||
+        originUrl.hostname === host?.split(':')[0];
 
       if (!isAllowed && !isAllowedSuffix) {
         return res.status(403).json({ error: 'Forbidden', message: 'Invalid request origin' });
@@ -292,9 +295,9 @@ async function runMigrations() {
       try {
         if (pool) await pool.query(sqlText);
         else await db.execute(sqlText as any);
-      } catch (e) {}
+      } catch (e) { }
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 (async () => {
@@ -311,7 +314,7 @@ async function runMigrations() {
   server.listen(PORT, "0.0.0.0", () => {
     log(`🚀 Server running at http://0.0.0.0:${PORT}`);
   });
-  
+
   if (process.env.NODE_ENV !== 'production' && (server as any)._vite) {
     // If we have access to vite instance via server, we can try to change its HMR port
     // but typically it's better to just set VITE_HMR_PORT env var
