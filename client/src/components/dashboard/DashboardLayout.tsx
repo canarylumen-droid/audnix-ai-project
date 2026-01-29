@@ -161,9 +161,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     {
       label: "Engagement",
       items: [
-        { label: "Prospecting", icon: Search, path: "/dashboard/prospecting" },
         { label: "Import Leads", icon: Upload, path: "/dashboard/lead-import" },
-        { label: "Knowledge Base", icon: BookMarked, path: "/dashboard/content-library" },
         { label: "Objections", icon: Shield, path: "/dashboard/objections" },
       ],
     },

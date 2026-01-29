@@ -75,7 +75,6 @@ export default function InsightsPage() {
   const { canAccess: canAccessFullAnalytics } = useCanAccessFullAnalytics();
   const { data: insightsData, isLoading, error, refetch, isFetching } = useQuery<InsightsApiResponse>({
     queryKey: ["/api/ai/insights"],
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
     staleTime: 0,
     retry: false,
@@ -84,7 +83,7 @@ export default function InsightsPage() {
   const insights = insightsData?.summary || null;
   const channelData = insightsData?.channels || [];
   const conversionFunnel = insightsData?.funnel || [];
-  const hasData = insightsData?.hasData || (channelData.length > 0 || conversionFunnel.length > 0);
+  const hasData = !!insightsData && (insightsData.hasData || (channelData.length > 0 || conversionFunnel.length > 0) || !!insights);
   const timeSeriesData = insightsData?.timeSeries || [];
 
   const PIE_COLORS = [

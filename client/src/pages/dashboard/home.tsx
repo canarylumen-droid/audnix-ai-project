@@ -21,7 +21,8 @@ import {
   Activity,
   RefreshCw,
   Sparkles,
-  ArrowDown
+  ArrowDown,
+  Send
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
@@ -134,7 +135,6 @@ export default function DashboardHome() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     staleTime: 0,
-    refetchInterval: 5000,
   });
 
   const { data: previousStats } = useQuery<PreviousDashboardStats>({
@@ -147,7 +147,6 @@ export default function DashboardHome() {
     queryKey: ["/api/dashboard/activity"],
     refetchOnWindowFocus: true,
     retry: false,
-    refetchInterval: 3000,
     staleTime: 0,
   });
 
@@ -196,11 +195,11 @@ export default function DashboardHome() {
       glow: "group-hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
     {
-      label: "TOTAL MESSAGES",
-      value: stats?.totalMessages || 0,
-      icon: MessageSquare,
-      percentage: calculatePercentageChange(stats?.totalMessages || 0, previousStats?.messages),
-      trend: previousStats ? ((stats?.totalMessages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.totalMessages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
+      label: "LEADS SENT",
+      value: stats?.messages || 0,
+      icon: Send,
+      percentage: calculatePercentageChange(stats?.messages || 0, previousStats?.messages),
+      trend: previousStats ? ((stats?.messages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.messages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
       color: "text-indigo-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
