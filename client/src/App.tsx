@@ -28,7 +28,7 @@ const PlaybooksPage = lazy(() => import("./pages/resources/outreach-playbooks"))
 const ApiDocsPage = lazy(() => import("./pages/resources/api-docs"));
 
 import { InternetConnectionBanner } from "@/components/InternetConnectionBanner";
-const ConversationsPage = lazy(() => import("./pages/dashboard/conversations"));
+const InboxPage = lazy(() => import("./pages/dashboard/inbox"));
 const CalendarPage = lazy(() => import("./pages/dashboard/calendar"));
 const AnalyticsPage = lazy(() => import("./pages/dashboard/analytics"));
 const InsightsPage = lazy(() => import("./pages/dashboard/insights"));
@@ -124,10 +124,10 @@ function Router() {
           </AuthGuard>
         )}
       </Route>
-      <Route path="/dashboard/conversations/:id?">
+      <Route path="/dashboard/inbox/:id?">
         {() => (
           <AuthGuard>
-            <Suspense fallback={null}><ConversationsPage /></Suspense>
+            <Suspense fallback={null}><InboxPage /></Suspense>
           </AuthGuard>
         )}
       </Route>
