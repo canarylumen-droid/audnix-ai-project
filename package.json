@@ -114,6 +114,7 @@
     "mailparser": "^3.9.0",
     "multer": "^2.0.2",
     "nanoid": "^5.1.6",
+    "@napi-rs/canvas": "^0.1.65",
     "next-themes": "^0.4.6",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.10",

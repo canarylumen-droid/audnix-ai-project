@@ -72,7 +72,7 @@ export default function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
-  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
   // useRealtime(user?.id); // Replacing with direct socket implementation
