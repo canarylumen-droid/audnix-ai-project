@@ -51,7 +51,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     // AI-Driven Deal Valuation Extraction
     const deals = await storage.getDeals(userId);
     const convertedDealsList = deals.filter(d => d.status === 'converted' || d.status === 'closed_won');
-    
+
     // Calculate values from real deal data
     const totalPipelineValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
     const closedRevenue = convertedDealsList.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
@@ -60,12 +60,31 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const inboxMessages = totalMessages.filter(m => m.direction === 'inbound');
     const positiveIntents = inboxMessages.filter(m => {
       const content = m.body?.toLowerCase() || "";
-      return content.includes('yes') || 
-             content.includes('book') || 
-             content.includes('interested') ||
-             content.includes('call') ||
-             content.includes('meeting');
+      return content.includes('yes') ||
+        content.includes('book') ||
+        content.includes('interested') ||
+        content.includes('call') ||
+        content.includes('meeting');
     }).length;
+
+    // Real-time Engine Status & Synchronization
+    const integrations = await storage.getIntegrations(userId);
+    const monitors = await storage.getVideoMonitors(userId);
+
+    // Calculate most recent sync time from all integrations
+    const lastSyncTimestamp = integrations.reduce((latest, current) => {
+      if (!current.lastSync) return latest;
+      const currentSync = new Date(current.lastSync).getTime();
+      return currentSync > latest ? currentSync : latest;
+    }, 0);
+
+    const engineStatus = monitors.length > 0 ? "Autonomous" : "Paused";
+
+    // Domain Health Calculation (0-100)
+    // 100 - (bouncyLeads / totalLeads * 100). If no leads, 100%.
+    const domainHealth = leads.length > 0
+      ? Math.max(0, 100 - (bouncyLeads / leads.length * 100))
+      : 100;
 
     res.json({
       totalLeads: leads.length,
@@ -80,14 +99,17 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       totalMessages: totalMessages.length,
       messagesToday,
       messagesYesterday,
-      averageResponseTime: '2.5h',
+      averageResponseTime: '2.5h', // Still inferred/hardcoded for now as per minimal change scope
       emailsThisMonth: leads.filter(l => l.channel === 'email').length,
       instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
       plan: user?.plan || 'trial',
       filteredLeadsCount: user?.filteredLeadsCount || 0,
       trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
       pipelineValue: totalPipelineValue,
-      closedRevenue: closedRevenue
+      closedRevenue: closedRevenue,
+      lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,
+      engineStatus,
+      domainHealth
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
@@ -437,11 +459,11 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
 
     // Ensure we have a default state even with no messages
     if (stats.length === 0) {
-       return res.json({
-         success: true,
-         data: [],
-         summary: { totalSent: 0, totalReceived: 0 }
-       });
+      return res.json({
+        success: true,
+        data: [],
+        summary: { totalSent: 0, totalReceived: 0 }
+      });
     }
 
     // Format for frontend (e.g., Recharts)
@@ -493,21 +515,21 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      
+
       const dayStart = new Date(date);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(date);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const daySent = allMessages.filter(m => 
-        m.direction === 'outbound' && 
-        new Date(m.createdAt) >= dayStart && 
+      const daySent = allMessages.filter(m =>
+        m.direction === 'outbound' &&
+        new Date(m.createdAt) >= dayStart &&
         new Date(m.createdAt) <= dayEnd
       ).length;
 
-      const dayReplied = leads.filter(l => 
+      const dayReplied = leads.filter(l =>
         (l.status === 'replied' || l.status === 'converted') &&
-        l.updatedAt && new Date(l.updatedAt) >= dayStart && 
+        l.updatedAt && new Date(l.updatedAt) >= dayStart &&
         new Date(l.updatedAt) <= dayEnd
       ).length;
 

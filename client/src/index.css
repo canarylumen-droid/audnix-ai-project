@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body, button, a {
+    cursor: url('/src/assets/cursor.svg'), auto;
+  }
+}
+
+@layer utilities {
+  .hover-bounce {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .hover-bounce:hover {
+    transform: scale(1.05);
+  }
+  .hover-bounce:active {
+    transform: scale(0.95);
+  }
+}
+
 /* Performance optimizations */
 * {
   -webkit-font-smoothing: antialiased;

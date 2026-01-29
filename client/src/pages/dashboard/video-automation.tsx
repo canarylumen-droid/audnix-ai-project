@@ -341,14 +341,16 @@ export default function VideoAutomationPage() {
 
   // Map backend media to the format expected by the UI
   const instagramReels = {
-    reels: (instagramMedia as any)?.media?.map((item: any) => ({
-      id: item.id,
-      url: item.permalink,
-      mediaUrl: item.media_url,
-      thumbnailUrl: item.thumbnail_url || item.media_url,
-      caption: item.caption || '',
-      timestamp: item.timestamp,
-    })) || []
+    reels: Array.isArray((instagramMedia as any)?.media)
+      ? (instagramMedia as any).media.map((item: any) => ({
+        id: item.id,
+        url: item.permalink,
+        mediaUrl: item.media_url,
+        thumbnailUrl: item.thumbnail_url || item.media_url,
+        caption: item.caption || '',
+        timestamp: item.timestamp,
+      }))
+      : []
   };
 
   const createMonitor = useMutation({
@@ -491,7 +493,7 @@ export default function VideoAutomationPage() {
                     </CardContent>
                   </Card>
                 ) : (
-                  monitors?.map((monitor) => (
+                  Array.isArray(monitors) && monitors.map((monitor) => (
                     <MonitorCard
                       key={monitor.id}
                       monitor={monitor}

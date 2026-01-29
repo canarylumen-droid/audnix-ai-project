@@ -61,6 +61,9 @@ interface DashboardStats {
   hardenedLeads?: number;
   bouncyLeads?: number;
   recoveredLeads?: number;
+  lastSync?: string | null;
+  engineStatus?: string;
+  domainHealth?: number;
 }
 
 interface PreviousDashboardStats {
@@ -265,6 +268,12 @@ export default function DashboardHome() {
             >
               <RefreshCw className="mr-2 h-3.5 w-3.5" /> Refresh Data
             </Button>
+            {stats?.lastSync && (
+              <Badge variant="outline" className="px-4 py-2 bg-muted/30 text-muted-foreground border-border/40 rounded-2xl font-bold text-xs">
+                <RefreshCw className="w-3 h-3 mr-2 opacity-50" />
+                Synced {formatTimeAgo(stats.lastSync)}
+              </Badge>
+            )}
             {trialDaysLeft > 0 && (
               <Badge variant="outline" className="px-6 py-2 bg-primary/5 text-primary border-primary/20 rounded-2xl font-bold text-xs shadow-sm shadow-primary/5">
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -428,16 +437,14 @@ export default function DashboardHome() {
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
                     <p className="text-xl font-black text-emerald-400 tracking-tighter">
-                      {stats?.totalLeads && stats?.bouncyLeads !== undefined && stats.totalLeads > 0
-                        ? Math.max(0, 100 - (stats.bouncyLeads / stats.totalLeads * 100)).toFixed(1)
-                        : "0.0"}%
+                      {stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(1) : "100.0"}%
                     </p>
                   </div>
                   <Badge className={cn(
                     "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.bouncyLeads || 0) < 5 && (stats?.totalLeads || 0) > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                    (stats?.domainHealth || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
                   )}>
-                    {(stats?.bouncyLeads || 0) < 5 && (stats?.totalLeads || 0) > 0 ? "Excellent" : "Ready"}
+                    {(stats?.domainHealth || 100) > 95 ? "Excellent" : "Fair"}
                   </Badge>
                 </div>
 
@@ -448,8 +455,8 @@ export default function DashboardHome() {
                     Reputation Advisory
                   </p>
                   <p className="text-[10px] text-muted-foreground leading-tight">
-                    {(stats?.bouncyLeads || 0) > 10
-                      ? "High bounce detected. Pause outreach and verify your lead list to avoid domain blacklisting."
+                    {(stats?.domainHealth || 100) < 90
+                      ? "Bounce rate increasing. Pause outreach and verify your lead list to avoid domain blacklisting."
                       : "Your sender reputation is high. Continue 1-by-1 sending to maintain optimal deliverability."}
                   </p>
                 </div>
@@ -479,10 +486,16 @@ export default function DashboardHome() {
               <CardContent className="pt-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                    <div className={cn("h-2 w-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+                      stats?.engineStatus === "Autonomous" ? "bg-emerald-500 shadow-emerald-500/40" : "bg-amber-500 shadow-amber-500/40"
+                    )} />
                     AI Automation
                   </span>
-                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Healthy</Badge>
+                  <Badge variant="secondary" className={cn("border-0 text-[10px] uppercase font-bold tracking-tighter",
+                    stats?.engineStatus === "Autonomous" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                  )}>
+                    {stats?.engineStatus || "Paused"}
+                  </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">

@@ -209,8 +209,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/user/notifications"],
-    refetchInterval: 3000,
-    staleTime: 0,
+    staleTime: Infinity, // Trust socket updates
   });
 
   useEffect(() => {
@@ -223,7 +222,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 5000,
+    staleTime: Infinity,
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;
@@ -271,7 +270,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         key={item.path}
         data-testid={`nav-item-${item.label.toLowerCase()}`}
         onClick={() => setLocation(item.path)}
-        className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group mb-1 ${isActive
+        className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group mb-1 hover-bounce ${isActive
           ? "bg-primary/10 text-primary font-bold shadow-sm"
           : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           }`}
