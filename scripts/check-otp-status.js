@@ -12,13 +12,19 @@ if (!CONNECTION_STRING) {
     process.exit(1);
 }
 
+// Normalize connection string for SSL compatibility
+const dbUrl = new URL(CONNECTION_STRING);
+dbUrl.searchParams.set('uselibpqcompat', 'true');
+dbUrl.searchParams.set('sslmode', 'require');
+const NORMALIZED_CONNECTION_STRING = dbUrl.toString();
+
 async function checkData() {
     console.log('🔌 Connecting to database...');
     console.log(`   URL: ${CONNECTION_STRING.substring(0, 20)}...`);
 
     const pool = new Pool({
-        connectionString: CONNECTION_STRING,
-        ssl: true
+        connectionString: NORMALIZED_CONNECTION_STRING,
+        ssl: { rejectUnauthorized: false }
     });
 
     try {

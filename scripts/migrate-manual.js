@@ -8,7 +8,14 @@ import { fileURLToPath } from 'url';
 const { Pool } = pg;
 
 // THE CORRECT DATABASE CONNECTION (Prefer Env Var, Fallback to Hardcoded for Manual Runs)
-const CONNECTION_STRING = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_y1WCRm9QsVJh@ep-wispy-frost-ahj6lqe0-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+// THE CORRECT DATABASE CONNECTION (Prefer Env Var, Fallback to Hardcoded for Manual Runs)
+const RAW_CONNECTION_STRING = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_y1WCRm9QsVJh@ep-wispy-frost-ahj6lqe0-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+
+// Normalize connection string for SSL compatibility
+const dbUrl = new URL(RAW_CONNECTION_STRING);
+dbUrl.searchParams.set('uselibpqcompat', 'true');
+dbUrl.searchParams.set('sslmode', 'require');
+const CONNECTION_STRING = dbUrl.toString();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +25,7 @@ async function migrate() {
 
     const pool = new Pool({
         connectionString: CONNECTION_STRING,
-        ssl: true
+        ssl: { rejectUnauthorized: false }
     });
 
     try {

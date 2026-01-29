@@ -141,9 +141,9 @@ if (process.env.DATABASE_URL) {
   const dbUrl = new URL(process.env.DATABASE_URL);
   dbUrl.searchParams.set('uselibpqcompat', 'true');
   if (!dbUrl.searchParams.has('sslmode')) {
-    dbUrl.searchParams.set('sslmode', 'verify-full');
-  } else if (['prefer', 'require', 'verify-ca'].includes(dbUrl.searchParams.get('sslmode') || '')) {
-    dbUrl.searchParams.set('sslmode', 'verify-full');
+    dbUrl.searchParams.set('sslmode', 'require');
+  } else if (['prefer', 'require', 'verify-ca', 'verify-full'].includes(dbUrl.searchParams.get('sslmode') || '')) {
+    dbUrl.searchParams.set('sslmode', 'require');
   }
   const connectionString = dbUrl.toString();
 

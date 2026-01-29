@@ -290,7 +290,11 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       },
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    console.error('❌ Error in /api/user/profile:', error);
+    res.status(500).json({
+      error: 'Failed to fetch profile',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 

@@ -12,7 +12,12 @@ if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is not set");
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const dbUrl = new URL(process.env.DATABASE_URL);
+dbUrl.searchParams.set('uselibpqcompat', 'true');
+dbUrl.searchParams.set('sslmode', 'require');
+const connectionString = dbUrl.toString();
+
+const pool = new Pool({ connectionString });
 
 async function checkColumns() {
     const client = await pool.connect();

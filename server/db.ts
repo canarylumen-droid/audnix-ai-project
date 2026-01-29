@@ -18,13 +18,13 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
-  // Handle SSL mode security warning by explicitly using verify-full and libpq compat
+  // Handle SSL mode security warning by explicitly using libpq compat
   const dbUrl = new URL(url);
   dbUrl.searchParams.set('uselibpqcompat', 'true');
   if (!dbUrl.searchParams.has('sslmode')) {
-    dbUrl.searchParams.set('sslmode', 'verify-full');
-  } else if (['prefer', 'require', 'verify-ca'].includes(dbUrl.searchParams.get('sslmode') || '')) {
-    dbUrl.searchParams.set('sslmode', 'verify-full');
+    dbUrl.searchParams.set('sslmode', 'require');
+  } else if (['prefer', 'require', 'verify-ca', 'verify-full'].includes(dbUrl.searchParams.get('sslmode') || '')) {
+    dbUrl.searchParams.set('sslmode', 'require');
   }
   const connectionString = dbUrl.toString();
 
