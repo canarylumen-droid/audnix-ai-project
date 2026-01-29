@@ -54,6 +54,7 @@ interface AnalyticsData {
     timeSeries: Array<{ name: string; sent: number; replied: number; booked: number }>;
     channelPerformance: Array<{ channel: string; value: number }>;
     recentEvents: Array<{ id: string; type: string; description: string; time: string }>;
+    isAnyConnected?: boolean;
 }
 
 export default function AnalyticsPage() {
@@ -204,7 +205,7 @@ export default function AnalyticsPage() {
                             </div>
                         )}
                     </div>
-                    <Button variant="link" className="mt-8 text-[10px] font-black uppercase tracking-widest text-primary p-0 h-auto justify-start">
+                    <Button variant="ghost" className="mt-8 text-[10px] font-black uppercase tracking-widest text-primary p-0 h-auto justify-start hover:bg-transparent hover:text-primary/80">
                         View Full Audit Logs <ArrowUpRight className="ml-1 h-3 w-3" />
                     </Button>
                 </Card>

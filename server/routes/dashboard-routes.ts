@@ -563,8 +563,8 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
 
     // Connection mapping
     const integrations = await storage.getIntegrations(userId);
-    const customEmail = await storage.getCustomEmailConfig(userId);
-    const isAnyConnected = integrations.some(i => i.connected) || !!customEmail;
+    const customEmail = await storage.getIntegration(userId, 'custom_email');
+    const isAnyConnected = integrations.some(i => i.connected) || !!customEmail?.connected;
 
     res.json({
       metrics: {
