@@ -15,9 +15,11 @@ import {
     Sparkles,
     PieChart as PieChartIcon,
     Activity,
-    Zap
+    Zap,
+    Unplug
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import {
     ChartContainer,
     ChartTooltip,
@@ -85,8 +87,29 @@ export default function AnalyticsPage() {
         { label: "Lead Filtered", value: analytics?.metrics?.leadsFiltered || 0, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-400/10" },
     ];
 
-    // Time series (last 7 days)
-    const timeSeries = analytics?.timeSeries || [];
+    if (analytics && !analytics.isAnyConnected) {
+        return (
+            <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+                    <div className="relative w-32 h-32 rounded-[2.5rem] bg-[#050505] border border-white/10 flex items-center justify-center">
+                        <Unplug className="w-12 h-12 text-white/20" />
+                    </div>
+                </div>
+                <div className="max-w-md space-y-2">
+                    <h2 className="text-2xl font-black tracking-tighter text-white uppercase">No Channels Connected</h2>
+                    <p className="text-white/40 text-sm font-medium leading-relaxed">
+                        Connect your Instagram or Email server to start tracking AI performance and lead engagement in real-time.
+                    </p>
+                </div>
+                <Button asChild className="rounded-2xl h-12 px-8 font-bold bg-white text-black hover:bg-white/90">
+                    <Link href="/dashboard/integrations">
+                        Go to Integrations
+                    </Link>
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">

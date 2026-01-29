@@ -196,7 +196,10 @@ export default function IntegrationsPage() {
 
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({ queryKey: ["/api/integrations"] });
   const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({ queryKey: ["/api/custom-email/status"] });
-  const { data: stats } = useQuery<any>({ queryKey: ["/api/dashboard/stats"] });
+  const { data: stats } = useQuery<any>({
+    queryKey: ["/api/dashboard/stats"],
+    refetchInterval: 300000, // 5 minutes
+  });
   const { data: userData } = useQuery<UserData>({ queryKey: ["/api/user/profile"] });
 
   const [tickerTime, setTickerTime] = useState(Date.now());
@@ -214,9 +217,7 @@ export default function IntegrationsPage() {
   };
 
   const calculateReputation = () => {
-    if (!stats?.totalLeads) return "99.9";
-    const bounceRate = (stats.bouncyLeads || 0) / stats.totalLeads;
-    return Math.max(0, 100 - (bounceRate * 100)).toFixed(1);
+    return (stats?.domainHealth ?? 100).toFixed(1);
   };
 
   const integrations = integrationsData?.integrations ?? [];
@@ -520,6 +521,25 @@ export default function IntegrationsPage() {
                         ? "Your domain parameters are within safe limits. AI is managing 1-by-1 sending autonomously."
                         : "Warning: Low reputation detected. Engine will auto-pause if bounce rate exceeds 10%."}
                     </div>
+
+                    {stats?.domainVerifications?.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase">Recent Checks</p>
+                        <div className="space-y-1.5">
+                          {stats.domainVerifications.map((v: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between text-[10px] bg-white/5 p-2 rounded-lg">
+                              <span className="text-white/60">{v.domain}</span>
+                              <Badge className={cn(
+                                "text-[8px] h-4 py-0",
+                                v.verification_result === 'pass' ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                              )}>
+                                {v.verification_result}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

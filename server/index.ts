@@ -212,7 +212,8 @@ app.use((req, res, next) => {
   // 1. API webhooks/auth endpoints
   // 2. Local development
   // 3. Static assets (images, icons, etc.) to prevent 403s on favicons
-  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf)$/i.test(requestPath);
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|otf|map|json|webp)$/i.test(requestPath) ||
+    requestPath.includes('/assets/');
   const isSkippableRoute = skipPaths.some(p => requestPath === p || requestPath.startsWith(p + '/'));
 
   if (isSkippableRoute || process.env.NODE_ENV === 'development' || isStaticAsset) {

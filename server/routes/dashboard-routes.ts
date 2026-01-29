@@ -561,6 +561,11 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
       });
     }
 
+    // Connection mapping
+    const integrations = await storage.getIntegrations(userId);
+    const customEmail = await storage.getCustomEmailConfig(userId);
+    const isAnyConnected = integrations.some(i => i.connected) || !!customEmail;
+
     res.json({
       metrics: {
         sent,
@@ -575,6 +580,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
         { channel: 'Email', value: leads.filter(l => l.channel === 'email').length },
         { channel: 'Instagram', value: leads.filter(l => l.channel === 'instagram').length }
       ],
+      isAnyConnected,
       recentEvents: leads
         .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
         .slice(0, 5)
