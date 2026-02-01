@@ -14,7 +14,7 @@
     "verify": "bash scripts/verify_build_and_run.sh"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20.x"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.28.0",
