@@ -44,7 +44,7 @@ export const CustomCursor = () => {
             // Check if hovering over a button or link
             const target = e.target as HTMLElement;
             const isClickable = target.closest('button, a, [role="button"]');
-            
+
             if (cursorRef.current) {
                 if (isClickable) {
                     cursorRef.current.classList.add('is-grabbing');
@@ -155,10 +155,14 @@ export const CustomCursor = () => {
                         display: none;
                     }
                     .custom-cursor-main.is-grabbing::after {
-                        content: '✋🏻';
-                        font-size: 24px;
+                        content: '';
                         display: block;
+                        width: 24px;
+                        height: 24px;
+                        background: url('/cursor-hand.svg') no-repeat center;
+                        background-size: contain;
                         transform: translate(-50%, -50%);
+                        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
                     }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}

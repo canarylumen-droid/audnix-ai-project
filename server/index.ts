@@ -1,5 +1,6 @@
 // server/index.ts snippet for context
 import 'dotenv/config';
+import './lib/pdf-polyfills.js';
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
 }
@@ -340,6 +341,6 @@ async function runMigrations() {
     paymentAutoApprovalWorker.start();
     emailWarmupWorker.start();
   }
-})();
+Update})();
 
 export default app;
