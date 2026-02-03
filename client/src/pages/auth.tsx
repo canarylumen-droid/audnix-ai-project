@@ -51,6 +51,7 @@ export default function AuthPage() {
   const [showResetOption, setShowResetOption] = useState(false);
   const [resetUsed, setResetUsed] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [otpEnabled, setOtpEnabled] = useState(true); // Default to true, will be updated on mount
 
   // Check if reset was already used for this email
   useEffect(() => {
@@ -144,6 +145,25 @@ export default function AuthPage() {
       setLocation("/dashboard");
     }
   }, [user, setLocation]);
+
+  // Check OTP status and incomplete setup on page load
+  useEffect(() => {
+    const checkOtpStatus = async () => {
+      try {
+        const response = await fetch('/api/user/auth/otp-status', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setOtpEnabled(data.otpEnabled);
+          console.log('OTP Status:', data.otpEnabled ? 'enabled' : 'disabled');
+        }
+      } catch (error) {
+        console.log('OTP status check failed, defaulting to enabled');
+      }
+    };
+    checkOtpStatus();
+  }, []);
 
   // Check for incomplete setup on page load
   useEffect(() => {
@@ -300,7 +320,7 @@ export default function AuthPage() {
     }
   };
 
-  // SIGNUP STEP 1: Email + Password
+  // SIGNUP STEP 1: Email + Password (goes to OTP step if enabled, or username step if disabled)
   const handleSignupStep1 = async () => {
     if (!email || !password) {
       toast({
@@ -320,6 +340,17 @@ export default function AuthPage() {
       return;
     }
 
+    // If OTP is disabled, skip to username step (step 3)
+    if (!otpEnabled) {
+      setSignupStep(3);
+      toast({
+        title: "Almost There!",
+        description: "Now choose a username for your account",
+      });
+      return;
+    }
+
+    // OTP is enabled - request OTP as usual
     setLoading(true);
     try {
       const response = await fetch('/api/user/auth/signup/request-otp', {
@@ -415,10 +446,19 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/user/auth/signup/complete', {
+      // Use direct signup if OTP is disabled, otherwise use the normal complete flow
+      const endpoint = !otpEnabled 
+        ? '/api/user/auth/signup/direct' 
+        : '/api/user/auth/signup/complete';
+      
+      const body = !otpEnabled 
+        ? { email, password, username }  // Direct signup needs password
+        : { email, username, otp };       // Normal flow uses OTP
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, otp }),
+        body: JSON.stringify(body),
         credentials: 'include',
       });
 

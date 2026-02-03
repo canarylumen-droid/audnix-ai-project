@@ -55,46 +55,56 @@ const AdminSettings = lazy(() => import("./pages/admin/settings"));
 
 import { ThemeProvider } from "next-themes";
 
+// Loading fallback component for Suspense boundaries
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-white/60 text-sm font-medium">Loading...</p>
+    </div>
+  </div>
+);
+
 function Router() {
   return (
     <Switch>
       <Route path="/auth">
-        {() => <Suspense fallback={null}><Auth /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><Auth /></Suspense>}
       </Route>
       <Route path="/onboarding" component={OnboardingPage} />
       <Route path="/privacy-policy" component={PrivacyPolicy} />
       <Route path="/terms-of-service" component={TermsOfService} />
       <Route path="/data-deletion" component={DataDeletion} />
       <Route path="/compare">
-        {() => <Suspense fallback={null}><ComparePage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><ComparePage /></Suspense>}
       </Route>
       <Route path="/find-leads">
-        {() => <Suspense fallback={null}><FindLeadsPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><FindLeadsPage /></Suspense>}
       </Route>
       <Route path="/resources/niche-vault">
-        {() => <Suspense fallback={null}><NicheVaultPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><NicheVaultPage /></Suspense>}
       </Route>
       <Route path="/resources/outreach-playbooks">
-        {() => <Suspense fallback={null}><PlaybooksPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><PlaybooksPage /></Suspense>}
       </Route>
       <Route path="/resources/api-docs">
-        {() => <Suspense fallback={null}><ApiDocsPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><ApiDocsPage /></Suspense>}
       </Route>
 
       {/* Solutions */}
       <Route path="/solutions/agencies">
-        {() => <Suspense fallback={null}><AgenciesPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><AgenciesPage /></Suspense>}
       </Route>
       <Route path="/solutions/sales-teams">
-        {() => <Suspense fallback={null}><FoundersPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><FoundersPage /></Suspense>}
       </Route>
       <Route path="/solutions/creators">
-        {() => <Suspense fallback={null}><CreatorsPage /></Suspense>}
+        {() => <Suspense fallback={<LoadingFallback />}><CreatorsPage /></Suspense>}
       </Route>
 
-      {/* Original Landing Page - MUST BE LAST IN SWITCH IF NO NESTING */}
-      <Route path="/">
-        {() => <Suspense fallback={null}><Landing /></Suspense>}
+      {/* Landing Page - exact match only */}
+      <Route path="/" end>
+        {() => <Suspense fallback={<LoadingFallback />}><Landing /></Suspense>}
       </Route>
       <Route path="/leads/prospecting">
         {() => (
