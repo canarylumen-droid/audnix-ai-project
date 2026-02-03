@@ -240,6 +240,16 @@ app.use((req, res, next) => {
     "/api/facebook/webhook",
     "/api/user/auth",
     "/api/auth",
+    "/api/auth/login",
+    "/api/auth/signup",
+    "/api/auth/register",
+    "/api/auth/check",
+    "/api/auth/me",
+    "/api/auth/logout",
+    "/api/user/auth/login",
+    "/api/user/auth/signup",
+    "/api/user/auth/register",
+    "/api/user/auth/check",
     "/api/custom-email",
     "/api/brand-pdf",
     "/api/pdf/upload",
@@ -303,6 +313,9 @@ app.use((req, res, next) => {
         originUrl.hostname === host?.split(":")[0];
 
       if (!isAllowed && !isAllowedSuffix) {
+        console.warn(`⚠️ Origin validation failed for: ${origin} on path: ${req.path}`);
+        console.warn(`  Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
+        console.warn(`  Host: ${host}`);
         return res
           .status(403)
           .json({ error: "Forbidden", message: "Invalid request origin" });
