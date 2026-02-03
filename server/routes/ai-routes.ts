@@ -948,7 +948,11 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
       const stream = Readable.from(req.file!.buffer);
       stream
         .pipe(csvParser())
-        .on('data', (row: Record<string, string>) => leadsData.push(row))
+        .on('data', (row: Record<string, string>) => {
+          // Log first row to verify headers
+          if (leadsData.length === 0) console.log("First row:", JSON.stringify(row));
+          leadsData.push(row);
+        })
         .on('end', () => {
           console.log(`✅ CSV Parsing complete. Found ${leadsData.length} rows.`);
           resolve();
@@ -957,6 +961,10 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
           console.error(`❌ CSV Parsing error:`, err);
           reject(err);
         });
+      
+      // Log buffer info
+      console.log("Input buffer size:", req.file!.buffer.length);
+      console.log("Input buffer first 100 chars:", req.file!.buffer.slice(0, 100).toString('utf8'));
     });
 
     if (leadsData.length === 0) {
@@ -1187,4 +1195,61 @@ router.post("/import-pdf", requireAuth, upload.single("pdf"), async (req: Reques
   }
 });
 
+/**
+ * Run outreach campaign
+ * POST /api/ai/run-outreach
+ */
+router.post("/run-outreach", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leads, brandContext, runDemo = false } = req.body;
+
+    const { runOutreachCampaign, runDemoOutreach } = await import('../lib/outreach/outreach-runner.js');
+    type OutreachLead = { name: string; email: string; company?: string };
+    type BrandContext = { serviceName: string; pricing: string; valueProposition: string; businessName?: string };
+
+    let result;
+    
+    if (runDemo) {
+      // Run demo with predefined leads
+      result = await runDemoOutreach(userId);
+    } else if (leads && Array.isArray(leads) && brandContext) {
+      // Run custom campaign
+      result = await runOutreachCampaign(
+        userId,
+        leads as OutreachLead[],
+        brandContext as BrandContext,
+        { scheduleFollowUpMinutes: 5, delayBetweenEmailsMs: 3000 }
+      );
+    } else {
+      res.status(400).json({ error: "Provide 'leads' array and 'brandContext', or set 'runDemo: true'" });
+      return;
+    }
+
+    // Create summary notification
+    await storage.createNotification({
+      userId,
+      type: 'insight',
+      title: '🚀 Outreach Campaign Complete',
+      message: `Sent ${result.summary.sent}/${result.summary.total} emails. ${result.summary.failed} failed.`,
+      metadata: {
+        activityType: 'outreach_campaign_complete',
+        sent: result.summary.sent,
+        failed: result.summary.failed,
+        total: result.summary.total
+      }
+    });
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to run outreach";
+    console.error("Outreach campaign error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
 export default router;
+

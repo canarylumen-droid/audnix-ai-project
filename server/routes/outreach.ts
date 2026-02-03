@@ -152,4 +152,63 @@ To launch:
   }
 });
 
+/**
+ * POST /api/outreach/demo-hvac
+ * Run demo HVAC outreach campaign (no auth required for testing)
+ * Creates test user if needed and sends 8 emails with 6-hour follow-ups
+ */
+router.post('/demo-hvac', async (req, res) => {
+  try {
+    const { storage } = await import('../storage.js');
+    const { runDemoOutreach } = await import('../lib/outreach/outreach-runner.js');
+    
+    console.log('🚀 Starting HVAC demo outreach campaign...');
+    
+    // Find or create test user
+    let user = await storage.getUserByEmail('canarylumen1@gmail.com');
+    
+    if (!user) {
+      console.log('📝 Creating test user: canarylumen1@gmail.com');
+      user = await storage.createUser({
+        email: 'canarylumen1@gmail.com',
+        username: 'canarylumen',
+        password: '$2a$10$demoasheddpassword', // Placeholder - not for production
+        plan: 'enterprise'
+      });
+    }
+    
+    console.log(`✅ Using user ID: ${user.id}`);
+    
+    // Run the HVAC demo outreach
+    const result = await runDemoOutreach(user.id);
+    
+    // Create completion notification
+    await storage.createNotification({
+      userId: user.id,
+      type: 'insight',
+      title: '🚀 HVAC Outreach Campaign Complete',
+      message: `Sent ${result.summary.sent}/${result.summary.total} emails to HVAC leads. ${result.summary.failed} failed. 6-hour follow-ups scheduled.`,
+      metadata: {
+        activityType: 'outreach_campaign_complete',
+        sent: result.summary.sent,
+        failed: result.summary.failed,
+        total: result.summary.total,
+        followUpHours: 6
+      }
+    });
+    
+    console.log(`✅ Campaign complete: ${result.summary.sent}/${result.summary.total} sent`);
+    
+    res.json({
+      success: true,
+      message: `HVAC outreach campaign completed! ${result.summary.sent} of ${result.summary.total} emails sent.`,
+      ...result
+    });
+  } catch (error: any) {
+    console.error('HVAC demo outreach error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
+
