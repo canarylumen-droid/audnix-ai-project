@@ -290,25 +290,6 @@ export default function InboxPage() {
       </div>
 
       {/* Message Thread Pane */}
-      <div className={cn("flex-1 flex flex-col bg-card/30", !leadId && "hidden md:flex items-center justify-center")}>
-        {!leadId ? (
-          <EmptyState icon={InboxIcon} title="Select a conversation" description="Choose a lead from the list to start chatting." />
-        ) : (
-          <div className="flex flex-1 overflow-hidden">
-            <div className="flex-1 flex flex-col border-r">
-              {/* Thread Header - Already replaced in previous chunk, but keep structure for context matching if needed, though this tool call replaces the OUTER container and sidebar, checking line numbers carefully. */}
-              {/* Actually, I am replacing the START of the main container and the END of the sidebar. I need to be careful with overlaps. */}
-              {/* The previous tool call edited the Header at lines 299-342. This current replacement overlaps if I start from line 231. */}
-              {/* I should split this into smaller chunks to avoid conflict with the previous pending tool call or just replace the sidebar part separately. */}
-              {/* Wait, the previous tool call modifies lines 299-342. This tool call targets lines 231-481 which encompasses everything. That's dangerous parallel execution. */}
-              {/* I will CANCEL this large block and only do the Sidebar + Main Container separately in sequential steps or target non-overlapping regions. */}
-              {/* Since I can't cancel, I should hope the tool runner handles it or I should have been sequential. But wait, I am the model. I haven't emitted the response yet. */}
-              {/* I will adjust this tool call to ONLY target the sidebar at the end (lines 418-481) and the main container start (lines 231) separately. */}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
 
       {/* Message Thread Pane */}
       <div className={cn("flex-1 flex flex-col bg-card/30", !leadId && "hidden md:flex items-center justify-center")}>
