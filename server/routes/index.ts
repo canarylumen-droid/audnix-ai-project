@@ -60,6 +60,15 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
     res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
 
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "client/dist/index.html"), (err) => {
+      if (err) {
+        // Fallback for development or if build missing
+        res.status(200).send("Landing Page (AudnixAI)");
+      }
+    });
+  });
+
   // Mount all other routes
   app.use("/api/organizations", organizationRouter);
   app.use("/api/user/auth", userAuthRouter);
