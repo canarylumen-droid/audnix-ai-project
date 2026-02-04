@@ -194,25 +194,25 @@ export class AutonomousOutreachWorker {
         return; // No users with email integrations
       }
 
-      const uniqueUserIds = [...new Set(usersWithEmail.map(u => u.userId))];
+      const uniqueUserIds = [...new Set(usersWithEmail.map((u: { userId: string }) => u.userId))];
       
       for (const userId of uniqueUserIds) {
         // Skip if this user is already being processed
-        if (this.activeOutreachQueue.has(userId)) {
+        if (this.activeOutreachQueue.has(userId as string)) {
           continue;
         }
 
         // Find uncontacted leads for this user
-        const uncontactedLeads = await this.getUncontactedLeads(userId);
+        const uncontactedLeads = await this.getUncontactedLeads(userId as string);
 
         if (uncontactedLeads.length > 0) {
           console.log(`[AutoOutreach] User ${userId} has ${uncontactedLeads.length} uncontacted leads`);
           
           // Mark user as being processed
-          this.activeOutreachQueue.set(userId, true);
+          this.activeOutreachQueue.set(userId as string, true);
           
           // Process leads asynchronously with delays
-          this.processLeadsWithDelay(userId, uncontactedLeads);
+          this.processLeadsWithDelay(userId as string, uncontactedLeads);
         }
       }
 
@@ -270,18 +270,18 @@ export class AutonomousOutreachWorker {
           .limit(1);
 
         // Check if already marked as outreach_sent in metadata
-        const metadata = (lead.metadata as Record<string, unknown>) || {};
+        const metadata = (lead.metadata as Record<string, any>) || {};
         const alreadySent = metadata.outreach_sent === true;
 
         if (existingMessages.length === 0 && !alreadySent) {
           uncontactedLeads.push({
             id: lead.id,
             name: lead.name,
-            email: lead.email,
-            channel: lead.channel,
-            status: lead.status,
+            email: lead.email as string,
+            channel: lead.channel as string,
+            status: lead.status as string,
             metadata: metadata,
-            userId: lead.userId,
+            userId: lead.userId as string,
           });
         }
       }

@@ -125,6 +125,8 @@ export const deals = pgTable("deals", {
   meetingScheduled: boolean("meeting_scheduled").notNull().default(false),
   meetingUrl: text("meeting_url"),
   dealValue: integer("deal_value").default(0),
+  source: text("source").default("manual"),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
   aiAnalysis: jsonb("ai_analysis").default({}),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
