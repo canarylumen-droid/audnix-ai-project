@@ -264,6 +264,9 @@ app.use((req, res, next) => {
     "/api/automation/content",
     "/api/video-automation",
     "/api/prospecting/v2",
+    "/api/oauth/instagram/callback",
+    "/api/oauth/instagram/webhook",
+    "/api/oauth/facebook/webhook",
   ];
 
   const requestPath = req.path;
