@@ -460,7 +460,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-full sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
                 <div className="h-24 flex items-center px-8 border-b border-border/40 bg-muted/20">
-                  <Logo className="h-10 w-10" textClassName="text-2xl font-black italic tracking-tighter" />
+                  <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter" />
                 </div>
                 <ScrollArea className="flex-1 px-4 py-8">
                   <div className="space-y-10">

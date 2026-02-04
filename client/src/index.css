@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    cursor: url('/cursor.svg'), auto;
+    cursor: url('/cursor.svg') 12 12, auto;
   }
 
   button,
@@ -13,7 +13,12 @@
   .cursor-pointer,
   input[type="submit"],
   input[type="button"] {
-    cursor: url('/cursor-hand.svg'), pointer;
+    cursor: url('/cursor-hand.svg') 12 12, pointer;
+  }
+
+  /* Ensure hover effects are immediate */
+  * {
+    transition-duration: 100ms !important;
   }
 }
 

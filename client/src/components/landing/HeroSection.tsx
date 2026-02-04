@@ -213,7 +213,7 @@ export function HeroSection() {
               className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.95] lg:max-w-2xl"
             >
               Scale <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase italic">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase">
                 Without Limits.
               </span>
             </motion.h1>

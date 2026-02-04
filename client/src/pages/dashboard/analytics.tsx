@@ -138,6 +138,17 @@ export default function AnalyticsPage() {
         );
     }
 
+    const chartConfig = {
+        sent: {
+            label: "Sent",
+            color: COLORS.sent,
+        },
+        replied: {
+            label: "Replied",
+            color: COLORS.replied,
+        },
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -189,7 +200,7 @@ export default function AnalyticsPage() {
                         <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-white/40">Engagement Velocity</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[400px] p-8">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ChartContainer config={chartConfig}>
                             <AreaChart data={analytics?.timeSeries || []}>
                                 <defs>
                                     <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
@@ -204,7 +215,7 @@ export default function AnalyticsPage() {
                                 <Area type="monotone" dataKey="sent" stroke={COLORS.sent} fillOpacity={1} fill="url(#colorSent)" strokeWidth={4} />
                                 <Area type="monotone" dataKey="replied" stroke={COLORS.replied} fillOpacity={0} strokeWidth={4} />
                             </AreaChart>
-                        </ResponsiveContainer>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
 

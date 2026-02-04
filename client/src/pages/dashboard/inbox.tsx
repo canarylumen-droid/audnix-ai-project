@@ -228,9 +228,9 @@ export default function InboxPage() {
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Mail) : Mail;
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-80px)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background">
       {/* Lead List Pane */}
-      <div className={cn("w-full md:w-80 border-r flex flex-col transition-all", leadId && "hidden md:flex")}>
+      <div className={cn("w-full md:w-80 lg:w-96 border-r flex flex-col transition-all", leadId && "hidden md:flex")}>
         <div className="p-4 border-b space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -279,7 +279,7 @@ export default function InboxPage() {
                   </div>
                   <p className="text-xs text-muted-foreground/80 truncate font-medium group-hover:text-primary/80 transition-colors">
                     {lead.metadata?.isUnread && <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 animate-pulse" />}
-                    {lead.lastMessageSnippet || <span className="italic opacity-50">No messages yet</span>}
+                    {lead.lastMessageSnippet || <span>No messages yet</span>}
                   </p>
                 </div>
               </div>
@@ -338,7 +338,7 @@ export default function InboxPage() {
                     )}>
                       {msg.body}
                       {msg.metadata?.disclaimer && (
-                        <div className="mt-2 pt-2 border-t border-primary-foreground/20 italic text-[10px] opacity-70">
+                        <div className="mt-2 pt-2 border-t border-primary-foreground/20 text-[10px] opacity-70">
                           {msg.metadata.disclaimer}
                         </div>
                       )}
