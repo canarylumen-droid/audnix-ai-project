@@ -306,6 +306,7 @@
 @layer base {
   * {
     border-color: hsl(var(--border));
+    font-style: normal !important;
   }
 
   body {
@@ -333,6 +334,17 @@
     body {
       overscroll-behavior-y: contain;
     }
+  }
+}
+
+@layer components {
+  /* Fast Hover Transitions */
+  .hover-trigger, 
+  button, 
+  a, 
+  .group,
+  [role="button"] {
+    transition: all 100ms ease-out !important;
   }
 }
 

@@ -11,7 +11,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TrendingUp, DollarSign, Users, Target } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
 interface UserGrowthDataPoint {
   date: string;
@@ -89,7 +93,7 @@ export default function AdminAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer config={{}} className="h-[300px] w-full">
               <LineChart data={userGrowth?.growth || []}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
@@ -98,11 +102,8 @@ export default function AdminAnalytics() {
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))' 
-                  }}
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
                 />
                 <Legend />
                 <Line 
@@ -120,7 +121,7 @@ export default function AdminAnalytics() {
                   strokeWidth={2}
                 />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -133,7 +134,7 @@ export default function AdminAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer config={{}} className="h-[300px] w-full">
               <BarChart data={revenue?.revenue || []}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis 
@@ -142,12 +143,8 @@ export default function AdminAnalytics() {
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))' 
-                  }}
-                  formatter={(value: number | string) => `$${value}`}
+                <ChartTooltip 
+                  content={<ChartTooltipContent />}
                 />
                 <Legend />
                 <Bar 
@@ -156,7 +153,7 @@ export default function AdminAnalytics() {
                   name="Revenue" 
                 />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -170,7 +167,7 @@ export default function AdminAnalytics() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
+              <ChartContainer config={{}} className="h-[300px] w-full">
                 <PieChart>
                   <Pie
                     data={channels?.channels || []}
@@ -185,15 +182,12 @@ export default function AdminAnalytics() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))' 
-                    }}
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
                   />
                   <Legend />
                 </PieChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </CardContent>
           </Card>
 

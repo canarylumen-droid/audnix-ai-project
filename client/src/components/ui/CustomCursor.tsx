@@ -20,7 +20,7 @@ export const CustomCursor = () => {
     // Direct DOM update - bypasses React for instant response
     const updateCursorPosition = useCallback(() => {
         if (cursorRef.current) {
-            const offset = isDashboardOrOnboarding ? 'translate(-6px, -2px)' : 'translate(-2px, -2px)';
+            const offset = isDashboardOrOnboarding ? 'translate(-10px, -4px)' : 'translate(-4px, -4px)';
             cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset}`;
         }
     }, [isDashboardOrOnboarding]);
@@ -166,7 +166,7 @@ export const CustomCursor = () => {
                     }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
                         fill="white"

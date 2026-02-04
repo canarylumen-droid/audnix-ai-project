@@ -201,20 +201,22 @@ export default function AnalyticsPage() {
                     </CardHeader>
                     <CardContent className="h-[400px] p-8">
                         <ChartContainer config={chartConfig}>
-                            <AreaChart data={analytics?.timeSeries || []}>
-                                <defs>
-                                    <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={COLORS.sent} stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor={COLORS.sent} stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700 }} />
-                                <ChartTooltip content={<ChartTooltipContent className="bg-black border-white/10 rounded-xl" />} />
-                                <Area type="monotone" dataKey="sent" stroke={COLORS.sent} fillOpacity={1} fill="url(#colorSent)" strokeWidth={4} />
-                                <Area type="monotone" dataKey="replied" stroke={COLORS.replied} fillOpacity={0} strokeWidth={4} />
-                            </AreaChart>
+                            <div className="h-full w-full">
+                                <AreaChart data={analytics?.timeSeries || []} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={COLORS.sent} stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor={COLORS.sent} stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700 }} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10, fontWeight: 700 }} />
+                                    <ChartTooltip content={<ChartTooltipContent className="bg-black border-white/10 rounded-xl" />} />
+                                    <Area type="monotone" dataKey="sent" stroke={COLORS.sent} fillOpacity={1} fill="url(#colorSent)" strokeWidth={4} />
+                                    <Area type="monotone" dataKey="replied" stroke={COLORS.replied} fillOpacity={0} strokeWidth={4} />
+                                </AreaChart>
+                            </div>
                         </ChartContainer>
                     </CardContent>
                 </Card>

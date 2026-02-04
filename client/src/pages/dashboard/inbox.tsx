@@ -228,9 +228,9 @@ export default function InboxPage() {
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Mail) : Mail;
 
   return (
-    <div className="flex h-[calc(100vh-80px)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-80px)] md:h-[calc(100vh-64px)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background">
       {/* Lead List Pane */}
-      <div className={cn("w-full md:w-80 lg:w-96 border-r flex flex-col transition-all", leadId && "hidden md:flex")}>
+      <div className={cn("w-full md:w-80 lg:w-[450px] border-r flex flex-col transition-all", leadId && "hidden md:flex")}>
         <div className="p-4 border-b space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
