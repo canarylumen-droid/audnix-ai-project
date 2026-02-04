@@ -78,64 +78,75 @@ export function CustomContextMenu({
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.1 }}
-                style={{
-                    top: config.y,
-                    left: config.x
-                }}
-                className="fixed z-50 w-64 min-w-[200px] bg-background/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-1.5 overflow-hidden"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking menu itself
-            >
-                <div className="flex flex-col">
-                    {menuItems.map((item, index) => {
-                        if (item.type === 'divider') {
-                            return <div key={`div-${index}`} className="h-px bg-border/50 my-1 mx-2" />;
-                        }
+            {config.visible && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    style={{
+                        top: config.y,
+                        left: config.x
+                    }}
+                    className="fixed z-[999999] w-64 min-w-[200px] bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-2 overflow-hidden"
+                    onContextMenu={(e) => e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()} // Prevent closing when clicking menu itself
+                >
+                    <div className="flex flex-col space-y-0.5">
+                        {menuItems.map((item, index) => {
+                            if (item.type === 'divider') {
+                                return <div key={`div-${index}`} className="h-px bg-white/5 my-1.5 mx-2" />;
+                            }
 
-                        const Icon = item.icon as React.ElementType;
+                            const Icon = item.icon as React.ElementType;
 
-                        return (
-                            <button
-                                key={item.id}
-                                onClick={() => {
-                                    if (item.id === 'export_data') {
-                                        window.location.href = '/api/bulk/export';
-                                    }
-                                    if (item.id === 'copy_link') {
-                                        const linkToCopy = config.data?.url || window.location.href;
-                                        navigator.clipboard.writeText(linkToCopy);
-                                    }
-                                    if (item.id === 'refresh') {
-                                        window.location.reload();
-                                    }
-                                    onAction?.(item.id!, config.data);
-                                    onClose();
-                                }}
-                                className={cn(
-                                    "group flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg transition-colors cursor-pointer outline-none select-none",
-                                    item.variant === 'destructive'
-                                        ? "text-destructive hover:bg-destructive/10"
-                                        : "text-foreground hover:bg-primary/10 hover:text-primary"
-                                )}
-                            >
-                                <div className="flex items-center gap-2.5">
-                                    <Icon className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-                                    <span>{item.label}</span>
-                                </div>
-                                {item.shortcut && (
-                                    <span className="text-xs text-muted-foreground group-hover:text-primary/70 font-mono">
-                                        {item.shortcut}
-                                    </span>
-                                )}
-                            </button>
-                        );
-                    })}
-                </div>
-            </motion.div>
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        if (item.id === 'export_data') {
+                                            window.location.href = '/api/bulk/export';
+                                        }
+                                        if (item.id === 'copy_link') {
+                                            const linkToCopy = config.data?.url || window.location.href;
+                                            navigator.clipboard.writeText(linkToCopy);
+                                        }
+                                        if (item.id === 'refresh') {
+                                            window.location.reload();
+                                        }
+                                        onAction?.(item.id!, config.data);
+                                        onClose();
+                                    }}
+                                    className={cn(
+                                        "group flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-100 cursor-pointer outline-none select-none",
+                                        item.variant === 'destructive'
+                                            ? "text-red-400 hover:bg-red-500/10"
+                                            : "text-white/70 hover:bg-white/5 hover:text-white"
+                                    )}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "w-7 h-7 rounded-lg flex items-center justify-center bg-white/5 group-hover:bg-primary/20 transition-colors",
+                                            item.variant === 'destructive' && "group-hover:bg-red-500/20"
+                                        )}>
+                                            <Icon className={cn(
+                                                "w-4 h-4 transition-transform group-hover:scale-110",
+                                                item.variant === 'destructive' ? "text-red-400" : "text-white/40 group-hover:text-primary"
+                                            )} />
+                                        </div>
+                                        <span>{item.label}</span>
+                                    </div>
+                                    {item.shortcut && (
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/20 group-hover:text-primary/50">
+                                            {item.shortcut}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+            )}
         </AnimatePresence>
     );
 }

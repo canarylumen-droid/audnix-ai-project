@@ -41,9 +41,9 @@ export const CustomCursor = () => {
         const handleMouseMove = (e: MouseEvent) => {
             positionRef.current = { x: e.clientX, y: e.clientY };
 
-            // Check if hovering over a button or link
+            // Check if hovering over a button or link or input or textarea
             const target = e.target as HTMLElement;
-            const isClickable = target.closest('button, a, [role="button"]');
+            const isClickable = target.closest('button, a, [role="button"], input, textarea, select, .cursor-pointer');
 
             if (cursorRef.current) {
                 if (isClickable) {

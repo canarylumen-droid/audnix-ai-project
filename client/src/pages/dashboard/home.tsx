@@ -135,9 +135,9 @@ export default function DashboardHome() {
     showCelebrationAfterOnboarding();
   };
 
-  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
+  const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    staleTime: 30000, // Use cache but trust socket invalidation
+    staleTime: 30000,
   });
 
   const { data: previousStats } = useQuery<PreviousDashboardStats>({
@@ -152,6 +152,13 @@ export default function DashboardHome() {
     retry: false,
     staleTime: 30000,
   });
+
+  const { data: integrations } = useQuery<any[]>({
+    queryKey: ["/api/integrations"],
+  });
+
+  const isSmtpConnected = integrations?.some(i => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);
+  const stats = statsData;
 
   const getTrialDaysLeft = () => {
     if (!user?.plan || user.plan !== "trial" || !user?.trialExpiresAt) return 0;
@@ -436,15 +443,18 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest leading-none">Sender Reputation</p>
-                    <p className="text-xl font-black text-emerald-400 tracking-tighter">
+                    <p className={cn(
+                      "text-xl font-black tracking-tighter",
+                      (stats?.domainHealth || 100) > 95 ? "text-emerald-400" : (stats?.domainHealth || 100) > 80 ? "text-amber-400" : "text-red-400"
+                    )}>
                       {stats?.domainHealth !== undefined ? stats.domainHealth.toFixed(1) : "100.0"}%
                     </p>
                   </div>
                   <Badge className={cn(
                     "border-0 text-[8px] font-black uppercase tracking-widest",
-                    (stats?.domainHealth || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                    (stats?.domainHealth || 100) > 95 ? "bg-emerald-500/10 text-emerald-500" : (stats?.domainHealth || 100) > 80 ? "bg-amber-500/10 text-amber-500" : "bg-red-500/10 text-red-500"
                   )}>
-                    {(stats?.domainHealth || 100) > 95 ? "Excellent" : "Fair"}
+                    {(stats?.domainHealth || 100) > 95 ? "Excellent" : (stats?.domainHealth || 100) > 80 ? "Fair" : "Low"}
                   </Badge>
                 </div>
 
@@ -487,22 +497,28 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className={cn("h-2 w-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]",
-                      stats?.engineStatus === "Autonomous" ? "bg-emerald-500 shadow-emerald-500/40" : "bg-amber-500 shadow-amber-500/40"
+                      (stats?.engineStatus === "Autonomous" && !stats?.leads === 0) ? "bg-emerald-500 shadow-emerald-500/40" : "bg-amber-500 shadow-amber-500/40"
                     )} />
                     AI Automation
                   </span>
                   <Badge variant="secondary" className={cn("border-0 text-[10px] uppercase font-bold tracking-tighter",
-                    stats?.engineStatus === "Autonomous" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                    (stats?.engineStatus === "Autonomous" && !stats?.leads === 0) ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                   )}>
-                    {stats?.engineStatus || "Paused"}
+                    {stats?.engineStatus === "Autonomous" ? (stats?.leads === 0 ? "Idle" : "Active") : "Paused"}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                    <div className={cn("h-2 w-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]",
+                      isSmtpConnected ? "bg-emerald-500 shadow-emerald-500/40" : "bg-red-500 shadow-red-500/40"
+                    )} />
                     Deliverability Guard
                   </span>
-                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] uppercase font-bold tracking-tighter">Active</Badge>
+                  <Badge variant="secondary" className={cn("border-0 text-[10px] uppercase font-bold tracking-tighter",
+                    isSmtpConnected ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
+                  )}>
+                    {isSmtpConnected ? "Active" : "Inactive"}
+                  </Badge>
                 </div>
               </CardContent>
             </Card>
