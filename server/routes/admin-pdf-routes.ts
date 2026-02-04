@@ -409,6 +409,7 @@ Only include fields you can confidently extract. Return valid JSON only.`
           ...updatedMetadata,
           brandContext: pdfText.substring(0, 50000), // Store first 50k chars
         },
+        brandGuidelinePdfText: pdfText,
         businessName: brandContext.companyName || user.businessName,
       });
 
