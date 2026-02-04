@@ -788,7 +788,8 @@ Generate a natural follow-up message:`;
     if (!db) return;
 
     // Don't schedule if already followed up 5+ times
-    if (((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) >= 5) {
+    const followUpCount = (lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0;
+    if (followUpCount >= 5) {
       return;
     }
 
@@ -797,40 +798,22 @@ Generate a natural follow-up message:`;
       return;
     }
 
-    // Get conversation history to assess lead temperature
-    const messageHistory = await this.getConversationHistory(leadId);
-    const leadTemperature = this.assessLeadTemperature(lead, messageHistory);
+    // Standard sequence: 3 days, then 7 days, then 14 days
+    const days = followUpCount === 0 ? 3 : followUpCount === 1 ? 7 : 14;
+    const scheduledAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    // Use multi-channel orchestrator to get next follow-ups with proper timing
-    const campaignCreatedAt = lead.createdAt || new Date();
-    const schedules = MultiChannelOrchestrator.calculateNextSchedule(leadId, campaignCreatedAt, lead.channel) as FollowUpSchedule[];
+    console.log(`📅 Scheduling follow-up ${followUpCount + 1} for lead ${lead.name} in ${days} days`);
 
-    // Schedule the next follow-up from the orchestrator
-    if (schedules.length > 0) {
-      const nextSchedule = schedules[0]; // Get the first pending schedule
-      const followUpCount = ((lead.metadata as Record<string, unknown>)?.follow_up_count as number || 0) + 1;
-
-      console.log(`📅 Scheduling ${leadTemperature} lead - Channel: ${nextSchedule.channel}, Sequence: ${nextSchedule.sequenceNumber}, Time: ${nextSchedule.scheduledFor.toISOString()}`);
-
-      // Create follow-up job with multi-channel context
-      await db.insert(followUpQueue).values({
-        userId,
-        leadId,
-        channel: nextSchedule.channel,
-        scheduledAt: nextSchedule.scheduledFor,
-        context: {
-          follow_up_number: followUpCount,
-          previous_status: lead.status,
-          temperature: leadTemperature,
-          campaign_day: Math.floor(
-            (Date.now() - campaignCreatedAt.getTime()) / (1000 * 60 * 60 * 24)
-          ),
-          sequence_number: nextSchedule.sequenceNumber,
-          multi_channel: true, // Flag for multi-channel processing
-          scheduled_time: nextSchedule.scheduledFor.toISOString()
-        }
-      });
-    }
+    await db.insert(followUpQueue).values({
+      userId,
+      leadId,
+      channel: lead.channel,
+      scheduledAt: scheduledAt,
+      context: {
+        follow_up_number: followUpCount + 1,
+        campaign_day: Math.floor((Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
+      }
+    });
   }
 
 

@@ -83,7 +83,9 @@ export function calculateReplyDelay(
   } else {
     const baseMinutes = Math.max(3, 2 + Math.random() * 6);
     const randomSeconds = Math.random() * 60;
-    return (baseMinutes * 60 + randomSeconds) * 1000;
+    // Standard delay for human-like response (2-4 minutes)
+    const delay = Math.floor(Math.random() * (240000 - 120000 + 1) + 120000);
+    return delay;
   }
 }
 
@@ -252,7 +254,7 @@ export async function generateAIReply(
   const allMessages = [...memoryMessages, ...conversationHistory];
   const lastLeadMessage = conversationHistory.filter(m => m.direction === 'inbound').pop();
 
-  // --- NEURAL INTENT ANALYSIS ---
+  // --- SMART INTENT ANALYSIS ---
   const intent = lastLeadMessage
     ? await analyzeLeadIntent(lastLeadMessage.body, {
       id: lead.id,

@@ -150,7 +150,7 @@ export function generateTrialReminderEmail(options: TrialReminderOptions): { htm
         Keep My AI Closer Running
       </a>
 
-      <p style="color: #94A3B8; font-size: 13px; text-align: center; margin-top: 16px; font-style: italic;">
+      <p style="color: #94A3B8; font-size: 13px; text-align: center; margin-top: 16px;">
         "I closed 3 deals in my first week" - actual user
       </p>
     </div>
