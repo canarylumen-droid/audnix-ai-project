@@ -86,7 +86,6 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
-    "cross-env": "^10.1.0",
     "csurf": "^1.2.2",
     "csv-parser": "^3.2.0",
     "date-fns": "^3.6.0",
@@ -177,6 +176,7 @@
     "@types/react-dom": "^18.3.1",
     "@types/web-push": "^3.6.4",
     "@types/ws": "^8.5.13",
+    "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.7",
     "rollup": "^4.53.3"
   },
