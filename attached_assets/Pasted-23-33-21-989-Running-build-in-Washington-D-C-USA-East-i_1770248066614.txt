@@ -1,0 +1,78 @@
+23:33:21.989 Running build in Washington, D.C., USA (East) – iad1
+23:33:21.990 Build machine configuration: 2 cores, 8 GB
+23:33:22.123 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: 6872c4e)
+23:33:23.769 Cloning completed: 1.646s
+23:33:23.901 Found .vercelignore
+23:33:23.914 Removed 2 ignored files defined in .vercelignore
+23:33:23.915   /.replit
+23:33:23.915   /.vscode/settings.json
+23:33:24.832 Restored build cache from previous deployment (FQpzPkxWUtj6MNwY5T3gYWFxTnuT)
+23:33:25.095 Warning: Due to "engines": { "node": ">=20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "24.x" will be used instead. Learn More: https://vercel.link/node-version
+23:33:25.096 Warning: Detected "engines": { "node": ">=20.x" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+23:33:25.096 Running "vercel build"
+23:33:26.073 Vercel CLI 50.10.2
+23:33:26.812 Warning: Due to "engines": { "node": ">=20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "24.x" will be used instead. Learn More: https://vercel.link/node-version
+23:33:26.813 Warning: Detected "engines": { "node": ">=20.x" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+23:33:26.816 Running "install" command: `npm install --legacy-peer-deps`...
+23:33:27.137 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+23:33:27.137 npm warn config `--include=optional` to include them.
+23:33:27.137 npm warn config
+23:33:27.137 npm warn config       Default value does install optional deps unless otherwise omitted.
+23:33:36.790 
+23:33:36.791 up to date, audited 1108 packages in 10s
+23:33:36.791 
+23:33:36.792 147 packages are looking for funding
+23:33:36.792   run `npm fund` for details
+23:33:36.800 
+23:33:36.800 8 vulnerabilities (2 moderate, 6 high)
+23:33:36.801 
+23:33:36.801 To address issues that do not require attention, run:
+23:33:36.801   npm audit fix
+23:33:36.801 
+23:33:36.802 Some issues need review, and may require choosing
+23:33:36.802 a different dependency.
+23:33:36.802 
+23:33:36.802 Run `npm audit` for details.
+23:33:37.036 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+23:33:37.037 npm warn config `--include=optional` to include them.
+23:33:37.038 npm warn config
+23:33:37.038 npm warn config       Default value does install optional deps unless otherwise omitted.
+23:33:37.060 
+23:33:37.061 > rest-express@1.0.0 build
+23:33:37.062 > vite build && node scripts/migrate-manual.js
+23:33:37.062 
+23:33:37.346 [36mvite v6.4.1 [32mbuilding for production...[36m[39m
+23:33:37.426 transforming...
+23:33:38.995 
+23:33:38.996 [1m[33mwarn[39m[22m - The class `ease-[cubic-bezier(0.16,1,0.3,1)]` is ambiguous and matches multiple utilities.
+23:33:38.997 [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `ease-&lsqb;cubic-bezier(0.16,1,0.3,1)&rsqb;` to silence this warning.
+23:33:39.405 
+23:33:39.407 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+23:33:39.408 
+23:33:39.408 /grid.svg referenced in /grid.svg didn't resolve at build time, it will remain unchanged to be resolved at runtime
+23:33:42.872 [32m✓[39m 2604 modules transformed.
+23:33:42.873 [31m✗[39m Build failed in 5.50s
+23:33:42.874 [31merror during build:
+23:33:42.874 [31m[vite:esbuild] Transform failed with 1 error:
+23:33:42.874 /vercel/path0/client/src/components/dashboard/LeadsDisplayModal.tsx:20:21: ERROR: Unexpected ";"[31m
+23:33:42.874 file: [36m/vercel/path0/client/src/components/dashboard/LeadsDisplayModal.tsx:20:21[31m
+23:33:42.874 [33m
+23:33:42.874 [33mUnexpected ";"[33m
+23:33:42.874 18 |  
+23:33:42.874 19 |    isOpen: boolean;
+23:33:42.874 20 |    onClose: () => void;
+23:33:42.874    |                       ^
+23:33:42.874 21 |    leads: Lead[];
+23:33:42.874 22 |    onConfirm?: () => void;
+23:33:42.874 [31m
+23:33:42.874     at failureErrorWithLog (/vercel/path0/node_modules/esbuild/lib/main.js:1467:15)
+23:33:42.875     at /vercel/path0/node_modules/esbuild/lib/main.js:736:50
+23:33:42.875     at responseCallbacks.<computed> (/vercel/path0/node_modules/esbuild/lib/main.js:603:9)
+23:33:42.875     at handleIncomingPacket (/vercel/path0/node_modules/esbuild/lib/main.js:658:12)
+23:33:42.875     at Socket.readFromStdout (/vercel/path0/node_modules/esbuild/lib/main.js:581:7)
+23:33:42.875     at Socket.emit (node:events:508:28)
+23:33:42.875     at addChunk (node:internal/streams/readable:559:12)
+23:33:42.875     at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+23:33:42.875     at Readable.push (node:internal/streams/readable:390:5)
+23:33:42.875     at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m
+23:33:42.946 Error: Command "npm run build" exited with 1
