@@ -52,18 +52,18 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.get("/favicon.svg", (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.svg")));
   app.get("/manifest.json", (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/manifest.json")));
 
-  // 2. Root-level OAuth/Webhooks (Public)
   app.all("/api/instagram/callback", (req, res) => {
     console.log(`[Root Callback] ${req.method} /api/instagram/callback`);
-    // Preserve query params for redirect
+    // Handle both POST (from Meta) and GET (OAuth redirect)
     const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
     res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
 
   app.get("/", (_req, res) => {
+    // Serve index.html for all non-api routes to support SPA
     res.sendFile(path.join(process.cwd(), "client/dist/index.html"), (err) => {
       if (err) {
-        // Fallback for development or if build missing
+        // Fallback for development
         res.status(200).send("Landing Page (AudnixAI)");
       }
     });
@@ -97,7 +97,8 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   // Root-level Meta/Instagram callback (POST and GET)
   app.all("/api/instagram/callback", (req, res) => {
     console.log(`[Root Callback] ${req.method} /api/instagram/callback`);
-    res.redirect(307, `/api/oauth/instagram/callback${req.url.includes('?') ? '?' + req.url.split('?')[1] : ''}`);
+    const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
+    res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
   app.use("/api/admin/pdf", adminPdfRoutes);
   app.use("/api/admin/pdf-v2", adminPdfRoutesV2);
