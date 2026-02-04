@@ -34,7 +34,7 @@ interface EmailData {
 class EmailSyncWorker {
   private isRunning = false;
   private syncInterval: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+  private readonly SYNC_INTERVAL_MS = 3 * 1000; // 3 seconds polling
   private readonly GHOSTED_THRESHOLD_HOURS = 48; // Mark as ghosted after 48 hours
 
   /**

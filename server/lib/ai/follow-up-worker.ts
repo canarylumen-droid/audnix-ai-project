@@ -110,10 +110,11 @@ export class FollowUpWorker {
     this.isRunning = true;
     console.log('Starting follow-up worker...');
 
-    // Process queue every 30 seconds
-    this.processingInterval = setInterval(async () => {
-      await this.processQueue();
-    }, 30000);
+      // Process queue every 2-4 minutes randomly to simulate human delay
+      const delay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60 * 1000;
+      this.processingInterval = setInterval(async () => {
+        await this.processQueue();
+      }, delay);
 
     // Process immediately on start
     this.processQueue();

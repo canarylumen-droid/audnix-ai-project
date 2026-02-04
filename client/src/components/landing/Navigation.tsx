@@ -249,7 +249,7 @@ export function Navigation() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 bottom-0 w-[280px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl"
+              className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-10">
                 <span className="text-lg font-black tracking-tighter">AUDNIX<span className="text-primary">.AI</span></span>
