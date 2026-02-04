@@ -282,8 +282,7 @@ app.use((req, res, next) => {
   if (
     isSkippableRoute ||
     process.env.NODE_ENV === "development" ||
-    isStaticAsset ||
-    true // Global bypass as requested
+    isStaticAsset
   ) {
     return next();
   }

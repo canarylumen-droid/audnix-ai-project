@@ -26,16 +26,53 @@ declare global {
  * Prevents timing attacks and session fixation
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  // Bypassing auth check as per user request
   const userId = req.session?.userId;
-  
-  if (userId) {
-    const user = await storage.getUserById(userId);
-    if (user) {
-      req.user = user;
+  const sessionID = req.sessionID;
+
+  if (!userId) {
+    console.warn(`[AUTH] Rejected 401: No userId in session.
+      - Method: ${req.method}
+      - Path: ${req.path}
+      - SessionID: ${sessionID?.slice(0, 8)}...
+      - Has Cookie header: ${Boolean(req.headers.cookie)}
+      - Cookie length: ${req.headers.cookie?.length || 0}
+      - Session keys: ${Object.keys(req.session || {}).join(', ')}
+    `);
+
+    // Security: Add small delay to prevent timing attacks
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    if (req.path.startsWith('/auth')) {
+      return next();
     }
+
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Authentication required. Please log in to access this resource.",
+      code: "AUTH_REQUIRED"
+    });
   }
-  
+
+  // Verify user exists in database
+  const user = await storage.getUserById(userId);
+  if (!user) {
+    console.warn(`[AUTH] Rejected 401: User ${userId} not found in database. Possible deleted user with active session.`);
+
+    // Security: Add small delay to prevent timing attacks
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Security: Destroy invalid session to prevent fixation attacks
+    req.session.destroy(() => { });
+
+    return res.status(401).json({
+      error: "Unauthorized",
+      message: "Session invalid or expired. Please log in again.",
+      code: "SESSION_INVALID"
+    });
+  }
+
+  // Attach user to request for downstream handlers
+  req.user = user;
   next();
 }
 
