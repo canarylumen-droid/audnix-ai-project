@@ -1,5 +1,6 @@
 import { Express } from "express";
 import http from "http";
+import path from "path";
 import { wsSync } from "../lib/websocket-sync.js";
 import userAuthRouter from "./user-auth.js";
 import adminAuthRouter from "./admin-auth.js";
@@ -51,6 +52,22 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/user/auth", userAuthRouter);
   app.use("/api/user", userAuthRouter); // Alias for /api/user/avatar calls
   app.use("/api/admin/auth", adminAuthRouter);
+  
+  // Public Landing Page and Assets
+  app.get("/favicon.ico", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "client/public/favicon.ico"), (err) => {
+      if (err) res.status(404).end();
+    });
+  });
+
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "client/dist/index.html"), (err) => {
+      if (err) {
+        // Fallback for development or if build missing
+        res.status(200).send("Landing Page (AudnixAI)");
+      }
+    });
+  });
   app.use("/api/admin/pdf", adminPdfRoutes);
   app.use("/api/admin/pdf-v2", adminPdfRoutesV2);
   app.use("/api/admin", adminRoutes);

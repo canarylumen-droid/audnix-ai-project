@@ -118,18 +118,21 @@ router.get('/instagram', authLimiter, async (req: Request, res: Response): Promi
   }
 });
 
-// GET /auth/instagram/callback - Handle Instagram OAuth callback (matches Meta's registered URL)
+// GET /api/oauth/instagram/callback - Handle Instagram OAuth callback (matches Meta's registered URL)
 router.get('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
   try {
     const { code, state, error_reason, error, error_description } = req.query;
 
-    console.log('[Instagram OAuth] Callback received:', {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[Instagram OAuth Callback] Received:', {
       hasCode: !!code,
       hasState: !!state,
       error_reason,
       error,
-      error_description
+      error_description,
+      url: req.originalUrl
     });
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     if (error_reason === 'user_denied' || error === 'access_denied') {
       res.redirect('/dashboard/integrations?error=denied');
