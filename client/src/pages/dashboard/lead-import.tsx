@@ -10,6 +10,7 @@ import { Upload, Loader2, CheckCircle2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
+import { LeadsDisplayModal } from "@/components/dashboard/LeadsDisplayModal";
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ export default function LeadImportPage() {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
+  const [mLeadsOpen, setMLeadsOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{ subject: string; body: string }>({
     subject: "Neural Collaboration Proposal",
     body: "I saw your work in the industry..."
@@ -25,7 +27,7 @@ export default function LeadImportPage() {
   const [importing, setImporting] = useState(false);
   const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [importResults, setImportResults] = useState<{ imported: number; skipped: number } | null>(null);
+  const [importResults, setImportResults] = useState<{ imported: number; skipped: number; leads?: any[] } | null>(null);
 
   const handleOpenPreview = async () => {
     try {
@@ -111,7 +113,8 @@ export default function LeadImportPage() {
 
       setImportResults({
         imported: result.leadsImported || result.imported || 0,
-        skipped: result.duplicates || result.skipped || 0
+        skipped: result.duplicates || result.skipped || 0,
+        leads: result.leads || []
       });
 
       toast({
@@ -229,7 +232,12 @@ export default function LeadImportPage() {
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded Leads</h3>
-                  <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">VIEW ALL LEADS</Button>
+                  <div className="flex gap-2">
+                    {importResults.leads && importResults.leads.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={() => setMLeadsOpen(true)} className="text-[10px] font-bold border-primary/20 hover:bg-primary/10">VIEW IMPORTED LEADS</Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">PIPELINE VIEW</Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground">Your leads have been successfully synchronized to the pipeline.</p>
@@ -277,6 +285,12 @@ export default function LeadImportPage() {
             onClose={() => setMPreviewOpen(false)}
             subject={previewData.subject}
             body={previewData.body}
+          />
+
+          <LeadsDisplayModal
+            isOpen={mLeadsOpen}
+            onClose={() => setMLeadsOpen(false)}
+            leads={importResults?.leads || []}
           />
 
           {importResults && importResults.filtered > 0 && (
