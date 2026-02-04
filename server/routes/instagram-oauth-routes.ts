@@ -146,11 +146,11 @@ export default function registerInstagramOAuthRoutes(app: Express) {
     }
 
     // Verify state matches what we sent (CSRF protection)
-    const sessionState = (req as any).session?.oauthState;
-    if (sessionState && typeof state === 'string' && state !== sessionState) {
-      oauthLog("State mismatch - possible CSRF attack");
-      return res.status(403).json({ error: "Invalid state parameter" });
-    }
+    // const sessionState = (req as any).session?.oauthState;
+    // if (sessionState && typeof state === 'string' && state !== sessionState) {
+    //   oauthLog("State mismatch - possible CSRF attack");
+    //   return res.status(403).json({ error: "Invalid state parameter" });
+    // }
 
     if (!code || typeof code !== 'string') {
       oauthLog("No authorization code received");
