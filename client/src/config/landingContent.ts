@@ -10,8 +10,8 @@ export const landingContent = {
       { icon: "calendar", text: "Deterministic Auto-Booking" }
     ],
     cta: {
-      primary: "Trigger Deployment",
-      secondary: "Neural Demo"
+      primary: "Get Started",
+      secondary: "View Demo"
     },
     subtext: "Start free — 500 leads included. No card required."
   },
@@ -39,15 +39,15 @@ export const landingContent = {
       },
       {
         number: 2,
-        title: "Behavior Mapping",
+        title: "SaaS Logical Mapping",
         description: "Analyzes conversation history, engagement patterns, and response timing.",
         note: "Predictive Intent Detection"
       },
       {
         number: 3,
-        title: "Objection Training",
+        title: "Logic Training",
         description: "Uses your offer, pricing, and testimonials to handle hesitations naturally.",
-        note: "Dynamic Neural Reframing"
+        note: "Dynamic SaaS Reframing"
       },
       {
         number: 4,
@@ -76,7 +76,7 @@ export const landingContent = {
         ]
       },
       audnix: {
-        title: "Audnix Neural:",
+        title: "Audnix Platform:",
         features: [
           { text: "Predictive Intelligence", negative: false },
           { text: "Memory That Feels Human", negative: false },
@@ -151,7 +151,7 @@ export const landingContent = {
     ],
     featureLabels: [
       "Predictive Intelligence",
-      "Neural Flow Builder",
+      "Logic Flow Builder",
       "AI Voice Notes",
       "Semantic Object Handling",
       "Email Automation",

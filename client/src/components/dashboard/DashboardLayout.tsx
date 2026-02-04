@@ -153,6 +153,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     {
       label: "Tools",
       items: [
+        { label: "Inbox", icon: Inbox, path: "/dashboard/inbox" },
         { label: "Automation", icon: Zap, path: "/dashboard/automation" },
         { label: "Pipeline", icon: Briefcase, path: "/dashboard/deals" },
         { label: "Integrations", icon: Plug, path: "/dashboard/integrations" },
@@ -334,7 +335,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div>
               {!sidebarCollapsed && <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3 font-sans">Platform</h4>}
               {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
-              {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
             </div>
 
             {navGroups.map(group => (
@@ -468,7 +468,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       <h4 className="px-6 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em] mb-4">Command Center</h4>
                       <div className="space-y-1">
                         {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
-                        {renderNavItem({ label: "Inbox", icon: Inbox, path: "/dashboard/inbox" })}
                       </div>
                     </div>
                     {navGroups.map(group => (

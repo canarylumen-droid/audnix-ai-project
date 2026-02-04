@@ -205,29 +205,37 @@ export default function LeadImportPage() {
             </label>
           </div>
 
-          {file && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-4 p-4 bg-muted/50 border border-border rounded-xl"
-            >
-              <div className="w-10 h-10 flex items-center justify-center">
-                {file.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm">
-                  {file.name}
-                </p>
-                {importResults && (
+          {importResults && (
+            <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-4 p-4 bg-muted/50 border border-border rounded-xl"
+              >
+                <div className="w-10 h-10 flex items-center justify-center">
+                  {file?.name.toLowerCase().endsWith('.pdf') ? <PdfIcon /> : <CsvIcon />}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">
+                    {file?.name}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {importResults.imported} entries imported • {importResults.skipped} duplicates
                   </p>
-                )}
-              </div>
-              {importResults && (
+                </div>
                 <CheckCircle2 className="h-5 w-5 text-primary" />
-              )}
-            </motion.div>
+              </motion.div>
+              
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded Leads</h3>
+                  <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">VIEW ALL LEADS</Button>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">Your leads have been successfully synchronized to the pipeline.</p>
+                </div>
+              </div>
+            </div>
           )}
 
           {importing && progress > 0 && (

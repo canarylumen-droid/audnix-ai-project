@@ -228,9 +228,9 @@ export default function InboxPage() {
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Mail) : Mail;
 
   return (
-    <div className="flex h-[calc(100vh-80px)] md:h-[calc(100vh-64px)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background">
+    <div className="flex h-[calc(100vh-80px)] md:h-[calc(100vh-64px)] -m-6 md:-m-8 lg:-m-10 overflow-hidden bg-background flex-col md:flex-row w-full">
       {/* Lead List Pane */}
-      <div className={cn("w-full md:w-80 lg:w-[450px] border-r flex flex-col transition-all", leadId && "hidden md:flex")}>
+      <div className={cn("w-full md:w-80 lg:w-[450px] border-r flex flex-col transition-all shrink-0 h-full", leadId && "hidden md:flex")}>
         <div className="p-4 border-b space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -296,26 +296,44 @@ export default function InboxPage() {
           <div className="flex flex-1 overflow-hidden">
             <div className="flex-1 flex flex-col border-r">
               {/* Thread Header */}
-              <div className="h-16 border-b flex items-center px-6 justify-between bg-background/50 backdrop-blur-md shrink-0">
-                <div className="flex items-center gap-3">
+              <div className="h-20 md:h-16 border-b flex flex-col md:flex-row items-center px-4 md:px-6 justify-between bg-background/50 backdrop-blur-md shrink-0 gap-2 py-2">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                   <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setLocation('/dashboard/inbox')}><Check className="h-4 w-4 rotate-180" /></Button>
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>{activeLead?.name?.[0]}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="text-sm font-bold">{activeLead?.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold truncate">{activeLead?.name}</h3>
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{activeLead?.status}</p>
                       <ChannelIcon className="h-2 w-2 text-muted-foreground" />
                     </div>
                   </div>
+                  <div className="md:hidden">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-full border-primary/20 text-primary font-bold text-[10px]"
+                      onClick={() => {
+                        if (activeLead) {
+                          toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused });
+                        }
+                      }}
+                    >
+                      {activeLead?.aiPaused ? <Play className="h-3 w-3 fill-primary" /> : <Pause className="h-3 w-3 fill-primary" />}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 rounded-full border-primary/20 text-primary font-bold text-[10px]"
-                    onClick={() => toggleAi.mutate({ id: leadId, paused: !activeLead?.aiPaused })}
+                    className="h-8 rounded-full border-primary/20 text-primary font-bold text-[10px] hidden md:flex"
+                    onClick={() => {
+                      if (activeLead) {
+                        toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused });
+                      }
+                    }}
                   >
                     {activeLead?.aiPaused ? <><Play className="h-3 w-3 mr-1 fill-primary" /> RESUME AI</> : <><Pause className="h-3 w-3 mr-1 fill-primary" /> PAUSE AI</>}
                   </Button>

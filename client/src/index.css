@@ -13,7 +13,7 @@
   .cursor-pointer,
   input[type="submit"],
   input[type="button"] {
-    cursor: url('/cursor-hand.svg') 12 12, pointer;
+    cursor: auto !important;
   }
 
   /* Ensure hover effects are immediate */

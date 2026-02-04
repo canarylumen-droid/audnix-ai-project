@@ -166,7 +166,7 @@ export const CustomCursor = () => {
                     }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="84" height="84" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
                         fill="white"

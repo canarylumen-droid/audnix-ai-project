@@ -218,6 +218,18 @@ export function HeroSection() {
               </span>
             </motion.h1>
 
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md"
+            >
+              <h3 className="text-white font-bold text-lg mb-2">Custom Logical Mapping</h3>
+              <p className="text-white/60 text-sm">
+                Train your personal objection patterns into the core engine for deterministic close rates. Automated evolution active.
+              </p>
+            </motion.div>
+
             {/* Subheadline */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
