@@ -212,9 +212,9 @@ export function HeroSection() {
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
               className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.95] lg:max-w-2xl"
             >
-              Scale <br />
+              The AI Sales Rep <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase">
-                Without Limits.
+                That Never Sleeps.
               </span>
             </motion.h1>
 
@@ -224,9 +224,9 @@ export function HeroSection() {
               transition={{ delay: 0.3 }}
               className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md"
             >
-              <h3 className="text-white font-bold text-lg mb-2">Custom Logical Mapping</h3>
+              <h3 className="text-white font-bold text-lg mb-2">Autonomous Lead Acquisition</h3>
               <p className="text-white/60 text-sm">
-                Train your personal objection patterns into the core engine for deterministic close rates. Automated evolution active.
+                Deploy intelligent agents that identify, engage, and book high-ticket clients across Instagram and Email. No manual outreach, just results.
               </p>
             </motion.div>
 
@@ -237,7 +237,7 @@ export function HeroSection() {
               transition={{ delay: 0.4, duration: 1 }}
               className="text-base md:text-lg text-white/50 max-w-md font-medium leading-relaxed"
             >
-              The AI Sales Rep that handles your Instagram and Email 24/7. Book meetings while you sleep.
+              Automate your entire sales cycle with AI that understands your brand, handles objections, and schedules meetings 24/7.
             </motion.p>
 
             {/* CTAs */}

@@ -21,7 +21,7 @@ export const CustomCursor = () => {
     const updateCursorPosition = useCallback(() => {
         if (cursorRef.current) {
             const offset = isDashboardOrOnboarding ? 'translate(-10px, -4px)' : 'translate(-4px, -4px)';
-            cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset} scale(0.33)`;
+            cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset}`;
         }
     }, [isDashboardOrOnboarding]);
 
@@ -34,6 +34,14 @@ export const CustomCursor = () => {
                 html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
                 ::-webkit-scrollbar { cursor: none !important; }
                 ::-webkit-scrollbar-thumb { cursor: none !important; }
+            }
+            .custom-cursor-main svg {
+                width: 24px;
+                height: 24px;
+            }
+            .custom-cursor-main.is-grabbing::after {
+                width: 32px;
+                height: 32px;
             }
         `;
         document.head.appendChild(style);
@@ -65,31 +73,7 @@ export const CustomCursor = () => {
 
         const handleMouseDown = (e: MouseEvent) => {
             isClickedRef.current = true;
-            if (cursorRef.current) {
-                cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) scale(0.8)`;
-            }
-
-            // Create ripple directly in DOM
-            if (rippleContainerRef.current) {
-                const ripple = document.createElement('div');
-                ripple.className = 'cursor-ripple';
-                ripple.style.cssText = `
-                    position: absolute;
-                    left: ${e.clientX}px;
-                    top: ${e.clientY}px;
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    border: 1px solid #00d2ff;
-                    transform: translate(-50%, -50%) scale(0);
-                    opacity: 0.8;
-                    box-shadow: 0 0 15px rgba(0,210,255,0.5);
-                    pointer-events: none;
-                    animation: ripple-expand 0.5s ease-out forwards;
-                `;
-                rippleContainerRef.current.appendChild(ripple);
-                setTimeout(() => ripple.remove(), 500);
-            }
+            // No scaling on click as requested
         };
 
         const handleMouseUp = () => {
@@ -157,8 +141,8 @@ export const CustomCursor = () => {
                     .custom-cursor-main.is-grabbing::after {
                         content: '';
                         display: block;
-                        width: 72px;
-                        height: 72px;
+                        width: 32px;
+                        height: 32px;
                         background: url('/cursor-hand.svg') no-repeat center;
                         background-size: contain;
                         transform: translate(-50%, -50%);
@@ -166,7 +150,7 @@ export const CustomCursor = () => {
                     }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}
-                <svg width="84" height="84" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
                         fill="white"

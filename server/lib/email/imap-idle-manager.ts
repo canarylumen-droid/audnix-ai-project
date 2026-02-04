@@ -52,6 +52,7 @@ class ImapIdleManager {
             // Add connections for new active users
             for (const integration of integrations) {
                 if (integration.connected && !this.connections.has(integration.userId)) {
+                    // Only start if user is actually connected
                     console.log(`🔌 Opening IMAP connection for user ${integration.userId}`);
                     this.setupConnection(integration.userId, integration);
                 }
