@@ -310,6 +310,7 @@ router.get('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       createdAt: user.createdAt,
       defaultCtaLink: metadata?.defaultCtaLink as string || '',
       defaultCtaText: metadata?.defaultCtaText as string || '',
+      calendarLink: metadata?.calendarLink as string || '',
       metadata: {
         ...(metadata || {}),
         onboardingCompleted: hasCompletedOnboarding,
@@ -374,7 +375,7 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       return;
     }
 
-    const { name, username, company, timezone, defaultCtaLink, defaultCtaText } = req.body;
+    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink } = req.body;
 
     const user = await storage.getUserById(userId);
     if (!user) {
@@ -390,12 +391,13 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
     if (company !== undefined) updates.businessName = company;
     if (timezone !== undefined) updates.timezone = timezone;
 
-    // Store CTA settings in metadata
-    if (defaultCtaLink !== undefined || defaultCtaText !== undefined) {
+    // Store CTA settings and Calendar Link in metadata
+    if (defaultCtaLink !== undefined || defaultCtaText !== undefined || calendarLink !== undefined) {
       updates.metadata = {
         ...existingMetadata,
         ...(defaultCtaLink !== undefined && { defaultCtaLink }),
         ...(defaultCtaText !== undefined && { defaultCtaText }),
+        ...(calendarLink !== undefined && { calendarLink }),
       };
     }
 
@@ -539,10 +541,12 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
     const sent = (await storage.getAllMessages(userId)).filter(m => m.direction === 'outbound').length;
 
-    // Time series (last 7 days) - Real data only
+    // Time series (dynamic range) - Real data only
+    const range = parseInt(req.query.days as string) || 7;
     const timeSeries = [];
     const allMessages = await storage.getAllMessages(userId);
-    for (let i = 6; i >= 0; i--) {
+    
+    for (let i = range - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -552,23 +556,23 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
       const dayEnd = new Date(date);
       dayEnd.setHours(23, 59, 59, 999);
 
-      const daySent = allMessages.filter(m =>
-        m.direction === 'outbound' &&
+      const dayMessages = allMessages.filter(m =>
         new Date(m.createdAt) >= dayStart &&
         new Date(m.createdAt) <= dayEnd
-      ).length;
+      );
 
-      const dayReplied = leads.filter(l =>
-        (l.status === 'replied' || l.status === 'converted') &&
+      const dayLeads = leads.filter(l => 
         l.updatedAt && new Date(l.updatedAt) >= dayStart &&
         new Date(l.updatedAt) <= dayEnd
-      ).length;
+      );
 
       timeSeries.push({
         name: dayStr,
-        sent: daySent,
-        replied: dayReplied,
-        booked: 0 // Will be updated when deals system is fully integrated
+        sent_email: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'email').length,
+        sent_instagram: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'instagram').length,
+        replied_email: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'email').length,
+        replied_instagram: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'instagram').length,
+        booked: 0 
       });
     }
 

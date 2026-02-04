@@ -266,17 +266,52 @@ export async function runDemoOutreach(userId: string): Promise<{
   results: OutreachResult[];
   summary: { sent: number; failed: number; total: number };
 }> {
-  // 8 HVAC company leads
-  const demoLeads: OutreachLead[] = [
-    { name: 'Mike Johnson', email: 'trexndom@gmail.com', company: 'Johnson HVAC Services' },
-    { name: 'Sarah Williams', email: 'team.replyflow@gmail.com', company: 'Williams Heating & Cooling' },
-    { name: 'James Anderson', email: 'iamherebro60@gmail.com', company: 'Anderson Air Solutions' },
-    { name: 'David Martinez', email: 'loopstories1@gmail.com', company: 'Martinez Climate Control' },
-    { name: 'Robert Thompson', email: 'orbieonlms@gmail.com', company: 'Thompson HVAC Pros' },
-    { name: 'Chris Davis', email: 'nevermindthough79@gmail.com', company: 'Davis Air Systems' },
-    { name: 'Kevin Wilson', email: 'somtouchendu9@gmail.com', company: 'Wilson Comfort Systems' },
-    { name: 'Brian Taylor', email: 'c28926695@gmail.com', company: 'Taylor Heating Services' }
-  ];
+  // 1. Fetch existing leads first
+  let dbLeads = await storage.getLeads({ userId, limit: 100 });
+  
+  // Filter for HVAC style leads if needed, or just use all for the demo
+  // For now, we'll try to find specific "demo-seeded" leads or just use what's there
+  
+  if (dbLeads.length === 0) {
+    console.log('[Outreach] No leads found. Seeding initial database with HVAC leads...');
+    
+    const initialLeads: OutreachLead[] = [
+      { name: 'Mike Johnson', email: 'trexndom@gmail.com', company: 'Johnson HVAC Services' },
+      { name: 'Sarah Williams', email: 'team.replyflow@gmail.com', company: 'Williams Heating & Cooling' },
+      { name: 'James Anderson', email: 'iamherebro60@gmail.com', company: 'Anderson Air Solutions' },
+      { name: 'David Martinez', email: 'loopstories1@gmail.com', company: 'Martinez Climate Control' },
+      { name: 'Robert Thompson', email: 'orbieonlms@gmail.com', company: 'Thompson HVAC Pros' },
+      { name: 'Chris Davis', email: 'nevermindthough79@gmail.com', company: 'Davis Air Systems' },
+      { name: 'Kevin Wilson', email: 'somtouchendu9@gmail.com', company: 'Wilson Comfort Systems' },
+      { name: 'Brian Taylor', email: 'c28926695@gmail.com', company: 'Taylor Heating Services' }
+    ];
+
+    for (const lead of initialLeads) {
+      await storage.createLead({
+        userId,
+        name: lead.name,
+        email: lead.email,
+        channel: 'email',
+        status: 'new',
+        aiPaused: false,
+        metadata: {
+          company: lead.company,
+          outreach_campaign: true,
+          source: 'demo_seed'
+        }
+      });
+    }
+    
+    // Refresh list
+    dbLeads = await storage.getLeads({ userId, limit: 100 });
+  }
+
+  // Convert DB leads to OutreachLead format
+  const outreachLeads: OutreachLead[] = dbLeads.map(l => ({
+    name: l.name,
+    email: l.email || '',
+    company: (l.metadata as any)?.company || 'Unknown Company'
+  })).filter(l => l.email); // Ensure email exists
 
   // HVAC-specific brand context
   const brandContext: BrandContext = {
@@ -287,7 +322,7 @@ export async function runDemoOutreach(userId: string): Promise<{
   };
 
   // 6-hour follow-up scheduling (360 minutes)
-  return runOutreachCampaign(userId, demoLeads, brandContext, {
+  return runOutreachCampaign(userId, outreachLeads, brandContext, {
     scheduleFollowUpMinutes: 360, // 6 hours
     delayBetweenEmailsMs: 3000,
     simulateOnly: false // Send actual emails

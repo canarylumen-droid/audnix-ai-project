@@ -52,6 +52,10 @@ interface IntelligenceData {
     };
     nextBestAction: string;
     suggestedActions?: string[];
+    actionContext?: {
+        calendarLink?: string;
+        ctaLink?: string;
+    };
 }
 
 interface Message {
@@ -310,7 +314,18 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     <p className="font-medium text-lg text-foreground">
                                         {intelligence.nextBestAction}
                                     </p>
-                                    <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20">
+                                    <Button 
+                                        onClick={() => {
+                                            const link = intelligence.actionContext?.calendarLink || intelligence.actionContext?.ctaLink;
+                                            if (link) {
+                                                window.open(link.startsWith('http') ? link : `https://${link}`, '_blank');
+                                            } else {
+                                                // Fallback to settings if no link set
+                                                window.location.href = '/dashboard/settings';
+                                            }
+                                        }}
+                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
+                                    >
                                         Execute Strategy <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>

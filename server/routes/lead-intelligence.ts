@@ -223,11 +223,64 @@ router.post("/churn-risk", async (req: Request<any, any, ChurnRiskRequestBody>, 
 router.post("/intelligence-dashboard", requireAuth, async (req: Request<any, any, IntelligenceDashboardRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead, messages } = req.body;
-    const dashboard = await generateLeadIntelligenceDashboard(lead, messages || []);
+    
+    // 1. Fetch latest lead data to check cache
+    const dbLead = await storage.getLead(lead.id);
+    if (!dbLead) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    const metadata = dbLead.metadata || {};
+    const lastMessageAt = dbLead.lastMessageAt ? new Date(dbLead.lastMessageAt).getTime() : 0;
+    const intelligenceTimestamp = metadata.intelligenceGeneratedAt ? new Date(metadata.intelligenceGeneratedAt as string).getTime() : 0;
+
+    // 2. Check if cache is valid (generated AFTER the last message)
+    if (metadata.intelligence && intelligenceTimestamp > lastMessageAt) {
+      console.log(`[Intelligence] Returning cached analysis for lead ${lead.id}`);
+      
+      const user = await storage.getUser(dbLead.userId);
+      const calendarLink = user?.calendarLink || (user?.metadata as any)?.defaultCtaLink;
+
+      res.json({
+        lead_id: lead.id,
+        ...(metadata.intelligence as any),
+        actionContext: {
+          calendarLink,
+          ctaLink: (user?.metadata as any)?.defaultCtaLink
+        },
+        cached: true
+      });
+      return;
+    }
+
+    // 3. Generate new intelligence
+    console.log(`[Intelligence] Generating FRESH analysis for lead ${lead.id}`);
+    const dashboard = await generateLeadIntelligenceDashboard(dbLead as any, messages || []);
+
+    // Fetch user to get calendar link
+    const user = await storage.getUser(dbLead.userId);
+    const calendarLink = user?.calendarLink || (user?.metadata as any)?.defaultCtaLink;
+
+    // 4. Save to DB
+    await storage.updateLead(lead.id, {
+      metadata: {
+        ...metadata,
+        intelligence: dashboard,
+        intelligenceGeneratedAt: new Date().toISOString()
+      },
+      // Determine score based on intent?
+      score: dashboard.intent.intentScore
+    });
 
     res.json({
       lead_id: lead.id,
       ...dashboard,
+      actionContext: {
+        calendarLink,
+        ctaLink: (user?.metadata as any)?.defaultCtaLink
+      },
+      cached: false
     });
   } catch (error) {
     console.error("Error generating dashboard:", error);
@@ -261,7 +314,29 @@ router.post("/find-duplicates", async (req: Request<any, any, DuplicatesRequestB
 router.post("/enrich-company", async (req: Request<any, any, EnrichCompanyRequestBody>, res: Response): Promise<void> => {
   try {
     const { lead } = req.body;
+    
+    // Check cache first
+    const dbLead = await storage.getLead(lead.id);
+    if (dbLead?.metadata?.enrichment) {
+      res.json({
+        lead_id: lead.id,
+        enrichment: dbLead.metadata.enrichment,
+        action: "📊 Company data enriched (cached)",
+      });
+      return;
+    }
+
     const enrichment = await enrichLeadCompany(lead);
+
+    // Save to DB
+    if (dbLead) {
+      await storage.updateLead(lead.id, {
+        metadata: {
+          ...dbLead.metadata,
+          enrichment
+        }
+      });
+    }
 
     res.json({
       lead_id: lead.id,

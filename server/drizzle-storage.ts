@@ -442,7 +442,18 @@ export class DrizzleStorage implements IStorage {
       .returning();
 
     if (result[0]) {
+      // Update lead's lastMessageAt
+      await db.update(leads)
+        .set({ 
+          lastMessageAt: new Date(), 
+          updatedAt: new Date(),
+          status: message.direction === 'inbound' ? 'replied' : undefined 
+        })
+        .where(eq(leads.id, message.leadId));
+
+      // Notify both updates
       wsSync.notifyMessagesUpdated(message.userId, { event: 'INSERT', message: result[0] });
+      wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
     }
     return result[0];
   }
