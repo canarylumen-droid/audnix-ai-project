@@ -148,14 +148,32 @@ class ImapIdleManager {
 
     private async fetchNewEmails(userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound'): Promise<void> {
         return new Promise((resolve) => {
-            imap.openBox(folderName, true, (err: any) => {
+            // @ts-ignore - types mismatch
+            imap.openBox(folderName, true, (err: any, box: any) => {
                 if (err) {
                     resolve();
                     return;
                 }
 
+                if (!box || !box.messages || box.messages.total === 0) {
+                    // Empty box, nothing to fetch
+                    if (folderName !== 'INBOX') {
+                        imap.openBox('INBOX', false, () => {
+                            (imap as any).idle();
+                            resolve();
+                        });
+                    } else {
+                        (imap as any).idle();
+                        resolve();
+                    }
+                    return;
+                }
+
                 // We fetch the last 10 emails to be safe and catch up
-                const fetch = imap.seq.fetch('-10:*', {
+                // If total < 10, fetch 1:*
+                const fetchRange = box.messages.total < 10 ? '1:*' : '-10:*';
+
+                const fetch = imap.seq.fetch(fetchRange, {
                     bodies: '',
                     struct: true
                 });

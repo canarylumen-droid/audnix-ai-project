@@ -174,7 +174,8 @@ export async function importCustomEmails(
     const emails: ImportedEmail[] = [];
 
     imap.once('ready', () => {
-      imap.openBox(mailbox, true, (err: Error | null) => {
+      // @ts-ignore - The types for imap might not have the correct signature for the callback
+      imap.openBox(mailbox, true, (err: Error | null, box: any) => {
         if (err) {
           if (mailbox === 'Sent' || mailbox === 'Sent Items') {
             console.log(`Failed to open ${mailbox}, trying common alternatives...`);
@@ -185,7 +186,17 @@ export async function importCustomEmails(
           return;
         }
 
-        const fetch = imap.seq.fetch('1:' + limit, {
+        // Check if mailbox is empty or invalid
+        if (!box || !box.messages || box.messages.total === 0) {
+          imap.end();
+          return; // Resolve will happen on 'end' event
+        }
+
+        const total = box.messages.total;
+        // Ensure we don't request more than available
+        const fetchRange = total < limit ? `1:${total}` : `1:${limit}`;
+
+        const fetch = imap.seq.fetch(fetchRange, {
           bodies: '',
           struct: true
         });
