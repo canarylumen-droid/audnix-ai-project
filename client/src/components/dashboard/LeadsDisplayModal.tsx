@@ -16,6 +16,7 @@ interface Lead {
   linkedin?: string;
 }
 
+interface LeadsDisplayModalProps {
   isOpen: boolean;
   onClose: () => void;
   leads: Lead[];
@@ -98,10 +99,6 @@ export function LeadsDisplayModal({
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </DialogContent>
             ))}
           </div>
         </ScrollArea>
