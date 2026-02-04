@@ -15,7 +15,9 @@ import { sendEmail } from '../channels/email.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
 
 interface UserWithEmail {
   id: string;
@@ -83,27 +85,29 @@ Return JSON only:
   "body": "..."
 }`;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "You are a cold email expert. Return only valid JSON." },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.8
-    });
+  if (openai) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: "You are a cold email expert. Return only valid JSON." },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.8
+      });
 
-    const content = response.choices[0].message.content;
-    if (content) {
-      const parsed = JSON.parse(content);
-      return {
-        subject: parsed.subject || `Quick question, ${firstName}`,
-        body: parsed.body || `Hey ${firstName},\n\nWanted to reach out about something that might help ${leadCompany || 'your business'}.\n\nWould love to share a quick idea - mind if I send it over?\n\nBest,\n${businessName}`
-      };
+      const content = response.choices[0].message.content;
+      if (content) {
+        const parsed = JSON.parse(content);
+        return {
+          subject: parsed.subject || `Quick question, ${firstName}`,
+          body: parsed.body || `Hey ${firstName},\n\nWanted to reach out about something that might help ${leadCompany || 'your business'}.\n\nWould love to share a quick idea - mind if I send it over?\n\nBest,\n${businessName}`
+        };
+      }
+    } catch (error) {
+      console.error('[AutoOutreach] AI generation error:', error);
     }
-  } catch (error) {
-    console.error('[AutoOutreach] AI generation error:', error);
   }
 
   // Fallback template
