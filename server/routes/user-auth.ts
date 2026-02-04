@@ -489,15 +489,19 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
           reject(err);
         } else {
           console.log('✅ Session saved successfully for user:', user.id);
-          console.log('📝 [Login] Session data:', JSON.stringify({
-            userId: req.session.userId,
-            email: req.session.email,
-            sessionID: req.sessionID.slice(0, 8) + '...',
-          }));
           resolve();
         }
       });
     });
+
+    // Auto-update unread status or lead counts on login
+    try {
+      const userLeads = await storage.getLeads({ userId: user.id });
+      const unreadCount = userLeads.filter(l => (l.metadata as any)?.isUnread).length;
+      console.log(`📊 User ${email} has ${unreadCount} unread leads`);
+    } catch (e) {
+      console.error('Error fetching leads on login:', e);
+    }
 
     // Add small delay to ensure session is written to PostgreSQL
     await new Promise(resolve => setTimeout(resolve, 150));

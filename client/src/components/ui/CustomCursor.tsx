@@ -21,7 +21,7 @@ export const CustomCursor = () => {
     const updateCursorPosition = useCallback(() => {
         if (cursorRef.current) {
             const offset = isDashboardOrOnboarding ? 'translate(-10px, -4px)' : 'translate(-4px, -4px)';
-            cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset}`;
+            cursorRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0) ${offset} scale(0.33)`;
         }
     }, [isDashboardOrOnboarding]);
 
@@ -157,8 +157,8 @@ export const CustomCursor = () => {
                     .custom-cursor-main.is-grabbing::after {
                         content: '';
                         display: block;
-                        width: 24px;
-                        height: 24px;
+                        width: 72px;
+                        height: 72px;
                         background: url('/cursor-hand.svg') no-repeat center;
                         background-size: contain;
                         transform: translate(-50%, -50%);

@@ -245,7 +245,10 @@ export async function generateAIReply(
 
   const brandContext = await getBrandContext(lead.userId);
   const user = await storage.getUserById(lead.userId);
-
+  
+  // Dynamic brand PDF processing: incorporate extracted text into system prompt
+  const brandGuidelines = user?.brandGuidelinePdfText || (brandContext as any)?.brandVoice || "No specific brand guidelines provided.";
+  
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
 
@@ -315,8 +318,8 @@ export async function generateAIReply(
 
   const systemPrompt = `You are an elite high-ticket sales advisor. You're a real person - not a bot - and your ONLY objective is to guide this conversation towards a BOOKED STRATEGY CALL.
 
-[BRAND GUIDELINES & MATERIALS]
-${user?.brandGuidelinePdfText || "No additional guidelines provided."}
+[BRAND GUIDELINES & MATERIALS - USE THESE FOR REAL SOLUTIONS]
+${brandGuidelines}
 
 ${brandPromptSection}
 
@@ -326,10 +329,10 @@ Lead Name: ${lead.name}
 Lead Status: ${isWarm ? 'WARM - READY FOR BOOKING 🔥' : 'NEW - BUILDING AUTHORITY ❄️'}
 
 How You Talk:
-- Like a peer, not a subordinate. You are a strategic advisor, not a salesperson.
+- Like a peer, not a strategic advisor. Talk with real solutions based on the brand guidelines provided above.
 - Use contractions (you're, don't, let's, can't) - it sounds real
-- No "I appreciate your interest" or "kindly". Start with the insight.
-- Every message must be a bridge. If they ask a question, answer it and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
+- No "I appreciate your interest" or "kindly". Start with the insight from the brand PDF.
+- Every message must be a bridge. If they ask a question, answer it using brand info and immediately pivot to: "Actually, it's easier to map this against your specific roadmap. Are you open to a 10min sync?"
 - Short sentences. 2-3 sentences max for DMs, a short paragraph for email.
 - BE PUNCHY AND DIRECT. Do not "yap" or use unnecessary filler words. One strong point per message is better than three weak ones.
 - If the lead wants to book or schedule, use this link: ${(user as any)?.calendarLink || "our booking page"}.

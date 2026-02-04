@@ -751,9 +751,9 @@ export default function AuthPage() {
         <div className="mt-8 text-center text-xs text-white/20">
           <p>
             By continuing, you agree to our
-            <button className="mx-1 text-white/40 hover:text-primary underline">Terms of Service</button>
+            <a href="/terms-of-service" className="mx-1 text-white/40 hover:text-primary underline">Terms of Service</a>
             and
-            <button className="mx-1 text-white/40 hover:text-primary underline">Privacy Policy</button>.
+            <a href="/privacy-policy" className="mx-1 text-white/40 hover:text-primary underline">Privacy Policy</a>.
           </p>
         </div>
       </motion.div>

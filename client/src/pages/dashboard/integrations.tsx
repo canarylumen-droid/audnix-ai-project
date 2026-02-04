@@ -481,12 +481,12 @@ export default function IntegrationsPage() {
                   <div className="flex items-center justify-around p-6 rounded-2xl bg-muted/20 border border-border/40 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full" />
                     <CircularProgress
-                      value={stats?.messagesToday ? (stats.messagesToday / 500) * 100 : 0}
+                      value={stats?.messagesToday ? (stats.messagesToday / getDailyLimit()) * 100 : 0}
                       label={stats?.messagesToday || "0"}
                       sublabel="Sent Today"
                     />
                     <CircularProgress
-                      value={stats?.messagesYesterday ? (stats.messagesYesterday / 500) * 100 : 0}
+                      value={stats?.messagesYesterday ? (stats.messagesYesterday / getDailyLimit()) * 100 : 0}
                       label={stats?.messagesYesterday || "0"}
                       sublabel="Sent Yesterday"
                       color="secondary"

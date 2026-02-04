@@ -129,6 +129,10 @@ export default function Landing() {
               <Button
                 size="lg"
                 className="h-20 px-16 rounded-[2rem] font-black uppercase tracking-[0.2em] text-sm bg-primary text-black hover:bg-primary/90 shadow-[0_30px_60px_rgba(var(--primary),0.25)] hover:scale-105 transition-all duration-500"
+                onClick={() => {
+                  console.log("Navigating to auth...");
+                  window.location.href = "/auth";
+                }}
               >
                 Access Protocol Now <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
