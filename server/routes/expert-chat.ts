@@ -24,7 +24,8 @@ DEEP KNOWLEDGE:
 Your goal is to ensure the user gets their questions answered clearly and efficiently.
 `;
 
-router.post('/chat', async (req: Request, res: Response) => {
+// Alias for v2 endpoint to prevent 404s
+router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
     let isAuthenticated = false;
     try {
         if (!req.body) {

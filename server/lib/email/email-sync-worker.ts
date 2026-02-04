@@ -33,9 +33,10 @@ interface EmailData {
 
 class EmailSyncWorker {
   private isRunning = false;
-  private syncInterval: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 3 * 1000; // 3 seconds polling
-  private readonly GHOSTED_THRESHOLD_HOURS = 48; // Mark as ghosted after 48 hours
+  private isSyncing = false;
+  private syncTimeout: NodeJS.Timeout | null = null;
+  private readonly SYNC_INTERVAL_MS = 15 * 1000; // 15 seconds polling (increased from 3s to prevent flooding)
+  private readonly GHOSTED_THRESHOLD_HOURS = 48; 
 
   /**
    * Start the email sync worker
@@ -46,20 +47,34 @@ class EmailSyncWorker {
     this.isRunning = true;
     console.log('📬 Email sync worker started');
 
-    this.syncInterval = setInterval(() => {
-      this.syncAllUserEmails();
-    }, this.SYNC_INTERVAL_MS);
+    this.scheduleNextSync();
+  }
 
-    setTimeout(() => this.syncAllUserEmails(), 30000);
+  private scheduleNextSync() {
+    if (!this.isRunning) return;
+    
+    this.syncTimeout = setTimeout(async () => {
+      if (this.isSyncing) return;
+      
+      this.isSyncing = true;
+      try {
+        await this.syncAllUserEmails();
+      } catch (e) {
+        console.error('Error in email sync loop:', e);
+      } finally {
+        this.isSyncing = false;
+        this.scheduleNextSync();
+      }
+    }, this.SYNC_INTERVAL_MS);
   }
 
   /**
    * Stop the worker
    */
   stop(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
+    if (this.syncTimeout) {
+      clearTimeout(this.syncTimeout);
+      this.syncTimeout = null;
     }
     this.isRunning = false;
     console.log('📬 Email sync worker stopped');

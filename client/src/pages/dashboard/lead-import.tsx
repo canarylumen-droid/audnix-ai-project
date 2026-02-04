@@ -94,7 +94,8 @@ export default function LeadImportPage() {
 
     try {
       setProgress(30);
-      const endpoint = isPDF ? '/api/leads/import-pdf' : '/api/leads/import-csv';
+      // For CSV, we now use preview mode first
+      const endpoint = isPDF ? '/api/leads/import-pdf' : '/api/leads/import-csv?preview=true';
       const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
@@ -111,20 +112,41 @@ export default function LeadImportPage() {
       const result = await response.json();
       setProgress(100);
 
-      setImportResults({
-        imported: result.leadsImported || result.imported || 0,
-        skipped: result.duplicates || result.skipped || 0,
-        leads: result.leads || []
-      });
+      if (isPDF) {
+        setImportResults({
+          imported: result.leadsImported || 0,
+          skipped: 0,
+          leads: result.leads || []
+        });
+        toast({
+          title: "PDF Processed",
+          description: `Extracted ${result.leadsImported} leads. Reviewing...`
+        });
+      } else {
+        // CSV Preview Mode
+        if (result.preview) {
+           setImportResults({
+             imported: 0, // Not imported yet
+             skipped: 0,
+             leads: result.leads || [] // These are the preview leads
+           });
+           setMLeadsOpen(true); // Open modal for confirmation
+           toast({
+             title: "Preview Ready",
+             description: `Found ${result.total} leads. Please review and confirm import.`
+           });
+           setImporting(false); // Stop loading main spinner, modal takes over
+           return;
+        }
+        
+        // Fallback for direct import (shouldn't happen with new flow but safe to keep)
+        setImportResults({
+          imported: result.leadsImported || 0,
+          skipped: result.errors?.length || 0,
+          leads: result.leads || []
+        });
+      }
 
-      toast({
-        title: "Import Complete",
-        description: isPDF
-          ? `Extracted ${result.leadsImported || 0} leads from PDF`
-          : `Imported ${result.imported || 0} leads, ${result.skipped || 0} duplicates skipped`
-      });
-
-      setTimeout(() => setFile(null), 3000);
     } catch (error: any) {
       setProgress(0);
       toast({
@@ -133,10 +155,68 @@ export default function LeadImportPage() {
         variant: "destructive"
       });
     } finally {
-      setTimeout(() => {
-        setImporting(false);
-        setProgress(0);
-      }, 2000);
+      if (!isPDF) { // For CSV preview, we stop loading early in the success case
+         // if not preview (error case), we stop here
+      } else {
+         setTimeout(() => {
+          setImporting(false);
+          setProgress(0);
+        }, 2000);
+      }
+    }
+  };
+
+  const handleFinalizeImport = async () => {
+    if (!importResults?.leads || importResults.leads.length === 0) return;
+    
+    setImporting(true); // Reuse loading state provided to modal
+    try {
+      const response = await fetch('/api/bulk/import-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leads: importResults.leads.map(l => ({
+            name: l.name,
+            email: l.email,
+            phone: l.phone,
+            company: l.company,
+            ...l.metadata // Include mapped metadata
+          })),
+          channel: 'email',
+          aiPaused: !enableAi
+        }),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to finalize import");
+      }
+
+      const result = await response.json();
+      
+      setImportResults({
+        imported: result.leadsImported,
+        skipped: result.leadsFiltered || 0,
+        leads: importResults.leads // Keep them visible
+      });
+
+      toast({
+        title: "Import Success",
+        description: `Successfully imported ${result.leadsImported} leads.`
+      });
+      
+      setMLeadsOpen(false); // Close modal on success
+      setTimeout(() => setFile(null), 2000);
+
+    } catch (error: any) {
+      toast({
+        title: "Import Finalization Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -291,6 +371,9 @@ export default function LeadImportPage() {
             isOpen={mLeadsOpen}
             onClose={() => setMLeadsOpen(false)}
             leads={importResults?.leads || []}
+            onConfirm={handleFinalizeImport}
+            isImporting={importing}
+            canConfirm={!importing}
           />
 
           {importResults && importResults.filtered > 0 && (

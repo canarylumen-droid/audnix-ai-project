@@ -70,7 +70,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
         res.status(400).json({ error: "Lead has no email address" });
         return;
       }
-      await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`);
+      await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`, { isRaw: true });
       // Note: Subject is assumed Re: Name or Conversation. Ideally should thread based on last subject.
       // But sendEmail handles some logic. For exact threading, we need threadId or Message-ID.
       // sendEmail is simple.

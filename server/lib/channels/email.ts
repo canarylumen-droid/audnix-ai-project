@@ -295,6 +295,7 @@ interface EmailOptions {
   buttonText?: string;
   buttonUrl?: string;
   isMeetingInvite?: boolean;
+  isRaw?: boolean; // If true, sends content as-is without branded wrapper
 }
 
 /**
@@ -318,20 +319,23 @@ export async function sendEmail(
     const credentialsStr = await decrypt(customEmailIntegration.encryptedMeta);
     const credentials = JSON.parse(credentialsStr) as EmailConfig;
 
-    const brandColors = options.brandColors || await getUserBrandColors(userId);
-
-    const user = await storage.getUser(userId);
-    const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
-
     let emailBody = content;
-    if (options.buttonUrl && options.buttonText) {
-      if (options.isMeetingInvite) {
-        emailBody = generateMeetingEmail(content, options.buttonUrl, brandColors, businessName);
+    
+    // Only apply branding if NOT raw
+    if (!options.isRaw) {
+      const brandColors = options.brandColors || await getUserBrandColors(userId);
+      const user = await storage.getUser(userId);
+      const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
+
+      if (options.buttonUrl && options.buttonText) {
+        if (options.isMeetingInvite) {
+          emailBody = generateMeetingEmail(content, options.buttonUrl, brandColors, businessName);
+        } else {
+          emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
+        }
       } else {
-        emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
+        emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
       }
-    } else {
-      emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
     }
 
     await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
@@ -358,26 +362,34 @@ export async function sendEmail(
   const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
 
   let emailBody = content;
-  if (options.buttonUrl && options.buttonText) {
-    if (options.isMeetingInvite) {
-      emailBody = generateMeetingEmail(
-        content,
-        options.buttonUrl,
-        brandColors,
-        businessName
-      );
+  
+  if (!options.isRaw) {
+    if (options.buttonUrl && options.buttonText) {
+      if (options.isMeetingInvite) {
+        emailBody = generateMeetingEmail(
+          content,
+          options.buttonUrl,
+          brandColors,
+          businessName
+        );
+      } else {
+        emailBody = generateBrandedEmail(
+          content,
+          { text: options.buttonText, url: options.buttonUrl },
+          brandColors,
+          businessName
+        );
+      }
+      options.isHtml = true;
     } else {
-      emailBody = generateBrandedEmail(
-        content,
-        { text: options.buttonText, url: options.buttonUrl },
-        brandColors,
-        businessName
-      );
+      emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
+      options.isHtml = true;
     }
-    options.isHtml = true;
   } else {
-    emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
-    options.isHtml = true;
+    // If raw, ensure we still treat as HTML if it contains tags, or plain text
+    // The send functions take `isHtml` flag. If raw, we should probably auto-detect or rely on sender?
+    // For now, let's assume raw input from manual replies is plaintext or basic HTML
+    options.isHtml = true; // Manual messages usually have simple formatting
   }
 
   // Assuming credentials are stored in encryptedMeta like other integrations, or if they are in JSON

@@ -1,6 +1,7 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { User, Mail, Building2, Phone, MapPin, Globe, Linkedin } from "lucide-react";
 
 interface Lead {
@@ -15,13 +16,22 @@ interface Lead {
   linkedin?: string;
 }
 
-interface LeadsDisplayModalProps {
   isOpen: boolean;
   onClose: () => void;
   leads: Lead[];
+  onConfirm?: () => void;
+  isImporting?: boolean;
+  canConfirm?: boolean;
 }
 
-export function LeadsDisplayModal({ isOpen, onClose, leads }: LeadsDisplayModalProps) {
+export function LeadsDisplayModal({ 
+  isOpen, 
+  onClose, 
+  leads, 
+  onConfirm, 
+  isImporting, 
+  canConfirm = true 
+}: LeadsDisplayModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
@@ -91,6 +101,32 @@ export function LeadsDisplayModal({ isOpen, onClose, leads }: LeadsDisplayModalP
             ))}
           </div>
         </ScrollArea>
+      </DialogContent>
+            ))}
+          </div>
+        </ScrollArea>
+
+        {onConfirm && (
+          <div className="p-6 border-t border-border/40 bg-muted/20 flex justify-end gap-3">
+            <Button variant="ghost" onClick={onClose} disabled={isImporting} className="font-bold">
+              Cancel
+            </Button>
+            <Button 
+              onClick={onConfirm} 
+              disabled={isImporting || !canConfirm}
+              className="bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider"
+            >
+              {isImporting ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Importing...
+                </>
+              ) : (
+                'Finalize Import'
+              )}
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

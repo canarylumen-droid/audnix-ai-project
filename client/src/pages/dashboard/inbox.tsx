@@ -38,7 +38,8 @@ import {
   Loader2,
   X,
   Target,
-  Activity
+  Activity,
+  Brain
 } from "lucide-react";
 
 const channelIcons = {
