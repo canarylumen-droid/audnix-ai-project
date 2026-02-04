@@ -510,8 +510,9 @@ export async function generateSmartMessage(
   
   // Fetch deep brand context from user metadata if available
   let deepBrandContext = "";
-  if (brandContext.userId) {
-    const user = await storage.getUserById(brandContext.userId);
+  const userId = (brandContext as any).userId;
+  if (userId) {
+    const user = await storage.getUserById(userId);
     if (user?.metadata?.brandContext) {
       deepBrandContext = user.metadata.brandContext;
     }

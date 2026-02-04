@@ -1,0 +1,22 @@
+11:22:36.341 Warning: Due to "engines": { "node": ">=20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "24.x" will be used instead. Learn More: https://vercel.link/node-version
+11:22:36.342 Warning: Detected "engines": { "node": ">=20.x" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+11:22:37.969 Warning: Due to "engines": { "node": ">=20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "24.x" will be used instead. Learn More: https://vercel.link/node-version
+11:22:37.971 Warning: Detected "engines": { "node": ">=20.x" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+11:22:38.542 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+11:22:38.543 npm warn config `--include=optional` to include them.
+11:22:38.543 npm warn config
+11:22:38.543 npm warn config       Default value does install optional deps unless otherwise omitted.
+11:22:41.453 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+11:22:41.453 npm warn config `--include=optional` to include them.
+11:22:41.453 npm warn config
+11:22:41.453 npm warn config       Default value does install optional deps unless otherwise omitted.
+11:22:43.502 [1m[33mwarn[39m[22m - The class `ease-[cubic-bezier(0.16,1,0.3,1)]` is ambiguous and matches multiple utilities.
+11:22:43.502 [1m[33mwarn[39m[22m - If this is content and not a class, replace it with `ease-&lsqb;cubic-bezier(0.16,1,0.3,1)&rsqb;` to silence this warning.
+11:22:43.904 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+11:22:54.753 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+11:22:56.802 Warning: Due to "engines": { "node": ">=20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "24.x" will be used instead. Learn More: https://vercel.link/node-version
+11:22:56.802 Warning: Detected "engines": { "node": ">=20.x" } in your `package.json` that will automatically upgrade when a new major Node.js Version is released. Learn More: https://vercel.link/node-version
+11:22:57.013 npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+11:22:57.014 npm warn config `--include=optional` to include them.
+11:22:57.014 npm warn config
+11:22:57.014 npm warn config       Default value does install optional deps unless otherwise omitted.

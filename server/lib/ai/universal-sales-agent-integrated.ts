@@ -195,7 +195,8 @@ export async function generateContextAwareMessage(
 
   // INJECT BRAND PDF CONTEXT IF AVAILABLE
   const user = await storage.getUserById(lead.userId);
-  const pdfContext = (user?.metadata as any)?.businessDescription || (user?.metadata as any)?.extracted_text || "";
+  const metadata = user?.metadata as any;
+  const pdfContext = metadata?.businessDescription || metadata?.extracted_text || "";
   
   const enhancedLead = {
     ...lead,
