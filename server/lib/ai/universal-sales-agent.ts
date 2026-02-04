@@ -507,6 +507,7 @@ export async function generateSmartMessage(
   const brandCompanyName = (brandContext as SalesBrandContext).companyName || brandContext.businessName || "This Business";
   const firstName = leadProfile.firstName || "";
   const painPoint = leadProfile.painPoint || "Unknown - find out";
+  const pdfContext = (leadProfile as any).pdfContext || "";
 
   const stageText = stage === "cold"
     ? "First touch - grab attention"
@@ -522,6 +523,7 @@ Your goal: Make ${companyName} their first $1,000 close TODAY.
 BRAND: ${brandCompanyName}
 UVP: ${uvp.uvp}
 DIFFERENTIATORS: ${uvp.differentiators.join(", ")}
+${pdfContext ? `BRAND PDF CONTEXT: ${pdfContext.substring(0, 3000)}` : ""}
 
 LEAD: ${firstName} at ${companyName}
 INDUSTRY: ${industry}

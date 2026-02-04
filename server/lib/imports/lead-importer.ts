@@ -122,7 +122,7 @@ export async function importManychatLeads(userId: string): Promise<{
           phone: sub.phone || null,
           channel: 'instagram',
           status: 'new',
-          metadata: { manychat_id: sub.id, imported_from_manychat: true }
+          metadata: { manychat_id: sub.id, imported_from_manychat: true, industry: sub.industry || 'unknown', companySize: sub.company_size || 'unknown' }
         });
         results.leadsImported++;
       } catch (e) { }
