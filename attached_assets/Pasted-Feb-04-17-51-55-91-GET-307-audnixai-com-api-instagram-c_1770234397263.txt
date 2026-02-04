@@ -1,0 +1,92 @@
+Feb 04 17:51:55.91
+GET
+307
+audnixai.com
+/api/instagram/callback
+Feb 04 17:51:47.71
+POST
+404
+www.audnixai.com
+/api/oauth/instagram/callback
+4:51:47 PM [express] POST /api/oauth/instagram/callback 404 in 1ms
+Feb 04 17:51:47.54
+POST
+
+Login error: error: column "brand_guideline_pdf_url" does not exist
+    at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+    at async DrizzleStorage.getUserByEmail (/vercel/path0/server/drizzle-storage.ts:70:20)
+    at async <anonymous> (/vercel/path0/server/routes/user-auth.ts:441:18) {
+  length: 124,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '625',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}bro check back migration also u know for th 3 and others not just this finish up even the progress tracker is pending
+307
+www.audnixai.com
+/api/instagram/callback
+2
+4:51:47 PM [express] POST /api/instagram/callback 307 in 1ms
+Feb 04 17:51:47.37
+GET
+307
+audnixai.com
+/api/instagram/callback
+Feb 04 17:51:41.59
+POST
+404
+www.audnixai.com
+/api/oauth/instagram/callback
+4:51:41 PM [express] POST /api/oauth/instagram/callback 404 in 2ms
+Feb 04 17:51:41.29
+POST
+307
+www.audnixai.com
+/api/instagram/callback
+2
+4:51:41 PM [express] POST /api/instagram/callback 307 in 3ms
+Feb 04 17:51:34.83
+POST
+404
+www.audnixai.com
+/api/oauth/instagram/callback
+16
+4:51:39 PM [express] POST /api/oauth/instagram/callback 404 in 8ms
+Login error: error: column "brand_guideline_pdf_url" does not exist
+    at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+    at async DrizzleStorage.getUserByEmail (/vercel/path0/server/drizzle-storage.ts:70:20)
+    at async <anonymous> (/vercel/path0/server/routes/user-auth.ts:441:18) {
+  length: 124,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '625',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
