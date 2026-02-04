@@ -202,7 +202,7 @@ export default function DashboardHome() {
       percentage: calculatePercentageChange(stats?.totalLeads || 0, previousStats?.totalLeads),
       trend: previousStats ? ((stats?.totalLeads || 0) > (previousStats?.totalLeads || 0) ? "up" : (stats?.totalLeads || 0) < (previousStats?.totalLeads || 0) ? "down" : "neutral") : "neutral",
       color: "text-primary",
-      glow: "group-hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
+      glow: "hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
     {
       label: "LEADS SENT",
@@ -211,7 +211,7 @@ export default function DashboardHome() {
       percentage: calculatePercentageChange(stats?.totalMessages || 0, previousStats?.messages),
       trend: previousStats ? ((stats?.totalMessages || 0) > (previousStats?.messages || 0) ? "up" : (stats?.totalMessages || 0) < (previousStats?.messages || 0) ? "down" : "neutral") : "neutral",
       color: "text-indigo-500",
-      glow: "group-hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+      glow: "hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
     {
       label: "REPLIES",
@@ -220,7 +220,7 @@ export default function DashboardHome() {
       percentage: calculatePercentageChange(stats?.convertedLeads || 0, previousStats?.convertedLeads),
       trend: previousStats ? ((stats?.convertedLeads || 0) > (previousStats?.convertedLeads || 0) ? "up" : (stats?.convertedLeads || 0) < (previousStats?.convertedLeads || 0) ? "down" : "neutral") : "neutral",
       color: "text-amber-500",
-      glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+      glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
     },
     {
       label: "PIPELINE VALUE",
@@ -260,7 +260,7 @@ export default function DashboardHome() {
               Welcome back, {user?.name?.split(' ')[0] || user?.username || 'User'}
             </h1>
             <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
-              {hasAnyActivity ? "Your outreach system is performing optimally." : "Scale your outreach with personalized AI automation."}
+              {isSmtpConnected ? "Your outreach system is performing optimally." : "Connect your SMTP to start outreach automation."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

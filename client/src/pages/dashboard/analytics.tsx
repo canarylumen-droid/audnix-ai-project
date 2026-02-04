@@ -102,7 +102,7 @@ export default function AnalyticsPage() {
     if (isLoading) {
         return (
             <div className="h-[70vh] flex items-center justify-center">
-                <PremiumLoader text="Initializing Analytics..." />
+                <PremiumLoader text="Updating Analytics..." />
             </div>
         );
     }

@@ -108,6 +108,9 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
 
     const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
+    // Business Email Health based Reputation (%)
+    const reputationPercentage = domainHealth;
+
     res.json({
       totalLeads: leads.length,
       newLeads,
