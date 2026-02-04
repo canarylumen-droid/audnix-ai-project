@@ -9,6 +9,7 @@
  * - Smart objection handling
  */
 
+import { storage } from "../../storage.js";
 import type { ConversationMessage, BrandContext, LeadProfile } from "../../../shared/types.js";
 import type { Lead } from "../../../shared/schema.js";
 import {

@@ -1,0 +1,36 @@
+insturctuon do all these things i siadn bro plan out ully while wokring on it too
+
+and then imap is running even before user have signedup no bro it should start running and chek and listen every moment once user have conneted imap so we ont go and waste our time okay or its fine thugh anyhow man
+then this landing pahe the hero is quite bad copy layout ui too techie not saas branded terms agents words etc idk
+C
+SMTP/KPI Synchronization: Increased the refresh frequency for dashboard statistics from 5 minutes to 30 seconds to ensure real-time updates as requested. hope page is not rereshing at all but behind backend right if not do it
+Dynamic Lead Analysis: Integrated the brand PDF text directly into the AI response generation system. The AI now crafts highly personalized emails using the specific "real solutions" provided in the uploaded brand guidelines so u sure ai analyze brand offer s offer then metadata and based on the lea details even lead preview oytreach prebiew fiferently all ui showng huhh??
+you will fix now bro run column link migrate too Warning: Cannot load "@napi-rs/canvas" package: "Error: Cannot find module '@napi-rs/canvas'
+Require stack:
+
+/var/task/node_modules/pdfjs-dist/legacy/build/pdf.mjs".
+and also this
+Check state error: error: column "calendar_link" does not exist
+at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+at async DrizzleStorage.getUser (/vercel/path0/server/drizzle-storage.ts:59:20)
+at async <anonymous> (/vercel/path0/server/routes/user-auth.ts:600:18) {
+length: 114,
+severity: 'ERROR',
+code: '42703',
+detail: undefined,
+hint: undefined,
+position: '608',
+internalPosition: undefined,
+internalQuery: undefined,
+where: undefined,
+schema: undefined,
+table: undefined,
+column: undefined,
+dataType: undefined,
+constraint: undefined,
+file: 'parse_relation.c',
+line: '3716',
+routine: 'errorMissingColumn'
+}

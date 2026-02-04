@@ -229,6 +229,14 @@ export default function registerInstagramWebhookRoutes(app: Express) {
   webhookLog("   - GET /api/webhook/instagram - Verify webhook");
   webhookLog("   - POST /api/webhook/instagram - Receive events");
   webhookLog("   - GET /api/webhook/instagram/status - Check config");
+
+  // Add callback alias to fix 404
+  app.post("/api/instagram/callback", webhookLimiter, (req, res, next) => {
+    webhookLog("Redirecting callback to webhook...");
+    req.url = "/api/webhook/instagram";
+    next();
+  });
+
   webhookLog(`   - Verify token configured: ${META_VERIFY_TOKEN ? "YES" : "NO"}`);
   webhookLog(`   - App secret configured: ${META_APP_SECRET ? "YES" : "NO"}`);
 }

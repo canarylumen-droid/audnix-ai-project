@@ -486,12 +486,26 @@ export default function VideoAutomationPage() {
                     ))}
                   </div>
                 ) : monitors?.length === 0 ? (
-                  <Card className="border-dashed bg-muted/20">
-                    <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                      <Zap className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                      <p className="text-sm text-muted-foreground">Select a reel to start monitoring</p>
-                    </CardContent>
-                  </Card>
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-[2.5rem] border border-dashed border-border/40 bg-muted/5 backdrop-blur-sm">
+                    <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center mb-6 relative">
+                      <Zap className="h-10 w-10 text-primary/40" />
+                      <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+                    </div>
+                    <h4 className="text-xl font-bold text-foreground mb-2">No Active Monitors</h4>
+                    <p className="text-sm text-muted-foreground max-w-[280px] mb-8 leading-relaxed">
+                      Audnix AI is ready to automate your Instagram sales. Select a reel from the feed to start converting comments into deals.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl border-primary/20 hover:bg-primary/5 text-primary font-bold px-8 h-12"
+                      onClick={() => {
+                        document.querySelector('.relative.w-full.max-w-md input')?.scrollIntoView({ behavior: 'smooth' });
+                        (document.querySelector('.relative.w-full.max-w-md input') as HTMLElement)?.focus();
+                      }}
+                    >
+                      Browse Your Reels
+                    </Button>
+                  </div>
                 ) : (
                   Array.isArray(monitors) && monitors.map((monitor) => (
                     <MonitorCard
