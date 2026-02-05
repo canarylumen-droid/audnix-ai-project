@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useRealtime } from "@/hooks/use-realtime";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useParams, useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,8 +39,15 @@ import {
   Target,
   Activity,
   Brain,
-  ChevronLeft
+  ChevronLeft,
+  Filter
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const channelIcons = {
   instagram: Instagram,
@@ -64,6 +70,7 @@ export default function InboxPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterChannel, setFilterChannel] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
   const [allLeads, setAllLeads] = useState<any[]>([]);
 
   // Message Thread State
@@ -74,10 +81,7 @@ export default function InboxPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
-
-
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
-  // useRealtime(user?.id); // Replacing with direct socket implementation
 
   useEffect(() => {
     if (!user?.id) return;
@@ -150,9 +154,16 @@ export default function InboxPage() {
       const matchesSearch = !searchQuery ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
-      return matchesSearch && matchesChannel;
+      
+      const matchesStatus = filterStatus === "all" 
+          ? true 
+          : filterStatus === "unread" 
+            ? (lead.metadata?.isUnread || false)
+            : lead.status === filterStatus;
+
+      return matchesSearch && matchesChannel && matchesStatus;
     });
-  }, [allLeads, searchQuery, filterChannel]);
+  }, [allLeads, searchQuery, filterChannel, filterStatus]);
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel }),
@@ -251,10 +262,29 @@ export default function InboxPage() {
           leadId && "hidden md:flex"
         )}>
           <div className="p-4 border-b space-y-4 shrink-0">
-            <div className="flex items-center justify-between md:hidden mb-2">
+            <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Inbox</h2>
-              <Button variant="ghost" size="icon" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4" /></Button>
+              <div className="flex items-center gap-2">
+                 {/* Status Filter Dropdown */}
+                 <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                        <Filter className={cn("h-4 w-4", filterStatus !== 'all' ? "text-primary" : "text-muted-foreground")} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setFilterStatus("all")} className="cursor-pointer font-medium">All Chats</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("unread")} className="cursor-pointer font-medium">Unread</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <Button variant="ghost" size="icon" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4" /></Button>
+              </div>
             </div>
+            
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -264,17 +294,40 @@ export default function InboxPage() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
+            
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("all")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'all' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>All</Button>
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("instagram")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'instagram' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Instagram</Button>
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'email' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Email</Button>
             </div>
+
+            {/* Active Status Display */}
+            {filterStatus !== 'all' && (
+                <div className="flex items-center gap-2 px-1">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Filtering by:</span>
+                    <Badge variant="secondary" className="text-[10px] px-2 h-5 uppercase">
+                        {filterStatus}
+                        <X 
+                            className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive" 
+                            onClick={(e) => { e.stopPropagation(); setFilterStatus('all'); }} 
+                        />
+                    </Badge>
+                </div>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-border/5">
             {leadsLoading && page === 0 ? (
               <div className="p-4 space-y-4">
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
               </div>
+            ) : filteredLeads.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center h-64">
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                        <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
+                    <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
+                </div>
             ) : (
               <>
                 {filteredLeads.map(lead => (
@@ -306,6 +359,12 @@ export default function InboxPage() {
                         <p className={cn("text-xs truncate transition-colors", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
                           {lead.lastMessageSnippet || "No messages"}
                         </p>
+                        <div className="flex items-center gap-2 mt-1">
+                             <Badge variant="outline" className={cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status] || statusStyles.cold)}>
+                                {lead.status}
+                             </Badge>
+                             {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -343,9 +402,16 @@ export default function InboxPage() {
                 {/* Thread Header */}
                 <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background/50 backdrop-blur-md shrink-0">
                   <div className="flex items-center gap-4 min-w-0">
-                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setLocation('/dashboard/inbox')}>
+                    {/* Back Button for Mobile */}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="shrink-0 md:hidden -ml-2" 
+                        onClick={() => setLocation('/dashboard/inbox')}
+                    >
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
+                    
                     <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>
@@ -494,10 +560,9 @@ export default function InboxPage() {
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Profile Tags</p>
                         {activeLead?.tags?.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
-                            {activeLead.tags.map((tag: string) => (
-                              <Badge key={tag} variant="secondary" className="text-[10px] px-3 py-1 bg-primary/5 text-primary border-primary/10 font-bold uppercase tracking-tight rounded-lg">
-                                {tag}
-                              </Badge>
+                            {/* Tags display implementation */}
+                            {activeLead.tags.map(tag => (
+                                <Badge key={tag} variant="secondary">{tag}</Badge>
                             ))}
                           </div>
                         ) : (

@@ -775,6 +775,10 @@ export class MemStorage implements IStorage {
     return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
+  async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
+    return [];
+  }
+
   // Onboarding methods
   private onboardingProfiles: Map<string, any> = new Map();
 

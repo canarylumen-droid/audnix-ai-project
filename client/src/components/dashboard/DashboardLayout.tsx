@@ -291,14 +291,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   if (isUserLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background">
+      <div className="h-[100dvh] w-screen flex items-center justify-center bg-background">
         <PremiumLoader text="Preparing Workspace..." />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background font-sans text-foreground overflow-hidden">
+    <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden">
       <InternetConnectionBanner />
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />

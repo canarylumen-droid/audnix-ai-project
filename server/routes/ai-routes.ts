@@ -233,6 +233,51 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response): Prom
  * POST /api/leads/import-csv
  */
 /**
+ * Update lead details (status, aiPaused, etc.)
+ * PATCH /api/leads/:leadId
+ */
+router.patch("/:leadId", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leadId } = req.params;
+    const updates = req.body;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    // Sanitize updates
+    const allowedUpdates: Partial<typeof lead> = {};
+    if (typeof updates.aiPaused === 'boolean') allowedUpdates.aiPaused = updates.aiPaused;
+    if (updates.status) allowedUpdates.status = updates.status;
+    if (updates.name) allowedUpdates.name = updates.name;
+    if (updates.email) allowedUpdates.email = updates.email;
+    if (updates.phone) allowedUpdates.phone = updates.phone;
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      res.status(400).json({ error: "No valid updates provided" });
+      return;
+    }
+
+    const updatedLead = await storage.updateLead(leadId, {
+      ...allowedUpdates,
+      lastStatusUpdate: updates.status && updates.status !== lead.status ? new Date() : lead.lastStatusUpdate
+    });
+
+    // Notify via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
+
+    res.json(updatedLead);
+  } catch (error: unknown) {
+    console.error("Update lead error:", error);
+    res.status(500).json({ error: "Failed to update lead" });
+  }
+});
+
+/**
  * GET /api/leads/:leadId
  * Get a single lead by ID
  */
@@ -315,10 +360,15 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const oldStatus = lead.status;
     const newStatus = statusDetection.status;
 
-    await storage.updateLead(leadId, {
+    const updatedLead = await storage.updateLead(leadId, {
       status: newStatus,
       lastMessageAt: new Date()
     });
+
+    // Notify via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyMessagesUpdated(userId, { leadId, message });
+    wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
 
     if (oldStatus !== newStatus) {
       let notificationTitle = '';
@@ -503,6 +553,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
 
     const results = {
       leadsImported: 0,
+      leadsUpdated: 0,
       leadsFiltered: 0,
       errors: [] as string[]
     };
@@ -515,6 +566,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
 
       try {
         const identifier = leadData.email || leadData.phone;
+        // Relaxed validation: Allow import if at least one contact method exists
         if (!identifier) {
           results.errors.push(`Row ${i + 1}: Missing email or phone`);
           continue;
@@ -531,7 +583,22 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
         );
 
         if (existingLead) {
-          results.errors.push(`Row ${i + 1}: Lead already exists`);
+          // Improve Deduplication: Merge strategy (fill missing fields only)
+          const updates: Record<string, any> = {};
+          if (!existingLead.phone && leadData.phone) updates.phone = leadData.phone;
+          if (!existingLead.email && leadData.email) updates.email = leadData.email;
+          if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
+          
+          const existingMeta = existingLead.metadata as Record<string, any> || {};
+          if (!existingMeta.company && leadData.company) {
+             updates.metadata = { ...existingMeta, company: leadData.company };
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await storage.updateLead(existingLead.id, updates);
+            results.leadsUpdated++;
+          }
+          // Don't count as imported (new lead), but don't error.
           continue;
         }
 
@@ -543,6 +610,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
             // If domain is 'poor' or has no MX records, filter it out
             if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
               results.leadsFiltered++;
+              // Silent filter to reduce noise, or keep log but not error
               results.errors.push(`Row ${i + 1}: Undeliverable domain (Neural Filter)`);
               continue;
             }
@@ -596,11 +664,12 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
     }
 
     res.json({
-      success: results.leadsImported > 0,
+      success: results.leadsImported > 0 || results.leadsUpdated > 0,
       leadsImported: results.leadsImported,
+      leadsUpdated: results.leadsUpdated,
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
-      message: `Imported ${results.leadsImported} leads successfully. Filtered ${results.leadsFiltered} low-quality contacts.`
+      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing. Filtered ${results.leadsFiltered} low-quality.`
     });
 
   } catch (error: unknown) {

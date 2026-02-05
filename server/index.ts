@@ -267,6 +267,7 @@ app.use((req, res, next) => {
     "/api/oauth/instagram/callback",
     "/api/oauth/instagram/webhook",
     "/api/oauth/facebook/webhook",
+    "/api/messages",
   ];
 
   const requestPath = req.path;

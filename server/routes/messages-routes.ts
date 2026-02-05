@@ -128,14 +128,19 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
     });
 
     // Update lead last message time
-    await storage.updateLead(leadId, {
+    const updatedLead = await storage.updateLead(leadId, {
       lastMessageAt: new Date(),
       status: lead.status === "new" ? "open" : lead.status,
     });
 
+    // Notify via WebSocket
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    wsSync.notifyMessagesUpdated(userId, { leadId, message });
+    wsSync.notifyLeadsUpdated(userId, { type: 'lead_updated', lead: updatedLead });
+
     res.json({
       message,
-      leadStatus: lead.status === "new" ? "open" : lead.status,
+      leadStatus: updatedLead.status,
     });
   } catch (error: unknown) {
     console.error("Send message error:", error);
