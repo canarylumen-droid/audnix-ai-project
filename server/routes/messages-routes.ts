@@ -3,8 +3,25 @@ import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import { sendEmail } from "../lib/channels/email.js";
 import { sendInstagramMessage } from "../lib/channels/instagram.js";
+import { smtpSettings } from "@shared/schema.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db.js";
 
 const router = Router();
+
+/**
+ * GET /api/smtp/settings
+ * Get SMTP settings for the current user
+ */
+router.get("/smtp/settings", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const settings = await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch SMTP settings" });
+  }
+});
 
 /**
  * GET /api/messages/:leadId

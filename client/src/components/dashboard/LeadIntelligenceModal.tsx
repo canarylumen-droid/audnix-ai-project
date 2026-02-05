@@ -184,20 +184,16 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                                 strokeLinecap="round"
                                             />
                                         </svg>
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.5 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: 0.8 }}
-                                            className="absolute"
-                                        >
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Lead Probability</div>
+                                        <div className="flex items-center gap-2">
                                             <span className="text-3xl font-black tracking-tighter text-orange-500">
                                                 {intelligence.intent.intentScore}
                                             </span>
-                                        </motion.div>
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Pulse</p>
-                                        <p className="text-sm font-bold text-foreground">Buying Affinity</p>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Lead Affinity</p>
+                                        <p className="text-sm font-bold text-foreground">Interest Level</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -212,7 +208,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                         <div className="text-3xl font-black tracking-tight text-foreground">
                                             ${intelligence.predictions.predictedAmount.toLocaleString()}
                                         </div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Estimated Yield</p>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Projected Value</p>
                                     </div>
                                     <p className="text-xs font-bold text-muted-foreground/50">
                                         {intelligence.predictions.confidence}% AI Certainty
@@ -245,10 +241,10 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     </div>
                                     <div>
                                         <div className="font-medium flex items-center gap-2">
-                                            {lead?.email || "No Email"}
+                                            {lead?.email || "No Email Address"}
                                             {lead?.email && <CheckCircle2 className="h-3 w-3 text-primary" />}
                                         </div>
-                                        <div className="text-xs text-muted-foreground">Email Reputation: <span className="text-primary font-medium">Verified Safe</span></div>
+                                        <div className="text-xs text-muted-foreground">Verification Status: <span className="text-primary font-medium">Verified</span></div>
                                     </div>
                                 </div>
                                 <div className="text-right">
@@ -269,22 +265,22 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 </h4>
                                 <div className="p-6 rounded-[2.5rem] bg-card/40 border border-border/40 space-y-6">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intensity Analytics</span>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40">Intent Analytics</span>
                                         <Badge variant={intelligence.intent.intentLevel === 'high' ? 'default' : 'secondary'} className={intelligence.intent.intentLevel === 'high' ? "bg-orange-500/10 text-orange-500 border-orange-500/20 px-3 font-black" : "font-black"}>
-                                            {intelligence.intent.intentLevel.toUpperCase()} INTENT
+                                            {(intelligence.intent.intentLevel || "low").toUpperCase()} INTENT
                                         </Badge>
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-[10px] font-bold uppercase text-muted-foreground/50">
                                             <span>Validation Confidence</span>
-                                            <span>{Math.round(intelligence.intent.confidence * 100)}%</span>
+                                            <span>{Math.round((intelligence.intent.confidence || 0) * 100)}%</span>
                                         </div>
-                                        <Progress value={intelligence.intent.confidence * 100} className="h-1.5 bg-white/5" />
+                                        <Progress value={(intelligence.intent.confidence || 0) * 100} className="h-1.5 bg-white/5" />
                                     </div>
                                     <div className="space-y-3">
                                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 block">Digital Footprint Signals</span>
                                         <ul className="grid grid-cols-1 gap-2">
-                                            {intelligence.intent.signals.map((signal, i) => (
+                                            {(intelligence.intent.signals || []).map((signal, i) => (
                                                 <motion.li
                                                     key={i}
                                                     initial={{ opacity: 0, x: -10 }}
@@ -298,7 +294,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                                     <span className="font-bold text-foreground/80 tracking-tight">{signal}</span>
                                                 </motion.li>
                                             ))}
-                                            {!intelligence.intent.signals.length && (
+                                            {(!intelligence.intent.signals || !intelligence.intent.signals.length) && (
                                                 <li className="text-xs text-muted-foreground/50 py-4 text-center border border-dashed border-border/20 rounded-2xl">No strong signals yet</li>
                                             )}
                                         </ul>
@@ -312,7 +308,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 </h4>
                                 <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 h-full flex flex-col justify-center text-center space-y-3">
                                     <p className="font-medium text-lg text-foreground">
-                                        {intelligence.nextBestAction}
+                                        {intelligence.nextBestAction || "Analyze interaction patterns"}
                                     </p>
                                     <Button 
                                         onClick={() => {
@@ -326,7 +322,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                         }}
                                         className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
                                     >
-                                        Execute Strategy <ArrowRight className="ml-2 h-4 w-4" />
+                                        Execute Action <ArrowRight className="ml-2 h-4 w-4" />
                                     </Button>
                                 </div>
                             </div>

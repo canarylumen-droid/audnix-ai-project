@@ -44,19 +44,11 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const [hasChanges, setHasChanges] = useState(false);
 
-  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
   const { data: user, isLoading } = useQuery<UserProfile | null>({ queryKey: ["/api/user/profile"] });
+  const { data: smtpData } = useQuery<any[]>({ queryKey: ["/api/smtp/settings"] });
+  const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
 
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    company: "",
-    timezone: "America/New_York",
-    ctaLink: "",
-    ctaText: "",
-    calendarLink: "",
-    voiceNotesEnabled: true
-  });
 
   useEffect(() => {
     if (user) {
@@ -261,39 +253,33 @@ export default function SettingsPage() {
             <Card className="border-border/50 shadow-sm rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Globe className="h-5 w-5 text-primary" />
-                  Primary Action
+                  <Mail className="h-5 w-5 text-primary" />
+                  SMTP Settings
                 </CardTitle>
-                <CardDescription>Direct leads to your booking link or website.</CardDescription>
+                <CardDescription>Manage your primary sending address and track activity.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CTA Link</Label>
-                  <Input
-                    placeholder="https://cal.com/meeting"
-                    value={formData.ctaLink}
-                    onChange={e => handleFieldChange('ctaLink', e.target.value)}
-                    className="rounded-xl h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">CTA Text</Label>
-                  <Input
-                    placeholder="Book a Strategy Call"
-                    value={formData.ctaText}
-                    onChange={e => handleFieldChange('ctaText', e.target.value)}
-                    className="rounded-xl h-11"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calendar Link (for AI Booking)</Label>
-                  <Input
-                    placeholder="https://calendly.com/your-link"
-                    value={formData.calendarLink}
-                    onChange={e => handleFieldChange('calendarLink', e.target.value)}
-                    className="rounded-xl h-11"
-                  />
-                  <p className="text-[10px] text-muted-foreground italic">AI will use this link to book calls with leads.</p>
+                <div className="p-4 rounded-xl bg-muted/30 border border-border">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm font-bold">{smtpData?.[0]?.email || "sales@replyflow.pro"}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Primary Sending Address</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Test Send</Button>
+                      <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Edit</Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-background border border-border">
+                      <p className="text-xl font-black">{smtpData?.[0]?.dailySentCount || 0}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Sent Today</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-background border border-border">
+                      <p className="text-xl font-black">{smtpData?.[0]?.yesterdaySentCount || 0}</p>
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-tighter">Sent Yesterday</p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
