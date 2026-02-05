@@ -39,7 +39,8 @@ import {
   X,
   Target,
   Activity,
-  Brain
+  Brain,
+  ChevronLeft
 } from "lucide-react";
 
 const channelIcons = {
@@ -342,7 +343,9 @@ export default function InboxPage() {
                 {/* Thread Header */}
                 <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background/50 backdrop-blur-md shrink-0">
                   <div className="flex items-center gap-4 min-w-0">
-                    <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={() => setLocation('/dashboard/inbox')}><X className="h-5 w-5" /></Button>
+                    <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setLocation('/dashboard/inbox')}>
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
                     <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>

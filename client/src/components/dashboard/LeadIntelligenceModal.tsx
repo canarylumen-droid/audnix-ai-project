@@ -206,7 +206,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     </div>
                                     <div className="space-y-1">
                                         <div className="text-3xl font-black tracking-tight text-foreground">
-                                            ${intelligence.predictions.predictedAmount.toLocaleString()}
+                                            {intelligence.intent.intentLevel === "high" ? `$${intelligence.predictions.predictedAmount.toLocaleString()}` : "Analyzing..."}
                                         </div>
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Projected Value</p>
                                     </div>
