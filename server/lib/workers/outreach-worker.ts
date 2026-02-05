@@ -13,11 +13,11 @@ import { storage } from '../../storage.js';
 import { wsSync } from '../websocket-sync.js';
 import { sendEmail } from '../channels/email.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
-import OpenAI from 'openai';
-
-const openai = process.env.OPENAI_API_KEY 
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+/**
+ * Generate AI-powered cold outreach email based on lead metadata
+ * Uses curiosity, FOMO, trust, and punchy triggers
+ */
+import { generateReply } from '../ai/openai.js';
 
 interface UserWithEmail {
   id: string;
@@ -36,10 +36,6 @@ interface UncontactedLead {
   userId: string;
 }
 
-/**
- * Generate AI-powered cold outreach email based on lead metadata
- * Uses curiosity, FOMO, trust, and punchy triggers
- */
 async function generateColdOutreachEmail(
   lead: UncontactedLead,
   businessName: string
@@ -50,6 +46,7 @@ async function generateColdOutreachEmail(
   const leadRole = (leadMetadata.role as string) || '';
   const firstName = lead.name.split(' ')[0];
 
+  const systemPrompt = "You are a cold email expert. Return only valid JSON.";
   const prompt = `You are an expert cold email copywriter. Generate a highly personalized cold outreach email.
 
 LEAD INFO:
@@ -79,35 +76,27 @@ RULES:
 - Sound human, not salesy
 - Use their first name naturally
 
-Return JSON only:
+Return strictly valid JSON only:
 {
   "subject": "...",
   "body": "..."
 }`;
 
-  if (openai) {
-    try {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: "You are a cold email expert. Return only valid JSON." },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.8
-      });
+  try {
+    const { text } = await generateReply(systemPrompt, prompt, {
+      jsonMode: true,
+      temperature: 0.8
+    });
 
-      const content = response.choices[0].message.content;
-      if (content) {
-        const parsed = JSON.parse(content);
-        return {
-          subject: parsed.subject || `Quick question, ${firstName}`,
-          body: parsed.body || `Hey ${firstName},\n\nWanted to reach out about something that might help ${leadCompany || 'your business'}.\n\nWould love to share a quick idea - mind if I send it over?\n\nBest,\n${businessName}`
-        };
-      }
-    } catch (error) {
-      console.error('[AutoOutreach] AI generation error:', error);
+    if (text) {
+      const parsed = JSON.parse(text);
+      return {
+        subject: parsed.subject || `Quick question, ${firstName}`,
+        body: parsed.body || `Hey ${firstName},\n\nWanted to reach out about something that might help ${leadCompany || 'your business'}.\n\nWould love to share a quick idea - mind if I send it over?\n\nBest,\n${businessName}`
+      };
     }
+  } catch (error) {
+    console.error('[AutoOutreach] AI generation error (using fallback):', error);
   }
 
   // Fallback template
