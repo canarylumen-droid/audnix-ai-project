@@ -322,8 +322,16 @@ async function getUserBrandColors(userId: string): Promise<BrandColors | undefin
   }
 }
 
+// Re-adding missing interface due to previous edit error
+export interface EmailOptions {
   isRaw?: boolean; // If true, sends content as-is without branded wrapper
   trackingId?: string;
+  brandColors?: BrandColors;
+  businessName?: string;
+  buttonUrl?: string;
+  buttonText?: string;
+  isMeetingInvite?: boolean;
+  isHtml?: boolean;
 }
 
 /**

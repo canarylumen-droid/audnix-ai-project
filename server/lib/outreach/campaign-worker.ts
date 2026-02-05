@@ -148,7 +148,7 @@ export class CampaignWorker {
         // AI Personalization (if enabled)
         if (campaign.config?.isManual === false) {
              try {
-                 const aiContent = await generateExpertOutreach(lead, campaign.userId, isFollowUp ? body : undefined);
+                 const aiContent = await generateExpertOutreach(lead, campaign.userId);
                  if (aiContent && aiContent.subject && aiContent.body) {
                      subject = aiContent.subject;
                      if (!isFollowUp) body = aiContent.body; // Only overwrite body if not a manual-ish follow-up template body

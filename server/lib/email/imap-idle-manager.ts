@@ -182,7 +182,7 @@ class ImapIdleManager {
                             meta.last_error = err.message;
                             meta.error_at = new Date().toISOString();
                             
-                            await storage.updateIntegration(integration.id, {
+                            await storage.updateIntegration(integration.userId, 'custom_email', {
                                 encryptedMeta: await (await import('../crypto/encryption.js')).encrypt(JSON.stringify(meta))
                             });
                         }
@@ -285,8 +285,7 @@ class ImapIdleManager {
 
                 const fetch = imap.seq.fetch(fetchRange, {
                     bodies: '',
-                    struct: true,
-                    flags: true
+                    struct: true
                 });
 
                 const emails: any[] = [];

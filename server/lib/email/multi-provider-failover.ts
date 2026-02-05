@@ -205,7 +205,12 @@ class MultiProviderEmailFailover {
             email.html
         );
         // Fire and forget
-        imapIdleManager.appendSentMessage(userId, rawMime).catch(err => {
+        imapIdleManager.appendSentMessage(userId, rawMime, {
+            smtp_host: smtpConfig.smtp_host,
+            smtp_port: smtpConfig.smtp_port,
+            smtp_user: smtpConfig.smtp_user,
+            smtp_pass: smtpConfig.smtp_pass
+        }).catch(err => {
             console.error(`Failed to append to sent folder for user ${userId}:`, err);
         });
       } catch (err) {
