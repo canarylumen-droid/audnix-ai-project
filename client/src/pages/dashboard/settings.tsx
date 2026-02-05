@@ -49,6 +49,15 @@ export default function SettingsPage() {
   const { canAccess: canAccessVoiceNotes } = useCanAccessVoiceNotes();
 
   const [formData, setFormData] = useState({
+    name: "",
+    username: "",
+    company: "",
+    timezone: "America/New_York",
+    ctaLink: "",
+    ctaText: "",
+    calendarLink: "",
+    voiceNotesEnabled: true
+  });
 
   useEffect(() => {
     if (user) {

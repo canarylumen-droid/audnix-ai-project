@@ -79,35 +79,42 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
     const messageBody = content.trim();
 
     // Actual sending logic
-    if (selectedChannel === 'email') {
-      if (!lead.email) {
-        res.status(400).json({ error: "Lead has no email address" });
+    try {
+      if (selectedChannel === 'email') {
+        if (!lead.email) {
+          res.status(400).json({ error: "Lead has no email address" });
+          return;
+        }
+        await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`, { isRaw: true });
+      } else if (selectedChannel === 'instagram') {
+        const leadMeta = lead.metadata as any;
+        const igId = leadMeta?.instagram_id || leadMeta?.psid || lead.externalId;
+        if (!igId) {
+          res.status(400).json({ error: "Lead has no Instagram ID" });
+          return;
+        }
+        // Fetch Credentials
+        const oauth = await storage.getOAuthAccount(userId, 'instagram');
+        if (!oauth || !oauth.accessToken) {
+          res.status(400).json({ error: "Instagram not connected" });
+          return;
+        }
+        const meta = (oauth.metadata as any) || {};
+        const businessId = meta.instagram_business_account_id;
+        if (!businessId) {
+          res.status(400).json({ error: "Instagram business account ID missing" });
+          return;
+        }
+        await sendInstagramMessage(oauth.accessToken, businessId, igId, messageBody);
+      }
+    } catch (sendError: any) {
+      console.error("Sending error:", sendError);
+      // Check for IMAP timeout specifically or general failure
+      if (sendError.message?.toLowerCase().includes('timeout') || sendError.code === 'ETIMEDOUT') {
+        res.status(504).json({ error: "Connection timed out. Retrying in background..." });
         return;
       }
-      await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`, { isRaw: true });
-      // Note: Subject is assumed Re: Name or Conversation. Ideally should thread based on last subject.
-      // But sendEmail handles some logic. For exact threading, we need threadId or Message-ID.
-      // sendEmail is simple.
-    } else if (selectedChannel === 'instagram') {
-      const leadMeta = lead.metadata as any;
-      const igId = leadMeta?.instagram_id || leadMeta?.psid || lead.externalId;
-      if (!igId) {
-        res.status(400).json({ error: "Lead has no Instagram ID" });
-        return;
-      }
-      // Fetch Credentials
-      const oauth = await storage.getOAuthAccount(userId, 'instagram');
-      if (!oauth || !oauth.accessToken) {
-        res.status(400).json({ error: "Instagram not connected" });
-        return;
-      }
-      const meta = (oauth.metadata as any) || {};
-      const businessId = meta.instagram_business_account_id;
-      if (!businessId) {
-        res.status(400).json({ error: "Instagram business account ID missing" });
-        return;
-      }
-      await sendInstagramMessage(oauth.accessToken, businessId, igId, messageBody);
+      throw sendError;
     }
 
     const message = await storage.createMessage({

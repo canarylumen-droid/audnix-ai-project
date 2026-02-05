@@ -266,9 +266,18 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     const userId = getCurrentUserId(req)!;
 
     const lead = await storage.getLeadById(leadId);
-    if (!lead || lead.userId !== userId) {
+    if (!lead) {
       res.status(404).json({ error: "Lead not found" });
       return;
+    }
+
+    // Allow owner or admin
+    if (lead.userId !== userId) {
+      const user = await storage.getUserById(userId);
+      if (user?.role !== 'admin') {
+        res.status(403).json({ error: "Unauthorized" });
+        return;
+      }
     }
 
     const messages = await storage.getMessagesByLeadId(leadId);

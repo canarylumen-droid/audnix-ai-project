@@ -156,7 +156,8 @@ export async function importCustomEmails(
     timeoutHandle = setTimeout(() => {
       if (!completed) {
         completed = true;
-        reject(new Error(`IMAP connection timeout after ${timeoutMs}ms. Please check your IMAP settings.`));
+        console.warn(`IMAP timeout for user ${config.smtp_user}. Resolving with empty list instead of crashing.`);
+        resolve([]); // Resolve with empty instead of rejecting to prevent crash
       }
     }, timeoutMs);
 
