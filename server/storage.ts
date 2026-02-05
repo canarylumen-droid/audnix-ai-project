@@ -1,5 +1,7 @@
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns } from "../shared/schema.js";
 import { randomUUID } from "crypto";
+import { eq, and, sql } from "drizzle-orm";
+import { db } from "./db.js";
 
 export interface IStorage {
   // User methods
@@ -94,6 +96,9 @@ export interface IStorage {
   incrementOtpAttempts(id: string): Promise<void>;
   markOtpVerified(id: string): Promise<void>;
   cleanupDemoData(): Promise<{ deletedUsers: number }>;
+
+  // SMTP Settings
+  getSmtpSettings(userId: string): Promise<SmtpSettings[]>;
 
   // Follow Up Queue
   createFollowUp(data: InsertFollowUpQueue): Promise<FollowUpQueue>;

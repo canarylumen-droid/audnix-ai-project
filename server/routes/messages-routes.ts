@@ -3,9 +3,6 @@ import { storage } from "../storage.js";
 import { requireAuth, getCurrentUserId } from "../middleware/auth.js";
 import { sendEmail } from "../lib/channels/email.js";
 import { sendInstagramMessage } from "../lib/channels/instagram.js";
-import { smtpSettings } from "@shared/schema.js";
-import { eq } from "drizzle-orm";
-import { db } from "../db.js";
 
 const router = Router();
 
@@ -16,7 +13,7 @@ const router = Router();
 router.get("/smtp/settings", requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = getCurrentUserId(req)!;
-    const settings = await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
+    const settings = await storage.getSmtpSettings(userId);
     res.json(settings);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch SMTP settings" });

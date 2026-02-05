@@ -17,7 +17,26 @@ export const bytea = customType<{ data: Buffer }>({
   },
 });
 
-// ========== DRIZZLE DATABASE TABLES ==========
+export const smtpSettings = pgTable("smtp_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  host: text("host").notNull(),
+  port: integer("port").notNull(),
+  user: text("user").notNull(),
+  pass: text("pass").notNull(),
+  secure: boolean("secure").notNull().default(true),
+  dailySentCount: integer("daily_sent_count").notNull().default(0),
+  yesterdaySentCount: integer("yesterday_sent_count").notNull().default(0),
+  lastResetAt: timestamp("last_reset_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const smtpSettingsSelect = createSelectSchema(smtpSettings);
+export const smtpSettingsInsert = createInsertSchema(smtpSettings);
+export type SmtpSettings = z.infer<typeof smtpSettingsSelect>;
+export type InsertSmtpSettings = z.infer<typeof smtpSettingsInsert>;
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

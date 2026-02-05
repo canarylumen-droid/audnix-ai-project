@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 import { wsSync } from './lib/websocket-sync.js';
@@ -1176,6 +1176,11 @@ export class DrizzleStorage implements IStorage {
     } catch (e) {
       return [];
     }
+  }
+
+  async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
+    checkDatabase();
+    return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
   }
 }
 
