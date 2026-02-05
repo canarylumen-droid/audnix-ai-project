@@ -189,12 +189,12 @@ export class AutonomousOutreachWorker {
       }
 
       // Filter users who have autonomous outreach enabled
-      const activeUsers = usersWithEmail.filter(u => {
+      const activeUsers = usersWithEmail.filter((u: any) => {
         const meta = (u.metadata as Record<string, any>) || {};
         return meta.autonomous_outreach_enabled === true;
       });
 
-      const uniqueUserIds = [...new Set(activeUsers.map(u => u.userId))];
+      const uniqueUserIds = [...new Set(activeUsers.map((u: any) => u.userId))];
       
       for (const userId of uniqueUserIds) {
         // Skip if this user is already being processed

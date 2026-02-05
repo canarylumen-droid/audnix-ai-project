@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   wsSync.initialize(server);
 
   // Initialize Campaign Worker
-  import('./lib/outreach/campaign-worker.js').then(({ campaignWorker }) => {
+  import('../lib/outreach/campaign-worker.js').then(({ campaignWorker }) => {
     campaignWorker.start();
   });
 
