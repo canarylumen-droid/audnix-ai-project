@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { GoogleGenerativeAI, SchemaType, Type } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { MODELS, OPENAI_INTELLIGENCE_MODEL } from "./model-config.js";
 
 // Initialize OpenAI conditionally

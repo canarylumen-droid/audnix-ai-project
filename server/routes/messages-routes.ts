@@ -133,6 +133,11 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       status: lead.status === "new" ? "open" : lead.status,
     });
 
+    if (!updatedLead) {
+      res.status(500).json({ error: "Failed to update lead status" });
+      return;
+    }
+
     // Notify via WebSocket
     const { wsSync } = await import('../lib/websocket-sync.js');
     wsSync.notifyMessagesUpdated(userId, { leadId, message });

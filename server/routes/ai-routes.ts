@@ -262,8 +262,7 @@ router.patch("/:leadId", requireAuth, async (req: Request, res: Response): Promi
     }
 
     const updatedLead = await storage.updateLead(leadId, {
-      ...allowedUpdates,
-      lastStatusUpdate: updates.status && updates.status !== lead.status ? new Date() : lead.lastStatusUpdate
+      ...allowedUpdates
     });
 
     // Notify via WebSocket
