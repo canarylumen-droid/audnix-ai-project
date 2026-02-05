@@ -17,6 +17,7 @@ interface EmailConfig {
 
 class ImapIdleManager {
     private connections: Map<string, Imap> = new Map();
+    private folders: Map<string, { inbox: string[], sent: string[] }> = new Map();
     private isRunning = false;
 
     /**
@@ -46,6 +47,7 @@ class ImapIdleManager {
                     console.log(`🔌 Closing IMAP connection for user ${userId}`);
                     imap.end();
                     this.connections.delete(userId);
+                    this.folders.delete(userId);
                 }
             }
 
@@ -60,6 +62,67 @@ class ImapIdleManager {
         } catch (error) {
             console.error('Error syncing IMAP IDLE connections:', error);
         }
+    }
+
+    /**
+     * Discover special folders (Inbox, Sent) using IMAP attributes
+     */
+    private async discoverFolders(userId: string, imap: Imap): Promise<void> {
+        return new Promise((resolve) => {
+            imap.getBoxes((err, boxes) => {
+                if (err) {
+                    console.warn(`[IMAP] Could not list boxes for user ${userId}:`, err.message);
+                    this.folders.set(userId, { inbox: ['INBOX'], sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail'] });
+                    resolve();
+                    return;
+                }
+
+                const inboxFolders: string[] = [];
+                const sentFolders: string[] = [];
+
+                const processBoxes = (obj: any, prefix = '') => {
+                    for (const key in obj) {
+                        const box = obj[key];
+                        const fullName = prefix + key;
+                        const attribs = box.attribs || [];
+
+                        // Check attributes first (best way)
+                        if (attribs.includes('\\Inbox')) {
+                            inboxFolders.push(fullName);
+                        } else if (attribs.includes('\\Sent')) {
+                            sentFolders.push(fullName);
+                        } else {
+                            // Fallback to name pattern
+                            const lowerKey = key.toLowerCase();
+                            if (lowerKey === 'inbox') {
+                                if (!inboxFolders.includes(fullName)) inboxFolders.push(fullName);
+                            } else if (
+                                lowerKey === 'sent' ||
+                                lowerKey === 'sent items' ||
+                                lowerKey === 'sent messages' ||
+                                lowerKey === 'sent-mail'
+                            ) {
+                                if (!sentFolders.includes(fullName)) sentFolders.push(fullName);
+                            }
+                        }
+
+                        if (box.children) {
+                            processBoxes(box.children, fullName + (box.delimiter || '/'));
+                        }
+                    }
+                };
+
+                processBoxes(boxes);
+
+                // Default fallbacks if none found
+                if (inboxFolders.length === 0) inboxFolders.push('INBOX');
+                if (sentFolders.length === 0) sentFolders.push('Sent');
+
+                console.log(`[IMAP] Discovered folders for ${userId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}]`);
+                this.folders.set(userId, { inbox: inboxFolders, sent: sentFolders });
+                resolve();
+            });
+        });
     }
 
     /**
@@ -94,13 +157,41 @@ class ImapIdleManager {
 
             this.connections.set(userId, imap);
 
-            imap.once('ready', () => {
+            imap.once('ready', async () => {
+                await this.discoverFolders(userId, imap);
                 this.openInbox(userId, imap);
             });
 
-            imap.once('error', (err: any) => {
+            imap.once('error', async (err: any) => {
                 console.error(`IMAP Error for user ${userId}:`, err.message);
-                this.reconnect(userId, integration);
+                
+                // If it's a definitive configuration error, don't reconnect and mark integration as failing
+                const fatalErrors = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'AUTHENTICATIONFAILED'];
+                const isFatal = fatalErrors.some(code => err.code === code || err.message?.includes(code));
+                
+                if (isFatal) {
+                    console.warn(`🛑 Fatal IMAP error for user ${userId}. Stopping retries.`);
+                    this.connections.delete(userId);
+                    this.folders.delete(userId);
+                    
+                    try {
+                        // Update integration metadata with error
+                        const integration = await storage.getIntegration(userId, 'custom_email');
+                        if (integration) {
+                            const meta = JSON.parse(await (await import('../crypto/encryption.js')).decrypt(integration.encryptedMeta!));
+                            meta.last_error = err.message;
+                            meta.error_at = new Date().toISOString();
+                            
+                            await storage.updateIntegration(integration.id, {
+                                encryptedMeta: await (await import('../crypto/encryption.js')).encrypt(JSON.stringify(meta))
+                            });
+                        }
+                    } catch (e) {
+                        console.error('Failed to update integration with IMAP error:', e);
+                    }
+                } else {
+                    this.reconnect(userId, integration);
+                }
             });
 
             imap.once('end', () => {
@@ -117,70 +208,98 @@ class ImapIdleManager {
     }
 
     private openInbox(userId: string, imap: Imap): void {
-        imap.openBox('INBOX', false, (err: any) => {
+        const userFolders = this.folders.get(userId) || { inbox: ['INBOX'], sent: [] };
+        const primaryInbox = userFolders.inbox[0] || 'INBOX';
+
+        imap.openBox(primaryInbox, false, (err: any) => {
             if (err) {
-                console.error(`Failed to open INBOX for user ${userId}:`, err.message);
+                console.error(`Failed to open ${primaryInbox} for user ${userId}:`, err.message);
                 return;
             }
 
-            console.log(`✅ IMAP IDLE active for user ${userId}`);
+            console.log(`✅ IMAP IDLE active on ${primaryInbox} for user ${userId}`);
 
             // Initial sync on connection
-            this.fetchNewEmails(userId, imap, 'INBOX', 'inbound');
+            this.fetchNewEmails(userId, imap, primaryInbox, 'inbound');
 
             imap.on('mail', (numNewMsgs: number) => {
                 console.log(`📬 User ${userId} received ${numNewMsgs} new messages`);
-                this.fetchNewEmails(userId, imap, 'INBOX', 'inbound');
+                this.fetchNewEmails(userId, imap, primaryInbox, 'inbound');
             });
-
-            // Periodically check Sent folders for outbound synchronization
-            const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
-            setInterval(() => {
-                for (const folder of sentFolders) {
-                    this.fetchNewEmails(userId, imap, folder, 'outbound').catch(() => { });
-                }
-            }, 10 * 60 * 1000); // Every 10 minutes
 
             // Start IDLE
             (imap as any).idle();
+
+            // Periodically check all specialized folders sequentially to avoid connection state issues
+            setInterval(async () => {
+                const currentFolders = this.folders.get(userId);
+                if (!currentFolders) return;
+
+                console.log(`🕒 Starting periodic full sync for user ${userId}`);
+                
+                // 1. Sync any extra Inboxes
+                for (let i = 1; i < currentFolders.inbox.length; i++) {
+                    await this.fetchNewEmails(userId, imap, currentFolders.inbox[i], 'inbound');
+                }
+
+                // 2. Sync all Sent folders
+                for (const folder of currentFolders.sent) {
+                    await this.fetchNewEmails(userId, imap, folder, 'outbound');
+                }
+            }, 10 * 60 * 1000); // Every 10 minutes
         });
     }
 
     private async fetchNewEmails(userId: string, imap: Imap, folderName: string = 'INBOX', direction: 'inbound' | 'outbound' = 'inbound'): Promise<void> {
         return new Promise((resolve) => {
+            const userFolders = this.folders.get(userId) || { inbox: ['INBOX'], sent: [] };
+            const primaryInbox = userFolders.inbox[0] || 'INBOX';
+
             // @ts-ignore - types mismatch
             imap.openBox(folderName, true, (err: any, box: any) => {
                 if (err) {
+                    console.warn(`[IMAP] Could not open folder ${folderName} for user ${userId}:`, err.message);
                     resolve();
                     return;
                 }
 
                 if (!box || !box.messages || box.messages.total === 0) {
                     // Empty box, nothing to fetch
-                    if (folderName !== 'INBOX') {
-                        imap.openBox('INBOX', false, () => {
-                            (imap as any).idle();
+                    if (folderName !== primaryInbox) {
+                        imap.openBox(primaryInbox, false, (openErr) => {
+                            if (!openErr) {
+                                try { (imap as any).idle(); } catch (e) {}
+                            }
                             resolve();
                         });
                     } else {
-                        (imap as any).idle();
+                        try { (imap as any).idle(); } catch (e) {}
                         resolve();
                     }
                     return;
                 }
 
-                // We fetch the last 10 emails to be safe and catch up
-                // If total < 10, fetch 1:*
-                const fetchRange = box.messages.total < 10 ? '1:*' : '-10:*';
+                // We fetch the last 20 emails to be safe and catch up on both new messages and flag changes
+                const total = box.messages.total;
+                const fetchRange = total < 20 ? '1:*' : `${total - 19}:*`;
 
                 const fetch = imap.seq.fetch(fetchRange, {
                     bodies: '',
-                    struct: true
+                    struct: true,
+                    flags: true
                 });
 
                 const emails: any[] = [];
+                let fetchError: any = null;
 
-                fetch.on('message', (msg: any) => {
+                fetch.on('message', (msg: any, seqno: number) => {
+                    let flags: string[] = [];
+                    let bodyParsed = false;
+
+                    msg.on('attributes', (attrs: any) => {
+                        flags = attrs.flags || [];
+                    });
+
                     msg.on('body', (stream: any) => {
                         simpleParser(stream, async (err: any, parsed: any) => {
                             if (!err && parsed) {
@@ -190,15 +309,24 @@ class ImapIdleManager {
                                     subject: parsed.subject,
                                     text: parsed.text || parsed.html || '',
                                     date: parsed.date,
-                                    html: parsed.html
+                                    html: parsed.html,
+                                    flags,
+                                    uid: seqno // Fallback UID
                                 });
                             }
+                            bodyParsed = true;
                         });
                     });
                 });
 
+                fetch.once('error', (err: any) => {
+                    fetchError = err;
+                });
+
                 fetch.once('end', async () => {
-                    if (emails.length > 0) {
+                    if (fetchError) {
+                        console.error(`[IMAP] Fetch error for ${folderName}:`, fetchError.message);
+                    } else if (emails.length > 0) {
                         console.log(`📥 Processing ${emails.length} ${direction} emails from ${folderName} for user ${userId}`);
                         const results = await pagedEmailImport(userId, emails.map(e => ({
                             from: e.from?.split('<')[1]?.split('>')[0] || e.from,
@@ -206,33 +334,26 @@ class ImapIdleManager {
                             subject: e.subject,
                             text: e.text,
                             date: e.date,
-                            html: e.html
-                        })), (progress) => {
-                            // Log progress if needed
-                        }, direction);
+                            html: e.html,
+                            isRead: e.flags?.includes('\\Seen') || false
+                        })), undefined, direction);
 
-                        if (results.imported > 0) {
-                            console.log(`✨ Real-time sync: Imported ${results.imported} new ${direction} messages for user ${userId}`);
-
-                            // Emit real-time update to frontend
-                            try {
-                                const { wsSync } = await import('../websocket-sync.js');
-                                wsSync.notifyLeadsUpdated(userId, { type: 'UPDATE', count: results.imported });
-                                wsSync.notifyMessagesUpdated(userId, { type: 'INSERT', count: results.imported });
-                            } catch (wsError) {
-                                // WebSocket might not be available or initialized
-                            }
+                        if (results.imported > 0 || results.skipped < emails.length) {
+                             // results.imported counts new messages OR read status updates in our paged importer
+                             // pagedEmailImport returns { imported, skipping } where imported includes updates
                         }
                     }
 
-                    // Return to INBOX and resume IDLE if we were scanning a sent folder
-                    if (folderName !== 'INBOX') {
-                        imap.openBox('INBOX', false, () => {
-                            (imap as any).idle();
+                    // Return to primary INBOX and resume IDLE
+                    if (folderName !== primaryInbox) {
+                        imap.openBox(primaryInbox, false, (openErr) => {
+                            if (!openErr) {
+                                try { (imap as any).idle(); } catch (e) {}
+                            }
                             resolve();
                         });
                     } else {
-                        (imap as any).idle();
+                        try { (imap as any).idle(); } catch (e) {}
                         resolve();
                     }
                 });

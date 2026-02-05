@@ -114,23 +114,41 @@ async function processEmailForLead(
     // We should check if a message with same Body + Date exists for this lead.
 
     const existingMessages = await storage.getMessages(lead.id);
-    const isDuplicate = existingMessages.some(m =>
+    const existingMessage = existingMessages.find(m =>
       Math.abs(new Date(m.createdAt).getTime() - new Date(email.date).getTime()) < 2000 &&
       m.body === (email.text || email.html || '')
     );
 
-    if (isDuplicate) {
-      results.skipped++;
+    if (existingMessage) {
+      // If message exists, check if isRead status changed
+      if (email.isRead !== undefined && existingMessage.isRead !== email.isRead) {
+        await storage.updateMessage(existingMessage.id, { isRead: email.isRead });
+        results.imported++; // Count as dynamic update
+        
+        // Notify UI of read status change
+        try {
+          const { wsSync } = await import('../websocket-sync.js');
+          wsSync.notifyMessagesUpdated(userId, { 
+            type: 'UPDATE', 
+            messageId: existingMessage.id, 
+            event: 'read_status_changed',
+            isRead: email.isRead
+          });
+        } catch (wsError) {}
+      } else {
+        results.skipped++;
+      }
       return;
     }
 
     // Create Message
-    await storage.createMessage({
+    const newMessage = await storage.createMessage({
       userId,
       leadId: lead.id,
       direction,
       body: email.text || email.html || '', // Prefer text, fallback html
       provider: 'email',
+      isRead: email.isRead || direction === 'outbound', // Sent emails are usually considered read
       metadata: {
         subject: email.subject,
         html: email.html, // Store full HTML in metadata if needed
@@ -139,6 +157,16 @@ async function processEmailForLead(
         date: email.date
       }
     });
+
+    // Notify UI of new message
+    try {
+      const { wsSync } = await import('../websocket-sync.js');
+      wsSync.notifyMessagesUpdated(userId, { 
+        type: 'INSERT', 
+        messageId: (newMessage as any).id,
+        direction 
+      });
+    } catch (wsError) {}
 
     // Update last message time on lead
     if (new Date(email.date) > new Date(lead.lastMessageAt || 0)) {
@@ -160,6 +188,25 @@ async function processEmailForLead(
             console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
           } catch (analysisError) {
             console.error('[EMAIL_IMPORT] Inbound message analysis error:', analysisError);
+          }
+
+          // MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
+          try {
+            const { campaignLeads } = await import('../../../shared/schema.js');
+            const { db } = await import('../../db.js');
+            const { eq, and } = await import('drizzle-orm');
+            
+            await db.update(campaignLeads)
+              .set({ status: 'replied' })
+              .where(
+                and(
+                  eq(campaignLeads.leadId, lead.id),
+                  eq(campaignLeads.status, 'sent') // Must be in 'sent' status (outreached) to be 'replied'
+                )
+              );
+            console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in active campaigns`);
+          } catch (campaignStatusError) {
+            console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
           }
         }
 

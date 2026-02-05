@@ -441,6 +441,7 @@ export class DrizzleStorage implements IStorage {
         openedAt: message.openedAt || null,
         clickedAt: message.clickedAt || null,
         repliedAt: message.repliedAt || null,
+        isRead: message.isRead ?? (message.direction === 'outbound'),
         createdAt: new Date(),
         metadata: message.metadata || {},
       })
@@ -461,6 +462,30 @@ export class DrizzleStorage implements IStorage {
       wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
     }
     return result[0];
+  }
+
+  async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .update(messages)
+      .set(updates)
+      .where(eq(messages.id, id))
+      .returning();
+    
+    if (result) {
+      wsSync.notifyMessagesUpdated(result.userId, { event: 'UPDATE', message: result });
+    }
+    return result;
+  }
+
+  async getMessageByTrackingId(trackingId: string): Promise<Message | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.trackingId, trackingId))
+      .limit(1);
+    return result;
   }
 
 

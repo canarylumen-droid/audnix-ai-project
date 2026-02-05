@@ -3,7 +3,7 @@ import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
 import { eq, and, lte, sql, desc, or } from 'drizzle-orm';
-import { db } from '../db.js';
+import { db } from '../../db.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
 
 export class CampaignWorker {
@@ -96,24 +96,29 @@ export class CampaignWorker {
         }
     }
 
-    // 3. Select pending leads
-    const pendingLeads = await db.select()
+    // 3. Select pending leads OR leads due for follow-up
+    const nextLeadResult = await db.select()
         .from(campaignLeads)
         .where(
             and(
                 eq(campaignLeads.campaignId, campaign.id),
-                eq(campaignLeads.status, 'pending')
+                or(
+                    eq(campaignLeads.status, 'pending'),
+                    and(
+                        eq(campaignLeads.status, 'sent'),
+                        lte(campaignLeads.nextActionAt, new Date()),
+                        sql`${campaignLeads.currentStep} < ${campaign.template.followups?.length || 0}`
+                    )
+                )
             )
         )
-        .limit(1); // Send 1 at a time to respect strict delay
+        .limit(1);
 
-    if (pendingLeads.length === 0) {
-        // Campaign active but no leads? Pause or Mark Completed?
-        // Mark completed if really empty
+    if (nextLeadResult.length === 0) {
         return;
     }
 
-    const leadEntry = pendingLeads[0];
+    const leadEntry = nextLeadResult[0];
     const lead = await storage.getLeadById(leadEntry.leadId);
 
     if (!lead || !lead.email) {
@@ -121,86 +126,90 @@ export class CampaignWorker {
         return;
     }
 
-    // 4. Send Email
+    // 4. Determine content based on current step
     try {
-        console.log(`[Campaign] Sending to ${lead.email} for campaign ${campaign.name}`);
+        console.log(`[Campaign] Processing step ${leadEntry.currentStep} for ${lead.email} in campaign ${campaign.name}`);
         
         let subject = campaign.template.subject;
         let body = campaign.template.body;
+        let isFollowUp = leadEntry.status === 'sent';
+
+        if (isFollowUp) {
+            const followUpConfig = campaign.template.followups[leadEntry.currentStep];
+            if (!followUpConfig) {
+                console.error(`[Campaign] No follow-up config for step ${leadEntry.currentStep} for lead ${lead.id}`);
+                return;
+            }
+            body = followUpConfig.body;
+            // subject usually stays the same or prepends Re:
+            if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
+        }
         
         // AI Personalization (if enabled)
         if (campaign.config?.isManual === false) {
              try {
-                 const aiContent = await generateExpertOutreach(lead, campaign.userId);
+                 const aiContent = await generateExpertOutreach(lead, campaign.userId, isFollowUp ? body : undefined);
                  if (aiContent && aiContent.subject && aiContent.body) {
                      subject = aiContent.subject;
+                     if (!isFollowUp) body = aiContent.body; // Only overwrite body if not a manual-ish follow-up template body
+                     // For follow-ups, we still want to keep the core body but maybe polish? 
+                     // Let's trust AI more if enabled.
                      body = aiContent.body;
                  }
              } catch (aiError) {
                  console.warn(`[Campaign] AI generation failed for ${lead.id}, falling back to template:`, aiError);
-                 // Fallback to template (already set)
              }
         }
 
-        // Standard Template Variable Replacement (always run as fallback or for manual)
+        // Standard Template Variable Replacement
         const firstName = lead.name?.split(' ')[0] || 'there';
         const company = lead.company || '';
         
         subject = subject.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
         body = body.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
 
-        await sendEmail(campaign.userId, lead.email, body, subject);
+        const trackingId = Math.random().toString(36).substring(2, 15);
+        await sendEmail(campaign.userId, lead.email, body, subject, { trackingId });
 
-        // Record message in storage (Outbound outreach)
+        // Record message
         await storage.createMessage({
             leadId: lead.id,
             userId: campaign.userId,
             direction: "outbound",
             body: body,
             provider: "email",
+            trackingId,
+            isRead: true, // Sent emails are usually considered read
             metadata: {
                 campaign_id: campaign.id,
                 subject: subject,
-                is_outreach: true
+                is_outreach: true,
+                step: leadEntry.currentStep
             }
         });
 
-        // 5. Update Status
+        // 5. Update Status and Schedule Next Step
+        const nextStep = leadEntry.currentStep + 1;
+        const hasMoreFollowUps = campaign.template.followups && nextStep <= campaign.template.followups.length;
+        
+        let nextActionAt = null;
+        if (hasMoreFollowUps) {
+            const nextFollowUp = campaign.template.followups[nextStep - 1];
+            const delayDays = nextFollowUp.delayDays || 3;
+            nextActionAt = new Date();
+            nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+        }
+
         await db.update(campaignLeads).set({ 
             status: 'sent', 
+            currentStep: nextStep,
+            nextActionAt: nextActionAt,
             sentAt: new Date(),
             error: null 
         }).where(eq(campaignLeads.id, leadEntry.id));
 
-        // 6. Schedule Follow-up (if configured)
-        if (campaign.config.followUpDelayDays) {
-          const followUpDate = new Date();
-          followUpDate.setDate(followUpDate.getDate() + campaign.config.followUpDelayDays);
+        console.log(`[Campaign] Step ${nextStep} completed for ${lead.email}. Next action: ${nextActionAt?.toISOString() || 'None'}`);
 
-          // Create next step in sequence?
-          // For MVP, we might just have one follow-up or a sequence array.
-          // Assuming simple "follow-up" enabled implicitly if delay is set.
-          // We need a way to distinguish initial vs follow-up in the campaign_leads table?
-          // Or we create a NEW task in `followUpQueue` (general table) or `campaign_leads`?
-          
-          // Let's use `followUpQueue` which is designed for general follow-ups
-          // OR iterate the campaign sequence index.
-          // If `campaign_leads` has `step_number`, we increment it.
-          // Checking schema... `campaignLeads` usually links lead to campaign.
-          // If we want multiple steps, we probably need a `step` column or new row.
-          
-          // Simplest for now: Use `storage.createFollowUp` which handles the "task" of following up.
-          // But `CampaignWorker` processes `campaign_leads`.
-          // If we want the *campaign* to handle it, we might insert a new row into `campaign_leads` 
-          // for the SAME lead but different `step`? (Schema dependent).
-          
-          // Let's assume we use the generic `createFollowUp` for now to put it in the "Todo" list for the user or system?
-          // Wait, autonomous campaign should send it automatically.
-          // Let's assume we just log it for now or use the generic scheduled message system if it exists.
-          
-          // Current solution: Log success. Re-implement robust sequence later if schema allows.
-          console.log(`[Campaign] Follow-up scheduled for ${followUpDate.toISOString()} (Not fully implemented in schema yet)`);
-        }
     } catch (error: any) {
         console.error(`[Campaign] Failed lead ${lead.id}:`, error);
         await db.update(campaignLeads).set({ 

@@ -74,7 +74,7 @@ export function PrivacyModal() {
 
           <div className="pt-8 mt-8 border-t border-white/5">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/20">
-              Last updated: January 2026 • support@audnixai.com
+              Last updated: January 2026 • support@audnix.com
             </p>
           </div>
         </div>

@@ -47,7 +47,7 @@ The result? Your leads hit dead-ends, get frustrated, and bounce. Meanwhile, you
 **The Core Problem:** ManyChat treats every conversation like a flowchart. But real sales conversations are fluid, emotional, and unpredictable. A lead might start with "How much?" and pivot to "I'm worried about X" in the same message.`
             },
             {
-                title: "ManyChat vs audnixai.com - Feature Comparison",
+                title: "ManyChat vs audnix.com - Feature Comparison",
                 type: "comparison",
                 items: [
                     { feature: "Conversation Logic", manychat: "IF/THEN Flows", audnix: "Neural Intent Detection" },
@@ -97,7 +97,7 @@ But if you're doing high-ticket sales, appointment setting, or complex B2B lead 
 Every Make.com workflow is a tower of technical debt. One API change, one rate limit, one malformed response—and your entire lead engine stops.`
             },
             {
-                title: "Make.com vs audnixai.com - Architecture",
+                title: "Make.com vs audnix.com - Architecture",
                 type: "comparison",
                 items: [
                     { feature: "Setup Time", manychat: "Hours/Days", audnix: "30 Minutes" },
@@ -140,7 +140,7 @@ Audnix handles all of this natively. Instagram, Email, CRM sync—it just works.
 And when n8n goes down? Your leads aren't waiting. They're moving to your competitors who actually replied.`
             },
             {
-                title: "n8n vs audnixai.com - Operational Reality",
+                title: "n8n vs audnix.com - Operational Reality",
                 type: "comparison",
                 items: [
                     { feature: "Hosting", manychat: "Self-Managed", audnix: "Fully Managed Cloud" },
@@ -183,7 +183,7 @@ But Zapier has no concept of:
 It's a pipe, not a brain. And pipes don't close deals.`
             },
             {
-                title: "Zapier vs audnixai.com - Sales Capabilities",
+                title: "Zapier vs audnix.com - Sales Capabilities",
                 type: "comparison",
                 items: [
                     { feature: "Lead Analysis", manychat: "None", audnix: "Deep Intent Scoring" },

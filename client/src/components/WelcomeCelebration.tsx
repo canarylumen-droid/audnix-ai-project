@@ -169,7 +169,7 @@ export function WelcomeCelebration({ username, onComplete }: WelcomeCelebrationP
             className="space-y-3"
           >
             <p className="text-xl text-white/90 font-semibold">
-              Welcome to audnixai.com
+              Welcome to audnix.com
             </p>
             <p className="text-base text-white/70">
               Your AI sales engine is ready to close deals

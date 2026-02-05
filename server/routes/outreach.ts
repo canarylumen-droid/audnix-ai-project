@@ -347,5 +347,56 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/outreach/track/:trackingId
+ * Tracking pixel endpoint for email opens
+ */
+router.get('/track/:trackingId', async (req, res) => {
+  try {
+    const { trackingId } = req.params;
+    const { messages } = await import('../../shared/schema.js');
+    const { wsSync } = await import('../lib/websocket-sync.js');
+    
+    // Update openedAt for the message
+    const [message] = await db.update(messages)
+      .set({ 
+        openedAt: new Date(),
+        isRead: true 
+      })
+      .where(eq(messages.trackingId, trackingId))
+      .returning();
+
+    if (message) {
+      console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);
+      // Notify UI in real-time
+      wsSync.notifyMessagesUpdated(message.userId, { 
+        type: 'UPDATE', 
+        messageId: message.id, 
+        event: 'opened' 
+      });
+    }
+
+    // Return a 1x1 transparent GIF
+    const pixel = Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64'
+    );
+    res.set('Content-Type', 'image/gif');
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    return res.end(pixel);
+  } catch (error) {
+    console.error('Tracking pixel error:', error);
+    // Still return the pixel even on error to avoid broken images
+    const pixel = Buffer.from(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'base64'
+    );
+    res.set('Content-Type', 'image/gif');
+    return res.end(pixel);
+  }
+});
+
 export default router;
 

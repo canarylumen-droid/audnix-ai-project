@@ -54,7 +54,7 @@ export default function TermsOfService() {
             <Card className="p-6 mb-12 bg-primary/5 border-primary/20">
               <h2 className="text-xl font-bold mb-4">Agreement Summary</h2>
               <p className="text-muted-foreground mb-4">
-                By using audnixai.com, you agree to these terms. Here's what you need to know:
+                By using audnix.com, you agree to these terms. Here's what you need to know:
               </p>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
@@ -86,10 +86,10 @@ export default function TermsOfService() {
               </h2>
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  By accessing or using audnixai.com's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you disagree with any part of these terms, you may not access our service.
+                  By accessing or using audnix.com's services, you agree to be bound by these Terms of Service and our Privacy Policy. If you disagree with any part of these terms, you may not access our service.
                 </p>
                 <p>
-                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses using audnixai.com for sales automation.
+                  These terms apply to all users, including but not limited to visitors, registered users, content creators, and businesses using audnix.com for sales automation.
                 </p>
               </div>
             </Card>
@@ -149,7 +149,7 @@ export default function TermsOfService() {
               <div className="space-y-4 text-muted-foreground">
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Acceptable Use</h3>
-                  <p>You agree to use audnixai.com only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
+                  <p>You agree to use audnix.com only for lawful purposes and in accordance with these Terms. You are prohibited from:</p>
                   <ul className="list-disc list-inside space-y-1 mt-2">
                     <li>Sending spam, unsolicited messages, or violating CAN-SPAM Act / GDPR</li>
                     <li>Violating Instagram or other platform terms of service</li>
@@ -168,7 +168,7 @@ export default function TermsOfService() {
                       ✅ Official Instagram Graph API Integration
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>audnixai.com uses the official Instagram Graph API for all Instagram features</li>
+                      <li>audnix.com uses the official Instagram Graph API for all Instagram features</li>
                       <li>Requires an Instagram Business or Creator account connected to a Facebook Page</li>
                       <li>Uses Meta's official OAuth authentication flow for secure access</li>
                       <li>Complies with Instagram Platform Policy and Meta's terms of service</li>
@@ -188,7 +188,7 @@ export default function TermsOfService() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-2">Platform-Specific Policies</h3>
-                  <p className="text-sm mb-2">By using audnixai.com, you also agree to comply with:</p>
+                  <p className="text-sm mb-2">By using audnix.com, you also agree to comply with:</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     <li><strong>Instagram:</strong> <a href="https://help.instagram.com/581066165581870" className="text-primary hover:underline" target="_blank">Instagram Community Guidelines</a> and <a href="https://www.facebook.com/help/instagram/477434105621119" className="text-primary hover:underline" target="_blank">Terms of Use</a></li>
                     <li><strong>Email:</strong> Your email provider's terms of service and anti-spam policies (CAN-SPAM, GDPR)</li>

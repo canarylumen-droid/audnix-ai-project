@@ -105,7 +105,7 @@ export default function PrivacyPolicy() {
                     Why We Need Email Access
                   </h3>
                   <p className="text-sm">
-                    audnixai.com automates lead follow-ups via email. Connect your business email using Custom SMTP
+                    audnix.com automates lead follow-ups via email. Connect your business email using Custom SMTP
                     to send and receive messages through your own email server.
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
                     Auto-Booking with Calendly
                   </h3>
                   <p className="text-sm">
-                    audnixai.com integrates with Calendly to automatically book calls with leads. When a lead shows interest,
+                    audnix.com integrates with Calendly to automatically book calls with leads. When a lead shows interest,
                     our AI sends them your Calendly link so they can book directly on your calendar.
                   </p>
                 </div>

@@ -21,6 +21,7 @@ const ContentLibraryPage = lazy(() => import("./content-library"));
 const AIDecisionsPage = lazy(() => import("./ai-decisions"));
 const ObjectionsLibraryPage = lazy(() => import("./objections-library"));
 const ProspectingPage = lazy(() => import("./prospecting"));
+const LeadProfilePage = lazy(() => import("./lead-profile"));
 
 export default function DashboardRoutes() {
   return (
@@ -30,6 +31,7 @@ export default function DashboardRoutes() {
           <Route path="/dashboard" component={DashboardHome} />
           <Route path="/dashboard/inbox" component={InboxPage} />
           <Route path="/dashboard/inbox/:id" component={InboxPage} />
+          <Route path="/dashboard/leads/:id" component={LeadProfilePage} />
           <Route path="/dashboard/deals" component={DealsPage} />
           <Route path="/dashboard/calendar" component={CalendarPage} />
           <Route path="/dashboard/integrations" component={IntegrationsPage} />

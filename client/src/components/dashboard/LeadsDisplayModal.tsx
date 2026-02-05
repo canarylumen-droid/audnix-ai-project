@@ -82,6 +82,27 @@ export function LeadsDisplayModal({
                         </div>
                       )}
 
+                      {lead.phone && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                          <Phone className="h-3.5 w-3.5 opacity-60" />
+                          <span>{lead.phone}</span>
+                        </div>
+                      )}
+
+                      {lead.website && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium hover:text-primary transition-colors cursor-pointer">
+                          <Globe className="h-3.5 w-3.5 opacity-60" />
+                          <span className="truncate underline underline-offset-2">{lead.website}</span>
+                        </div>
+                      )}
+
+                      {lead.linkedin && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium hover:text-blue-400 transition-colors cursor-pointer">
+                          <Linkedin className="h-3.5 w-3.5 opacity-60" />
+                          <span className="truncate">LinkedIn Profile</span>
+                        </div>
+                      )}
+
                       <div className="flex flex-wrap gap-2 mt-4">
                         {lead.industry && (
                           <Badge variant="secondary" className="text-[9px] px-2 py-0 h-5 bg-background border-border/50 font-bold uppercase tracking-widest">

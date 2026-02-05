@@ -386,7 +386,7 @@ export default function VideoAutomationPage() {
         createMonitor.mutate({
           videoId: data.id,
           videoUrl: data.url,
-          productLink: "https://audnixai.com/demo",
+          productLink: "https://audnix.com/demo",
           ctaText: "Get Started",
         });
         break;
@@ -561,7 +561,7 @@ export default function VideoAutomationPage() {
                         createMonitor.mutate({
                           videoId: reel.id,
                           videoUrl: reel.permalink || reel.url,
-                          productLink: "https://audnixai.com",
+                          productLink: "https://audnix.com",
                           ctaText: "Get Started",
                           followUpConfig: { askFollowOnConvert: true, askFollowOnDecline: true }
                         });

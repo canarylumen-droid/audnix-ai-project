@@ -91,16 +91,41 @@ interface ParsedEmail {
 }
 
 /**
+ * Injects a tracking pixel into HTML email content
+ */
+export function injectTrackingPixel(html: string, trackingId: string): string {
+  if (!trackingId) return html;
+  
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnix.com';
+  const pixelUrl = `${baseUrl}/api/outreach/track/${trackingId}`;
+  const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display:none !important;" alt="" />`;
+  
+  // Try to inject before </body> or at the end
+  if (html.includes('</body>')) {
+    return html.replace('</body>', `${pixelHtml}</body>`);
+  }
+  return html + pixelHtml;
+}
+
+/**
  * Send email via custom SMTP (for custom domain emails)
  */
 async function sendCustomSMTP(
+  userId: string,
   config: EmailConfig,
   to: string,
   subject: string,
   body: string,
-  isHtml: boolean = false
+  isHtml: boolean = false,
+  trackingId?: string
 ): Promise<void> {
   const nodemailer = await import('nodemailer');
+  const { imapIdleManager } = await import('../email/imap-idle-manager.js');
+
+  let emailBody = body;
+  if (isHtml && trackingId) {
+    emailBody = injectTrackingPixel(body, trackingId);
+  }
 
   const transporter = nodemailer.createTransport({
     host: config.smtp_host,
@@ -112,7 +137,6 @@ async function sendCustomSMTP(
     },
   });
 
-  // Use from_name if provided (RFC 5322 format: "Name <email>")
   const fromAddress = config.from_name
     ? `"${config.from_name}" <${config.smtp_user}>`
     : config.smtp_user;
@@ -121,89 +145,18 @@ async function sendCustomSMTP(
     from: fromAddress,
     to,
     subject,
-    [isHtml ? 'html' : 'text']: body,
+    [isHtml ? 'html' : 'text']: emailBody,
   });
 
-  // Attempt to save to "Sent" folder via IMAP
+  // Attempt to save to "Sent" folder via persistent IMAP connection
   try {
-    await appendSentMessage(config, to, subject, body, isHtml);
+    const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml);
+    await imapIdleManager.appendSentMessage(userId, rawMessage);
   } catch (error) {
-    console.warn(`[CustomSMTP] Failed to save to Sent folder:`, error);
-    // Don't fail the sending process just because saving to Sent failed
+    console.warn(`[CustomSMTP] Failed to save to Sent folder via IdleManager:`, error);
   }
 }
 
-/**
- * Append sent message to IMAP "Sent" folder
- */
-async function appendSentMessage(
-  config: EmailConfig,
-  to: string,
-  subject: string,
-  body: string,
-  isHtml: boolean
-): Promise<void> {
-  const Imap = (await import('imap')).default;
-  const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
-  const imapPort = config.imap_port || 993;
-
-  if (!imapHost || !config.smtp_user || !config.smtp_pass) {
-    return;
-  }
-
-  // Generate raw MIME message
-  const fromAddress = config.from_name
-    ? `"${config.from_name}" <${config.smtp_user}>`
-    : config.smtp_user;
-    
-  const rawMessage = createMimeMessage(fromAddress, to, subject, body, isHtml);
-
-  return new Promise((resolve, reject) => {
-    const imap = new Imap({
-      user: config.smtp_user!,
-      password: config.smtp_pass!,
-      host: imapHost,
-      port: imapPort,
-      tls: imapPort === 993,
-      tlsOptions: { rejectUnauthorized: false },
-      connTimeout: 10000,
-      authTimeout: 10000
-    });
-
-    const cleanup = () => {
-      try { imap.end(); } catch (e) {}
-    };
-
-    imap.once('ready', () => {
-      // Try to find the correct Sent box
-      const tryAppend = (mailboxName: string) => {
-        imap.append(rawMessage, { mailbox: mailboxName, flags: ['\\Seen'] }, (err: Error) => {
-          if (err) {
-            // If failed, and it was "Sent", try "Sent Items"
-            if (mailboxName === 'Sent') {
-              tryAppend('Sent Items');
-            } else {
-              cleanup();
-              reject(new Error(`Failed to append to mailbox: ${err.message}`));
-            }
-          } else {
-            cleanup();
-            resolve();
-          }
-        });
-      };
-
-      tryAppend('Sent');
-    });
-
-    imap.once('error', (err: Error) => {
-      cleanup();
-      reject(new Error(`IMAP connection error: ${err.message}`));
-    });
-
-    imap.connect();
-  });
-}
 
 /**
  * Import emails from custom IMAP server
@@ -369,14 +322,8 @@ async function getUserBrandColors(userId: string): Promise<BrandColors | undefin
   }
 }
 
-interface EmailOptions {
-  isHtml?: boolean;
-  brandColors?: BrandColors;
-  businessName?: string;
-  buttonText?: string;
-  buttonUrl?: string;
-  isMeetingInvite?: boolean;
   isRaw?: boolean; // If true, sends content as-is without branded wrapper
+  trackingId?: string;
 }
 
 /**
@@ -419,7 +366,7 @@ export async function sendEmail(
       }
     }
 
-    await sendCustomSMTP(credentials, recipientEmail, subject, emailBody, true);
+    await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
     console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
     return;
   }
@@ -517,7 +464,8 @@ export async function sendEmail(
       recipientEmail,
       emailSubject,
       emailBody,
-      options.isHtml
+      options.isHtml,
+      options.trackingId
     );
   } else if (emailIntegration.provider === 'outlook') {
     await sendOutlookMessage(
@@ -525,7 +473,8 @@ export async function sendEmail(
       recipientEmail,
       emailSubject,
       emailBody,
-      options.isHtml
+      options.isHtml,
+      options.trackingId
     );
   } else {
     throw new Error('Unsupported email provider');
@@ -540,9 +489,15 @@ async function sendGmailMessage(
   to: string,
   subject: string,
   body: string,
-  isHtml: boolean = false
+  isHtml: boolean = false,
+  trackingId?: string
 ): Promise<void> {
-  const message = createMimeMessage(credentials.email, to, subject, body, isHtml);
+  let emailBody = body;
+  if (isHtml && trackingId) {
+    emailBody = injectTrackingPixel(body, trackingId);
+  }
+
+  const message = createMimeMessage(credentials.email, to, subject, emailBody, isHtml);
   const encodedMessage = Buffer.from(message).toString('base64url');
 
   const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -571,8 +526,14 @@ async function sendOutlookMessage(
   to: string,
   subject: string,
   body: string,
-  isHtml: boolean = false
+  isHtml: boolean = false,
+  trackingId?: string
 ): Promise<void> {
+  let emailBody = body;
+  if (isHtml && trackingId) {
+    emailBody = injectTrackingPixel(body, trackingId);
+  }
+
   const response = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
     method: 'POST',
     headers: {
@@ -584,7 +545,7 @@ async function sendOutlookMessage(
         subject: subject,
         body: {
           contentType: isHtml ? 'HTML' : 'Text',
-          content: body
+          content: emailBody
         },
         toRecipients: [
           {

@@ -43,6 +43,8 @@ export interface IStorage {
   getMessages(leadId: string): Promise<Message[]>; // Alias for getMessagesByLeadId
   getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]>;
   createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
+  updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
+  getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
 
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
@@ -559,12 +561,25 @@ export class MemStorage implements IStorage {
       openedAt: message.openedAt || null,
       clickedAt: message.clickedAt || null,
       repliedAt: message.repliedAt || null,
+      isRead: message.isRead ?? (message.direction === 'outbound'),
       metadata: message.metadata || {},
       createdAt: now,
     };
 
     this.messages.set(id, newMessage);
     return newMessage;
+  }
+
+  async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
+    const message = this.messages.get(id);
+    if (!message) return undefined;
+    const updated = { ...message, ...updates };
+    this.messages.set(id, updated);
+    return updated;
+  }
+
+  async getMessageByTrackingId(trackingId: string): Promise<Message | undefined> {
+    return Array.from(this.messages.values()).find(m => m.trackingId === trackingId);
   }
 
   // ========== Integration Methods ==========

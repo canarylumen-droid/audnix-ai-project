@@ -40,7 +40,8 @@ import {
   Activity,
   Brain,
   ChevronLeft,
-  Filter
+  Filter,
+  User
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -91,15 +92,19 @@ export default function InboxPage() {
       query: { userId: user.id }
     });
 
-    const handleMessageUpdate = () => {
+    socket.on('messages_updated', () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       if (leadId) {
         queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
       }
-    };
+    });
 
-    socket.on('messages_updated', handleMessageUpdate);
-    socket.on('leads_updated', handleMessageUpdate);
+    socket.on('leads_updated', (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      if (data?.type === 'lead_updated' && data?.lead) {
+        setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
+      }
+    });
 
     return () => {
       socket.disconnect();
@@ -474,8 +479,25 @@ export default function InboxPage() {
                           </div>
                         )}
                         <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
+                          {msg.direction === 'outbound' && (
+                            <div className="flex items-center gap-1 mr-auto">
+                              {msg.openedAt ? (
+                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
+                                  <Activity className="h-2 w-2 mr-1" /> OPENED
+                                </Badge>
+                              ) : (
+                                <span className="opacity-40">Delivered</span>
+                              )}
+                            </div>
+                          )}
                           {msg.metadata?.aiGenerated && <Sparkles className="h-2.5 w-2.5" />}
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {msg.direction === 'outbound' && (
+                            <div className="flex ml-1">
+                              <Check className={cn("h-3 w-3", msg.openedAt ? "text-primary-foreground" : "opacity-40")} />
+                              {msg.openedAt && <Check className="h-3 w-3 -ml-2 text-primary-foreground" />}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -609,6 +631,13 @@ export default function InboxPage() {
                     >
                       {bookCallMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : <Calendar className="h-5 w-5 mr-3" />} 
                       Book Meeting
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] border-border/50 hover:bg-muted/50 transition-colors"
+                      onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
+                    >
+                      <User className="h-5 w-5 mr-3" /> View Full Profile
                     </Button>
                   </div>
                 </div>

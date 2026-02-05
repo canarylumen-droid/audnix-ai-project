@@ -118,6 +118,7 @@ export const messages = pgTable("messages", {
   openedAt: timestamp("opened_at"),
   clickedAt: timestamp("clicked_at"),
   repliedAt: timestamp("replied_at"),
+  isRead: boolean("is_read").notNull().default(false),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -710,6 +711,8 @@ export const campaignLeads = pgTable("campaign_leads", {
   campaignId: uuid("campaign_id").notNull().references(() => outreachCampaigns.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   status: text("status", { enum: ["pending", "sent", "failed", "replied"] }).notNull().default("pending"),
+  currentStep: integer("current_step").notNull().default(0),
+  nextActionAt: timestamp("next_action_at"),
   sentAt: timestamp("sent_at"),
   error: text("error"),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
