@@ -49,22 +49,20 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
     const limitNum = Math.min(parseInt(limit as string) || 50, 500);
     const offsetNum = parseInt(offset as string) || 0;
 
-    const leads = await storage.getLeads({
+    const allLeadsFiltered = await storage.getLeads({
       userId,
       channel: channel as string | undefined,
       status: status as string | undefined,
       search: search as string | undefined,
-      limit: limitNum,
-      offset: offsetNum,
+      limit: 10000, // Get all filtered leads to count (not ideal but works for now without storage schema change)
     });
 
-    // Pagination is now handled by DB
-    const paginatedLeads = leads;
+    const leads = allLeadsFiltered.slice(offsetNum, offsetNum + limitNum);
 
     res.json({
-      leads: paginatedLeads,
-      total: leads.length,
-      hasMore: offsetNum + paginatedLeads.length < leads.length,
+      leads: leads,
+      total: allLeadsFiltered.length,
+      hasMore: offsetNum + leads.length < allLeadsFiltered.length,
     });
   } catch (error: unknown) {
     console.error("Get leads error:", error);

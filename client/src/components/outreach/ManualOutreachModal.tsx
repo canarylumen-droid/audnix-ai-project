@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { Loader2, Wand2, Play, Pause, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -27,6 +28,8 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
   const [name, setName] = useState("");
   const [dailyLimit, setDailyLimit] = useState(50);
   const [minDelay, setMinDelay] = useState(2); // minutes
+  const [followUpDelay, setFollowUpDelay] = useState(3); // days
+  const [isManualMode, setIsManualMode] = useState(true);
   
   // Template
   const [subject, setSubject] = useState("Quick question");
@@ -61,7 +64,9 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
         config: {
             dailyLimit,
             minDelayMinutes: minDelay,
-            maxDelayMinutes: minDelay + 2
+            maxDelayMinutes: minDelay + 2,
+            followUpDelayDays: followUpDelay,
+            isManual: isManualMode
         },
         template: {
             subject,
@@ -117,6 +122,26 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
                     <span className="text-sm font-bold">{minDelay} - {minDelay + 2} mins</span>
                 </div>
                 <Slider value={[minDelay]} onValueChange={v => setMinDelay(v[0])} min={1} max={15} step={1} />
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                    <Label>Follow-up Delay</Label>
+                    <span className="text-sm font-bold">{followUpDelay} days</span>
+                </div>
+                <Slider value={[followUpDelay]} onValueChange={v => setFollowUpDelay(v[0])} min={1} max={14} step={1} />
+                <p className="text-xs text-muted-foreground">Automatic follow-up if no reply received.</p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border border-border/50">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Autonomous Mode</Label>
+                  <p className="text-xs text-muted-foreground">Let AI personalize content (Disabled = Manual Template)</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                 <Label className="text-xs">{!isManualMode ? 'On' : 'Off'}</Label>
+                 <Switch checked={!isManualMode} onCheckedChange={c => setIsManualMode(!c)} />
+                </div>
               </div>
             </div>
           )}

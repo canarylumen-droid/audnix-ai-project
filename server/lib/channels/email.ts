@@ -123,6 +123,86 @@ async function sendCustomSMTP(
     subject,
     [isHtml ? 'html' : 'text']: body,
   });
+
+  // Attempt to save to "Sent" folder via IMAP
+  try {
+    await appendSentMessage(config, to, subject, body, isHtml);
+  } catch (error) {
+    console.warn(`[CustomSMTP] Failed to save to Sent folder:`, error);
+    // Don't fail the sending process just because saving to Sent failed
+  }
+}
+
+/**
+ * Append sent message to IMAP "Sent" folder
+ */
+async function appendSentMessage(
+  config: EmailConfig,
+  to: string,
+  subject: string,
+  body: string,
+  isHtml: boolean
+): Promise<void> {
+  const Imap = (await import('imap')).default;
+  const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+  const imapPort = config.imap_port || 993;
+
+  if (!imapHost || !config.smtp_user || !config.smtp_pass) {
+    return;
+  }
+
+  // Generate raw MIME message
+  const fromAddress = config.from_name
+    ? `"${config.from_name}" <${config.smtp_user}>`
+    : config.smtp_user;
+    
+  const rawMessage = createMimeMessage(fromAddress, to, subject, body, isHtml);
+
+  return new Promise((resolve, reject) => {
+    const imap = new Imap({
+      user: config.smtp_user!,
+      password: config.smtp_pass!,
+      host: imapHost,
+      port: imapPort,
+      tls: imapPort === 993,
+      tlsOptions: { rejectUnauthorized: false },
+      connTimeout: 10000,
+      authTimeout: 10000
+    });
+
+    const cleanup = () => {
+      try { imap.end(); } catch (e) {}
+    };
+
+    imap.once('ready', () => {
+      // Try to find the correct Sent box
+      const tryAppend = (mailboxName: string) => {
+        imap.append(rawMessage, { mailbox: mailboxName, flags: ['\\Seen'] }, (err: Error) => {
+          if (err) {
+            // If failed, and it was "Sent", try "Sent Items"
+            if (mailboxName === 'Sent') {
+              tryAppend('Sent Items');
+            } else {
+              cleanup();
+              reject(new Error(`Failed to append to mailbox: ${err.message}`));
+            }
+          } else {
+            cleanup();
+            resolve();
+          }
+        });
+      };
+
+      tryAppend('Sent');
+    });
+
+    imap.once('error', (err: Error) => {
+      cleanup();
+      reject(new Error(`IMAP connection error: ${err.message}`));
+    });
+
+    imap.connect();
+  });
 }
 
 /**

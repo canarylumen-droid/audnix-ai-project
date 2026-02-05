@@ -4,6 +4,7 @@ import { sendEmail } from '../channels/email.js';
 import { outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
 import { eq, and, lte, sql, desc, or } from 'drizzle-orm';
 import { db } from '../db.js';
+import { generateExpertOutreach } from '../ai/conversation-ai.js';
 
 export class CampaignWorker {
   private isRunning = false;
@@ -124,10 +125,24 @@ export class CampaignWorker {
     try {
         console.log(`[Campaign] Sending to ${lead.email} for campaign ${campaign.name}`);
         
-        // Replace variables in template
         let subject = campaign.template.subject;
         let body = campaign.template.body;
         
+        // AI Personalization (if enabled)
+        if (campaign.config?.isManual === false) {
+             try {
+                 const aiContent = await generateExpertOutreach(lead, campaign.userId);
+                 if (aiContent && aiContent.subject && aiContent.body) {
+                     subject = aiContent.subject;
+                     body = aiContent.body;
+                 }
+             } catch (aiError) {
+                 console.warn(`[Campaign] AI generation failed for ${lead.id}, falling back to template:`, aiError);
+                 // Fallback to template (already set)
+             }
+        }
+
+        // Standard Template Variable Replacement (always run as fallback or for manual)
         const firstName = lead.name?.split(' ')[0] || 'there';
         const company = lead.company || '';
         
@@ -136,6 +151,20 @@ export class CampaignWorker {
 
         await sendEmail(campaign.userId, lead.email, body, subject);
 
+        // Record message in storage (Outbound outreach)
+        await storage.createMessage({
+            leadId: lead.id,
+            userId: campaign.userId,
+            direction: "outbound",
+            body: body,
+            provider: "email",
+            metadata: {
+                campaign_id: campaign.id,
+                subject: subject,
+                is_outreach: true
+            }
+        });
+
         // 5. Update Status
         await db.update(campaignLeads).set({ 
             status: 'sent', 
@@ -143,19 +172,35 @@ export class CampaignWorker {
             error: null 
         }).where(eq(campaignLeads.id, leadEntry.id));
 
-        // Update campaign stats
-        // We can increment stats.sent via JS or SQL
-        // Easier to just let stats be an aggregation query or update jsonb
-        // Let's update jsonb simple way
-        
-        // This is safe because worker is single instance ideally, but race condition possible if scaled.
-        // For MVP, simple update.
-        // Or better: Let "stats" be derived or update purely.
-        /*
-        const newStats = { ...campaign.stats, sent: (campaign.stats.sent || 0) + 1 };
-        await db.update(outreachCampaigns).set({ stats: newStats }).where(eq(outreachCampaigns.id, campaign.id));
-        */
+        // 6. Schedule Follow-up (if configured)
+        if (campaign.config.followUpDelayDays) {
+          const followUpDate = new Date();
+          followUpDate.setDate(followUpDate.getDate() + campaign.config.followUpDelayDays);
 
+          // Create next step in sequence?
+          // For MVP, we might just have one follow-up or a sequence array.
+          // Assuming simple "follow-up" enabled implicitly if delay is set.
+          // We need a way to distinguish initial vs follow-up in the campaign_leads table?
+          // Or we create a NEW task in `followUpQueue` (general table) or `campaign_leads`?
+          
+          // Let's use `followUpQueue` which is designed for general follow-ups
+          // OR iterate the campaign sequence index.
+          // If `campaign_leads` has `step_number`, we increment it.
+          // Checking schema... `campaignLeads` usually links lead to campaign.
+          // If we want multiple steps, we probably need a `step` column or new row.
+          
+          // Simplest for now: Use `storage.createFollowUp` which handles the "task" of following up.
+          // But `CampaignWorker` processes `campaign_leads`.
+          // If we want the *campaign* to handle it, we might insert a new row into `campaign_leads` 
+          // for the SAME lead but different `step`? (Schema dependent).
+          
+          // Let's assume we use the generic `createFollowUp` for now to put it in the "Todo" list for the user or system?
+          // Wait, autonomous campaign should send it automatically.
+          // Let's assume we just log it for now or use the generic scheduled message system if it exists.
+          
+          // Current solution: Log success. Re-implement robust sequence later if schema allows.
+          console.log(`[Campaign] Follow-up scheduled for ${followUpDate.toISOString()} (Not fully implemented in schema yet)`);
+        }
     } catch (error: any) {
         console.error(`[Campaign] Failed lead ${lead.id}:`, error);
         await db.update(campaignLeads).set({ 

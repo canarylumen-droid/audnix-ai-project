@@ -128,7 +128,12 @@ export default function InboxPage() {
       setAllLeads(prev => {
         const newLeads = [...prev];
         leadsData.leads.forEach((lead: any) => {
-          if (!newLeads.find(l => l.id === lead.id)) {
+          const index = newLeads.findIndex(l => l.id === lead.id);
+          if (index > -1) {
+            // Update existing lead
+            newLeads[index] = lead;
+          } else {
+            // Append new lead
             newLeads.push(lead);
           }
         });
@@ -418,7 +423,7 @@ export default function InboxPage() {
                     <div className="min-w-0">
                       <h3 className="text-base font-bold truncate leading-none mb-1">{activeLead?.name}</h3>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
                         <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
                       </div>

@@ -40,6 +40,20 @@ export async function embed(text: string): Promise<number[]> {
     }
   }
 
+  // Fallback to Gemini if available
+  if (gemini) {
+    try {
+      const model = gemini.getGenerativeModel({ model: "text-embedding-004" });
+      const result = await model.embedContent(text);
+      const embedding = result.embedding.values;
+      // Note: Gemini is 768 dims, OpenAI is 1536. 
+      // If strict 1536 needed, we might need to pad, but since schema uses 'text', it's flexible.
+      return embedding;
+    } catch (error: any) {
+       console.error("Gemini embedding error:", error.message);
+    }
+  }
+
   // Fallback / Demo: Mock 1536 dimensions
   return Array.from({ length: 1536 }, () => Math.random() * 2 - 1);
 }
@@ -82,7 +96,7 @@ export async function generateReply(
   // 1. Try Gemini First //
   if (gemini && PREFERRED_PROVIDER === "gemini") {
     try {
-      const modelName = "gemini-1.5-flash"; // Agile & cheap model
+      const modelName = "gemini-1.5-pro"; // Upgraded to Pro for better reasoning
       const model = gemini.getGenerativeModel({ 
         model: modelName,
         generationConfig: {

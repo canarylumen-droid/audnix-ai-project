@@ -158,16 +158,21 @@ export class AutonomousOutreachWorker {
   /**
    * Check for users with email integrations and process their leads
    */
+  /**
+   * Check for users with email integrations and process their leads
+   */
   private async checkAndProcessUsers(): Promise<void> {
     if (!db) return;
 
     try {
-      // Find users with connected email integrations
+      // Find users with connected email integrations AND autonomous mode enabled
       const usersWithEmail = await db
         .select({
           userId: integrations.userId,
+          metadata: users.metadata,
         })
         .from(integrations)
+        .innerJoin(users, eq(integrations.userId, users.id))
         .where(
           and(
             eq(integrations.connected, true),
@@ -183,7 +188,13 @@ export class AutonomousOutreachWorker {
         return; // No users with email integrations
       }
 
-      const uniqueUserIds = [...new Set(usersWithEmail.map((u: { userId: string }) => u.userId))];
+      // Filter users who have autonomous outreach enabled
+      const activeUsers = usersWithEmail.filter(u => {
+        const meta = (u.metadata as Record<string, any>) || {};
+        return meta.autonomous_outreach_enabled === true;
+      });
+
+      const uniqueUserIds = [...new Set(activeUsers.map(u => u.userId))];
       
       for (const userId of uniqueUserIds) {
         // Skip if this user is already being processed
