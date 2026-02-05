@@ -151,7 +151,7 @@ async function sendCustomSMTP(
   // Attempt to save to "Sent" folder via persistent IMAP connection
   try {
     const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml);
-    await imapIdleManager.appendSentMessage(userId, rawMessage);
+    await imapIdleManager.appendSentMessage(userId, rawMessage, config);
   } catch (error) {
     console.warn(`[CustomSMTP] Failed to save to Sent folder via IdleManager:`, error);
   }

@@ -382,52 +382,77 @@ class ImapIdleManager {
         this.connections.clear();
         console.log('🛑 IMAP IDLE Manager stopped');
     }
-    public async appendSentMessage(userId: string, rawMessage: string): Promise<void> {
-        const imap = this.connections.get(userId);
-        if (!imap) {
-            console.warn(`Cannot append sent message: No active IMAP connection for user ${userId}`);
-            return;
-        }
+    public async appendSentMessage(userId: string, rawMessage: string, config: EmailConfig): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            // Use cached folders from the main connection if available
+            const discovered = this.folders.get(userId);
+            const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
+            
+            const foldersToTry = discovered?.sent && discovered.sent.length > 0 
+                ? [...new Set([...discovered.sent, ...sentFolders])]
+                : sentFolders;
 
-        const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
-        
-        // Find existing sent folder we might be using, or default to Sent
-        // Note: checking valid folder is expensive, we try blindly or just pick one?
-        // Better to iterate or use previously known folder.
-        // For now, we try 'Sent Items' or 'Sent' or '[Gmail]/Sent Mail'
-        // But we need to know which one exists.
-        // We can just try to append to 'Sent Items' (Outlook) or '[Gmail]/Sent Mail' (Gmail) or 'Sent' (Generic)
-        // Let's try to list boxes or just guessing.
-        
-        // Simple logic: Try standard folders.
-        // In a real app, we should use the folder detected during setup.
-        
-        // Since we are inside the class, we could cache folders.
-        // For this fix, let's try a best-effort approach.
-        
-        const targetFolder = 'Sent'; // Default fallback
+            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+            const imapPort = config.imap_port || 993;
 
-        // We can use a callback wrapper
-        const appendToFolder = (folder: string) => {
-            return new Promise<void>((resolve, reject) => {
-                imap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-        };
-
-        // Try common names
-        for (const folder of sentFolders) {
-            try {
-                await appendToFolder(folder);
-                console.log(`✅ Appended sent message to ${folder} for user ${userId}`);
-                return; 
-            } catch (e) {
-                // Continue to next folder
+            if (!imapHost) {
+                 console.warn(`[Append] No IMAP host for user ${userId}`);
+                 resolve(); // Don't crash, just skip
+                 return;
             }
-        }
-        console.warn(`⚠️ Failed to append sent message to any common Sent folder for user ${userId}`);
+
+            // Create a dedicated transient connection for appending
+            // This avoids conflicts with the main IDLE connection
+            const appendImap = new Imap({
+                user: config.smtp_user!,
+                password: config.smtp_pass!,
+                host: imapHost,
+                port: imapPort,
+                tls: imapPort === 993,
+                tlsOptions: { rejectUnauthorized: false },
+                authTimeout: 10000
+            });
+
+            const cleanup = () => {
+                appendImap.end();
+            };
+
+            appendImap.once('ready', async () => {
+                const appendToFolder = (folder: string) => {
+                    return new Promise<void>((res, rej) => {
+                        appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
+                            if (err) rej(err);
+                            else res();
+                        });
+                    });
+                };
+
+                // Try discovered and common names
+                for (const folder of foldersToTry) {
+                    try {
+                        await appendToFolder(folder);
+                        console.log(`✅ Appended sent message to ${folder} for user ${userId} (Transient)`);
+                        cleanup();
+                        resolve();
+                        return; 
+                    } catch (e) {
+                        // Continue to next
+                    }
+                }
+                
+                console.warn(`⚠️ Failed to append sent message for user ${userId}. Tried: ${foldersToTry.join(', ')}`);
+                cleanup();
+                resolve(); // resolve anyway to avoid breaking flow
+            });
+
+            appendImap.once('error', (err: any) => {
+                console.warn(`[Append] Transient connection error for user ${userId}:`, err.message);
+                cleanup();
+                resolve(); // resolve anyway
+            });
+
+            appendImap.connect();
+        });
     }
 }
 
