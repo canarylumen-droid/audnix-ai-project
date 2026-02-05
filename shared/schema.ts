@@ -677,6 +677,47 @@ export const brandPdfCache = pgTable("brand_pdf_cache", {
   };
 });
 
+export const outreachCampaigns = pgTable("outreach_campaigns", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  status: text("status", { enum: ["draft", "active", "paused", "completed"] }).notNull().default("draft"),
+  config: jsonb("config").$type<{
+    dailyLimit: number;
+    minDelayMinutes: number;
+    maxDelayMinutes: number;
+    startTime?: string;
+    endTime?: string;
+    days?: number[];
+  }>().notNull(),
+  template: jsonb("template").$type<{
+    subject: string;
+    body: string;
+    followups: Array<{ delayDays: number; body: string }>;
+  }>().notNull(),
+  stats: jsonb("stats").$type<{
+    total: number;
+    sent: number;
+    replied: number;
+    bounced: number;
+  }>().default(sql`'{"total":0,"sent":0,"replied":0,"bounced":0}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const campaignLeads = pgTable("campaign_leads", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: uuid("campaign_id").notNull().references(() => outreachCampaigns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["pending", "sent", "failed", "replied"] }).notNull().default("pending"),
+  sentAt: timestamp("sent_at"),
+  error: text("error"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
+}, (table) => {
+  return {
+    campaignLeadIdx: uniqueIndex("campaign_lead_idx").on(table.campaignId, table.leadId),
+  };
+});
 
 export const adminWhitelist = pgTable("admin_whitelist", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -791,6 +832,11 @@ export type BrandPdfCache = typeof brandPdfCache.$inferSelect;
 export type InsertBrandPdfCache = typeof brandPdfCache.$inferInsert;
 export type AdminWhitelist = typeof adminWhitelist.$inferSelect;
 export type InsertAdminWhitelist = typeof adminWhitelist.$inferInsert;
+
+export type OutreachCampaign = typeof outreachCampaigns.$inferSelect;
+export type InsertOutreachCampaign = typeof outreachCampaigns.$inferInsert;
+export type CampaignLead = typeof campaignLeads.$inferSelect;
+export type InsertCampaignLead = typeof campaignLeads.$inferInsert;
 
 export type FollowUpQueue = typeof followUpQueue.$inferSelect;
 export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;

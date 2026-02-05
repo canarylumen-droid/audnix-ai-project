@@ -30,7 +30,7 @@ export interface IStorage {
   removeTeamMember(orgId: string, userId: string): Promise<void>;
 
   // Lead methods
-  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]>;
+  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;

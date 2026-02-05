@@ -261,6 +261,53 @@ class ImapIdleManager {
         this.connections.clear();
         console.log('🛑 IMAP IDLE Manager stopped');
     }
+    public async appendSentMessage(userId: string, rawMessage: string): Promise<void> {
+        const imap = this.connections.get(userId);
+        if (!imap) {
+            console.warn(`Cannot append sent message: No active IMAP connection for user ${userId}`);
+            return;
+        }
+
+        const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
+        
+        // Find existing sent folder we might be using, or default to Sent
+        // Note: checking valid folder is expensive, we try blindly or just pick one?
+        // Better to iterate or use previously known folder.
+        // For now, we try 'Sent Items' or 'Sent' or '[Gmail]/Sent Mail'
+        // But we need to know which one exists.
+        // We can just try to append to 'Sent Items' (Outlook) or '[Gmail]/Sent Mail' (Gmail) or 'Sent' (Generic)
+        // Let's try to list boxes or just guessing.
+        
+        // Simple logic: Try standard folders.
+        // In a real app, we should use the folder detected during setup.
+        
+        // Since we are inside the class, we could cache folders.
+        // For this fix, let's try a best-effort approach.
+        
+        const targetFolder = 'Sent'; // Default fallback
+
+        // We can use a callback wrapper
+        const appendToFolder = (folder: string) => {
+            return new Promise<void>((resolve, reject) => {
+                imap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+        };
+
+        // Try common names
+        for (const folder of sentFolders) {
+            try {
+                await appendToFolder(folder);
+                console.log(`✅ Appended sent message to ${folder} for user ${userId}`);
+                return; 
+            } catch (e) {
+                // Continue to next folder
+            }
+        }
+        console.warn(`⚠️ Failed to append sent message to any common Sent folder for user ${userId}`);
+    }
 }
 
 export const imapIdleManager = new ImapIdleManager();

@@ -210,5 +210,142 @@ router.post('/demo-hvac', async (req, res) => {
   }
 });
 
+
+// -- New Manual Campaign Routes --
+
+import { db } from '../db.js';
+import { outreachCampaigns, campaignLeads } from '../../shared/schema.js';
+import { eq, desc, sql } from 'drizzle-orm';
+
+/**
+ * GET /api/outreach/campaigns
+ * List all manual campaigns
+ */
+router.get('/campaigns', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId!;
+    const campaigns = await db.select().from(outreachCampaigns)
+      .where(eq(outreachCampaigns.userId, userId))
+      .orderBy(desc(outreachCampaigns.createdAt));
+    res.json(campaigns);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns
+ * Create a new manual campaign
+ */
+router.post('/campaigns', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId!;
+    const { name, config, template, leads } = req.body;
+
+    if (!name || !config || !template) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Create campaign
+    const [campaign] = await db.insert(outreachCampaigns).values({
+      userId,
+      name,
+      config,
+      template,
+      status: 'draft',
+      stats: { total: leads?.length || 0, sent: 0, replied: 0, bounced: 0 }
+    }).returning();
+
+    // Add leads if provided
+    if (leads && Array.isArray(leads) && leads.length > 0) {
+      await db.insert(campaignLeads).values(
+        leads.map((leadId: string) => ({
+          campaignId: campaign.id,
+          leadId,
+          status: 'pending'
+        }))
+      );
+    }
+
+    res.json(campaign);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/outreach/campaigns/:id
+ * Get campaign details
+ */
+router.get('/campaigns/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [campaign] = await db.select().from(outreachCampaigns).where(eq(outreachCampaigns.id, id));
+    
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    
+    // Get live stats
+    const leadStats = await db.select({
+      status: campaignLeads.status,
+      count: sql<number>`count(*)`
+    })
+    .from(campaignLeads)
+    .where(eq(campaignLeads.campaignId, id))
+    .groupBy(campaignLeads.status);
+
+    const stats = {
+      total: 0,
+      sent: 0,
+      failed: 0,
+      pending: 0,
+      replied: 0
+    };
+
+    leadStats.forEach((s: any) => {
+      stats.total += Number(s.count);
+      // @ts-ignore
+      if (stats[s.status] !== undefined) stats[s.status] += Number(s.count);
+    });
+
+    res.json({ ...campaign, liveStats: stats });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/start
+ * Start campaign
+ */
+router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'active' })
+      .where(eq(outreachCampaigns.id, id))
+      .returning();
+    res.json(campaign);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/pause
+ * Pause campaign
+ */
+router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'paused' })
+      .where(eq(outreachCampaigns.id, id))
+      .returning();
+    res.json(campaign);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
 

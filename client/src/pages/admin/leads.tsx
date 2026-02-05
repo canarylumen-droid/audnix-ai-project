@@ -12,6 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import ManualOutreachModal from "@/components/outreach/ManualOutreachModal";
 import {
   Table,
   TableBody,
@@ -60,8 +62,27 @@ interface AdminLeadsResponse {
 
 export default function AdminLeads() {
   const [page, setPage] = useState(1);
+
   const [status, setStatus] = useState("");
   const [channel, setChannel] = useState("");
+  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked && leadsData?.leads) {
+        setSelectedLeads(leadsData.leads.map(l => l.lead.id));
+    } else {
+        setSelectedLeads([]);
+    }
+  };
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+        setSelectedLeads(prev => [...prev, id]);
+    } else {
+        setSelectedLeads(prev => prev.filter(lid => lid !== id));
+    }
+  };
 
   const { data: leadsData, isLoading } = useQuery<AdminLeadsResponse>({
     queryKey: ["/api/admin/leads", { page, status, channel }],
@@ -107,6 +128,11 @@ export default function AdminLeads() {
           <CardHeader>
             <div className="flex items-center gap-4">
               <div className="flex gap-2 flex-1">
+                {selectedLeads.length > 0 && (
+                    <Button onClick={() => setIsCampaignModalOpen(true)} className="mr-2">
+                        Start Campaign ({selectedLeads.length})
+                    </Button>
+                )}
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="All Status" />
@@ -156,6 +182,12 @@ export default function AdminLeads() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox 
+                            checked={leadsData?.leads?.length > 0 && selectedLeads.length === leadsData?.leads?.length}
+                            onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Lead</TableHead>
                       <TableHead>User</TableHead>
                       <TableHead>Channel</TableHead>
@@ -168,6 +200,12 @@ export default function AdminLeads() {
                   <TableBody>
                     {leadsData?.leads?.map((item: AdminLeadItem) => (
                       <TableRow key={item.lead.id}>
+                        <TableCell>
+                            <Checkbox 
+                                checked={selectedLeads.includes(item.lead.id)}
+                                onCheckedChange={(c) => toggleSelectOne(item.lead.id, !!c)}
+                            />
+                        </TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium">{item.lead.name}</p>
@@ -245,6 +283,13 @@ export default function AdminLeads() {
             )}
           </CardContent>
         </Card>
+        
+        <ManualOutreachModal 
+            isOpen={isCampaignModalOpen} 
+            onClose={() => setIsCampaignModalOpen(false)}
+            selectedLeadIds={selectedLeads}
+            totalLeads={leadsData?.pagination?.total}
+        />
       </div>
     </AdminLayout>
   );

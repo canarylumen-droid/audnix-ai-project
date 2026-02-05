@@ -46,17 +46,20 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
     const userId = getCurrentUserId(req)!;
     const { channel, status, limit = "50", offset = "0", search } = req.query;
 
+    const limitNum = Math.min(parseInt(limit as string) || 50, 500);
+    const offsetNum = parseInt(offset as string) || 0;
+
     const leads = await storage.getLeads({
       userId,
       channel: channel as string | undefined,
       status: status as string | undefined,
       search: search as string | undefined,
-      limit: Math.min(parseInt(limit as string) || 50, 500),
+      limit: limitNum,
+      offset: offsetNum,
     });
 
-    // Apply offset for pagination
-    const offsetNum = parseInt(offset as string) || 0;
-    const paginatedLeads = leads.slice(offsetNum, offsetNum + (parseInt(limit as string) || 50));
+    // Pagination is now handled by DB
+    const paginatedLeads = leads;
 
     res.json({
       leads: paginatedLeads,
@@ -530,14 +533,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
     const currentLeadCount = existingLeads.length;
 
-    const planLimits: Record<string, number> = {
-      'free': 500,
-      'trial': 500,
-      'starter': 2500,
-      'pro': 7000,
-      'enterprise': 20000
-    };
-    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
+    const maxLeads = 1000000; // Unlimited as per request
 
     if (currentLeadCount >= maxLeads) {
       res.status(400).json({

@@ -270,6 +270,7 @@ export class DrizzleStorage implements IStorage {
     channel?: string;
     search?: string;
     limit?: number;
+    offset?: number;
   }): Promise<Lead[]> {
     checkDatabase();
     // Ensure userId is a string, not an object
@@ -302,6 +303,10 @@ export class DrizzleStorage implements IStorage {
 
     if (options.limit) {
       query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.offset(options.offset);
     }
 
     return await query;

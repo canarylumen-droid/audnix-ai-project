@@ -13,7 +13,7 @@ const gemini = process.env.GEMINI_API_KEY
   : null;
 
 // Determine primary provider: Gemini > OpenAI > None (Demo)
-const PREFERRED_PROVIDER = process.env.GEMINI_API_KEY ? "gemini" : (openai ? "openai" : "demo");
+const PREFERRED_PROVIDER = process.env.OPENAI_API_KEY ? "openai" : (process.env.GEMINI_API_KEY ? "gemini" : "demo");
 const AI_MODEL = process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL; 
 
 const isDemoMode = PREFERRED_PROVIDER === "demo";

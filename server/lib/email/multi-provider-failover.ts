@@ -193,6 +193,25 @@ class MultiProviderEmailFailover {
     if (!result.messageId) {
       throw new Error('SMTP send failed - no message ID returned');
     }
+
+    // Append to Sent folder asynchronously
+    if (userId) {
+      try {
+        const { imapIdleManager } = await import('./imap-idle-manager.js');
+        const rawMime = this.createMimeMessage(
+            email.from || smtpConfig.smtp_user,
+            email.to,
+            email.subject,
+            email.html
+        );
+        // Fire and forget
+        imapIdleManager.appendSentMessage(userId, rawMime).catch(err => {
+            console.error(`Failed to append to sent folder for user ${userId}:`, err);
+        });
+      } catch (err) {
+        console.error('Error importing imap-idle-manager or creating mime:', err);
+      }
+    }
   }
 
   private async sendViaGmail(email: EmailPayload, userId: string): Promise<void> {
@@ -268,7 +287,7 @@ class MultiProviderEmailFailover {
     }
   }
 
-  private createMimeMessage(from: string, to: string, subject: string, html: string): string {
+  public createMimeMessage(from: string, to: string, subject: string, html: string): string {
     const boundary = `----=_Part_${Date.now()}`;
 
     return `From: ${from}

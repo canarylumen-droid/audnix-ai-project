@@ -361,7 +361,7 @@ export default function InboxPage() {
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                              <Badge variant="outline" className={cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status] || statusStyles.cold)}>
-                                {lead.status}
+                                {lead.status === 'hardened' ? 'Verified' : lead.status}
                              </Badge>
                              {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                         </div>
