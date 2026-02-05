@@ -179,7 +179,7 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
         {/* Tour Modal Container */}
         <div
           className={cn(
-            "fixed z-[10001] pointer-events-auto flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            "fixed z-[10001] pointer-events-auto flex items-center justify-center transition-all duration-500 ease-custom",
             step.position === 'center' ? "inset-0" : ""
           )}
           style={step.position !== 'center' && targetRect ? {
