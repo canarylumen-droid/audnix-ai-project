@@ -1,0 +1,604 @@
+11:28:27.004 Running build in Washington, D.C., USA (East) – iad1
+11:28:27.005 Build machine configuration: 2 cores, 8 GB
+11:28:27.144 Cloning github.com/canarylumen-droid/audnix-ai-project (Branch: main, Commit: e21d266)
+11:28:28.906 Cloning completed: 1.760s
+11:28:29.075 Found .vercelignore
+11:28:29.092 Removed 2 ignored files defined in .vercelignore
+11:28:29.092   /.replit
+11:28:29.093   /.vscode/settings.json
+11:28:29.235 Restored build cache from previous deployment (99BYbRuFzoNPSctQXfLAcBFctRRX)
+11:28:29.697 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: https://vercel.link/node-version
+11:28:29.697 Running "vercel build"
+11:28:30.720 Vercel CLI 50.11.0
+11:28:31.570 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: https://vercel.link/node-version
+11:28:31.584 Running "install" command: `npm install --legacy-peer-deps`...
+11:28:33.424 
+11:28:33.425 up to date in 2s
+11:28:33.871 
+11:28:33.871 > rest-express@1.0.0 build
+11:28:33.871 > vite build && node scripts/migrate-manual.js
+11:28:33.871 
+11:28:34.140 [36mvite v6.4.1 [32mbuilding for production...[36m[39m
+11:28:34.570 transforming...
+11:28:36.653 
+11:28:36.653 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+11:28:47.487 [32m✓[39m 3237 modules transformed.
+11:28:48.454 rendering chunks...
+11:28:49.216 computing gzip size...
+11:28:49.359 [2m../dist/public/[22m[32mindex.html                                   [39m[1m[2m    4.01 kB[22m[1m[22m[2m │ gzip:   1.58 kB[22m
+11:28:49.359 [2m../dist/public/[22m[2massets/[22m[35mindex-CeKIS5JQ.css                    [39m[1m[2m  207.13 kB[22m[1m[22m[2m │ gzip:  29.31 kB[22m
+11:28:49.360 [2m../dist/public/[22m[2massets/[22m[36mindex-DjY_dGmA.js                     [39m[1m[2m    0.23 kB[22m[1m[22m[2m │ gzip:   0.17 kB[22m
+11:28:49.360 [2m../dist/public/[22m[2massets/[22m[36mskeleton-C4-Ia8-m.js                  [39m[1m[2m    0.28 kB[22m[1m[22m[2m │ gzip:   0.24 kB[22m
+11:28:49.360 [2m../dist/public/[22m[2massets/[22m[36mchevron-up-DufOZ5rq.js                [39m[1m[2m    0.30 kB[22m[1m[22m[2m │ gzip:   0.25 kB[22m
+11:28:49.360 [2m../dist/public/[22m[2massets/[22m[36mfilter-CSAYJY62.js                    [39m[1m[2m    0.33 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
+11:28:49.360 [2m../dist/public/[22m[2massets/[22m[36marrow-right-jeMGrE7b.js               [39m[1m[2m    0.33 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
+11:28:49.361 [2m../dist/public/[22m[2massets/[22m[36mcode-DZz40B65.js                      [39m[1m[2m    0.35 kB[22m[1m[22m[2m │ gzip:   0.27 kB[22m
+11:28:49.361 [2m../dist/public/[22m[2massets/[22m[36mcircle-check-big-CM_oSjPq.js          [39m[1m[2m    0.36 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+11:28:49.361 [2m../dist/public/[22m[2massets/[22m[36mterminal-CwiIy9CZ.js                  [39m[1m[2m    0.36 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+11:28:49.362 [2m../dist/public/[22m[2massets/[22m[36msmartphone-CqxgTe0c.js                [39m[1m[2m    0.37 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+11:28:49.362 [2m../dist/public/[22m[2massets/[22m[36mcircle-x-CP4mUa1i.js                  [39m[1m[2m    0.37 kB[22m[1m[22m[2m │ gzip:   0.28 kB[22m
+11:28:49.362 [2m../dist/public/[22m[2massets/[22m[36mtrending-up-DTTobRCm.js               [39m[1m[2m    0.37 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+11:28:49.362 [2m../dist/public/[22m[2massets/[22m[36mdollar-sign-CK3cvleP.js               [39m[1m[2m    0.39 kB[22m[1m[22m[2m │ gzip:   0.30 kB[22m
+11:28:49.362 [2m../dist/public/[22m[2massets/[22m[36mtarget-LTuJo6Ec.js                    [39m[1m[2m    0.39 kB[22m[1m[22m[2m │ gzip:   0.26 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36mvideo-CF4voYtL.js                     [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:   0.32 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36mmap-pin-BxZePztq.js                   [39m[1m[2m    0.42 kB[22m[1m[22m[2m │ gzip:   0.32 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36mlinkedin-_MhqMHRR.js                  [39m[1m[2m    0.46 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36minstagram-Bvnon-oB.js                 [39m[1m[2m    0.47 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36musers-DQXov2QL.js                     [39m[1m[2m    0.47 kB[22m[1m[22m[2m │ gzip:   0.33 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36mrefresh-cw-D6_wpyjP.js                [39m[1m[2m    0.49 kB[22m[1m[22m[2m │ gzip:   0.33 kB[22m
+11:28:49.363 [2m../dist/public/[22m[2massets/[22m[36mbot-D2M-yEHe.js                       [39m[1m[2m    0.50 kB[22m[1m[22m[2m │ gzip:   0.33 kB[22m
+11:28:49.364 [2m../dist/public/[22m[2massets/[22m[36mcrown-yb3tyPyR.js                     [39m[1m[2m    0.53 kB[22m[1m[22m[2m │ gzip:   0.36 kB[22m
+11:28:49.364 [2m../dist/public/[22m[2massets/[22m[36mlayers-CkB2ETSJ.js                    [39m[1m[2m    0.53 kB[22m[1m[22m[2m │ gzip:   0.34 kB[22m
+11:28:49.364 [2m../dist/public/[22m[2massets/[22m[36mphone-D98BH31h.js                     [39m[1m[2m    0.56 kB[22m[1m[22m[2m │ gzip:   0.36 kB[22m
+11:28:49.364 [2m../dist/public/[22m[2massets/[22m[36mbuilding-2-TR9clQIp.js                [39m[1m[2m    0.61 kB[22m[1m[22m[2m │ gzip:   0.35 kB[22m
+11:28:49.373 [2m../dist/public/[22m[2massets/[22m[36mtextarea-CJDEbL5V.js                  [39m[1m[2m    0.61 kB[22m[1m[22m[2m │ gzip:   0.40 kB[22m
+11:28:49.373 [2m../dist/public/[22m[2massets/[22m[36mplay-BK0ZZDZh.js                      [39m[1m[2m    0.63 kB[22m[1m[22m[2m │ gzip:   0.32 kB[22m
+11:28:49.373 [2m../dist/public/[22m[2massets/[22m[36mcpu-CP45bNFN.js                       [39m[1m[2m    0.67 kB[22m[1m[22m[2m │ gzip:   0.36 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36muse-access-gate-K8E9hlFE.js           [39m[1m[2m    0.77 kB[22m[1m[22m[2m │ gzip:   0.43 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mlightbulb-BcfAf3wq.js                 [39m[1m[2m    0.85 kB[22m[1m[22m[2m │ gzip:   0.42 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mlabel-BMUrNfxZ.js                     [39m[1m[2m    1.03 kB[22m[1m[22m[2m │ gzip:   0.64 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mplan-utils-CTTMCZum.js                [39m[1m[2m    2.70 kB[22m[1m[22m[2m │ gzip:   1.16 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mswitch-Ds-opdQ9.js                    [39m[1m[2m    2.71 kB[22m[1m[22m[2m │ gzip:   1.33 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mtabs-ClvUxSOu.js                      [39m[1m[2m    3.54 kB[22m[1m[22m[2m │ gzip:   1.44 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mprogress-CdVhiMEh.js                  [39m[1m[2m    3.56 kB[22m[1m[22m[2m │ gzip:   1.66 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mFounders-4RNPLRQX.js                  [39m[1m[2m    3.92 kB[22m[1m[22m[2m │ gzip:   2.02 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mAgencies-CWZjWw_K.js                  [39m[1m[2m    4.31 kB[22m[1m[22m[2m │ gzip:   2.27 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mCreators-CaO-CiCn.js                  [39m[1m[2m    4.41 kB[22m[1m[22m[2m │ gzip:   2.28 kB[22m
+11:28:49.374 [2m../dist/public/[22m[2massets/[22m[36mtable-DcGyaD3p.js                     [39m[1m[2m    4.83 kB[22m[1m[22m[2m │ gzip:   1.51 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mCartesianGrid-DhzCTaQu.js             [39m[1m[2m    6.84 kB[22m[1m[22m[2m │ gzip:   2.40 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mchart-CQ6M8l5A.js                     [39m[1m[2m    6.91 kB[22m[1m[22m[2m │ gzip:   2.16 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mAdminLayout-DbLadWpO.js               [39m[1m[2m    7.39 kB[22m[1m[22m[2m │ gzip:   1.66 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36men-US-CXXYYhpC.js                     [39m[1m[2m    7.70 kB[22m[1m[22m[2m │ gzip:   2.69 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mCustomIcons-ByzIDp9m.js               [39m[1m[2m    7.70 kB[22m[1m[22m[2m │ gzip:   2.22 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mapi-docs-x1cdtjpY.js                  [39m[1m[2m    8.59 kB[22m[1m[22m[2m │ gzip:   1.98 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mslider-CHbsphmv.js                    [39m[1m[2m    8.74 kB[22m[1m[22m[2m │ gzip:   3.46 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mDocumentationLayout-CUNNBDVk.js       [39m[1m[2m   10.86 kB[22m[1m[22m[2m │ gzip:   2.35 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mLineChart-CYwpnpNu.js                 [39m[1m[2m   11.18 kB[22m[1m[22m[2m │ gzip:   4.32 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36moutreach-playbooks-IiXKSCjb.js        [39m[1m[2m   11.42 kB[22m[1m[22m[2m │ gzip:   2.43 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mpricing-DcoYlATb.js                   [39m[1m[2m   11.93 kB[22m[1m[22m[2m │ gzip:   2.59 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36mCookieConsent-De7cFeEq.js             [39m[1m[2m   12.07 kB[22m[1m[22m[2m │ gzip:   4.61 kB[22m
+11:28:49.375 [2m../dist/public/[22m[2massets/[22m[36manalytics-CqqaE93f.js                 [39m[1m[2m   12.21 kB[22m[1m[22m[2m │ gzip:   2.04 kB[22m
+11:28:49.376 [2m../dist/public/[22m[2massets/[22m[36mniche-vault-Cwczw9E0.js               [39m[1m[2m   12.63 kB[22m[1m[22m[2m │ gzip:   3.19 kB[22m
+11:28:49.376 [2m../dist/public/[22m[2massets/[22m[36mindex-C1qoa_19.js                     [39m[1m[2m   15.60 kB[22m[1m[22m[2m │ gzip:   2.52 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mobjections-library-C5hvFLg_.js        [39m[1m[2m   15.79 kB[22m[1m[22m[2m │ gzip:   3.68 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36minsights-DqxG6Exf.js                  [39m[1m[2m   17.54 kB[22m[1m[22m[2m │ gzip:   3.60 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36msettings-yC0BXyNq.js                  [39m[1m[2m   19.44 kB[22m[1m[22m[2m │ gzip:   4.35 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36msales-assistant-BHVk1qpG.js           [39m[1m[2m   20.78 kB[22m[1m[22m[2m │ gzip:   4.16 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mdeals-CTcY82vW.js                     [39m[1m[2m   21.31 kB[22m[1m[22m[2m │ gzip:   3.98 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mNavigation-7NRP0DlY.js                [39m[1m[2m   21.34 kB[22m[1m[22m[2m │ gzip:   3.50 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36musers-DWc78cq7.js                     [39m[1m[2m   21.64 kB[22m[1m[22m[2m │ gzip:   3.42 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36manalytics-CFSlyE8O.js                 [39m[1m[2m   22.41 kB[22m[1m[22m[2m │ gzip:   6.38 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mcontent-library-CXJoyIB5.js           [39m[1m[2m   23.05 kB[22m[1m[22m[2m │ gzip:   4.46 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mselect-BPyckV-w.js                    [39m[1m[2m   24.72 kB[22m[1m[22m[2m │ gzip:   8.07 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mcompare-CRu3zdDW.js                   [39m[1m[2m   25.70 kB[22m[1m[22m[2m │ gzip:   7.55 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36msettings-D3-lVQG3.js                  [39m[1m[2m   26.25 kB[22m[1m[22m[2m │ gzip:   4.55 kB[22m
+11:28:49.377 [2m../dist/public/[22m[2massets/[22m[36mcloser-engine-CtdsSZwl.js             [39m[1m[2m   27.22 kB[22m[1m[22m[2m │ gzip:   4.98 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mautomation-builder-BOh7fGED.js        [39m[1m[2m   27.24 kB[22m[1m[22m[2m │ gzip:   3.92 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mSolutionPageTemplate-C7XGUi4D.js      [39m[1m[2m   29.78 kB[22m[1m[22m[2m │ gzip:   4.66 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mlead-profile-C9ZQxVhF.js              [39m[1m[2m   31.50 kB[22m[1m[22m[2m │ gzip:   4.40 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mai-decisions-C9zdNang.js              [39m[1m[2m   32.66 kB[22m[1m[22m[2m │ gzip:   6.61 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mleads-CX2h0puJ.js                     [39m[1m[2m   34.18 kB[22m[1m[22m[2m │ gzip:   6.52 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mvideo-automation-Da64cTDk.js          [39m[1m[2m   34.56 kB[22m[1m[22m[2m │ gzip:   6.85 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mfind-leads-Bar0jFMv.js                [39m[1m[2m   37.32 kB[22m[1m[22m[2m │ gzip:   7.25 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mprospecting-Bwz0Sg-e.js               [39m[1m[2m   39.22 kB[22m[1m[22m[2m │ gzip:   7.21 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mcalendar-CwIWp_HD.js                  [39m[1m[2m   41.17 kB[22m[1m[22m[2m │ gzip:   6.54 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mintegrations-s-jAPCoS.js              [39m[1m[2m   43.73 kB[22m[1m[22m[2m │ gzip:   9.31 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mlead-import-DZl9bP6D.js               [39m[1m[2m   48.27 kB[22m[1m[22m[2m │ gzip:   8.51 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36minbox-D-85tBt6.js                     [39m[1m[2m   62.31 kB[22m[1m[22m[2m │ gzip:  10.52 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mResponsiveContainer-9NbUpsWd.js       [39m[1m[2m   67.93 kB[22m[1m[22m[2m │ gzip:  22.72 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mhome-BzJS1dWQ.js                      [39m[1m[2m   68.90 kB[22m[1m[22m[2m │ gzip:  15.23 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mlanding-ByQuid6W.js                   [39m[1m[2m  252.84 kB[22m[1m[22m[2m │ gzip:  68.54 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mgenerateCategoricalChart-DLYvYL_D.js  [39m[1m[2m  323.12 kB[22m[1m[22m[2m │ gzip:  88.21 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mindex-D_oRYAQL.js                     [39m[1m[33m1,085.98 kB[39m[22m[2m │ gzip: 286.80 kB[22m
+11:28:49.378 [2m../dist/public/[22m[2massets/[22m[36mauth-ET0ui9ux.js                      [39m[1m[33m1,731.50 kB[39m[22m[2m │ gzip: 803.89 kB[22m
+11:28:49.378 [32m✓ built in 15.19s[39m
+11:28:49.379 [33m
+11:28:49.379 (!) Some chunks are larger than 500 kB after minification. Consider:
+11:28:49.379 - Using dynamic import() to code-split the application
+11:28:49.379 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+11:28:49.379 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+11:28:49.564 🔌 Connecting to database...
+11:28:49.573 (node:75) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+11:28:49.573 In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+11:28:49.573 
+11:28:49.573 To prepare for this change:
+11:28:49.573 - If you want the current behavior, explicitly use 'sslmode=verify-full'
+11:28:49.573 - If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+11:28:49.573 
+11:28:49.573 See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+11:28:49.573 (Use `node --trace-warnings ...` to show where the warning was created)
+11:28:50.114 ✅ Connected successfully at: 2026-02-06T10:28:50.104Z
+11:28:50.114 📦 Found 43 migrations
+11:28:50.115 🚀 Running 0000_fancy_liz_osborn.sql...
+11:28:51.428    ✅ Processed 0000_fancy_liz_osborn.sql
+11:28:51.428 🚀 Running 0000_fix_bounce_tracker.sql...
+11:28:51.432    ✅ Processed 0000_fix_bounce_tracker.sql
+11:28:51.432 🚀 Running 0001_add_calendar_link.sql...
+11:28:51.450    ✅ Processed 0001_add_calendar_link.sql
+11:28:51.450 🚀 Running 0002_spicy_mandrill.sql...
+11:28:51.610    ✅ Processed 0002_spicy_mandrill.sql
+11:28:51.611 🚀 Running 000_SETUP_SUPABASE.sql...
+11:28:51.616    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:51.617 BEGIN
+11:28:51.617   CREATE EXTENSION IF NOT EXISTS vector"
+11:28:51.639    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+11:28:51.664    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+11:28:51.686    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+11:28:51.687 BEGIN
+11:28:51.687   IF NEW.trial_expires_at IS NULL AND NEW.plan = 'trial' THEN
+11:28:51.687     NEW.trial_expires_at := NOW() + INTERVAL '3 days'"
+11:28:51.709    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+11:28:51.734    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+11:28:51.756    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+11:28:51.889    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+11:28:51.889 BEGIN
+11:28:51.889   IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='read') THEN
+11:28:51.889     ALTER TABLE notifications RENAME COLUMN "read" TO is_read"
+11:28:51.916    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+11:28:51.937    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+11:28:51.973    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+11:28:51.973 BEGIN
+11:28:51.974   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+11:28:51.974     -- Only create index if embedding is actually a vector type or we can cast it, but here we just try/catch safely
+11:28:51.974     BEGIN
+11:28:51.974       EXECUTE 'CREATE INDEX IF NOT EXISTS idx_brand_embeddings_vector ON brand_embeddings 
+11:28:51.974         USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)'"
+11:28:51.998    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+11:28:52.020    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXECUTE"
+11:28:52.040    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+11:28:52.067    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "ELSE"
+11:28:52.087    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+11:28:52.111    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+11:28:52.774    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+11:28:52.775 BEGIN
+11:28:52.775   IF NEW.status = 'succeeded' THEN
+11:28:52.775     UPDATE users 
+11:28:52.775     SET 
+11:28:52.775       plan = NEW.plan
+11:28:52.775     WHERE id = NEW.user_id"
+11:28:52.809    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+11:28:52.846    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+11:28:52.874    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+11:28:52.918    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+11:28:52.918 BEGIN
+11:28:52.918   NEW.updated_at = NOW()"
+11:28:52.952    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+11:28:52.971    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+11:28:53.020    ✅ Processed 000_SETUP_SUPABASE.sql
+11:28:53.020 🚀 Running 001_create_users.sql...
+11:28:53.023    ✅ Processed 001_create_users.sql
+11:28:53.024 🚀 Running 002_audnix_schema.sql...
+11:28:53.245    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$
+11:28:53.246 BEGIN
+11:28:53.246   -- Ensure pgvector extension exists
+11:28:53.246   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+11:28:53.246     
+11:28:53.246     -- Fix brand_embeddings.embedding type if necessary
+11:28:53.246     IF EXISTS (
+11:28:53.246       SELECT 1 FROM information_schema.columns 
+11:28:53.247       WHERE table_name = 'brand_embeddings' AND column_name = 'embedding' AND data_type != 'USER-DEFINED'
+11:28:53.247     ) THEN
+11:28:53.247       BEGIN
+11:28:53.247         ALTER TABLE brand_embeddings 
+11:28:53.247         ALTER COLUMN embedding TYPE vector(1536) 
+11:28:53.247         USING (
+11:28:53.247           CASE 
+11:28:53.247             WHEN substring(embedding::text, 1, 1) = '[' THEN embedding::text::vector 
+11:28:53.247             ELSE NULL 
+11:28:53.247           END
+11:28:53.247         )"
+11:28:53.270    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "EXCEPTION"
+11:28:53.293    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+11:28:53.314    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+11:28:53.336    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "EXCEPTION"
+11:28:53.359    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+11:28:53.392    ⚠️  Statement Error in 002_audnix_schema.sql: operator class "vector_cosine_ops" does not accept data type jsonb
+11:28:53.473    ⚠️  Statement Error in 002_audnix_schema.sql: operator class "vector_cosine_ops" does not accept data type text
+11:28:53.496    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "ELSE"
+11:28:53.518    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+11:28:53.537    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$"
+11:28:53.618    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$
+11:28:53.619 BEGIN
+11:28:53.619   NEW.updated_at = NOW()"
+11:28:53.646    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "RETURN"
+11:28:53.674    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+11:28:53.697    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+11:28:53.723    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+11:28:53.743    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+11:28:53.743    ✅ Processed 002_audnix_schema.sql
+11:28:53.743 🚀 Running 003_production_upgrade.sql...
+11:28:53.764    ✅ Processed 003_production_upgrade.sql
+11:28:53.768 🚀 Running 004_add_user_fields.sql...
+11:28:53.785    ✅ Processed 004_add_user_fields.sql
+11:28:53.785 🚀 Running 005_voice_minutes_migration.sql...
+11:28:53.792    ⚠️  Statement Error in 005_voice_minutes_migration.sql: unterminated dollar-quoted string at or near "$$
+11:28:53.792 BEGIN
+11:28:53.792   IF EXISTS (
+11:28:53.792     SELECT 1 FROM information_schema.columns 
+11:28:53.793     WHERE table_name = 'users' AND column_name = 'voice_seconds_used'
+11:28:53.793   ) THEN
+11:28:53.793     -- Convert seconds to minutes for existing users
+11:28:53.793     UPDATE users SET voice_minutes_used = voice_seconds_used / 60.0 WHERE voice_seconds_used > 0"
+11:28:53.817    ⚠️  Statement Error in 005_voice_minutes_migration.sql: syntax error at or near "IF"
+11:28:53.835    ⚠️  Statement Error in 005_voice_minutes_migration.sql: unterminated dollar-quoted string at or near "$$"
+11:28:53.866    ✅ Processed 005_voice_minutes_migration.sql
+11:28:53.866 🚀 Running 006_comment_automation.sql...
+11:28:53.872    ⚠️  Statement Error in 006_comment_automation.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:53.872 BEGIN
+11:28:53.872   -- Check if deals table exists first
+11:28:53.872   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'deals') THEN
+11:28:53.872     -- Add source column if it doesn't exist
+11:28:53.873     IF NOT EXISTS (
+11:28:53.873       SELECT 1 FROM information_schema.columns 
+11:28:53.873       WHERE table_name = 'deals' AND column_name = 'source'
+11:28:53.873     ) THEN
+11:28:53.873       ALTER TABLE deals ADD COLUMN source TEXT DEFAULT 'manual' 
+11:28:53.873         CHECK (source IN ('manual', 'instagram', 'email', 'comment_automation'))"
+11:28:53.912    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+11:28:53.932    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+11:28:53.956    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+11:28:53.978    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+11:28:53.996    ⚠️  Statement Error in 006_comment_automation.sql: unterminated dollar-quoted string at or near "$$"
+11:28:54.083    ✅ Processed 006_comment_automation.sql
+11:28:54.087 🚀 Running 007_video_monitors.sql...
+11:28:54.090    ⚠️  Statement Error in 007_video_monitors.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:54.091 BEGIN
+11:28:54.091   -- Only create if doesn't exist
+11:28:54.091   IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'video_monitors') THEN
+11:28:54.091     CREATE TABLE video_monitors (
+11:28:54.091       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+11:28:54.092       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+11:28:54.092       video_id TEXT NOT NULL,
+11:28:54.092       video_url TEXT NOT NULL,
+11:28:54.092       product_link TEXT NOT NULL,
+11:28:54.092       cta_text TEXT DEFAULT 'Check it out',
+11:28:54.092       is_active BOOLEAN DEFAULT true,
+11:28:54.093       auto_reply_enabled BOOLEAN DEFAULT true,
+11:28:54.093       metadata JSONB DEFAULT '{}',
+11:28:54.093       created_at TIMESTAMPTZ DEFAULT NOW(),
+11:28:54.093       updated_at TIMESTAMPTZ DEFAULT NOW()
+11:28:54.093     )"
+11:28:54.175    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+11:28:54.196    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+11:28:54.258    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+11:28:54.284    ⚠️  Statement Error in 007_video_monitors.sql: unterminated dollar-quoted string at or near "$$"
+11:28:54.284    ✅ Processed 007_video_monitors.sql
+11:28:54.284 🚀 Running 009_onboarding_profiles.sql...
+11:28:54.310    ✅ Processed 009_onboarding_profiles.sql
+11:28:54.310 🚀 Running 010_add_user_metadata.sql...
+11:28:54.314    ✅ Processed 010_add_user_metadata.sql
+11:28:54.314 🚀 Running 011_create_oauth_accounts.sql...
+11:28:54.319    ✅ Processed 011_create_oauth_accounts.sql
+11:28:54.320 🚀 Running 012_create_otp_codes.sql...
+11:28:54.327    ✅ Processed 012_create_otp_codes.sql
+11:28:54.327 🚀 Running 013_fix_deals_status_enum.sql...
+11:28:54.334    ✅ Processed 013_fix_deals_status_enum.sql
+11:28:54.335 🚀 Running 014_admin_whitelist.sql...
+11:28:54.348    ✅ Processed 014_admin_whitelist.sql
+11:28:54.348 🚀 Running 015_admin_analytics.sql...
+11:28:54.391    ✅ Processed 015_admin_analytics.sql
+11:28:54.391 🚀 Running 016_add_password_field.sql...
+11:28:54.396    ✅ Processed 016_add_password_field.sql
+11:28:54.396 🚀 Running 017_add_payment_tracking.sql...
+11:28:54.417    ✅ Processed 017_add_payment_tracking.sql
+11:28:54.417 🚀 Running 018_add_subscription_tier.sql...
+11:28:54.419    ✅ Processed 018_add_subscription_tier.sql
+11:28:54.419 🚀 Running 019_sync_schema_columns.sql...
+11:28:54.442    ⚠️  Statement Error in 019_sync_schema_columns.sql: unterminated dollar-quoted string at or near "$$
+11:28:54.442 BEGIN
+11:28:54.442   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'metadata') THEN
+11:28:54.442     ALTER TABLE users ADD COLUMN metadata JSONB NOT NULL DEFAULT '{}'::jsonb"
+11:28:54.466    ⚠️  Statement Error in 019_sync_schema_columns.sql: syntax error at or near "IF"
+11:28:54.502    ⚠️  Statement Error in 019_sync_schema_columns.sql: syntax error at or near "EXCEPTION"
+11:28:54.521    ⚠️  Statement Error in 019_sync_schema_columns.sql: unterminated dollar-quoted string at or near "$$"
+11:28:54.522    ✅ Processed 019_sync_schema_columns.sql
+11:28:54.522 🚀 Running 020_add_otp_passwordhash.sql...
+11:28:54.557    ✅ Processed 020_add_otp_passwordhash.sql
+11:28:54.558 🚀 Running 021_fix_integrations_provider_check.sql...
+11:28:54.563    ✅ Processed 021_fix_integrations_provider_check.sql
+11:28:54.563 🚀 Running 022_calendar_video_automation.sql...
+11:28:54.566    ⚠️  Statement Error in 022_calendar_video_automation.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:54.566 BEGIN
+11:28:54.566   -- Calendar Settings for AI booking control
+11:28:54.566   IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'calendar_settings') THEN
+11:28:54.567     CREATE TABLE calendar_settings (
+11:28:54.567       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+11:28:54.567       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+11:28:54.567       calendly_token TEXT,
+11:28:54.567       calendly_username TEXT,
+11:28:54.567       calendly_event_type_uri TEXT,
+11:28:54.567       google_calendar_enabled BOOLEAN DEFAULT false,
+11:28:54.567       calendly_enabled BOOLEAN DEFAULT false,
+11:28:54.567       auto_booking_enabled BOOLEAN DEFAULT false,
+11:28:54.567       min_intent_score INTEGER DEFAULT 70,
+11:28:54.567       min_timing_score INTEGER DEFAULT 60,
+11:28:54.567       meeting_duration INTEGER DEFAULT 30,
+11:28:54.567       title_template TEXT DEFAULT '{{lead_name}} - Discovery Call',
+11:28:54.567       buffer_before INTEGER DEFAULT 10,
+11:28:54.567       buffer_after INTEGER DEFAULT 5,
+11:28:54.567       working_hours_start INTEGER DEFAULT 9,
+11:28:54.567       working_hours_end INTEGER DEFAULT 17,
+11:28:54.567       timezone TEXT DEFAULT 'America/New_York',
+11:28:54.568       availability_cache JSONB DEFAULT '[]',
+11:28:54.568       availability_cached_at TIMESTAMPTZ,
+11:28:54.568       created_at TIMESTAMPTZ DEFAULT NOW(),
+11:28:54.568       updated_at TIMESTAMPTZ DEFAULT NOW()
+11:28:54.568     )"
+11:28:54.598    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.617    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.640    ⚠️  Statement Error in 022_calendar_video_automation.sql: column "enabled" does not exist
+11:28:54.664    ⚠️  Statement Error in 022_calendar_video_automation.sql: column "platform" does not exist
+11:28:54.683    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.705    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.815    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.843    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.877    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+11:28:54.902    ⚠️  Statement Error in 022_calendar_video_automation.sql: unterminated dollar-quoted string at or near "$$"
+11:28:54.902    ✅ Processed 022_calendar_video_automation.sql
+11:28:54.903 🚀 Running 022_remove_whatsapp_rest.sql...
+11:28:54.995    ✅ Processed 022_remove_whatsapp_rest.sql
+11:28:54.995 🚀 Running 023_automation_rules_content_library.sql...
+11:28:55.015    ✅ Processed 023_automation_rules_content_library.sql
+11:28:55.015 🚀 Running 024_add_rule_type_column.sql...
+11:28:55.017    ⚠️  Statement Error in 024_add_rule_type_column.sql: unterminated dollar-quoted string at or near "$$
+11:28:55.017 BEGIN
+11:28:55.017   IF NOT EXISTS (
+11:28:55.017     SELECT 1 FROM information_schema.columns 
+11:28:55.017     WHERE table_name = 'automation_rules' AND column_name = 'rule_type'
+11:28:55.017   ) THEN
+11:28:55.017     ALTER TABLE automation_rules ADD COLUMN rule_type TEXT NOT NULL DEFAULT 'follow_up' CHECK (rule_type IN ('follow_up', 'objection_handler', 'meeting_booking', 're_engagement'))"
+11:28:55.046    ⚠️  Statement Error in 024_add_rule_type_column.sql: syntax error at or near "IF"
+11:28:55.075    ⚠️  Statement Error in 024_add_rule_type_column.sql: unterminated dollar-quoted string at or near "$$"
+11:28:55.075    ✅ Processed 024_add_rule_type_column.sql
+11:28:55.075 🚀 Running 025_brand_pdf_cache.sql...
+11:28:55.106    ✅ Processed 025_brand_pdf_cache.sql
+11:28:55.107 🚀 Running 026_user_settings_smtp.sql...
+11:28:55.113    ⚠️  Statement Error in 026_user_settings_smtp.sql: unterminated dollar-quoted string at or near "$$
+11:28:55.113 BEGIN
+11:28:55.113   NEW.updated_at = NOW()"
+11:28:55.136    ⚠️  Statement Error in 026_user_settings_smtp.sql: syntax error at or near "RETURN"
+11:28:55.182    ⚠️  Statement Error in 026_user_settings_smtp.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+11:28:55.206    ✅ Processed 026_user_settings_smtp.sql
+11:28:55.206 🚀 Running 027_seed_objections_library.sql...
+11:28:55.338    ✅ Processed 027_seed_objections_library.sql
+11:28:55.338 🚀 Running 028_add_prospecting_engine.sql...
+11:28:55.351    ⚠️  Statement Error in 028_add_prospecting_engine.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:55.351 BEGIN
+11:28:55.351   IF NOT EXISTS (
+11:28:55.351     SELECT 1 FROM pg_policies WHERE tablename = 'prospects' AND policyname = 'Users can manage own prospects'
+11:28:55.352   ) THEN
+11:28:55.352     CREATE POLICY "Users can manage own prospects" ON prospects
+11:28:55.352       FOR ALL USING (user_id = current_setting('app.current_user_id', true)::uuid)"
+11:28:55.373    ⚠️  Statement Error in 028_add_prospecting_engine.sql: syntax error at or near "IF"
+11:28:55.399    ⚠️  Statement Error in 028_add_prospecting_engine.sql: unterminated dollar-quoted string at or near "$$"
+11:28:55.400    ✅ Processed 028_add_prospecting_engine.sql
+11:28:55.400 🚀 Running 029_latest_updates.sql...
+11:28:55.530    ✅ Processed 029_latest_updates.sql
+11:28:55.530 🚀 Running 030_complete_schema.sql...
+11:28:55.623    ✅ Processed 030_complete_schema.sql
+11:28:55.623 🚀 Running 031_sync_social_automation.sql...
+11:28:55.625    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$ 
+11:28:55.625 BEGIN
+11:28:55.625     -- Force refresh of these tables to ensure they match the latest schema
+11:28:55.625     DROP TABLE IF EXISTS processed_comments"
+11:28:55.681    ⚠️  Statement Error in 031_sync_social_automation.sql: cannot drop table video_monitors because other objects depend on it
+11:28:55.702    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.720    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.741    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.759    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.780    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$"
+11:28:55.822    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$
+11:28:55.822 DECLARE
+11:28:55.823     admin_id UUID"
+11:28:55.841    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "SELECT"
+11:28:55.862    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.888    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+11:28:55.908    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$"
+11:28:55.908    ✅ Processed 031_sync_social_automation.sql
+11:28:55.909 🚀 Running 032_fix_schema_mismatches.sql...
+11:28:55.928    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: unterminated dollar-quoted string at or near "$$
+11:28:55.929 BEGIN
+11:28:55.929   -- Check if 'body' exists AND 'message' does NOT exist
+11:28:55.929   IF EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='body') 
+11:28:55.929      AND NOT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='message') THEN
+11:28:55.929     ALTER TABLE notifications RENAME COLUMN body TO message"
+11:28:55.957    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+11:28:55.988    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+11:28:56.008    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+11:28:56.035    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: unterminated dollar-quoted string at or near "$$"
+11:28:56.073    ✅ Processed 032_fix_schema_mismatches.sql
+11:28:56.073 🚀 Running 033_add_filtered_leads_count.sql...
+11:28:56.076    ✅ Processed 033_add_filtered_leads_count.sql
+11:28:56.076 🚀 Running 033_brand_guidelines.sql...
+11:28:56.078    ✅ Processed 033_brand_guidelines.sql
+11:28:56.079 🚀 Running 034_add_company_column.sql...
+11:28:56.081    ⚠️  Statement Error in 034_add_company_column.sql: unterminated dollar-quoted string at or near "$$
+11:28:56.081 BEGIN
+11:28:56.081     -- Add company column to users table if it doesn't exist
+11:28:56.081     IF NOT EXISTS (
+11:28:56.081         SELECT 1 FROM information_schema.columns 
+11:28:56.081         WHERE table_name = 'users' AND column_name = 'company'
+11:28:56.081     ) THEN
+11:28:56.081         ALTER TABLE users ADD COLUMN company TEXT"
+11:28:56.101    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+11:28:56.127    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+11:28:56.146    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.170    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.191    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+11:28:56.212    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+11:28:56.233    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.255    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.275    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+11:28:56.293    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+11:28:56.314    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.334    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.353    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+11:28:56.373    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+11:28:56.391    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+11:28:56.414    ⚠️  Statement Error in 034_add_company_column.sql: unterminated dollar-quoted string at or near "$$"
+11:28:56.414    ✅ Processed 034_add_company_column.sql
+11:28:56.414 🚀 Running 034_social_connections.sql...
+11:28:56.440    ✅ Processed 034_social_connections.sql
+11:28:56.440 🚀 Running 035_campaign_insights.sql...
+11:28:56.444    ✅ Processed 035_campaign_insights.sql
+11:28:56.444 🚀 Running 036_add_message_read_status.sql...
+11:28:56.448    ✅ Processed 036_add_message_read_status.sql
+11:28:56.448 ✨ All migrations processed
+11:28:56.448 🔍 Verifying schema...
+11:28:56.497 📊 Found 61 tables:
+11:28:56.498  - admin_metrics
+11:28:56.498  - admin_whitelist
+11:28:56.498  - ai_action_logs
+11:28:56.498  - api_keys
+11:28:56.498  - audit_trail
+11:28:56.498  - auth_events
+11:28:56.498  - automation_rules
+11:28:56.498  - automations
+11:28:56.499  - bounce_tracker
+11:28:56.499  - brand_embeddings
+11:28:56.499  - brand_guidelines
+11:28:56.499  - brand_pdf_cache
+11:28:56.499  - calendar_bookings
+11:28:56.499  - calendar_events
+11:28:56.499  - calendar_settings
+11:28:56.499  - campaign_insights
+11:28:56.499  - campaign_leads
+11:28:56.499  - content_library
+11:28:56.500  - conversation_events
+11:28:56.500  - deals
+11:28:56.500  - email_warmup_schedules
+11:28:56.500  - follow_up_queue
+11:28:56.500  - followup_jobs
+11:28:56.500  - insights
+11:28:56.500  - integrations
+11:28:56.500  - leads
+11:28:56.501  - memory
+11:28:56.501  - messages
+11:28:56.501  - notifications
+11:28:56.501  - oauth_accounts
+11:28:56.501  - oauth_tokens
+11:28:56.501  - onboarding_profiles
+11:28:56.501  - organizations
+11:28:56.501  - otp_codes
+11:28:56.501  - outreach_campaigns
+11:28:56.501  - payment_approvals
+11:28:56.502  - payments
+11:28:56.502  - pdf_analytics
+11:28:56.502  - playing_with_neon
+11:28:56.502  - processed_comments
+11:28:56.502  - prospects
+11:28:56.502  - revenue_events
+11:28:56.502  - scraping_sessions
+11:28:56.502  - semantic_memory
+11:28:56.502  - social_connections
+11:28:56.502  - system_metrics
+11:28:56.503  - team_members
+11:28:56.503  - upload_rate_limit
+11:28:56.503  - uploads
+11:28:56.503  - usage_logs
+11:28:56.503  - usage_metrics
+11:28:56.503  - usage_purchases
+11:28:56.503  - usage_topups
+11:28:56.503  - user_activity_log
+11:28:56.503  - user_sessions
+11:28:56.503  - user_settings
+11:28:56.503  - users
+11:28:56.503  - video_assets
+11:28:56.504  - video_monitors
+11:28:56.504  - voice_settings
+11:28:56.504  - webhooks
+11:28:56.543 Warning: Due to "engines": { "node": "20.x" } in your `package.json` file, the Node.js Version defined in your Project Settings ("22.x") will not apply, Node.js Version "20.x" will be used instead. Learn More: https://vercel.link/node-version
+11:28:56.568 Installing dependencies...
+11:28:58.725 
+11:28:58.725 up to date in 2s
+11:28:58.990 Using TypeScript 5.6.3 (local user-provided)
+11:29:19.680 server/index.ts(8,52): error TS18046: 'e' is of type 'unknown'.
+11:29:19.680 
+11:29:24.332 server/storage.ts(2,367): error TS2724: '"../shared/schema.js"' has no exported member named 'TeamMember'. Did you mean 'teamMembers'?
+11:29:24.333 server/storage.ts(2,384): error TS2305: Module '"../shared/schema.js"' has no exported member 'InsertTeamMember'.
+11:29:24.333 server/storage.ts(128,31): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+11:29:24.333 server/storage.ts(128,60): error TS2304: Cannot find name 'EmailMessage'.
+11:29:24.333 server/storage.ts(129,45): error TS2304: Cannot find name 'EmailMessage'.
+11:29:24.333 server/storage.ts(141,14): error TS2420: Class 'MemStorage' incorrectly implements interface 'IStorage'.
+11:29:24.334   Type 'MemStorage' is missing the following properties from type 'IStorage': createEmailMessage, getEmailMessages
+11:29:24.334 server/storage.ts(260,9): error TS2393: Duplicate function implementation.
+11:29:24.334 server/storage.ts(263,9): error TS2393: Duplicate function implementation.
+11:29:24.334 server/storage.ts(357,11): error TS2741: Property 'config' is missing in type '{ id: `${string}-${string}-${string}-${string}-${string}`; supabaseId: string | null; email: string; password: string | null; name: string | null; username: string | null; avatar: string | null; company: string | null; ... 30 more ...; filteredLeadsCount: number; }' but required in type '{ id: string; name: string | null; email: string; supabaseId: string | null; password: string | null; username: string | null; avatar: string | null; company: string | null; timezone: string; ... 30 more ...; filteredLeadsCount: number; }'.
+11:29:24.339 server/storage.ts(804,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1026,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1028,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1032,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1037,14): error TS2741: Property 'markNotificationRead' is missing in type 'DrizzleStorage' but required in type 'IStorage'.
+11:29:24.340 
+11:29:31.066 server/drizzle-storage.ts(2,311): error TS2724: '"../shared/schema.js"' has no exported member named 'TeamMember'. Did you mean 'teamMembers'?
+11:29:31.066 server/drizzle-storage.ts(2,323): error TS2305: Module '"../shared/schema.js"' has no exported member 'InsertTeamMember'.
+11:29:31.066 server/drizzle-storage.ts(21,14): error TS2420: Class 'DrizzleStorage' incorrectly implements interface 'IStorage'.
+11:29:31.066   Property 'markNotificationRead' is missing in type 'DrizzleStorage' but required in type 'IStorage'.
+11:29:31.066 server/drizzle-storage.ts(22,37): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+11:29:31.066 server/drizzle-storage.ts(22,66): error TS2304: Cannot find name 'EmailMessage'.
+11:29:31.066 server/drizzle-storage.ts(23,42): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(27,51): error TS2304: Cannot find name 'EmailMessage'.
+11:29:31.066 server/drizzle-storage.ts(28,35): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(28,59): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(708,9): error TS2393: Duplicate function implementation.
+11:29:31.066 server/drizzle-storage.ts(718,37): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(718,42): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(720,15): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(721,16): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+11:29:31.067 server/drizzle-storage.ts(721,21): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.067 server/drizzle-storage.ts(730,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(735,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(741,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(751,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(753,35): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(753,59): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(756,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(758,38): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(762,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(765,15): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(767,21): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(767,47): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(772,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(774,21): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(774,49): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.068 server/drizzle-storage.ts(774,75): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.068 server/drizzle-storage.ts(777,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(779,43): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(779,71): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(783,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(785,21): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(793,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(813,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(857,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(867,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(898,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(906,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(914,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(923,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(934,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(946,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(956,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(981,9): error TS2393: Duplicate function implementation.
+11:29:31.070 
+11:30:11.538 Build Completed in /vercel/output [2m]
+11:30:12.419 Deploying outputs...
