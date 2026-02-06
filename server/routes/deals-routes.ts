@@ -29,7 +29,7 @@ router.get('/analytics', requireAuth, async (req: Request, res: Response): Promi
     }
 
     const revenue = await storage.calculateRevenue(userId);
-    const deals = await storage.getDeals(userId);
+    const deals = revenue.deals;
 
     const openDeals = deals.filter((d: any) => d.status === 'open');
     const wonDeals = deals.filter((d: any) => d.status === 'closed_won');

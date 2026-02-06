@@ -673,16 +673,47 @@ export class DrizzleStorage implements IStorage {
 
   async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
     checkDatabase();
-    const result = await db.update(payments).set({ ...updates, updatedAt: new Date() }).where(eq(payments.id, id)).returning();
-    return result[0];
+  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+    checkDatabase();
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const userDeals = await db
+      .select()
+      .from(deals)
+      .where(eq(deals.userId, userId));
+
+    const total = userDeals.reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
+    const thisMonth = userDeals
+      .filter(deal => deal.createdAt && deal.createdAt >= firstDayOfMonth)
+      .reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
+
+    return {
+      total,
+      thisMonth,
+      deals: userDeals
+    };
   }
 
-  async markNotificationRead(id: string): Promise<void> {
+  async getDeals(userId: string): Promise<any[]> {
     checkDatabase();
-    await db
-      .update(notifications)
-      .set({ isRead: true })
-      .where(eq(notifications.id, id));
+    return await db.select().from(deals).where(eq(deals.userId, userId));
+  }
+
+  async createDeal(data: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db.insert(deals).values(data).returning();
+    return result;
+  }
+
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db
+      .update(deals)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(deals.id, id), eq(deals.userId, userId)))
+      .returning();
+    return result;
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {

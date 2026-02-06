@@ -5,6 +5,7 @@ import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
 import { encrypt, decrypt } from '../lib/crypto/encryption.js';
 import nodemailer from 'nodemailer';
+const Mail = nodemailer;
 
 const router = Router();
 
