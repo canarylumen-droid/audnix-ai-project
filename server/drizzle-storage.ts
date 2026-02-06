@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import crypto from 'crypto'; // Import crypto for UUID generation
 import { wsSync } from './lib/websocket-sync.js';
@@ -754,128 +754,6 @@ export class DrizzleStorage implements IStorage {
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    const allDeals = await this.getDeals(userId);
-    const wonDeals = allDeals.filter(d => d.status === 'closed_won');
-    const total = wonDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-    const thisMonth = wonDeals.filter(d => {
-      const date = d.closedAt ? new Date(d.closedAt) : new Date(d.createdAt);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-    return { total, thisMonth, deals: allDeals };
-  }
-
-  async createUsageTopup(data: any): Promise<any> {
-    const [result] = await db.insert(usageTopups).values(data).returning();
-    return result;
-  }
-
-  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
-    let query = db.select().from(usageTopups).where(eq(usageTopups.userId, userId));
-    if (type) query = query.where(eq(usageTopups.type, type as any)) as any;
-    return await query;
-  }
-
-  async createOnboardingProfile(data: any): Promise<any> {
-    const [result] = await db.insert(onboardingProfiles).values(data).returning();
-    return result;
-  }
-
-  async getOnboardingProfile(userId: string): Promise<any | undefined> {
-    const [result] = await db.select().from(onboardingProfiles).where(eq(onboardingProfiles.userId, userId)).limit(1);
-    return result;
-  }
-
-  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
-    const [result] = await db.update(onboardingProfiles).set(updates).where(eq(onboardingProfiles.userId, userId)).returning();
-    return result;
-  }
-
-  async createOtpCode(data: any): Promise<any> {
-    const [result] = await db.insert(otpCodes).values(data).returning();
-    return result;
-  }
-
-  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
-    let query = db.select().from(otpCodes).where(eq(otpCodes.email, email)).orderBy(desc(otpCodes.createdAt)).limit(1);
-    if (purpose) query = query.where(eq(otpCodes.purpose, purpose)) as any;
-    const [result] = await query;
-    return result;
-  }
-
-  async incrementOtpAttempts(id: string): Promise<void> {
-    await db.execute(sql`UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ${id}`);
-  }
-
-  async markOtpVerified(id: string): Promise<void> {
-    await db.update(otpCodes).set({ verified: true }).where(eq(otpCodes.id, id));
-  }
-
-  async cleanupDemoData(): Promise<{ deletedUsers: number }> {
-    return { deletedUsers: 0 };
-  }
-
-  async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
-    return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
-  }
-
-  async getLearningPatterns(userId: string): Promise<any[]> {
-    return await db.select().from(aiLearningPatterns).where(eq(aiLearningPatterns.userId, userId));
-  }
-
-  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
-    const [existing] = await db.select().from(aiLearningPatterns).where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key))).limit(1);
-    if (existing) {
-      await db.update(aiLearningPatterns).set({ 
-        strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
-        lastUsedAt: new Date()
-      }).where(eq(aiLearningPatterns.id, existing.id));
-    } else {
-      await db.insert(aiLearningPatterns).values({
-        userId,
-        patternKey: key,
-        strength: success ? 1 : 0,
-        lastUsedAt: new Date()
-      });
-    }
-  }
-
-  async getRecentBounces(userId: string, hours?: number): Promise<any[]> {
-    let query = db.select().from(bounceTracker).where(eq(bounceTracker.userId, userId));
-    if (hours) {
-      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-      query = query.where(gte(bounceTracker.createdAt, cutoff)) as any;
-    }
-    return await query;
-  }
-
-  async getDomainVerifications(userId: string, limit?: number): Promise<any[]> {
-    return [];
-  }
-
-  async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
-    const [result] = await db.insert(calendarEvents).values(data).returning();
-    return result;
-  }
-
-  async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
-    const [result] = await db.insert(auditTrail).values(data).returning();
-    return result;
-  }
-
-  async getPaymentById(id: string): Promise<Payment | undefined> {
-    checkDatabase();
-    const result = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
-    return result[0];
-  }
-
-  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
-    checkDatabase();
-    const result = await db.update(payments).set({ ...updates, updatedAt: new Date() }).where(eq(payments.id, id)).returning();
-    return result[0];
-  }
-
-  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
     checkDatabase();
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -980,21 +858,6 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async getVideoMonitors(userId: string): Promise<any[]> {
-    checkDatabase();
-    try {
-      const result = await db.execute(sql`
-        SELECT * FROM video_monitors 
-        WHERE user_id = ${userId} 
-        ORDER BY created_at DESC
-      `);
-      return result.rows as any[];
-    } catch (error) {
-      // Return empty array if table doesn't exist yet
-      return [];
-    }
-  }
-
   async getActiveVideoMonitors(userId: string): Promise<any[]> {
     checkDatabase();
     try {
@@ -1022,72 +885,6 @@ export class DrizzleStorage implements IStorage {
     } catch (error) {
       return null;
     }
-  }
-
-  async createVideoMonitor(data: any): Promise<any> {
-    checkDatabase();
-    const result = await db.execute(sql`
-      INSERT INTO video_monitors (user_id, video_id, video_url, product_link, cta_text, is_active, auto_reply_enabled, metadata)
-      VALUES (${data.userId}, ${data.videoId}, ${data.videoUrl}, ${data.productLink}, ${data.ctaText || 'Check it out'}, ${data.isActive ?? true}, ${data.autoReplyEnabled ?? true}, ${JSON.stringify(data.metadata || {})})
-      RETURNING *
-    `);
-    return result.rows[0];
-  }
-
-  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
-    checkDatabase();
-    const setClauses: ReturnType<typeof sql>[] = [];
-
-    if (updates.isActive !== undefined) {
-      setClauses.push(sql`is_active = ${updates.isActive}`);
-    }
-    if (updates.autoReplyEnabled !== undefined) {
-      setClauses.push(sql`auto_reply_enabled = ${updates.autoReplyEnabled}`);
-    }
-    if (updates.productLink) {
-      setClauses.push(sql`product_link = ${updates.productLink}`);
-    }
-    if (updates.ctaText) {
-      setClauses.push(sql`cta_text = ${updates.ctaText}`);
-    }
-
-    if (setClauses.length === 0) return null;
-
-    setClauses.push(sql`updated_at = NOW()`);
-
-    const result = await db.execute(sql`
-      UPDATE video_monitors 
-      SET ${sql.join(setClauses, sql`, `)}
-      WHERE id = ${id} AND user_id = ${userId}
-      RETURNING *
-    `);
-
-    return result.rows[0];
-  }
-
-  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
-    checkDatabase();
-    await db.execute(sql`
-      DELETE FROM video_monitors 
-      WHERE id = ${id} AND user_id = ${userId}
-    `);
-  }
-
-  async isCommentProcessed(commentId: string): Promise<boolean> {
-    checkDatabase();
-    const result = await db.execute(sql`
-      SELECT 1 FROM processed_comments WHERE comment_id = ${commentId} LIMIT 1
-    `);
-    return result.rows.length > 0;
-  }
-
-  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
-    checkDatabase();
-    await db.execute(sql`
-      INSERT INTO processed_comments (comment_id, status, intent_type, commenter_username, comment_text)
-      VALUES (${commentId}, ${status}, ${intentType}, 'unknown', '')
-      ON CONFLICT (comment_id) DO NOTHING
-    `);
   }
 
   async getBrandKnowledge(userId: string): Promise<string> {
