@@ -52,16 +52,22 @@ async function migrate() {
 
         for (const file of files) {
             console.log(`🚀 Running ${file}...`);
-            const sql = fs.readFileSync(path.join(migrationDir, file), 'utf8');
+            const sqlStr = fs.readFileSync(path.join(migrationDir, file), 'utf8');
             try {
-                await pool.query(sql);
-                console.log(`   ✅ Success`);
-            } catch (err) {
-                if (err.message.includes('already exists') || err.message.includes('duplicate')) {
-                    console.log(`   ℹ️  Skipped (already exists)`);
-                } else {
-                    console.log(`   ⚠️  Error: ${err.message}`);
+                // Split script into individual statements to handle errors gracefully
+                const statements = sqlStr.split(';').filter(s => s.trim().length > 0);
+                for (const statement of statements) {
+                    try {
+                        await pool.query(statement);
+                    } catch (stmtErr) {
+                        if (!stmtErr.message.includes('already exists') && !stmtErr.message.includes('duplicate')) {
+                            console.log(`   ⚠️  Statement Error in ${file}: ${stmtErr.message}`);
+                        }
+                    }
                 }
+                console.log(`   ✅ Processed ${file}`);
+            } catch (err) {
+                console.log(`   ⚠️  Critical Error in ${file}: ${err.message}`);
             }
         }
 

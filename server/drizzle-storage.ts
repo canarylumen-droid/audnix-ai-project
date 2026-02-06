@@ -84,8 +84,19 @@ export class DrizzleStorage implements IStorage {
       // Fallback: If 'config' or other columns are missing, we'll try to get basic info
       try {
         const rawResult = await db.execute(sql`SELECT id, email, password, role, username FROM users WHERE email = ${email} LIMIT 1`);
-        if (rawResult.rows.length > 0) {
-          return rawResult.rows[0] as any;
+        if (rawResult.rows && rawResult.rows.length > 0) {
+          const row = rawResult.rows[0];
+          return {
+            id: row.id,
+            email: row.email,
+            password: row.password,
+            role: row.role,
+            username: row.username,
+            config: {},
+            metadata: {},
+            plan: 'trial',
+            subscriptionTier: 'free'
+          } as any;
         }
       } catch (fallbackError) {
         console.error("Fallback getUserByEmail also failed:", fallbackError);
