@@ -20,16 +20,17 @@ function initializeDb() {
 
   // Handle SSL mode security warning by explicitly using libpq compat
   const dbUrl = new URL(url);
-  dbUrl.searchParams.set('uselibpqcompat', 'true');
-  if (!dbUrl.searchParams.has('sslmode')) {
-    dbUrl.searchParams.set('sslmode', 'require');
-  } else if (['prefer', 'require', 'verify-ca', 'verify-full'].includes(dbUrl.searchParams.get('sslmode') || '')) {
+  if (url.includes('neon.tech')) {
+    dbUrl.searchParams.set('uselibpqcompat', 'true');
     dbUrl.searchParams.set('sslmode', 'require');
   }
   const connectionString = dbUrl.toString();
 
   try {
-    _pool = new Pool({ connectionString });
+    _pool = new Pool({ 
+      connectionString,
+      ssl: url.includes('neon.tech') ? { rejectUnauthorized: false } : false
+    });
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless - Live Protocol)');
     return { db: _db, pool: _pool };

@@ -393,25 +393,18 @@ app.use((req, res, next) => {
 });
 
 async function runMigrations() {
+  console.log("🚀 Starting database migrations...");
   try {
-    if (!process.env.DATABASE_URL) return;
-    const { db } = await import("./db.js");
-    if (!db) return;
-    const migrationsDir = path.join(process.cwd(), "migrations");
-    if (!fs.existsSync(migrationsDir)) return;
-    const migrationFiles = fs
-      .readdirSync(migrationsDir)
-      .filter((f) => f.endsWith(".sql"))
-      .sort();
-    const { pool } = await import("./db.js");
-    for (const file of migrationFiles) {
-      const sqlText = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
-      try {
-        if (pool) await pool.query(sqlText);
-        else await db.execute(sqlText as any);
-      } catch (e) {}
-    }
-  } catch (e) {}
+    const { exec } = await import("child_process");
+    const { promisify } = await import("util");
+    const execAsync = promisify(exec);
+    const { stdout, stderr } = await execAsync("node scripts/migrate-manual.js");
+    console.log("📦 Migration output:", stdout);
+    if (stderr) console.error("⚠️ Migration stderr:", stderr);
+    console.log("✨ Migrations completed successfully");
+  } catch (error) {
+    console.error("❌ Migration failed at startup:", error);
+  }
 }
 
 (async () => {
