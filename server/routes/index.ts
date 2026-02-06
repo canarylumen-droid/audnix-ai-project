@@ -2,6 +2,7 @@ import { Express } from "express";
 import http from "http";
 import path from "path";
 import { wsSync } from "../lib/websocket-sync.js";
+import { apiLimiter } from "../middleware/rate-limit.js";
 import userAuthRouter from "./user-auth.js";
 import adminAuthRouter from "./admin-auth.js";
 import adminPdfRoutes from "./admin-pdf-routes.js";
@@ -47,19 +48,19 @@ import adminMigrationsRouter from "./admin-migrations.js";
 import notificationRoutes from "./notification-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
-  // 1. Static Assets & Public Manifests (Must be first to avoid 401)
-  app.get("/favicon.ico", (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.ico")));
-  app.get("/favicon.svg", (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.svg")));
-  app.get("/manifest.json", (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/manifest.json")));
+  // 1. Static Assets & Public Manifests (With rate limiting)
+  app.get("/favicon.ico", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.ico")));
+  app.get("/favicon.svg", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.svg")));
+  app.get("/manifest.json", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/manifest.json")));
 
-  app.all("/api/instagram/callback", (req, res) => {
+  app.all("/api/instagram/callback", apiLimiter, (req, res) => {
     console.log(`[Root Callback] ${req.method} /api/instagram/callback`);
     // Handle both POST (from Meta) and GET (OAuth redirect)
     const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
     res.redirect(307, `/api/oauth/instagram/callback${query}`);
   });
 
-  app.get("/", (_req, res) => {
+  app.get("/", apiLimiter, (_req, res) => {
     // Serve index.html for all non-api routes to support SPA
     res.sendFile(path.join(process.cwd(), "client/dist/index.html"), (err) => {
       if (err) {

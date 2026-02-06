@@ -1,0 +1,125 @@
+
+
+Server-side request forgery
+Critical
+#155 closed as fixed 2 weeks ago • Detected by CodeQL in server/.../scraping/crawler-service.ts :230
+main
+
+Server-side request forgery
+Critical
+#154 closed as fixed 2 weeks ago • Detected by CodeQL in server/.../scraping/crawler-service.ts :219
+main
+
+Type confusion through parameter tampering
+Critical
+#110 closed as fixed on Dec 31, 2025 • Detected by CodeQL in server/routes/instagram-oauth-routes.t... :149
+main
+
+Server-side request forgery
+Critical
+#10 closed as fixed on Nov 6, 2025 • Detected by CodeQL in server/.../webhooks/instagram-webhook.ts :382
+main
+
+Server-side request forgery
+Critical
+#9 closed as fixed on Nov 6, 2025 • Detected by CodeQL in server/.../oauth/whatsapp.ts :123
+main
+
+Incomplete URL substring sanitization
+High
+#153 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../calendar/google-calendar.ts :19
+main
+
+Incomplete URL substring sanitization
+High
+#152 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../calendar/google-calendar.ts :19
+main
+
+Polynomial regular expression used on uncontrolled data
+High
+#151 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../channels/email.ts :602
+main
+
+Incomplete URL substring sanitization
+High
+#144 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../scraping/crawler-service.ts :855
+main
+
+Incomplete URL substring sanitization
+High
+#143 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../scraping/crawler-service.ts :854
+main
+
+Incomplete URL substring sanitization
+High
+#142 closed as false positive 2 weeks ago • Detected by CodeQL in server/.../scraping/crawler-service.ts :853
+main
+
+Polynomial regular expression used on uncontrolled data
+High
+#84 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/routes/user-auth.ts :61
+main
+
+Polynomial regular expression used on uncontrolled data
+High
+#80 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/routes/email-otp-routes.ts :37
+main
+
+Polynomial regular expression used on uncontrolled data
+High
+#79 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/routes/auth-clean.ts :19
+main
+
+Use of externally-controlled format string
+High
+#76 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../ai/lead-management.ts :486
+main
+
+Incomplete multi-character sanitization
+High
+#75 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email/multi-provider-failover.... :318
+main
+
+Incomplete multi-character sanitization
+High
+#74 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email/multi-provider-failover.... :318
+main
+
+Incomplete multi-character sanitization
+High
+#73 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email/multi-provider-failover.... :318
+main
+
+Double escaping or unescaping
+High
+#68 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email/multi-provider-failover.... :318
+main
+
+Bad HTML filtering regexp
+High
+#67 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email/multi-provider-failover.... :319
+main
+
+Clear-text logging of sensitive information
+High
+#63 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/.../email-system/email-sender.ts :83
+main
+
+Insecure randomness
+High
+#55 closed as used in tests on Dec 5, 2025 • Detected by CodeQL in server/routes/payment-checkout.ts :52
+main
+
+CORS misconfiguration for credentials transfer
+High
+#162 closed as won't fix last week • Detected by CodeQL in server/index.ts :288
+main
+
+Missing CSRF middleware
+High
+#161 closed as won't fix last week • Detected by CodeQL in server/index.ts :186
+main
+
+CORS misconfiguration for credentials transfer
+High
+#139 closed as false positive 2 weeks ago • Detected by CodeQL in server/index.ts :285

@@ -314,7 +314,7 @@ app.use((req, res, next) => {
         originUrl.hostname.endsWith(".railway.app") ||
         originUrl.hostname === "audnixai.com" ||
         originUrl.hostname.endsWith(".audnixai.com") ||
-        originUrl.hostname === host?.split(":")[0];
+        originUrl.hostname === (host?.split(":")[0] || "");
 
       if (!isAllowed && !isAllowedSuffix) {
         console.warn(`⚠️ Origin validation failed for: ${origin} on path: ${req.path}`);
@@ -349,7 +349,7 @@ app.get("/api/csrf-token", (req, res) => {
   const token = (req as any).csrfToken();
   res.cookie("XSRF-TOKEN", token, {
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "strict",
     path: "/",
   });
   res.json({ csrfToken: token });
@@ -370,6 +370,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
   } else if (!origin) {
+    // SECURITY: Use a specific origin instead of mirroring or a wildcard in production
     res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGINS[0]);
   }
   res.setHeader(

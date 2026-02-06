@@ -58,7 +58,9 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     const { email, password } = req.body as { email?: string; password?: string };
     console.log('🔍 [OTP Request] Body - Email:', email ? '✓' : '✗', 'Password:', password ? '✓' : '✗');
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // SECURITY: Use a stricter, non-polynomial regex for email validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!email || !emailRegex.test(email)) {
       console.error('❌ [OTP] Invalid email format');
       res.status(400).json({ error: 'Valid email required' });
       return;
@@ -197,7 +199,8 @@ router.post('/signup/direct', authLimiter, async (req: Request, res: Response): 
     const { email, password, username } = req.body as { email?: string; password?: string; username?: string };
 
     // Validate email
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!email || !emailRegex.test(email)) {
       res.status(400).json({ error: 'Valid email required' });
       return;
     }
