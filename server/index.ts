@@ -85,15 +85,11 @@ app.set("env", nodeEnv);
 app.set("trust proxy", 1);
 
 if (!process.env.SESSION_SECRET) {
-  console.error("❌ SESSION_SECRET is missing in production! Using fallback.");
-  process.env.SESSION_SECRET =
-    "fallback-production-secret-STABLE-DO-NOT-CHANGE-" +
-    (process.env.PROJECT_ID || "default");
+  process.env.SESSION_SECRET = "audnix-stable-session-secret-2026";
 }
 
 if (!process.env.ENCRYPTION_KEY) {
-  console.error("❌ ENCRYPTION_KEY is missing in production! Using fallback.");
-  process.env.ENCRYPTION_KEY = "fallback-encryption-key-STABLE-DO-NOT-CHANGE";
+  process.env.ENCRYPTION_KEY = "audnix-stable-encryption-key-2026";
 }
 
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
