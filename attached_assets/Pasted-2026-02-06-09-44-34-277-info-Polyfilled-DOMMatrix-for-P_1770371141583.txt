@@ -1,0 +1,46 @@
+2026-02-06 09:44:34.277 [info] ✅ Polyfilled DOMMatrix for PDF processing
+2026-02-06 09:44:34.277 [info] ✅ Polyfilled Path2D for PDF processing
+2026-02-06 09:44:34.277 [info] ✅ Polyfilled ImageData for PDF processing
+2026-02-06 09:44:34.277 [info] 📍 Connecting to Redis...
+2026-02-06 09:44:34.277 [info] ✅ PostgreSQL database connected (Neon Serverless - Live Protocol)
+2026-02-06 09:44:34.277 [info] ✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)
+2026-02-06 09:44:34.277 [info] ✅ Admin whitelist loaded: 3 emails
+2026-02-06 09:44:34.277 [info] Warning: Cannot load "@napi-rs/canvas" package: "Error: Cannot find module '@napi-rs/canvas'
+Require stack:
+- /var/task/node_modules/pdfjs-dist/legacy/build/pdf.mjs".
+2026-02-06 09:44:34.277 [info] [AI Service] Initialized with provider: openai
+2026-02-06 09:44:34.277 [info] ⏭️  Replit connection not available - Stripe disabled
+2026-02-06 09:44:34.277 [info] ✅ Supabase Auth configured
+2026-02-06 09:44:34.277 [info] 📧 Email Configuration Check:
+  - API Key Present: YES ✅
+  - Sender Email: team@audnixai.com
+2026-02-06 09:44:34.277 [info] ✅ Using PostgreSQL session store with SSL (persistent)
+2026-02-06 09:44:34.277 [info] ✅ Socket.IO server initialized
+2026-02-06 09:44:34.277 [info] ✅ Redis connected for rate limiting
+2026-02-06 09:44:34.294 [info] 🚀 Campaign Worker started
+2026-02-06 09:44:34.397 [info] 9:44:34 AM [express] 🚀 Server running at http://0.0.0.0:10000
+2026-02-06 09:44:34.468 [error] Login error: error: column "config" does not exist
+    at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+    at async DrizzleStorage.getUserByEmail (/vercel/path0/server/drizzle-storage.ts:79:20)
+    at async <anonymous> (/vercel/path0/server/routes/user-auth.ts:444:18) {
+  length: 107,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '680',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+2026-02-06 09:44:34.483 [info] 9:44:34 AM [express] POST /api/user/auth/login 500 in 142ms

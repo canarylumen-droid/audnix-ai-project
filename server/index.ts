@@ -1,6 +1,12 @@
 // server/index.ts snippet for context
 import "dotenv/config";
 import "./lib/pdf-polyfills.js";
+try {
+  // Ensure @napi-rs/canvas is loadable if needed by dependencies
+  import("@napi-rs/canvas");
+} catch (e) {
+  console.warn("⚠️ @napi-rs/canvas load warning:", e.message);
+}
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "development";
 }
