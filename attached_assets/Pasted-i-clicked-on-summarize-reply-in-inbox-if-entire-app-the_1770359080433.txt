@@ -1,0 +1,51 @@
+i clicked on summarize reply in inbox if entire app there'snoopen ai a[i key when app is running then use gemini so we were using gemini for it bro and i clciked to summarize it still didint work bro
+
+6:06:53 AM [express] POST /api/ai/reply/98ddd80d-4e61-48e7-be6e-11e312caed2f 403 in 10ms
+see the errors plan outall these dont miss one work on it on by one
+see this bro Sync error for user 9a102ce1-0e42-41f1-98d6-335651ce285f: IMAP Host not found: "dlkadl". Please check the hostname and try again.
+and also this this and that
+across app and in settings check for this and fix it bro
+Something went wrong
+Mail is not defined
+
+Return to Dashboard
+and aso this try add it so when ap bilds on vercel it runs up and auto migrate we use neon and it is not cnnected here so dont do youre adding to dtaabase ohkay maybe use migration if you can or find in migration file it is in and add
+Error fetching deal analytics: error: column "deal_value" does not exist
+    at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+    at async DrizzleStorage.calculateRevenue (/vercel/path0/server/drizzle-storage.ts:845:22)
+    at async <anonymous> (/vercel/path0/server/routes/deals-routes.ts:31:21) {
+  length: 111,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '155',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+
+this said invakd date in notificationss bro
+ 
+🚀 HVAC Outreach Campaign Complete
+
+Invalid Date
+
+📧 Outreach Sent
+
+Invalid Date
+
+Sync error for user 7e06031e-09ec-4558-abe1-ac853c5093a9: IMAP connection error: Timed out while authenticating with server bro see this issues
+
+plus this expert chat issues not even working yet when i text it
+take note bro for the expert chat errror read logs attached file i mean to ee the issues
