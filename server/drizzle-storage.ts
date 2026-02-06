@@ -136,6 +136,7 @@ export class DrizzleStorage implements IStorage {
         stripeSubscriptionId: insertUser.stripeSubscriptionId || null,
         supabaseId: insertUser.supabaseId || null,
         lastLogin: new Date(),
+        config: {},
       })
       .returning();
 
