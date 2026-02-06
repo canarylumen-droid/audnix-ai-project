@@ -76,8 +76,22 @@ export class DrizzleStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     checkDatabase();
-    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    return result[0];
+    try {
+      const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error(`Error in getUserByEmail for ${email}:`, error);
+      // Fallback: If 'config' or other columns are missing, we'll try to get basic info
+      try {
+        const rawResult = await db.execute(sql`SELECT id, email, password, role, username FROM users WHERE email = ${email} LIMIT 1`);
+        if (rawResult.rows.length > 0) {
+          return rawResult.rows[0] as any;
+        }
+      } catch (fallbackError) {
+        console.error("Fallback getUserByEmail also failed:", fallbackError);
+      }
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
