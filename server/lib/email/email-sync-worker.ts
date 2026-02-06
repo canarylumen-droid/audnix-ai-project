@@ -138,28 +138,7 @@ class EmailSyncWorker {
         const inbound = await pagedEmailImport(userId, inboxEmails.map(mapEmail), () => { }, 'inbound');
         const outbound = await pagedEmailImport(userId, sentEmails.map(mapEmail), () => { }, 'outbound');
 
-        // Persist messages to the new email_messages table
-        const allFetchedEmails = [...inboxEmails.map(e => ({...e, direction: 'inbound'})), ...sentEmails.map(e => ({...e, direction: 'outbound'}))];
-        for (const email of allFetchedEmails) {
-          try {
-            await storage.createEmailMessage({
-              userId,
-              messageId: email.messageId || `msg_${Date.now()}_${Math.random()}`,
-              threadId: email.threadId,
-              subject: email.subject,
-              from: email.from || '',
-              to: email.to || '',
-              body: email.text || '',
-              htmlBody: email.html,
-              direction: (email as any).direction as "inbound" | "outbound",
-              provider: integration.provider as "gmail" | "outlook" | "custom_email",
-              sentAt: email.date || new Date(),
-              metadata: {}
-            });
-          } catch (e) {
-            // Likely duplicate messageId, ignore
-          }
-        }
+        // Note: Individual email storage is now handled inside pagedEmailImport for data integrity
 
         if (inbound.imported > 0 || outbound.imported > 0) {
           const { wsSync } = await import('../websocket-sync.js');

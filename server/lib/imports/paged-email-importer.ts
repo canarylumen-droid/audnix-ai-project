@@ -158,6 +158,27 @@ async function processEmailForLead(
       }
     });
 
+    // PERMANENT STORAGE: Also store in email_messages table
+    try {
+      await storage.createEmailMessage({
+        userId,
+        leadId: lead.id,
+        messageId: email.messageId || `msg_${Date.now()}_${Math.random()}`,
+        threadId: email.threadId,
+        subject: email.subject,
+        from: email.from || '',
+        to: email.to || '',
+        body: email.text || '',
+        htmlBody: email.html,
+        direction,
+        provider: 'custom_email',
+        sentAt: email.date || new Date(),
+        metadata: {}
+      });
+    } catch (e) {
+      // Ignore duplicates
+    }
+
     // Notify UI of new message
     try {
       const { wsSync } = await import('../websocket-sync.js');

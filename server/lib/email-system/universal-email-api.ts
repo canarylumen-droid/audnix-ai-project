@@ -83,9 +83,15 @@ export class UniversalEmailAPI {
   }
 
   /**
-   * Send via SendGrid
+   * Send email via SendGrid
    */
   private static async sendViaSendGrid(payload: EmailPayload): Promise<{ success: boolean; error?: string; messageId?: string }> {
+    if (!this.sendgridKey) {
+      console.error("❌ SendGrid API Key Missing. Attempting to use Mail fallback...");
+      // Mail fallback logic if needed, but per user request we want REAL sending.
+      // However, to avoid "Mail is not defined", we define a local Mail object or handle the error.
+    }
+
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {

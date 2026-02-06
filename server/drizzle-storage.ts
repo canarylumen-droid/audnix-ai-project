@@ -321,7 +321,9 @@ export class DrizzleStorage implements IStorage {
         or(
           like(leads.name, searchPattern),
           like(leads.email, searchPattern),
-          like(leads.phone, searchPattern)
+          like(leads.phone, searchPattern),
+          like(leads.company, searchPattern),
+          like(leads.role, searchPattern)
         )
       );
     }

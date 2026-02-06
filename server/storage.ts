@@ -124,6 +124,10 @@ export interface IStorage {
   getRecentBounces(userId: string, hours?: number): Promise<any[]>;
   getDomainVerifications(userId: string, limit?: number): Promise<any[]>;
 
+  // Permanent Email Storage
+  createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
+  getEmailMessages(userId: string): Promise<EmailMessage[]>;
+
   // Calendar Events
   createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent>;
 
