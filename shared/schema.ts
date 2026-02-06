@@ -77,6 +77,7 @@ export const users = pgTable("users", {
   calendarLink: text("calendar_link"),
   brandGuidelinePdfUrl: text("brand_guideline_pdf_url"),
   brandGuidelinePdfText: text("brand_guideline_pdf_text"),
+  config: jsonb("config").default({}),
   filteredLeadsCount: integer("filtered_leads_count").notNull().default(0),
 });
 
@@ -265,11 +266,24 @@ export const teamMembers = pgTable("team_members", {
   acceptedAt: timestamp("accepted_at"),
 });
 
-// Export types
-export const teamMembersSelect = createSelectSchema(teamMembers);
-export const teamMembersInsert = createInsertSchema(teamMembers);
-export type TeamMember = z.infer<typeof teamMembersSelect>;
-export type InsertTeamMember = z.infer<typeof teamMembersInsert>;
+export const campaigns = pgTable("campaigns", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  status: text("status").notNull().default("draft"),
+  config: jsonb("config").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const userOutreachSettings = pgTable("user_outreach_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  dailyLimit: integer("daily_limit").notNull().default(50),
+  warmupEnabled: boolean("warmup_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
 
 export const webhooks = pgTable("webhooks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
