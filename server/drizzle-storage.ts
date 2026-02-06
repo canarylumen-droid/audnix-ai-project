@@ -689,10 +689,10 @@ export class DrizzleStorage implements IStorage {
       .from(deals)
       .where(eq(deals.userId, userId));
 
-    const total = userDeals.reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
+    const total = userDeals.reduce((sum, deal) => sum + (Number((deal as any).dealValue) || Number((deal as any).deal_value) || Number(deal.value) || 0), 0);
     const thisMonth = userDeals
       .filter(deal => deal.createdAt && deal.createdAt >= firstDayOfMonth)
-      .reduce((sum, deal) => sum + (Number(deal.value) || 0), 0);
+      .reduce((sum, deal) => sum + (Number((deal as any).dealValue) || Number((deal as any).deal_value) || Number(deal.value) || 0), 0);
 
     return {
       total,
