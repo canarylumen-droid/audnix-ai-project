@@ -31,9 +31,11 @@ import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
 
 const verifier = new EmailVerifier();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// Basic verification of key presence
+// Robust verification of key presence and format
 if (!process.env.GEMINI_API_KEY) {
   console.error("GEMINI_API_KEY is missing from environment variables");
+} else if (!process.env.GEMINI_API_KEY.startsWith("AIza")) {
+  console.error("GEMINI_API_KEY appears to be in an invalid format (should start with AIza)");
 }
 import type { ProviderType, ChannelType } from '../../shared/types.js';
 

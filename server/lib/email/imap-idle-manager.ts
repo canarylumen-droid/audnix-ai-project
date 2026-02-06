@@ -227,6 +227,16 @@ class ImapIdleManager {
                 this.fetchNewEmails(userId, imap, primaryInbox, 'inbound');
             });
 
+            // Dual Sync: Watch Sent folder too if possible
+            for (const sentFolder of userFolders.sent) {
+                if (sentFolder !== primaryInbox) {
+                    imap.on('mail', (num) => {
+                         console.log(`📤 New message detected in Sent folder ${sentFolder} for user ${userId}`);
+                         this.fetchNewEmails(userId, imap, sentFolder, 'outbound');
+                    });
+                }
+            }
+
             // Start IDLE
             (imap as any).idle();
 
