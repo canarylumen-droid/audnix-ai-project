@@ -960,10 +960,16 @@ export class DrizzleStorage implements IStorage {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const total = closedDeals.reduce((sum: number, d: Deal) => sum + (Number((d as any).dealValue) || Number(d.value) || 0), 0);
+    const total = closedDeals.reduce((sum: number, d: Deal) => {
+      const val = Number((d as any).dealValue) || Number((d as any).deal_value) || Number(d.value) || 0;
+      return sum + val;
+    }, 0);
     const thisMonth = closedDeals
       .filter((d: Deal) => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
-      .reduce((sum: number, d: Deal) => sum + (Number((d as any).dealValue) || Number(d.value) || 0), 0);
+      .reduce((sum: number, d: Deal) => {
+        const val = Number((d as any).dealValue) || Number((d as any).deal_value) || Number(d.value) || 0;
+        return sum + val;
+      }, 0);
 
     return { total, thisMonth, deals: closedDeals };
   }

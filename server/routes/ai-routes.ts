@@ -568,10 +568,10 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
       const leadData = leadsData[i];
 
       try {
-        const identifier = leadData.email || leadData.phone;
-        // Relaxed validation: Allow import if at least one contact method exists
+        const identifier = leadData.email;
+        // Relaxed validation: Allow import if email exists
         if (!identifier) {
-          results.errors.push(`Row ${i + 1}: Missing email or phone`);
+          results.errors.push(`Row ${i + 1}: Missing email`);
           continue;
         }
 
@@ -581,14 +581,12 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
         }
 
         const existingLead = existingLeads.find(l =>
-          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase()) ||
-          (leadData.phone && l.phone === leadData.phone)
+          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase())
         );
 
         if (existingLead) {
           // Improve Deduplication: Merge strategy (fill missing fields only)
           const updates: Record<string, any> = {};
-          if (!existingLead.phone && leadData.phone) updates.phone = leadData.phone;
           if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
           

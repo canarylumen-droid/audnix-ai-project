@@ -13,6 +13,7 @@ const router = Router();
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
+    // pdf-parse uses a weird export structure in some environments
     const parse = (pdf as any).default || pdf;
     const data = await parse(buffer);
     return data.text || "";
