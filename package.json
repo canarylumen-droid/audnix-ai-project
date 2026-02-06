@@ -14,7 +14,7 @@
     "verify": "bash scripts/verify_build_and_run.sh"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
