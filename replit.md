@@ -6,11 +6,12 @@ audnixai.com is a full-stack SaaS platform that serves as an autonomous AI sales
 
 The platform targets creators, coaches, agencies, and founders who need 24/7 sales automation without manual follow-up overhead.
 
-## Recent Changes (January 2026)
+## Recent Changes (February 2026)
 
-- Imported from GitHub and configured for Replit environment
-- Set up PostgreSQL database with Neon Serverless
-- Fixed TypeScript compilation errors in PDF routes and storage classes
+- Migrated database connection from Neon Serverless to Replit's built-in PostgreSQL (drizzle-orm/node-postgres with pg driver)
+- Removed cross-env dependency from npm scripts (using native NODE_ENV= on Linux)
+- Fixed SSL/connection string handling for Replit PostgreSQL in session store
+- Pushed database schema via drizzle-kit
 - Configured deployment for autoscale with build and start commands
 
 ## User Preferences
@@ -38,11 +39,11 @@ Preferred communication style: Simple, everyday language.
 - **Background Workers**: Follow-up scheduling, email warmup, video comment monitoring, payment auto-approval
 
 ### Database Layer
-- **Primary Database**: PostgreSQL via Neon Serverless
+- **Primary Database**: PostgreSQL via Replit's built-in database
 - **ORM**: Drizzle ORM with PostgreSQL dialect
 - **Schema Location**: `shared/schema.ts` (shared between client and server)
 - **Migrations**: SQL files in `migrations/` directory, executed via drizzle-kit
-- **Connection**: Uses `@neondatabase/serverless` with WebSocket support for Node environments
+- **Connection**: Uses `drizzle-orm/node-postgres` with the `pg` package
 
 ### Authentication System
 - **Primary Provider**: Supabase Auth (Google OAuth, Email OTP)

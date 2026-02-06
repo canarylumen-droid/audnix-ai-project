@@ -1,10 +1,8 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool, neonConfig } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
 import * as schema from "../shared/schema.js";
-import ws from "ws";
 
-// CRITICAL: Configure neon to use ws for pooling in Node environments
-neonConfig.webSocketConstructor = ws;
+const { Pool } = pg;
 
 let _db: any = null;
 let _pool: any = null;
@@ -18,21 +16,12 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
-  // Handle SSL mode security warning by explicitly using libpq compat
-  const dbUrl = new URL(url);
-  if (url.includes('neon.tech')) {
-    dbUrl.searchParams.set('uselibpqcompat', 'true');
-    dbUrl.searchParams.set('sslmode', 'require');
-  }
-  const connectionString = dbUrl.toString();
-
   try {
     _pool = new Pool({ 
-      connectionString,
-      ssl: url.includes('neon.tech') ? { rejectUnauthorized: false } : false
+      connectionString: url,
     });
     _db = drizzle(_pool, { schema });
-    console.log('✅ PostgreSQL database connected (Neon Serverless - Live Protocol)');
+    console.log('✅ PostgreSQL database connected');
     return { db: _db, pool: _pool };
   } catch (error) {
     console.error('❌ Database connection failed:', error);
@@ -40,12 +29,10 @@ function initializeDb() {
   }
 }
 
-// For compatibility with existing imports
 const result = initializeDb();
 export const db = result.db;
 export const pool = result.pool;
 
-// Add a getter for dynamic access (useful for scripts)
 export function getDatabase() {
   if (!_db) return initializeDb().db;
   return _db;

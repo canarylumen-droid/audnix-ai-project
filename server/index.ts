@@ -158,26 +158,8 @@ const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
 
 if (process.env.DATABASE_URL) {
-  // Normalize connection string for SSL compatibility
-  const dbUrl = new URL(process.env.DATABASE_URL);
-  dbUrl.searchParams.set("uselibpqcompat", "true");
-  if (!dbUrl.searchParams.has("sslmode")) {
-    dbUrl.searchParams.set("sslmode", "require");
-  } else if (
-    ["prefer", "require", "verify-ca", "verify-full"].includes(
-      dbUrl.searchParams.get("sslmode") || "",
-    )
-  ) {
-    dbUrl.searchParams.set("sslmode", "require");
-  }
-  const connectionString = dbUrl.toString();
-
   const pool = new pg.Pool({
-    connectionString,
-    ssl:
-      process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
-        : false,
+    connectionString: process.env.DATABASE_URL,
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
