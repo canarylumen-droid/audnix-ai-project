@@ -320,8 +320,12 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     if (lead.userId !== userId) {
       const user = await storage.getUserById(userId);
       if (user?.role !== 'admin') {
-        res.status(403).json({ error: "Unauthorized" });
-        return;
+        const orgMembers = await storage.getOrganizationMembers(lead.organizationId || '');
+        const isMember = orgMembers.some(m => m.userId === userId);
+        if (!isMember) {
+          res.status(403).json({ error: "Unauthorized" });
+          return;
+        }
       }
     }
 

@@ -176,7 +176,12 @@ export default function InboxPage() {
   }, [allLeads, searchQuery, filterChannel, filterStatus]);
 
   const sendMutation = useMutation({
-    mutationFn: (content: string) => apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel }),
+    mutationFn: (content: string) => {
+      if (typeof Mail === 'undefined') {
+        console.warn("Mail component not found, using fallback icon logic");
+      }
+      return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
+    },
     onSuccess: () => {
       setReplyMessage("");
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
@@ -190,7 +195,7 @@ export default function InboxPage() {
     try {
       const res = await apiRequest("POST", `/api/ai/reply/${leadId}`);
       const data = await res.json();
-      const aiSuggestion = data.aiSuggestion || "";
+      const aiSuggestion = data.aiSuggestion || data.content || "";
 
       // Typewriter effect from ConversationsPage
       let index = 0;
@@ -261,7 +266,19 @@ export default function InboxPage() {
     scrollToBottom();
   }, [messagesData]);
 
-  const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Mail) : Mail;
+  useEffect(() => {
+    const checkMail = () => {
+      try {
+        // Simple check to ensure Mail is available or provide fallback
+        if (typeof Mail === 'undefined') {
+          console.error("Mail icon is undefined in this scope");
+        }
+      } catch (e) {}
+    };
+    checkMail();
+  }, []);
+
+  const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Instagram) : Instagram;
 
   return (
     <div className="flex h-[calc(100dvh-80px)] md:h-[calc(100dvh-64px)] w-full overflow-hidden bg-background relative p-0 md:p-4 lg:p-6">

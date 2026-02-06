@@ -676,7 +676,13 @@ export class MemStorage implements IStorage {
 
   async createNotification(data: any): Promise<any> {
     const id = randomUUID();
-    const notification = { id, ...data, createdAt: new Date() };
+    const now = new Date();
+    // Ensure createdAt is always a valid Date object
+    const notification = { 
+      id, 
+      ...data, 
+      createdAt: data.createdAt instanceof Date ? data.createdAt : (data.createdAt ? new Date(data.createdAt) : now) 
+    };
     this.notifications.set(id, notification);
     return notification;
   }

@@ -268,11 +268,11 @@ export async function importCustomEmails(
       if (!completed) {
         cleanup();
         let errorMessage = `IMAP connection error: ${err.message}`;
-        if (err.message.includes('ENOTFOUND')) {
+        if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
           errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
-        } else if (err.message.includes('ETIMEDOUT')) {
+        } else if (err.message.toLowerCase().includes('etimedout') || err.message.toLowerCase().includes('timeout')) {
           errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
-        } else if (err.message.includes('ECONNREFUSED')) {
+        } else if (err.message.toLowerCase().includes('econnrefused')) {
           errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
         }
         reject(new Error(errorMessage));

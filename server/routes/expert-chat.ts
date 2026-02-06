@@ -101,7 +101,29 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
             history: sanitizedHistory,
         });
 
-        const result = await chat.sendMessage(message);
+        // Add a retry mechanism for 429 errors
+        let result;
+        let retryCount = 0;
+        const maxRetries = 2;
+        
+        while (retryCount <= maxRetries) {
+            try {
+                result = await chat.sendMessage(message);
+                break;
+            } catch (err: any) {
+                if (err?.status === 429 && retryCount < maxRetries) {
+                    retryCount++;
+                    const waitTime = Math.pow(2, retryCount) * 1000;
+                    console.warn(`[AI] Quota exceeded, retrying in ${waitTime}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        if (!result) throw new Error("Failed to get AI response after retries");
+
         const response = await result.response;
         const content = response.text() || "Neural processing interrupted. Please re-send your inquiry.";
 
