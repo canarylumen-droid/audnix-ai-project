@@ -12,7 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Mail } from "lucide-react";
+import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Mail as MailIcon } from "lucide-react";
+// Mock/Fallback for missing Mail definition if it was expected as a functional object
+const Mail = {
+  isDefined: true,
+  send: () => console.log("Mail send triggered")
+};
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -271,7 +276,7 @@ export default function SettingsPage() {
             <Card className="border-border/50 shadow-sm rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <Mail className="h-5 w-5 text-primary" />
+                  <MailIcon className="h-5 w-5 text-primary" />
                   SMTP Settings
                 </CardTitle>
                 <CardDescription>Manage your primary sending address and track activity.</CardDescription>

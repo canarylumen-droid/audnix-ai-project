@@ -26,9 +26,10 @@ export function NotificationBell() {
 
   // Play notification sound
   const playNotificationSound = () => {
-    const audio = new Audio('/notification.mp3');
+    const audio = new Audio('/sounds/notification.mp3');
     audio.volume = 0.6;
-    audio.play().catch(() => {
+    audio.play().catch((e) => {
+      console.log('Audio play failed:', e);
       // Browser might block auto-play
     });
   };

@@ -673,6 +673,10 @@ export class DrizzleStorage implements IStorage {
 
   async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
     checkDatabase();
+    const result = await db.update(payments).set({ ...updates, updatedAt: new Date() }).where(eq(payments.id, id)).returning();
+    return result[0];
+  }
+
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
     checkDatabase();
     const now = new Date();
@@ -714,6 +718,54 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(deals.id, id), eq(deals.userId, userId)))
       .returning();
     return result;
+  }
+
+  async getVideoMonitors(userId: string): Promise<any[]> {
+    checkDatabase();
+    return await db.select().from(videoMonitors).where(eq(videoMonitors.userId, userId));
+  }
+
+  async createVideoMonitor(data: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db.insert(videoMonitors).values(data).returning();
+    return result;
+  }
+
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db
+      .update(videoMonitors)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId)))
+      .returning();
+    return result;
+  }
+
+  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(videoMonitors).where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId)));
+  }
+
+  async isCommentProcessed(commentId: string): Promise<boolean> {
+    checkDatabase();
+    const result = await db.select().from(processedComments).where(eq(processedComments.commentId, commentId)).limit(1);
+    return result.length > 0;
+  }
+
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    checkDatabase();
+    await db.insert(processedComments).values({
+      commentId,
+      status: status as any,
+      intentType,
+      processedAt: new Date()
+    });
+  }
+
+  async getBrandKnowledge(userId: string): Promise<string> {
+    checkDatabase();
+    const user = await this.getUser(userId);
+    return user?.brandGuidelinePdfText || '';
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
