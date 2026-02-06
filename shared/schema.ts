@@ -371,14 +371,28 @@ export const insights = pgTable("insights", {
   generatedAt: timestamp("generated_at").notNull().defaultNow(),
 });
 
-export const usageTopups = pgTable("usage_topups", {
+export const emailMessages = pgTable("email_messages", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["leads", "voice"] }).notNull(),
-  amount: real("amount").notNull(),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+  messageId: text("message_id").notNull().unique(),
+  threadId: text("thread_id"),
+  subject: text("subject"),
+  from: text("from_address").notNull(),
+  to: text("to_address").notNull(),
+  body: text("body"),
+  htmlBody: text("html_body"),
+  direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  provider: text("provider", { enum: ["gmail", "outlook", "custom_email"] }).notNull(),
+  sentAt: timestamp("sent_at").notNull(),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const emailMessagesSelect = createSelectSchema(emailMessages);
+export const emailMessagesInsert = createInsertSchema(emailMessages);
+export type EmailMessage = z.infer<typeof emailMessagesSelect>;
+export type InsertEmailMessage = z.infer<typeof emailMessagesInsert>;
 
 export const brandEmbeddings = pgTable("brand_embeddings", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

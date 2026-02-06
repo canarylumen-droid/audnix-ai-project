@@ -23,7 +23,7 @@ import {
   Inbox as InboxIcon,
   Star,
   Instagram,
-  Mail,
+  Mail as MailIcon,
   RefreshCw,
   MoreVertical,
   Check,
@@ -52,7 +52,7 @@ import {
 
 const channelIcons = {
   instagram: Instagram,
-  email: Mail,
+  email: MailIcon,
 };
 
 const statusStyles = {
@@ -177,9 +177,6 @@ export default function InboxPage() {
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
-      if (typeof Mail === 'undefined') {
-        console.warn("Mail component not found, using fallback icon logic");
-      }
       return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
     },
     onSuccess: () => {
@@ -267,15 +264,7 @@ export default function InboxPage() {
   }, [messagesData]);
 
   useEffect(() => {
-    const checkMail = () => {
-      try {
-        // Simple check to ensure Mail is available or provide fallback
-        if (typeof Mail === 'undefined') {
-          console.error("Mail icon is undefined in this scope");
-        }
-      } catch (e) {}
-    };
-    checkMail();
+    // Component check for debugging
   }, []);
 
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Instagram) : Instagram;
