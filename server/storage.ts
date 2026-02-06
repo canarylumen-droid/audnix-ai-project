@@ -1,3 +1,4 @@
+import { drizzleStorage } from "./drizzle-storage.js";
 import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
