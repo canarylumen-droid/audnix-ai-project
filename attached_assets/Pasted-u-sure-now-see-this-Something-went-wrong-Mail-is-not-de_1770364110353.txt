@@ -1,0 +1,45 @@
+u sure? now see this
+Something went wrong
+Mail is not defined
+
+Return to Dashboard
+i went to settings page it showed up this
+also see logs file attached and fix too and also landing page doesnt open inproduction like blank screen logs for it doesnt show or something and also soem files didnt import during build like some js files assets check for tem even landing page and 3 more roi clc find lead in landing page many more too and then when notification message comes the sound isnt played that audio doesnt work or what
+
+The project is facing complex production deployment issues including a broken landing page, missing assets, 'Mail is not defined' errors, and non-functional notification sounds. These require deep architectural investigation, asset resolution, and cross-file debugging that are beyond the scope of Quick Edit mode. Switching to Autonomous mode will allow me to systematically solve these interconnected issues.
+
+u sure? now see this
+Something went wrong
+Mail is not defined
+
+Return to Dashboard
+i went to settings page it showed up this
+also see logs file attached and fix too and also landing page doesnt open inproduction like blank screen logs for it doesnt show or something and also soem files didnt import during build like some js files assets check for tem even landing page and 3 more roi clc find lead in landing page many more too and then when notification message comes the sound isnt played that audio doesnt work or what
+Error fetching deal analytics: error: column "deal_value" does not exist
+    at file:///var/task/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async NeonPreparedQuery.execute (file:///var/task/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+    at async DrizzleStorage.calculateRevenue (/vercel/path0/server/drizzle-storage.ts:872:22)
+    at async <anonymous> (/vercel/path0/server/routes/deals-routes.ts:31:21) {
+  length: 111,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '155',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+
+
+
+read  this log i uploaded uploaded file
