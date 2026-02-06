@@ -79,6 +79,7 @@ export default function InboxPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [showIntelligence, setShowIntelligence] = useState(false);
+  const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
@@ -164,12 +165,12 @@ export default function InboxPage() {
       const matchesSearch = !searchQuery ||
         lead.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
-      
-      const matchesStatus = filterStatus === "all" 
-          ? true 
-          : filterStatus === "unread" 
-            ? (lead.metadata?.isUnread || false)
-            : lead.status === filterStatus;
+
+      const matchesStatus = filterStatus === "all"
+        ? true
+        : filterStatus === "unread"
+          ? (lead.metadata?.isUnread || false)
+          : lead.status === filterStatus;
 
       return matchesSearch && matchesChannel && matchesStatus;
     });
@@ -270,7 +271,7 @@ export default function InboxPage() {
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Instagram) : Instagram;
 
   return (
-    <div className="flex h-[calc(100dvh-80px)] md:h-[calc(100dvh-64px)] w-full overflow-hidden bg-background relative p-0 md:p-4 lg:p-6">
+    <div className="flex h-full w-full overflow-hidden bg-background relative p-0">
       <div className="flex w-full h-full max-w-[1600px] mx-auto bg-card/30 backdrop-blur-xl border rounded-none md:rounded-3xl overflow-hidden shadow-2xl">
         {/* Lead List Pane */}
         <div className={cn(
@@ -281,11 +282,11 @@ export default function InboxPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Inbox</h2>
               <div className="flex items-center gap-2">
-                 {/* Status Filter Dropdown */}
-                 <DropdownMenu>
+                {/* Status Filter Dropdown */}
+                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
-                        <Filter className={cn("h-4 w-4", filterStatus !== 'all' ? "text-primary" : "text-muted-foreground")} />
+                      <Filter className={cn("h-4 w-4", filterStatus !== 'all' ? "text-primary" : "text-muted-foreground")} />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
@@ -296,11 +297,11 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                
+
                 <Button variant="ghost" size="icon" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4" /></Button>
               </div>
             </div>
-            
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -310,7 +311,7 @@ export default function InboxPage() {
                 onChange={e => setSearchQuery(e.target.value)}
               />
             </div>
-            
+
             <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("all")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'all' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>All</Button>
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("instagram")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'instagram' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Instagram</Button>
@@ -319,16 +320,16 @@ export default function InboxPage() {
 
             {/* Active Status Display */}
             {filterStatus !== 'all' && (
-                <div className="flex items-center gap-2 px-1">
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Filtering by:</span>
-                    <Badge variant="secondary" className="text-[10px] px-2 h-5 uppercase">
-                        {filterStatus}
-                        <X 
-                            className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive" 
-                            onClick={(e) => { e.stopPropagation(); setFilterStatus('all'); }} 
-                        />
-                    </Badge>
-                </div>
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">Filtering by:</span>
+                <Badge variant="secondary" className="text-[10px] px-2 h-5 uppercase">
+                  {filterStatus}
+                  <X
+                    className="h-3 w-3 ml-1 cursor-pointer hover:text-destructive"
+                    onClick={(e) => { e.stopPropagation(); setFilterStatus('all'); }}
+                  />
+                </Badge>
+              </div>
             )}
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-border/5">
@@ -337,19 +338,22 @@ export default function InboxPage() {
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
               </div>
             ) : filteredLeads.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center h-64">
-                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                        <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
-                    <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
+              <div className="flex flex-col items-center justify-center p-8 text-center h-64">
+                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                  <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
                 </div>
+                <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
+                <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
+              </div>
             ) : (
               <>
                 {filteredLeads.map(lead => (
                   <div
                     key={lead.id}
-                    onClick={() => setLocation(`/dashboard/inbox/${lead.id}`)}
+                    onClick={() => {
+                      setLocation(`/dashboard/inbox/${lead.id}`);
+                      setShowDetails(true);
+                    }}
                     onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
                     className={cn(
                       "p-4 cursor-pointer hover:bg-primary/5 transition-all border-b border-border/5 group relative",
@@ -376,10 +380,10 @@ export default function InboxPage() {
                           {lead.lastMessageSnippet || "No messages"}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                             <Badge variant="outline" className={cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status] || statusStyles.cold)}>
-                                {lead.status === 'hardened' ? 'Verified' : lead.status}
-                             </Badge>
-                             {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                          <Badge variant="outline" className={cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status] || statusStyles.cold)}>
+                            {lead.status === 'hardened' ? 'Verified' : lead.status}
+                          </Badge>
+                          {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
                         </div>
                       </div>
                     </div>
@@ -387,8 +391,8 @@ export default function InboxPage() {
                 ))}
                 {leadsData?.hasMore && (
                   <div className="p-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full text-xs font-bold uppercase tracking-widest rounded-xl h-10 border-dashed"
                       onClick={() => setPage(p => p + 1)}
                       disabled={leadsLoading}
@@ -419,15 +423,16 @@ export default function InboxPage() {
                 <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background/50 backdrop-blur-md shrink-0">
                   <div className="flex items-center gap-4 min-w-0">
                     {/* Back Button for Mobile */}
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="shrink-0 md:hidden -ml-2" 
-                        onClick={() => setLocation('/dashboard/inbox')}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => setLocation('/dashboard/inbox')}
+                      title="Back to Inbox"
                     >
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    
+
                     <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>
@@ -441,7 +446,7 @@ export default function InboxPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] hidden lg:block px-3 py-1 uppercase tracking-tighter">{activeLead?.score || 0}% Engagement Score</Badge>
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] hidden xl:block px-3 py-1 uppercase tracking-tighter">{activeLead?.score || 0}% Engagement Score</Badge>
                     <Button
                       variant="outline"
                       size="sm"
@@ -451,8 +456,18 @@ export default function InboxPage() {
                       {activeLead?.aiPaused ? <Play className="h-3 w-3 mr-2 fill-current" /> : <Pause className="h-3 w-3 mr-2 fill-current" />}
                       <span className="hidden sm:inline">{activeLead?.aiPaused ? "RESUME AUTOMATION" : "PAUSE AI"}</span>
                     </Button>
+                    {!showDetails && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-primary hidden lg:flex hover:bg-primary/10"
+                        onClick={() => setShowDetails(true)}
+                      >
+                        <User className="h-5 w-5" />
+                      </Button>
+                    )}
                     <Button
-                      variant="ghost" 
+                      variant="ghost"
                       size="icon"
                       className="h-10 w-10 text-primary lg:hidden hover:bg-primary/10"
                       onClick={() => setShowIntelligence(true)}
@@ -474,8 +489,8 @@ export default function InboxPage() {
                     <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
                       <div className={cn(
                         "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
-                        msg.direction === 'inbound' 
-                          ? "bg-card text-foreground rounded-tl-none border border-border/50" 
+                        msg.direction === 'inbound'
+                          ? "bg-card text-foreground rounded-tl-none border border-border/50"
                           : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
                       )}>
                         <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
@@ -561,93 +576,111 @@ export default function InboxPage() {
               </div>
 
               {/* Lead Details Sidebar */}
-              <div className="w-80 hidden lg:flex flex-col shrink-0 bg-background/50 backdrop-blur-3xl border-l overflow-y-auto">
-                <div className="p-8 space-y-10">
-                  <div>
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60">Lead Profile</h3>
-                      <Badge variant="outline" className="text-[9px] font-bold border-emerald-500/20 text-emerald-500 bg-emerald-500/5 px-2">ACTIVE</Badge>
-                    </div>
-                    
-                    <div className="space-y-8">
-                      <div className="p-6 rounded-3xl bg-muted/20 border border-border/50 shadow-inner">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Intent Probability</p>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <span className="text-3xl font-black tracking-tighter text-primary">{activeLead?.score || 0}%</span>
-                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Activity className="h-4 w-4 text-primary animate-pulse" />
+              {showDetails && (
+                <div className="w-80 hidden lg:flex flex-col shrink-0 bg-background/50 backdrop-blur-3xl border-l overflow-y-auto">
+                  <div className="p-8 space-y-10">
+                    <div>
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 -ml-2 shrink-0"
+                            onClick={() => setShowDetails(false)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/60 truncate">Lead Profile</h3>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] font-bold border-emerald-500/20 text-emerald-500 bg-emerald-500/5 px-2 shrink-0">ACTIVE</Badge>
+                      </div>
+
+                      {/* Added Lead Name in Sidebar to confirm truncation */}
+                      <div className="mb-6 overflow-hidden">
+                        <h2 className="text-xl font-black tracking-tight truncate">{activeLead?.name}</h2>
+                        <p className="text-xs text-muted-foreground truncate">{activeLead?.email}</p>
+                      </div>
+
+                      <div className="space-y-8">
+                        <div className="p-6 rounded-3xl bg-muted/20 border border-border/50 shadow-inner">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-4">Intent Probability</p>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-3xl font-black tracking-tighter text-primary">{activeLead?.score || 0}%</span>
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Activity className="h-4 w-4 text-primary animate-pulse" />
+                              </div>
+                            </div>
+                            <div className="bg-muted/50 rounded-full h-2 overflow-hidden shadow-inner">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${activeLead?.score || 0}%` }}
+                                className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                              />
                             </div>
                           </div>
-                          <div className="bg-muted/50 rounded-full h-2 overflow-hidden shadow-inner">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${activeLead?.score || 0}%` }}
-                              className="bg-primary h-full rounded-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                            />
-                          </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-4">
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Profile Tags</p>
-                        {activeLead?.tags?.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {/* Tags display implementation */}
-                            {activeLead.tags.map(tag => (
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Profile Tags</p>
+                          {activeLead?.tags?.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {/* Tags display implementation */}
+                              {activeLead.tags.map(tag => (
                                 <Badge key={tag} variant="secondary">{tag}</Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground/40 italic py-4 border border-dashed rounded-2xl justify-center">
-                            No tags mapped
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="pt-8 border-t border-border/30 space-y-5">
-                        <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
-                          <span className="text-muted-foreground/50 flex items-center gap-2">
-                            <Clock className="h-3.5 w-3.5" /> Found On
-                          </span>
-                          <span className="text-foreground/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground/40 italic py-4 border border-dashed rounded-2xl justify-center">
+                              No tags mapped
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
-                          <span className="text-muted-foreground/50 flex items-center gap-2">
-                            <MessageSquare className="h-3.5 w-3.5" /> Total Messages
-                          </span>
-                          <span className="text-foreground/70">{messagesData?.messages?.length || 0}</span>
+
+                        <div className="pt-8 border-t border-border/30 space-y-5">
+                          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
+                            <span className="text-muted-foreground/50 flex items-center gap-2">
+                              <Clock className="h-3.5 w-3.5" /> Found On
+                            </span>
+                            <span className="text-foreground/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider">
+                            <span className="text-muted-foreground/50 flex items-center gap-2">
+                              <MessageSquare className="h-3.5 w-3.5" /> Total Messages
+                            </span>
+                            <span className="text-foreground/70">{messagesData?.messages?.length || 0}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-3">
-                    <Button
-                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] shadow-xl shadow-primary/20"
-                      onClick={() => setShowIntelligence(true)}
-                    >
-                      <Brain className="h-5 w-5 mr-3" /> Analyze Lead
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] border-border/50 hover:bg-muted/50 transition-colors"
-                      onClick={() => bookCallMutation.mutate()}
-                      disabled={bookCallMutation.isPending}
-                    >
-                      {bookCallMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : <Calendar className="h-5 w-5 mr-3" />} 
-                      Book Meeting
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="w-full font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] border-border/50 hover:bg-muted/50 transition-colors"
-                      onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
-                    >
-                      <User className="h-5 w-5 mr-3" /> View Full Profile
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] shadow-xl shadow-primary/20"
+                        onClick={() => setShowIntelligence(true)}
+                      >
+                        <Brain className="h-5 w-5 mr-3" /> Analyze Lead
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] border-border/50 hover:bg-muted/50 transition-colors"
+                        onClick={() => bookCallMutation.mutate()}
+                        disabled={bookCallMutation.isPending}
+                      >
+                        {bookCallMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin mr-3" /> : <Calendar className="h-5 w-5 mr-3" />}
+                        Book Meeting
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full font-bold uppercase tracking-widest rounded-2xl h-14 text-[11px] border-border/50 hover:bg-muted/50 transition-colors"
+                        onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
+                      >
+                        <User className="h-5 w-5 mr-3" /> View Full Profile
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

@@ -123,7 +123,7 @@ const ThemeSwitcher = () => {
   );
 };
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({ children, fullHeight = false }: { children: React.ReactNode, fullHeight?: boolean }) {
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -612,7 +612,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             )}
           </AnimatePresence>
 
-          <div className="max-w-7xl mx-auto p-6 md:p-8 lg:p-10">
+          <div className={cn("mx-auto", !fullHeight && "max-w-7xl p-6 md:p-8 lg:p-10", fullHeight && "h-full")}>
             {children}
           </div>
         </main>

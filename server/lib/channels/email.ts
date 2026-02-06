@@ -95,11 +95,11 @@ interface ParsedEmail {
  */
 export function injectTrackingPixel(html: string, trackingId: string): string {
   if (!trackingId) return html;
-  
+
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnix.com';
   const pixelUrl = `${baseUrl}/api/outreach/track/${trackingId}`;
   const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display:none !important;" alt="" />`;
-  
+
   // Try to inject before </body> or at the end
   if (html.includes('</body>')) {
     return html.replace('</body>', `${pixelHtml}</body>`);
@@ -227,8 +227,8 @@ export async function importCustomEmails(
         }
 
         const total = box.messages.total;
-        // Ensure we don't request more than available
-        const fetchRange = total < limit ? `1:${total}` : `1:${limit}`;
+        // Fetch the latest messages (highest sequence numbers)
+        const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
 
         const fetch = imap.seq.fetch(fetchRange, {
           bodies: '',
@@ -356,7 +356,7 @@ export async function sendEmail(
     const credentials = JSON.parse(credentialsStr) as EmailConfig;
 
     let emailBody = content;
-    
+
     // Only apply branding if NOT raw
     if (!options.isRaw) {
       const brandColors = options.brandColors || await getUserBrandColors(userId);
@@ -398,7 +398,7 @@ export async function sendEmail(
   const businessName = options.businessName || user?.businessName || user?.company || 'Our Team';
 
   let emailBody = content;
-  
+
   if (!options.isRaw) {
     if (options.buttonUrl && options.buttonText) {
       if (options.isMeetingInvite) {

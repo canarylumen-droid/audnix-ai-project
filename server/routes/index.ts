@@ -75,32 +75,7 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   app.use("/api/user/auth", userAuthRouter);
   app.use("/api/user", userAuthRouter); // Alias for /api/user/avatar calls
   app.use("/api/admin/auth", adminAuthRouter);
-  
-  // Public Landing Page and Assets
-  app.get("/favicon.ico", (_req, res) => {
-    res.sendFile(path.join(process.cwd(), "client/public/favicon.ico"), (err) => {
-      if (err) res.status(404).end();
-    });
-  });
 
-  app.get("/favicon.svg", (_req, res) => {
-    res.sendFile(path.join(process.cwd(), "client/public/favicon.svg"), (err) => {
-      if (err) res.status(404).end();
-    });
-  });
-
-  app.get("/manifest.json", (_req, res) => {
-    res.sendFile(path.join(process.cwd(), "client/public/manifest.json"), (err) => {
-      if (err) res.status(404).end();
-    });
-  });
-
-  // Root-level Meta/Instagram callback (POST and GET)
-  app.all("/api/instagram/callback", (req, res) => {
-    console.log(`[Root Callback] ${req.method} /api/instagram/callback`);
-    const query = req.url.includes('?') ? '?' + req.url.split('?')[1] : '';
-    res.redirect(307, `/api/oauth/instagram/callback${query}`);
-  });
   app.use("/api/admin/pdf", adminPdfRoutes);
   app.use("/api/admin/pdf-v2", adminPdfRoutesV2);
   app.use("/api/admin", adminRoutes);

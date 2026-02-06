@@ -85,11 +85,13 @@ app.set("env", nodeEnv);
 app.set("trust proxy", 1);
 
 if (!process.env.SESSION_SECRET) {
-  process.env.SESSION_SECRET = "audnix-stable-session-secret-2026";
+  console.warn("⚠️ SESSION_SECRET not set - generating temporary secret (NOT SAFE FOR PRODUCTION)");
+  process.env.SESSION_SECRET = crypto.randomBytes(32).toString('hex');
 }
 
 if (!process.env.ENCRYPTION_KEY) {
-  process.env.ENCRYPTION_KEY = "audnix-stable-encryption-key-2026";
+  console.warn("⚠️ ENCRYPTION_KEY not set - generating temporary key (NOT SAFE FOR PRODUCTION)");
+  process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
 }
 
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -424,12 +426,23 @@ async function runMigrations() {
 
   if (process.env.DATABASE_URL) {
     await runMigrations();
-    followUpWorker.start();
-    startVideoCommentMonitoring();
-    emailSyncWorker.start();
-    paymentAutoApprovalWorker.start();
-    emailWarmupWorker.start();
-    autonomousOutreachWorker.start();
+
+    // Worker error wrapper for graceful degradation
+    const startWorker = (name: string, startFn: () => void) => {
+      try {
+        startFn();
+        console.log(`✅ ${name} worker started`);
+      } catch (error) {
+        console.error(`❌ ${name} worker failed to start:`, error);
+      }
+    };
+
+    startWorker("Follow-up", () => followUpWorker.start());
+    startWorker("Video comment", () => startVideoCommentMonitoring());
+    startWorker("Email sync", () => emailSyncWorker.start());
+    startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
+    startWorker("Email warmup", () => emailWarmupWorker.start());
+    startWorker("Outreach", () => autonomousOutreachWorker.start());
   }
 })();
 

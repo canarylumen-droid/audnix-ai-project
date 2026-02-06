@@ -34,6 +34,13 @@ class ImapIdleManager {
     }
 
     /**
+     * Get discovered folders for a user
+     */
+    public getDiscoveredFolders(userId: string): { inbox: string[], sent: string[] } | undefined {
+        return this.folders.get(userId);
+    }
+
+    /**
      * Sync active connections with database integrations
      */
     private async syncConnections(): Promise<void> {
@@ -72,7 +79,7 @@ class ImapIdleManager {
             imap.getBoxes((err, boxes) => {
                 if (err) {
                     console.warn(`[IMAP] Could not list boxes for user ${userId}:`, err.message);
-                    this.folders.set(userId, { inbox: ['INBOX'], sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail'] });
+                    this.folders.set(userId, { inbox: ['INBOX'], sent: ['Sent', 'Sent Items', '[Gmail]/Sent Mail', 'Sent Messages', 'Sent-Mail', 'SENT'] });
                     resolve();
                     return;
                 }
@@ -86,22 +93,24 @@ class ImapIdleManager {
                         const fullName = prefix + key;
                         const attribs = box.attribs || [];
 
-                        // Check attributes first (best way)
+                        // 1. Check standard IMAP attributes (best way)
                         if (attribs.includes('\\Inbox')) {
                             inboxFolders.push(fullName);
-                        } else if (attribs.includes('\\Sent')) {
+                        } else if (attribs.includes('\\Sent') || attribs.includes('\\SentMail') || attribs.includes('\\SentItems')) {
                             sentFolders.push(fullName);
                         } else {
-                            // Fallback to name pattern
+                            // 2. Fallback to name patterns
                             const lowerKey = key.toLowerCase();
-                            if (lowerKey === 'inbox') {
+                            const standardInboxes = ['inbox'];
+                            const standardSents = [
+                                'sent', 'sent items', 'sent messages',
+                                'sent-mail', 'sent mail', 'sent items',
+                                'gesendet', 'enviados', 'envoyés', 'outbox'
+                            ];
+
+                            if (standardInboxes.includes(lowerKey)) {
                                 if (!inboxFolders.includes(fullName)) inboxFolders.push(fullName);
-                            } else if (
-                                lowerKey === 'sent' ||
-                                lowerKey === 'sent items' ||
-                                lowerKey === 'sent messages' ||
-                                lowerKey === 'sent-mail'
-                            ) {
+                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent'))) {
                                 if (!sentFolders.includes(fullName)) sentFolders.push(fullName);
                             }
                         }
@@ -116,7 +125,11 @@ class ImapIdleManager {
 
                 // Default fallbacks if none found
                 if (inboxFolders.length === 0) inboxFolders.push('INBOX');
-                if (sentFolders.length === 0) sentFolders.push('Sent');
+                if (sentFolders.length === 0) {
+                    // Commonly used names if discovery fails
+                    sentFolders.push('Sent');
+                    sentFolders.push('Sent Items');
+                }
 
                 console.log(`[IMAP] Discovered folders for ${userId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}]`);
                 this.folders.set(userId, { inbox: inboxFolders, sent: sentFolders });
@@ -164,16 +177,16 @@ class ImapIdleManager {
 
             imap.once('error', async (err: any) => {
                 console.error(`IMAP Error for user ${userId}:`, err.message);
-                
+
                 // If it's a definitive configuration error, don't reconnect and mark integration as failing
                 const fatalErrors = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'AUTHENTICATIONFAILED'];
                 const isFatal = fatalErrors.some(code => err.code === code || err.message?.includes(code));
-                
+
                 if (isFatal) {
                     console.warn(`🛑 Fatal IMAP error for user ${userId}. Stopping retries.`);
                     this.connections.delete(userId);
                     this.folders.delete(userId);
-                    
+
                     try {
                         // Update integration metadata with error
                         const integration = await storage.getIntegration(userId, 'custom_email');
@@ -181,7 +194,7 @@ class ImapIdleManager {
                             const meta = JSON.parse(await (await import('../crypto/encryption.js')).decrypt(integration.encryptedMeta!));
                             meta.last_error = err.message;
                             meta.error_at = new Date().toISOString();
-                            
+
                             await storage.updateIntegration(integration.userId, 'custom_email', {
                                 encryptedMeta: await (await import('../crypto/encryption.js')).encrypt(JSON.stringify(meta))
                             });
@@ -231,8 +244,8 @@ class ImapIdleManager {
             for (const sentFolder of userFolders.sent) {
                 if (sentFolder !== primaryInbox) {
                     imap.on('mail', (num) => {
-                         console.log(`📤 New message detected in Sent folder ${sentFolder} for user ${userId}`);
-                         this.fetchNewEmails(userId, imap, sentFolder, 'outbound');
+                        console.log(`📤 New message detected in Sent folder ${sentFolder} for user ${userId}`);
+                        this.fetchNewEmails(userId, imap, sentFolder, 'outbound');
                     });
                 }
             }
@@ -246,7 +259,7 @@ class ImapIdleManager {
                 if (!currentFolders) return;
 
                 console.log(`🕒 Starting periodic full sync for user ${userId}`);
-                
+
                 // 1. Sync any extra Inboxes
                 for (let i = 1; i < currentFolders.inbox.length; i++) {
                     await this.fetchNewEmails(userId, imap, currentFolders.inbox[i], 'inbound');
@@ -278,12 +291,12 @@ class ImapIdleManager {
                     if (folderName !== primaryInbox) {
                         imap.openBox(primaryInbox, false, (openErr) => {
                             if (!openErr) {
-                                try { (imap as any).idle(); } catch (e) {}
+                                try { (imap as any).idle(); } catch (e) { }
                             }
                             resolve();
                         });
                     } else {
-                        try { (imap as any).idle(); } catch (e) {}
+                        try { (imap as any).idle(); } catch (e) { }
                         resolve();
                     }
                     return;
@@ -348,8 +361,8 @@ class ImapIdleManager {
                         })), undefined, direction);
 
                         if (results.imported > 0 || results.skipped < emails.length) {
-                             // results.imported counts new messages OR read status updates in our paged importer
-                             // pagedEmailImport returns { imported, skipping } where imported includes updates
+                            // results.imported counts new messages OR read status updates in our paged importer
+                            // pagedEmailImport returns { imported, skipping } where imported includes updates
                         }
                     }
 
@@ -357,12 +370,12 @@ class ImapIdleManager {
                     if (folderName !== primaryInbox) {
                         imap.openBox(primaryInbox, false, (openErr) => {
                             if (!openErr) {
-                                try { (imap as any).idle(); } catch (e) {}
+                                try { (imap as any).idle(); } catch (e) { }
                             }
                             resolve();
                         });
                     } else {
-                        try { (imap as any).idle(); } catch (e) {}
+                        try { (imap as any).idle(); } catch (e) { }
                         resolve();
                     }
                 });
@@ -396,8 +409,8 @@ class ImapIdleManager {
             // Use cached folders from the main connection if available
             const discovered = this.folders.get(userId);
             const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
-            
-            const foldersToTry = discovered?.sent && discovered.sent.length > 0 
+
+            const foldersToTry = discovered?.sent && discovered.sent.length > 0
                 ? [...new Set([...discovered.sent, ...sentFolders])]
                 : sentFolders;
 
@@ -405,9 +418,9 @@ class ImapIdleManager {
             const imapPort = config.imap_port || 993;
 
             if (!imapHost) {
-                 console.warn(`[Append] No IMAP host for user ${userId}`);
-                 resolve(); // Don't crash, just skip
-                 return;
+                console.warn(`[Append] No IMAP host for user ${userId}`);
+                resolve(); // Don't crash, just skip
+                return;
             }
 
             // Create a dedicated transient connection for appending
@@ -443,12 +456,12 @@ class ImapIdleManager {
                         console.log(`✅ Appended sent message to ${folder} for user ${userId} (Transient)`);
                         cleanup();
                         resolve();
-                        return; 
+                        return;
                     } catch (e) {
                         // Continue to next
                     }
                 }
-                
+
                 console.warn(`⚠️ Failed to append sent message for user ${userId}. Tried: ${foldersToTry.join(', ')}`);
                 cleanup();
                 resolve(); // resolve anyway to avoid breaking flow

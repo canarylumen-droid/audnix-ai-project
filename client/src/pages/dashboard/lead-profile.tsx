@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  ArrowLeft, 
-  Mail, 
-  Phone, 
-  Building2, 
-  User, 
-  Tag as TagIcon, 
-  Calendar, 
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
+  Building2,
+  User,
+  Tag as TagIcon,
+  Calendar,
   MessageSquare,
   Sparkles,
   ExternalLink,
@@ -72,14 +72,14 @@ export default function LeadProfilePage() {
   const messages = messagesData?.messages || [];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-12">
+    <div className="h-full flex flex-col animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-full hover:bg-muted" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-muted"
             onClick={() => setLocation("/dashboard/inbox")}
           >
             <ArrowLeft className="h-5 w-5" />
@@ -100,8 +100,8 @@ export default function LeadProfilePage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="rounded-2xl h-12 font-bold uppercase tracking-wider text-[10px] px-6"
             onClick={() => setLocation(`/dashboard/inbox/${id}`)}
           >
@@ -209,11 +209,11 @@ export default function LeadProfilePage() {
               <div className="flex items-end gap-2">
                 <span className="text-4xl font-black tracking-tighter text-primary">{lead.score || 0}%</span>
                 <span className="text-[10px] text-muted-foreground/50 font-bold mb-1.5 flex items-center gap-1">
-                   <TrendingUp className="h-3 w-3 text-emerald-500" /> +5%
+                  <TrendingUp className="h-3 w-3 text-emerald-500" /> +5%
                 </span>
               </div>
               <div className="mt-4 bg-muted/50 h-1.5 rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${lead.score || 0}%` }}
                   className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.3)]"
@@ -231,7 +231,7 @@ export default function LeadProfilePage() {
                 <span className="text-[10px] text-muted-foreground/50 font-bold mb-1.5">Model Score</span>
               </div>
               <div className="mt-4 bg-muted/50 h-1.5 rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(lead.pdfConfidence * 100) || 0}%` }}
                   className="h-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]"
@@ -313,23 +313,23 @@ export default function LeadProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="p-8 rounded-[2rem] border-border/40 bg-card/20 space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                 <User className="h-4 w-4" /> System Metadata
+                <User className="h-4 w-4" /> System Metadata
               </h4>
               <div className="space-y-4">
                 <div className="flex flex-col gap-1">
-                   <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">External ID</span>
-                   <code className="text-[11px] text-foreground font-mono bg-muted/40 p-2 rounded-lg">{lead.externalId || "N/A"}</code>
+                  <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">External ID</span>
+                  <code className="text-[11px] text-foreground font-mono bg-muted/40 p-2 rounded-lg">{lead.externalId || "N/A"}</code>
                 </div>
                 <div className="flex flex-col gap-1">
-                   <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Intelligence Score</span>
-                   <code className="text-[11px] text-foreground font-mono bg-muted/40 p-2 rounded-lg">{lead.score || 0} (Normalized)</code>
+                  <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em]">Intelligence Score</span>
+                  <code className="text-[11px] text-foreground font-mono bg-muted/40 p-2 rounded-lg">{lead.score || 0} (Normalized)</code>
                 </div>
               </div>
             </Card>
 
             <Card className="p-8 rounded-[2rem] border-border/40 bg-card/20 space-y-6">
               <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                 <Calendar className="h-4 w-4" /> Growth Timeline
+                <Calendar className="h-4 w-4" /> Growth Timeline
               </h4>
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
@@ -353,6 +353,6 @@ export default function LeadProfilePage() {
   );
 }
 
-import { 
-  TrendingUp 
+import {
+  TrendingUp
 } from "lucide-react";

@@ -110,11 +110,11 @@ export class FollowUpWorker {
     this.isRunning = true;
     console.log('Starting follow-up worker...');
 
-      // Process queue every 2-4 minutes randomly to simulate human delay
-      const delay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60 * 1000;
-      this.processingInterval = setInterval(async () => {
-        await this.processQueue();
-      }, delay);
+    // Process queue every 2-4 minutes randomly to simulate human delay
+    const delay = Math.floor(Math.random() * (4 - 2 + 1) + 2) * 60 * 1000;
+    this.processingInterval = setInterval(async () => {
+      await this.processQueue();
+    }, delay);
 
     // Process immediately on start
     this.processQueue();
@@ -619,7 +619,7 @@ Generate a natural follow-up message:`;
 
     // Get brand embeddings for brand knowledge
     const brandData = await db
-      .select({ snippet: brandEmbeddings.snippet, metadata: brandEmbeddings.metadata })
+      .select({ snippet: brandEmbeddings.content, metadata: brandEmbeddings.metadata })
       .from(brandEmbeddings)
       .where(eq(brandEmbeddings.userId, userId))
       .limit(5);

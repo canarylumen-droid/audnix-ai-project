@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GEMINI_STABLE_MODEL } from "../lib/ai/model-config.js";
+import { GEMINI_STABLE_MODEL, GEMINI_FALLBACK_MODEL } from "../lib/ai/model-config.js";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -62,13 +62,13 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
         let model;
         try {
             model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash",
+                model: GEMINI_STABLE_MODEL,
                 systemInstruction: AUDNIX_KNOWLEDGE
             });
         } catch (e) {
-            console.warn("[AI] Gemini 2.0 failed, falling back to 2.0 experimental");
+            console.warn(`[AI] ${GEMINI_STABLE_MODEL} failed, falling back to ${GEMINI_FALLBACK_MODEL}`);
             model = genAI.getGenerativeModel({
-                model: "gemini-2.0-flash-exp",
+                model: GEMINI_FALLBACK_MODEL,
                 systemInstruction: AUDNIX_KNOWLEDGE
             });
         }
@@ -105,7 +105,7 @@ router.post(['/chat', '/chat-v2'], async (req: Request, res: Response) => {
         let result;
         let retryCount = 0;
         const maxRetries = 2;
-        
+
         while (retryCount <= maxRetries) {
             try {
                 result = await chat.sendMessage(message);

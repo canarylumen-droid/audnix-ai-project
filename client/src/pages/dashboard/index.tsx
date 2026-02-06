@@ -24,14 +24,18 @@ const ProspectingPage = lazy(() => import("./prospecting"));
 const LeadProfilePage = lazy(() => import("./lead-profile"));
 
 export default function DashboardRoutes() {
+  const [location] = useLocation();
+  const isFullHeightPage = location.includes('/dashboard/inbox') || location.includes('/dashboard/leads/');
+
   return (
-    <DashboardLayout>
+    <DashboardLayout fullHeight={isFullHeightPage}>
       <Suspense fallback={<div className="flex items-center justify-center p-8">Loading...</div>}>
         <Switch>
           <Route path="/dashboard" component={DashboardHome} />
           <Route path="/dashboard/inbox" component={InboxPage} />
           <Route path="/dashboard/inbox/:id" component={InboxPage} />
           <Route path="/dashboard/leads/:id" component={LeadProfilePage} />
+          {/* ... other routes ... */}
           <Route path="/dashboard/deals" component={DealsPage} />
           <Route path="/dashboard/calendar" component={CalendarPage} />
           <Route path="/dashboard/integrations" component={IntegrationsPage} />

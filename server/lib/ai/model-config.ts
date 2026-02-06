@@ -3,10 +3,10 @@
  * Ensures consistency across the entire application
  */
 
-// Gemini Models - Standardize on 1.5 Flash for better reliability if 2.0 has issues
-export const GEMINI_STABLE_MODEL = "gemini-1.5-flash"; 
-export const GEMINI_LATEST_MODEL = "gemini-1.5-flash";
-export const GEMINI_FALLBACK_MODEL = "gemini-1.5-flash"; 
+// Gemini Models - Use 2.0 Flash for latest capabilities, 1.5 as fallback
+export const GEMINI_STABLE_MODEL = "gemini-2.0-flash";
+export const GEMINI_LATEST_MODEL = "gemini-2.0-flash";
+export const GEMINI_FALLBACK_MODEL = "gemini-1.5-flash";
 
 // OpenAI Models
 export const OPENAI_INTELLIGENCE_MODEL = "gpt-4o";     // Flagship for complex sales reasoning
