@@ -444,6 +444,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     const user = await storage.getUserByEmail(email);
 
     if (!user || !user.password) {
+      console.log(`❌ Login failed: User not found or no password for ${email}`);
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
@@ -451,6 +452,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
+      console.log(`❌ Login failed: Invalid password for ${email}`);
       res.status(401).json({ error: 'Invalid email or password' });
       return;
     }
