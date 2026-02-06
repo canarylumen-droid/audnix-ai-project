@@ -231,6 +231,9 @@ const csrfProtection = csrf({ cookie: false });
 
 app.use((req, res, next) => {
   const skipPaths = [
+    "/",
+    "/index.html",
+    "/assets",
     "/api/webhooks",
     "/api/webhook",
     "/api/instagram/callback",

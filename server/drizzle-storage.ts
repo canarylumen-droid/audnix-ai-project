@@ -688,9 +688,179 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async getPayments(userId: string): Promise<Payment[]> {
+  async getVoiceMinutesBalance(userId: string): Promise<number> {
+    const [user] = await db.select({
+      used: users.voiceMinutesUsed,
+      topup: users.voiceMinutesTopup
+    }).from(users).where(eq(users.id, userId)).limit(1);
+    return (Number(user?.used) || 0) + (Number(user?.topup) || 0);
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
     checkDatabase();
-    return await db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async getVideoMonitors(userId: string): Promise<any[]> {
+    checkDatabase();
+    return await db.select().from(videoMonitors).where(eq(videoMonitors.userId, userId));
+  }
+
+  async createVideoMonitor(data: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db.insert(videoMonitors).values(data).returning();
+    return result;
+  }
+
+  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
+    checkDatabase();
+    const [result] = await db.update(videoMonitors).set(updates).where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId))).returning();
+    return result;
+  }
+
+  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(videoMonitors).where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId)));
+  }
+
+  async isCommentProcessed(commentId: string): Promise<boolean> {
+    checkDatabase();
+    const [result] = await db.select().from(processedComments).where(eq(processedComments.commentId, commentId)).limit(1);
+    return !!result;
+  }
+
+  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
+    checkDatabase();
+    await db.insert(processedComments).values({ commentId, status: status as any, intentType }).onConflictDoUpdate({ target: processedComments.commentId, set: { status: status as any, intentType } });
+  }
+
+  async getBrandKnowledge(userId: string): Promise<string> {
+    const [user] = await db.select({ text: users.brandGuidelinePdfText }).from(users).where(eq(users.id, userId)).limit(1);
+    return user?.text || "";
+  }
+
+  async getDeals(userId: string): Promise<any[]> {
+    return await db.select().from(deals).where(eq(deals.userId, userId));
+  }
+
+  async createDeal(data: any): Promise<any> {
+    const [result] = await db.insert(deals).values(data).returning();
+    return result;
+  }
+
+  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
+    const [result] = await db.update(deals).set(updates).where(and(eq(deals.id, id), eq(deals.userId, userId))).returning();
+    return result;
+  }
+
+  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
+    const allDeals = await this.getDeals(userId);
+    const wonDeals = allDeals.filter(d => d.status === 'closed_won');
+    const total = wonDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const thisMonth = wonDeals.filter(d => {
+      const date = d.closedAt ? new Date(d.closedAt) : new Date(d.createdAt);
+      const now = new Date();
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    return { total, thisMonth, deals: allDeals };
+  }
+
+  async createUsageTopup(data: any): Promise<any> {
+    const [result] = await db.insert(usageTopups).values(data).returning();
+    return result;
+  }
+
+  async getUsageHistory(userId: string, type?: string): Promise<any[]> {
+    let query = db.select().from(usageTopups).where(eq(usageTopups.userId, userId));
+    if (type) query = query.where(eq(usageTopups.type, type as any)) as any;
+    return await query;
+  }
+
+  async createOnboardingProfile(data: any): Promise<any> {
+    const [result] = await db.insert(onboardingProfiles).values(data).returning();
+    return result;
+  }
+
+  async getOnboardingProfile(userId: string): Promise<any | undefined> {
+    const [result] = await db.select().from(onboardingProfiles).where(eq(onboardingProfiles.userId, userId)).limit(1);
+    return result;
+  }
+
+  async updateOnboardingProfile(userId: string, updates: any): Promise<any | undefined> {
+    const [result] = await db.update(onboardingProfiles).set(updates).where(eq(onboardingProfiles.userId, userId)).returning();
+    return result;
+  }
+
+  async createOtpCode(data: any): Promise<any> {
+    const [result] = await db.insert(otpCodes).values(data).returning();
+    return result;
+  }
+
+  async getLatestOtpCode(email: string, purpose?: string): Promise<any> {
+    let query = db.select().from(otpCodes).where(eq(otpCodes.email, email)).orderBy(desc(otpCodes.createdAt)).limit(1);
+    if (purpose) query = query.where(eq(otpCodes.purpose, purpose)) as any;
+    const [result] = await query;
+    return result;
+  }
+
+  async incrementOtpAttempts(id: string): Promise<void> {
+    await db.execute(sql`UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ${id}`);
+  }
+
+  async markOtpVerified(id: string): Promise<void> {
+    await db.update(otpCodes).set({ verified: true }).where(eq(otpCodes.id, id));
+  }
+
+  async cleanupDemoData(): Promise<{ deletedUsers: number }> {
+    return { deletedUsers: 0 };
+  }
+
+  async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
+    return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
+  }
+
+  async getLearningPatterns(userId: string): Promise<any[]> {
+    return await db.select().from(aiLearningPatterns).where(eq(aiLearningPatterns.userId, userId));
+  }
+
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
+    const [existing] = await db.select().from(aiLearningPatterns).where(and(eq(aiLearningPatterns.userId, userId), eq(aiLearningPatterns.patternKey, key))).limit(1);
+    if (existing) {
+      await db.update(aiLearningPatterns).set({ 
+        strength: success ? existing.strength + 1 : Math.max(0, existing.strength - 1),
+        lastUsedAt: new Date()
+      }).where(eq(aiLearningPatterns.id, existing.id));
+    } else {
+      await db.insert(aiLearningPatterns).values({
+        userId,
+        patternKey: key,
+        strength: success ? 1 : 0,
+        lastUsedAt: new Date()
+      });
+    }
+  }
+
+  async getRecentBounces(userId: string, hours?: number): Promise<any[]> {
+    let query = db.select().from(bounceTracker).where(eq(bounceTracker.userId, userId));
+    if (hours) {
+      const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+      query = query.where(gte(bounceTracker.createdAt, cutoff)) as any;
+    }
+    return await query;
+  }
+
+  async getDomainVerifications(userId: string, limit?: number): Promise<any[]> {
+    return [];
+  }
+
+  async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
+    const [result] = await db.insert(calendarEvents).values(data).returning();
+    return result;
+  }
+
+  async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
+    const [result] = await db.insert(auditTrail).values(data).returning();
+    return result;
   }
 
   async getPaymentById(id: string): Promise<Payment | undefined> {

@@ -1,0 +1,117 @@
+12:23:56.832 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+12:24:08.601 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+12:24:08.743 (node:169) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+12:24:08.744 (Use `node --trace-warnings ...` to show where the warning was created)
+12:24:10.816    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:10.840    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+12:24:10.870    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+12:24:10.893    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+12:24:10.921    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+12:24:10.940    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+12:24:10.958    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+12:24:11.141    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+12:24:11.160    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+12:24:11.175    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+12:24:11.214    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+12:24:11.232    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+12:24:11.253    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXECUTE"
+12:24:11.278    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "EXCEPTION"
+12:24:11.302    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "ELSE"
+12:24:11.319    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+12:24:11.344    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$"
+12:24:11.865    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+12:24:11.887    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "IF"
+12:24:11.905    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+12:24:11.930    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+12:24:11.956    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$
+12:24:11.972    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: syntax error at or near "RETURN"
+12:24:11.996    ⚠️  Statement Error in 000_SETUP_SUPABASE.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+12:24:12.128    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$
+12:24:12.154    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "EXCEPTION"
+12:24:12.179    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+12:24:12.203    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+12:24:12.221    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "EXCEPTION"
+12:24:12.247    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+12:24:12.272    ⚠️  Statement Error in 002_audnix_schema.sql: operator class "vector_cosine_ops" does not accept data type jsonb
+12:24:12.291    ⚠️  Statement Error in 002_audnix_schema.sql: operator class "vector_cosine_ops" does not accept data type text
+12:24:12.317    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "ELSE"
+12:24:12.337    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "IF"
+12:24:12.353    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$"
+12:24:12.486    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$
+12:24:12.506    ⚠️  Statement Error in 002_audnix_schema.sql: syntax error at or near "RETURN"
+12:24:12.524    ⚠️  Statement Error in 002_audnix_schema.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+12:24:12.552    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+12:24:12.568    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+12:24:12.587    ⚠️  Statement Error in 002_audnix_schema.sql: function update_updated_at() does not exist
+12:24:12.646    ⚠️  Statement Error in 005_voice_minutes_migration.sql: unterminated dollar-quoted string at or near "$$
+12:24:12.669    ⚠️  Statement Error in 005_voice_minutes_migration.sql: syntax error at or near "IF"
+12:24:12.686    ⚠️  Statement Error in 005_voice_minutes_migration.sql: unterminated dollar-quoted string at or near "$$"
+12:24:12.743    ⚠️  Statement Error in 006_comment_automation.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:12.768    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+12:24:12.834    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+12:24:12.860    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+12:24:12.879    ⚠️  Statement Error in 006_comment_automation.sql: syntax error at or near "IF"
+12:24:12.895    ⚠️  Statement Error in 006_comment_automation.sql: unterminated dollar-quoted string at or near "$$"
+12:24:12.974    ⚠️  Statement Error in 007_video_monitors.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:13.015    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+12:24:13.038    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+12:24:13.097    ⚠️  Statement Error in 007_video_monitors.sql: syntax error at or near "IF"
+12:24:13.117    ⚠️  Statement Error in 007_video_monitors.sql: unterminated dollar-quoted string at or near "$$"
+12:24:13.289    ⚠️  Statement Error in 019_sync_schema_columns.sql: unterminated dollar-quoted string at or near "$$
+12:24:13.315    ⚠️  Statement Error in 019_sync_schema_columns.sql: syntax error at or near "IF"
+12:24:13.333    ⚠️  Statement Error in 019_sync_schema_columns.sql: syntax error at or near "EXCEPTION"
+12:24:13.352    ⚠️  Statement Error in 019_sync_schema_columns.sql: unterminated dollar-quoted string at or near "$$"
+12:24:13.402    ⚠️  Statement Error in 022_calendar_video_automation.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:13.444    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.467    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.488    ⚠️  Statement Error in 022_calendar_video_automation.sql: column "enabled" does not exist
+12:24:13.504    ⚠️  Statement Error in 022_calendar_video_automation.sql: column "platform" does not exist
+12:24:13.526    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.547    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.619    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.657    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.733    ⚠️  Statement Error in 022_calendar_video_automation.sql: syntax error at or near "IF"
+12:24:13.750    ⚠️  Statement Error in 022_calendar_video_automation.sql: unterminated dollar-quoted string at or near "$$"
+12:24:13.864    ⚠️  Statement Error in 024_add_rule_type_column.sql: unterminated dollar-quoted string at or near "$$
+12:24:13.884    ⚠️  Statement Error in 024_add_rule_type_column.sql: syntax error at or near "IF"
+12:24:13.899    ⚠️  Statement Error in 024_add_rule_type_column.sql: unterminated dollar-quoted string at or near "$$"
+12:24:13.950    ⚠️  Statement Error in 026_user_settings_smtp.sql: unterminated dollar-quoted string at or near "$$
+12:24:13.970    ⚠️  Statement Error in 026_user_settings_smtp.sql: syntax error at or near "RETURN"
+12:24:13.990    ⚠️  Statement Error in 026_user_settings_smtp.sql: unterminated dollar-quoted string at or near "$$ LANGUAGE plpgsql"
+12:24:14.222    ⚠️  Statement Error in 028_add_prospecting_engine.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:14.243    ⚠️  Statement Error in 028_add_prospecting_engine.sql: syntax error at or near "IF"
+12:24:14.286    ⚠️  Statement Error in 028_add_prospecting_engine.sql: unterminated dollar-quoted string at or near "$$"
+12:24:14.647    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$ 
+12:24:14.680    ⚠️  Statement Error in 031_sync_social_automation.sql: cannot drop table video_monitors because other objects depend on it
+12:24:14.702    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.727    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.744    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.799    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.820    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$"
+12:24:14.852    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$
+12:24:14.870    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "SELECT"
+12:24:14.895    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.915    ⚠️  Statement Error in 031_sync_social_automation.sql: syntax error at or near "IF"
+12:24:14.932    ⚠️  Statement Error in 031_sync_social_automation.sql: unterminated dollar-quoted string at or near "$$"
+12:24:14.958    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: unterminated dollar-quoted string at or near "$$
+12:24:14.978    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+12:24:14.996    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+12:24:15.023    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: syntax error at or near "IF"
+12:24:15.043    ⚠️  Statement Error in 032_fix_schema_mismatches.sql: unterminated dollar-quoted string at or near "$$"
+12:24:15.106    ⚠️  Statement Error in 034_add_company_column.sql: unterminated dollar-quoted string at or near "$$
+12:24:15.132    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+12:24:15.149    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+12:24:15.165    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.190    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.208    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+12:24:15.225    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+12:24:15.249    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.270    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.287    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+12:24:15.309    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+12:24:15.330    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.347    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.372    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "RAISE"
+12:24:15.389    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "ELSE"
+12:24:15.408    ⚠️  Statement Error in 034_add_company_column.sql: syntax error at or near "IF"
+12:24:15.433    ⚠️  Statement Error in 034_add_company_column.sql: unterminated dollar-quoted string at or near "$$"

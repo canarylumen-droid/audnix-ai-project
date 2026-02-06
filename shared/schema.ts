@@ -255,7 +255,6 @@ export const organizations = pgTable("organizations", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Duplicate identifiers removed - using organizations.ts logic if needed or consolidating here
 export const teamMembers = pgTable("team_members", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   organizationId: uuid("organization_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
@@ -265,6 +264,11 @@ export const teamMembers = pgTable("team_members", {
   invitedAt: timestamp("invited_at").notNull().defaultNow(),
   acceptedAt: timestamp("accepted_at"),
 });
+
+export const teamMembersSelect = createSelectSchema(teamMembers);
+export const teamMembersInsert = createInsertSchema(teamMembers);
+export type TeamMember = z.infer<typeof teamMembersSelect>;
+export type InsertTeamMember = z.infer<typeof teamMembersInsert>;
 
 export const campaigns = pgTable("campaigns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
