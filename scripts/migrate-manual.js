@@ -7,13 +7,16 @@ import { fileURLToPath } from 'url';
 
 const { Pool } = pg;
 
-// THE CORRECT DATABASE CONNECTION (Prefer Env Var, Fallback to Hardcoded for Manual Runs)
-// THE CORRECT DATABASE CONNECTION (Prefer Env Var, Fallback to Hardcoded for Manual Runs)
-const RAW_CONNECTION_STRING = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_y1WCRm9QsVJh@ep-wispy-frost-ahj6lqe0-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+// THE CORRECT DATABASE CONNECTION (Prefer Env Var)
+const RAW_CONNECTION_STRING = process.env.DATABASE_URL;
+
+if (!RAW_CONNECTION_STRING) {
+    console.error('❌ DATABASE_URL environment variable is missing!');
+    process.exit(1);
+}
 
 // Normalize connection string for SSL compatibility
 const dbUrl = new URL(RAW_CONNECTION_STRING);
-dbUrl.searchParams.set('uselibpqcompat', 'true');
 dbUrl.searchParams.set('sslmode', 'require');
 const CONNECTION_STRING = dbUrl.toString();
 
@@ -25,7 +28,7 @@ async function migrate() {
 
     const pool = new Pool({
         connectionString: CONNECTION_STRING,
-        ssl: { rejectUnauthorized: false }
+        ssl: RAW_CONNECTION_STRING.includes('neon.tech') ? { rejectUnauthorized: false } : false
     });
 
     try {
