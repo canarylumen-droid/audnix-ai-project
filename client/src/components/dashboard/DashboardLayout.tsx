@@ -215,7 +215,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (notificationsData?.unreadCount && notificationsData.unreadCount > (localStorage.getItem('last_unread_count') ? parseInt(localStorage.getItem('last_unread_count')!) : 0)) {
-      const audio = new Audio('/sounds/notification.mp3');
+      const audio = new Audio('/notification.mp3');
       audio.play().catch(e => console.log('Audio play blocked:', e));
       localStorage.setItem('last_unread_count', notificationsData.unreadCount.toString());
     }
