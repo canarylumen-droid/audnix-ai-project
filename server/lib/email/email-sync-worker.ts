@@ -35,7 +35,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 15 * 1000; // 15 seconds polling (increased from 3s to prevent flooding)
+  private readonly SYNC_INTERVAL_MS = 30 * 1000; // Updated to match dashboard sync interval
   private readonly GHOSTED_THRESHOLD_HOURS = 48; 
 
   /**
@@ -137,6 +137,29 @@ class EmailSyncWorker {
 
         const inbound = await pagedEmailImport(userId, inboxEmails.map(mapEmail), () => { }, 'inbound');
         const outbound = await pagedEmailImport(userId, sentEmails.map(mapEmail), () => { }, 'outbound');
+
+        // Persist messages to the new email_messages table
+        const allFetchedEmails = [...inboxEmails.map(e => ({...e, direction: 'inbound'})), ...sentEmails.map(e => ({...e, direction: 'outbound'}))];
+        for (const email of allFetchedEmails) {
+          try {
+            await storage.createEmailMessage({
+              userId,
+              messageId: email.messageId || `msg_${Date.now()}_${Math.random()}`,
+              threadId: email.threadId,
+              subject: email.subject,
+              from: email.from || '',
+              to: email.to || '',
+              body: email.text || '',
+              htmlBody: email.html,
+              direction: (email as any).direction as "inbound" | "outbound",
+              provider: integration.provider as "gmail" | "outlook" | "custom_email",
+              sentAt: email.date || new Date(),
+              metadata: {}
+            });
+          } catch (e) {
+            // Likely duplicate messageId, ignore
+          }
+        }
 
         if (inbound.imported > 0 || outbound.imported > 0) {
           const { wsSync } = await import('../websocket-sync.js');

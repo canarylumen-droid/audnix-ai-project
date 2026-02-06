@@ -19,6 +19,15 @@ function checkDatabase() {
 }
 
 export class DrizzleStorage implements IStorage {
+  async createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage> {
+    const [newMessage] = await db.insert(emailMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async getEmailMessages(userId: string): Promise<EmailMessage[]> {
+    return await db.select().from(emailMessages).where(eq(emailMessages.userId, userId));
+  }
+
   async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
     const [result] = await db.select().from(followUpQueue).where(eq(followUpQueue.id, id)).limit(1);
@@ -278,9 +287,27 @@ export class DrizzleStorage implements IStorage {
     if (!userId || userId === '[object Object]') {
       throw new Error(`Invalid user ID: ${String(options.userId)}`);
     }
+
     let query = db.select().from(leads).where(eq(leads.userId, userId));
 
-    if (options.status) {
+    // Improved Status Filtering logic
+    if (options.status === 'warm') {
+      // Warm = replied status or engagement score >= 50
+      query = db.select().from(leads).where(
+        and(
+          eq(leads.userId, userId),
+          or(eq(leads.status, 'replied'), gte(leads.score, 50))
+        )
+      );
+    } else if (options.status === 'cold') {
+      // Cold = status is cold
+      query = db.select().from(leads).where(
+        and(
+          eq(leads.userId, userId),
+          eq(leads.status, 'cold')
+        )
+      );
+    } else if (options.status && options.status !== 'all') {
       query = query.where(eq(leads.status, options.status as any));
     }
 

@@ -394,6 +394,15 @@ export const emailMessagesInsert = createInsertSchema(emailMessages);
 export type EmailMessage = z.infer<typeof emailMessagesSelect>;
 export type InsertEmailMessage = z.infer<typeof emailMessagesInsert>;
 
+export const usageTopups = pgTable("usage_topups", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["leads", "voice"] }).notNull(),
+  amount: real("amount").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const brandEmbeddings = pgTable("brand_embeddings", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

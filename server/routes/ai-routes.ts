@@ -31,6 +31,10 @@ import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
 
 const verifier = new EmailVerifier();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Basic verification of key presence
+if (!process.env.GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY is missing from environment variables");
+}
 import type { ProviderType, ChannelType } from '../../shared/types.js';
 
 type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
@@ -54,7 +58,7 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
       channel: channel as string | undefined,
       status: status as string | undefined,
       search: search as string | undefined,
-      limit: 10000, // Get all filtered leads to count (not ideal but works for now without storage schema change)
+      limit: 1000000, // Unlimited to ensure all leads are displayed
     });
 
     const leads = allLeadsFiltered.slice(offsetNum, offsetNum + limitNum);

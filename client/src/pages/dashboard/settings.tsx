@@ -186,34 +186,43 @@ export default function SettingsPage() {
                 <CardTitle className="text-xl">Profile Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={e => handleFieldChange('name', e.target.value)}
-                      className="rounded-xl h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</Label>
-                    <Input
-                      value={formData.username}
-                      onChange={e => handleFieldChange('username', e.target.value)}
-                      className="rounded-xl h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Company</Label>
-                    <Input
-                      value={formData.company}
-                      onChange={e => handleFieldChange('company', e.target.value)}
-                      className="rounded-xl h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>
-                    <Select value={formData.timezone} onValueChange={v => handleFieldChange('timezone', v)}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
+                      <Input
+                        value={formData.name}
+                        onChange={e => handleFieldChange('name', e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</Label>
+                      <Input
+                        value={formData.username}
+                        onChange={e => handleFieldChange('username', e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Company</Label>
+                      <Input
+                        value={formData.company}
+                        onChange={e => handleFieldChange('company', e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calendar Booking Link</Label>
+                      <Input
+                        value={formData.calendarLink}
+                        onChange={e => handleFieldChange('calendarLink', e.target.value)}
+                        placeholder="https://calendly.com/your-link"
+                        className="rounded-xl h-11"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>
+                      <Select value={formData.timezone} onValueChange={v => handleFieldChange('timezone', v)}>
                       <SelectTrigger className="rounded-xl h-11">
                         <SelectValue />
                       </SelectTrigger>
