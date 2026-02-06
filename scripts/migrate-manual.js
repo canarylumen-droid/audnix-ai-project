@@ -17,18 +17,22 @@ if (!RAW_CONNECTION_STRING) {
 
 // Normalize connection string for SSL compatibility
 const dbUrl = new URL(RAW_CONNECTION_STRING);
-dbUrl.searchParams.set('sslmode', 'require');
+if (RAW_CONNECTION_STRING.includes('neon.tech')) {
+    dbUrl.searchParams.set('sslmode', 'require');
+}
 const CONNECTION_STRING = dbUrl.toString();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function migrate() {
-    console.log('🔌 Connecting to CORRECT database (ep-wispy-frost)...');
+    console.log('🔌 Connecting to database...');
 
     const pool = new Pool({
         connectionString: CONNECTION_STRING,
-        ssl: RAW_CONNECTION_STRING.includes('neon.tech') ? { rejectUnauthorized: false } : false
+        ssl: RAW_CONNECTION_STRING.includes('neon.tech') ? { 
+            rejectUnauthorized: false,
+        } : false
     });
 
     try {
