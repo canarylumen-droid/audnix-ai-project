@@ -1,8 +1,10 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from "pg";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool, neonConfig } from "@neondatabase/serverless";
 import * as schema from "../shared/schema.js";
+import ws from "ws";
 
-const { Pool } = pg;
+// Configure neon to use ws for pooling in Node environments
+neonConfig.webSocketConstructor = ws;
 
 let _db: any = null;
 let _pool: any = null;
@@ -16,12 +18,21 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
+  // Neon-specific optimizations for Vercel/Neon deployment
+  const dbUrl = new URL(url);
+  if (url.includes('neon.tech')) {
+    dbUrl.searchParams.set('uselibpqcompat', 'true');
+    dbUrl.searchParams.set('sslmode', 'require');
+  }
+  const connectionString = dbUrl.toString();
+
   try {
     _pool = new Pool({ 
-      connectionString: url,
+      connectionString,
+      ssl: url.includes('neon.tech') ? { rejectUnauthorized: false } : false
     });
     _db = drizzle(_pool, { schema });
-    console.log('✅ PostgreSQL database connected');
+    console.log('✅ PostgreSQL database connected (Neon Serverless compatibility restored)');
     return { db: _db, pool: _pool };
   } catch (error) {
     console.error('❌ Database connection failed:', error);

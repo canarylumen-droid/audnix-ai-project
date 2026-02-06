@@ -1,0 +1,63 @@
+11:29:19.680 server/index.ts(8,52): error TS18046: 'e' is of type 'unknown'.
+11:29:24.332 server/storage.ts(2,367): error TS2724: '"../shared/schema.js"' has no exported member named 'TeamMember'. Did you mean 'teamMembers'?
+11:29:24.333 server/storage.ts(2,384): error TS2305: Module '"../shared/schema.js"' has no exported member 'InsertTeamMember'.
+11:29:24.333 server/storage.ts(128,31): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+11:29:24.333 server/storage.ts(128,60): error TS2304: Cannot find name 'EmailMessage'.
+11:29:24.333 server/storage.ts(129,45): error TS2304: Cannot find name 'EmailMessage'.
+11:29:24.333 server/storage.ts(141,14): error TS2420: Class 'MemStorage' incorrectly implements interface 'IStorage'.
+11:29:24.334 server/storage.ts(260,9): error TS2393: Duplicate function implementation.
+11:29:24.334 server/storage.ts(263,9): error TS2393: Duplicate function implementation.
+11:29:24.334 server/storage.ts(357,11): error TS2741: Property 'config' is missing in type '{ id: `${string}-${string}-${string}-${string}-${string}`; supabaseId: string | null; email: string; password: string | null; name: string | null; username: string | null; avatar: string | null; company: string | null; ... 30 more ...; filteredLeadsCount: number; }' but required in type '{ id: string; name: string | null; email: string; supabaseId: string | null; password: string | null; username: string | null; avatar: string | null; company: string | null; timezone: string; ... 30 more ...; filteredLeadsCount: number; }'.
+11:29:24.339 server/storage.ts(804,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1026,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1028,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1032,9): error TS2393: Duplicate function implementation.
+11:29:24.340 server/storage.ts(1037,14): error TS2741: Property 'markNotificationRead' is missing in type 'DrizzleStorage' but required in type 'IStorage'.
+11:29:31.066 server/drizzle-storage.ts(2,311): error TS2724: '"../shared/schema.js"' has no exported member named 'TeamMember'. Did you mean 'teamMembers'?
+11:29:31.066 server/drizzle-storage.ts(2,323): error TS2305: Module '"../shared/schema.js"' has no exported member 'InsertTeamMember'.
+11:29:31.066 server/drizzle-storage.ts(21,14): error TS2420: Class 'DrizzleStorage' incorrectly implements interface 'IStorage'.
+11:29:31.066 server/drizzle-storage.ts(22,37): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+11:29:31.066 server/drizzle-storage.ts(22,66): error TS2304: Cannot find name 'EmailMessage'.
+11:29:31.066 server/drizzle-storage.ts(23,42): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(27,51): error TS2304: Cannot find name 'EmailMessage'.
+11:29:31.066 server/drizzle-storage.ts(28,35): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(28,59): error TS2304: Cannot find name 'emailMessages'.
+11:29:31.066 server/drizzle-storage.ts(708,9): error TS2393: Duplicate function implementation.
+11:29:31.066 server/drizzle-storage.ts(718,37): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(718,42): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(720,15): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.066 server/drizzle-storage.ts(721,16): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+11:29:31.067 server/drizzle-storage.ts(721,21): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+11:29:31.067 server/drizzle-storage.ts(730,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(735,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(741,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(751,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(753,35): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(753,59): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(756,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(758,38): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(762,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(765,15): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(767,21): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(767,47): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(772,9): error TS2393: Duplicate function implementation.
+11:29:31.067 server/drizzle-storage.ts(774,21): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.067 server/drizzle-storage.ts(774,49): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.068 server/drizzle-storage.ts(774,75): error TS2304: Cannot find name 'videoMonitors'.
+11:29:31.068 server/drizzle-storage.ts(777,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(779,43): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(779,71): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(783,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(785,21): error TS2304: Cannot find name 'processedComments'.
+11:29:31.068 server/drizzle-storage.ts(793,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(813,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(857,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(867,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(898,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(906,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(914,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(923,9): error TS2393: Duplicate function implementation.
+11:29:31.068 server/drizzle-storage.ts(934,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(946,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(956,9): error TS2393: Duplicate function implementation.
+11:29:31.070 server/drizzle-storage.ts(981,9): error TS2393: Duplicate function implementation.
