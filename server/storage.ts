@@ -997,17 +997,31 @@ export class MemStorage implements IStorage {
     return log;
   }
 
+  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
+    return [];
+  }
+
+  async toggleAi(leadId: string, paused: boolean): Promise<void> {
+    const lead = this.leads.get(leadId);
+    if (lead) {
+      this.leads.set(leadId, { ...lead, aiPaused: paused });
+    }
+  }
+
   async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
     return [];
   }
 
-  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
+  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {}
+
+  async getLearningPatterns(userId: string): Promise<any[]> {
+    return [];
+  }
+
+  async getSmtpSettings(userId: string): Promise<any[]> {
     return [];
   }
 }
-
-// Use DrizzleStorage with Replit PostgreSQL database
-import { drizzleStorage } from './drizzle-storage.js';
 
 export const storage: IStorage = drizzleStorage;
 
