@@ -1,0 +1,119 @@
+12:47:42.761 server/index.ts(8,52): error TS18046: 'e' is of type 'unknown'.
+12:47:47.329 server/storage.ts(128,31): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+12:47:47.330 server/storage.ts(128,60): error TS2304: Cannot find name 'EmailMessage'.
+12:47:47.330 server/storage.ts(129,45): error TS2304: Cannot find name 'EmailMessage'.
+12:47:47.330 server/storage.ts(141,14): error TS2420: Class 'MemStorage' incorrectly implements interface 'IStorage'.
+12:47:47.331 server/storage.ts(260,9): error TS2393: Duplicate function implementation.
+12:47:47.331 server/storage.ts(263,9): error TS2393: Duplicate function implementation.
+12:47:47.332 server/storage.ts(357,11): error TS2741: Property 'config' is missing in type '{ id: `${string}-${string}-${string}-${string}-${string}`; supabaseId: string | null; email: string; password: string | null; name: string | null; username: string | null; avatar: string | null; company: string | null; ... 30 more ...; filteredLeadsCount: number; }' but required in type '{ id: string; name: string | null; email: string; supabaseId: string | null; password: string | null; username: string | null; avatar: string | null; company: string | null; timezone: string; ... 30 more ...; filteredLeadsCount: number; }'.
+12:47:47.334 server/storage.ts(804,9): error TS2393: Duplicate function implementation.
+12:47:47.334 server/storage.ts(1026,9): error TS2393: Duplicate function implementation.
+12:47:47.335 server/storage.ts(1028,9): error TS2393: Duplicate function implementation.
+12:47:47.335 server/storage.ts(1032,9): error TS2393: Duplicate function implementation.
+12:47:47.335 server/storage.ts(1037,14): error TS2741: Property 'getPayments' is missing in type 'DrizzleStorage' but required in type 'IStorage'.
+12:47:53.544 server/drizzle-storage.ts(21,14): error TS2420: Class 'DrizzleStorage' incorrectly implements interface 'IStorage'.
+12:47:53.545 server/drizzle-storage.ts(22,37): error TS2552: Cannot find name 'InsertEmailMessage'. Did you mean 'InsertMessage'?
+12:47:53.545 server/drizzle-storage.ts(22,66): error TS2304: Cannot find name 'EmailMessage'.
+12:47:53.545 server/drizzle-storage.ts(23,42): error TS2304: Cannot find name 'emailMessages'.
+12:47:53.545 server/drizzle-storage.ts(27,51): error TS2304: Cannot find name 'EmailMessage'.
+12:47:53.545 server/drizzle-storage.ts(28,35): error TS2304: Cannot find name 'emailMessages'.
+12:47:53.545 server/drizzle-storage.ts(28,59): error TS2304: Cannot find name 'emailMessages'.
+12:47:53.545 server/drizzle-storage.ts(691,9): error TS2393: Duplicate function implementation.
+12:47:53.545 server/drizzle-storage.ts(704,9): error TS2393: Duplicate function implementation.
+12:47:53.546 server/drizzle-storage.ts(706,35): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.546 server/drizzle-storage.ts(706,59): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.546 server/drizzle-storage.ts(709,9): error TS2393: Duplicate function implementation.
+12:47:53.546 server/drizzle-storage.ts(711,38): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.546 server/drizzle-storage.ts(715,9): error TS2393: Duplicate function implementation.
+12:47:53.546 server/drizzle-storage.ts(717,38): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(717,79): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(717,105): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(721,9): error TS2393: Duplicate function implementation.
+12:47:53.547 server/drizzle-storage.ts(723,21): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(723,49): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(723,75): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.547 server/drizzle-storage.ts(726,9): error TS2393: Duplicate function implementation.
+12:47:53.547 server/drizzle-storage.ts(728,45): error TS2304: Cannot find name 'processedComments'.
+12:47:53.548 server/drizzle-storage.ts(728,73): error TS2304: Cannot find name 'processedComments'.
+12:47:53.549 server/drizzle-storage.ts(732,9): error TS2393: Duplicate function implementation.
+12:47:53.549 server/drizzle-storage.ts(734,21): error TS2304: Cannot find name 'processedComments'.
+12:47:53.549 server/drizzle-storage.ts(734,126): error TS2304: Cannot find name 'processedComments'.
+12:47:53.549 server/drizzle-storage.ts(737,9): error TS2393: Duplicate function implementation.
+12:47:53.549 server/drizzle-storage.ts(742,9): error TS2393: Duplicate function implementation.
+12:47:53.549 server/drizzle-storage.ts(746,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(751,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(756,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(768,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(773,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(779,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(784,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(789,9): error TS2393: Duplicate function implementation.
+12:47:53.550 server/drizzle-storage.ts(794,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(799,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(806,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(810,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(814,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(818,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(822,9): error TS2393: Duplicate function implementation.
+12:47:53.551 server/drizzle-storage.ts(826,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(843,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(852,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(856,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(861,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(878,9): error TS2393: Duplicate function implementation.
+12:47:53.552 server/drizzle-storage.ts(888,37): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+12:47:53.552 server/drizzle-storage.ts(888,42): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+12:47:53.552 server/drizzle-storage.ts(890,15): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+12:47:53.553 server/drizzle-storage.ts(891,16): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+12:47:53.553 server/drizzle-storage.ts(891,21): error TS7006: Parameter 'deal' implicitly has an 'any' type.
+12:47:53.558 server/drizzle-storage.ts(900,9): error TS2393: Duplicate function implementation.
+12:47:53.558 server/drizzle-storage.ts(905,9): error TS2393: Duplicate function implementation.
+12:47:53.558 server/drizzle-storage.ts(911,9): error TS2393: Duplicate function implementation.
+12:47:53.558 server/drizzle-storage.ts(921,9): error TS2393: Duplicate function implementation.
+12:47:53.570 server/drizzle-storage.ts(923,35): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.570 server/drizzle-storage.ts(923,59): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.570 server/drizzle-storage.ts(926,9): error TS2393: Duplicate function implementation.
+12:47:53.570 server/drizzle-storage.ts(928,38): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.571 server/drizzle-storage.ts(932,9): error TS2393: Duplicate function implementation.
+12:47:53.571 server/drizzle-storage.ts(935,15): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.571 server/drizzle-storage.ts(937,21): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.571 server/drizzle-storage.ts(937,47): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.571 server/drizzle-storage.ts(942,9): error TS2393: Duplicate function implementation.
+12:47:53.571 server/drizzle-storage.ts(944,21): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.571 server/drizzle-storage.ts(944,49): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.572 server/drizzle-storage.ts(944,75): error TS2304: Cannot find name 'videoMonitors'.
+12:47:53.572 server/drizzle-storage.ts(947,9): error TS2393: Duplicate function implementation.
+12:47:53.572 server/drizzle-storage.ts(949,43): error TS2304: Cannot find name 'processedComments'.
+12:47:53.572 server/drizzle-storage.ts(949,71): error TS2304: Cannot find name 'processedComments'.
+12:47:53.572 server/drizzle-storage.ts(953,9): error TS2393: Duplicate function implementation.
+12:47:53.572 server/drizzle-storage.ts(955,21): error TS2304: Cannot find name 'processedComments'.
+12:47:53.572 server/drizzle-storage.ts(963,9): error TS2393: Duplicate function implementation.
+12:47:53.572 server/drizzle-storage.ts(983,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1027,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1037,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1068,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1076,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1084,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1093,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1104,9): error TS2393: Duplicate function implementation.
+12:47:53.573 server/drizzle-storage.ts(1116,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1126,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1151,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1173,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1198,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1213,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1269,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1286,9): error TS2393: Duplicate function implementation.
+12:47:53.574 server/drizzle-storage.ts(1297,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1311,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1319,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1343,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1350,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1357,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1440,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1451,9): error TS2393: Duplicate function implementation.
+12:47:53.575 server/drizzle-storage.ts(1458,9): error TS2393: Duplicate function implementation.
+12:47:53.576 server/drizzle-storage.ts(1472,9): error TS2393: Duplicate function implementation.
+12:47:53.576 server/drizzle-storage.ts(1500,9): error TS2393: Duplicate function implementation.
+12:47:53.576 server/drizzle-storage.ts(1509,9): error TS2393: Duplicate function implementation.
+12:47:53.576 server/drizzle-storage.ts(1525,9): error TS2393: Duplicate function implementation.
