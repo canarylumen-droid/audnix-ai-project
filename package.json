@@ -16,7 +16,6 @@
   "engines": {
     "node": "20.x"
   },
-  "optionalDependencies": {},
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
     "@google/generative-ai": "^0.21.0",
