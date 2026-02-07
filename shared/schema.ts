@@ -81,6 +81,25 @@ export const users = pgTable("users", {
   filteredLeadsCount: integer("filtered_leads_count").notNull().default(0),
 });
 
+export const brandPdfCache = pgTable("brand_pdf_cache", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileHash: text("file_hash").notNull(),
+  pdfContent: bytea("pdf_content"),
+  extractedText: text("extracted_text"),
+  brandContext: jsonb("brand_context").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  analysisScore: integer("analysis_score").default(0),
+  analysisItems: jsonb("analysis_items").$type<any[]>().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    userIdHashIdx: uniqueIndex("brand_pdf_cache_user_id_hash_idx").on(table.userId, table.fileHash),
+  };
+});
+
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

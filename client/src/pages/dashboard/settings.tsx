@@ -191,43 +191,43 @@ export default function SettingsPage() {
                 <CardTitle className="text-xl">Profile Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
-                      <Input
-                        value={formData.name}
-                        onChange={e => handleFieldChange('name', e.target.value)}
-                        className="rounded-xl h-11"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</Label>
-                      <Input
-                        value={formData.username}
-                        onChange={e => handleFieldChange('username', e.target.value)}
-                        className="rounded-xl h-11"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Company</Label>
-                      <Input
-                        value={formData.company}
-                        onChange={e => handleFieldChange('company', e.target.value)}
-                        className="rounded-xl h-11"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calendar Booking Link</Label>
-                      <Input
-                        value={formData.calendarLink}
-                        onChange={e => handleFieldChange('calendarLink', e.target.value)}
-                        placeholder="https://calendly.com/your-link"
-                        className="rounded-xl h-11"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>
-                      <Select value={formData.timezone} onValueChange={v => handleFieldChange('timezone', v)}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Full Name</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={e => handleFieldChange('name', e.target.value)}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Username</Label>
+                    <Input
+                      value={formData.username}
+                      onChange={e => handleFieldChange('username', e.target.value)}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Company</Label>
+                    <Input
+                      value={formData.company}
+                      onChange={e => handleFieldChange('company', e.target.value)}
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Calendar Booking Link</Label>
+                    <Input
+                      value={formData.calendarLink}
+                      onChange={e => handleFieldChange('calendarLink', e.target.value)}
+                      placeholder="https://calendly.com/your-link"
+                      className="rounded-xl h-11"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Timezone</Label>
+                    <Select value={formData.timezone} onValueChange={v => handleFieldChange('timezone', v)}>
                       <SelectTrigger className="rounded-xl h-11">
                         <SelectValue />
                       </SelectTrigger>
@@ -257,19 +257,38 @@ export default function SettingsPage() {
                 <CardDescription>Upload brand materials to train your AI.</CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
-                <div
-                  className="group border-2 border-dashed border-border hover:border-primary/50 transition-all rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer bg-muted/30"
-                  onClick={() => pdfInputRef.current?.click()}
-                >
-                  <div className="mb-6">
-                    <PdfIcon className="w-12 h-12" />
+                {user.metadata?.brandPdfFileName ? (
+                  <div className="border-2 border-primary/20 bg-primary/5 rounded-2xl p-8 flex flex-col items-center justify-center text-center">
+                    <div className="mb-4 bg-primary/10 p-4 rounded-full">
+                      <PdfIcon className="w-8 h-8 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-lg mb-1">{user.metadata.brandPdfFileName}</h3>
+                    <p className="text-xs text-muted-foreground mb-6">
+                      Uploaded on {new Date(user.metadata.brandPdfUploadedAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex gap-3">
+                      <Button variant="outline" size="sm" onClick={() => pdfInputRef.current?.click()} disabled={uploadPDFMutation.isPending}>
+                        {uploadPDFMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                        Replace PDF
+                      </Button>
+                    </div>
+                    <input ref={pdfInputRef} type="file" className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && uploadPDFMutation.mutate(e.target.files[0])} />
                   </div>
-                  <h3 className="font-bold mb-2">Upload Brand PDF</h3>
-                  <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
-                    Guides, sales scripts, or brand decks used for AI training.
-                  </p>
-                  <input ref={pdfInputRef} type="file" className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && uploadPDFMutation.mutate(e.target.files[0])} />
-                </div>
+                ) : (
+                  <div
+                    className="group border-2 border-dashed border-border hover:border-primary/50 transition-all rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer bg-muted/30"
+                    onClick={() => pdfInputRef.current?.click()}
+                  >
+                    <div className="mb-6">
+                      <PdfIcon className="w-12 h-12" />
+                    </div>
+                    <h3 className="font-bold mb-2">Upload Brand PDF</h3>
+                    <p className="text-xs text-muted-foreground max-w-[240px] leading-relaxed">
+                      Guides, sales scripts, or brand decks used for AI training.
+                    </p>
+                    <input ref={pdfInputRef} type="file" className="hidden" accept=".pdf" onChange={e => e.target.files?.[0] && uploadPDFMutation.mutate(e.target.files[0])} />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

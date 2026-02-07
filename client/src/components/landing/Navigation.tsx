@@ -122,9 +122,13 @@ export function Navigation() {
                 key={link.name}
                 href={link.href}
                 onClick={(e) => {
-                  if (link.href?.startsWith("#")) {
-                    e.preventDefault();
-                    document.getElementById(link.href.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+                  if (link.href?.includes("#")) {
+                    const [path, hash] = link.href.split("#");
+                    if (window.location.pathname === path || (path === "/" && window.location.pathname === "")) {
+                      e.preventDefault();
+                      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+                      setHoveredMenu(null);
+                    }
                   }
                 }}
                 className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground transition-all relative group"
@@ -257,7 +261,7 @@ export function Navigation() {
                   <ChevronDown className="w-5 h-5 rotate-90" />
                 </Button>
               </div>
-              
+
               <div className="flex flex-col gap-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Navigation</p>
                 {navLinks.map((link) => (
@@ -266,12 +270,18 @@ export function Navigation() {
                     href={link.href}
                     onClick={(e) => {
                       setMobileMenuOpen(false);
-                      if (link.href?.startsWith("#")) {
-                        e.preventDefault();
-                        document.getElementById(link.href.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+                      if (link.href?.includes("#")) {
+                        const [path, hash] = link.href.split("#");
+                        if (window.location.pathname === path || (path === "/" && window.location.pathname === "")) {
+                          e.preventDefault();
+                          const el = document.getElementById(hash);
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }
                       }
                     }}
-                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-2 border-b border-white/5"
+                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-2 border-b border-white/5 block w-full"
                   >
                     {link.name}
                   </a>

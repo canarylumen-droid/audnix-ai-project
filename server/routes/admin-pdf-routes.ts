@@ -14,8 +14,16 @@ const router = Router();
 async function extractPdfText(buffer: Buffer): Promise<string> {
   try {
     // pdf-parse uses a weird export structure in some environments
-    const parse = (pdf as any).default || pdf;
-    const data = await parse(buffer);
+    // It's often exported as the module itself
+    const pdfParser = (pdf as any).default || pdf;
+
+    // Ensure we are calling a function
+    if (typeof pdfParser !== 'function') {
+      console.error("pdf-parse is not a function:", typeof pdfParser);
+      return "";
+    }
+
+    const data = await pdfParser(buffer);
     return data.text || "";
   } catch (error) {
     console.error("PDF extraction error:", error);

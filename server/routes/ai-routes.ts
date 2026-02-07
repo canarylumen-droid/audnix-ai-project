@@ -568,10 +568,13 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
       const leadData = leadsData[i];
 
       try {
-        const identifier = leadData.email;
-        // Relaxed validation: Allow import if email exists
-        if (!identifier) {
-          results.errors.push(`Row ${i + 1}: Missing email`);
+        const email = leadData.email;
+        const name = leadData.name;
+
+        // Strict validation: name and email are MUST
+        if (!email || !name || name === 'Unknown') {
+          results.errors.push(`Row ${i + 1}: Missing required name or email`);
+          results.leadsFiltered++;
           continue;
         }
 
@@ -589,10 +592,10 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
           const updates: Record<string, any> = {};
           if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-          
+
           const existingMeta = existingLead.metadata as Record<string, any> || {};
           if (!existingMeta.company && leadData.company) {
-             updates.metadata = { ...existingMeta, company: leadData.company };
+            updates.metadata = { ...existingMeta, company: leadData.company };
           }
 
           if (Object.keys(updates).length > 0) {
@@ -1044,7 +1047,7 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
           console.error(`❌ CSV Parsing error:`, err);
           reject(err);
         });
-      
+
       // Log buffer info
       console.log("Input buffer size:", req.file!.buffer.length);
     });
@@ -1088,130 +1091,131 @@ router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Reques
     const existingPhones = new Set(existingLeads.map(l => l.phone).filter(Boolean));
 
     for (let i = 0; i < leadsToImport; i++) {
-        const row = leadsData[i];
+      const row = leadsData[i];
 
-        try {
-          // Use AI-mapped columns
-          const extracted = extractLeadFromRow(row, mapping);
-          let { name, email, phone, company } = extracted;
+      try {
+        // Use AI-mapped columns
+        const extracted = extractLeadFromRow(row, mapping);
+        let { name, email, phone, company } = extracted;
 
-          // Better name extraction
-          if (!name || name.toLowerCase() === 'unknown' || name === 'Unknown Lead') {
-            if (email) {
-              const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
-              name = namePart.split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-            } else if (phone) {
-              name = `Lead ${phone.slice(-4)}`;
-            } else {
-              name = 'Unknown Lead';
-            }
-          }
-
-          // In preview mode, allow basic validation only
-          const identifier = email || phone;
-          if (!identifier) {
-            results.errors.push(`Row ${i + 1}: Missing email or phone`);
-            continue;
-          }
-
-          if (importedIdentifiers.has(identifier.toLowerCase()) ||
-            (email && existingEmails.has(email.toLowerCase())) ||
-            (phone && existingPhones.has(phone))) {
-            if (!previewMode) {
-               results.errors.push(`Row ${i + 1}: Duplicate lead ${identifier}`);
-               continue;
-            }
-          }
-
-          // Skip heavy verification in preview to keep it fast
-          // But allow client to see mapped data
-          const leadObject = {
-             name,
-             email,
-             phone,
-             company,
-             status: 'new',
-             metadata: {
-               ...extractExtraFieldsAsMetadata(row, mapping),
-               import_source: 'csv_preview'
-             }
-          };
-
-          if (previewMode) {
-            results.leads.push(leadObject);
-            results.leadsFound++;
-            continue;
-          }
-
-          // ... (Real Import Logic) ...
-          
-          // Deliverability Check with Neural Recovery
-          let status = 'new';
-          let verified = false;
-          let recoveryTarget = email;
-          let isRecovered = false;
-
+        // Better name extraction
+        if (!name || name.toLowerCase() === 'unknown' || name === 'Unknown Lead') {
           if (email) {
-            let verification = await verifier.verify(email);
-            if (verification.valid) {
-              verified = true;
-              status = 'hardened';
-            } else {
-              // Neural Discovery Path
-              try {
-                const recoveryModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
-                const recoveryPrompt = `BUSINESS: ${company || name}\nEMAIL: ${email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
-                const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
-                const correctedEmail = recoveryResult.response.text().trim();
+            const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
+            name = namePart.split(' ')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+          } else if (phone) {
+            name = `Lead ${phone.slice(-4)}`;
+          } else {
+            name = 'Unknown Lead';
+          }
+        }
 
-                if (correctedEmail !== 'NONE' && correctedEmail !== email && correctedEmail.includes('@')) {
-                  const secondaryVerification = await verifier.verify(correctedEmail);
-                  if (secondaryVerification.valid) {
-                    recoveryTarget = correctedEmail;
-                    verified = true;
-                    isRecovered = true;
-                    status = 'recovered';
-                  }
+        // Strict validation: name and email are MUST
+        if (!name || !email || name === 'Unknown' || name === 'Unknown Lead') {
+          results.errors.push(`Row ${i + 1}: Missing required name or email`);
+          continue;
+        }
+
+        const identifier = email;
+
+        if (importedIdentifiers.has(identifier.toLowerCase()) ||
+          (email && existingEmails.has(email.toLowerCase())) ||
+          (phone && existingPhones.has(phone))) {
+          if (!previewMode) {
+            results.errors.push(`Row ${i + 1}: Duplicate lead ${identifier}`);
+            continue;
+          }
+        }
+
+        // Skip heavy verification in preview to keep it fast
+        // But allow client to see mapped data
+        const leadObject = {
+          name,
+          email,
+          phone,
+          company,
+          status: 'new',
+          metadata: {
+            ...extractExtraFieldsAsMetadata(row, mapping),
+            import_source: 'csv_preview'
+          }
+        };
+
+        if (previewMode) {
+          results.leads.push(leadObject);
+          results.leadsFound++;
+          continue;
+        }
+
+        // ... (Real Import Logic) ...
+
+        // Deliverability Check with Neural Recovery
+        let status = 'new';
+        let verified = false;
+        let recoveryTarget = email;
+        let isRecovered = false;
+
+        if (email) {
+          let verification = await verifier.verify(email);
+          if (verification.valid) {
+            verified = true;
+            status = 'hardened';
+          } else {
+            // Neural Discovery Path
+            try {
+              const recoveryModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
+              const recoveryPrompt = `BUSINESS: ${company || name}\nEMAIL: ${email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
+              const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
+              const correctedEmail = recoveryResult.response.text().trim();
+
+              if (correctedEmail !== 'NONE' && correctedEmail !== email && correctedEmail.includes('@')) {
+                const secondaryVerification = await verifier.verify(correctedEmail);
+                if (secondaryVerification.valid) {
+                  recoveryTarget = correctedEmail;
+                  verified = true;
+                  isRecovered = true;
+                  status = 'recovered';
                 }
-              } catch (e) { }
-
-              if (!verified) {
-                status = 'bouncy';
               }
+            } catch (e) { }
+
+            if (!verified) {
+              status = 'bouncy';
             }
           }
-
-          const extraFields = extractExtraFieldsAsMetadata(row, mapping);
-
-          await storage.createLead({
-            userId,
-            name: name,
-            email: recoveryTarget || undefined,
-            phone: phone || undefined,
-            channel: 'email',
-            status: status as any,
-            verified: verified,
-            verifiedAt: verified ? new Date() : null,
-            metadata: {
-              imported_from_csv: true,
-              company: company,
-              import_date: new Date().toISOString(),
-              deliverability: verified ? 'safe' : 'bouncy',
-              is_recovered: isRecovered,
-              ai_column_mapping: mapping,
-              ...extraFields
-            }
-          });
-
-          importedIdentifiers.add(identifier.toLowerCase());
-          results.leadsImported++;
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          results.errors.push(`Row ${i + 1}: ${errorMessage}`);
         }
+
+        const extraFields = extractExtraFieldsAsMetadata(row, mapping);
+
+        await storage.createLead({
+          userId,
+          name: name,
+          email: recoveryTarget || undefined,
+          phone: phone || undefined,
+          channel: 'email',
+          status: status as any,
+          verified: verified,
+          verifiedAt: verified ? new Date() : null,
+          metadata: {
+            imported_from_csv: true,
+            company: company,
+            import_date: new Date().toISOString(),
+            deliverability: verified ? 'safe' : 'bouncy',
+            is_recovered: isRecovered,
+            ai_column_mapping: mapping,
+            ...extraFields
+          }
+        });
+
+        importedIdentifiers.add(identifier.toLowerCase());
+        results.leadsImported++;
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Row ${i + 1}: ${errorMessage}`);
       }
+    }
 
     if (leadsData.length > leadsToImport) {
       results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
@@ -1327,7 +1331,7 @@ router.post("/run-outreach", requireAuth, async (req: Request, res: Response): P
     type BrandContext = { serviceName: string; pricing: string; valueProposition: string; businessName?: string };
 
     let result;
-    
+
     if (runDemo) {
       // Run demo with predefined leads
       result = await runDemoOutreach(userId);

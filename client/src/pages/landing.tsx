@@ -31,17 +31,29 @@ export default function Landing() {
   });
 
   useEffect(() => {
+    // 1. Initial Hash Scrolling Fix
+    if (window.location.hash) {
+      setTimeout(() => {
+        const id = window.location.hash.substring(1);
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 500); // Small delay to ensure render
+    }
+
+    // 2. GSAP Animation Fix (Guaranteed Visibility)
     const ctx = gsap.context(() => {
       const sections = gsap.utils.toArray('.reveal-section');
       sections.forEach((section: any) => {
         gsap.from(section, {
-          y: 60,
-          opacity: 0,
-          duration: 1.2,
+          y: 40,
+          // REMOVED opacity: 0 to ensure content is always visible even if ScrollTrigger fails
+          duration: 1.0,
           ease: "expo.out",
           scrollTrigger: {
             trigger: section,
-            start: "top 85%",
+            start: "top 90%", // Trigger drastically earlier
             toggleActions: "play none none reverse"
           }
         });

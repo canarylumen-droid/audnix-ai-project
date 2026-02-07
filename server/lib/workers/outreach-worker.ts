@@ -195,24 +195,19 @@ export class AutonomousOutreachWorker {
       });
 
       const uniqueUserIds = [...new Set(activeUsers.map((u: any) => u.userId))];
-      
+
       for (const userId of uniqueUserIds) {
-        // Skip if this user is already being processed
-        if (this.activeOutreachQueue.has(userId as string)) {
-          continue;
-        }
+        if (this.activeOutreachQueue.has(userId as string)) continue;
 
-        // Find uncontacted leads for this user
-        const uncontactedLeads = await this.getUncontactedLeads(userId as string);
-
-        if (uncontactedLeads.length > 0) {
-          console.log(`[AutoOutreach] User ${userId} has ${uncontactedLeads.length} uncontacted leads`);
-          
-          // Mark user as being processed
-          this.activeOutreachQueue.set(userId as string, true);
-          
-          // Process leads asynchronously with delays
-          this.processLeadsWithDelay(userId as string, uncontactedLeads);
+        try {
+          const uncontactedLeads = await this.getUncontactedLeads(userId as string);
+          if (uncontactedLeads.length > 0) {
+            console.log(`[AutoOutreach] User ${userId} has ${uncontactedLeads.length} uncontacted leads`);
+            this.activeOutreachQueue.set(userId as string, true);
+            this.processLeadsWithDelay(userId as string, uncontactedLeads);
+          }
+        } catch (innerErr) {
+          console.error(`[AutoOutreach] Error processing user ${userId}:`, innerErr);
         }
       }
 
@@ -304,10 +299,10 @@ export class AutonomousOutreachWorker {
 
       for (let i = 0; i < leads.length; i++) {
         const lead = leads[i];
-        
+
         try {
           await this.sendOutreachToLead(userId, lead, businessName);
-          
+
           // Add random delay between 2-4 minutes before next email
           if (i < leads.length - 1) {
             const delay = this.MIN_DELAY_MS + Math.random() * (this.MAX_DELAY_MS - this.MIN_DELAY_MS);

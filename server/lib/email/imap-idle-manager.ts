@@ -452,8 +452,9 @@ class ImapIdleManager {
                 // Try discovered and common names
                 for (const folder of foldersToTry) {
                     try {
+                        console.log(`[Append] Attempting to mirror message to ${folder} for user ${userId}...`);
                         await appendToFolder(folder);
-                        console.log(`✅ Appended sent message to ${folder} for user ${userId} (Transient)`);
+                        console.log(`✅ mirrored to ${folder} for user ${userId}`);
                         cleanup();
                         resolve();
                         return;

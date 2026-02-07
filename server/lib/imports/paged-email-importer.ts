@@ -3,6 +3,7 @@ import { leads as leadsTable } from '../../../shared/schema.js';
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
+import { eq, and, sql } from 'drizzle-orm';
 
 /**
  * Paged email importer - prevents timeout and memory issues
@@ -72,24 +73,28 @@ async function processEmailForLead(
 
     const emailAddress = direction === 'inbound' ? email.from : email.to; // For outbound, we care who we sent TO
 
-    // Check if lead exists based on email
-    // We need a more efficient lookup than getLeads with limit 10000.
-    // Ideally use storage.getLeadByEmail(userId, emailAddress)
-    // For now, assuming standard storage.getLeads filter is reasonably fast if indexed.
-    // Better: storage.getLeadByEmail if available.
-    // Looking at drizzle-storage.ts, we don't have getLeadByEmail exposed on interface easily or verified.
-    // But we have getLeads({userId, search: emailAddress}).
+    // [ROBUST LOOKUP] Use direct DB query for case-insensitive email matching
+    // storage.getLeads uses case-dependent 'like' which might fail for mismatches
+    const leads = await db
+      .select()
+      .from(leadsTable)
+      .where(and(
+        eq(leadsTable.userId, userId),
+        sql`LOWER(${leadsTable.email}) = ${emailAddress.toLowerCase()}`
+      ))
+      .limit(1);
 
-    const leads = await storage.getLeads({ userId, search: emailAddress });
-    let lead = leads.find(l => l.email === emailAddress); // Exact match check
+    let lead = leads[0];
 
     if (!lead) {
-      if (direction === 'outbound') {
-        // If we sent an email to someone who isn't a lead, should we create one?
-        // Yes, usually.
+      if (direction === 'inbound') {
+        // [STRICT FILTER] Skip importing inbound emails from unknown senders
+        // This keeps the Audnix Inbox focused ONLY on recognition leads
+        results.skipped++;
+        return;
       }
 
-      // Create lead
+      // Create lead for outbound intentional outreach
       lead = await storage.createLead({
         userId,
         name: extractNameFromEmail(emailAddress),
@@ -99,7 +104,8 @@ async function processEmailForLead(
         score: 0,
         metadata: {
           firstEmailDate: email.date,
-          imported: true
+          imported: true,
+          discovery_source: 'outbound_outreach'
         }
       });
     }
@@ -124,17 +130,17 @@ async function processEmailForLead(
       if (email.isRead !== undefined && existingMessage.isRead !== email.isRead) {
         await storage.updateMessage(existingMessage.id, { isRead: email.isRead });
         results.imported++; // Count as dynamic update
-        
+
         // Notify UI of read status change
         try {
           const { wsSync } = await import('../websocket-sync.js');
-          wsSync.notifyMessagesUpdated(userId, { 
-            type: 'UPDATE', 
-            messageId: existingMessage.id, 
+          wsSync.notifyMessagesUpdated(userId, {
+            type: 'UPDATE',
+            messageId: existingMessage.id,
             event: 'read_status_changed',
             isRead: email.isRead
           });
-        } catch (wsError) {}
+        } catch (wsError) { }
       } else {
         results.skipped++;
       }
@@ -182,12 +188,12 @@ async function processEmailForLead(
     // Notify UI of new message
     try {
       const { wsSync } = await import('../websocket-sync.js');
-      wsSync.notifyMessagesUpdated(userId, { 
-        type: 'INSERT', 
+      wsSync.notifyMessagesUpdated(userId, {
+        type: 'INSERT',
         messageId: (newMessage as any).id,
-        direction 
+        direction
       });
-    } catch (wsError) {}
+    } catch (wsError) { }
 
     // Update last message time on lead
     if (new Date(email.date) > new Date(lead.lastMessageAt || 0)) {
@@ -202,7 +208,7 @@ async function processEmailForLead(
         // Run full inbound message analysis for intent, objections, churn signals
         const allMessages = await storage.getMessagesByLeadId(lead.id);
         const latestMessage = allMessages.find(m => m.body === (email.text || email.html || ''));
-        
+
         if (latestMessage) {
           try {
             const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
@@ -216,7 +222,7 @@ async function processEmailForLead(
             const { campaignLeads } = await import('../../../shared/schema.js');
             const { db } = await import('../../db.js');
             const { eq, and } = await import('drizzle-orm');
-            
+
             await db.update(campaignLeads)
               .set({ status: 'replied' })
               .where(

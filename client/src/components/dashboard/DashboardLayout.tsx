@@ -312,8 +312,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
 
         {/* Sidebar Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-border/40">
-          <Logo className="h-10 w-10" textClassName="text-xl font-bold" />
+        <div className="h-20 flex items-center justify-between px-6 border-b border-border/40 bg-[#030712] text-white">
+          <Logo className="h-10 w-10" textClassName="text-xl font-bold text-white" />
         </div>
         {!sidebarCollapsed && (
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setSidebarCollapsed(true)}>
@@ -459,8 +459,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-full sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
-                <div className="h-24 flex items-center px-8 border-b border-border/40 bg-muted/20">
-                  <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter" />
+                <div className="h-24 flex items-center px-8 border-b border-border/40 bg-[#030712] text-white">
+                  <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter text-white" />
                 </div>
                 <ScrollArea className="flex-1 px-4 py-8">
                   <div className="space-y-10">
@@ -554,7 +554,16 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           <div className="space-y-1 flex-1">
                             <p className="text-sm font-bold leading-none">{notification.title}</p>
                             <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{notification.description}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">{new Date(notification.createdAt).toLocaleDateString()}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+                              {(() => {
+                                try {
+                                  const date = new Date(notification.createdAt);
+                                  return isNaN(date.getTime()) ? 'Just now' : date.toLocaleDateString();
+                                } catch (e) {
+                                  return 'Just now';
+                                }
+                              })()}
+                            </p>
                           </div>
                         </div>
                       ))}

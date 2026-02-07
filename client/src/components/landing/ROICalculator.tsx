@@ -35,10 +35,12 @@ export function ROICalculator() {
   const [leadsPerMonth, setLeadsPerMonth] = useState(100);
   const [avgDealValue, setAvgDealValue] = useState(500);
   const [currentConvRate, setCurrentConvRate] = useState(2);
+  const [costPerLead, setCostPerLead] = useState(15);
+  const [annualRevenueGoal, setAnnualRevenueGoal] = useState(500000);
+  const [humanOffset, setHumanOffset] = useState(2500); // Standard SDR offset per 500 leads
 
   const calculations = useMemo(() => {
     const industryConversionRate = currentConvRate / 100;
-    // Audnix typically performs 8-12x better, but we'll cap it at 30% for realism
     const audnixConversionRate = Math.min(industryConversionRate * 9, 0.35);
 
     const manualClosedDeals = Math.round(leadsPerMonth * industryConversionRate);
@@ -47,7 +49,14 @@ export function ROICalculator() {
     const manualRevenue = manualClosedDeals * avgDealValue;
     const audnixRevenue = audnixClosedDeals * avgDealValue;
 
+    const totalLeadCost = leadsPerMonth * costPerLead;
+    const humanCapitalOffset = humanOffset * (leadsPerMonth / 500);
+
     const additionalRevenue = audnixRevenue - manualRevenue;
+    const netProfitAudnix = audnixRevenue - totalLeadCost + humanCapitalOffset;
+    const annualAudnixRevenue = (audnixRevenue + humanCapitalOffset) * 12;
+    const goalAttainment = (annualAudnixRevenue / annualRevenueGoal) * 100;
+
     const multiplier = manualRevenue > 0 ? (audnixRevenue / manualRevenue).toFixed(1) : "9.0";
 
     return {
@@ -56,10 +65,15 @@ export function ROICalculator() {
       manualRevenue,
       audnixRevenue,
       additionalRevenue,
+      totalLeadCost,
+      humanCapitalOffset,
+      netProfitAudnix,
+      annualAudnixRevenue,
+      goalAttainment,
       multiplier,
       audnixPercent: (audnixConversionRate * 100).toFixed(1)
     };
-  }, [leadsPerMonth, avgDealValue, currentConvRate]);
+  }, [leadsPerMonth, avgDealValue, currentConvRate, costPerLead, annualRevenueGoal, humanOffset]);
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -161,6 +175,69 @@ export function ROICalculator() {
                   className=""
                 />
               </div>
+
+              {/* Cost Per Lead Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Zap className="w-3 h-3 text-primary" /> Cost Per Lead
+                    </label>
+                    <p className="text-white text-sm font-bold">Acquisition cost per prospect</p>
+                  </div>
+                  <span className="text-4xl font-black text-white tracking-tighter">${costPerLead}</span>
+                </div>
+                <Slider
+                  value={[costPerLead]}
+                  onValueChange={([val]) => setCostPerLead(val)}
+                  min={1}
+                  max={500}
+                  step={1}
+                  className=""
+                />
+              </div>
+
+              {/* Annual Goal Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Target className="w-3 h-3 text-primary" /> Annual Target
+                    </label>
+                    <p className="text-white text-sm font-bold">Revenue goal for the year</p>
+                  </div>
+                  <span className="text-3xl font-black text-white tracking-tighter">{formatCurrency(annualRevenueGoal)}</span>
+                </div>
+                <Slider
+                  value={[annualRevenueGoal]}
+                  onValueChange={([val]) => setAnnualRevenueGoal(val)}
+                  min={50000}
+                  max={10000000}
+                  step={50000}
+                  className=""
+                />
+              </div>
+
+              {/* Human Capital Offset Slider */}
+              <div className="space-y-6">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                      <Users className="w-3 h-3 text-primary" /> Human Offset
+                    </label>
+                    <p className="text-white text-sm font-bold">Labor cost saved (per 500 leads)</p>
+                  </div>
+                  <span className="text-4xl font-black text-white tracking-tighter">${humanOffset}</span>
+                </div>
+                <Slider
+                  value={[humanOffset]}
+                  onValueChange={([val]) => setHumanOffset(val)}
+                  min={0}
+                  max={10000}
+                  step={500}
+                  className=""
+                />
+              </div>
             </div>
 
             <div className="flex items-center gap-4 px-8 py-6 rounded-[2rem] bg-primary/5 border border-primary/10">
@@ -212,7 +289,29 @@ export function ROICalculator() {
                   <p className="text-white/90 font-medium text-sm">
                     Total Deals: <span className="text-white font-black">{calculations.audnixClosedDeals}</span>
                   </p>
+                  <p className="text-white/70 text-[11px] font-bold mt-2 flex items-center gap-2">
+                    <Users className="w-3 h-3" /> Capital Offset: ${calculations.humanCapitalOffset.toLocaleString()}
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Performance Stats Overlay */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="glass-premium p-6 rounded-3xl border-white/5">
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">Annual Projection</p>
+                <p className="text-2xl font-black text-white">{formatCurrency(calculations.annualAudnixRevenue)}</p>
+              </div>
+              <div className="glass-premium p-6 rounded-3xl border-white/5">
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">Goal Attainment</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl font-black text-primary">{Math.round(calculations.goalAttainment)}%</p>
+                  {calculations.goalAttainment >= 100 && <TrendingUp className="w-4 h-4 text-emerald-500" />}
+                </div>
+              </div>
+              <div className="glass-premium p-6 rounded-3xl border-white/5">
+                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">Lead Cost Load</p>
+                <p className="text-2xl font-black text-white">{formatCurrency(calculations.totalLeadCost)}</p>
               </div>
             </div>
 

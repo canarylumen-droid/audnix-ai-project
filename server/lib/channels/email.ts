@@ -207,60 +207,84 @@ export async function importCustomEmails(
 
     const emails: ImportedEmail[] = [];
 
+    const startFetch = (targetBox: any) => {
+      if (!targetBox || !targetBox.messages || targetBox.messages.total === 0) {
+        imap.end();
+        return;
+      }
+      const total = targetBox.messages.total;
+      const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
+      const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
+
+      fetch.on('message', (msg: any) => {
+        msg.on('body', (stream: NodeJS.ReadableStream) => {
+          simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
+            if (!parseErr && parsed) {
+              emails.push({
+                from: parsed.from?.text,
+                to: parsed.to?.text,
+                subject: parsed.subject,
+                text: parsed.text,
+                html: parsed.html,
+                date: parsed.date
+              });
+            }
+          });
+        });
+      });
+
+      fetch.once('error', (err: Error) => {
+        cleanup();
+        imap.end();
+        reject(new Error(`Failed to fetch emails: ${err.message}`));
+      });
+
+      fetch.once('end', () => {
+        imap.end();
+      });
+    };
+
     imap.once('ready', () => {
-      // @ts-ignore - The types for imap might not have the correct signature for the callback
-      imap.openBox(mailbox, true, (err: Error | null, box: any) => {
+      // @ts-ignore
+      imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
         if (err) {
           if (mailbox === 'Sent' || mailbox === 'Sent Items') {
-            console.log(`Failed to open ${mailbox}, trying common alternatives...`);
+            try {
+              const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
+              const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
+              const findBox = (obj: any, prefix = ''): string | null => {
+                for (const key in obj) {
+                  const fullName = prefix + key;
+                  if (sentPatterns.includes(key.toLowerCase())) return fullName;
+                  if (obj[key].children) {
+                    const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
+                    if (found) return found;
+                  }
+                }
+                return null;
+              };
+              const discoveredSent = findBox(boxes);
+              if (discoveredSent) {
+                imap.openBox(discoveredSent, true, (err2, box2) => {
+                  if (err2) {
+                    cleanup(); imap.end();
+                    reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
+                  } else {
+                    startFetch(box2);
+                  }
+                });
+                return;
+              }
+            } catch (e) {
+              console.warn('[IMAP] Sent discovery failed');
+            }
           }
           cleanup();
           imap.end();
           reject(new Error(`Failed to open ${mailbox}: ${err.message}`));
           return;
         }
-
-        // Check if mailbox is empty or invalid
-        if (!box || !box.messages || box.messages.total === 0) {
-          imap.end();
-          return; // Resolve will happen on 'end' event
-        }
-
-        const total = box.messages.total;
-        // Fetch the latest messages (highest sequence numbers)
-        const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
-
-        const fetch = imap.seq.fetch(fetchRange, {
-          bodies: '',
-          struct: true
-        });
-
-        fetch.on('message', (msg: { on: (event: string, callback: (stream: NodeJS.ReadableStream) => void) => void }) => {
-          msg.on('body', (stream: NodeJS.ReadableStream) => {
-            simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
-              if (!parseErr && parsed) {
-                emails.push({
-                  from: parsed.from?.text,
-                  to: parsed.to?.text,
-                  subject: parsed.subject,
-                  text: parsed.text,
-                  html: parsed.html,
-                  date: parsed.date
-                });
-              }
-            });
-          });
-        });
-
-        fetch.once('error', (err: Error) => {
-          cleanup();
-          imap.end();
-          reject(new Error(`Failed to fetch emails: ${err.message}`));
-        });
-
-        fetch.once('end', () => {
-          imap.end();
-        });
+        startFetch(box);
       });
     });
 
