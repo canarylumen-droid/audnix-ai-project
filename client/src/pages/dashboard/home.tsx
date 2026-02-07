@@ -72,6 +72,7 @@ interface PreviousDashboardStats {
   aiReplies: number;
   conversions: number;
   totalLeads?: number;
+  convertedLeads?: number;
 }
 
 interface ActivityItem {
@@ -158,7 +159,7 @@ export default function DashboardHome() {
     queryKey: ["/api/integrations"],
   });
 
-  const isSmtpConnected = integrations?.some(i => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);
+  const isSmtpConnected = integrations?.some((i: any) => (i.provider === 'gmail' || i.provider === 'outlook' || i.provider === 'custom_email') && i.connected);
   const stats = statsData;
 
   const getTrialDaysLeft = () => {
@@ -225,10 +226,11 @@ export default function DashboardHome() {
     },
     {
       label: "PIPELINE VALUE",
-      value: `$${(stats as any)?.pipelineValue?.toLocaleString() || "0"}`,
+      value: (stats as any)?.pipelineValue?.toLocaleString() || "0",
+      suffix: "$",
       icon: DollarSign,
       percentage: "—",
-      trend: "neutral",
+      trend: "neutral" as const,
       color: "text-emerald-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
     },
@@ -314,7 +316,9 @@ export default function DashboardHome() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex flex-col h-[calc(100%-60px)]">
-                    <div className="text-3xl font-extrabold tracking-tighter mb-2 truncate">{kpi.value}{kpi.suffix || ''}</div>
+                    <div className="text-3xl font-extrabold tracking-tighter mb-2 truncate">
+                      {kpi.label === "PIPELINE VALUE" ? `${kpi.suffix}${kpi.value}` : `${kpi.value}${(kpi as any).suffix || ''}`}
+                    </div>
                     {kpi.percentage !== "—" && (
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`text-[10px] font-bold flex items-center px-2 py-0.5 rounded-full shrink-0 ${kpi.trend === "up" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
@@ -369,7 +373,7 @@ export default function DashboardHome() {
                   <div className="p-12 flex justify-center"><PremiumLoader text="Loading stream..." /></div>
                 ) : activities.length > 0 ? (
                   <div className="divide-y divide-border/30">
-                    {activities.map((activity, i) => (
+                    {activities.map((activity: any, i: number) => (
                       <div key={activity.id} className="p-6 flex gap-6 hover:bg-muted/20 transition-colors">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary mt-1">
                           {activity.type === 'message' ? <MessageSquare className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
@@ -498,12 +502,12 @@ export default function DashboardHome() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium flex items-center gap-3">
                     <div className={cn("h-2 w-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.4)]",
-                      (stats?.engineStatus === "Autonomous" && !stats?.leads === 0) ? "bg-emerald-500 shadow-emerald-500/40" : "bg-amber-500 shadow-amber-500/40"
+                      (stats?.engineStatus === "Autonomous" && stats?.leads !== 0) ? "bg-emerald-500 shadow-emerald-500/40" : "bg-amber-500 shadow-amber-500/40"
                     )} />
                     AI Automation
                   </span>
                   <Badge variant="secondary" className={cn("border-0 text-[10px] uppercase font-bold tracking-tighter",
-                    (stats?.engineStatus === "Autonomous" && !stats?.leads === 0) ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                    (stats?.engineStatus === "Autonomous" && stats?.leads !== 0) ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
                   )}>
                     {stats?.engineStatus === "Autonomous" ? (stats?.leads === 0 ? "Idle" : "Active") : "Paused"}
                   </Badge>

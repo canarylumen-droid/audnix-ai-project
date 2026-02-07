@@ -619,7 +619,7 @@ Generate a natural follow-up message:`;
 
     // Get brand embeddings for brand knowledge
     const brandData = await db
-      .select({ snippet: brandEmbeddings.content, metadata: brandEmbeddings.metadata })
+      .select({ snippet: brandEmbeddings.snippet, metadata: brandEmbeddings.metadata })
       .from(brandEmbeddings)
       .where(eq(brandEmbeddings.userId, userId))
       .limit(5);
@@ -905,7 +905,7 @@ export const followUpWorker = new FollowUpWorker();
 export async function scheduleInitialFollowUp(
   userId: string,
   leadId: string,
-  channel: 'email' | 'instagram' | 'manual'
+  channel: 'email' | 'instagram' | 'linkedin' | 'voice' | 'sms' | 'whatsapp' | 'manual'
 ): Promise<boolean> {
   if (!db) {
     console.warn('Database not available for follow-up scheduling');

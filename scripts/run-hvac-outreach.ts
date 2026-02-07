@@ -43,7 +43,7 @@ interface HVACLead {
  */
 async function generateHVACOutreachEmail(lead: HVACLead): Promise<{ subject: string; body: string }> {
   const firstName = lead.name.split(' ')[0];
-  
+
   const prompt = `You are an expert B2B sales copywriter specializing in HVAC industry solutions.
 Generate a personalized cold outreach email for an HVAC company owner.
 
@@ -126,11 +126,11 @@ async function runHVACOutreachCampaign() {
   // Step 1: Find user canarylumen1@gmail.com
   console.log('[1/5] Finding user canarylumen1@gmail.com...');
   const user = await storage.getUserByEmail('canarylumen1@gmail.com');
-  
+
   if (!user) {
     console.error('❌ User canarylumen1@gmail.com not found in database!');
     console.log('Creating test user for campaign...');
-    
+
     // Create user if not exists
     const newUser = await storage.createUser({
       email: 'canarylumen1@gmail.com',
@@ -150,12 +150,12 @@ async function runCampaignForUser(userId: string) {
   // Step 2: Check email integration
   console.log('\n[2/5] Checking email integration...');
   const emailIntegration = await storage.getIntegration(userId, 'custom_email');
-  
+
   if (!emailIntegration?.connected) {
     console.warn('⚠️ Custom email not configured. Checking for Gmail/Outlook...');
     const integrations = await storage.getIntegrations(userId);
     const hasEmail = integrations.some(i => ['gmail', 'outlook', 'custom_email'].includes(i.provider) && i.connected);
-    
+
     if (!hasEmail) {
       console.error('❌ No email integration found! Please configure email in Settings > Email Integration.');
       console.log('\n📧 To proceed, set up SMTP credentials in the dashboard.');
@@ -167,12 +167,12 @@ async function runCampaignForUser(userId: string) {
   // Step 3: Get the 8 leads for this user
   console.log('\n[3/5] Fetching leads from database...');
   const allLeads = await storage.getLeads({ userId, limit: 100 });
-  
+
   console.log(`📊 Found ${allLeads.length} total leads in database`);
 
   // Filter to only email leads that haven't been contacted yet
-  const emailLeads = allLeads.filter(lead => 
-    lead.email && 
+  const emailLeads = allLeads.filter(lead =>
+    lead.email &&
     lead.channel === 'email' &&
     (lead.status === 'new' || lead.status === 'open')
   ).slice(0, 8);
@@ -192,7 +192,7 @@ async function runCampaignForUser(userId: string) {
 
 async function seedHVACLeads(userId: string) {
   console.log('\n📋 Seeding 8 HVAC company leads...');
-  
+
   const hvacLeads = [
     { name: 'Mike Johnson', email: 'trexndom@gmail.com', company: 'Johnson HVAC Services' },
     { name: 'Sarah Williams', email: 'team.replyflow@gmail.com', company: 'Williams Heating & Cooling' },
@@ -297,10 +297,9 @@ async function runOutreachSequence(userId: string, leads: any[]) {
         leadId: lead.id,
         userId,
         channel: 'email',
-        type: 'followup',
         scheduledAt: followUpTime,
         status: 'pending',
-        metadata: {
+        context: {
           original_subject: emailContent.subject,
           campaign_type: 'hvac_followup',
           follow_up_number: 1
@@ -333,7 +332,7 @@ async function runOutreachSequence(userId: string, leads: any[]) {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error(`   ❌ FAILED: ${errorMsg}`);
-      
+
       results.push({
         email: lead.email,
         status: 'failed',

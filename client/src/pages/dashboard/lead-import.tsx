@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 
 export default function LeadImportPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [file, setFile] = useState<File | null>(null);
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
   const [mLeadsOpen, setMLeadsOpen] = useState(false);
@@ -27,7 +29,7 @@ export default function LeadImportPage() {
   const [importing, setImporting] = useState(false);
   const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [importResults, setImportResults] = useState<{ imported: number; skipped: number; leads?: any[] } | null>(null);
+  const [importResults, setImportResults] = useState<{ imported: number; skipped: number; filtered?: number; leads?: any[] } | null>(null);
 
   const handleOpenPreview = async () => {
     try {
@@ -125,20 +127,20 @@ export default function LeadImportPage() {
       } else {
         // CSV Preview Mode
         if (result.preview) {
-           setImportResults({
-             imported: 0, // Not imported yet
-             skipped: 0,
-             leads: result.leads || [] // These are the preview leads
-           });
-           setMLeadsOpen(true); // Open modal for confirmation
-           toast({
-             title: "Preview Ready",
-             description: `Found ${result.total} leads. Please review and confirm import.`
-           });
-           setImporting(false); // Stop loading main spinner, modal takes over
-           return;
+          setImportResults({
+            imported: 0, // Not imported yet
+            skipped: 0,
+            leads: result.leads || [] // These are the preview leads
+          });
+          setMLeadsOpen(true); // Open modal for confirmation
+          toast({
+            title: "Preview Ready",
+            description: `Found ${result.total} leads. Please review and confirm import.`
+          });
+          setImporting(false); // Stop loading main spinner, modal takes over
+          return;
         }
-        
+
         // Fallback for direct import (shouldn't happen with new flow but safe to keep)
         setImportResults({
           imported: result.leadsImported || 0,
@@ -156,9 +158,9 @@ export default function LeadImportPage() {
       });
     } finally {
       if (!isPDF) { // For CSV preview, we stop loading early in the success case
-         // if not preview (error case), we stop here
+        // if not preview (error case), we stop here
       } else {
-         setTimeout(() => {
+        setTimeout(() => {
           setImporting(false);
           setProgress(0);
         }, 2000);
@@ -168,7 +170,7 @@ export default function LeadImportPage() {
 
   const handleFinalizeImport = async () => {
     if (!importResults?.leads || importResults.leads.length === 0) return;
-    
+
     setImporting(true); // Reuse loading state provided to modal
     try {
       const response = await fetch('/api/bulk/import-bulk', {
@@ -194,7 +196,7 @@ export default function LeadImportPage() {
       }
 
       const result = await response.json();
-      
+
       setImportResults({
         imported: result.leadsImported,
         skipped: result.leadsFiltered || 0,
@@ -205,7 +207,7 @@ export default function LeadImportPage() {
         title: "Import Success",
         description: `Successfully imported ${result.leadsImported} leads.`
       });
-      
+
       setMLeadsOpen(false); // Close modal on success
       setTimeout(() => setFile(null), 2000);
 
@@ -308,7 +310,7 @@ export default function LeadImportPage() {
                 </div>
                 <CheckCircle2 className="h-5 w-5 text-primary" />
               </motion.div>
-              
+
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded Leads</h3>
@@ -376,7 +378,7 @@ export default function LeadImportPage() {
             canConfirm={!importing}
           />
 
-          {importResults && importResults.filtered > 0 && (
+          {importResults && (importResults.filtered ?? 0) > 0 && (
             <div className="p-4 rounded-xl bg-orange-400/5 border border-orange-400/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-4 w-4 text-orange-400" />

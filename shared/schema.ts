@@ -91,7 +91,7 @@ export const leads = pgTable("leads", {
   role: text("role"),
   bio: text("bio"),
   snippet: text("snippet"),
-  channel: text("channel", { enum: ["email", "linkedin", "sms", "voice", "whatsapp"] }).notNull(),
+  channel: text("channel", { enum: ["email", "linkedin", "sms", "voice", "whatsapp", "instagram"] }).notNull(),
   email: text("email"),
   phone: text("phone"),
   status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy"] }).notNull().default("new"),
@@ -674,7 +674,7 @@ export const aiLearningPatterns = pgTable("ai_learning_patterns", {
   lastUsedAt: timestamp("last_used_at").defaultNow(),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => {
+}, (table: any) => {
   return {
     userPatternIdx: uniqueIndex("user_pattern_idx").on(table.userId, table.patternKey),
   };
@@ -715,7 +715,7 @@ export const brandPdfCache = pgTable("brand_pdf_cache", {
   analysisItems: jsonb("analysis_items"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table) => {
+}, (table: any) => {
   return {
     userIdHashIdx: uniqueIndex("user_id_file_hash_idx").on(table.userId, table.fileHash),
   };
@@ -759,7 +759,7 @@ export const campaignLeads = pgTable("campaign_leads", {
   sentAt: timestamp("sent_at"),
   error: text("error"),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
-}, (table) => {
+}, (table: any) => {
   return {
     campaignLeadIdx: uniqueIndex("campaign_lead_idx").on(table.campaignId, table.leadId),
   };

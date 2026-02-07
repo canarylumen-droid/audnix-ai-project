@@ -1,4 +1,4 @@
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { lazy, Suspense } from "react";
 const DashboardHome = lazy(() => import("./home"));

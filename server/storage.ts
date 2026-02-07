@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -393,6 +393,7 @@ export class MemStorage implements IStorage {
       calendarLink: insertUser.calendarLink || null,
       brandGuidelinePdfUrl: insertUser.brandGuidelinePdfUrl || null,
       brandGuidelinePdfText: insertUser.brandGuidelinePdfText || null,
+      config: insertUser.config || {},
       filteredLeadsCount: insertUser.filteredLeadsCount || 0,
     };
 
@@ -487,6 +488,7 @@ export class MemStorage implements IStorage {
       company: insertLead.company || null,
       role: insertLead.role || null,
       bio: insertLead.bio || null,
+      snippet: insertLead.snippet || null,
       channel: insertLead.channel as "instagram" | "email",
       email: insertLead.email || null,
       phone: insertLead.phone || null,
@@ -683,10 +685,10 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const now = new Date();
     // Ensure createdAt is always a valid Date object
-    const notification = { 
-      id, 
-      ...data, 
-      createdAt: data.createdAt instanceof Date ? data.createdAt : (data.createdAt ? new Date(data.createdAt) : now) 
+    const notification = {
+      id,
+      ...data,
+      createdAt: data.createdAt instanceof Date ? data.createdAt : (data.createdAt ? new Date(data.createdAt) : now)
     };
     this.notifications.set(id, notification);
     return notification;
@@ -770,10 +772,10 @@ export class MemStorage implements IStorage {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const total = closedDeals.reduce((sum, d) => sum + (d.amount || 0), 0);
+    const total = closedDeals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
     const thisMonth = closedDeals
-      .filter(d => new Date(d.closedAt) >= thisMonthStart)
-      .reduce((sum, d) => sum + (d.amount || 0), 0);
+      .filter(d => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
+      .reduce((sum, d) => sum + (Number(d.value) || 0), 0);
 
     return { total, thisMonth, deals: closedDeals };
   }
@@ -802,6 +804,14 @@ export class MemStorage implements IStorage {
   }
 
   async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
+    return [];
+  }
+
+  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
+    return [];
+  }
+
+  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
     return [];
   }
 
@@ -1008,10 +1018,6 @@ export class MemStorage implements IStorage {
     return log;
   }
 
-  async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
-    return [];
-  }
-
   async toggleAi(leadId: string, paused: boolean): Promise<void> {
     const lead = this.leads.get(leadId);
     if (lead) {
@@ -1019,17 +1025,11 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
-    return [];
+  async createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage> {
+    return { ...message, id: randomUUID(), createdAt: new Date() } as any;
   }
 
-  async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {}
-
-  async getLearningPatterns(userId: string): Promise<any[]> {
-    return [];
-  }
-
-  async getSmtpSettings(userId: string): Promise<any[]> {
+  async getEmailMessages(userId: string): Promise<EmailMessage[]> {
     return [];
   }
 }

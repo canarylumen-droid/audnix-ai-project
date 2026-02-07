@@ -24,15 +24,21 @@
       "dom",
       "dom.iterable"
     ],
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
     "moduleResolution": "bundler",
     "baseUrl": ".",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./server/types"
+    ],
     "types": [
       "node",
-      "vite/client"
+      "react",
+      "react-dom",
+      "jest"
     ],
     "paths": {
       "@/*": [

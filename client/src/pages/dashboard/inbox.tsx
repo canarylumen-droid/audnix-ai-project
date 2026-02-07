@@ -380,7 +380,10 @@ export default function InboxPage() {
                           {lead.lastMessageSnippet || "No messages"}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className={cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status] || statusStyles.cold)}>
+                          <Badge {...({
+                            variant: "outline",
+                            className: cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status as keyof typeof statusStyles] || statusStyles.cold)
+                          } as any)}>
                             {lead.status === 'hardened' ? 'Verified' : lead.status}
                           </Badge>
                           {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
@@ -626,7 +629,7 @@ export default function InboxPage() {
                           {activeLead?.tags?.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {/* Tags display implementation */}
-                              {activeLead.tags.map(tag => (
+                              {activeLead.tags.map((tag: string) => (
                                 <Badge key={tag} variant="secondary">{tag}</Badge>
                               ))}
                             </div>

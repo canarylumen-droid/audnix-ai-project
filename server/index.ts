@@ -5,7 +5,7 @@ try {
   // Ensure @napi-rs/canvas is loadable if needed by dependencies
   import("@napi-rs/canvas");
 } catch (e) {
-  console.warn("⚠️ @napi-rs/canvas load warning:", e.message);
+  console.warn("⚠️ @napi-rs/canvas load warning:", (e as any).message);
 }
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "development";

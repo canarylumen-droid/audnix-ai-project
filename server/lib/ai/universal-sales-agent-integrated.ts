@@ -113,6 +113,7 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
     company: lead.company || null,
     role: lead.role || null,
     bio: lead.bio || null,
+    snippet: null,
     channel: "email" as const,
     status: "new" as const,
     verified: lead.verified || false,
@@ -198,7 +199,7 @@ export async function generateContextAwareMessage(
   const user = await storage.getUserById(lead.userId);
   const metadata = user?.metadata as any;
   const pdfContext = metadata?.businessDescription || metadata?.extracted_text || "";
-  
+
   const enhancedLead = {
     ...lead,
     pdfContext: pdfContext || lead.pdfContext

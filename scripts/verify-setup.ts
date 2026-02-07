@@ -28,7 +28,7 @@ async function verify() {
       eq(integrations.provider, 'custom_email')
     )
   );
-  
+
   if (!integration || !integration.connected) {
     console.warn(`⚠️ SMTP Integration (custom_email) not found or not connected for ${targetEmail}`);
   } else {
@@ -38,9 +38,9 @@ async function verify() {
   // 3. Check Leads
   const userLeads = await db.select().from(leads).where(eq(leads.userId, user.id));
   console.log(`📊 Found ${userLeads.length} leads for this user.`);
-  
+
   if (userLeads.length > 0) {
-    userLeads.forEach((l, i) => {
+    userLeads.forEach((l: any, i: number) => {
       console.log(`   ${i + 1}. ${l.name} (${l.email}) - Status: ${l.status}`);
     });
   }

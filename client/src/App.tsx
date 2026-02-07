@@ -102,8 +102,7 @@ function Router() {
         {() => <Suspense fallback={<LoadingFallback />}><CreatorsPage /></Suspense>}
       </Route>
 
-      {/* Landing Page - exact match only */}
-      <Route path="/" end>
+      <Route path="/">
         {() => <Suspense fallback={<LoadingFallback />}><Landing /></Suspense>}
       </Route>
       <Route path="/leads/prospecting">

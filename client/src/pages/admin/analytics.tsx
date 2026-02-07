@@ -16,6 +16,19 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 interface UserGrowthDataPoint {
   date: string;
@@ -96,28 +109,28 @@ export default function AdminAnalytics() {
             <ChartContainer config={{}} className="h-[300px] w-full">
               <LineChart data={userGrowth?.growth || []}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   className="text-xs"
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis className="text-xs" />
-                <ChartTooltip 
+                <ChartTooltip
                   content={<ChartTooltipContent />}
                 />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="new_users" 
-                  stroke="#3b82f6" 
-                  name="New Users" 
+                <Line
+                  type="monotone"
+                  dataKey="new_users"
+                  stroke="#3b82f6"
+                  name="New Users"
                   strokeWidth={2}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="total_users" 
-                  stroke="#10b981" 
-                  name="Total Users" 
+                <Line
+                  type="monotone"
+                  dataKey="total_users"
+                  stroke="#10b981"
+                  name="Total Users"
                   strokeWidth={2}
                 />
               </LineChart>
@@ -137,20 +150,20 @@ export default function AdminAnalytics() {
             <ChartContainer config={{}} className="h-[300px] w-full">
               <BarChart data={revenue?.revenue || []}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   className="text-xs"
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis className="text-xs" />
-                <ChartTooltip 
+                <ChartTooltip
                   content={<ChartTooltipContent />}
                 />
                 <Legend />
-                <Bar 
-                  dataKey="revenue" 
-                  fill="#10b981" 
-                  name="Revenue" 
+                <Bar
+                  dataKey="revenue"
+                  fill="#10b981"
+                  name="Revenue"
                 />
               </BarChart>
             </ChartContainer>
@@ -182,7 +195,7 @@ export default function AdminAnalytics() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <ChartTooltip 
+                  <ChartTooltip
                     content={<ChartTooltipContent />}
                   />
                   <Legend />

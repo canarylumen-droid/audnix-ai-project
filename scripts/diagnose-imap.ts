@@ -1,7 +1,7 @@
 
-import Imap from 'imap';
+const Imap = require('imap');
 
-const config = {
+const config: any = {
     user: process.env.TEST_IMAP_USER,
     password: process.env.TEST_IMAP_PASS,
     host: process.env.TEST_IMAP_HOST,
@@ -27,7 +27,7 @@ function connect() {
 
 function listBoxes(): Promise<any> {
     return new Promise((resolve, reject) => {
-        imap.getBoxes((err, boxes) => {
+        imap.getBoxes((err: any, boxes: any) => {
             if (err) reject(err);
             else resolve(boxes);
         });
@@ -36,7 +36,7 @@ function listBoxes(): Promise<any> {
 
 function append(folder: string, message: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        imap.append(message, { mailbox: folder, flags: ['\\Seen'] }, (err) => {
+        imap.append(message, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
             if (err) reject(err);
             else resolve();
         });
@@ -51,9 +51,9 @@ async function main() {
 
         console.log('📂 Listing mailboxes...');
         const boxes = await listBoxes();
-        
+
         const sentFolders: string[] = [];
-        
+
         const findSent = (obj: any, prefix = '') => {
             for (const key in obj) {
                 const box = obj[key];
@@ -75,9 +75,9 @@ async function main() {
 
         const target = sentFolders[0];
         console.log(`✉️  Appending test message to "${target}"...`);
-        
+
         const message = `From: ${config.user}\r\nTo: ${config.user}\r\nSubject: Audnix IMAP Test\r\n\r\nThis is a test message to verify Sent folder sync.`;
-        
+
         await append(target, message);
         console.log('✅ Test message appended successfully! Check your Sent folder.');
 

@@ -4,6 +4,7 @@ import { importCustomEmails } from '../channels/email.js';
 import { pagedEmailImport } from '../imports/paged-email-importer.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import type { Integration, Lead } from '../../../shared/schema.js';
+import { Buffer } from 'buffer';
 
 /**
  * Email Sync Worker
@@ -117,14 +118,14 @@ class EmailSyncWorker {
         result.errors += syncRes.errors || 0;
       } else if (integration.provider === 'gmail') {
         const syncRes = await this.syncGmailMessages(userId, integration, limit);
-        result.imported += syncRes.imported;
-        result.skipped += syncRes.skipped;
-        result.errors += syncRes.errors;
+        result.imported += syncRes.imported || 0;
+        result.skipped += syncRes.skipped || 0;
+        result.errors += syncRes.errors || 0;
       } else if (integration.provider === 'outlook') {
         const syncRes = await this.syncOutlookMessages(userId, integration, limit);
-        result.imported += syncRes.imported;
-        result.skipped += syncRes.skipped;
-        result.errors += syncRes.errors;
+        result.imported += syncRes.imported || 0;
+        result.skipped += syncRes.skipped || 0;
+        result.errors += syncRes.errors || 0;
       }
 
       if (result.imported > 0) {

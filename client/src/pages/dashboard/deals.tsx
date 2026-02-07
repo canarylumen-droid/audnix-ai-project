@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 
@@ -63,6 +63,7 @@ const channelIcons: Record<string, typeof Instagram | typeof Mail> = {
 
 export default function DealsPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { data: dealsData, isLoading } = useQuery<DealsApiResponse>({
     queryKey: ["/api/deals"],
     refetchInterval: 5000,

@@ -1,9 +1,10 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
-import crypto from 'crypto'; // Import crypto for UUID generation
+import crypto from 'crypto';
+import process from 'process';
 import { wsSync } from './lib/websocket-sync.js';
 
 // Function to check if the database connection is available
@@ -505,10 +506,10 @@ export class DrizzleStorage implements IStorage {
     if (result[0]) {
       // Update lead's lastMessageAt
       await db.update(leads)
-        .set({ 
-          lastMessageAt: new Date(), 
+        .set({
+          lastMessageAt: new Date(),
           updatedAt: new Date(),
-          status: message.direction === 'inbound' ? 'replied' : undefined 
+          status: message.direction === 'inbound' ? 'replied' : undefined
         })
         .where(eq(leads.id, message.leadId));
 
@@ -526,7 +527,7 @@ export class DrizzleStorage implements IStorage {
       .set(updates)
       .where(eq(messages.id, id))
       .returning();
-    
+
     if (result) {
       wsSync.notifyMessagesUpdated(result.userId, { event: 'UPDATE', message: result });
     }
@@ -688,18 +689,6 @@ export class DrizzleStorage implements IStorage {
     return result[0];
   }
 
-  async getVoiceMinutesBalance(userId: string): Promise<number> {
-    const [user] = await db.select({
-      used: users.voiceMinutesUsed,
-      topup: users.voiceMinutesTopup
-    }).from(users).where(eq(users.id, userId)).limit(1);
-    return (Number(user?.used) || 0) + (Number(user?.topup) || 0);
-  }
-
-  async markNotificationRead(id: string): Promise<void> {
-    checkDatabase();
-    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
-  }
 
   async getVideoMonitors(userId: string): Promise<any[]> {
     checkDatabase();
@@ -718,104 +707,6 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async deleteVideoMonitor(id: string, userId: string): Promise<void> {
-    checkDatabase();
-    await db.delete(videoMonitors).where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId)));
-  }
-
-  async isCommentProcessed(commentId: string): Promise<boolean> {
-    checkDatabase();
-    const [result] = await db.select().from(processedComments).where(eq(processedComments.commentId, commentId)).limit(1);
-    return !!result;
-  }
-
-  async markCommentProcessed(commentId: string, status: string, intentType: string): Promise<void> {
-    checkDatabase();
-    await db.insert(processedComments).values({ commentId, status: status as any, intentType }).onConflictDoUpdate({ target: processedComments.commentId, set: { status: status as any, intentType } });
-  }
-
-  async getBrandKnowledge(userId: string): Promise<string> {
-    const [user] = await db.select({ text: users.brandGuidelinePdfText }).from(users).where(eq(users.id, userId)).limit(1);
-    return user?.text || "";
-  }
-
-  async getDeals(userId: string): Promise<any[]> {
-    return await db.select().from(deals).where(eq(deals.userId, userId));
-  }
-
-  async createDeal(data: any): Promise<any> {
-    const [result] = await db.insert(deals).values(data).returning();
-    return result;
-  }
-
-  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
-    const [result] = await db.update(deals).set(updates).where(and(eq(deals.id, id), eq(deals.userId, userId))).returning();
-    return result;
-  }
-
-  async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    checkDatabase();
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const userDeals = await db
-      .select()
-      .from(deals)
-      .where(eq(deals.userId, userId));
-
-    const total = userDeals.reduce((sum, deal) => sum + (Number((deal as any).dealValue) || Number((deal as any).deal_value) || Number(deal.value) || 0), 0);
-    const thisMonth = userDeals
-      .filter(deal => deal.createdAt && deal.createdAt >= firstDayOfMonth)
-      .reduce((sum, deal) => sum + (Number((deal as any).dealValue) || Number((deal as any).deal_value) || Number(deal.value) || 0), 0);
-
-    return {
-      total,
-      thisMonth,
-      deals: userDeals
-    };
-  }
-
-  async getDeals(userId: string): Promise<any[]> {
-    checkDatabase();
-    return await db.select().from(deals).where(eq(deals.userId, userId));
-  }
-
-  async createDeal(data: any): Promise<any> {
-    checkDatabase();
-    const [result] = await db.insert(deals).values(data).returning();
-    return result;
-  }
-
-  async updateDeal(id: string, userId: string, updates: any): Promise<any> {
-    checkDatabase();
-    const [result] = await db
-      .update(deals)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(deals.id, id), eq(deals.userId, userId)))
-      .returning();
-    return result;
-  }
-
-  async getVideoMonitors(userId: string): Promise<any[]> {
-    checkDatabase();
-    return await db.select().from(videoMonitors).where(eq(videoMonitors.userId, userId));
-  }
-
-  async createVideoMonitor(data: any): Promise<any> {
-    checkDatabase();
-    const [result] = await db.insert(videoMonitors).values(data).returning();
-    return result;
-  }
-
-  async updateVideoMonitor(id: string, userId: string, updates: any): Promise<any> {
-    checkDatabase();
-    const [result] = await db
-      .update(videoMonitors)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(videoMonitors.id, id), eq(videoMonitors.userId, userId)))
-      .returning();
-    return result;
-  }
 
   async deleteVideoMonitor(id: string, userId: string): Promise<void> {
     checkDatabase();
@@ -840,8 +731,11 @@ export class DrizzleStorage implements IStorage {
 
   async getBrandKnowledge(userId: string): Promise<string> {
     checkDatabase();
-    const user = await this.getUser(userId);
-    return user?.brandGuidelinePdfText || '';
+    const result = await db.select().from(brandEmbeddings)
+      .where(eq(brandEmbeddings.userId, userId))
+      .orderBy(desc(brandEmbeddings.createdAt))
+      .limit(10);
+    return result.map((r: any) => r.snippet).join('\n');
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
@@ -887,16 +781,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
-  async getBrandKnowledge(userId: string): Promise<string> {
-    checkDatabase();
-    const result = await db.execute(sql`
-      SELECT content FROM brand_embeddings 
-      WHERE user_id = ${userId} 
-      ORDER BY created_at DESC 
-      LIMIT 10
-    `);
-    return result.rows.map((r: any) => r.content).join('\n');
-  }
+
 
   async getDeals(userId: string): Promise<any[]> {
     checkDatabase();
@@ -1322,6 +1207,28 @@ export class DrizzleStorage implements IStorage {
   async getSmtpSettings(userId: string): Promise<SmtpSettings[]> {
     checkDatabase();
     return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
+  }
+
+  async getPayments(userId: string): Promise<Payment[]> {
+    checkDatabase();
+    return await db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
+  }
+
+  async getPaymentById(id: string): Promise<Payment | undefined> {
+    checkDatabase();
+    const [result] = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+    return result;
+  }
+
+  async updatePayment(id: string, updates: Partial<Payment>): Promise<Payment | undefined> {
+    checkDatabase();
+    const [result] = await db.update(payments).set({ ...updates, updatedAt: new Date() }).where(eq(payments.id, id)).returning();
+    return result;
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    checkDatabase();
+    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
   }
 }
 

@@ -20,7 +20,8 @@ import {
   Activity,
   Brain,
   Zap,
-  Clock
+  Clock,
+  Send
 } from "lucide-react";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { cn } from "@/lib/utils";

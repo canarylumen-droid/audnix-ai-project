@@ -70,17 +70,17 @@ export default function AdminLeads() {
 
   const toggleSelectAll = (checked: boolean) => {
     if (checked && leadsData?.leads) {
-        setSelectedLeads(leadsData.leads.map(l => l.lead.id));
+      setSelectedLeads(leadsData.leads.map(l => l.lead.id));
     } else {
-        setSelectedLeads([]);
+      setSelectedLeads([]);
     }
   };
 
   const toggleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
-        setSelectedLeads(prev => [...prev, id]);
+      setSelectedLeads(prev => [...prev, id]);
     } else {
-        setSelectedLeads(prev => prev.filter(lid => lid !== id));
+      setSelectedLeads(prev => prev.filter(lid => lid !== id));
     }
   };
 
@@ -129,9 +129,9 @@ export default function AdminLeads() {
             <div className="flex items-center gap-4">
               <div className="flex gap-2 flex-1">
                 {selectedLeads.length > 0 && (
-                    <Button onClick={() => setIsCampaignModalOpen(true)} className="mr-2">
-                        Start Campaign ({selectedLeads.length})
-                    </Button>
+                  <Button onClick={() => setIsCampaignModalOpen(true)} className="mr-2">
+                    Start Campaign ({selectedLeads.length})
+                  </Button>
                 )}
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger className="w-40">
@@ -183,9 +183,9 @@ export default function AdminLeads() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[50px]">
-                        <Checkbox 
-                            checked={leadsData?.leads?.length > 0 && selectedLeads.length === leadsData?.leads?.length}
-                            onCheckedChange={toggleSelectAll}
+                        <Checkbox
+                          checked={(leadsData?.leads?.length || 0) > 0 && selectedLeads.length === (leadsData?.leads?.length || 0)}
+                          onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
                       <TableHead>Lead</TableHead>
@@ -201,10 +201,10 @@ export default function AdminLeads() {
                     {leadsData?.leads?.map((item: AdminLeadItem) => (
                       <TableRow key={item.lead.id}>
                         <TableCell>
-                            <Checkbox 
-                                checked={selectedLeads.includes(item.lead.id)}
-                                onCheckedChange={(c) => toggleSelectOne(item.lead.id, !!c)}
-                            />
+                          <Checkbox
+                            checked={selectedLeads.includes(item.lead.id)}
+                            onCheckedChange={(c) => toggleSelectOne(item.lead.id, !!c)}
+                          />
                         </TableCell>
                         <TableCell>
                           <div>
@@ -283,12 +283,12 @@ export default function AdminLeads() {
             )}
           </CardContent>
         </Card>
-        
-        <ManualOutreachModal 
-            isOpen={isCampaignModalOpen} 
-            onClose={() => setIsCampaignModalOpen(false)}
-            selectedLeadIds={selectedLeads}
-            totalLeads={leadsData?.pagination?.total}
+
+        <ManualOutreachModal
+          isOpen={isCampaignModalOpen}
+          onClose={() => setIsCampaignModalOpen(false)}
+          selectedLeadIds={selectedLeads}
+          totalLeads={leadsData?.pagination?.total}
         />
       </div>
     </AdminLayout>
