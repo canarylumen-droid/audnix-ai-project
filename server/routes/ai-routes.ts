@@ -571,6 +571,9 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
         const email = leadData.email;
         const name = leadData.name;
 
+        // Fix: identifier needed for deduplication
+        const identifier = email || name || 'unknown';
+
         // Strict validation: name and email are MUST
         if (!email || !name || name === 'Unknown') {
           results.errors.push(`Row ${i + 1}: Missing required name or email`);

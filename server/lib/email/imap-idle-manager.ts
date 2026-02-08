@@ -443,33 +443,40 @@ class ImapIdleManager {
                 const appendToFolder = (folder: string) => {
                     return new Promise<void>((res, rej) => {
                         appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
-                            if (err) rej(err);
-                            else res();
+                            if (err) {
+                                console.warn(`[Append] Error appending to ${folder}:`, err.message);
+                                rej(err);
+                            } else {
+                                res();
+                            }
                         });
                     });
                 };
 
                 // Try discovered and common names
+                let appended = false;
                 for (const folder of foldersToTry) {
                     try {
-                        console.log(`[Append] Attempting to mirror message to ${folder} for user ${userId}...`);
+                        console.log(`[Append] Attempting to mirror message to '${folder}' for user ${userId}...`);
                         await appendToFolder(folder);
-                        console.log(`✅ mirrored to ${folder} for user ${userId}`);
-                        cleanup();
-                        resolve();
-                        return;
+                        console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
+                        appended = true;
+                        break;
                     } catch (e) {
-                        // Continue to next
+                        // Continue to next folder
                     }
                 }
 
-                console.warn(`⚠️ Failed to append sent message for user ${userId}. Tried: ${foldersToTry.join(', ')}`);
+                if (!appended) {
+                    console.error(`❌ Failed to append sent message for user ${userId}. Tried folders: ${foldersToTry.join(', ')}`);
+                }
+
                 cleanup();
-                resolve(); // resolve anyway to avoid breaking flow
+                resolve();
             });
 
             appendImap.once('error', (err: any) => {
-                console.warn(`[Append] Transient connection error for user ${userId}:`, err.message);
+                console.error(`[Append] Connection error for user ${userId}:`, err.message);
                 cleanup();
                 resolve(); // resolve anyway
             });
@@ -478,5 +485,6 @@ class ImapIdleManager {
         });
     }
 }
+
 
 export const imapIdleManager = new ImapIdleManager();

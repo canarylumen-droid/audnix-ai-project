@@ -22,14 +22,14 @@ function initializeDb() {
   const dbUrl = new URL(url);
   if (url.includes('neon.tech')) {
     dbUrl.searchParams.set('uselibpqcompat', 'true');
-    dbUrl.searchParams.set('sslmode', 'require');
+    dbUrl.searchParams.set('sslmode', 'verify-full');
   }
   const connectionString = dbUrl.toString();
 
   try {
-    _pool = new Pool({ 
+    _pool = new Pool({
       connectionString,
-      ssl: url.includes('neon.tech') ? { rejectUnauthorized: false } : false
+      ssl: url.includes('neon.tech') ? { rejectUnauthorized: true } : false
     });
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless compatibility restored)');

@@ -72,6 +72,8 @@ async function processEmailForLead(
     }
 
     const emailAddress = direction === 'inbound' ? email.from : email.to; // For outbound, we care who we sent TO
+    console.log(`[DEBUG] Processing ${direction} email: ${emailAddress} - Subject: ${email.subject}`);
+
 
     // [ROBUST LOOKUP] Use direct DB query for case-insensitive email matching
     // storage.getLeads uses case-dependent 'like' which might fail for mismatches
@@ -85,6 +87,8 @@ async function processEmailForLead(
       .limit(1);
 
     let lead = leads[0];
+    console.log('[DEBUG] Lead lookup result:', lead ? `Found ${lead.id}` : 'Not found');
+
 
     if (!lead) {
       if (direction === 'inbound') {
@@ -210,6 +214,8 @@ async function processEmailForLead(
         const latestMessage = allMessages.find(m => m.body === (email.text || email.html || ''));
 
         if (latestMessage) {
+          console.log('[DEBUG] Latest message found for analysis:', latestMessage.id);
+
           try {
             const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
             console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
@@ -282,8 +288,10 @@ async function processEmailForLead(
               }
             });
 
-            console.log(`🤖 Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
+            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
           }
+        } else {
+          console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}`);
         }
       } catch (autoReplyError) {
         console.warn('Auto-reply scheduling failed (non-critical):', autoReplyError);

@@ -721,24 +721,7 @@ export const scrapingSessions = pgTable("scraping_sessions", {
   completedAt: timestamp("completed_at"),
 });
 
-export const brandPdfCache = pgTable("brand_pdf_cache", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  brandContext: jsonb("brand_context").notNull().default(sql`'{}'::jsonb`),
-  pdfContent: bytea("pdf_content"), // Store actual PDF buffer
-  extractedText: text("extracted_text").notNull(),
-  fileName: text("file_name"),
-  fileSize: integer("file_size"),
-  fileHash: text("file_hash"),
-  analysisScore: integer("analysis_score"),
-  analysisItems: jsonb("analysis_items"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-}, (table: any) => {
-  return {
-    userIdHashIdx: uniqueIndex("user_id_file_hash_idx").on(table.userId, table.fileHash),
-  };
-});
+
 
 export const outreachCampaigns = pgTable("outreach_campaigns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

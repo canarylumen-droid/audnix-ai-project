@@ -291,8 +291,12 @@ export class FollowUpWorker {
         console.warn('Failed to add disclaimer context:', disclaimerError);
       }
 
+      console.log(`[FOLLOW_UP_WORKER] Generated AI reply for ${lead.email} via ${job.channel}. Length: ${aiReply.length}`);
+
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);
+
+      console.log(`[FOLLOW_UP_WORKER] Message sent result: ${sent}`);
 
       if (sent) {
         // Save message to database with tracking ID

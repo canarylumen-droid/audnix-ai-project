@@ -153,7 +153,7 @@ async function sendCustomSMTP(
     const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml);
     await imapIdleManager.appendSentMessage(userId, rawMessage, config);
   } catch (error) {
-    console.warn(`[CustomSMTP] Failed to save to Sent folder via IdleManager:`, error);
+    console.error(`[CustomSMTP] ❌ CRITICAL: Failed to save to Sent folder via IdleManager:`, error);
   }
 }
 
