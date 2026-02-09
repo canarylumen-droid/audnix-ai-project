@@ -11,6 +11,7 @@ import { FAQSection } from "@/components/landing/FAQSection";
 import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { ROICalculator } from "@/components/landing/ROICalculator";
 import { Logo } from "@/components/ui/Logo";
+import { DeepFAQ } from "@/components/landing/DeepFAQ";
 import { Twitter, Linkedin, Github, ShieldCheck, Zap, ArrowRight, Instagram } from "lucide-react";
 import { useScroll, useSpring, motion } from "framer-motion";
 import gsap from "gsap";
@@ -159,7 +160,46 @@ export default function Landing() {
               </div>
             </div>
           </motion.div>
-        </section>
+          {/* Meet the Founder Section */}
+          <section className="py-24 px-8 border-t border-white/5 bg-black/50" id="founder">
+            <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+              <div className="space-y-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Founder & CEO</span>
+                </div>
+                <h2 className="text-5xl font-black tracking-tighter uppercase italic leading-none">
+                  Nleanya <br />
+                  <span className="text-primary">Treasure</span>
+                </h2>
+                <p className="text-xl text-white/60 font-medium leading-relaxed max-w-lg">
+                  Building the infrastructure for autonomous commerce. Nleanya Treasure founded Audnix AI with a singular vision:
+                  to replace inefficient, manual sales processes with intelligent agents that work harder, faster, and smarter
+                  than any human SDR.
+                </p>
+                <div className="flex gap-4">
+                  <a
+                    href="https://twitter.com/nleanyatreasure"
+                    target="_blank"
+                    className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold uppercase text-xs"
+                  >
+                    Follow Founder
+                  </a>
+                </div>
+              </div>
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-cyan-500/50 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                <div className="relative aspect-square rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center p-12">
+                  <Logo className="w-32 h-32" />
+                  <div className="absolute bottom-8 left-8 right-8 text-center">
+                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20">Built with 100% Autonomous DNA</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <DeepFAQ />
       </main>
 
       <footer className="py-24 px-8 border-t border-white/5 bg-black relative overflow-hidden">
