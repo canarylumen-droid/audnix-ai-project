@@ -146,8 +146,7 @@ export const leadSocialDetails = pgTable("lead_social_details", {
 
 export const leadSocialDetailsSelect = createSelectSchema(leadSocialDetails);
 export const leadSocialDetailsInsert = createInsertSchema(leadSocialDetails);
-export type LeadSocialDetail = z.infer<typeof leadSocialDetailsSelect>;
-export type InsertLeadSocialDetail = z.infer<typeof leadSocialDetailsInsert>;
+// types are defined later in the file to avoid duplication
 
 
 export const messages = pgTable("messages", {
@@ -871,6 +870,9 @@ export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
 // ========== TEAM MEMBERS ==========
 // Types from Drizzle
+export type Organization = typeof organizations.$inferSelect;
+export type InsertOrganization = typeof organizations.$inferInsert;
+export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
 export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;
 export type InsertEmailWarmupSchedule = typeof emailWarmupSchedules.$inferInsert;
@@ -896,6 +898,8 @@ export type ConversationEvent = typeof conversationEvents.$inferSelect;
 export type InsertConversationEvent = typeof conversationEvents.$inferInsert;
 export type Prospect = typeof prospects.$inferSelect;
 export type InsertProspect = typeof prospects.$inferInsert;
+export type LeadSocialDetail = typeof leadSocialDetails.$inferSelect;
+export type InsertLeadSocialDetail = typeof leadSocialDetails.$inferInsert;
 
 export type BrandPdfCache = typeof brandPdfCache.$inferSelect;
 export type InsertBrandPdfCache = typeof brandPdfCache.$inferInsert;
@@ -925,8 +929,7 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
 
-export type LeadSocialDetail = typeof leadSocialDetails.$inferSelect;
-export type InsertLeadSocialDetail = typeof leadSocialDetails.$inferInsert;
+
 
 export type AuditTrail = typeof auditTrail.$inferSelect;
 export type InsertAuditTrail = typeof auditTrail.$inferInsert;

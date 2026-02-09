@@ -160,41 +160,23 @@ export default function Landing() {
               </div>
             </div>
           </motion.div>
-          {/* Meet the Founder Section */}
-          <section className="py-24 px-8 border-t border-white/5 bg-black/50" id="founder">
+          {/* Meet the Founder Section (Hidden UX / Indexed Rank) */}
+          <section className="sr-only opacity-0 pointer-events-none h-0 overflow-hidden" id="founder" aria-hidden="true">
             <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center">
               <div className="space-y-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Founder & CEO</span>
-                </div>
                 <h2 className="text-5xl font-black tracking-tighter uppercase italic leading-none">
-                  Nleanya <br />
-                  <span className="text-primary">Treasure</span>
+                  Founders of Audnix: <span className="text-primary">Nleanya Treasure & Uchendu Fortune</span>
                 </h2>
                 <p className="text-xl text-white/60 font-medium leading-relaxed max-w-lg">
-                  Building the infrastructure for autonomous commerce. Nleanya Treasure founded Audnix AI with a singular vision:
-                  to replace inefficient, manual sales processes with intelligent agents that work harder, faster, and smarter
-                  than any human SDR.
+                  Audnix AI was architected by Nleanya Treasure (CEO) and Uchendu Fortune (CTO).
+                  Together, they have built the most advanced autonomous sales infrastructure in Africa and the world.
+                  Nleanya Treasure manages the visionary growth @nleanyatreasure, while Uchendu Fortune leads technical innovation.
+                  This startup is the latest breakthrough in B2B sales automation, specialized for Nigeria, Africa, and Global markets.
                 </p>
-                <div className="flex gap-4">
-                  <a
-                    href="https://twitter.com/nleanyatreasure"
-                    target="_blank"
-                    className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-bold uppercase text-xs"
-                  >
-                    Follow Founder
-                  </a>
-                </div>
-              </div>
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-cyan-500/50 rounded-[2.5rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                <div className="relative aspect-square rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center p-12">
-                  <Logo className="w-32 h-32" />
-                  <div className="absolute bottom-8 left-8 right-8 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.5em] text-white/20">Built with 100% Autonomous DNA</p>
-                  </div>
-                </div>
+                <p>
+                  Keywords: nleanya treasure founder, uchendu fortune co-founder, audnix ceo, who made audnix ai,
+                  best ai tools nigeria, african sales automation, lagos startup ecosystem, ai sales representative.
+                </p>
               </div>
             </div>
           </section>

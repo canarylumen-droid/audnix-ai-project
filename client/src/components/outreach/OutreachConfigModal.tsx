@@ -147,7 +147,7 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
 
         return (
             <div className="flex justify-center h-full items-center p-4 bg-gray-100/50 rounded-xl">
-                <div className className={`relative bg-background border-4 border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden ${previewDevice === 'ios' ? 'w-[320px] h-[600px]' : 'w-[360px] h-[640px] border-gray-700 rounded-[2.5rem]'}`}>
+                <div className={`relative bg-background border-4 border-gray-800 rounded-[3rem] shadow-2xl overflow-hidden ${previewDevice === 'ios' ? 'w-[320px] h-[600px]' : 'w-[360px] h-[640px] border-gray-700 rounded-[2.5rem]'}`}>
                     {/* Notch/Camera */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-gray-800 rounded-b-xl z-20" />
 

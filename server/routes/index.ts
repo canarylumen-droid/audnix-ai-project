@@ -1,6 +1,7 @@
-import { Express } from "express";
+import { Express, Response } from "express";
 import http from "http";
 import path from "path";
+import fs from "fs";
 import { wsSync } from "../lib/websocket-sync.js";
 import { apiLimiter } from "../middleware/rate-limit.js";
 import userAuthRouter from "./user-auth.js";

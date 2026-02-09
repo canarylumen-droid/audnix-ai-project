@@ -358,6 +358,7 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
 async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
   try {
     // Import pdf-parse dynamically to handle potential loading issues
+    // @ts-ignore
     const pdf = (await import('pdf-parse')).default;
     const data = await pdf(fileBuffer);
     return data.text || "";
