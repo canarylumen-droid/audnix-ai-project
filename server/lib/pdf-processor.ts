@@ -4,8 +4,9 @@ import OpenAI from 'openai';
 import { MODELS } from './ai/model-config.js';
 import { EmailVerifier } from './scraping/email-verifier.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
-// @ts-ignore
-import pdf from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 
 const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey ? new OpenAI({
