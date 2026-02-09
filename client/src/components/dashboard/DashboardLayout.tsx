@@ -64,6 +64,7 @@ import { PremiumLoader } from "@/components/ui/premium-loader";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { BellRing, ShieldCheck, Info } from "lucide-react";
 import { useRealtime } from "@/hooks/use-realtime";
+import { formatDistanceToNow } from "date-fns";
 
 interface NavItem {
   label: string;
@@ -192,6 +193,11 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   useEffect(() => {
     if (!socket) return;
     const handleNotification = (payload: any) => {
+      // Invalidate both notifications and stats as they might change
+      queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+
       if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
         setCurrentAlert({
           title: payload.title,
@@ -215,7 +221,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   useEffect(() => {
     if (notificationsData?.unreadCount && notificationsData.unreadCount > (localStorage.getItem('last_unread_count') ? parseInt(localStorage.getItem('last_unread_count')!) : 0)) {
-      const audio = new Audio('/notification.mp3');
+      const audio = new Audio('/sounds/notification.mp3');
       audio.play().catch(e => console.log('Audio play blocked:', e));
       localStorage.setItem('last_unread_count', notificationsData.unreadCount.toString());
     }
@@ -458,7 +464,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-full sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
+              <SheetContent side="left" className="p-0 w-[70%] sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
                 <div className="h-24 flex items-center px-8 border-b border-border/40 bg-[#030712] text-white">
                   <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter text-white" />
                 </div>
@@ -558,7 +564,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                               {(() => {
                                 try {
                                   const date = new Date(notification.createdAt);
-                                  return isNaN(date.getTime()) ? 'Just now' : date.toLocaleDateString();
+                                  return isNaN(date.getTime()) ? 'Just now' : formatDistanceToNow(date, { addSuffix: true });
                                 } catch (e) {
                                   return 'Just now';
                                 }

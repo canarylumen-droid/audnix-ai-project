@@ -67,13 +67,21 @@ export interface CompetitorMentionResult {
   actionSuggested: string;
 }
 
+export interface SocialProfile {
+  platform: "linkedin" | "twitter" | "instagram" | "github" | "other";
+  url: string;
+  handle?: string;
+}
+
 export interface LeadIntelligenceDashboard {
   intent: IntentDetectionResult;
   predictions: DealPrediction;
   churnRisk: ChurnRiskAssessment;
   suggestedActions: string[];
   nextBestAction: string;
+  socialProfiles?: SocialProfile[];
 }
+
 
 // ============ ENGINE 1: LEAD INTENT DETECTION ============
 
@@ -488,11 +496,42 @@ export async function generateLeadIntelligenceDashboard(
     assessChurnRisk(lead, messages),
   ]);
 
+  // Extract social profiles from metadata or messages
+  const socialProfiles: SocialProfile[] = [];
+  const metadata = lead.metadata || {};
+
+  if (metadata.linkedin || metadata.linkedInUrl) socialProfiles.push({ platform: "linkedin", url: metadata.linkedin || metadata.linkedInUrl });
+  if (metadata.twitter || metadata.twitterUrl) socialProfiles.push({ platform: "twitter", url: metadata.twitter || metadata.twitterUrl });
+  if (metadata.instagram || metadata.instagramUrl) socialProfiles.push({ platform: "instagram", url: metadata.instagram || metadata.instagramUrl });
+
+  // Dynamic Engagement Rank Adjustment
+  // Base rank is the intentScore
+  let engagementRank = intent.intentScore;
+
+  // Bonus for inbound messages
+  const inboundCount = messages.filter(m => m.direction === 'inbound').length;
+  engagementRank += inboundCount * 5;
+
+  // Bonus for recent activity
+  if (messages.length > 0) {
+    const lastMsg = messages[messages.length - 1];
+    const hoursSinceLastMsg = (Date.now() - new Date(lastMsg.createdAt).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLastMsg < 24) engagementRank += 10;
+  }
+
+  // Bonus for profile completion
+  if (lead.email) engagementRank += 5;
+  if (lead.phone) engagementRank += 5;
+  if (socialProfiles.length > 0) engagementRank += 10;
+
+  // Cap at 100
+  intent.intentScore = Math.min(100, engagementRank);
+
   const suggestedActions: string[] = [];
 
-  if (intent.intentLevel === "high") {
+  if (intent.intentLevel === "high" || intent.intentScore > 80) {
     suggestedActions.push("🔥 HIGH INTENT: Move to next call immediately");
-  } else if (intent.intentLevel === "medium") {
+  } else if (intent.intentLevel === "medium" || intent.intentScore > 50) {
     suggestedActions.push("📈 MEDIUM INTENT: Send case study or social proof");
   } else {
     suggestedActions.push("❄️ LOW INTENT: Re-engage with educational content");
@@ -507,9 +546,9 @@ export async function generateLeadIntelligenceDashboard(
   }
 
   const nextBestAction =
-    intent.intentLevel === "high"
+    intent.intentLevel === "high" || intent.intentScore > 80
       ? "Schedule call immediately - they're ready to buy"
-      : intent.intentLevel === "medium"
+      : intent.intentLevel === "medium" || intent.intentScore > 50
         ? "Send personalized case study"
         : "Re-engage with education content";
 
@@ -519,5 +558,7 @@ export async function generateLeadIntelligenceDashboard(
     churnRisk,
     suggestedActions,
     nextBestAction,
+    socialProfiles: socialProfiles.length > 0 ? socialProfiles : undefined
   };
 }
+

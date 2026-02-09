@@ -4,7 +4,8 @@
 
 @layer base {
   body {
-    cursor: url('/cursor.svg') 12 12, auto;
+    /* Default cursor - custom SVG cursor removed for accessibility */
+    cursor: default;
   }
 
   button,
@@ -121,7 +122,7 @@
 
   --popover-border: 220 8% 82%;
 
-  --primary: 262.1 83.3% 57.8%;
+  --primary: 200 95% 45%;
   --primary-foreground: 210 20% 98%;
 
   --secondary: 220 14.3% 95.9%;
@@ -132,7 +133,7 @@
 
   --muted-foreground: 220 8.9% 46.1%;
 
-  --accent: 262.1 83.3% 57.8%;
+  --accent: 200 95% 45%;
 
   --accent-foreground: 220.9 39.3% 11%;
 
@@ -141,7 +142,7 @@
   --destructive-foreground: 210 20% 98%;
 
   --input: 220 13% 91%;
-  --ring: 262.1 83.3% 57.8%;
+  --ring: 200 95% 45%;
   --chart-1: 200 95% 35%;
   --chart-2: 165 85% 38%;
   --chart-3: 145 75% 40%;
@@ -338,10 +339,11 @@
 }
 
 @layer components {
+
   /* Fast Hover Transitions */
-  .hover-trigger, 
-  button, 
-  a, 
+  .hover-trigger,
+  button,
+  a,
   .group,
   [role="button"] {
     transition: all 100ms ease-out !important;

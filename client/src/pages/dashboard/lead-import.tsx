@@ -312,13 +312,13 @@ export default function LeadImportPage() {
               </motion.div>
 
               <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded Leads</h3>
-                  <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded</h3>
+                  <div className="flex flex-wrap gap-2">
                     {importResults.leads && importResults.leads.length > 0 && (
-                      <Button variant="outline" size="sm" onClick={() => setMLeadsOpen(true)} className="text-[10px] font-bold border-primary/20 hover:bg-primary/10">VIEW IMPORTED LEADS</Button>
+                      <Button variant="outline" size="sm" onClick={() => setMLeadsOpen(true)} className="text-[10px] font-bold border-primary/20 hover:bg-primary/10">VIEW LEADS</Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">PIPELINE VIEW</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">PIPELINE</Button>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -337,27 +337,27 @@ export default function LeadImportPage() {
             </div>
           )}
 
-          <div className="flex gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <Button
               onClick={handleOpenPreview}
               variant="outline"
               disabled={importing}
-              className="px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-white/10 hover:bg-white/5 h-14"
+              className="px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-border/40 hover:bg-muted/30 h-12 sm:h-14 w-full sm:w-auto"
             >
               Preview Outreach
             </Button>
             <Button
               onClick={handleImport}
               disabled={!file || importing}
-              className="flex-1 h-14 rounded-2xl text-[11px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all"
+              className="flex-1 h-12 sm:h-14 rounded-2xl text-[10px] sm:text-[11px] font-bold uppercase tracking-wider sm:tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all min-w-0"
             >
               {importing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Synchronizing Network...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin flex-shrink-0" />
+                  <span className="truncate">Synchronizing...</span>
                 </>
               ) : (
-                'Initialize Data Import'
+                <span className="truncate">Start Import</span>
               )}
             </Button>
           </div>

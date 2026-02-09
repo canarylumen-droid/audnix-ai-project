@@ -127,6 +127,29 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const leadSocialDetails = pgTable("lead_social_details", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  platform: text("platform").notNull(), // linkedin, twitter, instagram, github, etc.
+  profileUrl: text("profile_url").notNull(),
+  handle: text("handle"),
+  followersCount: integer("followers_count"),
+  bio: text("bio"),
+  lastActivityAt: timestamp("last_activity_at"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  leadPlatformIdx: uniqueIndex("lead_platform_idx").on(table.leadId, table.platform),
+}));
+
+export const leadSocialDetailsSelect = createSelectSchema(leadSocialDetails);
+export const leadSocialDetailsInsert = createInsertSchema(leadSocialDetails);
+export type LeadSocialDetail = z.infer<typeof leadSocialDetailsSelect>;
+export type InsertLeadSocialDetail = z.infer<typeof leadSocialDetailsInsert>;
+
+
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
@@ -846,10 +869,8 @@ export type OnboardingProfile = typeof onboardingProfiles.$inferSelect;
 export type InsertOnboardingProfile = typeof onboardingProfiles.$inferInsert;
 export type OAuthAccount = typeof oauthAccounts.$inferSelect;
 export type InsertOAuthAccount = typeof oauthAccounts.$inferInsert;
-export type Organization = typeof organizations.$inferSelect;
-export type InsertOrganization = typeof organizations.$inferInsert;
-// Duplicate TeamMember types removed
-export type OtpCode = typeof otpCodes.$inferSelect;
+// ========== TEAM MEMBERS ==========
+// Types from Drizzle
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
 export type EmailWarmupSchedule = typeof emailWarmupSchedules.$inferSelect;
 export type InsertEmailWarmupSchedule = typeof emailWarmupSchedules.$inferInsert;
@@ -903,6 +924,9 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+export type LeadSocialDetail = typeof leadSocialDetails.$inferSelect;
+export type InsertLeadSocialDetail = typeof leadSocialDetails.$inferInsert;
 
 export type AuditTrail = typeof auditTrail.$inferSelect;
 export type InsertAuditTrail = typeof auditTrail.$inferInsert;

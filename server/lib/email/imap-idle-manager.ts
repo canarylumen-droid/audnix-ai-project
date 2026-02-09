@@ -132,7 +132,7 @@ class ImapIdleManager {
                 }
 
                 console.log(`[IMAP] Discovered folders for ${userId}: Inbox=[${inboxFolders.join(',')}], Sent=[${sentFolders.join(',')}]`);
-                this.folders.set(userId, { inbox: inboxFolders, sent: sentFolders });
+                this.folders.set(userId, { inbox: [...new Set(inboxFolders)], sent: [...new Set(sentFolders)] });
                 resolve();
             });
         });

@@ -28,7 +28,9 @@ import {
   ShieldCheck,
   Activity,
   Cpu,
-  Unplug
+  Unplug,
+  RefreshCw,
+  FolderSync
 } from "lucide-react";
 import { SiGoogle, SiShopify, SiHubspot, SiSlack } from "react-icons/si";
 import {
@@ -197,6 +199,10 @@ export default function IntegrationsPage() {
 
   const { data: integrationsData, isLoading } = useQuery<IntegrationsResponse>({ queryKey: ["/api/integrations"] });
   const { data: customEmailStatus } = useQuery<{ connected: boolean; email: string | null; provider: string }>({ queryKey: ["/api/custom-email/status"] });
+  const { data: folderData } = useQuery<{ success: boolean; inbox: string[]; sent: string[]; isDiscovering: boolean }>({
+    queryKey: ["/api/custom-email/folders"],
+    enabled: !!customEmailStatus?.connected
+  });
   const { data: stats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
     refetchInterval: 300000, // 5 minutes
@@ -293,6 +299,15 @@ export default function IntegrationsPage() {
     onError: (err: any) => {
       toast({ title: "Failed to Send", description: err.message, variant: "destructive" });
     }
+  });
+
+  const syncNowMutation = useMutation({
+    mutationFn: async () => apiRequest("POST", "/api/custom-email/sync-now"),
+    onSuccess: () => {
+      toast({ title: "Sync Triggered", description: "Fetching new messages in the background..." });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    },
+    onError: (err: any) => toast({ title: "Sync Failed", description: err.message, variant: "destructive" })
   });
 
   const uploadVoiceMutation = useMutation({
@@ -463,6 +478,9 @@ export default function IntegrationsPage() {
                     </div>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
+                    <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => syncNowMutation.mutate()} disabled={syncNowMutation.isPending}>
+                      <RefreshCw className={cn("h-3.5 w-3.5 mr-2", syncNowMutation.isPending && "animate-spin")} /> {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
+                    </Button>
                     <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => setIsTestEmailOpen(true)}>
                       <Mail className="h-3.5 w-3.5 mr-2" /> Test Send
                     </Button>
@@ -504,7 +522,9 @@ export default function IntegrationsPage() {
                           <ShieldCheck className="w-4 h-4 text-primary" />
                           Domain Health Monitor
                         </h3>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase">Last synced: Just now</p>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase">
+                          Last detected folders: {folderData?.isDiscovering ? 'Discovering...' : `${folderData?.inbox?.length || 0} Inbox, ${folderData?.sent?.length || 0} Sent`}
+                        </p>
                       </div>
                       <Badge className={cn(
                         "text-[9px] font-black border-0 uppercase tracking-tighter",

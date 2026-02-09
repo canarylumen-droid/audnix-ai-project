@@ -27,7 +27,11 @@ import {
     Target,
     User,
     Zap,
+    Linkedin,
+    Twitter,
+    Globe,
 } from "lucide-react";
+
 import { PremiumLoader } from "@/components/ui/premium-loader";
 
 interface IntelligenceData {
@@ -56,7 +60,13 @@ interface IntelligenceData {
         calendarLink?: string;
         ctaLink?: string;
     };
+    socialProfiles?: {
+        platform: "linkedin" | "twitter" | "instagram" | "github" | "other";
+        url: string;
+        handle?: string;
+    }[];
 }
+
 
 interface Message {
     id: string;
@@ -86,7 +96,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
         queryKey: ["/api/leads/intelligence/intelligence-dashboard", lead?.id],
         queryFn: async () => {
             const messages = messagesData?.messages || [];
-            
+
             // Transform messages to the format expected by the AI
             const conversationMessages = messages.map(m => ({
                 direction: m.direction,
@@ -184,12 +194,13 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                                 strokeLinecap="round"
                                             />
                                         </svg>
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Lead Probability</div>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 mb-1">Engagement Rank</div>
                                         <div className="flex items-center gap-2">
                                             <span className="text-3xl font-black tracking-tighter text-orange-500">
-                                                {intelligence.intent.intentScore}
+                                                {intelligence.intent.intentScore}%
                                             </span>
                                         </div>
+
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60">Lead Affinity</p>
@@ -247,6 +258,32 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                         <div className="text-xs text-muted-foreground">Verification Status: <span className="text-primary font-medium">Verified</span></div>
                                     </div>
                                 </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {intelligence.socialProfiles?.map((profile, i) => {
+                                        const Icon = profile.platform === 'linkedin' ? Linkedin :
+                                            profile.platform === 'twitter' ? Twitter : Globe;
+                                        return (
+                                            <a
+                                                key={i}
+                                                href={profile.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-2 rounded-lg bg-background border border-border/50 hover:bg-muted transition-colors text-muted-foreground hover:text-primary"
+                                                title={profile.platform}
+                                            >
+                                                <Icon className="h-4 w-4" />
+                                            </a>
+                                        );
+                                    })}
+                                    {!intelligence.socialProfiles && (
+                                        <div className="text-right">
+                                            <Badge variant="outline" className="bg-primary/5 text-primary-foreground/50 border-0 text-[10px] font-bold uppercase tracking-widest">
+                                                Social Discovery Active
+                                            </Badge>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="text-right">
                                     <div className="text-xs text-muted-foreground mb-1">Enrichment Status</div>
                                     <div className="flex gap-1 justify-end">
@@ -256,6 +293,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                 </div>
                             </CardContent>
                         </Card>
+
 
                         {/* Intent & Next Actions */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -310,7 +348,7 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                                     <p className="font-medium text-lg text-foreground">
                                         {intelligence.nextBestAction || "Analyze interaction patterns"}
                                     </p>
-                                    <Button 
+                                    <Button
                                         onClick={() => {
                                             const link = intelligence.actionContext?.calendarLink || intelligence.actionContext?.ctaLink;
                                             if (link) {
@@ -340,6 +378,6 @@ export function LeadIntelligenceModal({ isOpen, onOpenChange, lead }: LeadIntell
                     </div>
                 )}
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }

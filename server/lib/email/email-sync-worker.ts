@@ -169,7 +169,7 @@ class EmailSyncWorker {
       // 1. Sync Inbox Folders
       for (const folder of inboxFolders) {
         try {
-          const emails = await importCustomEmails(credentials, limit, 30000, folder);
+          const emails = await importCustomEmails(credentials, limit, 120000, folder);
           if (emails.length > 0) {
             const result = await pagedEmailImport(userId, emails.map(mapEmail), () => { }, 'inbound');
             res.imported += result.imported;
@@ -184,7 +184,7 @@ class EmailSyncWorker {
       // 2. Sync Sent Folders
       for (const folder of sentFolders) {
         try {
-          const emails = await importCustomEmails(credentials, Math.floor(limit / 2), 30000, folder);
+          const emails = await importCustomEmails(credentials, Math.floor(limit / 2), 120000, folder);
           if (emails.length > 0) {
             const result = await pagedEmailImport(userId, emails.map(mapEmail), () => { }, 'outbound');
             res.imported += result.imported;

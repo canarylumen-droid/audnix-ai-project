@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { MODELS } from './ai/model-config.js';
 import { EmailVerifier } from './scraping/email-verifier.js';
 import type { PDFProcessingResult } from '../../shared/types.js';
-import * as pdf from 'pdf-parse';
+import pdf from 'pdf-parse';
 
 const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey ? new OpenAI({
@@ -39,9 +39,7 @@ export async function processPDF(
     }
 
     // Use pdf-parse for reliable Node.js text extraction
-    // Handle potential callability issues with different export formats
-    const pdfParse = (pdf as any).default || pdf;
-    const pdfData = await pdfParse(fileBuffer);
+    const pdfData = await pdf(fileBuffer);
     const text = pdfData.text;
 
     // VALIDATION: Ensure we have some text

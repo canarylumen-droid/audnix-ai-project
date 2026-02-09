@@ -164,7 +164,7 @@ async function sendCustomSMTP(
 export async function importCustomEmails(
   config: EmailConfig,
   limit: number = 50,
-  timeoutMs: number = 30000,
+  timeoutMs: number = 120000,
   mailbox: string = 'INBOX'
 ): Promise<ImportedEmail[]> {
   const Imap = (await import('imap')).default;

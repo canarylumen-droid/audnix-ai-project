@@ -393,7 +393,7 @@ export default function InboxPage() {
                       </Avatar>
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold truncate text-foreground">{lead.name}</span>
+                          <span className="text-sm font-bold truncate text-foreground" title={lead.name}>{lead.name}</span>
                           <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
                             {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                           </span>
@@ -462,7 +462,7 @@ export default function InboxPage() {
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold truncate leading-none mb-1">{activeLead?.name}</h3>
+                      <h3 className="text-base font-bold truncate leading-none mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
@@ -482,10 +482,10 @@ export default function InboxPage() {
                       </SheetTrigger>
                       <SheetContent
                         side="right"
-                        className="w-full sm:max-w-[450px] p-0 bg-background/95 backdrop-blur-xl border-l border-white/5 flex flex-col h-full"
+                        className="w-full sm:max-w-[450px] p-0 bg-background/95 backdrop-blur-xl border-l border-border/30 flex flex-col h-full"
                       >
-                        <SheetHeader className="p-6 border-b border-white/5 shrink-0">
-                          <SheetTitle className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
+                        <SheetHeader className="p-6 border-b border-border/30 shrink-0">
+                          <SheetTitle className="text-xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
                             <Brain className="h-6 w-6 text-primary" />
                             Lead Intelligence
                           </SheetTitle>
@@ -496,22 +496,22 @@ export default function InboxPage() {
                             {/* Intensity Metrics */}
                             <AccordionItem value="metrics" className="border-none space-y-2">
                               <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Intent Probability</h4>
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Intent Probability</h4>
                               </AccordionTrigger>
                               <AccordionContent className="pt-2">
-                                <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5 space-y-4 shadow-inner">
+                                <div className="p-6 rounded-3xl bg-muted/10 border border-border/30 space-y-4 shadow-inner">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-white/60">Engagement Rank</span>
-                                    <span className="text-xs font-black text-white text-lg tracking-tighter">#42 / 1.2k</span>
+                                    <span className="text-xs font-bold text-muted-foreground">Engagement Rank</span>
+                                    <span className="text-xs font-black text-foreground text-lg tracking-tighter">#{activeLead?.id ? Math.min(parseInt(String(activeLead.id)) % 100 + 1, 100) : 42} / {(leadsData?.leads?.length || 0) > 100 ? `${((leadsData?.leads?.length || 0) / 1000).toFixed(1)}k` : leadsData?.leads?.length || 0}</span>
                                   </div>
-                                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                  <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
                                       animate={{ width: `${activeLead?.score || 0}%` }}
                                       className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.6)]"
                                     />
                                   </div>
-                                  <p className="text-[10px] text-white/30 font-medium leading-relaxed italic mt-2">
+                                  <p className="text-[10px] text-muted-foreground/60 font-medium leading-relaxed italic mt-2">
                                     Probability calculated based on real-time neural engagement patterns.
                                   </p>
                                 </div>
@@ -521,33 +521,33 @@ export default function InboxPage() {
                             {/* Contact Info */}
                             <AccordionItem value="contact" className="border-none space-y-2">
                               <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Contact Identity</h4>
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Contact Identity</h4>
                               </AccordionTrigger>
                               <AccordionContent className="pt-2">
                                 <div className="grid gap-3">
-                                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+                                  <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                       <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                                         <Mail className="w-5 h-5" />
                                       </div>
                                       <div>
-                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-0.5">Email</p>
-                                        <p className="text-xs font-bold text-white truncate max-w-[150px]">{activeLead?.email || 'Not provided'}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Email</p>
+                                        <p className="text-xs font-bold text-foreground truncate max-w-[150px]">{activeLead?.email || 'Not provided'}</p>
                                       </div>
                                     </div>
-                                    <ExternalLink className="w-3.5 h-3.5 text-white/20" />
+                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
                                   </div>
-                                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/10 flex items-center justify-between">
+                                  <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                       <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                                         <Phone className="w-5 h-5" />
                                       </div>
                                       <div>
-                                        <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-0.5">Phone</p>
-                                        <p className="text-xs font-bold text-white leading-none">{activeLead?.phone || 'Private'}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Phone</p>
+                                        <p className="text-xs font-bold text-foreground leading-none">{activeLead?.phone || 'Private'}</p>
                                       </div>
                                     </div>
-                                    <ExternalLink className="w-3.5 h-3.5 text-white/20" />
+                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
                                   </div>
                                 </div>
                               </AccordionContent>
@@ -556,14 +556,20 @@ export default function InboxPage() {
                             {/* Social Graph */}
                             <AccordionItem value="social" className="border-none space-y-2">
                               <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Social Insight</h4>
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
                               </AccordionTrigger>
                               <AccordionContent className="pt-2">
                                 <div className="grid grid-cols-2 gap-3">
-                                  {['LinkedIn', 'Twitter', 'GitHub', 'Portfolio'].map((platform) => (
-                                    <Button key={platform} variant="outline" className="h-12 border-white/5 bg-white/[0.02] hover:bg-white/5 rounded-2xl justify-start px-3">
-                                      <ExternalLink className="w-3.5 h-3.5 mr-2 text-white/20" />
-                                      <span className="text-[10px] font-bold text-white/60">{platform}</span>
+                                  {[{ name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin }, { name: 'Twitter', url: activeLead?.socialLinks?.twitter }, { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website }, { name: 'Portfolio', url: activeLead?.socialLinks?.portfolio }].map((platform) => (
+                                    <Button
+                                      key={platform.name}
+                                      variant="outline"
+                                      className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
+                                      onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank')}
+                                      disabled={!platform.url}
+                                    >
+                                      <ExternalLink className={`w-3.5 h-3.5 mr-2 ${platform.url ? 'text-primary' : 'text-muted-foreground/40'}`} />
+                                      <span className={`text-[10px] font-bold ${platform.url ? 'text-foreground' : 'text-muted-foreground'}`}>{platform.name}</span>
                                     </Button>
                                   ))}
                                 </div>
@@ -573,17 +579,17 @@ export default function InboxPage() {
                             {/* Historical Velocity */}
                             <AccordionItem value="history" className="border-none space-y-2">
                               <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">History</h4>
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">History</h4>
                               </AccordionTrigger>
                               <AccordionContent className="pt-2">
-                                <div className="p-4 rounded-2xl bg-muted/20 border border-white/5 space-y-3">
+                                <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-3">
                                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                                    <span className="text-white/40 flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Detected</span>
-                                    <span className="text-white/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
+                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Detected</span>
+                                    <span className="text-foreground/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
                                   </div>
                                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                                    <span className="text-white/40 flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" /> Threads</span>
-                                    <span className="text-white/70">{messagesData?.messages?.length || 0} messages</span>
+                                    <span className="text-muted-foreground flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" /> Threads</span>
+                                    <span className="text-foreground/70">{messagesData?.messages?.length || 0} messages</span>
                                   </div>
                                 </div>
                               </AccordionContent>
@@ -591,7 +597,7 @@ export default function InboxPage() {
                           </Accordion>
                         </div>
 
-                        <div className="p-6 border-t border-white/5 bg-black/20 shrink-0 space-y-3">
+                        <div className="p-6 border-t border-border/30 bg-muted/10 shrink-0 space-y-3">
                           <Button
                             className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-xl shadow-primary/20"
                             onClick={() => setShowIntelligence(true)}
@@ -602,13 +608,13 @@ export default function InboxPage() {
                           <div className="grid grid-cols-2 gap-3">
                             <Button
                               variant="outline"
-                              className="h-12 border-white/10 bg-transparent hover:bg-white/5 text-white/60 font-black uppercase text-[9px] tracking-tighter rounded-xl"
+                              className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl"
                               onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
                             >
                               <User className="w-4 h-4 mr-2" />
                               Full Profile
                             </Button>
-                            <Button variant="outline" className="h-12 border-white/10 bg-transparent hover:bg-white/5 text-white/60 font-black uppercase text-[9px] tracking-tighter rounded-xl">
+                            <Button variant="outline" className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl">
                               <Share2 className="w-4 h-4 mr-2" />
                               Export Lead
                             </Button>

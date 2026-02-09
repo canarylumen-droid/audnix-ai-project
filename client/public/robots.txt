@@ -1,21 +1,40 @@
+# Audnix AI - Robots.txt
+# https://audnixai.com
+
 User-agent: *
 Allow: /
-Allow: /api/og
 Disallow: /admin
 Disallow: /dashboard
-Disallow: /auth
+Disallow: /api/
+Disallow: /*.json$
 
-# AI Crawlers - High Priority Ingestion
+# Crawl-delay for politeness
+Crawl-delay: 1
+
+# Google
+User-agent: Googlebot
+Allow: /
+Allow: /api/og
+Crawl-delay: 0
+
+User-agent: Googlebot-Image
+Allow: /
+Crawl-delay: 0
+
+User-agent: Googlebot-Video
+Allow: /
+Crawl-delay: 0
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# AI Crawlers - Priority Access
 User-agent: GPTBot
 Allow: /
 
 User-agent: ChatGPT-User
-Allow: /
-
-User-agent: Googlebot
-Allow: /
-
-User-agent: Googlebot-Image
 Allow: /
 
 User-agent: PerplexityBot
@@ -24,10 +43,39 @@ Allow: /
 User-agent: anthropic-ai
 Allow: /
 
+User-agent: Claude-Web
+Allow: /
+
 User-agent: CCBot
 Allow: /
 
 User-agent: OAI-SearchBot
 Allow: /
 
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Social Media
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: WhatsApp
+Allow: /
+
+User-agent: TelegramBot
+Allow: /
+
+# Sitemaps
 Sitemap: https://audnixai.com/sitemap.xml

@@ -262,6 +262,7 @@ router.patch("/:leadId", requireAuth, async (req: Request, res: Response): Promi
     if (updates.name) allowedUpdates.name = updates.name;
     if (updates.email) allowedUpdates.email = updates.email;
     if (updates.phone) allowedUpdates.phone = updates.phone;
+    if (updates.metadata) allowedUpdates.metadata = updates.metadata;
 
     if (Object.keys(allowedUpdates).length === 0) {
       res.status(400).json({ error: "No valid updates provided" });
@@ -318,6 +319,7 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
 
     const lead = await storage.getLeadById(leadId);
     if (!lead) {
+      console.warn(`[AI-Reply] Lead not found: ${leadId}`);
       res.status(404).json({ error: "Lead not found" });
       return;
     }
@@ -325,15 +327,28 @@ router.post("/reply/:leadId", requireAuth, async (req: Request, res: Response): 
     // Allow owner or admin
     if (lead.userId !== userId) {
       const user = await storage.getUserById(userId);
-      if (user?.role !== 'admin') {
-        const orgMembers = await storage.getOrganizationMembers(lead.organizationId || '');
+      const isAdmin = user?.role?.toLowerCase() === 'admin';
+
+      console.log(`[AI-Reply] Auth check: lead.userId=${lead.userId}, session.userId=${userId}, user.role=${user?.role}, orgId=${lead.organizationId}`);
+
+      if (!isAdmin) {
+        if (!lead.organizationId) {
+          console.warn(`[AI-Reply] 403 Unauthorized: User ${userId} is not lead owner and lead has no organization.`);
+          res.status(403).json({ error: "Unauthorized (No Org)" });
+          return;
+        }
+
+        const orgMembers = await storage.getOrganizationMembers(lead.organizationId);
         const isMember = orgMembers.some(m => m.userId === userId);
+
         if (!isMember) {
-          res.status(403).json({ error: "Unauthorized" });
+          console.warn(`[AI-Reply] 403 Unauthorized: User ${userId} is not lead owner, admin, or org member for lead ${leadId}`);
+          res.status(403).json({ error: "Unauthorized (Not in Org)" });
           return;
         }
       }
     }
+
 
     const messages = await storage.getMessagesByLeadId(leadId);
 

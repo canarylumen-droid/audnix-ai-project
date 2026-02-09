@@ -269,19 +269,26 @@ export function Navigation() {
                     key={link.name}
                     href={link.href}
                     onClick={(e) => {
+                      e.preventDefault();
                       setMobileMenuOpen(false);
-                      if (link.href?.includes("#")) {
-                        const [path, hash] = link.href.split("#");
-                        if (window.location.pathname === path || (path === "/" && window.location.pathname === "")) {
-                          e.preventDefault();
-                          const el = document.getElementById(hash);
-                          if (el) {
-                            el.scrollIntoView({ behavior: 'smooth' });
+                      // Navigate after menu closes
+                      setTimeout(() => {
+                        if (link.href?.includes("#")) {
+                          const [path, hash] = link.href.split("#");
+                          if (window.location.pathname === path || path === "/" || window.location.pathname === "/") {
+                            const el = document.getElementById(hash);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth' });
+                            }
+                          } else {
+                            window.location.href = link.href;
                           }
+                        } else {
+                          window.location.href = link.href;
                         }
-                      }
+                      }, 300);
                     }}
-                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-2 border-b border-white/5 block w-full"
+                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-3 border-b border-white/5 block w-full cursor-pointer"
                   >
                     {link.name}
                   </a>
@@ -291,21 +298,34 @@ export function Navigation() {
               <div className="mt-8 flex flex-col gap-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Solutions</p>
                 {SOLUTIONS.map((sol) => (
-                  <Link key={sol.name} href={sol.href}>
-                    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent transition-all" onClick={() => setMobileMenuOpen(false)}>
-                      <sol.icon className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-bold text-white/60">{sol.name}</span>
-                    </div>
-                  </Link>
+                  <div
+                    key={sol.name}
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent transition-all cursor-pointer"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setTimeout(() => {
+                        window.location.href = sol.href;
+                      }, 300);
+                    }}
+                  >
+                    <sol.icon className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-bold text-white/60">{sol.name}</span>
+                  </div>
                 ))}
               </div>
 
               <div className="mt-auto flex flex-col gap-4 pt-10">
-                <Link href="/auth">
-                  <Button className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-black" onClick={() => setMobileMenuOpen(false)}>
-                    Get Started
-                  </Button>
-                </Link>
+                <Button
+                  className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest bg-primary text-black cursor-pointer"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setTimeout(() => {
+                      window.location.href = '/auth';
+                    }, 300);
+                  }}
+                >
+                  Get Started
+                </Button>
                 <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.4em] text-center">v4.0.0 Stable</p>
               </div>
             </motion.div>

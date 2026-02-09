@@ -109,7 +109,7 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     try {
       console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
       const { importCustomEmails } = await import('../lib/channels/email.js');
-      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 10000);
+      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 120000);
 
       const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
         from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
@@ -188,7 +188,7 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
     const credentials: EmailConfig = JSON.parse(credentialsStr);
 
     const { importCustomEmails } = await import('../lib/channels/email.js');
-    const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100);
+    const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 120000);
 
     const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
       from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
@@ -349,6 +349,59 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
       error: 'Failed to send test email',
       details: errorMsg
     });
+  }
+});
+
+/**
+ * Get discovered folders for the connected account
+ */
+router.get('/folders', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+    const folders = imapIdleManager.getDiscoveredFolders(userId);
+
+    if (!folders) {
+      res.json({
+        success: true,
+        inbox: ['INBOX'],
+        sent: ['Sent'],
+        isDiscovering: true
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      inbox: folders.inbox,
+      sent: folders.sent,
+      isDiscovering: false
+    });
+  } catch (error) {
+    console.error('[Email Folders] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch folders' });
+  }
+});
+
+/**
+ * Trigger an immediate sync for both Inbox and Sent folders
+ */
+router.post('/sync-now', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+
+    // Trigger sync in background
+    // @ts-ignore
+    imapIdleManager.syncConnections();
+
+    res.json({
+      success: true,
+      message: 'Sync triggered successfully'
+    });
+  } catch (error) {
+    console.error('[Email Sync] Error:', error);
+    res.status(500).json({ error: 'Failed to trigger sync' });
   }
 });
 

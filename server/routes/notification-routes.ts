@@ -2,8 +2,65 @@ import { Router } from "express";
 import { db } from "../db.js";
 import { pushSubscriptions } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
+import { storage } from "../storage.js";
+import { requireAuth } from "../auth.js";
 
 const router = Router();
+
+// Get list of notifications for the current user
+router.get("/", requireAuth, async (req, res) => {
+    try {
+        const userId = req.session?.userId || (req.user as any)?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const notificationList = await storage.getNotifications(userId);
+        const unreadCount = notificationList.filter(n => !n.read).length;
+
+        res.json({
+            unreadCount,
+            notifications: notificationList
+        });
+    } catch (error: any) {
+        console.error("Fetch notifications error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Mark a specific notification as read
+router.patch("/:id/read", requireAuth, async (req, res) => {
+    try {
+        const userId = req.session?.userId || (req.user as any)?.id;
+        const notificationId = req.params.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        await storage.markNotificationAsRead(notificationId, userId);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error("Mark notification read error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Mark all notifications as read
+router.post("/mark-all-read", requireAuth, async (req, res) => {
+    try {
+        const userId = req.session?.userId || (req.user as any)?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        await storage.markAllNotificationsAsRead(userId);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error("Mark all notifications read error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // Get VAPID public key
 router.get("/vapid-public-key", (req, res) => {
