@@ -175,10 +175,22 @@ export default function Landing() {
               Autonomous agents designed for high-growth operations.
             </p>
             <div className="flex gap-6">
-              {[Twitter, Linkedin, Github, Instagram].map((Icon, i) => (
-                <Link key={i} href="#" className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group">
-                  <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </Link>
+              {[
+                { Icon: Twitter, href: "https://twitter.com/nleanyatreasure", label: "Twitter" },
+                { Icon: Linkedin, href: "https://linkedin.com/in/nleanyatreasure", label: "LinkedIn" },
+                { Icon: Github, href: "https://github.com/audnixai", label: "Github" },
+                { Icon: Instagram, href: "https://instagram.com/nleanyatreasure", label: "Instagram" }
+              ].map((social, i) => (
+                <a
+                  key={i}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group"
+                  title={`${social.label} - @nleanyatreasure`}
+                >
+                  <social.Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                </a>
               ))}
             </div>
           </div>
@@ -229,6 +241,23 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Authority Keyword Mesh (Hidden SEO Infrastructure) */}
+      <section className="sr-only opacity-0 pointer-events-none h-0 overflow-hidden" aria-hidden="true">
+        <h2>AI Sales Automation & Authority Keywords</h2>
+        <p>
+          audnix ai, audnix, nleanya treasure, autonomous sales rep, ai sales agent, manychat alternative,
+          n8n alternative, make.com alternative, zapier automation, ai sdr, ai bdr, close deals faster,
+          sales intelligence 2026, predictive sales timing, objection handling ai script, high ticket conversions,
+          automated outreach, revenue recovery bot, conversational commerce ai, linkedin automation alternative,
+          instagram sales automation, business automation srs, enterprise ai sales, startup scale ai tools,
+          lead generation autonomous, ai lead scoring model, best ai sales software 2026, top rated ai tools,
+          sales productivity hack, automated lead funnel, intelligent sdr bot, robotic sales automation,
+          ai revenue operations, growth hacking ai 2026, digital sales representative, cloud sales agent,
+          ai prospector, b2b lead generation ai, sdr automation platform, revenue growth engine,
+          market dominance ai, sales authority branding, nleanya treasure founder, audnix operations co.
+        </p>
+      </section>
 
       <CookieConsent />
     </div>

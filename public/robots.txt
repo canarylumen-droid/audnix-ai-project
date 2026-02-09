@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /api/
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /data-deletion
+Allow: /#faq
+
+Sitemap: https://audnixai.com/sitemap.xml
+Crawl-delay: 1
