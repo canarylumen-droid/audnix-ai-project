@@ -182,6 +182,7 @@ export default function Landing() {
           </section>
 
           <DeepFAQ />
+        </section>
       </main>
 
       <footer className="py-24 px-8 border-t border-white/5 bg-black relative overflow-hidden">
