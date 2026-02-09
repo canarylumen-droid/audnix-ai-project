@@ -23,18 +23,22 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
   const { toast } = useToast();
   const [step, setStep] = useState<"config" | "template" | "review">("config");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Campaign Config
   const [name, setName] = useState("");
   const [dailyLimit, setDailyLimit] = useState(50);
   const [minDelay, setMinDelay] = useState(2); // minutes
   const [followUpDelay, setFollowUpDelay] = useState(3); // days
   const [isManualMode, setIsManualMode] = useState(true);
-  
+
   // Template
   const [subject, setSubject] = useState("Quick question");
   const [body, setBody] = useState("Hi {{firstName}},\n\nI noticed your work at {{company}} and wanted to reach out.\n\nBest,\n[Your Name]");
-  
+
+  // Follow-ups
+  const [followUpBody1, setFollowUpBody1] = useState("Hi {{firstName}},\n\nJust floating this to the top of your inbox.\n\nBest,\n[Your Name]");
+  const [followUpBody2, setFollowUpBody2] = useState("Hi {{firstName}},\n\nI assume you're busy, so I'll stop pestering you. Here is a link to our portfolio if you ever need us.\n\nBest,\n[Your Name]");
+
   const leadCount = selectedLeadIds.length > 0 ? selectedLeadIds.length : (totalLeads || 0);
 
   const handleAiDraft = async () => {
@@ -62,16 +66,19 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
         name,
         leads: selectedLeadIds,
         config: {
-            dailyLimit,
-            minDelayMinutes: minDelay,
-            maxDelayMinutes: minDelay + 2,
-            followUpDelayDays: followUpDelay,
-            isManual: isManualMode
+          dailyLimit,
+          minDelayMinutes: minDelay,
+          maxDelayMinutes: minDelay + 2,
+          followUpDelayDays: followUpDelay,
+          isManual: isManualMode
         },
         template: {
-            subject,
-            body,
-            followups: [] // Add Follow-ups later if needed
+          subject,
+          body,
+          followups: [
+            { delayDays: 3, body: followUpBody1 },
+            { delayDays: 7, body: followUpBody2 }
+          ]
         }
       });
       const campaign = await res.json();
@@ -106,11 +113,11 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
                 <Label>Campaign Name</Label>
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Q4 Outreach - Cold Leads" />
               </div>
-              
+
               <div className="space-y-4">
                 <div className="flex justify-between">
-                    <Label>Daily Limit</Label>
-                    <span className="text-sm font-bold">{dailyLimit} emails/day</span>
+                  <Label>Daily Limit</Label>
+                  <span className="text-sm font-bold">{dailyLimit} emails/day</span>
                 </div>
                 <Slider value={[dailyLimit]} onValueChange={v => setDailyLimit(v[0])} min={10} max={500} step={10} />
                 <p className="text-xs text-muted-foreground">Recommended: 30-50 for new accounts to avoid spam folders.</p>
@@ -118,16 +125,16 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                    <Label>Delay Between Emails</Label>
-                    <span className="text-sm font-bold">{minDelay} - {minDelay + 2} mins</span>
+                  <Label>Delay Between Emails</Label>
+                  <span className="text-sm font-bold">{minDelay} - {minDelay + 2} mins</span>
                 </div>
                 <Slider value={[minDelay]} onValueChange={v => setMinDelay(v[0])} min={1} max={15} step={1} />
               </div>
 
               <div className="space-y-4">
                 <div className="flex justify-between">
-                    <Label>Follow-up Delay</Label>
-                    <span className="text-sm font-bold">{followUpDelay} days</span>
+                  <Label>Follow-up Delay</Label>
+                  <span className="text-sm font-bold">{followUpDelay} days</span>
                 </div>
                 <Slider value={[followUpDelay]} onValueChange={v => setFollowUpDelay(v[0])} min={1} max={14} step={1} />
                 <p className="text-xs text-muted-foreground">Automatic follow-up if no reply received.</p>
@@ -139,58 +146,91 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
                   <p className="text-xs text-muted-foreground">Let AI personalize content (Disabled = Manual Template)</p>
                 </div>
                 <div className="flex items-center space-x-2">
-                 <Label className="text-xs">{!isManualMode ? 'On' : 'Off'}</Label>
-                 <Switch checked={!isManualMode} onCheckedChange={c => setIsManualMode(!c)} />
+                  <Label className="text-xs">{!isManualMode ? 'On' : 'Off'}</Label>
+                  <Switch checked={!isManualMode} onCheckedChange={c => setIsManualMode(!c)} />
                 </div>
               </div>
             </div>
           )}
 
           {step === "template" && (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={handleAiDraft} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
-                  AI Draft
-                </Button>
+            <>
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <Button variant="outline" size="sm" onClick={handleAiDraft} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Wand2 className="w-4 h-4 mr-2" />}
+                    AI Draft
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <Input value={subject} onChange={e => setSubject(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Body</Label>
-                <Textarea value={body} onChange={e => setBody(e.target.value)} className="h-40" />
-                <p className="text-xs text-muted-foreground">Variables: {"{{firstName}}"}, {"{{company}}"}, {"{{name}}"}</p>
-              </div>
-            </div>
+
+              <Tabs defaultValue="initial" className="w-full mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="initial">Initial Email</TabsTrigger>
+                  <TabsTrigger value="fu1">Follow-up (Day 3)</TabsTrigger>
+                  <TabsTrigger value="fu2">Follow-up (Day 7)</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="initial" className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label>Subject</Label>
+                    <Input value={subject} onChange={e => setSubject(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Body</Label>
+                    <Textarea value={body} onChange={e => setBody(e.target.value)} className="h-60 font-mono text-sm" />
+                    <p className="text-xs text-muted-foreground">Variables: {"{{firstName}}"}, {"{{company}}"}</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="fu1" className="space-y-4 pt-4">
+                  <div className="p-3 bg-blue-500/10 text-blue-500 rounded-md text-xs font-bold mb-2">
+                    Sends 3 days after initial email if no reply.
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Follow-up Body</Label>
+                    <Textarea value={followUpBody1} onChange={e => setFollowUpBody1(e.target.value)} className="h-60 font-mono text-sm" />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="fu2" className="space-y-4 pt-4">
+                  <div className="p-3 bg-blue-500/10 text-blue-500 rounded-md text-xs font-bold mb-2">
+                    Sends 7 days after initial email if still no reply.
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Final Follow-up Body</Label>
+                    <Textarea value={followUpBody2} onChange={e => setFollowUpBody2(e.target.value)} className="h-60 font-mono text-sm" />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
           )}
 
           {step === "review" && (
             <div className="space-y-4 rounded-lg border p-4 bg-muted/50">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Campaign</Label>
-                        <p className="font-medium">{name}</p>
-                    </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Volume</Label>
-                        <p className="font-medium">{leadCount} Leads</p>
-                    </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Daily Limit</Label>
-                        <p className="font-medium">{dailyLimit} / day</p>
-                    </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Throttling</Label>
-                        <p className="font-medium">~{minDelay} mins delay</p>
-                    </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Campaign</Label>
+                  <p className="font-medium">{name}</p>
                 </div>
-                <div className="pt-2 border-t">
-                    <Label className="text-xs text-muted-foreground">Preview</Label>
-                    <p className="text-sm font-semibold mt-1">{subject}</p>
-                    <p className="text-sm mt-1 whitespace-pre-wrap text-muted-foreground">{body.replace("{{firstName}}", "John").replace("{{company}}", "Acme Inc")}</p>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Volume</Label>
+                  <p className="font-medium">{leadCount} Leads</p>
                 </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Daily Limit</Label>
+                  <p className="font-medium">{dailyLimit} / day</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Throttling</Label>
+                  <p className="font-medium">~{minDelay} mins delay</p>
+                </div>
+              </div>
+              <div className="pt-2 border-t">
+                <Label className="text-xs text-muted-foreground">Preview</Label>
+                <p className="text-sm font-semibold mt-1">{subject}</p>
+                <p className="text-sm mt-1 whitespace-pre-wrap text-muted-foreground">{body.replace("{{firstName}}", "John").replace("{{company}}", "Acme Inc")}</p>
+              </div>
             </div>
           )}
         </div>
@@ -198,18 +238,18 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
         <DialogFooter className="justify-between sm:justify-between">
           <div>
             {step !== "config" && (
-                <Button variant="ghost" onClick={() => setStep(step === "review" ? "template" : "config")}>Back</Button>
+              <Button variant="ghost" onClick={() => setStep(step === "review" ? "template" : "config")}>Back</Button>
             )}
           </div>
           <div className="flex gap-2">
             {step === "config" && <Button onClick={() => setStep("template")}>Next: Template</Button>}
             {step === "template" && <Button onClick={() => setStep("review")}>Next: Review</Button>}
             {step === "review" && (
-                <Button onClick={handleLaunch} disabled={isLoading}>
-                    {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    <Send className="w-4 h-4 mr-2" />
-                    Launch Campaign
-                </Button>
+              <Button onClick={handleLaunch} disabled={isLoading}>
+                {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                <Send className="w-4 h-4 mr-2" />
+                Launch Campaign
+              </Button>
             )}
           </div>
         </DialogFooter>

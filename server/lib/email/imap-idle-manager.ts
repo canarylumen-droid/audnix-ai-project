@@ -410,9 +410,12 @@ class ImapIdleManager {
             const discovered = this.folders.get(userId);
             const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
 
+            // Force common Sent folder names if discovery yielded nothing or we just want to be sure
+            const fallbackFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT', 'INBOX.Sent'];
+
             const foldersToTry = discovered?.sent && discovered.sent.length > 0
-                ? [...new Set([...discovered.sent, ...sentFolders])]
-                : sentFolders;
+                ? [...new Set([...discovered.sent, ...fallbackFolders])]
+                : fallbackFolders;
 
             const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
             const imapPort = config.imap_port || 993;
@@ -462,7 +465,8 @@ class ImapIdleManager {
                         console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
                         appended = true;
                         break;
-                    } catch (e) {
+                    } catch (e: any) {
+                        console.warn(`[Append] Failed to append to '${folder}': ${e.message}`);
                         // Continue to next folder
                     }
                 }

@@ -90,7 +90,20 @@ export class CampaignWorker {
 
     if (lastSentResult.rows.length > 0) {
       const lastSent = new Date(lastSentResult.rows[0].sent_at as string).getTime();
-      const delayMs = (campaign.config.minDelayMinutes || 2) * 60 * 1000;
+
+      // For manual campaigns, enforce strictly 2-3 minutes random delay
+      // For AI campaigns, use config or default 2 mins
+      let minDelay = campaign.config.minDelayMinutes || 2;
+
+      // Add randomization for "human-like" behavior if isManual or just generic nice-to-have
+      // The user specifically asked for "every 2-3 minutes"
+      // So let's aim for 2 mins + random up to 1 min extra
+      const isManual = campaign.config.isManual === true;
+      const baseDelay = isManual ? 2 : minDelay;
+      const randomBuffer = isManual ? Math.random() : 0; // 0-1 minute extra
+
+      const delayMs = (baseDelay + randomBuffer) * 60 * 1000;
+
       if (Date.now() - lastSent < delayMs) {
         return; // Wait more
       }
@@ -107,7 +120,7 @@ export class CampaignWorker {
             and(
               eq(campaignLeads.status, 'sent'),
               lte(campaignLeads.nextActionAt, new Date()),
-              sql`${campaignLeads.currentStep} < ${campaign.template.followups?.length || 0}`
+              sql`${campaignLeads.currentStep} <= ${campaign.template.followups?.length || 0}`
             )
           )
         )
@@ -145,16 +158,16 @@ export class CampaignWorker {
         if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
       }
 
-      // AI Personalization (if enabled)
-      if (campaign.config?.isManual === false) {
+      // AI Personalization (only if NOT manual)
+      if (campaign.config?.isManual !== true) {
         try {
           const aiContent = await generateExpertOutreach(lead, campaign.userId);
           if (aiContent && aiContent.subject && aiContent.body) {
             subject = aiContent.subject;
-            if (!isFollowUp) body = aiContent.body; // Only overwrite body if not a manual-ish follow-up template body
-            // For follow-ups, we still want to keep the core body but maybe polish? 
-            // Let's trust AI more if enabled.
-            body = aiContent.body;
+            if (!isFollowUp) body = aiContent.body;
+            // For follow-ups, we generally trust the template flow or AI regeneration?
+            // Current simplified logic: If AI enabled, use AI.
+            if (isFollowUp) body = aiContent.body;
           }
         } catch (aiError) {
           console.warn(`[Campaign] AI generation failed for ${lead.id}, falling back to template:`, aiError);
@@ -209,6 +222,9 @@ export class CampaignWorker {
       }).where(eq(campaignLeads.id, leadEntry.id));
 
       console.log(`[Campaign] Step ${nextStep} completed for ${lead.email}. Next action: ${nextActionAt?.toISOString() || 'None'}`);
+
+      // If manual campaign and no more steps, mark as completed? 
+      // Or just leave as 'sent' with no nextActionAt (which is effectively done)
 
     } catch (error: any) {
       console.error(`[Campaign] Failed lead ${lead.id}:`, error);

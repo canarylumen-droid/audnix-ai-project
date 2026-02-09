@@ -119,7 +119,7 @@ export const leads = pgTable("leads", {
   score: integer("score").notNull().default(0),
   warm: boolean("warm").notNull().default(false),
   lastMessageAt: timestamp("last_message_at"),
-  aiPaused: boolean("ai_paused").notNull().default(false),
+  aiPaused: boolean("ai_paused").notNull().default(true),
   pdfConfidence: real("pdf_confidence"),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
