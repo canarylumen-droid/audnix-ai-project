@@ -67,7 +67,7 @@ export function FeatureSection() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 relative z-10 mb-6">
                     <FeatureCard
                         title="Voice Note Intelligence"
-                        description="Audnix doesn't just read text. It listens to Voice Notes, extracts sentiment, and adapts its reply tone instantly using neural acoustic modeling."
+                        description="Audnix doesn't just read text. It listens to Voice Notes, extracts sentiment, and adapts its reply tone instantly using advanced acoustic modeling."
                         icon={Mic}
                         delay={0}
                         index={0}
@@ -88,7 +88,7 @@ export function FeatureSection() {
                     />
                     <FeatureCard
                         title="Churn & Drop-off Risk"
-                        description="Identifies leads losing interest based on sentiment decay and automatically deploys a 'Re-Engagement Protocol' to recover the sale."
+                        description="Identifies leads losing interest based on sentiment decay and automatically deploys a 'Re-Engagement System' to recover the sale."
                         icon={AlertTriangle}
                         delay={0.3}
                         index={3}
@@ -104,7 +104,7 @@ export function FeatureSection() {
                             </div>
 
                             <h3 className="text-3xl font-black mb-6 tracking-tight uppercase">
-                                High-Ticket Closer Protocol
+                                High-Ticket Closer Engine
                             </h3>
 
                             <p className="text-white/40 font-medium text-lg mb-8 max-w-xl leading-relaxed">

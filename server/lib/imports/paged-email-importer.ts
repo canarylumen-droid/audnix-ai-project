@@ -206,41 +206,42 @@ async function processEmailForLead(
 
     results.imported++;
 
-    // AUTO-REPLY TRIGGER: If this is an inbound message, queue an AI reply
+    // AUTO-REPLY TRIGGER & CAMPAIGN MANAGEMENT
     if (direction === 'inbound') {
       try {
-        // Run full inbound message analysis for intent, objections, churn signals
-        const allMessages = await storage.getMessagesByLeadId(lead.id);
-        const latestMessage = allMessages.find(m => m.body === (email.text || email.html || ''));
+        // 1. MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
+        // We do this immediately upon receiving an inbound message from a lead
+        try {
+          const { campaignLeads } = await import('../../../shared/schema.js');
+          const { db } = await import('../../db.js');
+          const { eq, and } = await import('drizzle-orm');
 
-        if (latestMessage) {
-          console.log('[DEBUG] Latest message found for analysis:', latestMessage.id);
+          await db.update(campaignLeads)
+            .set({ status: 'replied' })
+            .where(
+              and(
+                eq(campaignLeads.leadId, lead.id),
+                eq(campaignLeads.status, 'sent') // Must be in 'sent' status (outreached) to be 'replied'
+              )
+            );
+          console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in active campaigns`);
+        } catch (campaignStatusError) {
+          console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
+        }
 
-          try {
-            const fullAnalysis = await analyzeInboundMessage(lead.id, latestMessage, lead as any);
-            console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
-          } catch (analysisError) {
-            console.error('[EMAIL_IMPORT] Inbound message analysis error:', analysisError);
-          }
+        // 2. Run full inbound message analysis
+        // We need the full message object for analysis
+        const messageForAnalysis = {
+          ...newMessage,
+          id: (newMessage as any).id,
+          body: email.text || email.html || ''
+        };
 
-          // MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
-          try {
-            const { campaignLeads } = await import('../../../shared/schema.js');
-            const { db } = await import('../../db.js');
-            const { eq, and } = await import('drizzle-orm');
-
-            await db.update(campaignLeads)
-              .set({ status: 'replied' })
-              .where(
-                and(
-                  eq(campaignLeads.leadId, lead.id),
-                  eq(campaignLeads.status, 'sent') // Must be in 'sent' status (outreached) to be 'replied'
-                )
-              );
-            console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in active campaigns`);
-          } catch (campaignStatusError) {
-            console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
-          }
+        try {
+          const fullAnalysis = await analyzeInboundMessage(lead.id, messageForAnalysis as any, lead as any);
+          console.log(`[EMAIL_IMPORT] Full inbound analysis for ${lead.email}: urgency=${fullAnalysis.urgencyLevel}, quality=${fullAnalysis.qualityScore}`);
+        } catch (analysisError) {
+          console.error('[EMAIL_IMPORT] Inbound message analysis error:', analysisError);
         }
 
         // Check if we should auto-reply (lead not paused, not recently replied)

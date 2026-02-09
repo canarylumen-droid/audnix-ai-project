@@ -7,7 +7,7 @@ export default function FindLeadsPage() {
     return (
         <DocumentationLayout
             title="Precision Lead Discovery"
-            subtitle="Autonomous Ingestion Protocol"
+            subtitle="Autonomous Ingestion Workflow"
             sections={[
                 {
                     id: "simulation",
@@ -16,7 +16,7 @@ export default function FindLeadsPage() {
                     content: (
                         <DocSection title="System in Action">
                             <p className="mb-8">
-                                Observe how the Audnix Neural Core processes complex, sentiment-driven requests. Unlike static lead databases, our system performs live, on-demand analysis of the digital landscape to find prospects based on specific "Pain Signals."
+                                Observe how the Audnix Intelligence Core processes complex, sentiment-driven requests. Unlike static lead databases, our system performs live, on-demand analysis of the digital landscape to find prospects based on specific "Pain Signals."
                             </p>
                             <ProspectionVideo />
                             <p className="mt-8 mb-4">
@@ -67,7 +67,7 @@ export default function FindLeadsPage() {
                     title: "Dynamic Personas",
                     icon: Users,
                     content: (
-                        <DocSection title="Neural Identity Mapping">
+                        <DocSection title="Intelligent Identity Mapping">
                             <p className="mb-8">
                                 Audnix doesn't just look for "leads"; it identifies <strong>High-Intent Personas</strong>. We process thousands of data points to categorize prospects by their likely pain points and psychological profile.
                             </p>
@@ -107,7 +107,7 @@ export default function FindLeadsPage() {
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
                                     <Instagram className="w-10 h-10 text-[#E1306C]" />
-                                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Instagram Neural</h4>
+                                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Instagram Intelligence</h4>
                                     <p className="text-sm text-white/40 leading-relaxed font-medium">Analyzes Bio Descriptions and Engagement Metadata across any industry. Pinpoints brands and creators who are <strong>losing money on the table</strong> specifically so you can offer your services at their peak point of pain.</p>
                                 </div>
                                 <div className="p-8 rounded-[2rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 space-y-4 group hover:bg-white/[0.05] transition-all">
@@ -150,7 +150,7 @@ export default function FindLeadsPage() {
                                     { title: "SMTP Handshake (No Send)", desc: "Pinging the server to verify the mailbox exists without actually sending an email." },
                                     { title: "Catch-all Detection", desc: "Identifying 'risky' mailboxes that accept everything to protect your sender reputation." },
                                     { title: "Blacklist Scrubbing", desc: "Ensuring your prospects aren't already on global spam traps." },
-                                    { title: "Neural Recovery Protocol", desc: "AI-driven correction of invalid domains and syntax to reclaim lost leads with 99% accuracy." }
+                                    { title: "Intelligent Recovery Workflow", desc: "AI-driven correction of invalid domains and syntax to reclaim lost leads with 99% accuracy." }
                                 ].map((step, i) => (
                                     <div key={i} className="flex gap-4 p-4 rounded-xl bg-white/[0.02] border border-white/5 font-medium">
                                         <div className="text-primary font-black uppercase text-[10px] w-8">0{i + 1}</div>
@@ -166,7 +166,7 @@ export default function FindLeadsPage() {
                 },
                 {
                     id: "wealth",
-                    title: "Neural Wealth Mapping",
+                    title: "Predictive Wealth Mapping",
                     icon: Zap,
                     content: (
                         <DocSection title="Predictive Financial Intelligence">

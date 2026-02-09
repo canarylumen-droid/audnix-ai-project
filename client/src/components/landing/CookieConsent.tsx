@@ -91,7 +91,7 @@ export function CookieConsent() {
                         </div>
 
                         <div className="flex-1 text-center md:text-left space-y-1">
-                            <h4 className="text-white font-bold tracking-widest text-[10px] uppercase">Privacy Protocol</h4>
+                            <h4 className="text-white font-bold tracking-widest text-[10px] uppercase">Privacy Policy</h4>
                             <p className="text-gray-200 text-xs font-medium leading-relaxed max-w-sm">
                                 We utilize secure behavioral cookies to optimize your revenue projection models and maintain session integrity.
                             </p>

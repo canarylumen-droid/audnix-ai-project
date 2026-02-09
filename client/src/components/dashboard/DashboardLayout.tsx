@@ -170,7 +170,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     {
       label: "Reports",
       items: [
-        { label: "Audit Logs", icon: Activity, path: "/dashboard/ai-decisions" },
+        { label: "Transparency Audit Log", icon: Activity, path: "/dashboard/ai-decisions" },
         { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
         { label: "Insights", icon: Sparkles, path: "/dashboard/insights" },
         { label: "Visual Map", icon: Globe, path: "/dashboard/video-automation" },
@@ -304,152 +304,170 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   }
 
   return (
-    <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden">
+    <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden relative">
       <InternetConnectionBanner />
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
 
+      {/* Decorative Mesh Background */}
+      <div className="absolute inset-0 mesh-gradient-bg opacity-30 pointer-events-none z-0" />
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar (Floating Variant) */}
       <motion.aside
-        className="hidden md:flex flex-col border-r border-border/40 bg-sidebar z-50 transition-all duration-500 ease-out relative"
-        animate={{ width: sidebarCollapsed ? "5rem" : "20rem" }}
+        className="hidden md:flex flex-col z-50 p-4 transition-all duration-500 ease-out relative"
+        animate={{ width: sidebarCollapsed ? "6.5rem" : "21rem" }}
       >
+        <div className="flex-1 flex flex-col glass-premium rounded-[2.5rem] overflow-hidden border border-primary/10 shadow-2xl relative">
+          {/* Subtle Glow Effect */}
+          <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 blur-[100px] pointer-events-none" />
 
 
-        {/* Sidebar Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-border/40 bg-[#030712] text-white">
-          <Logo className="h-10 w-10" textClassName="text-xl font-bold text-white" />
-        </div>
-        {!sidebarCollapsed && (
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setSidebarCollapsed(true)}>
-            <PanelLeftClose className="h-4 w-4" />
-          </Button>
-        )}
-        {sidebarCollapsed && (
-          <div className="flex justify-center py-4 border-b border-border/40">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSidebarCollapsed(false)}>
-              <PanelLeftOpen className="h-4 w-4" />
+          {/* Sidebar Header */}
+          <div className="h-24 flex items-center justify-between px-6 bg-primary/5 border-b border-white/5">
+            {!sidebarCollapsed ? (
+              <Logo className="h-8 w-8" textClassName="text-lg font-bold text-white" />
+            ) : (
+              <div className="w-full flex justify-center">
+                <Logo className="h-8 w-8" textClassName="hidden" />
+              </div>
+            )}
+          </div>
+
+          <div className="absolute top-24 right-4 z-10">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground backdrop-blur-md border border-white/5"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
             </Button>
           </div>
-        )}
 
 
-        {/* Navigation */}
-        <ScrollArea className="flex-1 px-4 py-8">
-          <div className="space-y-8">
-            <div>
-              {!sidebarCollapsed && <h4 className="px-4 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] mb-3 font-sans">Platform</h4>}
-              {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
-            </div>
+          {/* Navigation */}
+          <ScrollArea className="flex-1 px-3 py-6">
+            <div className="space-y-8">
+              <div>
+                {!sidebarCollapsed && <h4 className="px-4 text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] mb-4 font-sans flex items-center gap-2">
+                  <div className="h-[1px] w-2 bg-primary/20" /> Core
+                </h4>}
+                {renderNavItem({ label: "Overview", icon: Home, path: "/dashboard" })}
+              </div>
 
-            {navGroups.map(group => (
-              <div key={group.label} className="space-y-2">
-                {!sidebarCollapsed ? (
-                  <button
-                    onClick={() => toggleGroup(group.label)}
-                    className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-muted-foreground/30 uppercase tracking-[0.2em] hover:text-foreground transition-colors group font-sans"
-                  >
-                    {group.label}
-                    <ChevronDown className={`h-3 w-3 transition-transform opacity-50 group-hover:opacity-100 ${expandedGroups[group.label] ? "" : "-rotate-90"}`} />
-                  </button>
-                ) : (
-                  <Separator className="my-4 bg-border/40" />
-                )}
-
-                <AnimatePresence initial={false}>
-                  {(expandedGroups[group.label] || sidebarCollapsed) && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden space-y-1"
+              {navGroups.map(group => (
+                <div key={group.label} className="space-y-2">
+                  {!sidebarCollapsed ? (
+                    <button
+                      onClick={() => toggleGroup(group.label)}
+                      className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] hover:text-foreground transition-colors group font-sans"
                     >
-                      {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
-                    </motion.div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-[1px] w-2 bg-primary/20" />
+                        {group.label}
+                      </div>
+                      <ChevronDown className={`h-3 w-3 transition-transform opacity-30 group-hover:opacity-100 ${expandedGroups[group.label] ? "" : "-rotate-90"}`} />
+                    </button>
+                  ) : (
+                    <div className="h-px bg-white/5 mx-4 my-6" />
                   )}
-                </AnimatePresence>
-              </div>
-            ))}
 
-            <div className="pt-8">
-              {sidebarCollapsed && <Separator className="my-4 bg-border/40" />}
-              {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
-            </div>
-          </div>
-        </ScrollArea>
-
-        {/* Sidebar Footer */}
-        <div className="p-6 border-t border-border/40">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-muted/50 transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
-                <Avatar className="h-10 w-10 rounded-xl border border-border/40 shadow-sm">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="rounded-xl bg-muted font-bold text-sm">
-                    {(user?.name || "U").charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {!sidebarCollapsed && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate text-foreground">{user?.name || "Member"}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{user?.plan || "Free"} Plan</p>
-                  </div>
-                )}
-                {!sidebarCollapsed && <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground transition-colors" />}
-              </div>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-1 rounded-2xl" side={sidebarCollapsed ? "right" : "top"} sideOffset={12}>
-              <div className="p-4 border-b border-border/40 bg-muted/20 rounded-t-xl mb-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-xl">
-                    <AvatarImage src={user?.avatar} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-xl">
-                      {(user?.name || "U").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-bold text-foreground mb-0.5">{user?.name}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground truncate w-40">{user?.email}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
-                      <span>Leads Processed</span>
-                      <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
-                    </div>
-                    <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
+                  <AnimatePresence initial={false}>
+                    {(expandedGroups[group.label] || sidebarCollapsed) && (
                       <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
-                        className="h-full bg-primary"
-                      />
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden space-y-1 px-1"
+                      >
+                        {group.items.map(item => renderNavItem(item, !!(item.requiresStep && !isFeatureUnlocked(item.requiresStep))))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+
+              <div className="pt-8 px-1">
+                {sidebarCollapsed && <div className="h-px bg-white/5 mx-4 my-6" />}
+                {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
+              </div>
+            </div>
+          </ScrollArea>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-white/5 bg-white/5">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-2xl hover:bg-white/10 transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
+                  <div className="relative">
+                    <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-lg transition-transform group-hover:scale-105">
+                      <AvatarImage src={user?.avatar} />
+                      <AvatarFallback className="rounded-xl bg-primary/20 text-primary font-bold text-sm">
+                        {(user?.name || "U").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0D1117]" />
+                  </div>
+                  {!sidebarCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate text-foreground/90 group-hover:text-foreground">{user?.name || "Member"}</p>
+                      <p className="text-[10px] font-bold text-primary/60 uppercase tracking-wider">{user?.plan || "Free"} AI Model</p>
+                    </div>
+                  )}
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-1 rounded-2xl" side={sidebarCollapsed ? "right" : "top"} sideOffset={12}>
+                <div className="p-4 border-b border-border/40 bg-muted/20 rounded-t-xl mb-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-xl">
+                      <AvatarImage src={user?.avatar} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-xl">
+                        {(user?.name || "U").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-bold text-foreground mb-0.5">{user?.name}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground truncate w-40">{user?.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.1em] text-muted-foreground/80">
+                        <span>Leads Processed</span>
+                        <span>{dashboardStats?.totalLeads || 0} / {user?.plan === 'trial' ? 500 : 2500}</span>
+                      </div>
+                      <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(((dashboardStats?.totalLeads || 0) / (user?.plan === 'trial' ? 500 : 2500)) * 100, 100)}%` }}
+                          className="h-full bg-primary"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="p-1">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-                    <User className="mr-3 h-4 w-4" />
-                    Profile Settings
+                <div className="p-1">
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                      <User className="mr-3 h-4 w-4" />
+                      Profile Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                      <CreditCard className="mr-3 h-4 w-4" />
+                      Subscription
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="my-1 mx-2" />
+                  <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                    <LogOut className="mr-3 h-4 w-4" />
+                    Sign out
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-                    <CreditCard className="mr-3 h-4 w-4" />
-                    Subscription
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator className="my-1 mx-2" />
-                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-                  <LogOut className="mr-3 h-4 w-4" />
-                  Sign out
-                </DropdownMenuItem>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </motion.aside>
 
@@ -508,13 +526,13 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input
                 placeholder="Search leads and messages..."
-                className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner"
+                className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner text-foreground dark:text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
               />
               <div className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-20 group-focus-within:opacity-100 transition-opacity">
-                <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg border border-border bg-muted/80 font-mono text-[9px] font-black text-muted-foreground">
+                <kbd className="hidden sm:inline-flex items-center px-2 py-1 rounded-lg border border-border bg-muted/80 font-mono text-[9px] font-black text-foreground dark:text-white">
                   CTRL K
                 </kbd>
               </div>

@@ -208,7 +208,7 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
 
           <div className="p-8">
             <AnimatePresence mode="wait" custom={1}>
-              {/* Step 0: Neural Handshake */}
+              {/* Step 0: System Handshake */}
               {step === 0 && (
                 <motion.div
                   key="step0"

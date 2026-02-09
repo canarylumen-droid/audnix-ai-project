@@ -3,7 +3,7 @@ import { Check, X, Shield, Zap, Brain, Lock, Server, Cpu, AlertTriangle } from "
 
 const COMPARISON_DATA = [
     {
-        feature: "Neural Architecture",
+        feature: "AI Architecture",
         audnix: "Stateful Vector Memory (Pinecone)",
         wrappers: "Stateless Session (Forgets You)",
         humans: "Fragmented Notion Docs",
@@ -24,7 +24,7 @@ const COMPARISON_DATA = [
         icon: Server
     },
     {
-        feature: "Safety Protocol",
+        feature: "Safety Standards",
         audnix: "Deterministic Guardrails",
         wrappers: "Prone to Prompt Injection",
         humans: "Emotional/Mood Based Errors",
@@ -87,7 +87,7 @@ export function ComparisonSection() {
                                 <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-orange-400/80 font-bold border-b border-white/5 bg-orange-500/[0.02]">Human VAs / SDRs</th>
                                 <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-primary font-bold border-b border-white/5 bg-primary/[0.05] border-t-2 border-t-primary relative">
                                     <div className="absolute top-0 left-0 right-0 h-32 bg-primary/10 blur-[60px] -z-10" />
-                                    Audnix Protocol
+                                    Audnix System
                                 </th>
                             </tr>
                         </thead>

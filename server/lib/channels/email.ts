@@ -96,7 +96,7 @@ interface ParsedEmail {
 export function injectTrackingPixel(html: string, trackingId: string): string {
   if (!trackingId) return html;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnix.com';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://audnixai.com';
   const pixelUrl = `${baseUrl}/api/outreach/track/${trackingId}`;
   const pixelHtml = `<img src="${pixelUrl}" width="1" height="1" style="display:none !important;" alt="" />`;
 
@@ -394,7 +394,7 @@ export async function sendEmail(
           emailBody = generateBrandedEmail(content, { text: options.buttonText, url: options.buttonUrl }, brandColors, businessName);
         }
       } else {
-        emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
+        emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnixai.com' }, brandColors, businessName);
       }
     }
 
@@ -442,7 +442,7 @@ export async function sendEmail(
       }
       options.isHtml = true;
     } else {
-      emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnix.com' }, brandColors, businessName);
+      emailBody = generateBrandedEmail(content, { text: 'View Details', url: 'https://audnixai.com' }, brandColors, businessName);
       options.isHtml = true;
     }
   } else {

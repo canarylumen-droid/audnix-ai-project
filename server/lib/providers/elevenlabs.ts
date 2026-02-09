@@ -43,37 +43,48 @@ export class ElevenLabsProvider {
     const voiceId = options?.voiceId || this.voiceId;
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Accept": "audio/mpeg",
-        "Content-Type": "application/json",
-        "xi-api-key": this.apiKey
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: options?.stability || 0.5,
-          similarity_boost: options?.similarity_boost || 0.75
-        }
-      })
-    });
+    let lastError: Error | null = null;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Accept": "audio/mpeg",
+            "Content-Type": "application/json",
+            "xi-api-key": this.apiKey
+          },
+          body: JSON.stringify({
+            text,
+            model_id: "eleven_multilingual_v2",
+            voice_settings: {
+              stability: options?.stability || 0.5,
+              similarity_boost: options?.similarity_boost || 0.75
+            }
+          })
+        });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`ElevenLabs API error: ${error}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`ElevenLabs API error (${response.status}): ${errorText}`);
+        }
+
+        const audioBuffer = Buffer.from(await response.arrayBuffer());
+
+        // Estimate duration based on text length (rough approximation)
+        const estimatedDuration = Math.ceil(text.split(" ").length * 0.4);
+
+        return {
+          audioBuffer,
+          duration: estimatedDuration,
+        };
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`ElevenLabs attempt ${i + 1} failed:`, error);
+        if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
     }
 
-    const audioBuffer = Buffer.from(await response.arrayBuffer());
-    
-    // Estimate duration based on text length (rough approximation)
-    const estimatedDuration = Math.ceil(text.split(" ").length * 0.4);
-
-    return {
-      audioBuffer,
-      duration: estimatedDuration,
-    };
+    throw lastError || new Error("Failed after 3 attempts");
   }
 
   /**
@@ -93,7 +104,7 @@ export class ElevenLabsProvider {
 
     const formData = new FormData();
     formData.append("name", name);
-    
+
     audioFiles.forEach((buffer, index) => {
       const blob = new Blob([buffer], { type: "audio/mpeg" });
       formData.append("files", blob, `sample_${index}.mp3`);

@@ -256,7 +256,7 @@ export function Navigation() {
               className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-10">
-                <span className="text-lg font-black tracking-tighter">AUDNIXAI<span className="text-primary">.COM</span></span>
+                <span className="text-lg font-black tracking-tighter uppercase">Audnix<span className="text-primary">.AI</span></span>
                 <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-xl hover:bg-white/5">
                   <ChevronDown className="w-5 h-5 rotate-90" />
                 </Button>

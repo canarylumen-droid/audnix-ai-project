@@ -8,7 +8,7 @@ import type { PlanType } from '../../shared/types.js';
 const router = Router();
 
 const planLimits: Record<PlanType, number> = {
-  trial: 0,
+  trial: 5,
   starter: 100,
   pro: 400,
   enterprise: 1000

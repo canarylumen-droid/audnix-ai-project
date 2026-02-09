@@ -45,10 +45,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* Logo */}
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-b from-[#0d1428] via-[#0a0f1f] to-[#0d1428] p-1 rounded-lg">
-                <img src="/logo.png" alt="audnix.com" className="h-8 w-8 rounded-lg" />
+                <img src="/logo.png" alt="audnixai.com" className="h-8 w-8 rounded-lg" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">audnix.com</h1>
+                <h1 className="text-lg font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">audnixai.com</h1>
                 <p className="text-xs text-muted-foreground">Admin Portal</p>
               </div>
             </div>

@@ -20,7 +20,7 @@ export default function AgenciesPage() {
                     icon: ScanSearch
                 },
                 {
-                    title: "White-Label Neural Cloning",
+                    title: "White-Label AI Cloning",
                     desc: "Train a unique AI agent for each client that perfectly mimics their tone, handles their specific objections, and books meetings in their name.",
                     icon: Bot
                 },
@@ -46,9 +46,9 @@ Your payroll swells, but your margins shrink. When a hire makes a mistake or gho
 
 Audnix breaks this cycle. 
 
-By deploying autonomous neural agents, you decouple revenue from headcount. One manager can now oversee 50+ client bots that never sleep, never forget a script, and never have a 'bad day'.`}
-            deepDiveTitle="Multi-Tenant Neural Ops"
-            deepDiveText={`Audnix was built for agencies first. Our 'Commander' dashboard allows you to toggle between 50+ client sub-accounts in seconds.
+By deploying autonomous AI agents, you decouple revenue from headcount. One manager can now oversee 50+ client bots that never sleep, never forget a script, and never have a 'bad day'.`}
+            deepDiveTitle="Multi-Tenant AI Operations"
+            deepDiveText={`Audnix was built for agencies first. Our central dashboard allows you to toggle between 50+ client sub-accounts in seconds.
             
             Each client gets their own isolated 'Brain' (Knowledge Base) and 'Voice' (Style Guide). This means Client A's bot will never talk like Client B's bot.
             

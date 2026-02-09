@@ -27,16 +27,16 @@ export default function FoundersPage() {
             ]}
             problemTitle="The Founder's Bottleneck"
             problemText={`Nobody sells better than the Founder. But you can't take every call.
-
-When you take the call, the close rate is 40%. When you hire a rep, it drops to 15%. Hiring is a nightmare: $10k recruiters, $5k bases, and months of training, only for them to burn leads.
-
-Meanwhile, your calendar is full of 'tire kickers' with $0 budget. You spend your precious time doing unpaid consulting for people who can't afford you.
-
-Audnix clones your sales logic—your best objection handlers, your qualification criteria, and your tone. 
+ 
+ When you take the call, the close rate is 40%. When you hire a rep, it drops to 15%. Hiring is a nightmare: $10k recruiters, $5k bases, and months of training, only for them to burn leads.
+ 
+ Meanwhile, your calendar is full of 'tire kickers' with $0 budget. You spend your precious time doing unpaid consulting for people who can't afford you.
+ 
+ Audnix clones your sales logic—your best objection handlers, your qualification criteria, and your tone. 
 
 The AI agent sits at the front door. It talks to every lead, asks the hard questions about budget and timeline, and ruthlessly filters out the unqualified. It only puts the 'Hell Yes' leads on your calendar.`}
-            deepDiveTitle="The Closer Protocol"
-            deepDiveText={`We analyzed over 100,000 successful high-ticket sales conversations to build our 'Closer Protocol' logic.
+            deepDiveTitle="The Closing System"
+            deepDiveText={`We analyzed over 100,000 successful high-ticket sales conversations to build our 'Closing System' logic.
             
             Audnix doesn't just answer questions; it drives the conversation. It uses 'Micro-Agreements', 'Labeling', and 'Mirroring' techniques (from Chris Voss negotiation frameworks) to uncover real pain points.
             

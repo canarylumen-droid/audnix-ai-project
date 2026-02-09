@@ -48,7 +48,7 @@ export function MoatSection() {
                         </ul>
                     </motion.div>
 
-                    {/* audnix.com */}
+                    {/* audnixai.com */}
                     <motion.div
                         initial={{ opacity: 0, x: 50 }}
                         whileInView={{ opacity: 1, x: 0 }}
@@ -60,7 +60,7 @@ export function MoatSection() {
                                 <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/30">
                                     <Shield className="w-6 h-6 text-primary" />
                                 </div>
-                                <h3 className="text-xl font-bold text-foreground uppercase tracking-widest">High-Ticket Closer Protocol</h3>
+                                <h3 className="text-xl font-bold text-foreground uppercase tracking-widest">High-Ticket Closer Engine</h3>
                             </div>
 
                             <ul className="space-y-6">

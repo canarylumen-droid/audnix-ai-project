@@ -112,7 +112,7 @@ export function SolutionPageTemplate({
                             <div className="flex flex-wrap gap-4">
                                 <Link href="/auth">
                                     <Button size="lg" className="h-14 px-8 rounded-full bg-primary text-black font-black uppercase tracking-widest shadow-[0_0_30px_rgba(0,210,255,0.3)] hover:scale-105 transition-all text-xs">
-                                        Initialize Protocol <ArrowRight className="ml-2 w-4 h-4" />
+                                        Get Started <ArrowRight className="ml-2 w-4 h-4" />
                                     </Button>
                                 </Link>
                                 <Link href="/#calc">
@@ -212,7 +212,7 @@ export function SolutionPageTemplate({
                             />
                             <Link href="/auth">
                                 <Button variant="ghost" className="rounded-full px-0 font-black uppercase tracking-widest text-[10px] text-primary hover:text-white hover:bg-transparent transition-colors group">
-                                    Initialize Neural Handshake <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    Get Started <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </Button>
                             </Link>
                         </div>
@@ -281,7 +281,7 @@ export function SolutionPageTemplate({
                                                 />
                                             </svg>
                                         </div>
-                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Neural Pulse Active</div>
+                                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Platform Active</div>
                                     </div>
 
                                     {/* List Block */}
@@ -317,7 +317,7 @@ export function SolutionPageTemplate({
                     <div className="max-w-3xl mx-auto space-y-8">
                         <div className="text-center space-y-1">
                             <h2 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">Technical FAQs</h2>
-                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Protocol implementation details</p>
+                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Implementation details</p>
                         </div>
                         <div className="grid gap-2">
                             {faqs.map((faq, i) => (

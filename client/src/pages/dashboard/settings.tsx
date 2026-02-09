@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Mail as MailIcon } from "lucide-react";
+import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon } from "lucide-react";
 // Mock/Fallback for missing Mail definition if it was expected as a functional object
 const Mail = {
   isDefined: true,
@@ -46,6 +46,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const voiceInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("profile");
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -112,9 +113,30 @@ export default function SettingsPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Knowledge Base Updated", description: "Brand materials uploaded successfully." });
+      toast({ title: "Intelligence Memory Synced", description: "Your brand intelligence has been updated." });
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
     }
+  });
+
+  const cloneVoiceMutation = useMutation({
+    mutationFn: async (files: FileList) => {
+      const formData = new FormData();
+      Array.from(files).forEach(file => formData.append('voice_samples', file));
+      const res = await fetch('/api/voice/clone', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Cloning failed');
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({ title: "Voice Cloned", description: data.message });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+    },
+    onError: (error: any) => toast({ title: "Cloning Failed", description: error.message, variant: "destructive" })
+  });
+
+  const { data: voiceUsage } = useQuery<any>({
+    queryKey: ["/api/voice/usage"],
+    enabled: !!user && (user.voiceNotesEnabled || canAccessVoiceNotes)
   });
 
   const handleFieldChange = (key: string, val: any) => {
@@ -151,7 +173,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="profile" className="w-full" onValueChange={setActiveTab}>
         <TabsList className="bg-muted p-1 rounded-xl mb-8">
           <TabsTrigger value="profile" className="rounded-lg px-8 py-2 font-bold text-sm">Profile</TabsTrigger>
-          <TabsTrigger value="brand" className="rounded-lg px-8 py-2 font-bold text-sm">Brand Guidelines</TabsTrigger>
+          <TabsTrigger value="brand" className="rounded-lg px-8 py-2 font-bold text-sm">Intelligence Memory</TabsTrigger>
           <TabsTrigger value="ai" className="rounded-lg px-8 py-2 font-bold text-sm">Automation</TabsTrigger>
         </TabsList>
 
@@ -250,11 +272,13 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="border-border/50 shadow-sm rounded-2xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Palette className="h-5 w-5 text-primary" />
-                  Knowledge Base
+                <CardTitle className="flex items-center gap-2 text-xl font-black">
+                  <Brain className="h-6 w-6 text-primary animate-pulse" />
+                  Intelligence Memory (Base context)
                 </CardTitle>
-                <CardDescription>Upload brand materials to train your AI.</CardDescription>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+                  Upload brand materials to train your personal AI brain.
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-8 pt-0">
                 {user.metadata?.brandPdfFileName ? (
@@ -358,6 +382,62 @@ export default function SettingsPage() {
               </div>
 
               <div className="p-6 bg-muted/30 rounded-xl border border-border">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h4 className="font-bold text-sm">Voice Training (Clone)</h4>
+                    <p className="text-xs text-muted-foreground mt-1">Upload 1-3 samples of your voice to train the AI.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => voiceInputRef.current?.click()}
+                    disabled={cloneVoiceMutation.isPending || !canAccessVoiceNotes}
+                    className="h-9 px-4 rounded-lg font-bold border-primary/20 hover:bg-primary/5 text-primary"
+                  >
+                    {cloneVoiceMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Mic className="w-4 h-4 mr-2" />}
+                    {user.metadata?.voiceCloneId ? 'Update Voice' : 'Clone Voice'}
+                  </Button>
+                  <input
+                    ref={voiceInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    accept="audio/*"
+                    onChange={e => e.target.files && cloneVoiceMutation.mutate(e.target.files)}
+                  />
+                </div>
+
+                {user.metadata?.voiceCloneId && (
+                  <div className="flex items-center gap-4 p-4 bg-primary/5 rounded-xl border border-primary/10 mb-6">
+                    <div className="p-2 bg-primary/20 rounded-full text-primary">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-primary">Voice Identity Verified</p>
+                      <p className="text-[10px] text-muted-foreground">Successfully cloned and ready for engagement.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div className="flex justify-between mb-1">
+                    <h4 className="font-bold text-[11px] uppercase tracking-wider text-muted-foreground">Monthly Voice Usage</h4>
+                    <span className="text-[11px] font-bold text-primary">{voiceUsage?.percentage || 0}% Used</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden border border-border/50">
+                    <div
+                      className="h-full bg-primary transition-all duration-500"
+                      style={{ width: `${voiceUsage?.percentage || 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
+                    <span>{voiceUsage?.used.toFixed(1) || 0} mins used</span>
+                    <span>{voiceUsage?.remaining.toFixed(1) || 0} mins remaining</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-muted/30 rounded-xl border border-border">
                 <div className="flex justify-between mb-4">
                   <h4 className="font-bold text-sm">Response Accuracy Threshold</h4>
                   <span className="text-sm font-bold text-primary">85%</span>
@@ -373,6 +453,6 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </div >
   );
 }

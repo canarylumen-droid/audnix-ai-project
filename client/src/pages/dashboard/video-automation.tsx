@@ -36,8 +36,14 @@ import {
   Search,
   Brain,
   Sparkles,
-  Loader
+  Loader,
+  Plus,
+  ChevronRight,
+  TrendingUp,
+  ChevronLeft
 } from "lucide-react";
+import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 interface VideoMonitorStats {
   commentsChecked: number;
@@ -153,7 +159,7 @@ function IntentDetectionDemo() {
             <Brain className="h-6 w-6" />
           </div>
           <div>
-            <CardTitle className="text-lg font-bold tracking-tight">Neural Intent Engine</CardTitle>
+            <CardTitle className="text-lg font-bold tracking-tight">Intelligence Intent Engine</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
               AI buying signal analysis
             </CardDescription>
@@ -295,7 +301,7 @@ function MonitorCard({ monitor, nextSync, onToggle, onDelete, isToggling, isDele
         {/* Sync Status */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30">
-            <span className="flex items-center gap-1.5"><Activity className="h-3 w-3 animate-pulse" /> Neural Cycle</span>
+            <span className="flex items-center gap-1.5"><Activity className="h-3 w-3 animate-pulse" /> Sync Cycle</span>
             <span>{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
           </div>
           <div className="h-1 w-full bg-muted/20 rounded-full overflow-hidden">
@@ -323,6 +329,7 @@ export default function VideoAutomationPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const [mounted, setMounted] = useState(false);
+  const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -359,7 +366,7 @@ export default function VideoAutomationPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/video-automation/monitors"] });
-      toast({ title: "Monitor activated", description: "Audnix is now watching this post" });
+      toast({ title: "Monitor activated", description: "Intelligence Memory is now watching this post" });
       setVideoUrl("");
     },
     onError: () => toast({ title: "Failed to create monitor", variant: "destructive" }),
@@ -386,7 +393,7 @@ export default function VideoAutomationPage() {
         createMonitor.mutate({
           videoId: data.id,
           videoUrl: data.url,
-          productLink: "https://audnix.com/demo",
+          productLink: "https://supermemory.ai/demo",
           ctaText: "Get Started",
         });
         break;
@@ -414,9 +421,9 @@ export default function VideoAutomationPage() {
           {/* Top gradient */}
           <div className="absolute top-0 inset-x-0 h-20 bg-gradient-to-b from-black/20 to-transparent" />
 
-          {/* Central Spinner/Glitch Effect */}
+          {/* Central Spinner */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader className="w-8 h-8 text-pink-500/20 animate-spin" />
+            <Loader className="w-8 h-8 text-primary/20 animate-spin" />
           </div>
 
           {/* Bottom bar skeleton */}
@@ -424,202 +431,289 @@ export default function VideoAutomationPage() {
             <Skeleton className="h-3 w-3/4 bg-white/10" />
             <Skeleton className="h-2 w-1/2 bg-white/5" />
           </div>
-
-          {/* Scanline Effect */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-pink-500/5 to-transparent bg-[length:100%_200%] animate-scan" />
         </div>
       ))}
     </div>
   );
 
+  const selectedMonitor = useMemo(() => {
+    return monitors?.find(mon => mon.id === selectedMonitorId);
+  }, [monitors, selectedMonitorId]);
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            Instagram Automation <Instagram className="h-6 w-6 text-primary" />
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Convert comments into sales automatically.
-          </p>
+          <h2 className="text-3xl font-black tracking-tighter text-foreground mb-2">Video Intelligence Workflow</h2>
+          <p className="text-muted-foreground font-medium max-w-lg">Transform Instagram Reels into conversion engines. Monitor engagement pulse and trigger AI outreach instantly.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex bg-muted/50 rounded-xl p-1 border border-border/50 shadow-inner">
+            <Button variant="ghost" className="h-9 px-4 text-xs font-black uppercase tracking-widest bg-background shadow-sm rounded-lg border border-border/20">Performance</Button>
+            <Button variant="ghost" className="h-9 px-4 text-xs font-black uppercase tracking-widest opacity-40">Configuration</Button>
+          </div>
           <Button
             variant="outline"
-            className="rounded-xl border-border/40 hover:bg-muted/50"
+            className="rounded-xl border-border/40 hover:bg-muted/50 h-11 px-4 text-xs font-black uppercase tracking-widest"
             onClick={() => {
               queryClient.invalidateQueries({ queryKey: ["/api/dashboard/instagram/media"] });
               toast({ title: "Syncing...", description: "Fetching latest Instagram media" });
             }}
           >
             <RefreshCw className="mr-2 h-4 w-4" />
-            Sync Live Feed
-          </Button>
-          <Button
-            className="rounded-xl shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
-            onClick={() => {
-              toast({ title: "Force Re-scan Initiated", description: "AI is checking all active monitors now." });
-            }}
-          >
-            <Activity className="mr-2 h-4 w-4" />
-            Force Re-scan
+            Sync
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Active Monitors & Demo */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* Left Column: Active Monitors List */}
         <div className="lg:col-span-1 space-y-6">
-          <IntentDetectionDemo />
+          <Card className="bg-card border-border/40 rounded-[2rem] overflow-hidden group border-b-4 border-b-primary/20">
+            <CardHeader className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">Active Workflow</h3>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+              </div>
+              <p className="text-2xl font-black">{monitors?.length || 0}</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Monitored Media Units</p>
+            </CardHeader>
+          </Card>
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              active automations ({monitors?.length || 0})
-            </h3>
-
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 px-4">Monitoring Workflows</h3>
+            <ScrollArea className="h-[400px] -mx-1 px-1">
+              <div className="space-y-3">
                 {monitorsLoading ? (
-                  <div className="space-y-4">
-                    {[1, 2, 3].map(i => (
-                      <Skeleton key={i} className="h-32 w-full rounded-xl bg-muted/10" />
-                    ))}
-                  </div>
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full rounded-2xl bg-muted/10" />
+                  ))
                 ) : monitors?.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center rounded-[2.5rem] border border-dashed border-border/40 bg-muted/5 backdrop-blur-sm">
-                    <div className="w-20 h-20 rounded-full bg-primary/5 flex items-center justify-center mb-6 relative">
-                      <Zap className="h-10 w-10 text-primary/40" />
-                      <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
-                    </div>
-                    <h4 className="text-xl font-bold text-foreground mb-2">No Active Monitors</h4>
-                    <p className="text-sm text-muted-foreground max-w-[280px] mb-8 leading-relaxed">
-                      Audnix AI is ready to automate your Instagram sales. Select a reel from the feed to start converting comments into deals.
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center rounded-2xl border border-dashed border-border/40 bg-muted/5 backdrop-blur-sm opacity-40">
+                    <Zap className="h-8 w-8 mb-4" />
+                    <p className="text-xs font-black uppercase tracking-widest leading-relaxed">
+                      No active monitors.
                     </p>
-                    <Button 
-                      variant="outline" 
-                      className="rounded-xl border-primary/20 hover:bg-primary/5 text-primary font-bold px-8 h-12"
-                      onClick={() => {
-                        document.querySelector('.relative.w-full.max-w-md input')?.scrollIntoView({ behavior: 'smooth' });
-                        (document.querySelector('.relative.w-full.max-w-md input') as HTMLElement)?.focus();
-                      }}
-                    >
-                      Browse Your Reels
-                    </Button>
                   </div>
                 ) : (
-                  Array.isArray(monitors) && monitors.map((monitor) => (
-                    <MonitorCard
-                      key={monitor.id}
-                      monitor={monitor}
-                      nextSync={monitor.lastSync ? new Date(new Date(monitor.lastSync).getTime() + 5 * 60000) : null}
-                      onToggle={() => toggleMonitor.mutate({ id: monitor.id, isActive: !monitor.isActive })}
-                      onDelete={() => deleteMonitor.mutate(monitor.id)}
-                      isToggling={toggleMonitor.isPending}
-                      isDeleting={deleteMonitor.isPending}
-                    />
+                  monitors?.map((mon) => (
+                    <motion.div
+                      key={mon.id}
+                      whileHover={{ scale: 1.02, x: 5 }}
+                      className={cn(
+                        "p-4 rounded-2xl border transition-all cursor-pointer group",
+                        selectedMonitorId === mon.id
+                          ? "bg-primary/5 border-primary/40 shadow-sm"
+                          : "bg-muted/30 border-border/40 hover:bg-muted/50"
+                      )}
+                      onClick={() => setSelectedMonitorId(mon.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-background border border-border flex items-center justify-center overflow-hidden shrink-0">
+                          {mon.metadata?.thumbnail_url ? (
+                            <img src={mon.metadata.thumbnail_url as string} alt="Thumbnail" className="w-full h-full object-cover" />
+                          ) : (
+                            <Play className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black truncate">{mon.ctaText || "Untitled Workflow"}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                            {mon.isActive ? 'Watching' : 'Paused'}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
                   ))
                 )}
               </div>
             </ScrollArea>
           </div>
+
+          <Button
+            className="w-full h-14 rounded-2xl font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 transition-all bg-primary text-primary-foreground"
+            onClick={() => {
+              toast({ title: "Provisioning Monitor", description: "Select a reel from your feed below." });
+            }}
+          >
+            <Plus className="w-4 h-4" /> Deploy New Monitor
+          </Button>
         </div>
 
-        {/* Right Column: Media Grid */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between bg-card p-2 rounded-xl border border-border/50 shadow-sm">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search reels..."
-                className="pl-9 bg-transparent border-none shadow-none focus-visible:ring-0"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-2 text-xs font-medium px-3 text-muted-foreground border-l border-border/50">
-              {filteredReels.length} Reels
-            </div>
-          </div>
+        {/* Right Column: Video Analysis and Reels Grid */}
+        <div className="lg:col-span-3 space-y-12">
+          {/* Main Stage (Selected Monitor Analysis) */}
+          <AnimatePresence mode="wait">
+            {selectedMonitorId ? (
+              <motion.div
+                key="analysis"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="space-y-8"
+              >
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
+                  <div className="xl:col-span-2">
+                    <div className="aspect-[9/16] bg-black rounded-[2.5rem] border-4 border-card shadow-2xl overflow-hidden relative group">
+                      {selectedMonitor?.videoUrl ? (
+                        <video
+                          src={selectedMonitor.videoUrl}
+                          className="w-full h-full object-cover"
+                          controls
+                          onContextMenu={(e) => handleContextMenu(e, 'video', selectedMonitor)}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-muted-foreground/20">
+                          <Play className="w-20 h-20" />
+                        </div>
+                      )}
+                      <div className="absolute top-6 left-6">
+                        <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/40 font-black text-[10px] tracking-widest">
+                          LIVE ANALYSIS
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
 
-          {reelsLoading || !mounted ? (
-            <ReelsSkeleton />
-          ) : (
-            <div className="space-y-6 animate-in fade-in duration-500">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                <AnimatePresence>
+                  <div className="xl:col-span-3 space-y-8">
+                    <div className="p-8 rounded-[2rem] bg-card border border-border/40 shadow-sm relative overflow-hidden group glass-premium">
+                      <div className="relative z-10">
+                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-4">Intelligence Analytics</h3>
+                        <h2 className="text-2xl font-black tracking-tight mb-4 truncate">{selectedMonitor?.videoUrl ? "Active Media Monitor" : "Select Monitor"}</h2>
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                          <div className="p-5 rounded-2xl bg-muted/40 border border-border/60">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">Intent Accuracy</p>
+                            <div className="flex items-end gap-2 text-xl font-black">84% <TrendingUp className="w-4 h-4 text-emerald-500 mb-1" /></div>
+                          </div>
+                          <div className="p-5 rounded-2xl bg-muted/40 border border-border/60">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">Impact Level</p>
+                            <div className="flex items-end gap-2 text-xl font-black">High <Zap className="w-4 h-4 text-amber-500 mb-1" /></div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs gap-3"
+                          onClick={() => setSelectedMonitorId(null)}
+                        >
+                          Cancel Process
+                        </Button>
+                      </div>
+                      <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-primary/5 blur-[80px] rounded-full group-hover:bg-primary/10 transition-colors" />
+                    </div>
+
+                    <IntentDetectionDemo />
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="h-[500px] rounded-[3rem] border-2 border-dashed border-border/40 bg-muted/10 flex flex-col items-center justify-center text-center p-12"
+              >
+                <div className="w-20 h-20 rounded-full bg-primary/5 border border-primary/10 flex items-center justify-center mb-6">
+                  <Play className="w-10 h-10 text-primary opacity-20" />
+                </div>
+                <h3 className="text-xl font-black tracking-tight mb-2">Intelligence Monitoring Hub</h3>
+                <p className="text-sm text-muted-foreground/60 max-w-sm font-medium italic">Select a monitor to view live intent analysis or deploy a new workflow from the reels below.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Reels Feed Section */}
+          <div className="space-y-8">
+            <div className="flex items-center justify-between border-b border-border/40 pb-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/40">Media Intelligence Feed</h3>
+              <div className="relative w-64 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  placeholder="Filter Reels..."
+                  className="pl-9 h-10 rounded-full bg-muted/50 border-none text-[11px] font-bold focus-visible:ring-2 focus-visible:ring-primary/20"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {reelsLoading || !mounted ? (
+              <ReelsSkeleton />
+            ) : (
+              <div className="space-y-12">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-6">
                   {currentReels.map((reel: any) => (
                     <motion.div
                       key={reel.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      onContextMenu={(e) => handleContextMenu(e, 'video', reel)}
-                      className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-black border border-border/20 shadow-sm hover:shadow-xl transition-all cursor-pointer ring-offset-background hover:ring-2 hover:ring-pink-500/50 hover:ring-offset-2"
+                      whileHover={{ y: -8, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="group relative aspect-[9/16] rounded-3xl overflow-hidden bg-black border border-border/10 shadow-lg cursor-pointer ring-offset-background hover:ring-4 hover:ring-primary/20 transition-all"
                       onClick={() => {
-                        if (!videoUrl) setVideoUrl(reel.url);
                         createMonitor.mutate({
                           videoId: reel.id,
-                          videoUrl: reel.permalink || reel.url,
-                          productLink: "https://audnix.com",
+                          videoUrl: reel.url,
+                          productLink: "https://supermemory.ai/demo",
                           ctaText: "Get Started",
-                          followUpConfig: { askFollowOnConvert: true, askFollowOnDecline: true }
                         });
                       }}
+                      onContextMenu={(e) => handleContextMenu(e, 'video', reel)}
                     >
-                      <div className="absolute inset-0 bg-muted flex items-center justify-center text-muted-foreground">
-                        {reel.mediaUrl ? (
-                          <video src={reel.mediaUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" muted loop onMouseEnter={e => e.currentTarget.play()} onMouseLeave={e => e.currentTarget.pause()} />
-                        ) : (
-                          <Instagram className="h-8 w-8 opacity-20" />
-                        )}
-                      </div>
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
-
-                      <div className="absolute bottom-0 inset-x-0 p-3 text-white">
-                        <p className="text-[10px] line-clamp-2 mb-2 opacity-90 leading-tight">{reel.caption || "No caption"}</p>
-                        <div className="flex items-center justify-between text-[9px] font-medium opacity-75 uppercase tracking-wider">
-                          <span className="flex items-center gap-1"><Play className="h-2 w-2" /> REEL</span>
-                          <span className="bg-white/20 px-1.5 py-0.5 rounded backdrop-blur-sm group-hover:bg-pink-500 group-hover:text-white transition-colors">Select</span>
+                      {reel.mediaUrl ? (
+                        <div className="w-full h-full relative">
+                          <img src={reel.thumbnailUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Reel" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="p-4 rounded-full bg-primary/90 text-primary-foreground shadow-2xl">
+                              <Plus className="w-6 h-6" />
+                            </div>
+                          </div>
                         </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted/20">
+                          <Instagram className="w-8 h-8 opacity-10" />
+                        </div>
+                      )}
+                      <div className="absolute bottom-6 inset-x-6">
+                        <p className="text-[10px] font-black text-white line-clamp-2 leading-snug opacity-80 uppercase tracking-widest">{reel.caption || "NO CAPTION"}</p>
                       </div>
                     </motion.div>
                   ))}
-                </AnimatePresence>
-              </div>
+                </div>
 
-              {totalPages > 1 && (
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                    {Array.from({ length: totalPages }).map((_, i) => (
-                      <PaginationItem key={i}>
-                        <PaginationLink
-                          isActive={currentPage === i + 1}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className="cursor-pointer"
-                        >
-                          {i + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              )}
-            </div>
-          )}
+                {totalPages > 1 && (
+                  <div className="flex justify-center pt-8">
+                    <Pagination>
+                      <PaginationContent className="bg-muted/30 border border-border/50 p-1 rounded-2xl">
+                        <PaginationItem>
+                          <PaginationPrevious
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-20" : "cursor-pointer hover:bg-background"}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              isActive={currentPage === i + 1}
+                              onClick={() => setCurrentPage(i + 1)}
+                              className={cn("cursor-pointer rounded-xl h-9 w-9 text-xs font-bold", currentPage === i + 1 ? "bg-primary text-primary-foreground" : "hover:bg-background")}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-20" : "cursor-pointer hover:bg-background"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

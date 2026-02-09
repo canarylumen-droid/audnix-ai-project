@@ -69,9 +69,12 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
       const formData = new FormData();
       formData.append("pdf", selectedFile);
 
-      const response = await fetch("/api/admin/analyze-pdf-v2", {
+      // NOTE: Assuming 'token' is available in this scope, e.g., from a useAuth hook or context.
+      // For demonstration, a placeholder is used. Replace with actual token retrieval.
+      const response = await fetch("/api/pdf/upload", {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -266,11 +269,10 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.1 }}
-                      className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-bold ${
-                        i <= analysis.output_quality_level
-                          ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-                          : "bg-slate-700 text-gray-500"
-                      }`}
+                      className={`flex-1 h-8 rounded flex items-center justify-center text-xs font-bold ${i <= analysis.output_quality_level
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                        : "bg-slate-700 text-gray-500"
+                        }`}
                     >
                       ⭐
                     </motion.div>
@@ -364,11 +366,10 @@ export function PDFUploadModalV2({ onClose }: { onClose: () => void }) {
                           );
                         }}
                         whileHover={{ scale: 1.02 }}
-                        className={`w-full text-left p-3 rounded transition ${
-                          selectedSuggestions.includes(suggestion)
-                            ? "bg-cyan-500/20 border border-cyan-500 text-cyan-200"
-                            : "bg-slate-700/50 border border-slate-600 text-gray-300 hover:border-slate-500"
-                        }`}
+                        className={`w-full text-left p-3 rounded transition ${selectedSuggestions.includes(suggestion)
+                          ? "bg-cyan-500/20 border border-cyan-500 text-cyan-200"
+                          : "bg-slate-700/50 border border-slate-600 text-gray-300 hover:border-slate-500"
+                          }`}
                       >
                         <p className="text-sm">{suggestion}</p>
                       </motion.button>

@@ -66,7 +66,7 @@ export default function PricingPage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-12 shadow-[0_0_20px_rgba(var(--primary),0.1)]"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            Select Your Scaling Protocol
+            Select Your Scaling Engine
           </motion.div>
 
           <motion.h1
@@ -178,7 +178,7 @@ export default function PricingPage() {
                     {loadingPlan === tier.id ? (
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     ) : null}
-                    {isCurrentPlan ? "Current Protocol" : "Initialize Scale"}
+                    {isCurrentPlan ? "Current Plan" : "Initialize Scale"}
                   </Button>
                 </div>
               </motion.div>
@@ -199,7 +199,7 @@ export default function PricingPage() {
           <div className="flex justify-center flex-wrap gap-12 text-white/30">
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              Audit Grade Security
+              Enterprise Grade Security
             </div>
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest">
               <Activity className="w-5 h-5 text-primary" />

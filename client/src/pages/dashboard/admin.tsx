@@ -185,7 +185,7 @@ export default function AdminPage() {
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-widest">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Neural Link Stable
+          System Link Stable
         </div>
       </div>
 
@@ -246,7 +246,7 @@ export default function AdminPage() {
           <Card data-testid="card-metric-mrr" className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden group hover:scale-[1.02] transition-transform duration-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
-                Neural Revenue
+                Projected Revenue
               </CardTitle>
               <DollarSign className="h-4 w-4 text-emerald-500" />
             </CardHeader>
@@ -303,7 +303,7 @@ export default function AdminPage() {
             <div className="flex-1 relative group">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search neural identity (email or username)..."
+                placeholder="Search digital identity (email or username)..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -372,7 +372,7 @@ export default function AdminPage() {
                     <SelectContent className="bg-slate-900 border-white/10 text-white">
                       <SelectItem value="free" className="font-bold">FREE (RESTRICTED)</SelectItem>
                       <SelectItem value="trial" className="font-bold">TRIAL (ELITE ACCESS)</SelectItem>
-                      <SelectItem value="starter" className="font-bold text-primary">STARTER PROTOCOL</SelectItem>
+                      <SelectItem value="starter" className="font-bold text-primary">STARTER TIER</SelectItem>
                       <SelectItem value="pro" className="font-bold text-purple-400">PRO COMMANDER</SelectItem>
                       <SelectItem value="enterprise" className="font-bold text-orange-400">ENTERPRISE ARCHITECT</SelectItem>
                     </SelectContent>

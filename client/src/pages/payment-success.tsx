@@ -87,7 +87,7 @@ export default function PaymentSuccess() {
                 <p className="text-sm font-bold uppercase tracking-wider">Pending Activation</p>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Your payment has been logged. Our neural verification system is finalizing your account upgrade. You'll have full access in just a few moments.
+                Your payment has been logged. Our intelligent verification system is finalizing your account upgrade. You'll have full access in just a few moments.
               </p>
             </div>
 

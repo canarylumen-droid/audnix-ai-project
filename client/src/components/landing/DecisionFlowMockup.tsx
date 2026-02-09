@@ -3,7 +3,7 @@ import { UserCheck, Zap, MessageSquare, LayoutGrid, Box, Cpu, Share2, Search, Da
 
 const NODES = [
     {
-        id: 1, type: "lead", icon: UserCheck, label: "Lead Inbound", sub: "Neural Sync Active", delay: 0,
+        id: 1, type: "lead", icon: UserCheck, label: "Lead Inbound", sub: "Decision Sync Active", delay: 0,
         stream: ["Identity Verified", "Geo-Tagged", "Intent Scanned"], color: "emerald"
     },
     {
@@ -11,11 +11,11 @@ const NODES = [
         stream: ["LinkedIn Scraped", "Email Guessing...", "Pattern Matched"], color: "blue"
     },
     {
-        id: 3, type: "action", icon: MessageSquare, label: "Engagement", sub: "Neural Outreach", delay: 0.4,
+        id: 3, type: "action", icon: MessageSquare, label: "Engagement", sub: "Intelligent Outreach", delay: 0.4,
         stream: ["Tone Synced", "Objection Map", "Sending..."], color: "primary"
     },
     {
-        id: 4, type: "result", icon: Zap, label: "Revenue", sub: "Growth Protocol", delay: 0.6,
+        id: 4, type: "result", icon: Zap, label: "Revenue", sub: "Growth System", delay: 0.6,
         stream: ["Meeting Booked", "CRM Synced", "USD Identified"], color: "yellow"
     },
 ];
@@ -31,16 +31,16 @@ const StreamLine = ({ text, delay }: { text: string, delay: number }) => (
     </motion.div>
 );
 
-export function AutomationFlowMockup() {
+export function DecisionFlowMockup() {
     return (
         <div className="relative w-full min-h-[600px] flex items-center justify-center p-4 md:p-12 group overflow-hidden">
-            {/* Background Neural Network SVG */}
+            {/* Background Intelligent Network SVG */}
             <svg className="absolute inset-0 w-full h-full opacity-[0.05] pointer-events-none">
-                <pattern id="neural-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                <pattern id="intelligent-grid" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
                     <circle cx="50" cy="50" r="1" fill="currentColor" />
                     <path d="M 50 50 L 150 50 M 50 50 L 50 150" stroke="currentColor" strokeWidth="0.5" />
                 </pattern>
-                <rect width="100%" height="100%" fill="url(#neural-grid)" />
+                <rect width="100%" height="100%" fill="url(#intelligent-grid)" />
             </svg>
 
             {/* Connecting Glow Paths */}

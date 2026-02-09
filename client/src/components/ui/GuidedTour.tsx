@@ -27,7 +27,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "sidebar",
     title: "Command Interface",
-    description: "Sovereign control surface. Access neural engagement logs, economic analytics, and system scaling modules.",
+    description: "Sovereign control surface. Access intelligence engagement logs, economic analytics, and system scaling modules.",
     targetSelector: "[data-testid='sidebar-desktop'], [data-testid='nav-desktop']",
     icon: <Navigation className="w-6 h-6 text-primary" />,
     position: "right",
@@ -35,15 +35,15 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "import-leads",
     title: "Data Ingestion Node",
-    description: "Feed raw intelligence (CSV/PDF) into the neural engine for immediate lead scoring and prioritization.",
+    description: "Feed raw intelligence (CSV/PDF) into the intelligence engine for immediate lead scoring and prioritization.",
     targetSelector: "[data-testid='nav-item-import leads']",
     icon: <Upload className="w-6 h-6 text-primary" />,
     position: "right",
   },
   {
     id: "conversations",
-    title: "Neural Engagement Log",
-    description: "Audit every objection handled and deal closed by your autonomous Sales Engine in real-time.",
+    title: "Intelligence Engagement Log",
+    description: "Review every objection handled and deal closed by your autonomous Sales Engine in real-time.",
     targetSelector: "[data-testid='nav-item-conversations']",
     icon: <MessageSquare className="w-6 h-6 text-primary" />,
     position: "right",
@@ -67,7 +67,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "done",
     title: "Calibration Complete",
-    description: "Protocol finalized. You are authorized for full engine deployment. Initiate revenue recovery.",
+    description: "System calibration finalized. You are authorized for full engine deployment. Initiate revenue recovery.",
     icon: <Check className="w-6 h-6 text-emerald-400" />,
     position: "center",
   },

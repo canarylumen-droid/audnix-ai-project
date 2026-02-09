@@ -5,7 +5,7 @@ import { Brain, Code, Terminal, Shield, Cpu, Zap, Database, Layers } from "lucid
 export default function ApiDocsPage() {
     return (
         <DocumentationLayout
-            title="Engineering Protocol"
+            title="Engineering Workflow"
             subtitle="API & Integration Docs"
             sections={[
                 {
@@ -13,7 +13,7 @@ export default function ApiDocsPage() {
                     title: "Architecture",
                     icon: Cpu,
                     content: (
-                        <DocSection title="The Neural Core">
+                        <DocSection title="The Intelligence Core">
                             <p>Audnix is built on a high-availability, distributed agent architecture. Our proprietary logic engine processes complex sentiment and intent signals across multi-channel environments to ensure deterministic accuracy and zero-latency decision making.</p>
                             <DocGrid>
                                 <HighlightCard
@@ -51,7 +51,7 @@ export default function ApiDocsPage() {
                                         <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold uppercase">GET</span>
                                         <span className="text-white/60">/api/intelligence/leads/:id</span>
                                     </div>
-                                    <p className="text-white/30 mb-4">// Retrieves the full neural profile of a verified lead.</p>
+                                    <p className="text-white/30 mb-4">// Retrieves the full intelligence profile of a verified lead.</p>
                                 </div>
                             </div>
                         </DocSection>

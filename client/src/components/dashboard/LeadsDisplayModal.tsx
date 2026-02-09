@@ -39,13 +39,13 @@ export function LeadsDisplayModal({
         <DialogHeader className="p-8 pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight">Imported Neural Profiles</DialogTitle>
+              <DialogTitle className="text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mt-1">
                 {leads.length} high-intent targets synchronized
               </DialogDescription>
             </div>
             <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1">
-              Neural Core Sync
+              System Core Sync
             </Badge>
           </div>
         </DialogHeader>
@@ -144,7 +144,7 @@ export function LeadsDisplayModal({
                   Processing...
                 </>
               ) : (
-                'Confirm Neural Sync'
+                'Confirm Sync'
               )}
             </Button>
           </div>

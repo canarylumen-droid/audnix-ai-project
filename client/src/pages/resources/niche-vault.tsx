@@ -47,7 +47,7 @@ export default function NicheVaultPage() {
                     title: "Sector Overview",
                     icon: LayoutGrid,
                     content: (
-                        <DocSection title="Specialized Neural Clusters">
+                        <DocSection title="Specialized Intelligence Clusters">
                             <p className="mb-8">
                                 Audnix doesn't use generic AI. Our agents are organized into <strong>Niche Clusters</strong>. Each cluster is pre-loaded with industry terminology, objection patterns, and closing cycles specific to that market.
                             </p>
@@ -78,10 +78,10 @@ export default function NicheVaultPage() {
                 },
                 {
                     id: "training",
-                    title: "The Training Protocol",
+                    title: "The Training Workflow",
                     icon: Brain,
                     content: (
-                        <DocSection title="Neural Specialization">
+                        <DocSection title="Intelligent Specialization">
                             <p className="mb-8">
                                 How do Audnix agents become experts? Every cluster undergoes a rigorous <strong>Knowledge Ingestion Cycle</strong> before it is deployed to the global network. We don't just feed the AI data; we architect understanding.
                             </p>

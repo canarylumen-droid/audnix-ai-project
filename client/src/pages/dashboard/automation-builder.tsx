@@ -28,7 +28,8 @@ import {
   Trash2,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Video
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -47,16 +48,16 @@ interface AutomationRule {
 }
 
 const ACTION_TYPES = [
-  { value: 'send_dm', label: 'Send DM', icon: MessageSquare },
+  { value: 'reply', label: 'Reply with AI', icon: MessageSquare },
+  { value: 'calendar', label: 'Book Calendar', icon: Calendar },
+  { value: 'video', label: 'Send Video', icon: Video },
   { value: 'send_email', label: 'Send Email', icon: Mail },
-  { value: 'book_meeting', label: 'Book Meeting', icon: Calendar },
-  { value: 'voice_note', label: 'Voice Note', icon: Zap },
 ];
 
 const CHANNELS = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'email', label: 'Email' },
-  { value: 'calendly', label: 'Calendly' },
+  { value: 'all', label: 'All Channels' },
 ];
 
 const RULE_TYPES = [
@@ -73,11 +74,11 @@ export default function AutomationBuilderPage() {
   const [newRule, setNewRule] = useState({
     name: '',
     ruleType: 'follow_up',
-    channel: 'email',
+    channel: 'all',
     minIntentScore: 60,
     minConfidence: 70,
     cooldownMinutes: 1440,
-    allowedActions: ['send_email'],
+    allowedActions: ['reply'],
   });
 
   const { data: rules, isLoading } = useQuery<AutomationRule[]>({
@@ -99,7 +100,7 @@ export default function AutomationBuilderPage() {
         minIntentScore: 60,
         minConfidence: 70,
         cooldownMinutes: 1440,
-        allowedActions: ['send_email'],
+        allowedActions: ['reply'],
       });
       toast({ title: 'Rule created', description: 'Your automation rule is now active.' });
     },
@@ -137,20 +138,21 @@ export default function AutomationBuilderPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="h-6 w-6 text-purple-500" />
+          <h1 className="text-4xl font-black tracking-tighter flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-inner">
+              <Brain className="h-8 w-8" />
+            </div>
             Automation Builder
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure intelligent automation rules with AI decision governance
+          <p className="text-muted-foreground font-medium mt-2 max-w-xl">
+            Configure intelligent automation rules with deterministic decision governance.
           </p>
         </div>
-        <Button onClick={() => setShowCreateForm(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          New Rule
+        <Button onClick={() => setShowCreateForm(true)} className="h-12 px-6 rounded-2xl font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary/20">
+          <Plus className="h-5 w-5" /> Deploy Rule
         </Button>
       </div>
 

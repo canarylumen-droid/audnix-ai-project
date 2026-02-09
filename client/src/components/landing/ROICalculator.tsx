@@ -243,7 +243,7 @@ export function ROICalculator() {
             <div className="flex items-center gap-4 px-8 py-6 rounded-[2rem] bg-primary/5 border border-primary/10">
               <Zap className="w-5 h-5 text-primary" />
               <p className="text-primary/80 text-xs font-bold uppercase tracking-widest leading-relaxed">
-                ROI based on real-time neural engagement optimization.
+                ROI based on real-time engagement optimization.
               </p>
             </div>
           </div>
@@ -276,7 +276,7 @@ export function ROICalculator() {
                   <Zap className="w-12 h-12 text-white fill-white" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Audnix Protocol ({calculations.audnixPercent}%)</h4>
+                  <h4 className="text-[10px] font-black text-white/50 uppercase tracking-[0.3em]">Audnix System ({calculations.audnixPercent}%)</h4>
                   <Badge className="bg-white text-primary font-black px-3 py-1 rounded-full">{calculations.multiplier}x</Badge>
                 </div>
                 <div className="space-y-1">

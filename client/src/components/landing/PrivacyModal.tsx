@@ -45,7 +45,7 @@ export function PrivacyModal() {
           <div className="flex items-center gap-4">
             <Logo className="w-12 h-12" textClassName="text-2xl font-black" />
             <div className="h-8 w-px bg-white/10" />
-            <h2 className="text-xl font-bold tracking-tight text-white/80 uppercase">Privacy Protocol</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white/80 uppercase">Privacy Policy</h2>
           </div>
           <button
             onClick={closeModal}
@@ -74,7 +74,7 @@ export function PrivacyModal() {
 
           <div className="pt-8 mt-8 border-t border-white/5">
             <p className="text-[10px] font-black uppercase tracking-widest text-white/20">
-              Last updated: January 2026 • support@audnix.com
+              Last updated: January 2026 • support@audnixai.com
             </p>
           </div>
         </div>

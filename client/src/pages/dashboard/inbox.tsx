@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
+import ManualOutreachModal from "@/components/outreach/ManualOutreachModal";
 import {
   Search,
   Trash2,
@@ -95,6 +96,8 @@ export default function InboxPage() {
   const [filterChannel, setFilterChannel] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all"); // Added status filter
   const [allLeads, setAllLeads] = useState<any[]>([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
 
   // Message Thread State
   const [replyMessage, setReplyMessage] = useState("");
@@ -321,6 +324,15 @@ export default function InboxPage() {
                 </DropdownMenu>
 
                 <Button variant="ghost" size="icon" onClick={() => window.location.reload()}><RefreshCw className="h-4 w-4" /></Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3 gap-1.5 text-xs font-medium"
+                  onClick={() => setIsCampaignModalOpen(true)}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Campaign
+                </Button>
               </div>
             </div>
 
@@ -496,7 +508,7 @@ export default function InboxPage() {
                             {/* Intensity Metrics */}
                             <AccordionItem value="metrics" className="border-none space-y-2">
                               <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Intent Probability</h4>
+                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engagement Probability</h4>
                               </AccordionTrigger>
                               <AccordionContent className="pt-2">
                                 <div className="p-6 rounded-3xl bg-muted/10 border border-border/30 space-y-4 shadow-inner">
@@ -512,7 +524,7 @@ export default function InboxPage() {
                                     />
                                   </div>
                                   <p className="text-[10px] text-muted-foreground/60 font-medium leading-relaxed italic mt-2">
-                                    Probability calculated based on real-time neural engagement patterns.
+                                    Probability calculated based on real-time intelligence engagement patterns.
                                   </p>
                                 </div>
                               </AccordionContent>
@@ -623,163 +635,170 @@ export default function InboxPage() {
                       </SheetContent>
                     </Sheet>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className={`h-9 rounded-xl border-primary/20 font-bold text-[10px] px-4 transition-all shadow-sm ${activeLead?.aiPaused
-                        ? "bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20"
-                        : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
-                        }`}
-                      onClick={() => activeLead && toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused })}
-                    >
-                      {activeLead?.aiPaused ? <Play className="h-3 w-3 mr-2 fill-current" /> : <Pause className="h-3 w-3 mr-2 fill-current" />}
-                      <span className="hidden sm:inline">{activeLead?.aiPaused ? "RESUME AUTOMATION" : "PAUSE AI"}</span>
-                    </Button>
-
-                    {!showDetails && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-primary hidden lg:flex hover:bg-primary/10 transition-colors"
-                        onClick={() => setShowDetails(true)}
-                      >
-                        <User className="h-5 w-5" />
-                      </Button>
+                    className={cn(
+                      "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
+                      !activeLead?.aiPaused
+                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                        : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
                     )}
+                    onClick={() => activeLead && toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused })}
+                    >
+                    <div className={cn("w-2 h-2 rounded-full mr-2 animate-pulse", !activeLead?.aiPaused ? "bg-emerald-500" : "bg-muted-foreground")} />
+                    <span className="hidden sm:inline">{!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF"}</span>
+                  </Button>
+
+                  {!showDetails && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 text-primary lg:hidden hover:bg-primary/10 transition-colors"
+                      className="h-10 w-10 text-primary hidden lg:flex hover:bg-primary/10 transition-colors"
                       onClick={() => setShowDetails(true)}
                     >
-                      <Brain className="h-5 w-5" />
+                      <User className="h-5 w-5" />
                     </Button>
-                  </div>
-                </div>
-
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5">
-                  {messagesLoading ? (
-                    <div className="space-y-6">
-                      <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl rounded-tl-none" /></div>
-                      <div className="flex justify-end"><Skeleton className="h-16 w-64 rounded-2xl rounded-tr-none" /></div>
-                      <div className="flex justify-start"><Skeleton className="h-12 w-48 rounded-2xl rounded-tl-none" /></div>
-                    </div>
-                  ) : messagesData?.messages?.map((msg: any) => (
-                    <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
-                      <div className={cn(
-                        "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
-                        msg.direction === 'inbound'
-                          ? "bg-card text-foreground rounded-tl-none border border-border/50"
-                          : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
-                      )}>
-                        <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
-                        {msg.metadata?.disclaimer && (
-                          <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
-                            {msg.metadata.disclaimer}
-                          </div>
-                        )}
-                        <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
-                          {msg.direction === 'outbound' && (
-                            <div className="flex items-center gap-1 mr-auto">
-                              {msg.openedAt ? (
-                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
-                                  <Activity className="h-2 w-2 mr-1" /> OPENED
-                                </Badge>
-                              ) : (
-                                <span className="opacity-40">Delivered</span>
-                              )}
-                            </div>
-                          )}
-                          {msg.metadata?.aiGenerated && <Sparkles className="h-2.5 w-2.5" />}
-                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {msg.direction === 'outbound' && (
-                            <div className="flex ml-1">
-                              <Check className={cn("h-3 w-3", msg.openedAt ? "text-primary-foreground" : "opacity-40")} />
-                              {msg.openedAt && <Check className="h-3 w-3 -ml-2 text-primary-foreground" />}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {isGenerating && typedText && (
-                    <div className="flex justify-end">
-                      <div className="max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-lg bg-primary/10 border border-primary/20 rounded-tr-none">
-                        <div className="whitespace-pre-wrap break-words italic text-primary/80">{typedText}</div>
-                        <div className="flex items-center gap-2 mt-3">
-                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                          <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest">Optimizing response...</span>
-                        </div>
-                      </div>
-                    </div>
                   )}
-                  <div ref={messagesEndRef} className="h-4 shrink-0" />
-                </div>
-
-                {/* Reply Input */}
-                <div className="p-4 md:p-6 border-t bg-background/80 backdrop-blur-md shrink-0">
-                  <div className="flex gap-3 items-end max-w-5xl mx-auto">
-                    <div className="flex-1 relative group">
-                      <textarea
-                        value={replyMessage}
-                        onChange={e => {
-                          setReplyMessage(e.target.value);
-                          // Auto-grow logic
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            if (replyMessage.trim() && !sendMutation.isPending) {
-                              sendMutation.mutate(replyMessage);
-                              (e.target as HTMLTextAreaElement).style.height = 'auto';
-                            }
-                          }
-                        }}
-                        placeholder="Compose a response..."
-                        className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleAiReply}
-                        disabled={isGenerating}
-                        className="absolute right-3 bottom-3 text-primary hover:bg-primary/10 h-10 w-10 rounded-xl"
-                      >
-                        {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={() => sendMutation.mutate(replyMessage)}
-                      disabled={!replyMessage.trim() || sendMutation.isPending}
-                      className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
-                    >
-                      {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
-                  </div>
-                  <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 text-primary lg:hidden hover:bg-primary/10 transition-colors"
+                    onClick={() => setShowDetails(true)}
+                  >
+                    <Brain className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
 
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5">
+                {messagesLoading ? (
+                  <div className="space-y-6">
+                    <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl rounded-tl-none" /></div>
+                    <div className="flex justify-end"><Skeleton className="h-16 w-64 rounded-2xl rounded-tr-none" /></div>
+                    <div className="flex justify-start"><Skeleton className="h-12 w-48 rounded-2xl rounded-tl-none" /></div>
+                  </div>
+                ) : messagesData?.messages?.map((msg: any) => (
+                  <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
+                    <div className={cn(
+                      "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
+                      msg.direction === 'inbound'
+                        ? "bg-card text-foreground rounded-tl-none border border-border/50"
+                        : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
+                    )}>
+                      <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
+                      {msg.metadata?.disclaimer && (
+                        <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
+                          {msg.metadata.disclaimer}
+                        </div>
+                      )}
+                      <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
+                        {msg.direction === 'outbound' && (
+                          <div className="flex items-center gap-1 mr-auto">
+                            {msg.openedAt ? (
+                              <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
+                                <Activity className="h-2 w-2 mr-1" /> OPENED
+                              </Badge>
+                            ) : (
+                              <span className="opacity-40">Delivered</span>
+                            )}
+                          </div>
+                        )}
+                        {msg.metadata?.aiGenerated && <Sparkles className="h-2.5 w-2.5" />}
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {msg.direction === 'outbound' && (
+                          <div className="flex ml-1">
+                            <Check className={cn("h-3 w-3", msg.openedAt ? "text-primary-foreground" : "opacity-40")} />
+                            {msg.openedAt && <Check className="h-3 w-3 -ml-2 text-primary-foreground" />}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {isGenerating && typedText && (
+                  <div className="flex justify-end">
+                    <div className="max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-lg bg-primary/10 border border-primary/20 rounded-tr-none">
+                      <div className="whitespace-pre-wrap break-words italic text-primary/80">{typedText}</div>
+                      <div className="flex items-center gap-2 mt-3">
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                        <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest">Optimizing response...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} className="h-4 shrink-0" />
+              </div>
+
+              {/* Reply Input */}
+              <div className="p-4 md:p-6 border-t bg-background/80 backdrop-blur-md shrink-0">
+                <div className="flex gap-3 items-end max-w-5xl mx-auto">
+                  <div className="flex-1 relative group">
+                    <textarea
+                      value={replyMessage}
+                      onChange={e => {
+                        setReplyMessage(e.target.value);
+                        // Auto-grow logic
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (replyMessage.trim() && !sendMutation.isPending) {
+                            sendMutation.mutate(replyMessage);
+                            (e.target as HTMLTextAreaElement).style.height = 'auto';
+                          }
+                        }
+                      }}
+                      placeholder="Compose a response..."
+                      className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
+                    />
+                    <Button
+                      size="icon"
+                      onClick={handleAiReply}
+                      disabled={isGenerating}
+                      className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
+                      title="Generate AI Reply"
+                    >
+                      {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={() => sendMutation.mutate(replyMessage)}
+                    disabled={!replyMessage.trim() || sendMutation.isPending}
+                    className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
+                  >
+                    {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                  </Button>
+                </div>
+                <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+              </div>
+            </div>
+
             </div>
           )}
-        </div>
       </div>
+    </div>
 
-      {activeLead && (
-        <LeadIntelligenceModal
-          isOpen={showIntelligence}
-          onOpenChange={setShowIntelligence}
-          lead={activeLead}
-        />
-      )}
+      {
+    activeLead && (
+      <LeadIntelligenceModal
+        isOpen={showIntelligence}
+        onOpenChange={setShowIntelligence}
+        lead={activeLead}
+      />
+    )
+  }
       <CustomContextMenu
         config={contextConfig}
         onClose={closeMenu}
         onAction={handleMenuAction}
       />
-    </div>
+      <ManualOutreachModal
+        isOpen={isCampaignModalOpen}
+        onClose={() => setIsCampaignModalOpen(false)}
+        selectedLeadIds={selectedLeadIds}
+        totalLeads={filteredLeads.length}
+      />
+    </div >
   );
 }

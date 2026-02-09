@@ -47,10 +47,10 @@ The result? Your leads hit dead-ends, get frustrated, and bounce. Meanwhile, you
 **The Core Problem:** ManyChat treats every conversation like a flowchart. But real sales conversations are fluid, emotional, and unpredictable. A lead might start with "How much?" and pivot to "I'm worried about X" in the same message.`
             },
             {
-                title: "ManyChat vs audnix.com - Feature Comparison",
+                title: "ManyChat vs audnixai.com - Feature Comparison",
                 type: "comparison",
                 items: [
-                    { feature: "Conversation Logic", manychat: "IF/THEN Flows", audnix: "Neural Intent Detection" },
+                    { feature: "Conversation Logic", manychat: "IF/THEN Flows", audnix: "AI Intent Detection" },
                     { feature: "Objection Handling", manychat: "Manual Templates", audnix: "110+ Auto-Scenarios" },
                     { feature: "Response Timing", manychat: "Instant (Bot-like)", audnix: "2-8min Humanized Delay" },
                     { feature: "Voice Notes", manychat: "Not Supported", audnix: "AI Voice Cloning" },
@@ -103,7 +103,7 @@ Every Make.com workflow is a tower of technical debt. One API change, one rate l
                     { feature: "Setup Time", manychat: "Hours/Days", audnix: "30 Minutes" },
                     { feature: "Technical Skill", manychat: "Developer Required", audnix: "No-Code Setup" },
                     { feature: "Failure Recovery", manychat: "Manual Debug", audnix: "Auto-Retry + Alerts" },
-                    { feature: "AI Intelligence", manychat: "None (Just Pipes)", audnix: "Native Neural Engine" },
+                    { feature: "AI Intelligence", manychat: "None (Just Pipes)", audnix: "Native AI Engine" },
                     { feature: "Lead Context", manychat: "Stateless", audnix: "Full Conversation Memory" },
                     { feature: "Pricing Model", manychat: "Per Operation", audnix: "Per Lead (Unlimited Actions)" },
                 ]
@@ -244,7 +244,7 @@ Email should be part of your stack. But it shouldn't be your entire stack.`
                     { feature: "Instagram DMs", manychat: "✗ Not Supported", audnix: "✓ Native Integration" },
                     { feature: "Voice Notes", manychat: "✗ Not Supported", audnix: "✓ AI Voice Cloning" },
                     { feature: "Omnichannel Sync", manychat: "Email Only", audnix: "All Channels Unified" },
-                    { feature: "Reply AI", manychat: "Basic Templates", audnix: "Neural Intent Engine" },
+                    { feature: "Reply AI", manychat: "Basic Templates", audnix: "AI Intent Engine" },
                     { feature: "Booking Integration", manychat: "Manual", audnix: "Auto-Calendly Booking" },
                 ]
             },
@@ -498,8 +498,8 @@ export default function ComparePage() {
                                 setOpenSections({ 0: true });
                             }}
                             className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all duration-300 group ${activeCompetitor === comp.id
-                                    ? `${comp.bgClass} ${comp.borderClass} border`
-                                    : 'hover:bg-white/5 border border-transparent'
+                                ? `${comp.bgClass} ${comp.borderClass} border`
+                                : 'hover:bg-white/5 border border-transparent'
                                 }`}
                             whileHover={{ x: activeCompetitor === comp.id ? 0 : 4 }}
                         >

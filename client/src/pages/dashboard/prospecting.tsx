@@ -172,7 +172,7 @@ export default function ProspectingPage() {
                     </div>
                 </div>
 
-                {/* Gemini-Style Neural Input */}
+                {/* Gemini-Style AI Input */}
                 <div className="relative max-w-4xl mx-auto mt-12 mb-16 group">
                     {/* Atmospheric Glow */}
                     <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-500 rounded-3xl opacity-20 group-hover:opacity-40 blur-xl transition-all duration-500" />
@@ -257,7 +257,7 @@ export default function ProspectingPage() {
 
                 {/* Results Table */}
                 {leads.length > 0 ? (
-                    <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative neural-panel">
+                    <Card className="bg-[#030303]/80 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative intelligence-panel">
                         {/* HUD Decorations */}
                         <div className="hud-corner hud-corner-tl opacity-60" />
                         <div className="hud-corner hud-corner-tr opacity-30" />
@@ -396,7 +396,7 @@ export default function ProspectingPage() {
                 )}
             </div>
 
-            {/* Neural Scraper Console Overlay */}
+            {/* Intelligence Scraper Console Overlay */}
             <ScraperConsole
                 isVisible={showConsole}
                 onClose={() => setShowConsole(false)}

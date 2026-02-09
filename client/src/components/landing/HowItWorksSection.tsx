@@ -49,10 +49,10 @@ export function HowItWorksSection() {
                         viewport={{ once: true }}
                         className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12 inline-block"
                     >
-                        Protocol Activation
+                        Engine Activation
                     </motion.div>
                     <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase">
-                        The Neural <br /> <span className="text-primary">Workflow.</span>
+                        The Intelligent <br /> <span className="text-primary">Workflow.</span>
                     </h2>
                 </div>
 
@@ -98,7 +98,7 @@ export function HowItWorksSection() {
                                             <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                                         </div>
                                         <div className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] font-mono text-white/40 tracking-tight">
-                                            AUDNIX_PROTO_v2.4.0
+                                            AUDNIX_ENGINE_v2.4.0
                                         </div>
                                     </div>
 

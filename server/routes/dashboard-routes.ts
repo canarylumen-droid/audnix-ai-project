@@ -70,7 +70,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     // Real-time Engine Status & Synchronization
     const integrations = await storage.getIntegrations(userId);
     const monitors = await storage.getVideoMonitors(userId);
-    
+
     // Get recent bounces - Handle potential column mapping issues
     let recentBounces = [];
     try {
@@ -78,7 +78,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     } catch (bounceError) {
       console.warn('⚠️ Failed to fetch recent bounces, using empty list:', bounceError);
     }
-    
+
     const domainVerifications = await storage.getDomainVerifications(userId, 5);
 
     // Calculate most recent sync time from all integrations
@@ -375,7 +375,7 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       return;
     }
 
-    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink } = req.body;
+    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink, voiceNotesEnabled } = req.body;
 
     const user = await storage.getUserById(userId);
     if (!user) {
@@ -391,13 +391,14 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
     if (company !== undefined) updates.businessName = company;
     if (timezone !== undefined) updates.timezone = timezone;
 
-    // Store CTA settings and Calendar Link in metadata
-    if (defaultCtaLink !== undefined || defaultCtaText !== undefined || calendarLink !== undefined) {
+    // Store CTA settings, Calendar Link, and Voice Settings in metadata
+    if (defaultCtaLink !== undefined || defaultCtaText !== undefined || calendarLink !== undefined || voiceNotesEnabled !== undefined) {
       updates.metadata = {
         ...existingMetadata,
         ...(defaultCtaLink !== undefined && { defaultCtaLink }),
         ...(defaultCtaText !== undefined && { defaultCtaText }),
         ...(calendarLink !== undefined && { calendarLink }),
+        ...(voiceNotesEnabled !== undefined && { voiceNotesEnabled: voiceNotesEnabled === true }),
       };
     }
 
@@ -545,7 +546,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const range = parseInt(req.query.days as string) || 7;
     const timeSeries = [];
     const allMessages = await storage.getAllMessages(userId);
-    
+
     for (let i = range - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -561,7 +562,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
         new Date(m.createdAt) <= dayEnd
       );
 
-      const dayLeads = leads.filter(l => 
+      const dayLeads = leads.filter(l =>
         l.updatedAt && new Date(l.updatedAt) >= dayStart &&
         new Date(l.updatedAt) <= dayEnd
       );
@@ -572,7 +573,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
         sent_instagram: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'instagram').length,
         replied_email: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'email').length,
         replied_instagram: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'instagram').length,
-        booked: 0 
+        booked: 0
       });
     }
 

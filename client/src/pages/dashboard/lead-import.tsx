@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, Sparkles, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
 import { LeadsDisplayModal } from "@/components/dashboard/LeadsDisplayModal";
+import OutreachConfigModal from "@/components/outreach/OutreachConfigModal";
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -23,13 +24,14 @@ export default function LeadImportPage() {
   const [mPreviewOpen, setMPreviewOpen] = useState(false);
   const [mLeadsOpen, setMLeadsOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{ subject: string; body: string }>({
-    subject: "Neural Collaboration Proposal",
+    subject: "Intelligence Collaboration Proposal",
     body: "I saw your work in the industry..."
   });
   const [importing, setImporting] = useState(false);
   const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
   const [importResults, setImportResults] = useState<{ imported: number; skipped: number; filtered?: number; leads?: any[] } | null>(null);
+  const [isOutreachModalOpen, setIsOutreachModalOpen] = useState(false);
 
   const handleOpenPreview = async () => {
     try {
@@ -229,7 +231,7 @@ export default function LeadImportPage() {
           Network Data Ingestion
         </h1>
         <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
-          Synchronize your high-intent leads into the Audnix neural core.
+          Synchronize your high-intent leads into the Audnix intelligence core.
         </p>
       </div>
 
@@ -316,7 +318,17 @@ export default function LeadImportPage() {
                   <h3 className="text-sm font-bold uppercase tracking-wider">Recently Uploaded</h3>
                   <div className="flex flex-wrap gap-2">
                     {importResults.leads && importResults.leads.length > 0 && (
-                      <Button variant="outline" size="sm" onClick={() => setMLeadsOpen(true)} className="text-[10px] font-bold border-primary/20 hover:bg-primary/10">VIEW LEADS</Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => setMLeadsOpen(true)} className="text-[10px] font-bold border-primary/20 hover:bg-primary/10">VIEW LEADS</Button>
+                        <Button
+                          size="sm"
+                          onClick={() => setIsOutreachModalOpen(true)}
+                          className="text-[10px] font-bold bg-primary hover:bg-primary/90 gap-1"
+                        >
+                          <Send className="h-3 w-3" />
+                          START OUTREACH
+                        </Button>
+                      </>
                     )}
                     <Button variant="ghost" size="sm" onClick={() => setLocation('/dashboard/prospecting')} className="text-[10px] font-bold">PIPELINE</Button>
                   </div>
@@ -378,11 +390,20 @@ export default function LeadImportPage() {
             canConfirm={!importing}
           />
 
+          <OutreachConfigModal
+            isOpen={isOutreachModalOpen}
+            onClose={() => setIsOutreachModalOpen(false)}
+            leads={importResults?.leads || []}
+            onSuccess={() => {
+              toast({ title: "Outreach Started", description: "Emails will be sent according to your settings." });
+            }}
+          />
+
           {importResults && (importResults.filtered ?? 0) > 0 && (
             <div className="p-4 rounded-xl bg-orange-400/5 border border-orange-400/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-4 w-4 text-orange-400" />
-                <span className="text-xs font-bold text-orange-400/80 uppercase tracking-widest">Neural Filter Active</span>
+                <span className="text-xs font-bold text-orange-400/80 uppercase tracking-widest">Intelligence Filter Active</span>
               </div>
               <span className="text-xs font-black text-orange-400">{importResults.filtered} Leads Blocked</span>
             </div>
@@ -414,7 +435,7 @@ export default function LeadImportPage() {
           <div className="flex items-start gap-6">
             <Badge variant="outline" className="mt-1 bg-primary text-primary-foreground border-0 font-bold tracking-widest text-[10px] px-3 py-1">PRO TIP</Badge>
             <p className="text-sm text-balance leading-relaxed font-bold tracking-tight text-foreground/80">
-              Importing from Apollo, LinkedIn, or HubSpot? Our intelligent neural system automatically maps columns for instant outreach synchronization.
+              Importing from Apollo, LinkedIn, or HubSpot? Our intelligent system automatically maps columns for instant outreach synchronization.
             </p>
           </div>
           <div className="absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-10 bg-primary rounded-full translate-x-10 -translate-y-10" />

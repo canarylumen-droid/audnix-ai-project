@@ -52,7 +52,7 @@ interface DecryptedInstagramMeta {
 type PlanWithVoice = 'trial' | 'starter' | 'pro' | 'enterprise';
 
 const PLAN_VOICE_LIMITS: Record<PlanWithVoice, number> = {
-  trial: 0,
+  trial: 5,
   starter: 100,
   pro: 400,
   enterprise: 1000
@@ -407,44 +407,17 @@ export class VoiceAIService {
           continue;
         }
 
-        // Try to send voice note (first 15-second clip)
-        const result1 = await this.generateAndSendVoiceNote(userId, lead.id, 15);
+        // Send a single high-impact voice note
+        const result = await this.generateAndSendVoiceNote(userId, lead.id, 15);
 
-        if (result1.success) {
+        if (result.success) {
           results.sent++;
           // Add delay between sends to avoid rate limits
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          // If the first clip was successful, try sending the second one
-          // Check lead status again to ensure they haven't opted out
-          const updatedLead = await storage.getLeadById(lead.id);
-          const updatedMessages = await storage.getMessages(lead.id);
-
-          if (!updatedLead) {
-            results.skipped++;
-            continue;
-          }
-
-          const secondDecision = await this.shouldSendVoiceNote(updatedLead, updatedMessages);
-
-          if (secondDecision.shouldSend) {
-            const result2 = await this.generateAndSendVoiceNote(userId, lead.id, 15);
-            if (result2.success) {
-              results.sent++;
-            } else {
-              results.skipped++;
-              if (result2.error) {
-                results.errors.push(`${updatedLead.name}: Second voice note failed - ${result2.error}`);
-              }
-            }
-          } else {
-            results.skipped++;
-            results.errors.push(`${updatedLead.name}: Skipped second voice note due to status change - ${secondDecision.reason}`);
-          }
+          await new Promise(resolve => setTimeout(resolve, 3000));
         } else {
           results.skipped++;
-          if (result1.error) {
-            results.errors.push(`${lead.name}: ${result1.error}`);
+          if (result.error) {
+            results.errors.push(`${lead.name}: ${result.error}`);
           }
         }
       }

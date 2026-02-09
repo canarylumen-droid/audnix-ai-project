@@ -63,7 +63,7 @@ export const AudnixVideo: React.FC = () => {
                         marginTop: '20px',
                     }}
                 >
-                    Neural Revenue Architecture
+                    Intelligent Revenue Architecture
                 </p>
             </div>
 

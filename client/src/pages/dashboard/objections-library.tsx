@@ -107,7 +107,7 @@ function ObjectionCard({ objection, index }: {
           <div className="flex items-center justify-between pt-2">
             <div className="flex gap-2">
               <button
-                onClick={(e) => { e.stopPropagation(); copyToClipboard(objection.content, 'Neural Response', toast); }}
+                onClick={(e) => { e.stopPropagation(); copyToClipboard(objection.content, 'Intelligent Response', toast); }}
                 className="p-2.5 rounded-xl bg-muted/50 hover:bg-primary/20 transition-all text-muted-foreground hover:text-primary active:scale-90"
               >
                 <Copy className="h-4 w-4" />
@@ -177,7 +177,7 @@ export default function ObjectionsLibraryPage() {
         <div className="relative group flex-1">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
           <Input
-            placeholder="Search neural patterns..."
+            placeholder="Search response patterns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-12 bg-muted/40 border-border/40 rounded-2xl h-12 focus:border-primary/50 transition-all font-bold tracking-tight"
@@ -257,10 +257,10 @@ export default function ObjectionsLibraryPage() {
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
           <div className="text-center md:text-left space-y-4">
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase leading-[0.9]">
-              Custom Neural <br /> <span className="text-primary">Logic Required?</span>
+              Custom Intelligence <br /> <span className="text-primary">Logic Required?</span>
             </h2>
             <p className="text-white/60 font-bold max-w-md tracking-tight text-lg">
-              Train your personal objection patterns into the neural core for deterministic close rates. Automated evolution active.
+              Train your personal objection patterns into the intelligence core for deterministic close rates. Automated evolution active.
             </p>
           </div>
           <Button className="h-20 px-16 rounded-[2rem] bg-white text-black font-black uppercase tracking-[0.3em] text-[10px] hover:scale-105 active:scale-95 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)]">

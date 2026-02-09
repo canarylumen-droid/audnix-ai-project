@@ -240,15 +240,15 @@ export async function generateAIReply(
 ): Promise<AIReplyResult> {
 
   if (isDemoMode) {
-    throw new Error("Neural Engine Disconnected: System requires live API key for real-time inference.");
+    throw new Error("Intelligence Engine Disconnected: System requires live API key for real-time inference.");
   }
 
   const brandContext = await getBrandContext(lead.userId);
   const user = await storage.getUserById(lead.userId);
-  
+
   // Dynamic brand PDF processing: incorporate extracted text into system prompt
   const brandGuidelines = user?.brandGuidelinePdfText || (brandContext as any)?.brandVoice || "No specific brand guidelines provided.";
-  
+
   const isWarm = assessLeadWarmth(conversationHistory, lead);
   const detectionResult = detectConversationStatus(conversationHistory);
 
@@ -548,7 +548,7 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
     }
 
     const optimizedText = optimizeSalesLanguage(responseText);
-    
+
     const formattedReply = await formatReplyForChannel(optimizedText, platform, {
       leadName: lead.name || "there",
       brandName: (brandContext as any)?.businessName,
@@ -585,7 +585,7 @@ export async function generateVoiceScript(
   conversationHistory: Message[]
 ): Promise<string> {
   if (isDemoMode) {
-    throw new Error("Voice Protocol Offline: Live API credentials required.");
+    throw new Error("Voice Service Offline: Live API credentials required.");
   }
 
   const lastMessages = conversationHistory.slice(-5).map(m => m.body).join('\n');
@@ -713,7 +713,7 @@ export async function getConversationContext(
     const result: MemoryRetrievalResult = await retrieveConversationMemory(userId, leadId);
 
     if (!result.success || !result.conversations) {
-      console.log(`⚠️ Super Memory: No context retrieved for lead ${leadId}`);
+      console.log(`⚠️ Intelligence Memory: No context retrieved for lead ${leadId}`);
       return [];
     }
 
@@ -747,7 +747,7 @@ export async function getConversationContext(
     }
 
     if (memories.length > 0) {
-      console.log(`✓ Super Memory: Retrieved ${memories.length} messages from permanent memory`);
+      console.log(`✓ Intelligence Memory: Retrieved ${memories.length} messages from permanent memory`);
     }
 
     return memories;

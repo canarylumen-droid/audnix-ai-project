@@ -41,7 +41,7 @@ interface ObjectionAnalysis {
   nextMove?: string;
 }
 
-const NeuralMap = ({ category, isAnalyzing }: { category?: string, isAnalyzing: boolean }) => {
+const IntelligenceMap = ({ category, isAnalyzing }: { category?: string, isAnalyzing: boolean }) => {
   return (
     <div className="relative w-full h-40 flex items-center justify-center overflow-hidden mb-8 border border-border/10 bg-muted/40 rounded-3xl group">
       <div className="absolute inset-0 bg-grid opacity-[0.03] pointer-events-none" />
@@ -223,7 +223,7 @@ export default function CloserEngineLive() {
               <Icon className={`w-5 h-5 ${theme.icon}`} />
             </div>
             <div className="text-left">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 block mb-0.5">{badge || 'PROTOCOL OUTPUT'}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 block mb-0.5">{badge || 'ANALYSIS OUTPUT'}</span>
               <span className="text-lg font-black text-foreground uppercase tracking-tight">{title}</span>
             </div>
           </div>
@@ -279,7 +279,7 @@ export default function CloserEngineLive() {
               Closer Engine <br /> <span className="text-primary">Live.</span>
             </h1>
             <p className="text-muted-foreground font-bold text-xl md:text-2xl max-w-xl leading-tight">
-              Input prospect resistance. Receive <span className="text-foreground">deterministic</span> closing protocols.
+              Input prospect resistance. Receive <span className="text-foreground">deterministic</span> closing strategies.
             </p>
           </div>
 
@@ -293,7 +293,7 @@ export default function CloserEngineLive() {
           </div>
         </motion.div>
 
-        <NeuralMap category={analysis?.category} isAnalyzing={analyzeMutation.isPending} />
+        <IntelligenceMap category={analysis?.category} isAnalyzing={analyzeMutation.isPending} />
 
         <div className="grid lg:grid-cols-5 gap-12 items-start">
           <motion.div
@@ -375,7 +375,7 @@ export default function CloserEngineLive() {
                     <CollapsibleSection
                       id="reframe"
                       icon={Lightbulb}
-                      title="Neural Reframe"
+                      title="Intelligent Reframe"
                       content={analysis.reframes[0]}
                       badge="Perspective Shift"
                       accentColor="primary"
@@ -393,7 +393,7 @@ export default function CloserEngineLive() {
                     <CollapsibleSection
                       id="close"
                       icon={TrendingUp}
-                      title="Closing Protocol"
+                      title="Closing Strategy"
                       content={analysis.closingTactic}
                       badge="Immediate Close"
                       accentColor="emerald"
@@ -441,7 +441,7 @@ export default function CloserEngineLive() {
                   <div className="space-y-4">
                     <h3 className="text-3xl font-black text-foreground uppercase tracking-tighter">Awaiting Signal.</h3>
                     <p className="text-muted-foreground font-medium text-lg max-w-sm mx-auto leading-tight">
-                      Protocol initialized. Paste the exact verbatim from your call to extract the tactical advantage.
+                      System initialized. Paste the exact verbatim from your call to extract the tactical advantage.
                     </p>
                   </div>
                 </Card>
@@ -470,8 +470,8 @@ export default function CloserEngineLive() {
             <div className="w-12 h-12 rounded-2xl bg-muted/20 flex items-center justify-center border border-border/10 mx-auto">
               <Shield className="w-6 h-6 text-primary" />
             </div>
-            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Security Protocol</h5>
-            <p className="text-[9px] font-bold text-muted-foreground/20 uppercase">AES-256 Neural State Encryption</p>
+            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Safety Guidelines</h5>
+            <p className="text-[9px] font-bold text-muted-foreground/20 uppercase">AES-256 Intelligence Encryption</p>
           </div>
         </div>
       </div>

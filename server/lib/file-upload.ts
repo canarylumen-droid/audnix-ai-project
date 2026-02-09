@@ -346,11 +346,25 @@ interface PDFParseResult {
 }
 
 async function extractTextFromPDF(filePath: string): Promise<string> {
-  return "PDF content extraction is currently unavailable.";
+  try {
+    const dataBuffer = await fs.readFile(filePath);
+    return await extractTextFromPDFBuffer(dataBuffer);
+  } catch (error: any) {
+    console.error("Error reading PDF file:", error);
+    return "";
+  }
 }
 
 async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
-  return "PDF content extraction is currently unavailable.";
+  try {
+    // Import pdf-parse dynamically to handle potential loading issues
+    const pdf = (await import('pdf-parse')).default;
+    const data = await pdf(fileBuffer);
+    return data.text || "";
+  } catch (error: any) {
+    console.error("Error parsing PDF buffer:", error);
+    return "";
+  }
 }
 
 export async function generateAndStoreEmbeddings(

@@ -48,10 +48,26 @@ import adminMigrationsRouter from "./admin-migrations.js";
 import notificationRoutes from "./notification-routes.js";
 
 export async function registerRoutes(app: Express): Promise<http.Server> {
-  // 1. Static Assets & Public Manifests (With rate limiting)
-  app.get("/favicon.ico", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.ico")));
-  app.get("/favicon.svg", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/favicon.svg")));
-  app.get("/manifest.json", apiLimiter, (_req, res) => res.sendFile(path.join(process.cwd(), "client/public/manifest.json")));
+  // 1. Static Assets & Public Manifests (Served before auth/rate limiting for common assets)
+  const sendPublicFile = (fileName: string, res: Response) => {
+    const filePath = path.join(process.cwd(), "client/public", fileName);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      // Fallback for development/standalone mode
+      const buildPath = path.join(process.cwd(), "client/dist", fileName);
+      if (fs.existsSync(buildPath)) {
+        res.sendFile(buildPath);
+      } else {
+        res.status(404).end();
+      }
+    }
+  };
+
+  app.get("/favicon.ico", (req, res) => sendPublicFile("favicon.ico", res));
+  app.get("/favicon.svg", (req, res) => sendPublicFile("favicon.svg", res));
+  app.get("/manifest.json", (req, res) => sendPublicFile("manifest.json", res));
+  app.get("/logo.svg", (req, res) => sendPublicFile("logo.svg", res));
 
   app.all("/api/instagram/callback", apiLimiter, (req, res) => {
     console.log(`[Root Callback] ${req.method} /api/instagram/callback`);

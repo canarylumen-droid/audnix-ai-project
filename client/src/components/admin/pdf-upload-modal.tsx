@@ -36,7 +36,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
       const formData = new FormData();
       formData.append("pdf", selectedFile);
 
-      const response = await fetch("/api/admin/analyze-pdf", {
+      const response = await fetch("/api/pdf/upload", {
         method: "POST",
         body: formData,
       });
@@ -167,7 +167,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
                 >
                   <Brain className="w-8 h-8" />
                 </motion.div>
-                
+
                 <motion.div
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
@@ -175,7 +175,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
                 >
                   <Zap className="w-8 h-8" />
                 </motion.div>
-                
+
                 <motion.div
                   animate={{ rotate: [0, 360], opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 3, repeat: Infinity }}
@@ -207,7 +207,7 @@ export function PDFUploadModal({ onClose }: { onClose: () => void }) {
               <div className="space-y-2">
                 <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
                   <motion.div
-                    animate={{ 
+                    animate={{
                       width: ['0%', '100%', '0%'],
                       backgroundPosition: ['0% center', '100% center', '0% center']
                     }}

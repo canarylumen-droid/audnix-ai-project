@@ -24,7 +24,7 @@ import { Magnetic } from "@/components/ui/Magnetic";
 // ANIMATED UI MOCKUP COMPONENT
 // Demonstrating "Real Backend" Logic
 // ============================================
-const NeuralEngineMockup = () => {
+const AIEngineMockup = () => {
   const [activeStep, setActiveStep] = useState(0);
 
   // Simulating the "Deep Backend" analysis loop
@@ -36,7 +36,7 @@ const NeuralEngineMockup = () => {
   ];
 
   const conversations = [
-    { name: "Sarah M.", action: "Deploying 'Closer Protocol'...", status: "Intent Verified", channel: "instagram" },
+    { name: "Sarah M.", action: "Deploying 'Closing System'...", status: "Intent Verified", channel: "instagram" },
     { name: "James K.", action: "Simulating Objection (Price)...", status: "Handling...", channel: "email" },
     { name: "Alex R.", action: "Scheduling Call (Auto-Pilot)", status: "Booked", channel: "instagram" },
   ];
@@ -71,7 +71,7 @@ const NeuralEngineMockup = () => {
               <Server className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm">Neural Core v2.4</h3>
+              <h3 className="text-white font-bold text-sm">Audnix AI Core v2.4</h3>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">System Active</span>
@@ -188,7 +188,7 @@ export function HeroSection() {
 
           {/* Left Side - Copy */}
           <div className="space-y-8">
-            {/* Protocol Chip */}
+            {/* Status Chip */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -298,7 +298,7 @@ export function HeroSection() {
 
           {/* Right Side - Mockup */}
           <div className="relative lg:pl-10 hidden lg:block">
-            <NeuralEngineMockup />
+            <AIEngineMockup />
           </div>
         </div>
 

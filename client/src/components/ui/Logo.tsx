@@ -73,7 +73,7 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
 
             {/* Text Container */}
             <div className="relative">
-                <span className={`${textClassName} tracking-tighter text-white uppercase flex items-baseline gap-0.5 relative z-10`}>
+                <span className={`${textClassName} tracking-tighter text-white uppercase flex items-baseline gap-0.5 relative z-10 whitespace-nowrap`}>
                     Audnix
                     <motion.span
                         variants={{

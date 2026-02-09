@@ -124,19 +124,13 @@ export default function Landing() {
             viewport={{ once: true }}
             className="max-w-5xl"
           >
-            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-white/5 border border-white/10 text-primary text-[10px] font-black uppercase tracking-[0.4em] mb-12 shadow-[0_0_20px_rgba(var(--primary),0.1)]">
-              Initialization Complete
-            </div>
-
-            <h2 className="text-6xl md:text-[9rem] font-black tracking-tighter mb-10 leading-[0.85] uppercase">
-              Start your <br />
-              <span className="text-primary">Final Evolution.</span>
-            </h2>
-
-            <p className="text-white/40 text-xl md:text-2xl font-bold mb-16 max-w-3xl mx-auto leading-tight">
-              Legacy CRMs track history. Audnix architects the future. Join the elite top 1% of sales operations today.
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] mb-8">
+              <span className="bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">AI ENGINE</span><br />
+              <span className="text-primary italic">FOR REELS.</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground font-medium mb-12 max-w-2xl mx-auto leading-relaxed">
+              Audnix transforms your Instagram engagement into a deterministic revenue stream using advanced intent analysis and automated outbound logic.
             </p>
-
             <Link href="/auth">
               <Button
                 size="lg"
@@ -146,7 +140,7 @@ export default function Landing() {
                   window.location.href = "/auth";
                 }}
               >
-                Access Protocol Now <ArrowRight className="ml-2 w-5 h-5" />
+                Access Audnix Now <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
 
@@ -202,7 +196,7 @@ export default function Landing() {
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Intelligence</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/find-leads" className="hover:text-primary transition-colors">Neural Core (Find Leads)</Link></li>
+              <li><Link href="/find-leads" className="hover:text-primary transition-colors">Intelligence Core (Find Leads)</Link></li>
               <li><Link href="/resources/niche-vault" className="hover:text-primary transition-colors">Niche Vault (20+)</Link></li>
               <li><Link href="/resources/outreach-playbooks" className="hover:text-primary transition-colors">Outreach Playbooks</Link></li>
               <li><Link href="/#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
@@ -213,7 +207,7 @@ export default function Landing() {
           <div>
             <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Security</h4>
             <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Growth</Link></li>
               <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Erasure</Link></li>
               <li className="flex items-center gap-3 text-emerald-500">

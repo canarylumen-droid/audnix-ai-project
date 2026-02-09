@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
             </div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Privacy Policy</h1>
             <p className="text-xl text-muted-foreground">
-              Last updated: January 3, 2026
+              Last updated: February 9, 2026
             </p>
           </motion.div>
 
@@ -105,7 +105,7 @@ export default function PrivacyPolicy() {
                     Why We Need Email Access
                   </h3>
                   <p className="text-sm">
-                    audnix.com automates lead follow-ups via email. Connect your business email using Custom SMTP
+                    audnixai.com automates lead follow-ups via email. Connect your business email using Custom SMTP
                     to send and receive messages through your own email server.
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export default function PrivacyPolicy() {
                     Auto-Booking with Calendly
                   </h3>
                   <p className="text-sm">
-                    audnix.com integrates with Calendly to automatically book calls with leads. When a lead shows interest,
+                    audnixai.com integrates with Calendly to automatically book calls with leads. When a lead shows interest,
                     our AI sends them your Calendly link so they can book directly on your calendar.
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export default function PrivacyPolicy() {
                         <li>Send automated follow-ups if leads go silent</li>
                         <li>Handle objections and book calls via DM</li>
                       </ul>
-                      <p className="text-sm mt-2 text-blue-400"><strong>Security:</strong> DM credentials are AES-256 encrypted and never logged in plain text.</p>
+                      <p className="text-sm mt-2"><strong>Security:</strong> DM credentials are AES-256 encrypted and never logged in plain text.</p>
                     </div>
 
                     <div className="border-l-4 border-purple-500 pl-4">
@@ -252,26 +252,9 @@ export default function PrivacyPolicy() {
                         <li>Comments on your posts (public data)</li>
                         <li>Commenter usernames and profile info</li>
                         <li>Emoji reactions and engagement signals</li>
-                      </ul>
-                      <p className="text-sm mt-2"><strong>Why we need it:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Detect buying intent in comments (e.g., "How much?", "I need this")</li>
-                        <li>Automatically DM interested commenters</li>
-                        <li>Filter spam/competitor comments</li>
-                        <li>Track engagement metrics for analytics</li>
+                        <li>Reply to interested commenters automatically</li>
                       </ul>
                       <p className="text-sm mt-2 text-purple-400"><strong>Privacy:</strong> Comments are public data. We only process comments on YOUR posts.</p>
-                    </div>
-
-                    <div className="border-l-4 border-indigo-500 pl-4">
-                      <h4 className="font-semibold text-foreground">Profile Information</h4>
-                      <p className="text-sm mt-1"><strong>What we access:</strong></p>
-                      <ul className="list-disc list-inside text-sm ml-4 space-y-1 mt-2">
-                        <li>Your Instagram username and profile picture</li>
-                        <li>Lead usernames when they engage with you</li>
-                        <li>Follower count (for analytics only)</li>
-                      </ul>
-                      <p className="text-sm mt-2 text-indigo-400"><strong>Usage:</strong> Only for displaying your profile in the dashboard and personalizing AI messages.</p>
                     </div>
                   </div>
                 </div>
@@ -377,7 +360,7 @@ export default function PrivacyPolicy() {
                   <li><strong>Right to Restriction:</strong> Limit how we use your data (e.g., disable analytics)</li>
                   <li><strong>Right to Withdraw Consent:</strong> Disconnect any integration at any time without losing your account</li>
                 </ul>
-                <p className="mt-4">To exercise any of these rights, contact us at <strong className="text-primary">privacy@audnixai.com</strong> or use the data management tools in your dashboard.</p>
+                <p>To exercise any of these rights, contact us at <strong className="text-primary">privacy@audnixai.com</strong> or use the data management tools in your dashboard.</p>
               </div>
             </Card>
 
@@ -422,7 +405,7 @@ export default function PrivacyPolicy() {
             <Card className="p-8">
               <h2 className="text-2xl font-bold mb-4">Children's Privacy</h2>
               <p className="text-muted-foreground">
-                audnixai.com is not intended for users under 18 years of age. We do not knowingly collect information from children.
+                Audnix is not intended for users under 18 years of age. We do not knowingly collect information from children.
                 If you believe a child has provided us with personal information, please contact us immediately at <strong className="text-primary">privacy@audnixai.com</strong>
                 and we will delete the account within 24 hours.
               </p>
@@ -581,3 +564,4 @@ export default function PrivacyPolicy() {
     </div>
   );
 }
+

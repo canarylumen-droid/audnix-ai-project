@@ -29,7 +29,7 @@ export const landingContent = {
   },
 
   whatAudnixDoes: {
-    title: "Architecture of Autonomy",
+    title: "System Architecture",
     steps: [
       {
         number: 1,
@@ -65,7 +65,7 @@ export const landingContent = {
   },
 
   whyDifferent: {
-    title: "Not Just A Bot. Elite Engine.",
+    title: "The Next-Gen Sales Engine",
     comparison: {
       mostTools: {
         title: "Legacy Tools:",
@@ -103,7 +103,7 @@ export const landingContent = {
   },
 
   setup: {
-    title: "Deployment Protocol",
+    title: "Integration Guide",
     steps: [
       {
         number: 1,
@@ -131,7 +131,7 @@ export const landingContent = {
     list: [
       "Predictive Follow-Ups",
       "Intelligence Layer (PDF Sync)",
-      "Objection Handling Protocol",
+      "Intelligent Handling Framework",
       "AI-Cloned Voice Notes",
       "Smart Intent Scoring",
       "Auto-Booking Engine",

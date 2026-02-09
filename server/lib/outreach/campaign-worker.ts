@@ -45,20 +45,20 @@ export class CampaignWorker {
     // We need to track daily sent count. schema 'stats' has total, sent.
     // We might need a separate 'daily_stats' or just reset periodically? 
     // Or check 'sentAt' of leads.
-    
+
     // Efficient check: Count campaign_leads sent today
     const sentTodayResult = await db.execute(sql`
       SELECT COUNT(*) as count 
       FROM campaign_leads 
       WHERE campaign_id = ${campaign.id} 
       AND status = 'sent' 
-      AND sent_at >= CURRENT_DATE
+      AND sent_at >= CURRENT_DATE::timestamp
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
     if (sentToday >= campaign.config.dailyLimit) {
       // Limit reached for today
-      return; 
+      return;
     }
 
     // 2. Check throttling (minDelayMinutes)
@@ -89,133 +89,133 @@ export class CampaignWorker {
     `);
 
     if (lastSentResult.rows.length > 0) {
-        const lastSent = new Date(lastSentResult.rows[0].sent_at as string).getTime();
-        const delayMs = (campaign.config.minDelayMinutes || 2) * 60 * 1000;
-        if (Date.now() - lastSent < delayMs) {
-            return; // Wait more
-        }
+      const lastSent = new Date(lastSentResult.rows[0].sent_at as string).getTime();
+      const delayMs = (campaign.config.minDelayMinutes || 2) * 60 * 1000;
+      if (Date.now() - lastSent < delayMs) {
+        return; // Wait more
+      }
     }
 
     // 3. Select pending leads OR leads due for follow-up
     const nextLeadResult = await db.select()
-        .from(campaignLeads)
-        .where(
+      .from(campaignLeads)
+      .where(
+        and(
+          eq(campaignLeads.campaignId, campaign.id),
+          or(
+            eq(campaignLeads.status, 'pending'),
             and(
-                eq(campaignLeads.campaignId, campaign.id),
-                or(
-                    eq(campaignLeads.status, 'pending'),
-                    and(
-                        eq(campaignLeads.status, 'sent'),
-                        lte(campaignLeads.nextActionAt, new Date()),
-                        sql`${campaignLeads.currentStep} < ${campaign.template.followups?.length || 0}`
-                    )
-                )
+              eq(campaignLeads.status, 'sent'),
+              lte(campaignLeads.nextActionAt, new Date()),
+              sql`${campaignLeads.currentStep} < ${campaign.template.followups?.length || 0}`
             )
+          )
         )
-        .limit(1);
+      )
+      .limit(1);
 
     if (nextLeadResult.length === 0) {
-        return;
+      return;
     }
 
     const leadEntry = nextLeadResult[0];
     const lead = await storage.getLeadById(leadEntry.leadId);
 
     if (!lead || !lead.email) {
-        await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));
-        return;
+      await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));
+      return;
     }
 
     // 4. Determine content based on current step
     try {
-        console.log(`[Campaign] Processing step ${leadEntry.currentStep} for ${lead.email} in campaign ${campaign.name}`);
-        
-        let subject = campaign.template.subject;
-        let body = campaign.template.body;
-        let isFollowUp = leadEntry.status === 'sent';
+      console.log(`[Campaign] Processing step ${leadEntry.currentStep} for ${lead.email} in campaign ${campaign.name}`);
 
-        if (isFollowUp) {
-            const followUpConfig = campaign.template.followups[leadEntry.currentStep];
-            if (!followUpConfig) {
-                console.error(`[Campaign] No follow-up config for step ${leadEntry.currentStep} for lead ${lead.id}`);
-                return;
-            }
-            body = followUpConfig.body;
-            // subject usually stays the same or prepends Re:
-            if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
+      let subject = campaign.template.subject;
+      let body = campaign.template.body;
+      let isFollowUp = leadEntry.status === 'sent';
+
+      if (isFollowUp) {
+        const followUpConfig = campaign.template.followups[leadEntry.currentStep - 1];
+        if (!followUpConfig) {
+          console.error(`[Campaign] No follow-up config for step ${leadEntry.currentStep} for lead ${lead.id}`);
+          return;
         }
-        
-        // AI Personalization (if enabled)
-        if (campaign.config?.isManual === false) {
-             try {
-                 const aiContent = await generateExpertOutreach(lead, campaign.userId);
-                 if (aiContent && aiContent.subject && aiContent.body) {
-                     subject = aiContent.subject;
-                     if (!isFollowUp) body = aiContent.body; // Only overwrite body if not a manual-ish follow-up template body
-                     // For follow-ups, we still want to keep the core body but maybe polish? 
-                     // Let's trust AI more if enabled.
-                     body = aiContent.body;
-                 }
-             } catch (aiError) {
-                 console.warn(`[Campaign] AI generation failed for ${lead.id}, falling back to template:`, aiError);
-             }
+        body = followUpConfig.body;
+        // subject usually stays the same or prepends Re:
+        if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
+      }
+
+      // AI Personalization (if enabled)
+      if (campaign.config?.isManual === false) {
+        try {
+          const aiContent = await generateExpertOutreach(lead, campaign.userId);
+          if (aiContent && aiContent.subject && aiContent.body) {
+            subject = aiContent.subject;
+            if (!isFollowUp) body = aiContent.body; // Only overwrite body if not a manual-ish follow-up template body
+            // For follow-ups, we still want to keep the core body but maybe polish? 
+            // Let's trust AI more if enabled.
+            body = aiContent.body;
+          }
+        } catch (aiError) {
+          console.warn(`[Campaign] AI generation failed for ${lead.id}, falling back to template:`, aiError);
         }
+      }
 
-        // Standard Template Variable Replacement
-        const firstName = lead.name?.split(' ')[0] || 'there';
-        const company = lead.company || '';
-        
-        subject = subject.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
-        body = body.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
+      // Standard Template Variable Replacement
+      const firstName = lead.name?.split(' ')[0] || 'there';
+      const company = lead.company || '';
 
-        const trackingId = Math.random().toString(36).substring(2, 15);
-        await sendEmail(campaign.userId, lead.email, body, subject, { trackingId });
+      subject = subject.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
+      body = body.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
 
-        // Record message
-        await storage.createMessage({
-            leadId: lead.id,
-            userId: campaign.userId,
-            direction: "outbound",
-            body: body,
-            provider: "email",
-            trackingId,
-            isRead: true, // Sent emails are usually considered read
-            metadata: {
-                campaign_id: campaign.id,
-                subject: subject,
-                is_outreach: true,
-                step: leadEntry.currentStep
-            }
-        });
+      const trackingId = Math.random().toString(36).substring(2, 15);
+      await sendEmail(campaign.userId, lead.email, body, subject, { trackingId, isRaw: true });
 
-        // 5. Update Status and Schedule Next Step
-        const nextStep = leadEntry.currentStep + 1;
-        const hasMoreFollowUps = campaign.template.followups && nextStep <= campaign.template.followups.length;
-        
-        let nextActionAt = null;
-        if (hasMoreFollowUps) {
-            const nextFollowUp = campaign.template.followups[nextStep - 1];
-            const delayDays = nextFollowUp.delayDays || 3;
-            nextActionAt = new Date();
-            nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+      // Record message
+      await storage.createMessage({
+        leadId: lead.id,
+        userId: campaign.userId,
+        direction: "outbound",
+        body: body,
+        provider: "email",
+        trackingId,
+        isRead: true, // Sent emails are usually considered read
+        metadata: {
+          campaign_id: campaign.id,
+          subject: subject,
+          is_outreach: true,
+          step: leadEntry.currentStep
         }
+      });
 
-        await db.update(campaignLeads).set({ 
-            status: 'sent', 
-            currentStep: nextStep,
-            nextActionAt: nextActionAt,
-            sentAt: new Date(),
-            error: null 
-        }).where(eq(campaignLeads.id, leadEntry.id));
+      // 5. Update Status and Schedule Next Step
+      const nextStep = leadEntry.currentStep + 1;
+      const hasMoreFollowUps = campaign.template.followups && nextStep <= campaign.template.followups.length;
 
-        console.log(`[Campaign] Step ${nextStep} completed for ${lead.email}. Next action: ${nextActionAt?.toISOString() || 'None'}`);
+      let nextActionAt = null;
+      if (hasMoreFollowUps) {
+        const nextFollowUp = campaign.template.followups[nextStep - 1];
+        const delayDays = nextFollowUp.delayDays || 3;
+        nextActionAt = new Date();
+        nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+      }
+
+      await db.update(campaignLeads).set({
+        status: 'sent',
+        currentStep: nextStep,
+        nextActionAt: nextActionAt,
+        sentAt: new Date(),
+        error: null
+      }).where(eq(campaignLeads.id, leadEntry.id));
+
+      console.log(`[Campaign] Step ${nextStep} completed for ${lead.email}. Next action: ${nextActionAt?.toISOString() || 'None'}`);
 
     } catch (error: any) {
-        console.error(`[Campaign] Failed lead ${lead.id}:`, error);
-        await db.update(campaignLeads).set({ 
-            status: 'failed', 
-            error: error.message || 'Send failed' 
-        }).where(eq(campaignLeads.id, leadEntry.id));
+      console.error(`[Campaign] Failed lead ${lead.id}:`, error);
+      await db.update(campaignLeads).set({
+        status: 'failed',
+        error: error.message || 'Send failed'
+      }).where(eq(campaignLeads.id, leadEntry.id));
     }
   }
 }

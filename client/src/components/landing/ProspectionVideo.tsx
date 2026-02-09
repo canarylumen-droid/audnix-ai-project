@@ -13,13 +13,13 @@ export function ProspectionVideo() {
     }, []);
 
     const terminalLines = [
-        "> Initializing Audnix Neural Core v4.0.0...",
+        "> Initializing Audnix System Core v4.0.0...",
         "> Logic: Identify high-pain triggers in Agency sector",
         "> Scanning LinkedIn for \"Founder\", \"CEO\", \"Owner\"...",
         "> Crossing reference with LinkedIn/IG bio sentiment...",
         "> Deep-scanning Website Technology (Missing FB Pixel, Broken Forms)...",
         "> PAIN DETECTED: 2,042 entities bleeding lead-gen ROI",
-        "> Starting 12-point Email Verification Protocol...",
+        "> Starting 12-point Email Verification Process...",
         "> Success. Validated leads moved to high-priority vault."
     ];
 
@@ -36,7 +36,7 @@ export function ProspectionVideo() {
                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/40" />
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-3 py-1 border border-white/10 rounded-full bg-white/5">
-                        Neural Prospecting Engine :: LIVE_DEMO
+                        AI Prospecting Engine :: LIVE_DEMO
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export function ProspectionVideo() {
                     <div className="mt-6 p-4 rounded-xl bg-primary/10 border border-primary/20 space-y-3">
                         <div className="flex items-center gap-2">
                             <Shield className="w-3 h-3 text-primary" />
-                            <span className="text-[9px] font-black uppercase text-primary tracking-widest">Pain-Verification Protocol</span>
+                            <span className="text-[9px] font-black uppercase text-primary tracking-widest">Pain-Verification Process</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center gap-2">

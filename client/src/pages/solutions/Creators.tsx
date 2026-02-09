@@ -46,9 +46,9 @@ If you have 100k followers, you get 100+ DMs a day. You have two bad choices:
 
 Hiring a VA often breaks the trust because they don't know your voice. Fans can tell when they're talking to a script.
 
-Audnix shatters this ceiling by cloning YOU. We train a neural model on your transcripts, tweets, and course content. It learns your slang, emojis, and worldview. It replies to every fan instantly, handles objections, and drops your links when the intent is high.`}
-            deepDiveTitle="Persona Authentication Layer"
-            deepDiveText={`Audnix isn't a chatbot. It's a neural clone of your digital persona.
+Audnix shatters this ceiling by cloning YOU. We train an intelligence model on your transcripts, tweets, and course content. It learns your slang, emojis, and worldview. It replies to every fan instantly, handles objections, and drops your links when the intent is high.`}
+            deepDiveTitle="Brand Persona Engine"
+            deepDiveText={`Audnix isn't a chatbot. It's an AI clone of your digital persona.
             
             We ingest your YouTube transcripts, past DM history, and course content to build a 'Knowledge Graph' of your worldview.
             

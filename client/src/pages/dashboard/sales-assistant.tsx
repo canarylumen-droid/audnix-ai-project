@@ -259,7 +259,7 @@ export default function SalesAssistant() {
                 Prospect Input
               </CardTitle>
               <CardDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/30">
-                Verbatim Neural Analysis
+                Verbatim Intelligence Analysis
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
