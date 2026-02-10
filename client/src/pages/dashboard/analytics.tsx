@@ -495,3 +495,37 @@ export default function AnalyticsPage() {
         </div>
     );
 }
+
+function StatCard({ label, value, icon: Icon, trend, color, index }: any) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+        >
+            <Card className="overflow-hidden border-border/40 hover:border-primary/20 transition-all bg-card/40 backdrop-blur-xl rounded-[2rem] group relative">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">{label}</CardTitle>
+                    <div className={cn("p-2 rounded-xl bg-muted/50 transition-colors group-hover:bg-primary/10")}>
+                        <Icon className={cn("h-4 w-4", color)} />
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-2">
+                    <div className="flex items-baseline justify-between gap-1 w-full">
+                        <div className="text-3xl font-black tracking-tighter truncate">{value}</div>
+                        {trend && (
+                            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 shrink-0">
+                                <ArrowUpRight className="w-3 h-3" />
+                                <span className="text-[10px] font-black">{trend}</span>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 mt-4">System Nominal</p>
+
+                    {/* Apple-style background glow */}
+                    <div className={cn("absolute -bottom-10 -right-10 w-32 h-32 blur-[80px] opacity-10 rounded-full", color.replace('text-', 'bg-'))} />
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+}

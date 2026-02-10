@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Wand2, Play, Pause, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Loader2, Wand2, Play, Pause, Send, AlertCircle, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 interface ManualOutreachModalProps {
   isOpen: boolean;
@@ -25,6 +26,11 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
   const queryClient = useQueryClient();
   const [step, setStep] = useState<"config" | "template" | "review">("config");
   const [isLoading, setIsLoading] = useState(false);
+
+  const { data: analytics } = useQuery<any>({
+    queryKey: ["/api/dashboard/analytics/full"],
+  });
+  const isAnyConnected = analytics?.isAnyConnected;
 
   // Campaign Config
   const [name, setName] = useState("");
@@ -109,6 +115,22 @@ export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, 
         </DialogHeader>
 
         <div className="py-4 space-y-6">
+          {!isAnyConnected && (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center gap-4 animate-in slide-in-from-top duration-500">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-500">No Sending Channel Connected</p>
+                <p className="text-xs text-amber-500/70">You need to connect an Email or Instagram account before you can launch a campaign.</p>
+              </div>
+              <Link href="/dashboard/settings">
+                <Button variant="outline" size="sm" className="gap-2 border-amber-500/30 hover:bg-amber-500/10 text-amber-500">
+                  Connect <ExternalLink className="w-3 h-3" />
+                </Button>
+              </Link>
+            </div>
+          )}
           {step === "config" && (
             <div className="space-y-4">
               <div className="space-y-2">
