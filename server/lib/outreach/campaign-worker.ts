@@ -56,7 +56,12 @@ export class CampaignWorker {
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    if (sentToday >= (campaign.config?.dailyLimit || 50)) {
+    let dailyLimit = 50;
+    try {
+      dailyLimit = (campaign.config as any)?.dailyLimit || 50;
+    } catch (e) {}
+
+    if (sentToday >= dailyLimit) {
       // Limit reached for today
       return;
     }
@@ -93,10 +98,16 @@ export class CampaignWorker {
 
       // For manual campaigns, enforce strictly 2-3 minutes random delay
       // For AI campaigns, use config or default 2 mins
-      let minDelay = campaign.config?.minDelayMinutes || 2;
+      let minDelay = 2;
+      try {
+        minDelay = (campaign.config as any)?.minDelayMinutes || 2;
+      } catch (e) {}
 
       // Add randomization for "human-like" behavior
-      const isManual = campaign.config?.isManual === true;
+      let isManual = false;
+      try {
+        isManual = (campaign.config as any)?.isManual === true;
+      } catch (e) {}
       const baseDelay = isManual ? 2 : minDelay;
       const randomBuffer = isManual ? Math.random() : 0; // 0-1 minute extra
 
@@ -118,7 +129,7 @@ export class CampaignWorker {
             and(
               eq(campaignLeads.status, 'sent'),
               lte(campaignLeads.nextActionAt, new Date()),
-              sql`${campaignLeads.currentStep} <= ${campaign.template.followups?.length || 0}`
+              sql`${campaignLeads.currentStep} <= ${campaign.template ? (campaign.template as any).followups?.length || 0 : 0}`
             )
           )
         )
@@ -141,19 +152,20 @@ export class CampaignWorker {
     try {
       console.log(`[Campaign] Processing step ${leadEntry.currentStep} for ${lead.email} in campaign ${campaign.name}`);
 
-      let subject = campaign.template.subject;
-      let body = campaign.template.body;
+      let subject = (campaign.template as any)?.subject;
+      let body = (campaign.template as any)?.body;
       let isFollowUp = leadEntry.status === 'sent';
 
       if (isFollowUp) {
-        const followUpConfig = campaign.template.followups[leadEntry.currentStep - 1];
+        const followups = (campaign.template as any)?.followups || [];
+        const followUpConfig = followups[leadEntry.currentStep - 1];
         if (!followUpConfig) {
           console.error(`[Campaign] No follow-up config for step ${leadEntry.currentStep} for lead ${lead.id}`);
           return;
         }
         body = followUpConfig.body;
         // subject usually stays the same or prepends Re:
-        if (!subject.startsWith('Re:')) subject = `Re: ${subject}`;
+        if (subject && !subject.startsWith('Re:')) subject = `Re: ${subject}`;
       }
 
       // AI Personalization (only if NOT manual)
@@ -201,11 +213,12 @@ export class CampaignWorker {
 
       // 5. Update Status and Schedule Next Step
       const nextStep = leadEntry.currentStep + 1;
-      const hasMoreFollowUps = campaign.template.followups && nextStep <= campaign.template.followups.length;
+      const followups = (campaign.template as any)?.followups || [];
+      const hasMoreFollowUps = followups.length > 0 && nextStep <= followups.length;
 
       let nextActionAt = null;
       if (hasMoreFollowUps) {
-        const nextFollowUp = campaign.template.followups[nextStep - 1];
+        const nextFollowUp = followups[nextStep - 1];
         const delayDays = nextFollowUp?.delayDays || 3;
         nextActionAt = new Date();
         nextActionAt.setDate(nextActionAt.getDate() + delayDays);
