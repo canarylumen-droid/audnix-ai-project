@@ -217,6 +217,26 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
   }
 });
 
+// POST /api/oauth/instagram/callback - Some clients POST to this endpoint
+router.post('/instagram/callback', async (req: Request, res: Response): Promise<void> => {
+  // Redirect POST requests to the GET handler by extracting params from body or query
+  const code = req.body?.code || req.query.code;
+  const state = req.body?.state || req.query.state;
+  const error = req.body?.error || req.query.error;
+
+  if (!code && !error) {
+    res.status(400).json({ error: 'Missing code or error parameter' });
+    return;
+  }
+
+  // Build query string and redirect internally to the GET handler logic
+  const qs = new URLSearchParams();
+  if (code) qs.set('code', String(code));
+  if (state) qs.set('state', String(state));
+  if (error) qs.set('error', String(error));
+
+  res.redirect(307, `/api/oauth/instagram/callback?${qs.toString()}`);
+});
 
 router.post('/instagram/disconnect', async (req: Request, res: Response): Promise<void> => {
   try {

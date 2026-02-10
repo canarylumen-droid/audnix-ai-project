@@ -832,15 +832,16 @@ export class DrizzleStorage implements IStorage {
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: Deal[] }> {
     checkDatabase();
-    // Use select() but handle potential column errors by wrapping in try/catch if needed,
-    // or just use generic data if the schema might be out of sync with DB.
+    // Use raw SQL to avoid referencing the 'deal_value' column which may not exist in the DB.
+    // Only select columns that are guaranteed to exist.
     let allDeals: any[] = [];
     try {
-      allDeals = await db.select().from(deals).where(eq(deals.userId, userId));
+      const result = await db.execute(
+        sql`SELECT id, status, value, converted_at FROM deals WHERE user_id = ${userId}`
+      );
+      allDeals = (result as any).rows || result || [];
     } catch (e) {
-      console.error("Error fetching all deals, attempting fallback:", e);
-      // If deal_value doesn't exist, drizzle might fail the whole query.
-      // In that case, we might need a raw query or just return empty for now to prevent crash.
+      console.error("Error fetching deals for revenue:", e);
       return { total: 0, thisMonth: 0, deals: [] };
     }
     const closedDeals = allDeals.filter((d: any) => d.status === 'closed_won');
@@ -848,18 +849,18 @@ export class DrizzleStorage implements IStorage {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const total = closedDeals.reduce((sum: number, d: Deal) => {
-      const val = Number((d as any).dealValue) || Number((d as any).deal_value) || Number(d.value) || 0;
+    const total = closedDeals.reduce((sum: number, d: any) => {
+      const val = Number(d.value) || 0;
       return sum + val;
     }, 0);
     const thisMonth = closedDeals
-      .filter((d: Deal) => d.convertedAt && new Date(d.convertedAt) >= thisMonthStart)
-      .reduce((sum: number, d: Deal) => {
-        const val = Number((d as any).dealValue) || Number((d as any).deal_value) || Number(d.value) || 0;
+      .filter((d: any) => d.converted_at && new Date(d.converted_at) >= thisMonthStart)
+      .reduce((sum: number, d: any) => {
+        const val = Number(d.value) || 0;
         return sum + val;
       }, 0);
 
-    return { total, thisMonth, deals: closedDeals };
+    return { total, thisMonth, deals: closedDeals as Deal[] };
   }
 
   async createUsageTopup(data: any): Promise<any> {
