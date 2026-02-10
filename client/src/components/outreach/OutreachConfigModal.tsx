@@ -36,6 +36,10 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
 
+    // Follow-up Template
+    const [followUpSubject, setFollowUpSubject] = useState("");
+    const [followUpBody, setFollowUpBody] = useState("");
+
     // Auto-Reply Template
     const [autoReplyBody, setAutoReplyBody] = useState("");
 
