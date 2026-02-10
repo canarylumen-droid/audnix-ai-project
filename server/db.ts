@@ -21,7 +21,6 @@ function initializeDb() {
   // Neon-specific optimizations for Vercel/Neon deployment
   const dbUrl = new URL(url);
   if (url.includes('neon.tech')) {
-    dbUrl.searchParams.set('uselibpqcompat', 'true');
     dbUrl.searchParams.set('sslmode', 'verify-full');
   }
   const connectionString = dbUrl.toString();

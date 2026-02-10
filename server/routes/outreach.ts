@@ -7,9 +7,9 @@ import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics }
 import { requireAuth } from '../middleware/auth.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
-import { outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
+import { outreachCampaigns, campaignLeads, messages } from '../../shared/schema.js';
 import { db } from '../db.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -305,9 +305,7 @@ router.post('/demo-hvac', async (req, res) => {
 
 // -- New Manual Campaign Routes --
 
-import { db } from '../db.js';
-import { outreachCampaigns, campaignLeads } from '../../shared/schema.js';
-import { eq, desc, sql } from 'drizzle-orm';
+// Manual Campaign Routes logic follows...
 
 /**
  * GET /api/outreach/campaigns
@@ -454,7 +452,6 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
 router.get('/track/:trackingId', async (req, res) => {
   try {
     const { trackingId } = req.params;
-    const { messages } = await import('../../shared/schema.js');
     const { wsSync } = await import('../lib/websocket-sync.js');
 
     // Update openedAt for the message
