@@ -321,6 +321,7 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
     subject: string;
     body: string;
     followups: Array<{ delayDays: number; body: string }>;
+    autoReplyBody?: string;
   }>().notNull(),
   config: jsonb("config").$type<{
     dailyLimit: number;

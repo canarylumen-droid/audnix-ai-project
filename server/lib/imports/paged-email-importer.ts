@@ -211,20 +211,41 @@ async function processEmailForLead(
       try {
         // 1. MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
         // We do this immediately upon receiving an inbound message from a lead
+        let activeCampaign = null;
         try {
-          const { campaignLeads } = await import('../../../shared/schema.js');
+          const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');
           const { db } = await import('../../db.js');
           const { eq, and } = await import('drizzle-orm');
 
-          await db.update(campaignLeads)
-            .set({ status: 'replied' })
+          // Find the campaign lead entry
+          const campaignLeadEntries = await db.select()
+            .from(campaignLeads)
             .where(
               and(
                 eq(campaignLeads.leadId, lead.id),
-                eq(campaignLeads.status, 'sent') // Must be in 'sent' status (outreached) to be 'replied'
+                eq(campaignLeads.status, 'sent')
               )
-            );
-          console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in active campaigns`);
+            )
+            .limit(1);
+
+          if (campaignLeadEntries.length > 0) {
+            const entry = campaignLeadEntries[0];
+            await db.update(campaignLeads)
+              .set({ status: 'replied' })
+              .where(eq(campaignLeads.id, entry.id));
+            
+            console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
+
+            // Fetch the campaign to get the auto-reply template
+            const campaigns = await db.select()
+              .from(outreachCampaigns)
+              .where(eq(outreachCampaigns.id, entry.campaignId))
+              .limit(1);
+            
+            if (campaigns.length > 0) {
+              activeCampaign = campaigns[0];
+            }
+          }
         } catch (campaignStatusError) {
           console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
         }
@@ -270,8 +291,11 @@ async function processEmailForLead(
           const { followUpQueue } = await import('../../../shared/schema.js');
 
           if (followUpDb) {
-            const quickDelay = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes
+            const quickDelay = (2 + Math.random() * 1) * 60 * 1000; // 2-3 minutes
             const scheduledTime = new Date(Date.now() + quickDelay);
+
+            // Extract custom auto-reply body if it exists
+            const autoReplyBody = activeCampaign?.template?.autoReplyBody;
 
             await followUpDb.insert(followUpQueue).values({
               userId,
@@ -285,11 +309,12 @@ async function processEmailForLead(
                 campaign_day: 0,
                 sequence_number: 1,
                 inbound_message: email.text?.substring(0, 200) || email.html?.substring(0, 200) || '',
-                quick_reply: true
+                quick_reply: true,
+                autoReplyBody: autoReplyBody || null // Pass the custom body to the worker
               }
             });
 
-            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
+            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)${autoReplyBody ? ' using custom template' : ' using AI'}`);
           }
         } else {
           console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}`);

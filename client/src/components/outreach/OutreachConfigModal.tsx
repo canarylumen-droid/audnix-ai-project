@@ -36,9 +36,8 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
 
-    // Follow-up Template
-    const [followUpSubject, setFollowUpSubject] = useState("");
-    const [followUpBody, setFollowUpBody] = useState("");
+    // Auto-Reply Template
+    const [autoReplyBody, setAutoReplyBody] = useState("");
 
     // Load saved state
     useEffect(() => {
@@ -52,6 +51,7 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                 setFollowUpBody(parsed.followUpBody || `Hi {{firstName}},\n\nJust wanted to follow up on my previous email. I know you're busy, but I'd love to connect if you have a few minutes.\n\nLet me know if this week works?\n\nBest,\n[Your Name]`);
                 setDailyLimit(parsed.dailyLimit || 30);
                 setFollowUpDays(parsed.followUpDays || "3");
+                setAutoReplyBody(parsed.autoReplyBody || `Hi {{firstName}},\n\nThanks for getting back to me! I'm currently in a few meetings but saw your message. \n\nI'll take a look and get back to you with a proper response in just a bit. \n\nIn the meantime, feel free to check out our site if you have any questions!\n\nBest,\n[Your Name]`);
             } catch (e) {
                 console.error("Failed to load draft", e);
             }
@@ -61,14 +61,15 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
             setBody(`Hi {{firstName}},\n\nI came across {{company}} and was impressed by what you're building.\n\nWe help companies like yours scale their outreach and close more deals with AI-powered automation.\n\nWould you be open to a quick chat this week?\n\nBest,\n[Your Name]`);
             setFollowUpSubject("Following up");
             setFollowUpBody(`Hi {{firstName}},\n\nJust wanted to follow up on my previous email. I know you're busy, but I'd love to connect if you have a few minutes.\n\nLet me know if this week works?\n\nBest,\n[Your Name]`);
+            setAutoReplyBody(`Hi {{firstName}},\n\nThanks for getting back to me! I'm currently in a few meetings but saw your message. \n\nI'll take a look and get back to you with a proper response in just a bit. \n\nIn the meantime, feel free to check out our site if you have any questions!\n\nBest,\n[Your Name]`);
         }
     }, []);
 
     // Save state on change
     useEffect(() => {
-        const state = { subject, body, followUpSubject, followUpBody, dailyLimit, followUpDays };
+        const state = { subject, body, followUpSubject, followUpBody, autoReplyBody, dailyLimit, followUpDays };
         localStorage.setItem("outreach_draft", JSON.stringify(state));
-    }, [subject, body, followUpSubject, followUpBody, dailyLimit, followUpDays]);
+    }, [subject, body, followUpSubject, followUpBody, autoReplyBody, dailyLimit, followUpDays]);
 
     const handleAIDraft = async () => {
         setIsGeneratingAI(true);
@@ -112,7 +113,8 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                     body,
                     followups: [
                         { delayDays: parseInt(followUpDays), subject: followUpSubject, body: followUpBody }
-                    ]
+                    ],
+                    autoReplyBody
                 }
             });
 
@@ -283,6 +285,7 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                                         <TabsList className="h-8">
                                             <TabsTrigger value="initial" className="text-xs h-6 px-3">Step 1: Initial</TabsTrigger>
                                             <TabsTrigger value="followup" className="text-xs h-6 px-3">Step 2: Follow-up</TabsTrigger>
+                                            <TabsTrigger value="autoreply" className="text-xs h-6 px-3">Step 3: Auto-Reply</TabsTrigger>
                                         </TabsList>
                                     </div>
 
@@ -335,6 +338,23 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                                             />
                                         </div>
                                     </TabsContent>
+                                    <TabsContent value="autoreply" className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                                        <div className="p-3 bg-green-500/10 text-green-500 rounded-xl text-xs font-bold mb-4 flex gap-2">
+                                            <Wand2 className="w-4 h-4" />
+                                            Sends automatically 2-3 minutes after lead replies to any step.
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div className="px-4 py-2 bg-muted/30 rounded-xl text-xs text-muted-foreground font-bold">
+                                                Subject: Re: [Original Subject]
+                                            </div>
+                                            <Textarea
+                                                value={autoReplyBody}
+                                                onChange={e => setAutoReplyBody(e.target.value)}
+                                                className="min-h-[300px] bg-muted/10 border-0 focus-visible:ring-0 text-sm leading-relaxed p-4 resize-none rounded-xl font-mono"
+                                                placeholder="Write your automated reply..."
+                                            />
+                                        </div>
+                                    </TabsContent>
                                 </Tabs>
                             </div>
                         </ScrollArea>
@@ -365,12 +385,16 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                                 <TabsList className="absolute top-4 right-4 z-30 bg-background/80 backdrop-blur shadow-sm h-8">
                                     <TabsTrigger value="preview-initial" className="text-[10px] h-6">Step 1</TabsTrigger>
                                     <TabsTrigger value="preview-followup" className="text-[10px] h-6">Step 2</TabsTrigger>
+                                    <TabsTrigger value="preview-autoreply" className="text-[10px] h-6">Step 3</TabsTrigger>
                                 </TabsList>
                                 <TabsContent value="preview-initial" className="h-full m-0">
                                     {renderPreview(subject, body)}
                                 </TabsContent>
                                 <TabsContent value="preview-followup" className="h-full m-0">
                                     {renderPreview(followUpSubject, followUpBody)}
+                                </TabsContent>
+                                <TabsContent value="preview-autoreply" className="h-full m-0">
+                                    {renderPreview(`Re: ${subject}`, autoReplyBody)}
                                 </TabsContent>
                             </Tabs>
                         </div>
