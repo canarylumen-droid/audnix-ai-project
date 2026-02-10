@@ -30,13 +30,16 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       errors: [] as string[]
     };
 
+    const { mapCsvToLeadMetadata } = await import('../lib/imports/lead-importer.js');
+
     const importedIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsData.length; i++) {
       const leadData = leadsData[i];
       try {
-        const email = leadData.email;
-        const name = leadData.name;
+        const metadata = mapCsvToLeadMetadata(leadData);
+        const email = metadata.email || leadData.email;
+        const name = metadata.name || leadData.name;
         const identifier = email || name || 'unknown';
 
         if (!email && !name) {
@@ -70,12 +73,12 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           userId,
           name: name || 'Unknown',
           email: email || null,
-          phone: leadData.phone || null,
-          company: leadData.company || null,
+          phone: metadata.phone || leadData.phone || null,
+          company: metadata.company || leadData.company || null,
           channel: channel as any,
           status: 'new',
           aiPaused: aiPaused,
-          metadata: { ...leadData }
+          metadata: { ...leadData, ...metadata }
         });
 
         results.leadsImported++;
