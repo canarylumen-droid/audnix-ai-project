@@ -51,8 +51,8 @@ export function LeadsDisplayModal({
         </DialogHeader>
 
         <ScrollArea className="flex-1 border-t border-border/40 max-h-[60vh]">
-          <div className="w-full">
-            <table className="w-full text-left border-collapse table-auto">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse table-auto min-w-[600px] md:min-w-0">
               <thead className="sticky top-0 bg-background/95 backdrop-blur-xl z-20 border-b border-border/40">
                 <tr>
                   <th className="px-4 md:px-6 py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Lead Details</th>
@@ -69,7 +69,7 @@ export function LeadsDisplayModal({
                         <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                           <User className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 max-w-[120px] md:max-w-none">
                           <div className="font-bold text-sm tracking-tight truncate">{lead.name}</div>
                           <div className="md:hidden text-xs text-muted-foreground truncate">{lead.email}</div>
                           {lead.title && <div className="text-[10px] font-bold text-primary/60 uppercase tracking-widest truncate">{lead.title}</div>}
@@ -129,14 +129,14 @@ export function LeadsDisplayModal({
         </ScrollArea>
 
         {onConfirm && (
-          <div className="p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-8">
-            <Button variant="outline" onClick={onClose} disabled={isImporting} className="font-bold rounded-xl border-border/50 h-11">
+          <div className="p-4 md:p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-4 md:px-8">
+            <Button variant="outline" onClick={onClose} disabled={isImporting} className="font-bold rounded-xl border-border/50 h-11 w-full sm:w-auto">
               Cancel
             </Button>
             <Button
               onClick={onConfirm}
               disabled={isImporting || !canConfirm}
-              className="bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider rounded-xl h-11 px-8 shadow-lg shadow-primary/20"
+              className="bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider rounded-xl h-11 px-8 shadow-lg shadow-primary/20 w-full sm:w-auto"
             >
               {isImporting ? (
                 <>

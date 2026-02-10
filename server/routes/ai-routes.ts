@@ -240,6 +240,109 @@ router.post("/score-all", requireAuth, async (req: Request, res: Response): Prom
  * Import leads from CSV file upload
  * POST /api/leads/import-csv
  */
+router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const file = req.file;
+    const previewMode = req.query.preview === 'true';
+    const aiPaused = req.body.aiPaused === 'true';
+
+    if (!file) {
+      res.status(400).json({ error: "No CSV file uploaded" });
+      return;
+    }
+
+    const results: any[] = [];
+    const stream = Readable.from(file.buffer.toString('utf-8'));
+
+    stream
+      .pipe(csvParser())
+      .on('data', (data) => results.push(data))
+      .on('end', async () => {
+        try {
+          if (results.length === 0) {
+            res.status(400).json({ error: "CSV file is empty" });
+            return;
+          }
+
+          // 1. Map Columns using AI
+          const headers = Object.keys(results[0]);
+          const mappingResult = await mapCSVColumnsToSchema(headers, results.slice(0, 3));
+          const mapping = mappingResult.mapping;
+
+          // 2. Extract Leads
+          const processedLeads = results.map(row => {
+            const basicLead = extractLeadFromRow(row, mapping);
+            // Skip empty rows
+            if (!basicLead.name && !basicLead.email) return null;
+
+            const metadata = extractExtraFieldsAsMetadata(row, mapping);
+            if (mappingResult.unmappedColumns.length > 0) {
+              metadata._unmapped_cols = mappingResult.unmappedColumns.join(',');
+            }
+
+            return {
+              ...basicLead,
+              metadata
+            };
+          }).filter(l => l !== null);
+
+          // 3. Handle Preview vs Output
+          if (previewMode) {
+            res.json({
+              preview: true,
+              total: processedLeads.length,
+              mapping: mappingResult.mapping,
+              confidence: mappingResult.confidence,
+              leads: processedLeads.slice(0, 10), // Return sample
+              allLeads: processedLeads // Frontend might need all for "confirm" step if we don't re-upload
+            });
+            return;
+          }
+
+          // 4. Save to DB (if not preview, though usually frontend calls import-bulk after preview)
+          // But if called directly without preview:
+          const savedLeads = [];
+          for (const leadData of processedLeads) {
+             if (!leadData) continue;
+             // Basic de-dupe check done in bulk-import usually, but simple one here:
+             // actually, let's just use the bulk-import logic if possible, but for now duplicate the create logic
+             // to ensure this route works standalone.
+             const lead = await storage.createLead({
+                userId,
+                name: leadData.name || 'Unknown',
+                email: leadData.email,
+                phone: leadData.phone,
+                company: leadData.company,
+                channel: 'email',
+                status: 'new',
+                aiPaused,
+                metadata: {
+                  ...leadData.metadata,
+                  imported_via: 'csv_upload',
+                  import_date: new Date().toISOString()
+                }
+             });
+             savedLeads.push(lead);
+          }
+
+          res.json({
+            success: true,
+            leadsImported: savedLeads.length,
+            leads: savedLeads
+          });
+
+        } catch (error: any) {
+           console.error("CSV Processing Error:", error);
+           res.status(500).json({ error: "Failed to process CSV rows" });
+        }
+      });
+
+  } catch (error: any) {
+    console.error("CSV Import API Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 /**
  * Update lead details (status, aiPaused, etc.)
  * PATCH /api/leads/:leadId

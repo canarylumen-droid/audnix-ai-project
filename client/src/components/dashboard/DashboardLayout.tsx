@@ -208,6 +208,9 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       }
     };
     socket.on('notification', handleNotification);
+    socket.on('activity_updated', handleNotification);
+    socket.on('leads_updated', handleNotification);
+    socket.on('messages_updated', handleNotification);
     return () => { socket.off('notification', handleNotification); };
   }, [socket]);
 
@@ -576,8 +579,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                             <p className="text-[10px] font-bold text-white/20 uppercase tracking-wider">
                               {(() => {
                                 try {
-                                  const date = new Date(notification.createdAt);
-                                  return isNaN(date.getTime()) ? 'Just now' : formatDistanceToNow(date, { addSuffix: true });
+                                  return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
                                 } catch (e) {
                                   return 'Just now';
                                 }

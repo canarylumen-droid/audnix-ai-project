@@ -177,169 +177,183 @@ export async function importCustomEmails(
     throw new Error('IMAP host not configured. Please provide explicit IMAP settings.');
   }
 
-  return new Promise((resolve, reject) => {
-    let timeoutHandle: NodeJS.Timeout | null = null;
-    let completed = false;
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 1000;
 
-    const cleanup = () => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      completed = true;
-    };
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        let timeoutHandle: NodeJS.Timeout | null = null;
+        let completed = false;
+        let connectionEnded = false;
 
-    timeoutHandle = setTimeout(() => {
-      if (!completed) {
-        completed = true;
-        console.warn(`IMAP timeout for user ${config.smtp_user}. Resolving with empty list instead of crashing.`);
-        resolve([]); // Resolve with empty instead of rejecting to prevent crash
-      }
-    }, timeoutMs);
-
-  const imap = new Imap({
-    user: config.smtp_user!,
-    password: config.smtp_pass!,
-    host: imapHost,
-    port: imapPort,
-    tls: imapPort === 993,
-    tlsOptions: { rejectUnauthorized: false },
-    connTimeout: 60000,
-    authTimeout: 60000,
-    keepalive: true,
-    debug: (msg: string) => {
-      // Filter out hostname not found errors from flooding logs
-      if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) {
-        return;
-      }
-      console.log(`[IMAP DEBUG] ${msg}`);
-    }
-  });
-
-    const emails: ImportedEmail[] = [];
-
-    const startFetch = (targetBox: any) => {
-      if (!targetBox || !targetBox.messages || targetBox.messages.total === 0) {
-        imap.end();
-        return;
-      }
-      const total = targetBox.messages.total;
-      const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
-      const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
-
-      fetch.on('message', (msg: any) => {
-        msg.on('body', (stream: NodeJS.ReadableStream) => {
-          simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
-            if (!parseErr && parsed) {
-              emails.push({
-                from: parsed.from?.text,
-                to: parsed.to?.text,
-                subject: parsed.subject,
-                text: parsed.text,
-                html: parsed.html,
-                date: parsed.date
-              });
-            }
-          });
+        const imap = new Imap({
+          user: config.smtp_user!,
+          password: config.smtp_pass!,
+          host: imapHost,
+          port: imapPort,
+          tls: imapPort === 993,
+          tlsOptions: { rejectUnauthorized: false },
+          connTimeout: 15000, // Reduced from 60s
+          authTimeout: 15000, // Reduced from 60s
+          keepalive: false,   // Disable keepalive for one-off fetch
+          debug: (msg: string) => {
+            if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) return;
+            // console.log(`[IMAP DEBUG] ${msg}`); // Uncomment for debugging
+          }
         });
-      });
 
-      fetch.once('error', (err: Error) => {
-        cleanup();
-        imap.end();
-        reject(new Error(`Failed to fetch emails: ${err.message}`));
-      });
+        const emails: ImportedEmail[] = [];
 
-      fetch.once('end', () => {
-        imap.end();
-      });
-    };
-
-    imap.once('ready', () => {
-      // @ts-ignore
-      imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
-        if (err) {
-          // If folder not found, try with INBOX. prefix
-          if (!mailbox.startsWith('INBOX.') && err.message.toLowerCase().includes('nonexistent')) {
-            const prefixedMailbox = `INBOX.${mailbox}`;
-            console.log(`[IMAP] Folder ${mailbox} not found, retrying with ${prefixedMailbox}`);
-            imap.openBox(prefixedMailbox, true, (err3, box3) => {
-              if (!err3) {
-                startFetch(box3);
-              } else {
-                handleOpenError(err); // Original error
-              }
-            });
+        const startFetch = (targetBox: any) => {
+          if (!targetBox || !targetBox.messages || targetBox.messages.total === 0) {
+            safeEnd();
             return;
           }
-          handleOpenError(err);
-        } else {
-          startFetch(box);
-        }
-      });
+          const total = targetBox.messages.total;
+          const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
+          const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
 
-      async function handleOpenError(handleErr: Error) {
-        if (mailbox === 'Sent' || mailbox === 'Sent Items') {
-          try {
-            const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
-            const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
-
-            const findBox = (obj: any, prefix = ''): string | null => {
-              for (const key in obj) {
-                const fullName = prefix + key;
-                if (sentPatterns.includes(key.toLowerCase())) return fullName;
-                if (obj[key].children) {
-                  const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
-                  if (found) return found;
-                }
-              }
-              return null;
-            };
-
-            const discoveredSent = findBox(boxes);
-            if (discoveredSent) {
-              console.log(`[IMAP] Discovered Sent folder: ${discoveredSent}`);
-              imap.openBox(discoveredSent, true, (err2, box2) => {
-                if (err2) {
-                  cleanup(); imap.end();
-                  reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
-                } else {
-                  startFetch(box2);
+          fetch.on('message', (msg: any) => {
+            msg.on('body', (stream: NodeJS.ReadableStream) => {
+              simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
+                if (!parseErr && parsed) {
+                  emails.push({
+                    from: parsed.from?.text,
+                    to: parsed.to?.text,
+                    subject: parsed.subject,
+                    text: parsed.text,
+                    html: parsed.html,
+                    date: parsed.date
+                  });
                 }
               });
-              return;
+            });
+          });
+
+          fetch.once('error', (err: Error) => {
+            cleanup();
+            safeEnd();
+            reject(new Error(`Failed to fetch emails: ${err.message}`));
+          });
+
+          fetch.once('end', () => {
+            safeEnd();
+          });
+        };
+
+        imap.once('ready', () => {
+          // @ts-ignore
+          imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
+            if (err) {
+              // If folder not found, try with INBOX. prefix
+              if (!mailbox.startsWith('INBOX.') && err.message.toLowerCase().includes('nonexistent')) {
+                const prefixedMailbox = `INBOX.${mailbox}`;
+                console.log(`[IMAP] Folder ${mailbox} not found, retrying with ${prefixedMailbox}`);
+                imap.openBox(prefixedMailbox, true, (err3, box3) => {
+                  if (!err3) {
+                    startFetch(box3);
+                  } else {
+                    handleOpenError(err); // Original error
+                  }
+                });
+                return;
+              }
+              handleOpenError(err);
+            } else {
+              startFetch(box);
             }
-          } catch (e) {
-            console.warn('[IMAP] Sent discovery failed', e);
+          });
+
+          async function handleOpenError(handleErr: Error) {
+            if (mailbox === 'Sent' || mailbox === 'Sent Items') {
+              try {
+                const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
+                const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
+
+                const findBox = (obj: any, prefix = ''): string | null => {
+                  for (const key in obj) {
+                    const fullName = prefix + key;
+                    if (sentPatterns.includes(key.toLowerCase())) return fullName;
+                    if (obj[key].children) {
+                      const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+
+                const discoveredSent = findBox(boxes);
+                if (discoveredSent) {
+                  console.log(`[IMAP] Discovered Sent folder: ${discoveredSent}`);
+                  imap.openBox(discoveredSent, true, (err2, box2) => {
+                    if (err2) {
+                      cleanup(); safeEnd();
+                      reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
+                    } else {
+                      startFetch(box2);
+                    }
+                  });
+                  return;
+                }
+              } catch (e) {
+                console.warn('[IMAP] Sent discovery failed', e);
+              }
+            }
+            cleanup();
+            safeEnd();
+            reject(new Error(`Failed to open ${mailbox}: ${handleErr.message}`));
           }
-        }
-        cleanup();
-        imap.end();
-        reject(new Error(`Failed to open ${mailbox}: ${handleErr.message}`));
-      }
-    });
+        });
 
-    imap.once('error', (err: Error) => {
-      if (!completed) {
-        cleanup();
-        let errorMessage = `IMAP connection error: ${err.message}`;
-        if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
-          errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
-        } else if (err.message.toLowerCase().includes('etimedout') || err.message.toLowerCase().includes('timeout')) {
-          errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
-        } else if (err.message.toLowerCase().includes('econnrefused')) {
-          errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
-        }
-        reject(new Error(errorMessage));
-      }
-    });
+        imap.once('error', (err: Error) => {
+          if (!completed) {
+            cleanup();
+            // Don't safeEnd here necessarily, as error might have closed it
+            connectionEnded = true; 
+            
+            let errorMessage = `IMAP connection error: ${err.message}`;
+            if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
+              errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
+            } else if (err.message.toLowerCase().includes('etimedout') || err.message.toLowerCase().includes('timeout')) {
+              errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
+            } else if (err.message.toLowerCase().includes('econnrefused')) {
+              errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
+            }
+            reject(new Error(errorMessage));
+          }
+        });
 
-    imap.once('end', () => {
-      if (!completed) {
-        cleanup();
-        resolve(emails);
-      }
-    });
+        imap.once('end', () => {
+          if (!completed) {
+            cleanup();
+            connectionEnded = true;
+            resolve(emails);
+          }
+        });
 
-    imap.connect();
-  });
+        imap.connect();
+      });
+    } catch (error: any) {
+      const isLastAttempt = attempt === MAX_RETRIES;
+      const isTimeout = error.message.includes('tim') || error.message.includes('TIM'); // catch timeout, ETIMEDOUT, etc.
+      
+      if (!isLastAttempt && (isTimeout || error.message.includes('ECONNRESET') || error.message.includes('socket hang up'))) {
+        console.warn(`[IMAP] Attempt ${attempt} failed for ${config.smtp_user}: ${error.message}. Retrying in ${BASE_DELAY * attempt}ms...`);
+        await new Promise(res => setTimeout(res, BASE_DELAY * attempt));
+        continue;
+      }
+      
+      // If we're out of retries or it's a fatal error, rethrow or return empty based on policy
+      if (isLastAttempt) {
+        console.error(`[IMAP] All ${MAX_RETRIES} attempts failed for ${config.smtp_user}: ${error.message}`);
+        // We resolve empty to avoid crashing the worker, but log the error
+        return []; 
+      }
+      throw error; // Propagate other errors
+    }
+  }
+  return [];
 }
 
 /**

@@ -166,10 +166,22 @@ class ImapIdleManager {
                     interval: 10000,
                     idleInterval: 300000,
                     forceNoop: true
+                },
+                // Add debug to catch low-level socket errors
+                debug: (msg) => {
+                   // console.log(`[IMAP RAW ${userId}]`, msg); 
                 }
             });
 
             this.connections.set(userId, imap);
+
+            const safeEnd = () => {
+                try {
+                     if (imap.state !== 'disconnected') imap.end(); 
+                } catch (err) { 
+                    // Ignore errors during end
+                }
+            };
 
             imap.once('ready', async () => {
                 await this.discoverFolders(userId, imap);
@@ -178,6 +190,12 @@ class ImapIdleManager {
 
             imap.once('error', async (err: any) => {
                 console.error(`IMAP Error for user ${userId}:`, err.message);
+
+                // Ignore EPIPE/ECONNRESET during error handling as they are side effects of connection drop
+                if (err.code === 'EPIPE' || err.code === 'ECONNRESET') {
+                     safeEnd();
+                     return; 
+                }
 
                 // If it's a definitive configuration error, don't reconnect and mark integration as failing
                 const fatalErrors = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'AUTHENTICATIONFAILED'];
@@ -214,8 +232,14 @@ class ImapIdleManager {
                     this.reconnect(userId, integration);
                 }
             });
-
-            imap.connect();
+            
+            // Safety: Catch synchronous errors during connect
+            try {
+                imap.connect();
+            } catch (err: any) {
+                console.error(`IMAP synchronous connect error for user ${userId}:`, err.message);
+                this.reconnect(userId, integration);
+            }
         } catch (error) {
             console.error(`Failed to setup IMAP connection for user ${userId}:`, error);
         }
@@ -406,88 +430,121 @@ class ImapIdleManager {
         console.log('🛑 IMAP IDLE Manager stopped');
     }
     public async appendSentMessage(userId: string, rawMessage: string, config: EmailConfig): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            // Use cached folders from the main connection if available
-            const discovered = this.folders.get(userId);
-            const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
+        const MAX_RETRIES = 3;
+        const BASE_DELAY = 1000;
 
-            // Force common Sent folder names if discovery yielded nothing or we just want to be sure
-            const fallbackFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT', 'INBOX.Sent'];
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    // Use cached folders from the main connection if available
+                    const discovered = this.folders.get(userId);
+                    const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
 
-            const foldersToTry = discovered?.sent && discovered.sent.length > 0
-                ? [...new Set([...discovered.sent, ...fallbackFolders])]
-                : fallbackFolders;
+                    // Force common Sent folder names if discovery yielded nothing or we just want to be sure
+                    const fallbackFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT', 'INBOX.Sent'];
 
-            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
-            const imapPort = config.imap_port || 993;
+                    const foldersToTry = discovered?.sent && discovered.sent.length > 0
+                        ? [...new Set([...discovered.sent, ...fallbackFolders])]
+                        : fallbackFolders;
 
-            if (!imapHost) {
-                console.warn(`[Append] No IMAP host for user ${userId}`);
-                resolve(); // Don't crash, just skip
+                    const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+                    const imapPort = config.imap_port || 993;
+
+                    if (!imapHost) {
+                        console.warn(`[Append] No IMAP host for user ${userId}`);
+                        resolve(); // Don't crash, just skip
+                        return;
+                    }
+
+                    // Create a dedicated transient connection for appending
+                    // This avoids conflicts with the main IDLE connection
+                    const appendImap = new Imap({
+                        user: config.smtp_user!,
+                        password: config.smtp_pass!,
+                        host: imapHost,
+                        port: imapPort,
+                        tls: imapPort === 993,
+                        tlsOptions: { rejectUnauthorized: false },
+                        authTimeout: 10000,
+                        connTimeout: 10000 // 10s connection timeout
+                    });
+
+                    const cleanup = () => {
+                        try {
+                            if (appendImap.state !== 'disconnected') appendImap.end();
+                        } catch (e) {
+                            // Suppress cleanup errors
+                        }
+                    };
+
+                    appendImap.once('ready', async () => {
+                        const appendToFolder = (folder: string) => {
+                            return new Promise<void>((res, rej) => {
+                                try {
+                                    appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
+                                        if (err) {
+                                            rej(err);
+                                        } else {
+                                            res();
+                                        }
+                                    });
+                                } catch (e) {
+                                    // Catch synchronous errors in append
+                                    rej(e);
+                                }
+                            });
+                        };
+
+                        // Try discovered and common names
+                        let appended = false;
+                        for (const folder of foldersToTry) {
+                            try {
+                                console.log(`[Append] Attempting to mirror message to '${folder}' for user ${userId}...`);
+                                await appendToFolder(folder);
+                                console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
+                                appended = true;
+                                break;
+                            } catch (e: any) {
+                                console.warn(`[Append] Failed to append to '${folder}': ${e.message}`);
+                                // Continue to next folder
+                            }
+                        }
+
+                        if (!appended) {
+                            console.error(`❌ Failed to append sent message for user ${userId}. Tried folders: ${foldersToTry.join(', ')}`);
+                        }
+
+                        cleanup();
+                        resolve();
+                    });
+
+                    appendImap.once('error', (err: any) => {
+                        console.error(`[Append] Connection error for user ${userId}:`, err.message);
+                        cleanup();
+                        reject(err); // Reject so we can retry
+                    });
+
+                    appendImap.connect();
+                });
+                
+                // If we get here, it succeeded (or resolved without crashing)
+                return;
+
+            } catch (error: any) {
+                const isLastAttempt = attempt === MAX_RETRIES;
+                const isTimeout = error.message && (error.message.includes('tim') || error.message.includes('TIM'));
+                
+                if (!isLastAttempt) {
+                    console.warn(`[Append] Attempt ${attempt} failed for ${userId}. Retrying in ${BASE_DELAY * attempt}ms...`);
+                    await new Promise(res => setTimeout(res, BASE_DELAY * attempt));
+                    continue;
+                }
+                
+                console.error(`[Append] All ${MAX_RETRIES} attempts failed for user ${userId}:`, error.message);
+                // We resolve cleanly to prevent blocking the send flow, but the error is logged
                 return;
             }
-
-            // Create a dedicated transient connection for appending
-            // This avoids conflicts with the main IDLE connection
-            const appendImap = new Imap({
-                user: config.smtp_user!,
-                password: config.smtp_pass!,
-                host: imapHost,
-                port: imapPort,
-                tls: imapPort === 993,
-                tlsOptions: { rejectUnauthorized: false },
-                authTimeout: 10000
-            });
-
-            const cleanup = () => {
-                appendImap.end();
-            };
-
-            appendImap.once('ready', async () => {
-                const appendToFolder = (folder: string) => {
-                    return new Promise<void>((res, rej) => {
-                        appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
-                            if (err) {
-                                console.warn(`[Append] Error appending to ${folder}:`, err.message);
-                                rej(err);
-                            } else {
-                                res();
-                            }
-                        });
-                    });
-                };
-
-                // Try discovered and common names
-                let appended = false;
-                for (const folder of foldersToTry) {
-                    try {
-                        console.log(`[Append] Attempting to mirror message to '${folder}' for user ${userId}...`);
-                        await appendToFolder(folder);
-                        console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
-                        appended = true;
-                        break;
-                    } catch (e: any) {
-                        console.warn(`[Append] Failed to append to '${folder}': ${e.message}`);
-                        // Continue to next folder
-                    }
-                }
-
-                if (!appended) {
-                    console.error(`❌ Failed to append sent message for user ${userId}. Tried folders: ${foldersToTry.join(', ')}`);
-                }
-
-                cleanup();
-                resolve();
-            });
-
-            appendImap.once('error', (err: any) => {
-                console.error(`[Append] Connection error for user ${userId}:`, err.message);
-                cleanup();
-                resolve(); // resolve anyway
-            });
-
-            appendImap.connect();
-        });
+        }
     }
 }
 
