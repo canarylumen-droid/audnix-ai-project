@@ -91,6 +91,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsUpdated: results.leadsUpdated,
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
+      totalCount: (await storage.getLeads({ userId, limit: 1 })).length, // Just a hint for frontend
       message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`
     });
   } catch (error: any) {

@@ -56,9 +56,11 @@ export class CampaignWorker {
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    let dailyLimit = 50;
+    let dailyLimit = 1000000; // Default to a very high number if not set
     try {
-      dailyLimit = (campaign.config as any)?.dailyLimit || 50;
+      if ((campaign.config as any)?.dailyLimit) {
+        dailyLimit = (campaign.config as any).dailyLimit;
+      }
     } catch (e) {}
 
     if (sentToday >= dailyLimit) {
@@ -98,16 +100,14 @@ export class CampaignWorker {
 
       // For manual campaigns, enforce strictly 2-3 minutes random delay
       // For AI campaigns, use config or default 2 mins
-      let minDelay = 2;
+      let minDelay = 0; // Default to 0 for maximum speed if user doesn't specify
       try {
-        minDelay = (campaign.config as any)?.minDelayMinutes || 2;
+        if ((campaign.config as any)?.minDelayMinutes !== undefined) {
+          minDelay = (campaign.config as any).minDelayMinutes;
+        }
       } catch (e) {}
 
-      // Add randomization for "human-like" behavior
-      let isManual = false;
-      try {
-        isManual = (campaign.config as any)?.isManual === true;
-      } catch (e) {}
+      const isManual = (campaign.config as any)?.isManual === true;
       const baseDelay = isManual ? 2 : minDelay;
       const randomBuffer = isManual ? Math.random() : 0; // 0-1 minute extra
 
