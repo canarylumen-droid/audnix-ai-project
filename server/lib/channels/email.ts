@@ -201,8 +201,8 @@ export async function importCustomEmails(
       port: imapPort,
       tls: imapPort === 993,
       tlsOptions: { rejectUnauthorized: false },
-      connTimeout: 30000,
-      authTimeout: 30000,
+      connTimeout: 60000,
+      authTimeout: 60000,
       keepalive: true
     });
 
