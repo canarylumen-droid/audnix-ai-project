@@ -314,6 +314,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
+        data-testid="sidebar-desktop"
         className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border bg-sidebar"
         animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
