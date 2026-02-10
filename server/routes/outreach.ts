@@ -7,6 +7,9 @@ import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics }
 import { requireAuth } from '../middleware/auth.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
+import { outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
+import { db } from '../db.js';
+import { eq, and } from 'drizzle-orm';
 
 const router = Router();
 
@@ -100,6 +103,95 @@ router.post('/campaign/create', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/outreach/campaigns
+ * List all campaigns for the user
+ */
+router.get('/campaigns', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const campaigns = await db.select()
+      .from(outreachCampaigns)
+      .where(eq(outreachCampaigns.userId, userId));
+
+    res.json(campaigns);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns
+ * Standard campaign creation endpoint used by frontend
+ */
+router.post('/campaigns', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { name, config, template, leads } = req.body;
+
+    if (!name || !config || !template || !leads) {
+      return res.status(400).json({ error: 'Missing required campaign data' });
+    }
+
+    const [campaign] = await db.insert(outreachCampaigns).values({
+      userId,
+      name,
+      config,
+      template,
+      status: 'draft'
+    }).returning();
+
+    // Link leads to campaign
+    if (leads && Array.isArray(leads)) {
+      const leadLinks = leads.map(leadId => ({
+        campaignId: campaign.id,
+        leadId,
+        status: 'pending' as const
+      }));
+
+      // Batch insert in chunks of 50 to avoid parameter limits if leads is huge
+      for (let i = 0; i < leadLinks.length; i += 50) {
+        await db.insert(campaignLeads).values(leadLinks.slice(i, i + 50)).onConflictDoNothing();
+      }
+    }
+
+    res.json(campaign);
+  } catch (error: any) {
+    console.error('Campaign creation error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/start
+ * Start a draft campaign
+ */
+router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    const { id } = req.params;
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'active', updatedAt: new Date() })
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)))
+      .returning();
+
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/outreach/strategy
  * Get current outreach strategy info
  */
@@ -161,12 +253,12 @@ router.post('/demo-hvac', async (req, res) => {
   try {
     const { storage } = await import('../storage.js');
     const { runDemoOutreach } = await import('../lib/outreach/outreach-runner.js');
-    
+
     console.log('🚀 Starting HVAC demo outreach campaign...');
-    
+
     // Find or create test user
     let user = await storage.getUserByEmail('canarylumen1@gmail.com');
-    
+
     if (!user) {
       console.log('📝 Creating test user: canarylumen1@gmail.com');
       user = await storage.createUser({
@@ -176,12 +268,12 @@ router.post('/demo-hvac', async (req, res) => {
         plan: 'enterprise'
       });
     }
-    
+
     console.log(`✅ Using user ID: ${user.id}`);
-    
+
     // Run the HVAC demo outreach
     const result = await runDemoOutreach(user.id);
-    
+
     // Create completion notification
     await storage.createNotification({
       userId: user.id,
@@ -196,9 +288,9 @@ router.post('/demo-hvac', async (req, res) => {
         followUpHours: 6
       }
     });
-    
+
     console.log(`✅ Campaign complete: ${result.summary.sent}/${result.summary.total} sent`);
-    
+
     res.json({
       success: true,
       message: `HVAC outreach campaign completed! ${result.summary.sent} of ${result.summary.total} emails sent.`,
@@ -281,17 +373,17 @@ router.get('/campaigns/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const [campaign] = await db.select().from(outreachCampaigns).where(eq(outreachCampaigns.id, id));
-    
+
     if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-    
+
     // Get live stats
     const leadStats = await db.select({
       status: campaignLeads.status,
       count: sql<number>`count(*)`
     })
-    .from(campaignLeads)
-    .where(eq(campaignLeads.campaignId, id))
-    .groupBy(campaignLeads.status);
+      .from(campaignLeads)
+      .where(eq(campaignLeads.campaignId, id))
+      .groupBy(campaignLeads.status);
 
     const stats = {
       total: 0,
@@ -338,9 +430,17 @@ router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const [campaign] = await db.update(outreachCampaigns)
-      .set({ status: 'paused' })
+      .set({ status: 'active' })
       .where(eq(outreachCampaigns.id, id))
       .returning();
+
+    // Trigger immediate worker processing if campaign is active
+    if (campaign) {
+      const { followUpWorker } = await import('../lib/ai/follow-up-worker.js');
+      // We don't await this as it might take time, just trigger it
+      followUpWorker.processQueue().catch(err => console.error('Immediate queue processing failed:', err));
+    }
+
     res.json(campaign);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -356,12 +456,12 @@ router.get('/track/:trackingId', async (req, res) => {
     const { trackingId } = req.params;
     const { messages } = await import('../../shared/schema.js');
     const { wsSync } = await import('../lib/websocket-sync.js');
-    
+
     // Update openedAt for the message
     const [message] = await db.update(messages)
-      .set({ 
+      .set({
         openedAt: new Date(),
-        isRead: true 
+        isRead: true
       })
       .where(eq(messages.trackingId, trackingId))
       .returning();
@@ -369,10 +469,10 @@ router.get('/track/:trackingId', async (req, res) => {
     if (message) {
       console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);
       // Notify UI in real-time
-      wsSync.notifyMessagesUpdated(message.userId, { 
-        type: 'UPDATE', 
-        messageId: message.id, 
-        event: 'opened' 
+      wsSync.notifyMessagesUpdated(message.userId, {
+        type: 'UPDATE',
+        messageId: message.id,
+        event: 'opened'
       });
     }
 

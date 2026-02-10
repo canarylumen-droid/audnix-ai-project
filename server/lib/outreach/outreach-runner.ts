@@ -37,7 +37,7 @@ async function generateOutreachEmail(
   lead: OutreachLead,
   brandContext: BrandContext
 ): Promise<{ subject: string; body: string }> {
-  
+
   const prompt = `You are a sales copywriting expert. Generate a short, personalized cold outreach email.
 
 Lead Info:
@@ -75,11 +75,19 @@ Return JSON only:
     });
 
     const content = response.choices[0].message.content;
+    const firstName = lead.name.split(' ')[0] || "there";
     if (content) {
       const parsed = JSON.parse(content);
+      let body = parsed.body || `Hey ${firstName}, wanted to reach out about something that might help you...`;
+
+      // Automatic lead name injection if the AI forgot or user provided a generic template
+      if (!body.includes(firstName) && (body.startsWith("Hi") || body.startsWith("Hey") || body.startsWith("Hello"))) {
+        body = body.replace(/^(Hi|Hey|Hello)(\s*,|\s+)/, `$1 ${firstName}, `);
+      }
+
       return {
-        subject: parsed.subject || `Quick question, ${lead.name.split(' ')[0]}`,
-        body: parsed.body || `Hey ${lead.name.split(' ')[0]}, wanted to reach out about something that might help you...`
+        subject: parsed.subject || `Quick question, ${firstName}`,
+        body
       };
     }
   } catch (error) {
@@ -130,7 +138,7 @@ export async function runOutreachCampaign(
     try {
       // Check if lead already exists
       const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-      let existingLead = existingLeads.find(l => 
+      let existingLead = existingLeads.find(l =>
         l.email?.toLowerCase() === lead.email.toLowerCase()
       );
 
@@ -231,7 +239,7 @@ export async function runOutreachCampaign(
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[Outreach] ❌ Failed for ${lead.email}:`, errorMsg);
-      
+
       results.push({
         leadId: '',
         email: lead.email,
@@ -268,13 +276,13 @@ export async function runDemoOutreach(userId: string): Promise<{
 }> {
   // 1. Fetch existing leads first
   let dbLeads = await storage.getLeads({ userId, limit: 100 });
-  
+
   // Filter for HVAC style leads if needed, or just use all for the demo
   // For now, we'll try to find specific "demo-seeded" leads or just use what's there
-  
+
   if (dbLeads.length === 0) {
     console.log('[Outreach] No leads found. Seeding initial database with HVAC leads...');
-    
+
     const initialLeads: OutreachLead[] = [
       { name: 'Mike Johnson', email: 'trexndom@gmail.com', company: 'Johnson HVAC Services' },
       { name: 'Sarah Williams', email: 'team.replyflow@gmail.com', company: 'Williams Heating & Cooling' },
@@ -301,7 +309,7 @@ export async function runDemoOutreach(userId: string): Promise<{
         }
       });
     }
-    
+
     // Refresh list
     dbLeads = await storage.getLeads({ userId, limit: 100 });
   }

@@ -637,7 +637,7 @@ export default function IntegrationsPage() {
           {/* Social and SaaS Integrations */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {integrationCards.map((card) => {
-              const integration = integrations.find(i => i.provider === card.id);
+              const integration = Array.isArray(integrations) ? integrations.find(i => i.provider === card.id) : undefined;
               const isConnected = !!integration;
 
               return (

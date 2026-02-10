@@ -287,7 +287,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messagesData]);
+  }, [messagesData?.messages, isGenerating, typedText]);
 
   useEffect(() => {
     // Component check for debugging
@@ -297,10 +297,10 @@ export default function InboxPage() {
 
   return (
     <div className="flex h-screen md:h-full w-full overflow-hidden bg-background relative p-0">
-      <div className="flex w-full h-full max-w-[1600px] mx-auto bg-card/30 backdrop-blur-xl border-0 md:border rounded-none md:rounded-3xl overflow-hidden shadow-2xl">
+      <div className="flex w-full h-full max-w-[1600px] mx-auto bg-card border-0 md:border rounded-none md:rounded-3xl overflow-hidden shadow-2xl">
         {/* Lead List Pane */}
         <div className={cn(
-          "w-full md:w-80 lg:w-[350px] border-r flex flex-col transition-all shrink-0 h-full bg-background/50",
+          "w-full md:w-80 lg:w-[350px] border-r flex flex-col transition-all shrink-0 h-full bg-background",
           leadId && "hidden md:flex"
         )}>
           <div className="p-4 border-b space-y-4 shrink-0">
@@ -444,359 +444,355 @@ export default function InboxPage() {
         </div>
 
         {/* Message Thread Pane */}
-        <div className={cn("flex-1 flex flex-col bg-background/30", !leadId && "hidden md:flex items-center justify-center")}>
+        <div className={cn("flex-1 flex flex-col bg-background h-full", !leadId && "hidden md:flex items-center justify-center")}>
           {!leadId ? (
-            <div className="text-center space-y-4 max-w-sm px-6">
-              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <InboxIcon className="h-10 w-10 text-primary opacity-50" />
-              </div>
-              <h2 className="text-xl font-bold">Select a conversation</h2>
-              <p className="text-sm text-muted-foreground">Pick a lead from the list to start the automated engagement flow or reply manually.</p>
-            </div>
-          ) : (
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex-1 flex flex-col h-full min-w-0">
-                {/* Thread Header */}
-                <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background/50 backdrop-blur-md shrink-0">
-                  <div className="flex items-center gap-4 min-w-0">
-                    {/* Back Button for Mobile */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors"
-                      onClick={() => setLocation('/dashboard/inbox')}
-                      title="Back to Inbox"
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
+            // ... existing empty state ...
+          ): (
+              <div className = "flex flex-1 overflow-hidden h-full">
+              <div className = "flex-1 flex flex-col h-full min-w-0">
+                {/* Thread Header */ }
+                <div className="h-16 md:h-20 border-b flex items-center px-4 md:px-8 justify-between bg-background shrink-0 z-10">
+            <div className="flex items-center gap-4 min-w-0">
+              {/* Back Button for Mobile */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 -ml-2 text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => setLocation('/dashboard/inbox')}
+                title="Back to Inbox"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
 
-                    <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <h3 className="text-base font-bold truncate leading-none mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
-                        <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-                        <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Sheet open={showDetails} onOpenChange={setShowDetails}>
-                      <SheetTrigger asChild>
-                        <Badge
-                          className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] hidden xl:block px-3 py-1 uppercase tracking-tighter cursor-pointer hover:bg-emerald-500/20 transition-colors"
-                          onClick={() => setShowDetails(true)}
-                        >
-                          {activeLead?.score || 0}% Engagement Score
-                        </Badge>
-                      </SheetTrigger>
-                      <SheetContent
-                        side="right"
-                        className="w-full sm:max-w-[450px] p-0 bg-background/95 backdrop-blur-xl border-l border-border/30 flex flex-col h-full"
-                      >
-                        <SheetHeader className="p-6 border-b border-border/30 shrink-0">
-                          <SheetTitle className="text-xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
-                            <Brain className="h-6 w-6 text-primary" />
-                            Lead Intelligence
-                          </SheetTitle>
-                        </SheetHeader>
-
-                        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
-                          <Accordion type="multiple" defaultValue={["metrics", "contact"]} className="w-full space-y-4">
-                            {/* Intensity Metrics */}
-                            <AccordionItem value="metrics" className="border-none space-y-2">
-                              <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engagement Probability</h4>
-                              </AccordionTrigger>
-                              <AccordionContent className="pt-2">
-                                <div className="p-6 rounded-3xl bg-muted/10 border border-border/30 space-y-4 shadow-inner">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs font-bold text-muted-foreground">Engagement Rank</span>
-                                    <span className="text-xs font-black text-foreground text-lg tracking-tighter">#{activeLead?.id ? Math.min(parseInt(String(activeLead.id)) % 100 + 1, 100) : 42} / {(leadsData?.leads?.length || 0) > 100 ? `${((leadsData?.leads?.length || 0) / 1000).toFixed(1)}k` : leadsData?.leads?.length || 0}</span>
-                                  </div>
-                                  <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${activeLead?.score || 0}%` }}
-                                      className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.6)]"
-                                    />
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground/60 font-medium leading-relaxed italic mt-2">
-                                    Probability calculated based on real-time intelligence engagement patterns.
-                                  </p>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-
-                            {/* Contact Info */}
-                            <AccordionItem value="contact" className="border-none space-y-2">
-                              <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Contact Identity</h4>
-                              </AccordionTrigger>
-                              <AccordionContent className="pt-2">
-                                <div className="grid gap-3">
-                                  <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                        <Mail className="w-5 h-5" />
-                                      </div>
-                                      <div>
-                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Email</p>
-                                        <p className="text-xs font-bold text-foreground truncate max-w-[150px]">{activeLead?.email || 'Not provided'}</p>
-                                      </div>
-                                    </div>
-                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
-                                  </div>
-                                  <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                        <Phone className="w-5 h-5" />
-                                      </div>
-                                      <div>
-                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Phone</p>
-                                        <p className="text-xs font-bold text-foreground leading-none">{activeLead?.phone || 'Private'}</p>
-                                      </div>
-                                    </div>
-                                    <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
-                                  </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-
-                            {/* Social Graph */}
-                            <AccordionItem value="social" className="border-none space-y-2">
-                              <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
-                              </AccordionTrigger>
-                              <AccordionContent className="pt-2">
-                                <div className="grid grid-cols-2 gap-3">
-                                  {[{ name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin }, { name: 'Twitter', url: activeLead?.socialLinks?.twitter }, { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website }, { name: 'Portfolio', url: activeLead?.socialLinks?.portfolio }].map((platform) => (
-                                    <Button
-                                      key={platform.name}
-                                      variant="outline"
-                                      className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
-                                      onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank')}
-                                      disabled={!platform.url}
-                                    >
-                                      <ExternalLink className={`w-3.5 h-3.5 mr-2 ${platform.url ? 'text-primary' : 'text-muted-foreground/40'}`} />
-                                      <span className={`text-[10px] font-bold ${platform.url ? 'text-foreground' : 'text-muted-foreground'}`}>{platform.name}</span>
-                                    </Button>
-                                  ))}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-
-                            {/* Historical Velocity */}
-                            <AccordionItem value="history" className="border-none space-y-2">
-                              <AccordionTrigger className="hover:no-underline py-0">
-                                <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">History</h4>
-                              </AccordionTrigger>
-                              <AccordionContent className="pt-2">
-                                <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-3">
-                                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                                    <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Detected</span>
-                                    <span className="text-foreground/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                                    <span className="text-muted-foreground flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" /> Threads</span>
-                                    <span className="text-foreground/70">{messagesData?.messages?.length || 0} messages</span>
-                                  </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
-                        </div>
-
-                        <div className="p-6 border-t border-border/30 bg-muted/10 shrink-0 space-y-3">
-                          <Button
-                            className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-xl shadow-primary/20"
-                            onClick={() => setShowIntelligence(true)}
-                          >
-                            <Zap className="w-5 h-5 mr-3" />
-                            Launch Deep Intelligence
-                          </Button>
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button
-                              variant="outline"
-                              className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl"
-                              onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
-                            >
-                              <User className="w-4 h-4 mr-2" />
-                              Full Profile
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl"
-                              onClick={() => {
-                                setIsCampaignModalOpen(true);
-                              }}
-                            >
-                              <MailIcon className="w-4 h-4 mr-2" />
-                              Start Campaign
-                            </Button>
-                          </div>
-                        </div>
-                      </SheetContent>
-                    </Sheet>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
-                        !activeLead?.aiPaused
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                          : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
-                      )}
-                      onClick={() => activeLead && toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused })}
-                    >
-                      <div className={cn("w-2 h-2 rounded-full mr-2 animate-pulse", !activeLead?.aiPaused ? "bg-emerald-500" : "bg-muted-foreground")} />
-                      <span className="hidden sm:inline">{!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF"}</span>
-                    </Button>
-
-                    {!showDetails && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 text-primary hidden lg:flex hover:bg-primary/10 transition-colors"
-                        onClick={() => setShowDetails(true)}
-                      >
-                        <User className="h-5 w-5" />
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 text-primary lg:hidden hover:bg-primary/10 transition-colors"
-                      onClick={() => setShowDetails(true)}
-                    >
-                      <Brain className="h-5 w-5" />
-                    </Button>
-                  </div>
+              <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold truncate leading-none mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
+                  <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+                  <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
                 </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Sheet open={showDetails} onOpenChange={setShowDetails}>
+                <SheetTrigger asChild>
+                  <Badge
+                    className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[10px] hidden xl:block px-3 py-1 uppercase tracking-tighter cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                    onClick={() => setShowDetails(true)}
+                  >
+                    {activeLead?.score || 0}% Engagement Score
+                  </Badge>
+                </SheetTrigger>
+                <SheetContent
+                  side="right"
+                  className="w-full sm:max-w-[450px] p-0 bg-background border-l border-border/30 flex flex-col h-full"
+                >
+                  <SheetHeader className="p-6 border-b border-border/30 shrink-0">
+                    <SheetTitle className="text-xl font-black text-foreground uppercase tracking-tighter flex items-center gap-3">
+                      <Brain className="h-6 w-6 text-primary" />
+                      Lead Intelligence
+                    </SheetTitle>
+                  </SheetHeader>
 
-                {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5">
-                  {messagesLoading ? (
-                    <div className="space-y-6">
-                      <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl rounded-tl-none" /></div>
-                      <div className="flex justify-end"><Skeleton className="h-16 w-64 rounded-2xl rounded-tr-none" /></div>
-                      <div className="flex justify-start"><Skeleton className="h-12 w-48 rounded-2xl rounded-tl-none" /></div>
-                    </div>
-                  ) : messagesData?.messages?.map((msg: any) => (
-                    <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
-                      <div className={cn(
-                        "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
-                        msg.direction === 'inbound'
-                          ? "bg-card text-foreground rounded-tl-none border border-border/50"
-                          : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
-                      )}>
-                        <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
-                        {msg.metadata?.disclaimer && (
-                          <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
-                            {msg.metadata.disclaimer}
+                  <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar">
+                    <Accordion type="multiple" defaultValue={["metrics", "contact"]} className="w-full space-y-4">
+                      {/* Intensity Metrics */}
+                      <AccordionItem value="metrics" className="border-none space-y-2">
+                        <AccordionTrigger className="hover:no-underline py-0">
+                          <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Engagement Probability</h4>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                          <div className="p-6 rounded-3xl bg-muted/10 border border-border/30 space-y-4 shadow-inner">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-muted-foreground">Engagement Rank</span>
+                              <span className="text-xs font-black text-foreground text-lg tracking-tighter">
+                                #{activeLead?.id ? (String(activeLead.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 100 + 1) : 42} / {(leadsData?.leads?.length || 0) > 100 ? `${((leadsData?.leads?.length || 0) / 1000).toFixed(1)}k` : leadsData?.leads?.length || 0}
+                              </span>
+                            </div>
+                            <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${isNaN(Number(activeLead?.score)) ? 0 : (activeLead?.score || 0)}%` }}
+                                className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.6)]"
+                              />
+                            </div>
+                            <p className="text-[10px] text-muted-foreground/60 font-medium leading-relaxed italic mt-2">
+                              Probability calculated based on real-time intelligence engagement patterns.
+                            </p>
                           </div>
-                        )}
-                        <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
-                          {msg.direction === 'outbound' && (
-                            <div className="flex items-center gap-1 mr-auto">
-                              {msg.openedAt ? (
-                                <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
-                                  <Activity className="h-2 w-2 mr-1" /> OPENED
-                                </Badge>
-                              ) : (
-                                <span className="opacity-40">Delivered</span>
-                              )}
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Contact Info */}
+                      <AccordionItem value="contact" className="border-none space-y-2">
+                        <AccordionTrigger className="hover:no-underline py-0">
+                          <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Contact Identity</h4>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                          <div className="grid gap-3">
+                            <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                  <Mail className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Email</p>
+                                  <p className="text-xs font-bold text-foreground truncate max-w-[150px]">{activeLead?.email || 'Not provided'}</p>
+                                </div>
+                              </div>
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
                             </div>
-                          )}
-                          {msg.metadata?.aiGenerated && <Sparkles className="h-2.5 w-2.5" />}
-                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {msg.direction === 'outbound' && (
-                            <div className="flex ml-1">
-                              <Check className={cn("h-3 w-3", msg.openedAt ? "text-primary-foreground" : "opacity-40")} />
-                              {msg.openedAt && <Check className="h-3 w-3 -ml-2 text-primary-foreground" />}
+                            <div className="p-4 rounded-2xl bg-muted/10 border border-border/30 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                  <Phone className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-0.5">Phone</p>
+                                  <p className="text-xs font-bold text-foreground leading-none">{activeLead?.phone || 'Private'}</p>
+                                </div>
+                              </div>
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/40" />
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Social Graph */}
+                      <AccordionItem value="social" className="border-none space-y-2">
+                        <AccordionTrigger className="hover:no-underline py-0">
+                          <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Social Insight</h4>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                          <div className="grid grid-cols-2 gap-3">
+                            {[{ name: 'LinkedIn', url: activeLead?.linkedinProfileUrl || activeLead?.socialLinks?.linkedin }, { name: 'Twitter', url: activeLead?.socialLinks?.twitter }, { name: 'Website', url: activeLead?.website || activeLead?.socialLinks?.website }, { name: 'Portfolio', url: activeLead?.socialLinks?.portfolio }].map((platform) => (
+                              <Button
+                                key={platform.name}
+                                variant="outline"
+                                className="h-12 border-border/30 bg-muted/10 hover:bg-muted/20 rounded-2xl justify-start px-3"
+                                onClick={() => platform.url && window.open(platform.url.startsWith('http') ? platform.url : `https://${platform.url}`, '_blank')}
+                                disabled={!platform.url}
+                              >
+                                <ExternalLink className={`w-3.5 h-3.5 mr-2 ${platform.url ? 'text-primary' : 'text-muted-foreground/40'}`} />
+                                <span className={`text-[10px] font-bold ${platform.url ? 'text-foreground' : 'text-muted-foreground'}`}>{platform.name}</span>
+                              </Button>
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Historical Velocity */}
+                      <AccordionItem value="history" className="border-none space-y-2">
+                        <AccordionTrigger className="hover:no-underline py-0">
+                          <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">History</h4>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-2">
+                          <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-3">
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                              <span className="text-muted-foreground flex items-center gap-2"><Clock className="h-3.5 w-3.5" /> Detected</span>
+                              <span className="text-foreground/70">{activeLead?.createdAt ? new Date(activeLead.createdAt).toLocaleDateString() : "Unknown"}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                              <span className="text-muted-foreground flex items-center gap-2"><MessageSquare className="h-3.5 w-3.5" /> Threads</span>
+                              <span className="text-foreground/70">{messagesData?.messages?.length || 0} messages</span>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+
+                  <div className="p-6 border-t border-border/30 bg-muted/10 shrink-0 space-y-3">
+                    <Button
+                      className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-xl shadow-primary/20"
+                      onClick={() => setShowIntelligence(true)}
+                    >
+                      <Zap className="w-5 h-5 mr-3" />
+                      Launch Deep Intelligence
+                    </Button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl"
+                        onClick={() => setLocation(`/dashboard/leads/${leadId}`)}
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        Full Profile
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-12 border-border/30 bg-transparent hover:bg-muted/20 text-muted-foreground font-black uppercase text-[9px] tracking-tighter rounded-xl"
+                        onClick={() => {
+                          setIsCampaignModalOpen(true);
+                        }}
+                      >
+                        <MailIcon className="w-4 h-4 mr-2" />
+                        Start Campaign
+                      </Button>
                     </div>
-                  ))}
-                  {isGenerating && typedText && (
-                    <div className="flex justify-end">
-                      <div className="max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-lg bg-primary/10 border border-primary/20 rounded-tr-none">
-                        <div className="whitespace-pre-wrap break-words italic text-primary/80">{typedText}</div>
-                        <div className="flex items-center gap-2 mt-3">
-                          <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                          <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest">Optimizing response...</span>
-                        </div>
-                      </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "h-9 rounded-xl font-bold text-[10px] px-4 transition-all shadow-sm border",
+                  !activeLead?.aiPaused
+                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                    : "bg-muted text-muted-foreground border-border/50 hover:bg-muted/80"
+                )}
+                onClick={() => activeLead && toggleAi.mutate({ id: leadId!, paused: !activeLead.aiPaused })}
+              >
+                <div className={cn("w-2 h-2 rounded-full mr-2 animate-pulse", !activeLead?.aiPaused ? "bg-emerald-500" : "bg-muted-foreground")} />
+                <span className="hidden sm:inline">{!activeLead?.aiPaused ? "AUTONOMOUS MODE: ON" : "AUTONOMOUS MODE: OFF"}</span>
+              </Button>
+
+              {!showDetails && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 text-primary hidden lg:flex hover:bg-primary/10 transition-colors"
+                  onClick={() => setShowDetails(true)}
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-primary lg:hidden hover:bg-primary/10 transition-colors"
+                onClick={() => setShowDetails(true)}
+              >
+                <Brain className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5">
+            {messagesLoading ? (
+              <div className="space-y-6">
+                <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl rounded-tl-none" /></div>
+                <div className="flex justify-end"><Skeleton className="h-16 w-64 rounded-2xl rounded-tr-none" /></div>
+                <div className="flex justify-start"><Skeleton className="h-12 w-48 rounded-2xl rounded-tl-none" /></div>
+              </div>
+            ) : messagesData?.messages?.map((msg: any) => (
+              <div key={msg.id} className={cn("flex w-full", msg.direction === 'inbound' ? "justify-start" : "justify-end")}>
+                <div className={cn(
+                  "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
+                  msg.direction === 'inbound'
+                    ? "bg-card text-foreground rounded-tl-none border border-border/50"
+                    : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
+                )}>
+                  <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
+                  {msg.metadata?.disclaimer && (
+                    <div className="mt-3 pt-3 border-t border-current/10 text-[10px] opacity-60 italic font-medium">
+                      {msg.metadata.disclaimer}
                     </div>
                   )}
-                  <div ref={messagesEndRef} className="h-4 shrink-0" />
-                </div>
-
-                {/* Reply Input */}
-                <div className="p-4 md:p-6 border-t bg-background/80 backdrop-blur-md shrink-0">
-                  <div className="flex gap-3 items-end max-w-5xl mx-auto">
-                    <div className="flex-1 relative group">
-                      <textarea
-                        value={replyMessage}
-                        onChange={e => {
-                          setReplyMessage(e.target.value);
-                          // Auto-grow logic
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            if (replyMessage.trim() && !sendMutation.isPending) {
-                              sendMutation.mutate(replyMessage);
-                              (e.target as HTMLTextAreaElement).style.height = 'auto';
-                            }
-                          }
-                        }}
-                        placeholder="Compose a response..."
-                        className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
-                      />
-                      <Button
-                        size="icon"
-                        onClick={handleAiReply}
-                        disabled={isGenerating}
-                        className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
-                        title="Generate AI Reply"
-                      >
-                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
-                      </Button>
-                    </div>
-                    <Button
-                      onClick={() => sendMutation.mutate(replyMessage)}
-                      disabled={!replyMessage.trim() || sendMutation.isPending}
-                      className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
-                    >
-                      {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
+                  <div className="text-[10px] mt-2 opacity-50 flex items-center gap-1.5 justify-end font-medium">
+                    {msg.direction === 'outbound' && (
+                      <div className="flex items-center gap-1 mr-auto">
+                        {msg.openedAt ? (
+                          <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-primary-foreground/10 text-primary-foreground border-none">
+                            <Activity className="h-2 w-2 mr-1" /> OPENED
+                          </Badge>
+                        ) : (
+                          <span className="opacity-40">Delivered</span>
+                        )}
+                      </div>
+                    )}
+                    {msg.metadata?.aiGenerated && <Sparkles className="h-2.5 w-2.5" />}
+                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {msg.direction === 'outbound' && (
+                      <div className="flex ml-1">
+                        <Check className={cn("h-3 w-3", msg.openedAt ? "text-primary-foreground" : "opacity-40")} />
+                        {msg.openedAt && <Check className="h-3 w-3 -ml-2 text-primary-foreground" />}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
                 </div>
               </div>
+            ))}
+            {isGenerating && typedText && (
+              <div className="flex justify-end">
+                <div className="max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-lg bg-primary/10 border border-primary/20 rounded-tr-none">
+                  <div className="whitespace-pre-wrap break-words italic text-primary/80">{typedText}</div>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest">Optimizing response...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} className="h-4 shrink-0" />
+          </div>
 
+          {/* Reply Input */}
+          <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-10 w-full mb-[env(safe-area-inset-bottom)]">
+            <div className="flex gap-3 items-end max-w-5xl mx-auto">
+              <div className="flex-1 relative group">
+                <textarea
+                  value={replyMessage}
+                  onChange={e => {
+                    setReplyMessage(e.target.value);
+                    // Auto-grow logic
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      if (replyMessage.trim() && !sendMutation.isPending) {
+                        sendMutation.mutate(replyMessage);
+                        (e.target as HTMLTextAreaElement).style.height = 'auto';
+                      }
+                    }
+                  }}
+                  placeholder="Compose a response..."
+                  className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
+                />
+                <Button
+                  size="icon"
+                  onClick={handleAiReply}
+                  disabled={isGenerating}
+                  className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
+                  title="Generate AI Reply"
+                >
+                  {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                </Button>
+              </div>
+              <Button
+                onClick={() => sendMutation.mutate(replyMessage)}
+                disabled={!replyMessage.trim() || sendMutation.isPending}
+                className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
+              >
+                {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+              </Button>
             </div>
-          )}
+            <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+          </div>
         </div>
-      </div>
 
-      {
-        activeLead && (
-          <LeadIntelligenceModal
-            isOpen={showIntelligence}
-            onOpenChange={setShowIntelligence}
-            lead={activeLead}
-          />
-        )
-      }
+      </div>
+          )}
+    </div>
+      </div >
+
+  {
+    activeLead && (
+      <LeadIntelligenceModal
+        isOpen={showIntelligence}
+        onOpenChange={setShowIntelligence}
+        lead={activeLead}
+      />
+    )
+}
       <CustomContextMenu
         config={contextConfig}
         onClose={closeMenu}

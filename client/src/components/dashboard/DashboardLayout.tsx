@@ -309,12 +309,9 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
 
-      {/* Decorative Mesh Background */}
-      <div className="absolute inset-0 mesh-gradient-bg opacity-30 pointer-events-none z-0" />
-
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
-        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-sidebar"
+        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border bg-sidebar"
         animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
         <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -472,7 +469,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
+        <header className="h-20 border-b border-border/40 bg-background flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
           <div className="flex items-center gap-6 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -615,7 +612,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto bg-background/50 relative">
+        <main className="flex-1 overflow-auto bg-background relative">
           <AnimatePresence>
             {currentAlert && (
               <motion.div
@@ -623,8 +620,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                 animate={{ height: "auto", opacity: 1, y: 0 }}
                 exit={{ height: 0, opacity: 0, y: -20 }}
                 className={cn(
-                  "mx-8 mt-4 p-4 rounded-2xl border flex items-center justify-between gap-4 shadow-lg backdrop-blur-xl z-30",
-                  currentAlert.type === 'billing_issue' ? "bg-destructive/10 border-destructive/20 text-destructive" : "bg-primary/10 border-primary/20 text-primary"
+                  "mx-8 mt-4 p-4 rounded-2xl border flex items-center justify-between gap-4 shadow-lg z-30",
+                  currentAlert.type === 'billing_issue' ? "bg-destructive/5 border-destructive/20 text-destructive" : "bg-primary/5 border-primary/20 text-primary"
                 )}
               >
                 <div className="flex items-center gap-3">

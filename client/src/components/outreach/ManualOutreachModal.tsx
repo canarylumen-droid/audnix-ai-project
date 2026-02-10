@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface ManualOutreachModalProps {
 
 export default function ManualOutreachModal({ isOpen, onClose, selectedLeadIds, totalLeads }: ManualOutreachModalProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<"config" | "template" | "review">("config");
   const [isLoading, setIsLoading] = useState(false);
 

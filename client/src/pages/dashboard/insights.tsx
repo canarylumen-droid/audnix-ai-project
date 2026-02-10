@@ -147,17 +147,17 @@ export default function InsightsPage() {
 
       {(!hasData && !insights) ? (
         <div className="grid gap-6">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-20 text-center"
-            >
-              <AudnixLogo />
-              <h3 className="text-xl font-black mt-8 text-foreground">Analyzing Intelligence</h3>
-              <p className="text-muted-foreground font-medium max-w-xs mt-2">
-                Gathering real-time market signals and campaign data...
-              </p>
-            </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-20 text-center"
+          >
+            <AudnixLogo />
+            <h3 className="text-xl font-black mt-8 text-foreground">Analyzing Intelligence</h3>
+            <p className="text-muted-foreground font-medium max-w-xs mt-2">
+              Gathering real-time market signals and campaign data...
+            </p>
+          </motion.div>
         </div>
       ) : (
         <>
@@ -222,7 +222,7 @@ export default function InsightsPage() {
 
             <MetricCard
               title="Network Health"
-              value={insightsData?.metrics?.engagementScore || "0"}
+              value={!insightsData?.metrics?.engagementScore || insightsData.metrics.engagementScore === "NaN" ? "0" : insightsData.metrics.engagementScore}
               icon={<Sparkles className="h-5 w-5 text-purple-500" />}
               description="Average lead interest"
               trend="Stable"
@@ -255,7 +255,7 @@ function MetricCard({ title, value, icon, description, trend, trendColor }: {
       whileHover={{ y: -5, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300 }}
     >
-      <Card className="bg-black/40 backdrop-blur-3xl border-white/5 rounded-[2.5rem] overflow-hidden relative group">
+      <Card className="bg-card border-border rounded-[2.5rem] overflow-hidden relative group">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-zinc-500">{title}</CardTitle>

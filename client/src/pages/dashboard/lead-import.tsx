@@ -30,8 +30,58 @@ export default function LeadImportPage() {
   const [importing, setImporting] = useState(false);
   const [enableAi, setEnableAi] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [manualPasteText, setManualPasteText] = useState("");
   const [importResults, setImportResults] = useState<{ imported: number; skipped: number; filtered?: number; leads?: any[] } | null>(null);
   const [isOutreachModalOpen, setIsOutreachModalOpen] = useState(false);
+
+  const handleManualImport = async () => {
+    if (!manualPasteText.trim()) {
+      toast({ title: "No text provided", description: "Please paste email content to extract leads.", variant: "destructive" });
+      return;
+    }
+
+    setImporting(true);
+    setProgress(20);
+
+    try {
+      // 1. Parse structured data from text
+      setProgress(40);
+      const parseRes = await fetch('/api/ai/parse-body', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: manualPasteText }),
+        credentials: 'include'
+      });
+
+      if (!parseRes.ok) throw new Error("Failed to parse text");
+      const { leads: extractedLeads } = await parseRes.json();
+      setProgress(60);
+
+      if (!extractedLeads || extractedLeads.length === 0) {
+        toast({ title: "No leads found", description: "AI couldn't find any lead data in the pasted text.", variant: "destructive" });
+        return;
+      }
+
+      // 2. Import into DB
+      setProgress(80);
+      const importRes = await apiRequest("POST", "/api/bulk/import-bulk", {
+        leads: extractedLeads,
+        aiPaused: !enableAi
+      });
+
+      const result = await importRes.json();
+      setImportResults(result);
+      setProgress(100);
+      toast({ title: "Manual Import Success", description: `Imported ${result.imported} leads.` });
+    } catch (e: any) {
+      toast({ title: "Manual import failed", description: e.message, variant: "destructive" });
+    } finally {
+      setTimeout(() => {
+        setImporting(false);
+        setProgress(0);
+      }, 500);
+    }
+  };
 
   const handleOpenPreview = async () => {
     try {
@@ -235,19 +285,46 @@ export default function LeadImportPage() {
         </p>
       </div>
 
-      <Card className="border-border/40 bg-card/40 backdrop-blur-xl rounded-[2rem] overflow-hidden relative group">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl font-bold tracking-tight">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Upload className="h-6 w-6" />
-            </div>
-            Secure Data Upload
+      <Card className="border-border/40 shadow-2xl relative overflow-hidden group bg-card">
+        <CardHeader className="p-8 pb-0 text-center relative z-10">
+          <div className="inline-flex items-center justify-center p-4 rounded-3xl bg-primary/10 mb-6">
+            <Sparkles className="h-8 w-8 text-primary" />
+          </div>
+          <CardTitle className="text-4xl font-black tracking-tight mb-2 uppercase italic text-foreground">
+            Lead Intelligence Sync
           </CardTitle>
-          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
-            Automated contact mapping and deduplication
+          <CardDescription className="text-sm font-bold tracking-widest text-muted-foreground/60">
+            UPLOAD CSV, EXCEL, OR PDF FOR CAMPAIGN ANALYSIS
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-8">
+
+        <CardContent className="p-8 space-y-10 relative z-10">
+          <div className="flex justify-center">
+            <div className="bg-muted/10 p-1.5 rounded-2xl flex gap-1 border border-border/10">
+              <Button
+                variant={!manualPasteText.trim() ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setManualPasteText("")}
+                className={cn(
+                  "rounded-xl text-[10px] font-bold h-10 px-6 transition-all",
+                  !manualPasteText.trim() ? "bg-primary shadow-lg text-primary-foreground" : "hover:bg-primary/10 text-muted-foreground"
+                )}
+              >
+                FILE UPLOAD
+              </Button>
+              <Button
+                variant={manualPasteText.trim() ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setManualPasteText(" ")} // Trigger manual mode
+                className={cn(
+                  "rounded-xl text-[10px] font-bold h-10 px-6 transition-all",
+                  manualPasteText.trim() ? "bg-primary shadow-lg text-primary-foreground" : "hover:bg-primary/10 text-muted-foreground"
+                )}
+              >
+                PASTE TEXT
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
             <div className="space-y-1">
               <Label className="text-sm font-bold flex items-center gap-2">
@@ -359,8 +436,8 @@ export default function LeadImportPage() {
               Preview Outreach
             </Button>
             <Button
-              onClick={handleImport}
-              disabled={!file || importing}
+              onClick={manualPasteText.trim() ? handleManualImport : handleImport}
+              disabled={(manualPasteText.trim() ? false : !file) || importing}
               className="flex-1 h-12 sm:h-14 rounded-2xl text-[10px] sm:text-[11px] font-bold uppercase tracking-wider sm:tracking-[0.2em] shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 transition-all min-w-0"
             >
               {importing ? (
@@ -369,7 +446,7 @@ export default function LeadImportPage() {
                   <span className="truncate">Synchronizing...</span>
                 </>
               ) : (
-                <span className="truncate">Start Import</span>
+                <span className="truncate">{manualPasteText.trim() ? 'Extract Leads' : 'Start Import'}</span>
               )}
             </Button>
           </div>

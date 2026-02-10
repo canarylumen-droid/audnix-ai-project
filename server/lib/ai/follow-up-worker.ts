@@ -684,8 +684,22 @@ Generate a natural follow-up message:`;
 
           case 'email':
             if (lead.email) {
-              // Assume sendEmail can handle HTML and branding
-              await sendEmail(userId, lead.email, content, 'Follow-up');
+              // Get previous messages to find original subject
+              const history = await this.getConversationHistory(lead.id);
+              let subject = 'Follow-up';
+
+              // Find the original outward subject
+              const originalOutward = history.find(m => m.direction === 'outbound' && (m as any).metadata?.subject);
+              if (originalOutward && (originalOutward as any).metadata?.subject) {
+                const origSub = (originalOutward as any).metadata?.subject;
+                subject = origSub.startsWith('RE:') ? origSub : `RE: ${origSub}`;
+              } else {
+                // Try to extract from first line of first message if no metadata
+                const firstMsg = history[0]?.body || '';
+                if (firstMsg && firstMsg.length < 50) subject = `RE: ${firstMsg}`;
+              }
+
+              await sendEmail(userId, lead.email, content, subject);
               return true;
             }
             break;

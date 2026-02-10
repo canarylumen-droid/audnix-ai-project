@@ -24,7 +24,7 @@ import {
     Eye,
     DollarSign
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
                         />
                         <StatCard
                             label="Open Rate"
-                            value={`${filteredMetrics?.openRate || 0}%`}
+                            value={`${isNaN(Number(filteredMetrics?.openRate)) ? 0 : (filteredMetrics?.openRate || 0)}%`}
                             icon={Eye}
                             trend="+8.2%"
                             color="text-amber-500"
@@ -153,7 +153,7 @@ export default function AnalyticsPage() {
                         />
                         <StatCard
                             label="Response Rate"
-                            value={`${filteredMetrics?.responseRate || 0}%`}
+                            value={`${isNaN(Number(filteredMetrics?.responseRate)) ? 0 : (filteredMetrics?.responseRate || 0)}%`}
                             icon={MessageCircle}
                             trend="+5.1%"
                             color="text-fuchsia-500"
