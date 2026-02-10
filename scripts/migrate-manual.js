@@ -39,31 +39,18 @@ async function runMigration() {
         ssl: { rejectUnauthorized: false }
     });
 
-    let metaMoved = false;
     const migrationsFolder = resolve(__dirname, '../migrations');
-    const metaFolder = join(migrationsFolder, 'meta');
-    const metaBackup = join(migrationsFolder, '../migrations_meta_backup');
 
     try {
         await client.connect();
         const db = drizzle(client);
 
+        // Drizzle-orm's migrate() needs the 'meta' folder to exist and contain _journal.json
         console.log(`Resolved migrations folder: ${migrationsFolder}`);
 
         if (!fs.existsSync(migrationsFolder)) {
             console.warn(`Migrations folder not found at ${migrationsFolder}. Skipping migrations.`);
             return;
-        }
-
-        // Temporarily move 'meta' folder to avoid EISDIR error if drizzle-orm tries to read it
-        if (fs.existsSync(metaFolder)) {
-            console.log('Temporarily moving meta folder to avoid conflicts...');
-            try {
-                fs.renameSync(metaFolder, metaBackup);
-                metaMoved = true;
-            } catch (err) {
-                console.warn('Could not move meta folder, proceeding anyway:', err.message);
-            }
         }
 
         console.log('Running migrations...');
@@ -80,15 +67,6 @@ async function runMigration() {
         // We still exit 1 if connection fails because that's critical
         process.exit(1);
     } finally {
-        // Restore meta folder if moved
-        if (metaMoved && fs.existsSync(metaBackup)) {
-            try {
-                fs.renameSync(metaBackup, metaFolder);
-                console.log('Restored meta folder.');
-            } catch (err) {
-                console.error('Failed to restore meta folder:', err);
-            }
-        }
         await client.end();
     }
 }
