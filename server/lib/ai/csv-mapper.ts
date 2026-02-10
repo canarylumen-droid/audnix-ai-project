@@ -119,7 +119,14 @@ IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values mus
             }
         }
     } catch (error) {
-        console.warn("AI mapping failed, using fallback:", error);
+        const { fallbackMapCSVColumns } = await import('./conversation-ai.js');
+        console.warn(`[CSV] AI mapping failed (${error instanceof Error ? error.message : 'Unknown error'}), using robust fallback`);
+        const mapping = await fallbackMapCSVColumns(headers);
+        return {
+            mapping,
+            confidence: 0.5,
+            unmappedColumns: headers.filter(h => !Object.values(mapping).includes(h))
+        };
     }
 
     // Fallback: use fuzzy matching
