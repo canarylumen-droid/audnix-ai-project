@@ -540,12 +540,13 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     // Performance calculation
     const conversions = leads.filter(l => l.status === 'converted').length;
     const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
-    const sent = (await storage.getAllMessages(userId)).filter(m => m.direction === 'outbound').length;
+    const allMessages = await storage.getAllMessages(userId);
+    const sent = allMessages.filter(m => m.direction === 'outbound').length;
+    const opened = allMessages.filter(m => m.direction === 'outbound' && m.openedAt).length;
 
     // Time series (dynamic range) - Real data only
     const range = parseInt(req.query.days as string) || 7;
     const timeSeries = [];
-    const allMessages = await storage.getAllMessages(userId);
 
     for (let i = range - 1; i >= 0; i--) {
       const date = new Date();
@@ -571,6 +572,7 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
         name: dayStr,
         sent_email: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'email').length,
         sent_instagram: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'instagram').length,
+        opened: dayMessages.filter(m => m.direction === 'outbound' && m.openedAt).length,
         replied_email: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'email').length,
         replied_instagram: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'instagram').length,
         booked: 0
@@ -585,11 +587,13 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     res.json({
       metrics: {
         sent,
+        opened,
         replied,
         booked: conversions,
         leadsFiltered: user?.filteredLeadsCount || 0,
         conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
-        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0
+        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
+        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
       },
       timeSeries,
       channelPerformance: [

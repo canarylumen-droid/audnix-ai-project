@@ -312,20 +312,18 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Decorative Mesh Background */}
       <div className="absolute inset-0 mesh-gradient-bg opacity-30 pointer-events-none z-0" />
 
-      {/* Desktop Sidebar (Floating Variant) */}
+      {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
-        className="hidden md:flex flex-col z-50 p-4 transition-all duration-500 ease-out relative"
-        animate={{ width: sidebarCollapsed ? "6.5rem" : "21rem" }}
+        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-sidebar"
+        animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
-        <div className="flex-1 flex flex-col glass-premium rounded-[2.5rem] overflow-hidden border border-primary/10 shadow-2xl relative">
-          {/* Subtle Glow Effect */}
-          <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary/20 blur-[100px] pointer-events-none" />
+        <div className="flex-1 flex flex-col overflow-hidden relative">
 
 
           {/* Sidebar Header */}
-          <div className="h-24 flex items-center justify-between px-6 bg-primary/5 border-b border-white/5">
+          <div className="h-20 flex items-center justify-between px-6 border-b border-border/40">
             {!sidebarCollapsed ? (
-              <Logo className="h-8 w-8" textClassName="text-lg font-bold text-white" />
+              <Logo className="h-8 w-8" textClassName="text-lg font-bold text-foreground" />
             ) : (
               <div className="w-full flex justify-center">
                 <Logo className="h-8 w-8" textClassName="hidden" />
@@ -333,11 +331,11 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             )}
           </div>
 
-          <div className="absolute top-24 right-4 z-10">
+          <div className="absolute top-20 right-4 z-10 -translate-y-1/2">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground backdrop-blur-md border border-white/5"
+              className="h-8 w-8 rounded-full bg-background border border-border/40 hover:bg-muted text-muted-foreground hover:text-foreground shadow-sm"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             >
               {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
@@ -395,18 +393,18 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
           </ScrollArea>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-white/5 bg-white/5">
+          <div className="p-4 border-t border-border/40 bg-muted/20">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-2xl hover:bg-white/10 transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
+                <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-muted transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
                   <div className="relative">
-                    <Avatar className="h-10 w-10 rounded-xl border border-white/10 shadow-lg transition-transform group-hover:scale-105">
+                    <Avatar className="h-10 w-10 rounded-lg border border-border shadow-sm transition-transform group-hover:scale-105">
                       <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="rounded-xl bg-primary/20 text-primary font-bold text-sm">
+                      <AvatarFallback className="rounded-lg bg-primary/20 text-primary font-bold text-sm">
                         {(user?.name || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0D1117]" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-sidebar" />
                   </div>
                   {!sidebarCollapsed && (
                     <div className="flex-1 min-w-0">

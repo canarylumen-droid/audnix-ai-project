@@ -26,6 +26,7 @@ import { createCalendarBookingLink, generateMeetingLinkMessage } from "../lib/ca
 import { processPDF } from "../lib/pdf-processor.js";
 import { EmailVerifier } from "../lib/scraping/email-verifier.js";
 import { mapCSVColumnsToSchema, extractLeadFromRow, extractExtraFieldsAsMetadata, type LeadColumnMapping } from "../lib/ai/csv-mapper.js";
+import { parseEmailBody } from "../lib/ai/body-parser.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GEMINI_LATEST_MODEL } from "../lib/ai/model-config.js";
 
@@ -632,8 +633,8 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
             // If domain is 'poor' or has no MX records, filter it out
             if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
               results.leadsFiltered++;
-              // Silent filter to reduce noise, or keep log but not error
-              results.errors.push(`Row ${i + 1}: Undeliverable domain (Neural Filter)`);
+              console.log(`[IMPORT] Skipping lead ${leadData.email}: Poor domain quality/No MX record`);
+              results.errors.push(`Row ${i + 1} (${leadData.email}): Undeliverable domain (Neural Filter)`);
               continue;
             }
           }
@@ -642,7 +643,8 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
           const verification = await verifier.verify(leadData.email);
           if (!verification.valid) {
             results.leadsFiltered++;
-            results.errors.push(`Row ${i + 1}: Invalid email (Verification Filter)`);
+            console.log(`[IMPORT] Skipping lead ${leadData.email}: ${verification.reason || 'Invalid email'}`);
+            results.errors.push(`Row ${i + 1} (${leadData.email}): ${verification.reason || 'Invalid email format'} (Verification Filter)`);
             continue;
           }
         }
@@ -697,6 +699,26 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
     console.error("CSV Import error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+/**
+ * Parse raw email body into structured JSON
+ * POST /api/ai/parse-body
+ */
+router.post("/parse-body", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { body } = req.body;
+    if (!body) {
+      res.status(400).json({ error: "No email body provided" });
+      return;
+    }
+
+    const parsedData = await parseEmailBody(body);
+    res.json(parsedData);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to parse email body";
     res.status(500).json({ error: errorMessage });
   }
 });

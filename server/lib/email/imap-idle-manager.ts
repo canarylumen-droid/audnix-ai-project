@@ -105,12 +105,13 @@ class ImapIdleManager {
                             const standardSents = [
                                 'sent', 'sent items', 'sent messages',
                                 'sent-mail', 'sent mail', 'sent items',
-                                'gesendet', 'enviados', 'envoyés', 'outbox'
+                                'gesendet', 'enviados', 'envoyés', 'outbox',
+                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail'
                             ];
 
                             if (standardInboxes.includes(lowerKey)) {
                                 if (!inboxFolders.includes(fullName)) inboxFolders.push(fullName);
-                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent'))) {
+                            } else if (standardSents.some(s => lowerKey === s || lowerKey.includes('sent') || fullName.toLowerCase().includes('inbox.sent'))) {
                                 if (!sentFolders.includes(fullName)) sentFolders.push(fullName);
                             }
                         }

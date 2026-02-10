@@ -201,8 +201,9 @@ export async function importCustomEmails(
       port: imapPort,
       tls: imapPort === 993,
       tlsOptions: { rejectUnauthorized: false },
-      connTimeout: 10000,
-      authTimeout: 10000
+      connTimeout: 30000,
+      authTimeout: 30000,
+      keepalive: true
     });
 
     const emails: ImportedEmail[] = [];
@@ -248,44 +249,64 @@ export async function importCustomEmails(
       // @ts-ignore
       imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
         if (err) {
-          if (mailbox === 'Sent' || mailbox === 'Sent Items') {
-            try {
-              const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
-              const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
-              const findBox = (obj: any, prefix = ''): string | null => {
-                for (const key in obj) {
-                  const fullName = prefix + key;
-                  if (sentPatterns.includes(key.toLowerCase())) return fullName;
-                  if (obj[key].children) {
-                    const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
-                    if (found) return found;
-                  }
-                }
-                return null;
-              };
-              const discoveredSent = findBox(boxes);
-              if (discoveredSent) {
-                imap.openBox(discoveredSent, true, (err2, box2) => {
-                  if (err2) {
-                    cleanup(); imap.end();
-                    reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
-                  } else {
-                    startFetch(box2);
-                  }
-                });
-                return;
+          // If folder not found, try with INBOX. prefix
+          if (!mailbox.startsWith('INBOX.') && err.message.toLowerCase().includes('nonexistent')) {
+            const prefixedMailbox = `INBOX.${mailbox}`;
+            console.log(`[IMAP] Folder ${mailbox} not found, retrying with ${prefixedMailbox}`);
+            imap.openBox(prefixedMailbox, true, (err3, box3) => {
+              if (!err3) {
+                startFetch(box3);
+              } else {
+                handleOpenError(err); // Original error
               }
-            } catch (e) {
-              console.warn('[IMAP] Sent discovery failed');
-            }
+            });
+            return;
           }
-          cleanup();
-          imap.end();
-          reject(new Error(`Failed to open ${mailbox}: ${err.message}`));
-          return;
+          handleOpenError(err);
+        } else {
+          startFetch(box);
         }
-        startFetch(box);
       });
+
+      async function handleOpenError(handleErr: Error) {
+        if (mailbox === 'Sent' || mailbox === 'Sent Items') {
+          try {
+            const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
+            const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
+
+            const findBox = (obj: any, prefix = ''): string | null => {
+              for (const key in obj) {
+                const fullName = prefix + key;
+                if (sentPatterns.includes(key.toLowerCase())) return fullName;
+                if (obj[key].children) {
+                  const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
+                  if (found) return found;
+                }
+              }
+              return null;
+            };
+
+            const discoveredSent = findBox(boxes);
+            if (discoveredSent) {
+              console.log(`[IMAP] Discovered Sent folder: ${discoveredSent}`);
+              imap.openBox(discoveredSent, true, (err2, box2) => {
+                if (err2) {
+                  cleanup(); imap.end();
+                  reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
+                } else {
+                  startFetch(box2);
+                }
+              });
+              return;
+            }
+          } catch (e) {
+            console.warn('[IMAP] Sent discovery failed', e);
+          }
+        }
+        cleanup();
+        imap.end();
+        reject(new Error(`Failed to open ${mailbox}: ${handleErr.message}`));
+      }
     });
 
     imap.once('error', (err: Error) => {

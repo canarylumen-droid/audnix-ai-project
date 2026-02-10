@@ -240,6 +240,7 @@ app.use((req, res, next) => {
     "/api/webhook",
     "/api/instagram/callback",
     "/api/instagram/webhook",
+    "/api/outreach",
     "/api/facebook/webhook",
     "/api/user/auth",
     "/api/auth",

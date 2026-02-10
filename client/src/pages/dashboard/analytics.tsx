@@ -18,7 +18,11 @@ import {
     Activity,
     Zap,
     Unplug,
-    MessageSquare
+    MessageSquare,
+    Send,
+    MessageCircle,
+    Eye,
+    DollarSign
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -49,16 +53,19 @@ import { PremiumLoader } from "@/components/ui/premium-loader";
 interface AnalyticsData {
     metrics: {
         sent: number;
+        opened: number;
         replied: number;
         booked: number;
         leadsFiltered: number;
         conversionRate: number;
         responseRate: number;
+        openRate: number;
     };
     timeSeries: Array<{
         name: string;
         sent_email: number;
         sent_instagram: number;
+        opened: number;
         replied_email: number;
         replied_instagram: number;
         booked: number
@@ -75,6 +82,7 @@ const COLORS = {
     primary: "hsl(var(--primary))",
     sent_email: "#3b82f6",
     sent_instagram: "#d946ef",
+    opened: "#f59e0b",
     replied_email: "#1e40af",
     replied_instagram: "#86198f",
     booked: "#10b981",
@@ -85,6 +93,7 @@ const COLORS = {
 const chartConfig = {
     sent_email: { label: "Sent (Email)", color: COLORS.sent_email },
     sent_instagram: { label: "Sent (IG)", color: COLORS.sent_instagram },
+    opened: { label: "Opened", color: COLORS.opened },
     replied: { label: "Replied", color: COLORS.replied_instagram },
     booked: { label: "Converted", color: COLORS.booked },
 };
@@ -135,19 +144,19 @@ export default function AnalyticsPage() {
                             index={0}
                         />
                         <StatCard
-                            label="Response Rate"
-                            value={`${filteredMetrics?.responseRate || 0}%`}
-                            icon={MessageCircle}
-                            trend="+4.2%"
-                            color="text-emerald-500"
+                            label="Open Rate"
+                            value={`${filteredMetrics?.openRate || 0}%`}
+                            icon={Eye}
+                            trend="+8.2%"
+                            color="text-amber-500"
                             index={1}
                         />
                         <StatCard
-                            label="Conversion Rate"
-                            value={`${filteredMetrics?.conversionRate || 0}%`}
-                            icon={TrendingUp}
-                            trend="+1.8%"
-                            color="text-amber-500"
+                            label="Response Rate"
+                            value={`${filteredMetrics?.responseRate || 0}%`}
+                            icon={MessageCircle}
+                            trend="+5.1%"
+                            color="text-fuchsia-500"
                             index={2}
                         />
                         <StatCard
@@ -155,7 +164,7 @@ export default function AnalyticsPage() {
                             value={`$${(filteredMetrics?.booked || 0) * 1500}`} // Estimated LTV
                             icon={DollarSign}
                             trend="+24%"
-                            color="text-purple-500"
+                            color="text-emerald-500"
                             index={3}
                         />
                     </>
@@ -246,6 +255,10 @@ export default function AnalyticsPage() {
                                                 <stop offset="5%" stopColor={COLORS.sent_instagram} stopOpacity={0.3} />
                                                 <stop offset="95%" stopColor={COLORS.sent_instagram} stopOpacity={0} />
                                             </linearGradient>
+                                            <linearGradient id="colorOpened" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={COLORS.opened} stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor={COLORS.opened} stopOpacity={0} />
+                                            </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.3} />
                                         <XAxis
@@ -289,6 +302,16 @@ export default function AnalyticsPage() {
                                                 activeDot={{ r: 6, strokeWidth: 0, fill: COLORS.sent_instagram }}
                                             />
                                         )}
+                                        <Area
+                                            type="monotone"
+                                            dataKey="opened"
+                                            stackId="2"
+                                            stroke={COLORS.opened}
+                                            fillOpacity={1}
+                                            fill="url(#colorOpened)"
+                                            strokeWidth={3}
+                                            activeDot={{ r: 6, strokeWidth: 0, fill: COLORS.opened }}
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </ChartContainer>
@@ -298,8 +321,8 @@ export default function AnalyticsPage() {
                                     <PieChart>
                                         <Pie
                                             data={[
-                                                { name: 'Sent Email', value: analytics?.metrics.sent || 0, color: COLORS.sent_email },
-                                                { name: 'Sent IG', value: 0, color: COLORS.sent_instagram }, // Add IG sent when metric available
+                                                { name: 'Sent', value: analytics?.metrics.sent || 0, color: COLORS.sent_email },
+                                                { name: 'Opened', value: analytics?.metrics.opened || 0, color: COLORS.opened },
                                                 { name: 'Replied', value: analytics?.metrics.replied || 0, color: COLORS.replied_instagram },
                                             ].filter(item => item.value > 0)}
                                             cx="50%"
