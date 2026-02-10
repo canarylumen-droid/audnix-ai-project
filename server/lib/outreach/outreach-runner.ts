@@ -177,21 +177,37 @@ export async function runOutreachCampaign(
       // Generate personalized email
       const emailContent = await generateOutreachEmail(lead, brandContext);
 
+      // --- ENHANCEMENT: Name Interpolation & Plain Text Format ---
+      const firstNameRaw = (lead.name.split(' ')[0] || "there").trim();
+      const firstName = firstNameRaw.charAt(0).toUpperCase() + firstNameRaw.slice(1);
+      
+      // Auto-replace placeholders if AI missed them
+      let finalBody = emailContent.body.replace(/\{lead_name\}/g, firstName);
+      let finalSubject = emailContent.subject.replace(/\{lead_name\}/g, firstName);
+
+      // Ensure follow-up appends to thread (Re:)
+      const isFollowUp = (existingLead?.metadata as any)?.outreach_sent === true;
+      if (isFollowUp && !finalSubject.toLowerCase().startsWith('re:')) {
+        finalSubject = `Re: ${finalSubject}`;
+      }
+
       // Send the email (or simulate)
       if (!simulateOnly) {
         await sendEmail(
           userId,
           lead.email,
-          emailContent.body,
-          emailContent.subject,
-          { isHtml: false }
+          finalBody,
+          finalSubject,
+          { 
+            isHtml: false, // Force plain text
+            isRaw: true,   // Skip branded wrapper
+            trackingId: undefined // No tracking for super-clean mail
+          }
         );
         console.log(`[Outreach] ✅ Email sent to ${lead.email}`);
       } else {
-        console.log(`[Outreach] 📧 SIMULATED email to ${lead.email}: "${emailContent.subject}"`);
+        console.log(`[Outreach] 📧 SIMULATED email to ${lead.email}: "${finalSubject}"`);
       }
-
-      console.log(`[Outreach] ✅ Email sent to ${lead.email}`);
 
       // Save outbound message to database
       await storage.createMessage({
@@ -199,9 +215,9 @@ export async function runOutreachCampaign(
         userId,
         provider: 'email',
         direction: 'outbound',
-        body: emailContent.body,
+        body: finalBody,
         metadata: {
-          subject: emailContent.subject,
+          subject: finalSubject,
           ai_generated: true,
           outreach_campaign: true,
           sent_at: new Date().toISOString()
@@ -211,7 +227,12 @@ export async function runOutreachCampaign(
       // Update lead status
       await storage.updateLead(leadId, {
         status: 'open',
-        lastMessageAt: new Date()
+        lastMessageAt: new Date(),
+        metadata: {
+          ...(existingLead?.metadata as any || {}),
+          outreach_sent: true,
+          last_subject: finalSubject
+        }
       });
 
       // Schedule follow-up

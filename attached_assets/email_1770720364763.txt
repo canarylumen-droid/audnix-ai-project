@@ -1,0 +1,137 @@
+2026-02-10 06:35:22.879 [error] IMAP Error for user 7b7a9a01-7558-4fdc-85ab-418c8a728219: getaddrinfo ENOTFOUND dlkadl
+2026-02-10 06:35:22.879 [warning] 🛑 Fatal IMAP error for user 7b7a9a01-7558-4fdc-85ab-418c8a728219. Stopping retries.
+2026-02-10 06:35:22.880 [error] IMAP Error for user 9a102ce1-0e42-41f1-98d6-335651ce285f: getaddrinfo ENOTFOUND dlkadl
+2026-02-10 06:35:22.880 [warning] 🛑 Fatal IMAP error for user 9a102ce1-0e42-41f1-98d6-335651ce285f. Stopping retries.
+2026-02-10 06:35:22.936 [info] 6:35:22 AM [express] GET /api/dashboard/stats 200 in 49ms
+hey t didnt find this too
+and this
+pdf-parse is not a function: object
+and all these too
+❌ Migration failed at startup: Error: Command failed: node scripts/migrate-manual.js
+node:internal/modules/cjs/loader:1386
+  throw err;
+  ^
+
+Error: Cannot find module '/var/task/scripts/migrate-manual.js'
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.22.0
+
+    at genericNodeError (node:internal/errors:983:15)
+    at wrappedFn (node:internal/errors:537:14)
+    at ChildProcess.exithandler (node:child_process:417:12)
+    at ChildProcess.emit (node:events:519:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Socket.<anonymous> (node:internal/child_process:456:11)
+    at Socket.emit (node:events:519:28)
+    at Pipe.<anonymous> (node:net:346:12)
+    at Pipe.callbackTrampoline (node:internal/async_hooks:130:17) {
+  code: 1,
+  killed: false,
+  signal: null,
+  cmd: 'node scripts/migrate-manual.js',
+  stdout: '',
+  stderr: 'node:internal/modules/cjs/loader:1386\n' +
+    '  throw err;\n' +
+    '  ^\n' +
+    '\n' +
+    "Error: Cannot find module '/var/task/scripts/migrate-manual.js'\n" +
+    '    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)\n' +
+    '    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)\n' +
+    '    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)\n' +
+    '    at Function._load (node:internal/modules/cjs/loader:1192:37)\n' +
+    '    at TracingChannel.traceSync (node:diagnostics_channel:328:14)\n' +
+    '    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)\n' +
+    '    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n' +
+    '    at node:internal/main/run_main_module:36:49 {\n' +
+    "  code: 'MODULE_NOT_FOUND',\n" +
+    '  requireStack: []\n' +
+    '}\n' +
+    '\n' +
+    'Node.js v22.22.0\n'
+}
+
+
+told yo  once our app import lead email and nme others are optonal it can start mporting asap  2026-02-10 06:37:57.156 [info] ✅ Auto-approval check: 0 pending payments found
+2026-02-10 06:37:57.244 [info] Input buffer size: 358995
+2026-02-10 06:37:57.245 [info] First row: {"id":"00213a8f-7667-416d-8f33-184ae95b13de","user_id":"6582ac5b-b8b1-40e8-8913-ecb0278a4105","session_id":"","entity":"Riley Davis - ChatCollective","industry":"DM Automation","location":"Netherlands","email":"riley@chatcollective.io","phone":"","website":"https://chatcollective.io","source":"neural_discovery","snippet":"","platforms":"[]","social_profiles":"{}","wealth_signal":"","lead_score":"91","estimated_revenue":"","verified":"true","verified_at":"2026-01-16 17:47:01.984","email_valid":"","status":"verified","metadata":"{\"role\":\"Social Media Manager\",\"temperature\":\"🔥 HOT\"}","created_at":"2026-01-16 17:47:02.124905"}
+2026-02-10 06:37:57.306 [info] ✅ CSV Parsing complete. Found 984 rows.
+2026-02-10 06:37:57.306 [info] 📊 CSV headers detected: id, user_id, session_id, entity, industry, location, email, phone, website, source, snippet, platforms, social_profiles, wealth_signal, lead_score, estimated_revenue, verified, verified_at, email_valid, status, metadata, created_at
+2026-02-10 06:37:57.410 [warning] AI mapping failed, using fallback: GoogleGenerativeAIFetchError: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash
+Please retry in 2.617102028s. [{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"model":"gemini-2.0-flash","location":"global"}},{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerMinutePerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-2.0-flash"}},{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count","quotaId":"GenerateContentInputTokensPerModelPerMinute-FreeTier","quotaDimensions":{"model":"gemini-2.0-flash","location":"global"}}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"2s"}]
+    at handleResponseNotOk (file:///var/task/node_modules/@google/generative-ai/dist/index.mjs:412:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async makeRequest (file:///var/task/node_modules/@google/generative-ai/dist/index.mjs:385:9)
+    at async generateContent (file:///var/task/node_modules/@google/generative-ai/dist/index.mjs:830:22)
+    at async mapCSVColumnsToSchema (/vercel/path0/server/lib/ai/csv-mapper.ts:91:28)
+    at async <anonymous> (/vercel/path0/server/routes/ai-routes.ts:1110:29) {
+  status: 429,
+  statusText: 'Too Many Requests',
+  errorDetails: [
+    { '@type': 'type.googleapis.com/google.rpc.Help', links: [Array] },
+    {
+      '@type': 'type.googleapis.com/google.rpc.QuotaFailure',
+      violations: [Array]
+    },
+    {
+      '@type': 'type.googleapis.com/google.rpc.RetryInfo',
+      retryDelay: '2s'
+    }
+  ]
+}
+2026-02-10 06:37:57.412 [info] 🤖 AI column mapping: {"email":"email","phone":"phone","channel":"source","industry":"industry","website":"website"} (confidence: 0.6)
+2026-02-10 06:37:57.435 [info] 6:37:57 AM [express] POST /api/leads/import-csv 200 in 322ms and no need gemii if its not there bro
+
+6:39:34 AM [express] POST /api/bulk/import-bulk 403 in 87ms
+error i tried importing lead is bulk or api leads which one bro
+
+and this one too
+Expert Outreach Error (Switching to Elite Fallback): RateLimitError: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.
+    at APIError.generate (file:///var/task/node_modules/openai/core/error.mjs:59:20)
+    at OpenAI.makeStatusError (file:///var/task/node_modules/openai/client.mjs:162:32)
+    at OpenAI.makeRequest (file:///var/task/node_modules/openai/client.mjs:330:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateExpertOutreach (/vercel/path0/server/lib/ai/conversation-ai.ts:815:24)
+    at async <anonymous> (/vercel/path0/server/routes/outreach.ts:29:21) {
+  status: 429,
+  headers: Headers {
+    date: 'Tue, 10 Feb 2026 06:37:14 GMT',
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': '337',
+    connection: 'keep-alive',
+    vary: 'Origin',
+    'x-request-id': 'req_c54e7d1a91894cedb24be183721d2b13',
+    'x-openai-proxy-wasm': 'v0.1',
+    server: 'cloudflare',
+    'cf-cache-status': 'DYNAMIC',
+    'set-cookie': '__cf_bm=NiWBRK1o0jim4nnQE80wuDvTGBdtqnvbiR73aHD1IXw-1770705434.3314753-1.0.1.1-WqY5bT9rgxPBs7MsU5Ap6CiPWKmOPIJ7HqKZYoCX6HU.nlGrctZ45R2ZqwlS88AbqqLKhofMr.PAcYUCI7TnpsiVoKh1KTiazrJk.Aeu7IDaZbXZjx6IChFL4ICzgvAW; HttpOnly; Secure; Path=/; Domain=api.openai.com; Expires=Tue, 10 Feb 2026 07:07:14 GMT, _cfuvid=H5IR9YhvtusTV9snKO5eDFgryEvNtFj6S7Ius5M4_HQ-1770705434.3314753-1.0.1.1-WyEWEfYWnileIn4qKWyQE5Eqau.oknfZe.yraJhqBXE; HttpOnly; SameSite=None; Secure; Path=/; Domain=api.openai.com',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+    'x-content-type-options': 'nosniff',
+    'cf-ray': '9cb998c49d8da3be-IAD',
+    'alt-svc': 'h3=":443"; ma=86400'
+  },
+  requestID: 'req_c54e7d1a91894cedb24be183721d2b13',
+  error: {
+    message: 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+    type: 'insufficient_quota',
+    param: null,
+    code: 'insufficient_quota'
+  },
+  code: 'insufficient_quota',
+  param: null,
+  type: 'insufficient_quota'
+}
+open ai sef if no open ai no worries it can import extract map it out bulk imprt campaign still run the manual one then

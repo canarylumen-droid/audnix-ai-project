@@ -194,17 +194,24 @@ export async function importCustomEmails(
       }
     }, timeoutMs);
 
-    const imap = new Imap({
-      user: config.smtp_user!,
-      password: config.smtp_pass!,
-      host: imapHost,
-      port: imapPort,
-      tls: imapPort === 993,
-      tlsOptions: { rejectUnauthorized: false },
-      connTimeout: 60000,
-      authTimeout: 60000,
-      keepalive: true
-    });
+  const imap = new Imap({
+    user: config.smtp_user!,
+    password: config.smtp_pass!,
+    host: imapHost,
+    port: imapPort,
+    tls: imapPort === 993,
+    tlsOptions: { rejectUnauthorized: false },
+    connTimeout: 60000,
+    authTimeout: 60000,
+    keepalive: true,
+    debug: (msg: string) => {
+      // Filter out hostname not found errors from flooding logs
+      if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) {
+        return;
+      }
+      console.log(`[IMAP DEBUG] ${msg}`);
+    }
+  });
 
     const emails: ImportedEmail[] = [];
 
