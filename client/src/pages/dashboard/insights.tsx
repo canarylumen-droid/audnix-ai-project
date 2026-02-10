@@ -187,36 +187,38 @@ export default function InsightsPage() {
                 <CardDescription>Leads generated over time.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart
-                    data={timeSeriesData}
-                    margin={{
-                      top: 5,
-                      right: 10,
-                      left: 10,
-                      bottom: 0,
-                    }}
-                  >
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      tickLine={false}
-                      axisLine={false}
-                      stroke={COLORS.grid}
-                      className="text-[10px] text-muted-foreground"
-                    />
-                    <YAxis className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="leads"
-                      strokeWidth={4}
-                      stroke="hsl(var(--primary))"
-                      dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
-                      activeDot={{ r: 6, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                <ChartContainer config={chartConfig} className="w-full h-full">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart
+                      data={timeSeriesData}
+                      margin={{
+                        top: 5,
+                        right: 10,
+                        left: 10,
+                        bottom: 0,
+                      }}
+                    >
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        tickLine={false}
+                        axisLine={false}
+                        stroke={COLORS.grid}
+                        className="text-[10px] text-muted-foreground"
+                      />
+                      <YAxis className="text-[10px] text-muted-foreground" axisLine={false} tickLine={false} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line
+                        type="monotone"
+                        dataKey="leads"
+                        strokeWidth={4}
+                        stroke="hsl(var(--primary))"
+                        dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
               </CardContent>
             </Card>
 

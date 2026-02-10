@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
                                 </ResponsiveContainer>
                             </ChartContainer>
                         ) : (
-                            <div className="h-full w-full flex items-center justify-center">
+                            <ChartContainer config={chartConfig} className="h-full w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
@@ -339,7 +339,7 @@ export default function AnalyticsPage() {
                                         <ChartTooltip content={<ChartTooltipContent className="bg-card border-border rounded-xl" />} />
                                     </PieChart>
                                 </ResponsiveContainer>
-                            </div>
+                            </ChartContainer>
                         )}
                     </CardContent>
                 </Card>
@@ -388,26 +388,30 @@ export default function AnalyticsPage() {
                     <CardContent className="h-[300px] flex items-center justify-center">
                         {analytics?.metrics ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={[
-                                            { name: 'Warm', value: analytics.metrics.replied, color: '#3b82f6' },
-                                            { name: 'Cold', value: analytics.metrics.sent - analytics.metrics.replied, color: '#d946ef' },
-                                            { name: 'Converted', value: analytics.metrics.booked, color: '#10b981' }
-                                        ]}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={8}
-                                        dataKey="value"
-                                    >
-                                        {[0, 1, 2].map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={['#3b82f6', '#d946ef', '#10b981'][index]} />
-                                        ))}
-                                    </Pie>
-                                    <ChartTooltip content={<ChartTooltipContent className="bg-card border-border rounded-xl" />} />
-                                </PieChart>
+                                <ChartContainer config={chartConfig} className="w-full h-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={[
+                                                    { name: 'Warm', value: analytics.metrics.replied, color: '#3b82f6' },
+                                                    { name: 'Cold', value: analytics.metrics.sent - analytics.metrics.replied, color: '#d946ef' },
+                                                    { name: 'Converted', value: analytics.metrics.booked, color: '#10b981' }
+                                                ]}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={80}
+                                                paddingAngle={8}
+                                                dataKey="value"
+                                            >
+                                                {[0, 1, 2].map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={['#3b82f6', '#d946ef', '#10b981'][index]} />
+                                                ))}
+                                            </Pie>
+                                            <ChartTooltip content={<ChartTooltipContent className="bg-card border-border rounded-xl" />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </ChartContainer>
                             </ResponsiveContainer>
                         ) : (
                             <div className="opacity-20 flex flex-col items-center">
