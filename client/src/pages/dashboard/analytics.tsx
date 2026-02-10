@@ -126,8 +126,8 @@ export default function AnalyticsPage() {
         </div>
     );
 
-    // Empty state logic for when no data is available
-    const hasData = analytics && (analytics.metrics.sent > 0 || analytics.metrics.replied > 0 || analytics.metrics.booked > 0);
+    // Empty state logic — show dashboard structure if any channel is connected, even with zero data
+    const hasData = analytics && (analytics.metrics.sent > 0 || analytics.metrics.replied > 0 || analytics.metrics.booked > 0 || analytics.isAnyConnected);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Growth Chart */}
                 <Card className="lg:col-span-2 bg-card border-border/40 rounded-[2rem] overflow-hidden">
-                    <CardHeader className="p-8 pb-0 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <CardHeader className="p-4 sm:p-6 md:p-8 pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                         <CardTitle className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/40 text-center sm:text-left">Engagement Velocity</CardTitle>
                         <div className="flex flex-wrap justify-center gap-4">
                             <div className="flex bg-muted/50 rounded-lg p-1">
@@ -241,23 +241,23 @@ export default function AnalyticsPage() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="h-[300px] md:h-[400px] p-4 md:p-8">
+                    <CardContent className="h-[260px] sm:h-[300px] md:h-[400px] p-2 sm:p-4 md:p-8">
                         {chartType === "area" ? (
                             <ChartContainer config={chartConfig} className="w-full h-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={analytics?.timeSeries || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorSentEmail" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={COLORS.sent_email} stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor={COLORS.sent_email} stopOpacity={0} />
+                                                <stop offset="5%" stopColor={COLORS.sent_email} stopOpacity={0.5} />
+                                                <stop offset="95%" stopColor={COLORS.sent_email} stopOpacity={0.05} />
                                             </linearGradient>
                                             <linearGradient id="colorSentInstagram" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={COLORS.sent_instagram} stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor={COLORS.sent_instagram} stopOpacity={0} />
+                                                <stop offset="5%" stopColor={COLORS.sent_instagram} stopOpacity={0.5} />
+                                                <stop offset="95%" stopColor={COLORS.sent_instagram} stopOpacity={0.05} />
                                             </linearGradient>
                                             <linearGradient id="colorOpened" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={COLORS.opened} stopOpacity={0.3} />
-                                                <stop offset="95%" stopColor={COLORS.opened} stopOpacity={0} />
+                                                <stop offset="5%" stopColor={COLORS.opened} stopOpacity={0.5} />
+                                                <stop offset="95%" stopColor={COLORS.opened} stopOpacity={0.05} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.3} />

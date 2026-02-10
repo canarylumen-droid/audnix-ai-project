@@ -337,6 +337,7 @@ export default function VideoAutomationPage() {
 
   const { data: monitors, isLoading: monitorsLoading } = useQuery<VideoMonitor[]>({
     queryKey: ["/api/video-automation/monitors"],
+    select: (data: any) => Array.isArray(data) ? data : (data?.monitors ?? []),
   });
 
   const { data: instagramMedia, isLoading: reelsLoading } = useQuery({

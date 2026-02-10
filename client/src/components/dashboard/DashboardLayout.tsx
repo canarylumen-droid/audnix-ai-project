@@ -173,7 +173,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         { label: "Transparency Audit Log", icon: Activity, path: "/dashboard/ai-decisions" },
         { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
         { label: "Insights", icon: Sparkles, path: "/dashboard/insights" },
-        { label: "Visual Map", icon: Globe, path: "/dashboard/video-automation" },
+        { label: "Video Automation", icon: Globe, path: "/dashboard/video-automation" },
       ],
     },
   ];
