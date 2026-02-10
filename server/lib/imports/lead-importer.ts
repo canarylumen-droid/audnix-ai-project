@@ -7,7 +7,7 @@ import type { Lead, Message } from "../../../shared/schema.js";
 /**
  * Neural CSV Mapper - Maps dynamic column names to internal lead keys
  */
-function mapCsvToLeadMetadata(row: Record<string, any>): Record<string, any> {
+export function mapCsvToLeadMetadata(row: Record<string, any>): Record<string, any> {
   const metadata: Record<string, any> = { ...row };
   const mappings: Record<string, string[]> = {
     industry: ['industry', 'sector', 'business type', 'niche'],
