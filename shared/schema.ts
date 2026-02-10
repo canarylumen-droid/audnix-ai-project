@@ -312,12 +312,21 @@ export const teamMembersInsert = createInsertSchema(teamMembers);
 export type TeamMember = z.infer<typeof teamMembersSelect>;
 export type InsertTeamMember = z.infer<typeof teamMembersInsert>;
 
-export const campaigns = pgTable("campaigns", {
+export const outreachCampaigns = pgTable("outreach_campaigns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  status: text("status").notNull().default("draft"),
-  config: jsonb("config").notNull().default({}),
+  status: text("status", { enum: ["active", "paused", "completed"] }).notNull().default("active"),
+  template: jsonb("template").$type<{
+    subject: string;
+    body: string;
+    followups: Array<{ delayDays: number; body: string }>;
+  }>().notNull(),
+  config: jsonb("config").$type<{
+    dailyLimit: number;
+    minDelayMinutes: number;
+    isManual?: boolean;
+  }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -745,33 +754,7 @@ export const scrapingSessions = pgTable("scraping_sessions", {
 
 
 
-export const outreachCampaigns = pgTable("outreach_campaigns", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  status: text("status", { enum: ["draft", "active", "paused", "completed"] }).notNull().default("draft"),
-  config: jsonb("config").$type<{
-    dailyLimit: number;
-    minDelayMinutes: number;
-    maxDelayMinutes: number;
-    startTime?: string;
-    endTime?: string;
-    days?: number[];
-  }>().notNull(),
-  template: jsonb("template").$type<{
-    subject: string;
-    body: string;
-    followups: Array<{ delayDays: number; body: string }>;
-  }>().notNull(),
-  stats: jsonb("stats").$type<{
-    total: number;
-    sent: number;
-    replied: number;
-    bounced: number;
-  }>().default(sql`'{"total":0,"sent":0,"replied":0,"bounced":0}'::jsonb`),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+// Duplicate outreachCampaigns definition removed
 
 export const campaignLeads = pgTable("campaign_leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),

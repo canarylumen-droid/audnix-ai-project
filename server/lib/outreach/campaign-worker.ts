@@ -56,7 +56,7 @@ export class CampaignWorker {
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    if (sentToday >= campaign.config.dailyLimit) {
+    if (sentToday >= (campaign.config?.dailyLimit || 50)) {
       // Limit reached for today
       return;
     }
@@ -93,12 +93,10 @@ export class CampaignWorker {
 
       // For manual campaigns, enforce strictly 2-3 minutes random delay
       // For AI campaigns, use config or default 2 mins
-      let minDelay = campaign.config.minDelayMinutes || 2;
+      let minDelay = campaign.config?.minDelayMinutes || 2;
 
-      // Add randomization for "human-like" behavior if isManual or just generic nice-to-have
-      // The user specifically asked for "every 2-3 minutes"
-      // So let's aim for 2 mins + random up to 1 min extra
-      const isManual = campaign.config.isManual === true;
+      // Add randomization for "human-like" behavior
+      const isManual = campaign.config?.isManual === true;
       const baseDelay = isManual ? 2 : minDelay;
       const randomBuffer = isManual ? Math.random() : 0; // 0-1 minute extra
 
@@ -208,7 +206,7 @@ export class CampaignWorker {
       let nextActionAt = null;
       if (hasMoreFollowUps) {
         const nextFollowUp = campaign.template.followups[nextStep - 1];
-        const delayDays = nextFollowUp.delayDays || 3;
+        const delayDays = nextFollowUp?.delayDays || 3;
         nextActionAt = new Date();
         nextActionAt.setDate(nextActionAt.getDate() + delayDays);
       }

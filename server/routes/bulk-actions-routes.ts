@@ -7,6 +7,98 @@ import type { ChannelType, ProviderType, LeadStatus } from '../../shared/types.j
 
 const router = Router();
 
+// Add missing import-bulk endpoint for compatibility
+router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leads: leadsData, channel = 'email', aiPaused = false } = req.body as {
+      leads: Array<{ name?: string; email?: string; phone?: string; company?: string }>;
+      channel?: 'email' | 'instagram';
+      aiPaused?: boolean;
+    };
+
+    if (!Array.isArray(leadsData) || leadsData.length === 0) {
+      res.status(400).json({ error: "No leads data provided" });
+      return;
+    }
+
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    const results = {
+      leadsImported: 0,
+      leadsUpdated: 0,
+      leadsFiltered: 0,
+      errors: [] as string[]
+    };
+
+    const importedIdentifiers = new Set<string>();
+
+    for (let i = 0; i < leadsData.length; i++) {
+      const leadData = leadsData[i];
+      try {
+        const email = leadData.email;
+        const name = leadData.name;
+        const identifier = email || name || 'unknown';
+
+        if (!email && !name) {
+          results.errors.push(`Row ${i + 1}: Missing name and email`);
+          results.leadsFiltered++;
+          continue;
+        }
+
+        if (importedIdentifiers.has(identifier.toLowerCase())) {
+          results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
+          continue;
+        }
+
+        const existingLead = existingLeads.find(l => 
+          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase())
+        );
+
+        if (existingLead) {
+          const updates: Record<string, any> = {};
+          if (!existingLead.email && leadData.email) updates.email = leadData.email;
+          if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
+          
+          if (Object.keys(updates).length > 0) {
+            await storage.updateLead(existingLead.id, updates);
+            results.leadsUpdated++;
+          }
+          continue;
+        }
+
+        await storage.createLead({
+          userId,
+          name: name || 'Unknown',
+          email: email || null,
+          phone: leadData.phone || null,
+          company: leadData.company || null,
+          channel: channel as any,
+          status: 'new',
+          aiPaused: aiPaused,
+          metadata: { ...leadData }
+        });
+
+        results.leadsImported++;
+        importedIdentifiers.add(identifier.toLowerCase());
+      } catch (err: any) {
+        results.errors.push(`Row ${i + 1}: ${err.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      leadsImported: results.leadsImported,
+      leadsUpdated: results.leadsUpdated,
+      leadsFiltered: results.leadsFiltered,
+      errors: results.errors,
+      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`
+    });
+  } catch (error: any) {
+    console.error('Bulk import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 interface BulkResult {
   leadId: string;
   success: boolean;
