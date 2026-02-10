@@ -521,7 +521,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input
                 placeholder="Search leads and messages..."
-                className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 transition-all shadow-inner text-foreground dark:text-white"
+                className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 dark:placeholder:text-white/60 transition-all shadow-inner text-foreground dark:text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -559,21 +559,21 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden mt-2">
-                <div className="p-4 border-b border-border/40 flex items-center justify-between bg-muted/20">
-                  <h4 className="font-bold text-sm">Notifications</h4>
+              <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden mt-2 bg-[#030712] border-border/20 shadow-2xl">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                  <h4 className="font-bold text-sm text-white">Notifications</h4>
                   {unreadNotifications > 0 && <Badge className="text-[10px] font-bold bg-primary text-black border-0">{unreadNotifications} new</Badge>}
                 </div>
                 <ScrollArea className="h-[350px]">
                   {recentNotifications.length > 0 ? (
                     <div className="divide-y divide-border/20">
                       {recentNotifications.map(notification => (
-                        <div key={notification.id} className={`p-4 hover:bg-muted/30 transition-colors cursor-pointer flex gap-4 ${!notification.read ? 'bg-primary/5' : ''}`}>
-                          <div className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                        <div key={notification.id} className={`p-4 hover:bg-white/5 transition-colors cursor-pointer flex gap-4 border-b border-white/[0.05] ${!notification.read ? 'bg-primary/5' : ''}`}>
+                          <div className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-white/20'}`} />
                           <div className="space-y-1 flex-1">
-                            <p className="text-sm font-bold leading-none">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{notification.description}</p>
-                            <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+                            <p className="text-sm font-bold leading-none text-white/90">{notification.title}</p>
+                            <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">{notification.description}</p>
+                            <p className="text-[10px] font-bold text-white/20 uppercase tracking-wider">
                               {(() => {
                                 try {
                                   const date = new Date(notification.createdAt);
@@ -594,8 +594,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                     </div>
                   )}
                 </ScrollArea>
-                <div className="p-2 border-t border-border/20 bg-muted/30">
-                  <Button variant="ghost" size="sm" className="w-full text-[10px] font-bold uppercase tracking-wider h-9">View All Notifications</Button>
+                <div className="p-2 border-t border-white/5 bg-white/[0.02]">
+                  <Button variant="ghost" size="sm" className="w-full text-[10px] font-bold uppercase tracking-wider h-9 text-white/40 hover:text-white hover:bg-white/5">View All Notifications</Button>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>

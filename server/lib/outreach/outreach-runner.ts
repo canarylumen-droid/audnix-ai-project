@@ -75,14 +75,22 @@ Return JSON only:
     });
 
     const content = response.choices[0].message.content;
-    const firstName = lead.name.split(' ')[0] || "there";
+    const firstNameRaw = (lead.name.split(' ')[0] || "there").trim();
+    // Use first name only, capitalize, and truncate if excessively long
+    const firstName = firstNameRaw.length > 12
+      ? firstNameRaw.substring(0, 1) + firstNameRaw.substring(1, 11)
+      : firstNameRaw.charAt(0).toUpperCase() + firstNameRaw.slice(1);
+
     if (content) {
       const parsed = JSON.parse(content);
       let body = parsed.body || `Hey ${firstName}, wanted to reach out about something that might help you...`;
 
-      // Automatic lead name injection if the AI forgot or user provided a generic template
-      if (!body.includes(firstName) && (body.startsWith("Hi") || body.startsWith("Hey") || body.startsWith("Hello"))) {
-        body = body.replace(/^(Hi|Hey|Hello)(\s*,|\s+)/, `$1 ${firstName}, `);
+      // Refined lead name injection: handles greetings and placeholders like {lead_name}
+      if (body.includes("{lead_name}")) {
+        body = body.replace(/\{lead_name\}/g, firstName);
+      } else if (!body.toLowerCase().includes(firstName.toLowerCase()) &&
+        (body.match(/^(Hi|Hey|Hello)(\s*,|\s+)/i))) {
+        body = body.replace(/^(Hi|Hey|Hello)(\s*,|\s+)/i, `$1 ${firstName}, `);
       }
 
       return {
@@ -95,7 +103,7 @@ Return JSON only:
   }
 
   // Fallback template
-  const firstName = lead.name.split(' ')[0];
+  const firstName = (lead.name.split(' ')[0] || "friend").charAt(0).toUpperCase() + (lead.name.split(' ')[0] || "friend").slice(1);
   return {
     subject: `Quick question for you, ${firstName}`,
     body: `Hey ${firstName},\n\nI came across your profile and wanted to reach out about something that might be valuable for you.\n\n${brandContext.valueProposition}\n\nWould you be open to a quick chat this week?\n\nBest,\n${brandContext.businessName || 'The Team'}`
