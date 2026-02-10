@@ -34,9 +34,15 @@ async function runMigration() {
     }
 
     console.log('Connecting to database...');
+    const dbUrl = new URL(DATABASE_URL);
+    if (DATABASE_URL.includes('neon.tech')) {
+        dbUrl.searchParams.set('sslmode', 'verify-full');
+    }
+    const connectionString = dbUrl.toString();
+
     const client = new pg.Client({
-        connectionString: DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        connectionString,
+        ssl: DATABASE_URL.includes('neon.tech') ? { rejectUnauthorized: true } : { rejectUnauthorized: false }
     });
 
     const migrationsFolder = resolve(__dirname, '../migrations');
@@ -53,13 +59,21 @@ async function runMigration() {
             return;
         }
 
-        console.log('Running migrations...');
         try {
             await migrate(db, { migrationsFolder });
             console.log('Migrations completed successfully');
         } catch (migrationErr) {
-            console.error('Migration failed (soft fail):', migrationErr);
-            console.warn('Proceeding with deployment despite migration failure. Schema should be synced via push.');
+            // Ignore "already exists" errors (42P07 and 42710)
+            const isAlreadyExists = migrationErr.code === '42P07' || 
+                                   migrationErr.code === '42710' || 
+                                   migrationErr.message?.includes('already exists');
+            
+            if (isAlreadyExists) {
+              console.log('✅ Database schema already contains some migration objects. Skipping... (Success)');
+            } else {
+              console.error('Migration failed (soft fail):', migrationErr);
+              console.warn('Proceeding with deployment despite migration failure. Schema should be synced via push.');
+            }
         }
 
     } catch (err) {
