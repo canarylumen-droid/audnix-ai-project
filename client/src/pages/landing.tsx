@@ -47,14 +47,14 @@ export default function Landing() {
     const ctx = gsap.context(() => {
       const sections = gsap.utils.toArray('.reveal-section');
       sections.forEach((section: any) => {
+        gsap.set(section, { opacity: 1, visibility: 'visible', y: 0 }); // Force visible immediately for mobile/incognito
         gsap.from(section, {
-          y: 40,
-          // REMOVED opacity: 0 to ensure content is always visible even if ScrollTrigger fails
-          duration: 1.0,
+          y: 20,
+          duration: 0.8,
           ease: "expo.out",
           scrollTrigger: {
             trigger: section,
-            start: "top 90%", // Trigger drastically earlier
+            start: "top 95%", 
             toggleActions: "play none none reverse"
           }
         });

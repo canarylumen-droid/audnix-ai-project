@@ -296,11 +296,11 @@ export default function InboxPage() {
   const ChannelIcon = activeLead ? (channelIcons[activeLead.channel as keyof typeof channelIcons] || Instagram) : Instagram;
 
   return (
-    <div className="flex h-screen md:h-full w-full overflow-hidden bg-background relative p-0">
-      <div className="flex w-full h-full max-w-[1600px] mx-auto bg-card border-0 md:border rounded-none md:rounded-3xl overflow-hidden shadow-2xl">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-background relative p-0">
+      <div className="flex w-full h-full max-w-[1600px] mx-auto bg-card border-0 md:border md:rounded-3xl overflow-hidden shadow-2xl">
         {/* Lead List Pane */}
         <div className={cn(
-          "w-full md:w-80 lg:w-[350px] border-r flex flex-col transition-all shrink-0 h-full bg-background",
+          "w-full md:w-80 lg:w-[350px] border-r flex flex-col transition-all shrink-0 h-[100dvh] md:h-full bg-background",
           leadId && "hidden md:flex"
         )}>
           <div className="p-4 border-b space-y-4 shrink-0">
@@ -680,7 +680,7 @@ export default function InboxPage() {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 min-h-0 scroll-smooth flex flex-col bg-muted/5 scrollbar-hide">
                   {messagesLoading ? (
                     <div className="space-y-6">
                       <div className="flex justify-start"><Skeleton className="h-16 w-64 rounded-2xl rounded-tl-none" /></div>
@@ -740,7 +740,7 @@ export default function InboxPage() {
                 </div>
 
                 {/* Reply Input */}
-                <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-10 w-full mb-[env(safe-area-inset-bottom)]">
+                <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
                   <div className="flex gap-3 items-end max-w-5xl mx-auto">
                     <div className="flex-1 relative group">
                       <textarea

@@ -241,7 +241,7 @@ router.post('/signup/direct', authLimiter, async (req: Request, res: Response): 
     // Hash password and create user directly
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com'];
+    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com', 'teamp.replyflow@gmail.com'];
     const isVip = vipEmails.includes(normalizedEmail);
 
     const user = await storage.createUser({
@@ -347,7 +347,7 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
     // Create temporary username (will be updated in step 3)
     const tempUsername = normalizedEmail.split('@')[0] + Date.now();
 
-    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com'];
+    const vipEmails = ['team.replyflow@gmail.com', 'fortuneuchendu708@gmail.com', 'teamp.replyflow@gmail.com'];
     const isVip = vipEmails.includes(normalizedEmail);
 
     const user = await storage.createUser({
