@@ -89,19 +89,14 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
 
   // Mount all other routes
   app.use("/api/organizations", organizationRouter);
+  
+  // Consolidate Auth routes to prevent session fragmentation
   app.use("/api/user/auth", userAuthRouter);
-  app.use("/api/user", userAuthRouter); // Alias for /api/user/avatar calls
-  app.use("/api/admin/auth", adminAuthRouter);
-
-  app.use("/api/admin/pdf", adminPdfRoutes);
-  app.use("/api/admin/pdf-v2", adminPdfRoutesV2);
-  app.use("/api/admin", adminRoutes);
-  app.use("/api/ai", aiRoutes);
-  app.use("/api/ai/sales-suggestion", aiSalesSuggestion);
+  app.use("/api/user", userAuthRouter); 
   app.use("/api/auth", authClean);
-  app.use("/api/auth/clean", authClean);
   app.use("/api/auth/username", authUsernameOnboarding);
-  app.use("/api/auth", authUsernameOnboarding); // Also mount at /api/auth for /set-username endpoint
+  
+  app.use("/api/admin/auth", adminAuthRouter);
   app.use("/api/billing", billingRoutes);
   app.use("/api/bulk", bulkActionsRoutes);
   app.use("/api/calendar", calendarRoutes);

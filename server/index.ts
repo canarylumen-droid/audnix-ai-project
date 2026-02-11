@@ -85,13 +85,21 @@ app.set("env", nodeEnv);
 app.set("trust proxy", 1);
 
 if (!process.env.SESSION_SECRET) {
-  console.warn("⚠️ SESSION_SECRET not set - generating temporary secret (NOT SAFE FOR PRODUCTION)");
-  process.env.SESSION_SECRET = crypto.randomBytes(32).toString('hex');
+  // Stabilize secret fallback for Vercel cold starts using a derived value if possible
+  // In production, we really want a real secret, but this prevents random rotation every minute
+  const stableSecret = process.env.DATABASE_URL
+    ? crypto.createHash('sha256').update(process.env.DATABASE_URL).digest('hex')
+    : "audnix-stable-dev-fallback-secret-123";
+  console.warn("⚠️ SESSION_SECRET not set - using stable derived fallback");
+  process.env.SESSION_SECRET = stableSecret;
 }
 
 if (!process.env.ENCRYPTION_KEY) {
-  console.warn("⚠️ ENCRYPTION_KEY not set - generating temporary key (NOT SAFE FOR PRODUCTION)");
-  process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+  const stableKey = process.env.DATABASE_URL
+    ? crypto.createHash('sha256').update(process.env.DATABASE_URL + "enc").digest('hex').slice(0, 32)
+    : "audnix-stable-dev-fallback-key-123";
+  console.warn("⚠️ ENCRYPTION_KEY not set - using stable derived fallback");
+  process.env.ENCRYPTION_KEY = stableKey;
 }
 
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
@@ -154,8 +162,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const sessionSecret =
-  process.env.SESSION_SECRET || "temporary-dev-secret-change-in-production";
+const sessionSecret = process.env.SESSION_SECRET || "audnix-stable-dev-fallback-secret-123";
 const PgSession = connectPgSimple(session);
 let sessionStore: session.Store | undefined;
 
@@ -193,7 +200,7 @@ if (process.env.DATABASE_URL) {
 
 const sessionConfig: session.SessionOptions = {
   secret: sessionSecret,
-  resave: false,
+  resave: true, // Set to true for serverless stability to ensure session is saved back
   saveUninitialized: false,
   name: "audnix.sid",
   cookie: {

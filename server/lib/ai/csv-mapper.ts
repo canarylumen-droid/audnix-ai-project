@@ -119,14 +119,9 @@ IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values mus
             }
         }
     } catch (error) {
-        const { fallbackMapCSVColumns } = await import('./conversation-ai.js');
         console.warn(`[CSV] AI mapping failed (${error instanceof Error ? error.message : 'Unknown error'}), using robust fallback`);
-        const mapping = await fallbackMapCSVColumns(headers);
-        return {
-            mapping,
-            confidence: 0.5,
-            unmappedColumns: headers.filter(h => !Object.values(mapping).includes(h))
-        };
+        // Use local robust fallback instead of external one
+        return fallbackMapping(headers);
     }
 
     // Fallback: use fuzzy matching
@@ -176,30 +171,39 @@ function fallbackMapping(headers: string[]): MappingResult {
     const patterns: Record<string, RegExp[]> = {
         name: [
             /^name$/i, /^full[_\s-]?name$/i, /^contact[_\s-]?name$/i,
-            /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i
+            /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i,
+            /^fname$/i, /^lname$/i, /^contact$/i, /^entity$/i, /^fullname$/i,
+            /^prospective[_\s-]?name$/i
         ],
         email: [
             /^e?-?mail$/i, /^email[_\s-]?addr/i, /^contact[_\s-]?email$/i,
-            /^e-?mail[_\s-]?address$/i
+            /^e-?mail[_\s-]?address$/i, /^mail$/i, /^work[_\s-]?email$/i,
+            /^primary[_\s-]?email$/i, /^email[_\s-]?(1|2)$/i
         ],
         phone: [
             /^phone$/i, /^mobile$/i, /^cell$/i, /^tel/i, /^contact[_\s-]?number$/i,
-            /^phone[_\s-]?number$/i
+            /^phone[_\s-]?number$/i, /^telephone$/i, /^whatsapp$/i
         ],
         company: [
-            /^company$/i, /^org/i, /^business$/i, /^employer$/i, /^firm$/i
+            /^company$/i, /^org/i, /^business$/i, /^employer$/i, /^firm$/i,
+            /^account$/i, /^company[_\s-]?name$/i, /^organization$/i
+        ],
+        role: [
+            /^role$/i, /^title$/i, /^job[_\s-]?title$/i, /^position$/i, /^function$/i,
+            /^occupation$/i, /^work[_\s-]?role$/i
         ],
         channel: [
-            /^channel$/i, /^source$/i, /^platform$/i
+            /^channel$/i, /^source$/i, /^platform$/i, /^medium$/i, /^origin$/i
         ],
         industry: [
-            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i
+            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i, /^market$/i
         ],
         website: [
-            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i
+            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i, /^web[_\s-]?addr/i
         ],
         notes: [
-            /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i
+            /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i,
+            /^remarks$/i, /^feedback$/i, /^details$/i, /^extra$/i
         ]
     };
 

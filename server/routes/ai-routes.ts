@@ -332,6 +332,8 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             leads: savedLeads
           });
 
+          console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${savedLeads.length} leads (Standalone Mode)`);
+
         } catch (error: any) {
            console.error("CSV Processing Error:", error);
            res.status(500).json({ error: "Failed to process CSV rows" });

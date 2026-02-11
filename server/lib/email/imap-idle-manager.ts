@@ -43,7 +43,7 @@ class ImapIdleManager {
     /**
      * Sync active connections with database integrations
      */
-    private async syncConnections(): Promise<void> {
+    public async syncConnections(): Promise<void> {
         try {
             const integrations = await storage.getIntegrationsByProvider('custom_email');
             const activeUserIds = new Set(integrations.filter(i => i.connected).map(i => i.userId));

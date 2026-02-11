@@ -124,7 +124,8 @@ export function EmailSetupUI() {
         await fetchStatus();
       } else {
         const error = await res.json();
-        toast({ title: 'Error', description: error.error, variant: 'destructive' });
+        const description = error.tip ? `${error.error}\n\n💡 ${error.tip}` : error.error;
+        toast({ title: 'Connection Failed', description, variant: 'destructive' });
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to connect email', variant: 'destructive' });

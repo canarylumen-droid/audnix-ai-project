@@ -271,7 +271,17 @@ export default function IntegrationsPage() {
       toast({ title: "Email Connected", description: "SMTP settings saved successfully." });
     },
     onError: (error: Error) => {
-      toast({ title: "Connection Failed", description: error.message, variant: "destructive" });
+      // apiRequest throws "400: {json}" - try to extract structured error
+      let errorMsg = error.message;
+      let tipMsg = '';
+      try {
+        const jsonStr = error.message.replace(/^\d+:\s*/, '');
+        const parsed = JSON.parse(jsonStr);
+        errorMsg = parsed.error || errorMsg;
+        tipMsg = parsed.tip || '';
+      } catch { /* use raw message */ }
+      const description = tipMsg ? `${errorMsg}\n\n💡 ${tipMsg}` : errorMsg;
+      toast({ title: "Connection Failed", description, variant: "destructive" });
     }
   });
 
