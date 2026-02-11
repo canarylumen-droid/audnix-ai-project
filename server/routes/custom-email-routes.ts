@@ -75,6 +75,37 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       provider: 'custom'
     };
 
+    // --- VERIFY CREDENTIALS BEFORE SAVING ---
+    console.log(`[Email Connect] Verifying credentials for ${email}...`);
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: credentials.smtp_host,
+        port: credentials.smtp_port,
+        secure: credentials.smtp_port === 465,
+        auth: {
+          user: credentials.smtp_user,
+          pass: credentials.smtp_pass,
+        },
+        tls: {
+          rejectUnauthorized: false // Allow self-signed certs for broad compatibility
+        },
+        connectionTimeout: 10000 // 10s check
+      });
+
+      await transporter.verify();
+      console.log(`[Email Connect] SMTP Verification Successful`);
+    } catch (verifyError: any) {
+      console.error(`[Email Connect] Verification Failed:`, verifyError);
+      res.status(400).json({ 
+        error: 'Authentication failed. Please check your password.',
+        details: verifyError.message,
+        tip: 'If you have 2FA enabled, you MUST use an App Password.'
+      });
+      return;
+    }
+    // ----------------------------------------
+
     let encryptedMeta: string;
     try {
       encryptedMeta = await encrypt(JSON.stringify(credentials));
@@ -109,7 +140,8 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
     try {
       console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
       const { importCustomEmails } = await import('../lib/channels/email.js');
-      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 120000);
+      // Fetch up to 10,000 emails (effectively "all" for most initial syncs)
+      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 10000, 120000);
 
       const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
         from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
