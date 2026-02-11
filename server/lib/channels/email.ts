@@ -194,8 +194,8 @@ export async function importCustomEmails(
           port: imapPort,
           tls: imapPort === 993,
           tlsOptions: { rejectUnauthorized: false },
-          connTimeout: 15000, // Reduced from 60s
-          authTimeout: 15000, // Reduced from 60s
+          connTimeout: 45000, // Increased to 45s
+          authTimeout: 45000, // Increased to 45s
           keepalive: false,   // Disable keepalive for one-off fetch
           debug: (msg: string) => {
             if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) return;

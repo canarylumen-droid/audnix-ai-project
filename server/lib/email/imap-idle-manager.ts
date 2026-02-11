@@ -162,6 +162,8 @@ class ImapIdleManager {
                 port: imapPort,
                 tls: imapPort === 993,
                 tlsOptions: { rejectUnauthorized: false },
+                connTimeout: 45000,
+                authTimeout: 45000,
                 keepalive: {
                     interval: 10000,
                     idleInterval: 300000,
