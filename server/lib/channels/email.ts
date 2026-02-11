@@ -203,6 +203,21 @@ export async function importCustomEmails(
           }
         });
 
+        const safeEnd = () => {
+          try {
+            if (imap.state !== 'disconnected') imap.end();
+          } catch (err) {
+            // Ignore
+          }
+        };
+
+        const cleanup = () => {
+            if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+                timeoutHandle = null;
+            }
+        };
+
         const emails: ImportedEmail[] = [];
 
         const startFetch = (targetBox: any) => {

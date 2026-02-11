@@ -168,7 +168,7 @@ class ImapIdleManager {
                     forceNoop: true
                 },
                 // Add debug to catch low-level socket errors
-                debug: (msg) => {
+                debug: (msg: string) => {
                    // console.log(`[IMAP RAW ${userId}]`, msg); 
                 }
             });
