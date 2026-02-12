@@ -18,20 +18,11 @@ function initializeDb() {
     return { db: null, pool: null };
   }
 
-  // Neon-specific optimizations for Vercel/Neon deployment
-  const dbUrl = new URL(url);
-  if (url.includes('neon.tech')) {
-    dbUrl.searchParams.set('sslmode', 'verify-full');
-  }
-  const connectionString = dbUrl.toString();
+  const connectionString = url;
 
   try {
     _pool = new Pool({
       connectionString,
-      ssl: url.includes('neon.tech') ? { rejectUnauthorized: true } : false,
-      max: 20, // Adjust based on your Neon plan limits
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
     });
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless compatibility restored)');
