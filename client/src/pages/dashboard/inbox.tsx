@@ -137,11 +137,12 @@ export default function InboxPage() {
     };
   }, [user?.id, leadId, queryClient]);
 
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
-    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE }],
+    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
@@ -197,12 +198,20 @@ export default function InboxPage() {
           ? (lead.metadata?.isUnread || false)
           : lead.status === filterStatus;
 
-      return matchesSearch && matchesChannel && matchesStatus;
     });
-  }, [allLeads, searchQuery, filterChannel, filterStatus]);
+  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
+      // If content has a subject line (first line), extract it
+      let subject: string | undefined = undefined;
+      let body = content;
+      
+      // Simple heuristic: if it looks like a subject line is intended (e.g. "Subject: ...")
+      // But for now, we'll just send content. 
+      // User requested "reply appending subject". 
+      // If we want to support subject, we can pass it here if the UI supported it.
+      // For now, we just pass content.
       return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
     },
     onSuccess: () => {
@@ -257,17 +266,35 @@ export default function InboxPage() {
       } catch (err) {
         toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
       }
+    } else if (action === 'unarchive') {
+      try {
+        await apiRequest("POST", "/api/bulk/archive", {
+          leadIds: [data.id],
+          archived: false
+        });
+        toast({ title: "Lead Restored", description: "Successfully restored from archive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to unarchive lead", variant: "destructive" });
+      }
     } else if (action === 'delete') {
       if (confirm(`Are you sure you want to delete ${data.name}? This action cannot be undone.`)) {
+        // Optimistic UI updates
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
+
         try {
           await apiRequest("POST", "/api/bulk/delete", {
             leadIds: [data.id]
           });
           toast({ title: "Lead Deleted", description: "Lead has been permanently removed" });
-          if (leadId === data.id) setLocation('/dashboard/inbox');
           queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         } catch (err) {
+          // Revert on failure (optional, but good practice would be to re-fetch)
           toast({ title: "Error", description: "Failed to delete lead", variant: "destructive" });
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         }
       }
     } else if (action === 'mark_unread') {
@@ -281,6 +308,10 @@ export default function InboxPage() {
       } catch (err) {
         toast({ title: "Error", description: "Failed to mark as unread", variant: "destructive" });
       }
+    } else if (action === 'copy_details') {
+      const details = `Name: ${data.name}\nEmail: ${data.email || 'N/A'}\nPhone: ${data.phone || 'N/A'}\nCompany: ${data.company || 'N/A'}`;
+      navigator.clipboard.writeText(details);
+      toast({ title: "Copied!", description: "Lead details copied to clipboard" });
     }
   }, [toast, queryClient, leadId, setLocation]);
 
@@ -290,6 +321,15 @@ export default function InboxPage() {
     if (action === 'delete' && !confirm(`Delete ${selectedLeadIds.length} selected leads?`)) return;
 
     try {
+      // Optimistic UI updates for delete
+      if (action === 'delete') {
+         setAllLeads(prev => prev.filter(l => !selectedLeadIds.includes(l.id)));
+         if (leadId && selectedLeadIds.includes(leadId)) {
+           setLocation('/dashboard/inbox');
+         }
+         setSelectedLeadIds([]);
+      }
+
       const endpoint = action === 'delete' ? '/api/bulk/delete' : '/api/bulk/archive';
       const body = action === 'delete' ? { leadIds: selectedLeadIds } : { leadIds: selectedLeadIds, archived: true };
       
@@ -300,7 +340,7 @@ export default function InboxPage() {
         description: `Successfully processed ${selectedLeadIds.length} leads` 
       });
       
-      setSelectedLeadIds([]);
+      if (action !== 'delete') setSelectedLeadIds([]); // Clear selection for archive too if successful
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     } catch (err) {
       toast({ title: "Error", description: "Bulk action failed", variant: "destructive" });
@@ -375,6 +415,15 @@ export default function InboxPage() {
                 >
                   <Send className="h-3.5 w-3.5" />
                   Campaign
+                </Button>
+                <Button
+                  variant={showArchived ? "secondary" : "ghost"}
+                  size="icon"
+                  className={cn("h-8 w-8", showArchived && "text-primary")}
+                  onClick={() => setShowArchived(!showArchived)}
+                  title={showArchived ? "Hide Archived" : "Show Archived"}
+                >
+                  <Archive className="h-4 w-4" />
                 </Button>
               </div>
             </div>

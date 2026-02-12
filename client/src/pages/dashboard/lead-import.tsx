@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
 import { LeadsDisplayModal } from "@/components/dashboard/LeadsDisplayModal";
-import OutreachConfigModal from "@/components/outreach/OutreachConfigModal";
+import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -265,10 +265,14 @@ export default function LeadImportPage() {
 
       const result = await response.json();
 
+      // Refetch actual DB leads to get their IDs
+      const leadsRes = await apiRequest("GET", `/api/leads?limit=10000&offset=0`);
+      const allLeads = await leadsRes.json();
+      
       setImportResults({
         imported: result.leadsImported,
         skipped: result.leadsFiltered || 0,
-        leads: result.leads || [] // Use the leads returned from API which have IDs
+        leads: allLeads.leads || [] // Use real DB leads
       });
 
       toast({
@@ -483,10 +487,10 @@ export default function LeadImportPage() {
             canConfirm={!importing}
           />
 
-          <OutreachConfigModal
+          <UnifiedCampaignWizard
             isOpen={isOutreachModalOpen}
             onClose={() => setIsOutreachModalOpen(false)}
-            leads={importResults?.leads || []}
+            initialLeads={importResults?.leads || []}
             onSuccess={() => {
               toast({ title: "Outreach Started", description: "Emails will be sent according to your settings." });
             }}

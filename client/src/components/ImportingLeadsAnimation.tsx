@@ -23,7 +23,7 @@ const channelConfig = {
     borderColor: "border-blue-500/30",
     textColor: "text-blue-500",
     scanText: "Scanning email inbox...",
-    filterText: "AI analyzing lead quality...",
+    filterText: "Matching lead data...",
     importText: "Importing verified leads...",
   },
   crm: {
@@ -34,7 +34,7 @@ const channelConfig = {
     borderColor: "border-purple-500/30",
     textColor: "text-purple-500",
     scanText: "Syncing with ecosystem...",
-    filterText: "AI mapping datasets...",
+    filterText: "Mapping columns...",
     importText: "Importing ecosystem leads...",
   },
 };
@@ -240,7 +240,7 @@ export function ImportingLeadsAnimation({
                     <div className="text-2xl font-bold text-purple-500">
                       {filteredCount}
                     </div>
-                    <div className="text-xs text-muted-foreground">AI Filtered</div>
+                    <div className="text-xs text-muted-foreground">Matched</div>
                   </motion.div>
 
                   <motion.div
@@ -288,7 +288,7 @@ export function ImportingLeadsAnimation({
 
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>AI is working - please don't close this window</span>
+                  <span>Importing — please don't close this window</span>
                 </div>
               </>
             ) : (
@@ -312,7 +312,7 @@ export function ImportingLeadsAnimation({
                     Import Complete!
                   </h3>
                   <p className="text-lg font-medium">
-                    {importedCount} qualified leads imported
+                    {importedCount} leads imported
                   </p>
                 </div>
 
@@ -328,7 +328,7 @@ export function ImportingLeadsAnimation({
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  AI filtered out {scannedCount - filteredCount} low-quality conversations
+                  {scannedCount - filteredCount} rows were duplicates or empty
                 </p>
 
                 <motion.div
@@ -343,7 +343,7 @@ export function ImportingLeadsAnimation({
                   }}
                 >
                   <Sparkles className="h-5 w-5" />
-                  <span className="text-sm font-medium">AI Sales Engine is now active</span>
+                  <span className="text-sm font-medium">Your leads are ready for outreach</span>
                 </motion.div>
               </motion.div>
             )}

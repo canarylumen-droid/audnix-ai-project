@@ -55,7 +55,12 @@ export async function mapCSVColumnsToSchema(
 ): Promise<MappingResult> {
     const targetFields = Object.keys(LEADS_SCHEMA);
 
-    if (skipAI) {
+    // Auto-skip AI if no API keys are configured OR if they are placeholders
+    const hasGemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza");
+    const hasOpenAI = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 10;
+    
+    if (skipAI || (!hasGemini && !hasOpenAI)) {
+        console.log('[CSV] Skipping AI mapping — using header-based matching (No valid API keys found or AI paused)');
         return fallbackMapping(headers);
     }
 
@@ -226,6 +231,11 @@ function fallbackMapping(headers: string[]): MappingResult {
             }
             if (mapping[field as keyof LeadColumnMapping]) break;
         }
+    }
+
+    // If no 'name' was mapped, use 'company' as a fallback for lead name
+    if (!mapping.name && mapping.company) {
+        mapping.name = mapping.company;
     }
 
     const unmappedColumns = headers.filter(h => !mappedColumns.has(h));

@@ -35,17 +35,17 @@ export function LeadsDisplayModal({
 }: LeadsDisplayModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
-        <DialogHeader className="p-8 pb-4">
-          <div className="flex items-center justify-between">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
+        <DialogHeader className="p-6 md:p-8 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mt-1">
-                {leads.length} high-intent targets synchronized
+                {leads.length} leads ready to import
               </DialogDescription>
             </div>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1">
-              System Core Sync
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1 self-start sm:self-auto">
+              Ready
             </Badge>
           </div>
         </DialogHeader>
@@ -144,7 +144,7 @@ export function LeadsDisplayModal({
                   Processing...
                 </>
               ) : (
-                'Confirm Sync'
+                'Import All Leads'
               )}
             </Button>
           </div>

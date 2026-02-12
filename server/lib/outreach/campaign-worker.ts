@@ -176,6 +176,23 @@ export class CampaignWorker {
       let isFollowUp = leadEntry.status === 'sent';
 
       if (isFollowUp) {
+        // Check if lead replied since last email — if so, stop further follow-ups
+        const replyCheck = await db.execute(sql`
+          SELECT id FROM messages
+          WHERE lead_id = ${lead.id} AND direction = 'inbound'
+          AND created_at > ${leadEntry.sentAt}
+          LIMIT 1
+        `);
+        if (replyCheck.rows.length > 0) {
+          console.log(`[Campaign] Lead ${lead.email} replied — stopping follow-ups`);
+          await db.update(campaignLeads).set({
+            status: 'replied', nextActionAt: null
+          }).where(eq(campaignLeads.id, leadEntry.id));
+          // Also update the lead's status
+          try { await storage.updateLead(lead.id, { status: 'replied' }); } catch (e) {}
+          return;
+        }
+
         const followups = (campaign.template as any)?.followups || [];
         const followUpConfig = followups[leadEntry.currentStep - 1];
         if (!followUpConfig) {

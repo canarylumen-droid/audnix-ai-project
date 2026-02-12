@@ -31,7 +31,7 @@ export interface IStorage {
   removeTeamMember(orgId: string, userId: string): Promise<void>;
 
   // Lead methods
-  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number }): Promise<Lead[]>;
+  getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number; includeArchived?: boolean }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
@@ -452,13 +452,17 @@ export class MemStorage implements IStorage {
 
   // ========== Lead Methods ==========
 
-  async getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number }): Promise<Lead[]> {
+  async getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; includeArchived?: boolean }): Promise<Lead[]> {
     let leads = Array.from(this.leads.values()).filter(
       (lead) => lead.userId === options.userId
     );
 
     if (options.status) {
       leads = leads.filter((lead) => lead.status === options.status);
+    }
+
+    if (!options.includeArchived) {
+      leads = leads.filter(lead => !lead.archived);
     }
 
     if (options.channel) {

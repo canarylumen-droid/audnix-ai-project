@@ -171,37 +171,37 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden">
+      <DialogContent className="max-w-6xl w-[95vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden">
         {/* Header */}
-        <div className="p-8 pb-6 border-b border-border/20 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-               <Send className="h-6 w-6 text-primary" />
+        <div className="p-4 md:p-8 md:pb-6 border-b border-border/20 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+               <Send className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div>
-               <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic">Outreach Wizard</DialogTitle>
+               <DialogTitle className="text-lg md:text-2xl font-black tracking-tighter uppercase italic">Outreach Wizard</DialogTitle>
                <div className="flex items-center gap-2 mt-1">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className={cn("h-1.5 rounded-full transition-all duration-500", step === i ? "w-8 bg-primary" : "w-2 bg-muted")} />
+                    <div key={i} className={cn("h-1.5 rounded-full transition-all duration-500", step === i ? "w-6 md:w-8 bg-primary" : "w-2 bg-muted")} />
                   ))}
                </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
              <div className="bg-muted/50 p-1 rounded-xl hidden sm:flex">
                 <Button variant={viewMode === 'edit' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('edit')} className="h-8 text-[10px] font-bold uppercase tracking-widest">Construct</Button>
                 <Button variant={viewMode === 'preview' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('preview')} className="h-8 text-[10px] font-bold uppercase tracking-widest">Simulate</Button>
              </div>
              <DialogClose asChild>
-                <Button variant="ghost" size="icon" className="rounded-full hover:bg-destructive/10 hover:text-destructive">×</Button>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-destructive/10 hover:text-destructive h-8 w-8 md:h-10 md:w-10">×</Button>
              </DialogClose>
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
+        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 relative">
           {/* Main Workspace */}
-          <div className={cn("flex flex-col h-full bg-background/50", viewMode === 'preview' && 'hidden lg:flex')}>
-            <ScrollArea className="flex-1 p-8">
+          <div className={cn("flex flex-col h-full bg-background/50 overflow-y-auto lg:overflow-hidden", viewMode === 'preview' && 'hidden lg:flex')}>
+            <ScrollArea className="flex-1 p-4 md:p-8">
               <AnimatePresence mode="wait">
                 {step === 1 && (
                   <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
@@ -469,6 +469,26 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           </div>
         </div>
       </DialogContent>
+      
+      {/* Mobile View Toggle (Floating) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex sm:hidden bg-background/80 backdrop-blur-xl border border-border rounded-full p-1 shadow-2xl">
+        <Button 
+          variant={viewMode === 'edit' ? 'default' : 'ghost'} 
+          size="sm" 
+          onClick={() => setViewMode('edit')} 
+          className="rounded-full text-[10px] font-bold uppercase tracking-widest px-4 h-8"
+        >
+          Editor
+        </Button>
+        <Button 
+          variant={viewMode === 'preview' ? 'default' : 'ghost'} 
+          size="sm" 
+          onClick={() => setViewMode('preview')} 
+          className="rounded-full text-[10px] font-bold uppercase tracking-widest px-4 h-8"
+        >
+          Preview
+        </Button>
+      </div>
     </Dialog>
   );
 }

@@ -169,10 +169,10 @@ export default function AnalyticsPage() {
                         />
                     </>
                 ) : (
-                    <div className="lg:col-span-4 flex flex-col items-center justify-center text-center opacity-20 py-10">
-                        <Unplug className="w-16 h-16 mb-4" />
-                        <p className="text-lg font-black uppercase tracking-widest">No data available yet.</p>
-                        <p className="text-sm text-muted-foreground mt-2">Connect your channels to start seeing analytics.</p>
+                    <div className="lg:col-span-4 flex flex-col items-center justify-center text-center py-10">
+                        <Unplug className="w-16 h-16 mb-4 text-muted-foreground/30" />
+                        <p className="text-lg font-black uppercase tracking-widest text-foreground">No data available yet.</p>
+                        <p className="text-sm text-foreground mt-2">Connect your channels to start seeing analytics.</p>
                     </div>
                 )}
             </div>
