@@ -45,7 +45,6 @@ async function resetDb() {
         
         await client.query('DROP SCHEMA IF EXISTS public CASCADE;');
         await client.query('CREATE SCHEMA public;');
-        await client.query('GRANT ALL ON SCHEMA public TO postgres;');
         await client.query('GRANT ALL ON SCHEMA public TO public;');
         
         console.log('✅ Database cleared (public schema recreated).');

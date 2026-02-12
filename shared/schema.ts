@@ -458,7 +458,7 @@ export const emailMessages = pgTable("email_messages", {
   leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
   messageId: text("message_id").notNull().unique(),
   threadId: text("thread_id"),
-  campaignId: uuid("campaignId").references(() => outreachCampaigns.id, { onDelete: "set null" }),
+  campaignId: uuid("campaign_id").references(() => outreachCampaigns.id, { onDelete: "set null" }),
   subject: text("subject"),
   from: text("from_address").notNull(),
   to: text("to_address").notNull(),
@@ -766,7 +766,6 @@ export const scrapingSessions = pgTable("scraping_sessions", {
 
 
 
-// Duplicate outreachCampaigns definition removed
 
 export const campaignLeads = pgTable("campaign_leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
