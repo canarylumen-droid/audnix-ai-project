@@ -105,12 +105,12 @@ export function EmailPreview({ subject, body, brandColor, isOpen, onClose }: Ema
                                     scale: zoom,
                                     y: 0,
                                     opacity: 1,
-                                    width: isFullScreen ? "100%" : "380px",
-                                    height: isFullScreen ? "100%" : "780px"
+                                    width: isFullScreen ? "100%" : "min(380px, 90vw)",
+                                    height: isFullScreen ? "100%" : "min(780px, 80vh)"
                                 }}
                                 className={cn(
                                     "bg-[#0a0a0a] border-[#1a1a1a] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8),0_0_120px_rgba(59,130,246,0.1)] relative overflow-hidden transition-all duration-700",
-                                    skin === 'ios' ? "rounded-[3.8rem] border-[14px]" : "rounded-[2.8rem] border-[12px]",
+                                    skin === 'ios' ? "rounded-[3.8rem] border-[10px] md:border-[14px]" : "rounded-[2.8rem] border-[10px] md:border-[12px]",
                                     isFullScreen ? "max-w-5xl rounded-3xl" : "max-w-full"
                                 )}
                             >

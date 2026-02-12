@@ -38,7 +38,7 @@ const showPushNotification = async (title: string, options: any) => {
 // Notification sound
 const playNotificationSound = () => {
   try {
-    const audio = new Audio('/notification.mp3');
+    const audio = new Audio('/sounds/notification.mp3');
     audio.volume = 0.5;
     audio.play().catch(err => console.log('Could not play notification sound:', err));
   } catch (err) {
@@ -189,7 +189,7 @@ export function useRealtime(userId?: string) {
     socket.on('notification', (payload: any) => {
       console.log('New notification:', payload);
       // Invalidate notifications queries
-      queryClient.invalidateQueries({ queryKey: ['/api/user/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
 
       // Throttle sound
       const now = Date.now();

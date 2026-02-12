@@ -112,6 +112,7 @@ export const leads = pgTable("leads", {
   snippet: text("snippet"),
   channel: text("channel", { enum: ["email", "linkedin", "sms", "voice", "whatsapp", "instagram"] }).notNull(),
   email: text("email"),
+  replyEmail: text("reply_email"),
   phone: text("phone"),
   status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy"] }).notNull().default("new"),
   verified: boolean("verified").notNull().default(false),
@@ -766,6 +767,7 @@ export const scrapingSessions = pgTable("scraping_sessions", {
 
 
 
+// Duplicate outreachCampaigns definition removed
 
 export const campaignLeads = pgTable("campaign_leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -821,6 +823,20 @@ export const emailReplyStore = pgTable("email_reply_store", {
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
 });
 
+export const aiProcessLogs = pgTable("ai_process_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "import_csv", "email_verification", etc.
+  status: text("status", { enum: ["processing", "completed", "failed"] }).notNull().default("processing"),
+  totalItems: integer("total_items").notNull().default(0),
+  processedItems: integer("processed_items").notNull().default(0),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  error: text("error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+
 // Generate insert schemas from Drizzle tables
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true, updatedAt: true });
@@ -844,6 +860,7 @@ export const insertBounceTrackerSchema = createInsertSchema(bounceTracker);
 export const insertCalendarSettingsSchema = createInsertSchema(calendarSettings);
 export const insertVideoAssetSchema = createInsertSchema(videoAssets);
 export const insertAiActionLogSchema = createInsertSchema(aiActionLogs);
+export const insertAiProcessLogSchema = createInsertSchema(aiProcessLogs);
 export const insertCalendarBookingSchema = createInsertSchema(calendarBookings);
 export const insertAutomationRuleSchema = createInsertSchema(automationRules);
 export const insertContentLibrarySchema = createInsertSchema(contentLibrary);

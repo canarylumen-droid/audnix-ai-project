@@ -436,6 +436,15 @@ export class DrizzleStorage implements IStorage {
 
     if (result[0]) {
       wsSync.notifyLeadsUpdated(insertLead.userId, { event: 'INSERT', lead: result[0] });
+      
+      // Notify about new lead
+      this.createNotification({
+        userId: insertLead.userId,
+        type: 'new_lead',
+        title: '🆕 New Lead Imported',
+        message: `${result[0].name} has been added via ${result[0].channel}.`,
+        actionUrl: `/dashboard/leads/${result[0].id}`
+      });
     }
     return result[0];
   }
@@ -443,16 +452,34 @@ export class DrizzleStorage implements IStorage {
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     checkDatabase();
     if (!isValidUUID(id)) return undefined;
-    const result = await db
+    
+    // Get old lead for status change detection if status is being updated
+    let oldLead: Lead | undefined;
+    if (updates.status) {
+      oldLead = await this.getLeadById(id);
+    }
+
+    const [result] = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(leads.id, id))
       .returning();
 
-    if (result[0]) {
-      wsSync.notifyLeadsUpdated(result[0].userId, { event: 'UPDATE', lead: result[0] });
+    if (result) {
+      wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', lead: result });
+      
+      // Trigger notification on status change
+      if (oldLead && updates.status && oldLead.status !== updates.status) {
+        this.createNotification({
+          userId: result.userId,
+          type: 'lead_status_change',
+          title: '📈 Lead Status Updated',
+          message: `${result.name} moved from ${oldLead.status} to ${updates.status}.`,
+          actionUrl: `/dashboard/leads/${result.id}`
+        });
+      }
     }
-    return result[0];
+    return result;
   }
 
   async archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined> {
@@ -745,6 +772,8 @@ export class DrizzleStorage implements IStorage {
       .returning();
 
     if (result[0]) {
+      // Use both specific and generic notification events
+      wsSync.notifyNotification(data.userId, result[0]);
       wsSync.broadcastToUser(data.userId, { type: 'notification', payload: result[0] });
     }
     return result[0];

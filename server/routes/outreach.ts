@@ -438,12 +438,25 @@ router.get('/track/:trackingId', async (req, res) => {
       .returning();
 
     // 2. Update campaign_emails status for detailed campaign tracking
-    await db.update(campaignEmails)
+    const [campaignEmail] = await db.update(campaignEmails)
       .set({ 
         status: 'opened',
         metadata: sql`jsonb_set(metadata, '{openedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`
       })
-      .where(eq(campaignEmails.messageId, trackingId));
+      .where(and(eq(campaignEmails.messageId, trackingId), ne(campaignEmails.status, 'opened')))
+      .returning();
+
+    // 3. Roll up stats to campaign level
+    if (campaignEmail?.campaignId) {
+      await db.update(outreachCampaigns)
+        .set({
+          stats: sql`jsonb_set(stats, '{opened}', (COALESCE((stats->>'opened')::int, 0) + 1)::text::jsonb)`,
+          updatedAt: new Date()
+        })
+        .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
+      
+      console.log(`📊 Campaign stat updated: campaignId=${campaignEmail.campaignId}, stat=opened`);
+    }
 
     if (message) {
       console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);

@@ -9,7 +9,7 @@ import {
   campaignEmails,
   users 
 } from '../../../shared/schema.js';
-import { eq, and, or, sql, lte, desc, ne, isNull } from 'drizzle-orm';
+import { eq, and, or, sql, lte, desc, ne, isNull, lt } from 'drizzle-orm';
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
@@ -146,13 +146,13 @@ export class OutreachEngine {
             eq(campaignLeads.status, 'pending'),
             and(
               eq(campaignLeads.status, 'failed'),
-              sql`${campaignLeads.retryCount} < 3`,
+              lt(campaignLeads.retryCount, 3),
               lte(campaignLeads.nextActionAt, new Date())
             ),
             and(
               eq(campaignLeads.status, 'sent'),
               lte(campaignLeads.nextActionAt, new Date()),
-              sql`${campaignLeads.currentStep} <= ${campaign.template ? (campaign.template as any).followups?.length || 0 : 0}`
+              lte(campaignLeads.currentStep, campaign.template ? (campaign.template as any).followups?.length || 0 : 0)
             )
           )
         )
@@ -315,6 +315,18 @@ export class OutreachEngine {
         body,
         trackingId,
         metadata: { campaignId: campaign.id, step: leadEntry.currentStep }
+    });
+
+    // Detailed campaign tracking
+    await db.insert(campaignEmails).values({
+        campaignId: campaign.id,
+        leadId: lead.id,
+        userId: userId,
+        messageId: trackingId,
+        subject,
+        body,
+        stepIndex: leadEntry.currentStep,
+        status: 'sent'
     });
 
     // Update campaign lead status

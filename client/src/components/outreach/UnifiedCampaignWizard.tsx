@@ -264,7 +264,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                     <div className="space-y-6">
                        <div className="p-6 bg-card rounded-3xl border border-border/40 space-y-4">
                           <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Sequence Logic</Label>
-                          <div className="grid grid-cols-2 gap-6">
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                              <div className="space-y-3">
                                 <div className="flex justify-between text-[11px] font-bold">
                                    <span>DAILY VOLUME</span>
@@ -278,9 +278,9 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                                    <SelectTrigger className="h-10 bg-muted/30 border-0 rounded-xl focus:ring-0">
                                       <SelectValue />
                                    </SelectTrigger>
-                                   <SelectContent>
-                                      {[2, 3, 5, 7, 10].map(d => <SelectItem key={d} value={d.toString()}>{d} Days</SelectItem>)}
-                                   </SelectContent>
+                                    <SelectContent>
+                                       {[1, 2, 3, 5, 7, 10].map(d => <SelectItem key={d} value={d.toString()}>{d} {d === 1 ? 'Day' : 'Days'}</SelectItem>)}
+                                    </SelectContent>
                                 </Select>
                              </div>
                           </div>

@@ -194,7 +194,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     if (!socket) return;
     const handleNotification = (payload: any) => {
       // Invalidate both notifications and stats as they might change
-      queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
 
@@ -218,17 +218,11 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
-    queryKey: ["/api/user/notifications"],
+    queryKey: ["/api/notifications"],
     staleTime: Infinity, // Trust socket updates
   });
 
-  useEffect(() => {
-    if (notificationsData?.unreadCount && notificationsData.unreadCount > (localStorage.getItem('last_unread_count') ? parseInt(localStorage.getItem('last_unread_count')!) : 0)) {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.play().catch(e => console.log('Audio play blocked:', e));
-      localStorage.setItem('last_unread_count', notificationsData.unreadCount.toString());
-    }
-  }, [notificationsData]);
+  // Sound logic moved to useRealtime hook to avoid duplication
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
@@ -506,7 +500,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                     </div>
                   </div>
                 </ScrollArea>
-                <div className="p-8 border-t border-border/10 bg-muted/10">
+                <div className="p-8 border-t border-border/10 bg-muted/10 space-y-4">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-background border border-border/40">
                     <Avatar className="h-12 w-12 rounded-2xl">
                       <AvatarImage src={user?.avatar} />
@@ -517,6 +511,14 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{user?.plan || "Free"} plan active</p>
                     </div>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-2xl border-destructive/20 text-destructive hover:bg-destructive/10 h-12 font-bold"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>

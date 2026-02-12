@@ -299,44 +299,108 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               total: processedLeads.length,
               mapping: mappingResult.mapping,
               confidence: mappingResult.confidence,
-              leads: processedLeads.slice(0, 10), // Return sample
-              allLeads: processedLeads // Frontend might need all for "confirm" step if we don't re-upload
+              leads: processedLeads, // Return all leads
+              allLeads: processedLeads
             });
             return;
           }
 
           // 4. Save to DB (Standalone Mode)
-          const leadsToSave = processedLeads.map(leadData => ({
-            userId,
-            name: leadData.name || 'Unknown',
-            email: leadData.email || null,
-            phone: leadData.phone || null,
-            company: leadData.company || null,
-            channel: 'email' as const,
-            status: 'new' as const,
-            aiPaused,
-            metadata: {
-              ...leadData.metadata,
-              imported_via: 'csv_upload',
-              import_date: new Date().toISOString()
-            }
-          }));
-
-          // Batch insert logic
           const { db } = await import('../db.js');
-          const { leads } = await import('../../shared/schema.js');
+          const { leads, aiProcessLogs } = await import('../../shared/schema.js');
+
+          // Create process log
+          const [processLog] = await db.insert(aiProcessLogs).values({
+            userId,
+            type: 'import_csv',
+            status: 'processing',
+            totalItems: processedLeads.length,
+            processedItems: 0,
+            metadata: { 
+              fileName: file.originalname,
+              previewMode,
+              skipAI
+            }
+          }).returning();
+
+          // 5. Verify Emails if requested (or default to sample)
+          const leadsToSave = [];
           const chunkSize = 50;
-          for (let i = 0; i < leadsToSave.length; i += chunkSize) {
-            await db.insert(leads).values(leadsToSave.slice(i, i + chunkSize)).onConflictDoNothing();
+          
+          console.log(`[CSV Import] Verifying and saving ${processedLeads.length} leads...`);
+
+          for (let i = 0; i < processedLeads.length; i += chunkSize) {
+            const chunk = processedLeads.slice(i, i + chunkSize);
+            
+            // Fast verification for the chunk
+            const verifiedChunk = await Promise.all(chunk.map(async (leadData) => {
+              if (leadData.email) {
+                try {
+                  // Use verifier for basic check (fast)
+                  const vResult = await verifier.verify(leadData.email);
+                  return {
+                    ...leadData,
+                    verified: vResult.valid,
+                    metadata: {
+                      ...leadData.metadata,
+                      verification_reason: vResult.reason,
+                      risk_level: vResult.riskLevel
+                    }
+                  };
+                } catch (e) {
+                  return leadData;
+                }
+              }
+              return leadData;
+            }));
+
+            const leadsChunk = verifiedChunk.map(leadData => ({
+              userId,
+              name: leadData.name || 'Unknown',
+              email: leadData.email || null,
+              replyEmail: leadData.replyEmail || leadData.email || null, // Standardize reply email
+              phone: leadData.phone || null,
+              company: leadData.company || null,
+              channel: 'email' as const,
+              status: 'new' as const,
+              aiPaused,
+              verified: (leadData as any).verified || false,
+              metadata: {
+                ...(leadData.metadata as any),
+                imported_via: 'csv_upload',
+                import_date: new Date().toISOString()
+              }
+            }));
+
+            await db.insert(leads).values(leadsChunk as any).onConflictDoNothing();
+            leadsToSave.push(...leadsChunk);
+
+            // Update process log
+            await db.update(aiProcessLogs)
+              .set({ 
+                processedItems: Math.min(i + chunkSize, processedLeads.length),
+                updatedAt: new Date()
+              })
+              .where(eq(aiProcessLogs.id, processLog.id));
           }
+
+          // Mark process as completed
+          await db.update(aiProcessLogs)
+            .set({ 
+              status: 'completed',
+              updatedAt: new Date()
+            })
+            .where(eq(aiProcessLogs.id, processLog.id));
 
           res.json({
             success: true,
             leadsImported: leadsToSave.length,
-            leads: leadsToSave.slice(0, 10) // Return sample in response
+            leads: leadsToSave, // Return all leads in response
+            processId: processLog.id
           });
 
           console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${leadsToSave.length} leads (Standalone Mode)`);
+
 
         } catch (error: any) {
            console.error("CSV Processing Error:", error);
