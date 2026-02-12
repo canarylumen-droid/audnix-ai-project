@@ -147,10 +147,8 @@ export async function registerRoutes(app: Express): Promise<http.Server> {
   // Initialize WebSocket server for real-time sync
   wsSync.initialize(server);
 
-  // Initialize Campaign Worker
-  import('../lib/outreach/campaign-worker.js').then(({ campaignWorker }) => {
-    campaignWorker.start();
-  });
+  // Outreach engine is initialized in server/index.ts
+
 
   return server;
 }

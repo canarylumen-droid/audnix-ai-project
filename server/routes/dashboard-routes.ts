@@ -189,7 +189,7 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response): 
 
 /**
  * GET /api/dashboard/activity
- * Get recent activity feed for dashboard
+ * Get recent activity feed for dashboard (Audit Trail)
  */
 router.get('/activity', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
@@ -199,21 +199,18 @@ router.get('/activity', requireAuth, async (req: Request, res: Response): Promis
       return;
     }
 
-    const leads: Lead[] = await storage.getLeads({ userId, limit: 100 });
-    const activities = leads
-      .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
-      .slice(0, 10)
-      .map(lead => ({
-        id: lead.id,
-        type: lead.status === 'converted' ? 'lead_converted' : 'lead_updated',
-        title: lead.status === 'converted' ? `${lead.name} converted` : `${lead.name} updated`,
-        message: lead.status === 'converted' ? `Lead converted via ${lead.channel}` : `Lead updated via ${lead.channel}`,
-        description: `Source: ${lead.channel}`,
-        time: lead.updatedAt || lead.createdAt,
-        timestamp: lead.updatedAt || lead.createdAt,
-        channel: lead.channel,
-        leadId: lead.id,
-      }));
+    const auditLogs = await storage.getAuditLogs(userId);
+    const activities = auditLogs.map(log => ({
+      id: log.id,
+      type: log.action,
+      title: log.action.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      message: log.details?.message || log.action.replace(/_/g, ' '),
+      description: log.details?.description || '',
+      time: log.createdAt,
+      timestamp: log.createdAt,
+      leadId: log.leadId,
+      metadata: log.details
+    }));
 
     res.json({ activities });
   } catch (error) {

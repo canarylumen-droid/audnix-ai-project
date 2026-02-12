@@ -265,9 +265,9 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             return;
           }
 
-          // 1. Map Columns using AI
+          // 1. Map Columns (AI or Fallback)
           const headers = Object.keys(results[0]);
-          const mappingResult = await mapCSVColumnsToSchema(headers, results.slice(0, 3));
+          const mappingResult = await mapCSVColumnsToSchema(headers, results.slice(0, 3), aiPaused);
           const mapping = mappingResult.mapping;
 
           // 2. Extract Leads
@@ -300,36 +300,35 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             return;
           }
 
-          // 4. Save to DB (if not preview, though usually frontend calls import-bulk after preview)
-          // But if called directly without preview:
-          const savedLeads = [];
-          for (const leadData of processedLeads) {
-             if (!leadData) continue;
-             // Basic de-dupe check done in bulk-import usually, but simple one here:
-             // actually, let's just use the bulk-import logic if possible, but for now duplicate the create logic
-             // to ensure this route works standalone.
-             const lead = await storage.createLead({
-                userId,
-                name: leadData.name || 'Unknown',
-                email: leadData.email,
-                phone: leadData.phone,
-                company: leadData.company,
-                channel: 'email',
-                status: 'new',
-                aiPaused,
-                metadata: {
-                  ...leadData.metadata,
-                  imported_via: 'csv_upload',
-                  import_date: new Date().toISOString()
-                }
-             });
-             savedLeads.push(lead);
+          // 4. Save to DB (Standalone Mode)
+          const leadsToSave = processedLeads.map(leadData => ({
+            userId,
+            name: leadData.name || 'Unknown',
+            email: leadData.email || null,
+            phone: leadData.phone || null,
+            company: leadData.company || null,
+            channel: 'email' as const,
+            status: 'new' as const,
+            aiPaused,
+            metadata: {
+              ...leadData.metadata,
+              imported_via: 'csv_upload',
+              import_date: new Date().toISOString()
+            }
+          }));
+
+          // Batch insert logic
+          const { db } = await import('../db.js');
+          const { leads } = await import('../../shared/schema.js');
+          const chunkSize = 50;
+          for (let i = 0; i < leadsToSave.length; i += chunkSize) {
+            await db.insert(leads).values(leadsToSave.slice(i, i + chunkSize)).onConflictDoNothing();
           }
 
           res.json({
             success: true,
-            leadsImported: savedLeads.length,
-            leads: savedLeads
+            leadsImported: leadsToSave.length,
+            leads: leadsToSave.slice(0, 10) // Return sample in response
           });
 
           console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${savedLeads.length} leads (Standalone Mode)`);
@@ -682,23 +681,24 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
       errors: [] as string[]
     };
 
-    const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
+    const leadsToImportCount = Math.min(leadsData.length, maxLeads - currentLeadCount);
     const importedIdentifiers = new Set<string>();
+    
+    // Efficiency: Use a Map for O(1) email lookups
+    const existingEmailMap = new Map(existingLeads.map(l => [l.email?.toLowerCase(), l]));
+    
+    const newLeadsToInsert: any[] = [];
+    const updatesDone: string[] = [];
 
-    for (let i = 0; i < leadsToImport; i++) {
+    for (let i = 0; i < leadsToImportCount; i++) {
       const leadData = leadsData[i];
-
       try {
-        const email = leadData.email;
+        const email = leadData.email?.toLowerCase();
         const name = leadData.name;
-
-        // Fix: identifier needed for deduplication
         const identifier = email || name || 'unknown';
 
-        // Check if lead data is valid
         if (!email && !name) {
           results.errors.push(`Row ${i + 1}: Missing name and email`);
-          results.leadsFiltered++;
           continue;
         }
 
@@ -706,17 +706,15 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
           results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
           continue;
         }
+        importedIdentifiers.add(identifier.toLowerCase());
 
-        const existingLead = existingLeads.find(l =>
-          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase())
-        );
+        const existingLead = email ? existingEmailMap.get(email) : null;
 
         if (existingLead) {
-          // Improve Deduplication: Merge strategy (fill missing fields only)
+          // Merge strategy
           const updates: Record<string, any> = {};
-          if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-
+          
           const existingMeta = existingLead.metadata as Record<string, any> || {};
           if (!existingMeta.company && leadData.company) {
             updates.metadata = { ...existingMeta, company: leadData.company };
@@ -726,79 +724,62 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
             await storage.updateLead(existingLead.id, updates);
             results.leadsUpdated++;
           }
-          // Don't count as imported (new lead), but don't error.
           continue;
         }
 
-        // --- NEW: NEURAL FILTER (Real-time DNS Check) ---
+        // --- ENHANCEMENT: 100% Lead Capture (Neural Filter to Metadata Only) ---
+        // Instead of dropping leads, we just tag them so the user knows
+        let deliverability = 'unverified';
         if (leadData.email) {
           const domain = leadData.email.split('@')[1];
           if (domain) {
-            const dnsCheck = await verifyDomainDns(domain);
-            // If domain is 'poor' or has no MX records, filter it out
-            if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
-              results.leadsFiltered++;
-              console.log(`[IMPORT] Skipping lead ${leadData.email}: Poor domain quality/No MX record`);
-              results.errors.push(`Row ${i + 1} (${leadData.email}): Undeliverable domain (Neural Filter)`);
-              continue;
-            }
-          }
-
-          // Also use our existing verifier for deep-level mailbox checks
-          const verification = await verifier.verify(leadData.email);
-          if (!verification.valid) {
-            results.leadsFiltered++;
-            console.log(`[IMPORT] Skipping lead ${leadData.email}: ${verification.reason || 'Invalid email'}`);
-            results.errors.push(`Row ${i + 1} (${leadData.email}): ${verification.reason || 'Invalid email format'} (Verification Filter)`);
-            continue;
+            try {
+              const dnsCheck = await verifyDomainDns(domain).catch(() => null);
+              if (dnsCheck && (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found)) {
+                deliverability = 'risky';
+              }
+            } catch (e) {}
           }
         }
 
-        await storage.createLead({
+        newLeadsToInsert.push({
           userId,
           name: leadData.name || identifier.split('@')[0] || 'Unknown',
           email: leadData.email || null,
           phone: leadData.phone || null,
           channel: channel as 'email' | 'instagram',
-          status: 'new', // Leads are "good" now if they pass here
+          status: 'new',
           aiPaused: aiPaused,
           metadata: {
+            ...leadData, // Preserve all original fields
             imported_from_csv: true,
-            company: leadData.company,
             import_date: new Date().toISOString(),
-            deliverability: 'verified'
+            deliverability
           }
         });
-
-        importedIdentifiers.add(identifier.toLowerCase());
+        
         results.leadsImported++;
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(`Row ${i + 1}: ${errorMessage}`);
+      } catch (error: any) {
+        results.errors.push(`Row ${i + 1}: ${error.message}`);
       }
     }
 
-    // UPDATE: Persist filtered count in user profile for long-term tracking
-    if (results.leadsFiltered > 0) {
-      const dbUser = await storage.getUserById(userId);
-      if (dbUser) {
-        await storage.updateUser(userId, {
-          filteredLeadsCount: (dbUser.filteredLeadsCount || 0) + results.leadsFiltered
-        });
-      }
-    }
-
-    if (leadsData.length > leadsToImport) {
-      results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
+    // --- BATCH INSERTION (PHASE 2 REQUIREMENT) ---
+    // Chunked insert to handle 5k+ leads efficiently
+    const chunkSize = 50; // Drizzle/Postgres param limit is 65535, so 50-100 is safe and fast
+    for (let i = 0; i < newLeadsToInsert.length; i += chunkSize) {
+      const chunk = newLeadsToInsert.slice(i, i + chunkSize);
+      const { db } = await import('../db.js');
+      const { leads } = await import('../../shared/schema.js');
+      await db.insert(leads).values(chunk).onConflictDoNothing();
     }
 
     res.json({
       success: results.leadsImported > 0 || results.leadsUpdated > 0,
       leadsImported: results.leadsImported,
       leadsUpdated: results.leadsUpdated,
-      leadsFiltered: results.leadsFiltered,
-      errors: results.errors,
-      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing. Filtered ${results.leadsFiltered} low-quality.`
+      errors: results.errors.slice(0, 100), // Don't overwhelm response
+      message: `Successfully processed ${results.leadsImported} new leads and ${results.leadsUpdated} updates. 100% capture enabled.`
     });
 
   } catch (error: unknown) {
@@ -1126,274 +1107,6 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to update brand info";
     console.error("Brand info update error:", error);
-    res.status(500).json({ error: errorMessage });
-  }
-});
-
-/**
- * Import leads from CSV file upload
- * POST /api/leads/import-csv
- */
-router.post("/import-csv", requireAuth, upload.single("csv"), async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getCurrentUserId(req)!;
-
-    if (!req.file) {
-      res.status(400).json({ error: "No CSV file provided" });
-      return;
-    }
-
-    const user = await storage.getUserById(userId);
-    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-    const currentLeadCount = existingLeads.length;
-
-    const planLimits: Record<string, number> = {
-      'free': 500,
-      'trial': 500,
-      'starter': 2500,
-      'pro': 7000,
-      'enterprise': 20000
-    };
-    const maxLeads = planLimits[user?.subscriptionTier || user?.plan || 'trial'] || 500;
-
-    if (currentLeadCount >= maxLeads) {
-      res.status(400).json({
-        error: `You've reached your plan's limit of ${maxLeads} leads. Delete some leads or upgrade your plan to add more.`,
-        limitReached: true
-      });
-      return;
-    }
-
-    const previewMode = req.query.preview === 'true';
-
-    const results = {
-      leadsImported: 0,
-      leadsFound: 0,
-      errors: [] as string[],
-      leads: [] as any[]
-    };
-
-    const leadsData: Array<Record<string, string>> = [];
-
-    await new Promise<void>((resolve, reject) => {
-      const stream = Readable.from(req.file!.buffer);
-      stream
-        .pipe(csvParser())
-        .on('data', (row: Record<string, string>) => {
-          // Log first row to verify headers
-          if (leadsData.length === 0) console.log("First row:", JSON.stringify(row));
-          leadsData.push(row);
-        })
-        .on('end', () => {
-          console.log(`✅ CSV Parsing complete. Found ${leadsData.length} rows.`);
-          resolve();
-        })
-        .on('error', (err) => {
-          console.error(`❌ CSV Parsing error:`, err);
-          reject(err);
-        });
-
-      // Log buffer info
-      console.log("Input buffer size:", req.file!.buffer.length);
-    });
-
-    if (leadsData.length === 0) {
-      console.warn("⚠️ CSV file parsed but yielded 0 rows. Content length:", req.file!.buffer.length);
-      res.status(400).json({
-        error: "No lead data provided or CSV format not recognized",
-        details: "Ensure your CSV has headers and at least one row of data."
-      });
-      return;
-    }
-
-    // Get headers from first row and use AI to map columns
-    const headers = Object.keys(leadsData[0]);
-    console.log(`📊 CSV headers detected: ${headers.join(', ')}`);
-
-    let mapping: LeadColumnMapping;
-    try {
-      const mappingResult = await mapCSVColumnsToSchema(headers, leadsData.slice(0, 3));
-      mapping = mappingResult.mapping;
-      console.log(`🤖 AI column mapping: ${JSON.stringify(mapping)} (confidence: ${mappingResult.confidence})`);
-
-      if (!mapping.email && !mapping.phone) {
-        res.status(400).json({
-          error: "Could not identify email or phone columns in your CSV",
-          headers: headers,
-          suggestion: "Please ensure your CSV has columns for email or phone"
-        });
-        return;
-      }
-    } catch (mappingError) {
-      console.error("Column mapping failed:", mappingError);
-      res.status(400).json({ error: "Failed to analyze CSV columns" });
-      return;
-    }
-
-    const leadsToImport = Math.min(leadsData.length, maxLeads - currentLeadCount);
-    const importedIdentifiers = new Set<string>();
-    const existingEmails = new Set(existingLeads.map(l => l.email?.toLowerCase()).filter(Boolean));
-    const existingPhones = new Set(existingLeads.map(l => l.phone).filter(Boolean));
-
-    for (let i = 0; i < leadsToImport; i++) {
-      const row = leadsData[i];
-
-      try {
-        // Use AI-mapped columns
-        const extracted = extractLeadFromRow(row, mapping);
-        let { name, email, phone, company } = extracted;
-
-        // Better name extraction
-        if (!name || name.toLowerCase() === 'unknown' || name === 'Unknown Lead') {
-          if (email) {
-            const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
-            name = namePart.split(' ')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-          } else if (phone) {
-            name = `Lead ${phone.slice(-4)}`;
-          } else {
-            name = 'Unknown Lead';
-          }
-        }
-
-        // Strict validation: name and email are MUST
-        if (!name || !email || name === 'Unknown' || name === 'Unknown Lead') {
-          results.errors.push(`Row ${i + 1}: Missing required name or email`);
-          continue;
-        }
-
-        const identifier = email;
-
-        if (importedIdentifiers.has(identifier.toLowerCase()) ||
-          (email && existingEmails.has(email.toLowerCase())) ||
-          (phone && existingPhones.has(phone))) {
-          if (!previewMode) {
-            results.errors.push(`Row ${i + 1}: Duplicate lead ${identifier}`);
-            continue;
-          }
-        }
-
-        // Skip heavy verification in preview to keep it fast
-        // But allow client to see mapped data
-        const leadObject = {
-          name,
-          email,
-          phone,
-          company,
-          status: 'new',
-          metadata: {
-            ...extractExtraFieldsAsMetadata(row, mapping),
-            import_source: 'csv_preview'
-          }
-        };
-
-        if (previewMode) {
-          results.leads.push(leadObject);
-          results.leadsFound++;
-          continue;
-        }
-
-        // ... (Real Import Logic) ...
-
-        // Deliverability Check with Neural Recovery
-        let status = 'new';
-        let verified = false;
-        let recoveryTarget = email;
-        let isRecovered = false;
-
-        if (email) {
-          let verification = await verifier.verify(email);
-          if (verification.valid) {
-            verified = true;
-            status = 'hardened';
-          } else {
-            // Neural Discovery Path
-            try {
-              const recoveryModel = genAI.getGenerativeModel({ model: GEMINI_LATEST_MODEL });
-              const recoveryPrompt = `BUSINESS: ${company || name}\nEMAIL: ${email}\nDeliverability failed. Is there a more likely valid business email or domain for this business? Return ONLY the corrected email string or "NONE".`;
-              const recoveryResult = await recoveryModel.generateContent(recoveryPrompt);
-              const correctedEmail = recoveryResult.response.text().trim();
-
-              if (correctedEmail !== 'NONE' && correctedEmail !== email && correctedEmail.includes('@')) {
-                const secondaryVerification = await verifier.verify(correctedEmail);
-                if (secondaryVerification.valid) {
-                  recoveryTarget = correctedEmail;
-                  verified = true;
-                  isRecovered = true;
-                  status = 'recovered';
-                }
-              }
-            } catch (e) { }
-
-            if (!verified) {
-              status = 'bouncy';
-            }
-          }
-        }
-
-        const extraFields = extractExtraFieldsAsMetadata(row, mapping);
-
-        await storage.createLead({
-          userId,
-          name: name,
-          email: recoveryTarget || undefined,
-          phone: phone || undefined,
-          channel: 'email',
-          status: status as any,
-          verified: verified,
-          verifiedAt: verified ? new Date() : null,
-          metadata: {
-            imported_from_csv: true,
-            company: company,
-            import_date: new Date().toISOString(),
-            deliverability: verified ? 'safe' : 'bouncy',
-            is_recovered: isRecovered,
-            ai_column_mapping: mapping,
-            ...extraFields
-          }
-        });
-
-        importedIdentifiers.add(identifier.toLowerCase());
-        results.leadsImported++;
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(`Row ${i + 1}: ${errorMessage}`);
-      }
-    }
-
-    if (leadsData.length > leadsToImport) {
-      results.errors.push(`${leadsData.length - leadsToImport} leads not imported due to plan limit`);
-    }
-
-    if (previewMode) {
-      res.json({
-        preview: true,
-        leads: results.leads,
-        total: results.leadsFound,
-        mapping: mapping,
-        message: `Preview generated for ${results.leadsFound} leads`
-      });
-      return;
-    }
-
-    res.json({
-      success: results.leadsImported > 0,
-      leadsImported: results.leadsImported,
-      errors: results.errors,
-      message: `Imported ${results.leadsImported} leads successfully`
-    });
-
-    // Start outreach boom if leads were imported
-    if (results.leadsImported > 0) {
-      const { triggerAutoOutreach } = await import('../lib/sales-engine/outreach-engine.js');
-      triggerAutoOutreach(userId).catch(e => console.error('Auto outreach failed:', e));
-    }
-
-
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
-    console.error("CSV file import error:", error);
     res.status(500).json({ error: errorMessage });
   }
 });

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { recordEmailEvent, getEmailStats } from '../lib/email/email-tracking.js';
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { isValidUUID } from '../lib/utils/validation.js';
 import { requireAuth, getCurrentUserId } from '../middleware/auth.js';
 
 const router = Router();
@@ -115,6 +116,11 @@ router.get('/tracking/:leadId', requireAuth, async (req: Request, res: Response)
   try {
     const userId = getCurrentUserId(req)!;
     const { leadId } = req.params;
+
+    if (!isValidUUID(leadId)) {
+      res.status(400).json({ error: 'Invalid lead ID format' });
+      return;
+    }
 
     const result = await db.execute(sql`
       SELECT 

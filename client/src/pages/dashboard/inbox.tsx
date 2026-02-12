@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
-import ManualOutreachModal from "@/components/outreach/ManualOutreachModal";
+import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
 import {
   Search,
   Trash2,
@@ -248,14 +248,27 @@ export default function InboxPage() {
   const handleMenuAction = useCallback(async (action: string, data: any) => {
     if (action === 'archive') {
       try {
-        await apiRequest("POST", "/api/bulk/update-status", {
+        await apiRequest("POST", "/api/bulk/archive", {
           leadIds: [data.id],
-          status: 'cold'
+          archived: true
         });
-        toast({ title: "Thread Archived", description: "Lead has been moved to cold" });
+        toast({ title: "Lead Archived", description: "Successfully moved to archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
-        toast({ title: "Error", description: "Failed to archive thread", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
+      }
+    } else if (action === 'delete') {
+      if (confirm(`Are you sure you want to delete ${data.name}? This action cannot be undone.`)) {
+        try {
+          await apiRequest("POST", "/api/bulk/delete", {
+            leadIds: [data.id]
+          });
+          toast({ title: "Lead Deleted", description: "Lead has been permanently removed" });
+          if (leadId === data.id) setLocation('/dashboard/inbox');
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        } catch (err) {
+          toast({ title: "Error", description: "Failed to delete lead", variant: "destructive" });
+        }
       }
     } else if (action === 'mark_unread') {
       try {
@@ -269,7 +282,37 @@ export default function InboxPage() {
         toast({ title: "Error", description: "Failed to mark as unread", variant: "destructive" });
       }
     }
-  }, [toast, queryClient]);
+  }, [toast, queryClient, leadId, setLocation]);
+
+  const handleBulkAction = async (action: 'archive' | 'delete') => {
+    if (selectedLeadIds.length === 0) return;
+
+    if (action === 'delete' && !confirm(`Delete ${selectedLeadIds.length} selected leads?`)) return;
+
+    try {
+      const endpoint = action === 'delete' ? '/api/bulk/delete' : '/api/bulk/archive';
+      const body = action === 'delete' ? { leadIds: selectedLeadIds } : { leadIds: selectedLeadIds, archived: true };
+      
+      await apiRequest("POST", endpoint, body);
+      
+      toast({ 
+        title: `Bulk ${action === 'delete' ? 'Delete' : 'Archive'}`, 
+        description: `Successfully processed ${selectedLeadIds.length} leads` 
+      });
+      
+      setSelectedLeadIds([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    } catch (err) {
+      toast({ title: "Error", description: "Bulk action failed", variant: "destructive" });
+    }
+  };
+
+  const toggleLeadSelection = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedLeadIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
   const bookCallMutation = useMutation({
     mutationFn: async () => {
@@ -352,6 +395,31 @@ export default function InboxPage() {
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'email' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Email</Button>
             </div>
 
+            {/* Bulk Action Bar */}
+            <AnimatePresence>
+              {selectedLeadIds.length > 0 && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="flex items-center justify-between pb-2"
+                >
+                  <span className="text-xs font-bold text-primary">{selectedLeadIds.length} Selected</span>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleBulkAction('archive')} title="Archive Selected">
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleBulkAction('delete')} title="Delete Selected">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSelectedLeadIds([])}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Active Status Display */}
             {filterStatus !== 'all' && (
               <div className="flex items-center gap-2 px-1">
@@ -385,19 +453,40 @@ export default function InboxPage() {
                   <div
                     key={lead.id}
                     onClick={() => {
-                      setLocation(`/dashboard/inbox/${lead.id}`);
-                      setShowDetails(true);
+                      if (selectedLeadIds.length > 0) {
+                        toggleLeadSelection(lead.id);
+                      } else {
+                        setLocation(`/dashboard/inbox/${lead.id}`);
+                        setShowDetails(true);
+                      }
                     }}
                     onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
                     className={cn(
                       "p-4 cursor-pointer hover:bg-primary/5 transition-all border-b border-border/5 group relative",
                       leadId === lead.id ? "bg-primary/10" : "hover:pl-5",
-                      lead.metadata?.isUnread && "bg-primary/5"
+                      lead.metadata?.isUnread && "bg-primary/5",
+                      selectedLeadIds.includes(lead.id) && "bg-primary/20"
                     )}
                   >
+                    {/* Checkbox for selection */}
+                    <div 
+                      className={cn(
+                        "absolute left-2 top-1/2 -translate-y-1/2 z-10 transition-all",
+                        selectedLeadIds.includes(lead.id) || "opacity-0 group-hover:opacity-100"
+                      )}
+                      onClick={(e) => toggleLeadSelection(lead.id, e)}
+                    >
+                      <div className={cn(
+                        "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                        selectedLeadIds.includes(lead.id) ? "bg-primary border-primary" : "bg-background border-border"
+                      )}>
+                        {selectedLeadIds.includes(lead.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                    </div>
+
                     {leadId === lead.id && <motion.div layoutId="activeLead" className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
-                    <div className="flex gap-3 items-center">
-                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105">
+                    <div className={cn("flex gap-3 items-center transition-all", (selectedLeadIds.length > 0 || selectedLeadIds.includes(lead.id)) && "pl-8")}>
+                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0">
                         <AvatarFallback className={cn(
                           "font-bold text-sm",
                           lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -420,7 +509,12 @@ export default function InboxPage() {
                           } as any)}>
                             {lead.status === 'hardened' ? 'Verified' : lead.status}
                           </Badge>
-                          {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                          {lead.metadata?.isUnread && (
+                            (() => {
+                              const isOld = new Date().getTime() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000;
+                              return !isOld ? <span className="h-2 w-2 rounded-full bg-primary animate-pulse" /> : null;
+                            })()
+                          )}
                         </div>
                       </div>
                     </div>
@@ -804,11 +898,13 @@ export default function InboxPage() {
         onClose={closeMenu}
         onAction={handleMenuAction}
       />
-      <ManualOutreachModal
+      <UnifiedCampaignWizard
         isOpen={isCampaignModalOpen}
         onClose={() => setIsCampaignModalOpen(false)}
-        selectedLeadIds={selectedLeadIds}
-        totalLeads={filteredLeads.length}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        }}
+        initialLeads={selectedLeadIds.length > 0 ? selectedLeadIds : []}
       />
     </div >
   );

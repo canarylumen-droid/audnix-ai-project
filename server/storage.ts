@@ -37,7 +37,14 @@ export interface IStorage {
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
+  archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
+  deleteLead(id: string, userId: string): Promise<void>;
+  archiveMultipleLeads(ids: string[], userId: string, archived: boolean): Promise<void>;
+  deleteMultipleLeads(ids: string[], userId: string): Promise<void>;
   getTotalLeadsCount(): Promise<number>;
+  getEmailMessages(userId: string): Promise<EmailMessage[]>;
+  createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
+  getAuditLogs(userId: string): Promise<AuditTrail[]>;
 
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
@@ -46,6 +53,7 @@ export interface IStorage {
   createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
   updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
+  getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
 
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
@@ -1031,6 +1039,10 @@ export class MemStorage implements IStorage {
 
   async getEmailMessages(userId: string): Promise<EmailMessage[]> {
     return [];
+  }
+
+  async getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined> {
+    return undefined;
   }
 }
 

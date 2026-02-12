@@ -268,7 +268,7 @@ export default function LeadImportPage() {
       setImportResults({
         imported: result.leadsImported,
         skipped: result.leadsFiltered || 0,
-        leads: importResults.leads // Keep them visible
+        leads: result.leads || [] // Use the leads returned from API which have IDs
       });
 
       toast({

@@ -103,10 +103,11 @@ class ImapIdleManager {
                             const lowerKey = key.toLowerCase();
                             const standardInboxes = ['inbox'];
                             const standardSents = [
-                                'sent', 'sent items', 'sent messages',
                                 'sent-mail', 'sent mail', 'sent items',
                                 'gesendet', 'enviados', 'envoyés', 'outbox',
-                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail'
+                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail',
+                                'verzonden', 'posta inviata', 'skickat', 'elementos enviados',
+                                'sent messages', 'sent mails'
                             ];
 
                             if (standardInboxes.includes(lowerKey)) {
@@ -360,7 +361,9 @@ class ImapIdleManager {
                                     date: parsed.date,
                                     html: parsed.html,
                                     flags,
-                                    uid: seqno // Fallback UID
+                                    uid: seqno, // Fallback UID
+                                    messageId: parsed.messageId,
+                                    inReplyTo: parsed.inReplyTo
                                 });
                             }
                             bodyParsed = true;
@@ -384,7 +387,9 @@ class ImapIdleManager {
                             text: e.text,
                             date: e.date,
                             html: e.html,
-                            isRead: e.flags?.includes('\\Seen') || false
+                            isRead: e.flags?.includes('\\Seen') || false,
+                            messageId: e.messageId,
+                            inReplyTo: e.inReplyTo
                         })), undefined, direction);
 
                         if (results.imported > 0 || results.skipped < emails.length) {

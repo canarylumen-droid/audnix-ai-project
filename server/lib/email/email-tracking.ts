@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { db } from '../../db.js';
 import { sql } from 'drizzle-orm';
+import { isValidUUID } from '../utils/validation.js';
 
 export interface EmailTrackingData {
   messageId: string;
@@ -47,13 +48,15 @@ export async function createTrackedEmail(data: EmailTrackingData): Promise<{ tok
   const baseUrl = process.env.BASE_URL || 'https://audnixai.com';
   
   try {
+    const validLeadId = isValidUUID(data.leadId) ? data.leadId : null;
+
     await db.execute(sql`
       INSERT INTO email_tracking (
         id, user_id, lead_id, recipient_email, subject, token, sent_at, created_at
       ) VALUES (
         gen_random_uuid(),
         ${data.userId},
-        ${data.leadId || null},
+        ${validLeadId},
         ${data.recipientEmail},
         ${data.subject},
         ${token},

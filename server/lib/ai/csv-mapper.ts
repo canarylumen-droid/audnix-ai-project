@@ -50,9 +50,14 @@ const openai = process.env.OPENAI_API_KEY
  */
 export async function mapCSVColumnsToSchema(
     headers: string[],
-    sampleRows: Record<string, string>[] = []
+    sampleRows: Record<string, string>[] = [],
+    skipAI: boolean = false
 ): Promise<MappingResult> {
     const targetFields = Object.keys(LEADS_SCHEMA);
+
+    if (skipAI) {
+        return fallbackMapping(headers);
+    }
 
     // Build sample data context
     const sampleContext = sampleRows.slice(0, 3).map(row =>

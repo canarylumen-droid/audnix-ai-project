@@ -191,4 +191,26 @@ router.post('/worker/process', async (req: Request, res: Response) => {
   }
 });
 
+
+/**
+ * GET /api/worker/outreach/tick
+ * Manual trigger for the outreach engine (for serverless cron)
+ */
+router.get('/outreach/tick', async (req: Request, res: Response) => {
+  const secretToken = req.headers['x-worker-secret'];
+  const expectedToken = process.env.WORKER_SECRET || 'audnix-internal-token-42';
+
+  if (secretToken !== expectedToken && process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  try {
+    const { outreachEngine } = await import('../lib/workers/outreach-engine.js');
+    const result = await outreachEngine.tick();
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

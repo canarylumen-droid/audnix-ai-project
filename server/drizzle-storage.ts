@@ -3,6 +3,7 @@ import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integr
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
+import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
 import { wsSync } from './lib/websocket-sync.js';
@@ -26,17 +27,30 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmailMessages(userId: string): Promise<EmailMessage[]> {
+    checkDatabase();
     return await db.select().from(emailMessages).where(eq(emailMessages.userId, userId));
+  }
+
+  async getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(emailMessages)
+      .where(eq(emailMessages.messageId, messageId))
+      .limit(1);
+    return result;
   }
 
   async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const [result] = await db.select().from(followUpQueue).where(eq(followUpQueue.id, id)).limit(1);
     return result;
   }
 
   async updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const [result] = await db
       .update(followUpQueue)
       .set({ ...updates, updatedAt: new Date() })
@@ -56,6 +70,7 @@ export class DrizzleStorage implements IStorage {
   }
   async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(leadId)) return undefined;
     const [result] = await db
       .select()
       .from(followUpQueue)
@@ -66,6 +81,7 @@ export class DrizzleStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
@@ -171,6 +187,7 @@ export class DrizzleStorage implements IStorage {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
 
     // If metadata is being updated, merge it with existing metadata instead of overwriting
     if (updates.metadata) {
@@ -307,6 +324,7 @@ export class DrizzleStorage implements IStorage {
     search?: string;
     limit?: number;
     offset?: number;
+    includeArchived?: boolean;
   }): Promise<Lead[]> {
     checkDatabase();
     // Ensure userId is a string, not an object
@@ -315,47 +333,41 @@ export class DrizzleStorage implements IStorage {
       throw new Error(`Invalid user ID: ${String(options.userId)}`);
     }
 
-    let query = db.select().from(leads).where(eq(leads.userId, userId));
+    let conditions = [eq(leads.userId, userId)];
+
+    if (!options.includeArchived) {
+      conditions.push(eq(leads.archived, false));
+    }
 
     // Improved Status Filtering logic
     if (options.status === 'warm') {
       // Warm = replied status or engagement score >= 50
-      query = db.select().from(leads).where(
-        and(
-          eq(leads.userId, userId),
-          or(eq(leads.status, 'replied'), gte(leads.score, 50))
-        )
-      );
+      conditions.push(or(eq(leads.status, 'replied'), gte(leads.score, 50)) as any);
     } else if (options.status === 'cold') {
       // Cold = status is cold
-      query = db.select().from(leads).where(
-        and(
-          eq(leads.userId, userId),
-          eq(leads.status, 'cold')
-        )
-      );
+      conditions.push(eq(leads.status, 'cold'));
     } else if (options.status && options.status !== 'all') {
-      query = query.where(eq(leads.status, options.status as any));
+      conditions.push(eq(leads.status, options.status as any));
     }
 
     if (options.channel) {
-      query = query.where(eq(leads.channel, options.channel as any));
+      conditions.push(eq(leads.channel, options.channel as any));
     }
 
     if (options.search) {
       const searchPattern = `%${options.search}%`;
-      query = query.where(
+      conditions.push(
         or(
           like(leads.name, searchPattern),
           like(leads.email, searchPattern),
           like(leads.phone, searchPattern),
           like(leads.company, searchPattern),
           like(leads.role, searchPattern)
-        )
+        ) as any
       );
     }
 
-    query = query.orderBy(desc(leads.createdAt));
+    let query = db.select().from(leads).where(and(...conditions)).orderBy(desc(leads.createdAt));
 
     if (options.limit) {
       query = query.limit(options.limit);
@@ -372,8 +384,8 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     // Ensure id is a string, not an object
     const leadId = typeof id === 'string' ? id : String(id);
-    if (!leadId || leadId === '[object Object]') {
-      throw new Error(`Invalid lead ID: ${String(id)}`);
+    if (!isValidUUID(leadId) || leadId === '[object Object]') {
+      return undefined;
     }
     const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
     return result[0];
@@ -420,6 +432,7 @@ export class DrizzleStorage implements IStorage {
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const result = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
@@ -430,6 +443,54 @@ export class DrizzleStorage implements IStorage {
       wsSync.notifyLeadsUpdated(result[0].userId, { event: 'UPDATE', lead: result[0] });
     }
     return result[0];
+  }
+
+  async archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .update(leads)
+      .set({ archived, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .returning();
+    
+    if (result) {
+      wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', lead: result });
+    }
+    return result;
+  }
+
+  async deleteLead(id: string, userId: string): Promise<void> {
+    checkDatabase();
+    const [lead] = await db.select().from(leads).where(and(eq(leads.id, id), eq(leads.userId, userId))).limit(1);
+    if (lead) {
+      await db.delete(leads).where(and(eq(leads.id, id), eq(leads.userId, userId)));
+      wsSync.notifyLeadsUpdated(userId, { event: 'DELETE', leadId: id });
+    }
+  }
+
+  async archiveMultipleLeads(ids: string[], userId: string, archived: boolean): Promise<void> {
+    checkDatabase();
+    await db.update(leads)
+      .set({ archived, updatedAt: new Date() })
+      .where(and(eq(leads.userId, userId), sql`${leads.id} IN ${ids}`));
+    
+    wsSync.notifyLeadsUpdated(userId, { event: 'BULK_UPDATE', leadIds: ids, updates: { archived } });
+  }
+
+  async deleteMultipleLeads(ids: string[], userId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(leads).where(and(eq(leads.userId, userId), sql`${leads.id} IN ${ids}`));
+    wsSync.notifyLeadsUpdated(userId, { event: 'BULK_DELETE', leadIds: ids });
+  }
+
+  async getAuditLogs(userId: string): Promise<AuditTrail[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(auditTrail)
+      .where(eq(auditTrail.userId, userId))
+      .orderBy(desc(auditTrail.createdAt))
+      .limit(50);
   }
 
   async getTotalLeadsCount(): Promise<number> {

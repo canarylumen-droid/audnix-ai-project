@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { leads as leadsTable } from '../../../shared/schema.js';
+import { leads as leadsTable, emailReplyStore, campaignEmails, outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
@@ -72,8 +72,16 @@ async function processEmailForLead(
     }
 
     const emailAddress = direction === 'inbound' ? email.from : email.to; // For outbound, we care who we sent TO
-    console.log(`[DEBUG] Processing ${direction} email: ${emailAddress} - Subject: ${email.subject}`);
+    console.log(`[DEBUG] Processing ${direction} email: ${emailAddress} - Subject: ${email.subject} - Message-ID: ${email.messageId}`);
 
+    // [DEDUPLICATION] check by messageId if available
+    if (email.messageId) {
+      const existingEmail = await storage.getEmailMessageByMessageId(email.messageId);
+      if (existingEmail) {
+        results.skipped++;
+        return;
+      }
+    }
 
     // [ROBUST LOOKUP] Use direct DB query for case-insensitive email matching
     // storage.getLeads uses case-dependent 'like' which might fail for mismatches
@@ -211,19 +219,28 @@ async function processEmailForLead(
       try {
         // 1. MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
         // We do this immediately upon receiving an inbound message from a lead
-        let activeCampaign = null;
+        let linkedCampaignId: string | null = null;
         try {
           const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');
           const { db } = await import('../../db.js');
-          const { eq, and } = await import('drizzle-orm');
+          const { eq, and, sql } = await import('drizzle-orm');
 
-          // Find the campaign lead entry
+          // DEEP LINKING: Try to find campaign via inReplyTo header
+          if (email.inReplyTo) {
+            const parentEmail = await storage.getEmailMessageByMessageId(email.inReplyTo);
+            if (parentEmail?.campaignId) {
+              linkedCampaignId = parentEmail.campaignId;
+              console.log(`[EMAIL_IMPORT] Deep linked inbound reply to campaign ${linkedCampaignId} via In-Reply-To: ${email.inReplyTo}`);
+            }
+          }
+
+          // Find the campaign lead entry (preferably the one linked, otherwise the most recent 'sent' one)
           const campaignLeadEntries = await db.select()
             .from(campaignLeads)
             .where(
               and(
                 eq(campaignLeads.leadId, lead.id),
-                eq(campaignLeads.status, 'sent')
+                linkedCampaignId ? eq(campaignLeads.campaignId, linkedCampaignId) : eq(campaignLeads.status, 'sent')
               )
             )
             .limit(1);
@@ -235,6 +252,61 @@ async function processEmailForLead(
               .where(eq(campaignLeads.id, entry.id));
             
             console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
+
+            // NEW: Increment replied stat in outreachCampaigns
+            await db.update(outreachCampaigns)
+              .set({
+                stats: sql`jsonb_set(stats, '{replied}', (COALESCE((stats->>'replied')::int, 0) + 1)::text::jsonb)`,
+                updatedAt: new Date()
+              })
+              .where(eq(outreachCampaigns.id, entry.campaignId));
+
+            // Real-time notification and audit log
+            try {
+              const { wsSync } = await import('../../websocket-sync.js');
+              wsSync.notifyActivityUpdated(userId, { 
+                type: 'email_reply', 
+                leadId: lead.id,
+                campaignId: entry.campaignId 
+              });
+              
+              await storage.createAuditLog({
+                userId,
+                leadId: lead.id,
+                action: 'lead_reply',
+                details: { 
+                  message: `Received email reply from ${lead.name}`,
+                  campaignId: entry.campaignId,
+                  channel: 'email'
+                }
+              });
+
+              // Create persistent notification
+              await storage.createNotification({
+                userId,
+                type: 'lead_reply',
+                title: '📩 New Reply Received',
+                message: `${lead.name} replied to your outreach.`,
+                actionUrl: `/dashboard/inbox?leadId=${lead.id}`
+              });
+            } catch (notifyErr) {
+              console.error('Failed to notify reply activity:', notifyErr);
+            }
+
+            // NEW: Log to emailReplyStore
+            try {
+              await db.insert(emailReplyStore).values({
+                messageId: email.messageId || `reply_${Date.now()}_${Math.random()}`,
+                inReplyTo: email.inReplyTo || '',
+                campaignId: entry.campaignId,
+                leadId: lead.id,
+                userId: userId,
+                fromAddress: email.from || '',
+                subject: email.subject,
+                body: email.text || '',
+                receivedAt: email.date || new Date()
+              });
+            } catch (replyLogErr) {}
 
             // Fetch the campaign to get the auto-reply template
             const campaigns = await db.select()

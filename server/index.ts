@@ -22,7 +22,7 @@ import { workerHealthMonitor } from "./lib/monitoring/worker-health.js";
 import { emailWarmupWorker } from "./lib/email/email-warmup-worker.js";
 import { emailSyncWorker } from "./lib/email/email-sync-worker.js";
 import { paymentAutoApprovalWorker } from "./lib/billing/payment-auto-approval-worker.js";
-import { autonomousOutreachWorker } from "./lib/workers/outreach-worker.js";
+import { outreachEngine } from "./lib/workers/outreach-engine.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -475,7 +475,7 @@ async function runMigrations() {
     startWorker("Email sync", () => emailSyncWorker.start());
     startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
     startWorker("Email warmup", () => emailWarmupWorker.start());
-    startWorker("Outreach", () => autonomousOutreachWorker.start());
+    startWorker("Outreach", () => outreachEngine.start());
   }
 })();
 

@@ -121,6 +121,7 @@ export const leads = pgTable("leads", {
   lastMessageAt: timestamp("last_message_at"),
   aiPaused: boolean("ai_paused").notNull().default(true),
   pdfConfidence: real("pdf_confidence"),
+  archived: boolean("archived").notNull().default(false),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -155,6 +156,7 @@ export const messages = pgTable("messages", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   provider: text("provider", { enum: ["instagram", "gmail", "email", "system"] }).notNull(),
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
+  subject: text("subject"),
   body: text("body").notNull(),
   audioUrl: text("audio_url"),
   trackingId: text("tracking_id"),
@@ -316,18 +318,26 @@ export const outreachCampaigns = pgTable("outreach_campaigns", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  status: text("status", { enum: ["active", "paused", "completed"] }).notNull().default("active"),
+  status: text("status", { enum: ["draft", "active", "paused", "completed"] }).notNull().default("draft"),
+  stats: jsonb("stats").$type<{
+    total: number;
+    sent: number;
+    replied: number;
+    bounced: number;
+  }>().default(sql`'{"total": 0, "sent": 0, "replied": 0, "bounced": 0}'::jsonb`),
   template: jsonb("template").$type<{
     subject: string;
     body: string;
-    followups: Array<{ delayDays: number; body: string }>;
+    followups: Array<{ delayDays: number; subject?: string; body: string }>;
     autoReplyBody?: string;
   }>().notNull(),
   config: jsonb("config").$type<{
     dailyLimit: number;
     minDelayMinutes: number;
     isManual?: boolean;
+    replyEmail?: string;
   }>().notNull().default(sql`'{"dailyLimit": 50, "minDelayMinutes": 2}'::jsonb`),
+  replyEmail: text("reply_email"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
@@ -448,6 +458,7 @@ export const emailMessages = pgTable("email_messages", {
   leadId: uuid("lead_id").references(() => leads.id, { onDelete: "cascade" }),
   messageId: text("message_id").notNull().unique(),
   threadId: text("thread_id"),
+  campaignId: uuid("campaignId").references(() => outreachCampaigns.id, { onDelete: "set null" }),
   subject: text("subject"),
   from: text("from_address").notNull(),
   to: text("to_address").notNull(),
@@ -766,6 +777,7 @@ export const campaignLeads = pgTable("campaign_leads", {
   nextActionAt: timestamp("next_action_at"),
   sentAt: timestamp("sent_at"),
   error: text("error"),
+  retryCount: integer("retry_count").notNull().default(0),
   metadata: jsonb("metadata").$type<Record<string, any>>().default(sql`'{}'::jsonb`),
 }, (table: any) => {
   return {
@@ -782,7 +794,33 @@ export const adminWhitelist = pgTable("admin_whitelist", {
 });
 
 
-// ========== ZOD VALIDATION SCHEMAS ==========
+export const campaignEmails = pgTable("campaign_emails", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: uuid("campaign_id").notNull().references(() => outreachCampaigns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  messageId: text("message_id").notNull(),
+  subject: text("subject"),
+  body: text("body"),
+  sentAt: timestamp("sent_at").notNull().defaultNow(),
+  status: text("status", { enum: ["sent", "delivered", "opened", "clicked", "replied", "bounced"] }).notNull().default("sent"),
+  stepIndex: integer("step_index").notNull().default(0),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+});
+
+export const emailReplyStore = pgTable("email_reply_store", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: text("message_id").notNull().unique(),
+  inReplyTo: text("in_reply_to").notNull(),
+  campaignId: uuid("campaign_id").references(() => outreachCampaigns.id, { onDelete: "set null" }),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  fromAddress: text("from_address").notNull(),
+  subject: text("subject"),
+  body: text("body"),
+  receivedAt: timestamp("received_at").notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+});
 
 // Generate insert schemas from Drizzle tables
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });

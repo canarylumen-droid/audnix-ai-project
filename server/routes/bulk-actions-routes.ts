@@ -27,7 +27,10 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsImported: 0,
       leadsUpdated: 0,
       leadsFiltered: 0,
-      errors: [] as string[]
+      leadsUpdated: 0,
+      leadsFiltered: 0,
+      errors: [] as string[],
+      leads: [] as any[]
     };
 
     const importedIdentifiers = new Set<string>();
@@ -59,25 +62,17 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
           
-          if (Object.keys(updates).length > 0) {
             await storage.updateLead(existingLead.id, updates);
             results.leadsUpdated++;
           }
+          results.leads.push(existingLead);
           continue;
         }
 
-        await storage.createLead({
-          userId,
-          name: name || 'Unknown',
-          email: email || null,
-          phone: leadData.phone || null,
-          company: leadData.company || null,
-          channel: channel as any,
-          status: 'new',
-          aiPaused: aiPaused,
           metadata: { ...leadData }
         });
 
+        results.leads.push(newLead);
         results.leadsImported++;
         importedIdentifiers.add(identifier.toLowerCase());
       } catch (err: any) {
@@ -92,7 +87,8 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
       totalCount: (await storage.getLeads({ userId, limit: 1 })).length, // Just a hint for frontend
-      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`
+      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`,
+      leads: results.leads
     });
   } catch (error: any) {
     console.error('Bulk import error:', error);
@@ -354,6 +350,33 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response): Pr
 });
 
 /**
+ * Bulk archive leads
+ * POST /api/bulk/archive
+ */
+router.post('/archive', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { leadIds, archived = true } = req.body as { leadIds: string[]; archived?: boolean };
+    const userId = getCurrentUserId(req)!;
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
+    }
+
+    await storage.archiveMultipleLeads(leadIds, userId, archived);
+
+    res.json({
+      success: true,
+      count: leadIds.length,
+      message: `Successfully ${archived ? 'archived' : 'unarchived'} ${leadIds.length} leads`
+    });
+  } catch (error: unknown) {
+    console.error('Bulk archive error:', error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
  * Bulk delete leads
  * POST /api/bulk/delete
  */
@@ -367,34 +390,12 @@ router.post('/delete', requireAuth, async (req: Request, res: Response): Promise
       return;
     }
 
-    const results: BulkResult[] = [];
-    const errors: BulkError[] = [];
-
-    for (const leadId of leadIds) {
-      try {
-        const lead = await storage.getLeadById(leadId);
-        if (!lead || lead.userId !== userId) {
-          errors.push({ leadId, error: 'Lead not found or unauthorized' });
-          continue;
-        }
-
-        await storage.updateLead(leadId, {
-          status: 'cold',
-          tags: [...(lead.tags || []), 'archived']
-        });
-
-        results.push({ leadId, success: true });
-      } catch (error: unknown) {
-        errors.push({ leadId, error: getErrorMessage(error) });
-      }
-    }
+    await storage.deleteMultipleLeads(leadIds, userId);
 
     res.json({
-      success: errors.length === 0,
-      deleted: results.length,
-      failed: errors.length,
-      results,
-      errors
+      success: true,
+      count: leadIds.length,
+      message: `Successfully deleted ${leadIds.length} leads`
     });
   } catch (error: unknown) {
     console.error('Bulk delete error:', error);
