@@ -399,42 +399,8 @@ app.use((req, res, next) => {
 });
 
 async function runMigrations() {
-  console.log("🚀 Starting database migrations...");
-  try {
-    const { exec } = await import("child_process");
-    const { promisify } = await import("util");
-    const fs = await import("fs");
-    const execAsync = promisify(exec);
-
-    // Robustly find the migration script
-    const possiblePaths = [
-      path.join(process.cwd(), "scripts", "migrate-manual.js"),
-      path.join(__dirname, "scripts", "migrate-manual.js"),
-      path.join(__dirname, "..", "scripts", "migrate-manual.js"), // Sibling to server dir
-      path.join(__dirname, "..", "..", "scripts", "migrate-manual.js"), // If in dist/server
-    ];
-
-    let scriptPath = "";
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        scriptPath = p;
-        break;
-      }
-    }
-    
-    if (!scriptPath) {
-      console.warn("⚠️ Migration script (migrate-manual.js) not found in standard locations. Skipping manual migration.");
-      return;
-    }
-
-    console.log(`Using migration script at: ${scriptPath}`);
-    const { stdout, stderr } = await execAsync(`node "${scriptPath}"`);
-    console.log("📦 Migration output:", stdout);
-    if (stderr) console.error("⚠️ Migration stderr:", stderr);
-    console.log("✨ Migrations completed successfully");
-  } catch (error) {
-    console.error("❌ Migration failed at startup:", error);
-  }
+  const { runDatabaseMigrations } = await import("./lib/db/migrator.js");
+  await runDatabaseMigrations();
 }
 
 (async () => {
