@@ -28,7 +28,10 @@ function initializeDb() {
   try {
     _pool = new Pool({
       connectionString,
-      ssl: url.includes('neon.tech') ? { rejectUnauthorized: true } : false
+      ssl: url.includes('neon.tech') ? { rejectUnauthorized: true } : false,
+      max: 20, // Adjust based on your Neon plan limits
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
     });
     _db = drizzle(_pool, { schema });
     console.log('✅ PostgreSQL database connected (Neon Serverless compatibility restored)');
