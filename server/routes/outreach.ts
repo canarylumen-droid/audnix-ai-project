@@ -8,7 +8,8 @@ import { requireAuth } from '../middleware/auth.js';
 import { isValidUUID } from '../lib/utils/validation.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
-import { outreachCampaigns, campaignLeads, messages } from '../../shared/schema.js';
+import { outreachCampaigns, campaignLeads, messages, campaignEmails } from '../../shared/schema.js';
+import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
@@ -114,8 +115,7 @@ router.post('/campaigns', requireAuth, async (req, res) => {
         if (email && email.includes('@')) {
           try {
             // Check if lead already exists by email
-            const { storage } = await import('../storage.js');
-            let existingLead = await storage.getLeadByEmail(email);
+            let existingLead = await storage.getLeadByEmail(email, userId);
             
             if (!existingLead) {
               // Create new lead

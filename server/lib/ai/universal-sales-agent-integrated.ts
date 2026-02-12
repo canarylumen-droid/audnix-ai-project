@@ -124,6 +124,7 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
     aiPaused: false,
     pdfConfidence: null,
     tags: lead.tags || [],
+    archived: false,
     metadata: lead.metadata || {},
     createdAt: new Date(),
     updatedAt: new Date(),

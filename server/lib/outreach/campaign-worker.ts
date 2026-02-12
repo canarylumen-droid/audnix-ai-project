@@ -245,7 +245,7 @@ export class CampaignWorker {
         sentAt: new Date()
       });
 
-      const { wsSync } = await import('../../websocket-sync.js');
+      const { wsSync } = await import('../websocket-sync.js');
       wsSync.notifyActivityUpdated(campaign.userId, { 
         type: 'outreach_sent', 
         campaignId: campaign.id,

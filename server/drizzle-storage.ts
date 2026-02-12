@@ -395,6 +395,16 @@ export class DrizzleStorage implements IStorage {
     return this.getLead(id);
   }
 
+  async getLeadByEmail(email: string, userId: string): Promise<Lead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.email, email), eq(leads.userId, userId)))
+      .limit(1);
+    return result;
+  }
+
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
     checkDatabase();
@@ -1199,6 +1209,15 @@ export class DrizzleStorage implements IStorage {
       wsSync.notifyCalendarUpdated(data.userId, { event: 'INSERT', eventData: result });
     }
     return result;
+  }
+
+  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(calendarEvents)
+      .where(eq(calendarEvents.userId, userId))
+      .orderBy(desc(calendarEvents.startTime));
   }
 
   // ========== Audit Trail ==========

@@ -145,7 +145,7 @@ export async function runOutreachCampaign(
   for (const lead of leads) {
     try {
       // Check if lead already exists
-      let existingLead = await storage.getLeadByEmail(lead.email);
+      let existingLead = await storage.getLeadByEmail(lead.email, userId);
       // Optional: verify it belongs to the user
       if (existingLead && existingLead.userId !== userId) {
         existingLead = undefined;
@@ -296,5 +296,18 @@ export async function runOutreachCampaign(
   return { results, summary };
 }
 
-// Demo logic removed for production hardening
+
+/**
+ * Run demo outreach with predefined leads
+ */
+export async function runDemoOutreach(userId: string): Promise<{ results: OutreachResult[]; summary: { sent: number; failed: number; total: number } }> {
+  const demoLeads: OutreachLead[] = [
+    { name: "Demo User", email: "demo@example.com", company: "Audnix Demo" }
+  ];
+  return runOutreachCampaign(userId, demoLeads, {
+    serviceName: "Audnix AI Sales Agent",
+    pricing: "$99/mo",
+    valueProposition: "Automate your sales outreach with AI"
+  }, { simulateOnly: true });
+}
 

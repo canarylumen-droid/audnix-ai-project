@@ -34,6 +34,7 @@ export interface IStorage {
   getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; offset?: number }): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
+  getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
@@ -138,12 +139,16 @@ export interface IStorage {
 
   // Calendar Events
   createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent>;
+  getCalendarEvents(userId: string): Promise<CalendarEvent[]>;
 
   // Audit Trail (Recent Activities)
   createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
 
   // Voice Balance
   getVoiceMinutesBalance(userId: string): Promise<number>;
+  
+  // Gmail/Outlook
+  getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -157,6 +162,12 @@ export class MemStorage implements IStorage {
 
   private followUps: Map<string, FollowUpQueue>;
   private learningPatterns: Map<string, AiLearningPattern>;
+  private emailMessages: Map<string, EmailMessage>;
+  private auditLogs: Map<string, AuditTrail>;
+  private calendarEvents: Map<string, CalendarEvent>;
+  private otpCodes: Map<string, any>;
+  private onboardingProfiles: Map<string, any>;
+  private usageTopups: Map<string, any[]>;
 
   constructor() {
     this.users = new Map();
@@ -168,6 +179,12 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.followUps = new Map();
     this.learningPatterns = new Map();
+    this.emailMessages = new Map();
+    this.auditLogs = new Map();
+    this.calendarEvents = new Map();
+    this.otpCodes = new Map();
+    this.onboardingProfiles = new Map();
+    this.usageTopups = new Map();
   }
 
   async getVoiceMinutesBalance(userId: string): Promise<number> {
@@ -475,10 +492,16 @@ export class MemStorage implements IStorage {
   }
 
   async getLeadByUsername(username: string, channel: string): Promise<Lead | undefined> {
-    const leads = await this.getLeads({ userId: '', limit: 1000 });
-    return leads.find(lead =>
+    return Array.from(this.leads.values()).find(lead =>
       lead.name.toLowerCase() === username.toLowerCase() &&
       lead.channel === channel
+    );
+  }
+
+  async getLeadByEmail(email: string, userId: string): Promise<Lead | undefined> {
+    return Array.from(this.leads.values()).find(lead =>
+      lead.email?.toLowerCase() === email.toLowerCase() &&
+      lead.userId === userId
     );
   }
 
@@ -508,6 +531,7 @@ export class MemStorage implements IStorage {
       verified: insertLead.verified || false,
       verifiedAt: insertLead.verifiedAt || null,
       pdfConfidence: insertLead.pdfConfidence || null,
+      archived: insertLead.archived || false,
       tags: insertLead.tags || [],
       metadata: insertLead.metadata || {},
       createdAt: now,
@@ -529,6 +553,51 @@ export class MemStorage implements IStorage {
 
   async getTotalLeadsCount(): Promise<number> {
     return this.leads.size;
+  }
+
+  async archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined> {
+    const lead = this.leads.get(id);
+    if (!lead || lead.userId !== userId) return undefined;
+    const updated = { ...lead, archived, updatedAt: new Date() };
+    this.leads.set(id, updated);
+    return updated;
+  }
+
+  async deleteLead(id: string, userId: string): Promise<void> {
+    const lead = this.leads.get(id);
+    if (lead && lead.userId === userId) {
+      this.leads.delete(id);
+    }
+  }
+
+  async archiveMultipleLeads(ids: string[], userId: string, archived: boolean): Promise<void> {
+    for (const id of ids) {
+      const lead = this.leads.get(id);
+      if (lead && lead.userId === userId) {
+        this.leads.set(id, { ...lead, archived, updatedAt: new Date() });
+      }
+    }
+  }
+
+  async deleteMultipleLeads(ids: string[], userId: string): Promise<void> {
+    for (const id of ids) {
+      const lead = this.leads.get(id);
+      if (lead && lead.userId === userId) {
+        this.leads.delete(id);
+      }
+    }
+  }
+
+  async getAuditLogs(userId: string): Promise<AuditTrail[]> {
+    return Array.from(this.auditLogs.values())
+      .filter(log => log.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> {
+    return Array.from(this.calendarEvents.values())
+      .filter(e => e.userId === userId)
+      .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
   }
 
   // ========== Message Methods ==========
@@ -570,6 +639,7 @@ export class MemStorage implements IStorage {
       userId: message.userId,
       provider: message.provider || "instagram",
       direction: message.direction,
+      subject: message.subject || null,
       body: message.body,
       audioUrl: message.audioUrl || null,
       trackingId: message.trackingId || null,
@@ -824,7 +894,6 @@ export class MemStorage implements IStorage {
   }
 
   // Onboarding methods
-  private onboardingProfiles: Map<string, any> = new Map();
 
   async createOnboardingProfile(data: any): Promise<any> {
     const id = randomUUID();
@@ -859,7 +928,6 @@ export class MemStorage implements IStorage {
   }
 
   // OTP methods (MemStorage implementation)
-  private otpCodes: Map<string, any> = new Map();
 
   async createOtpCode(data: { email: string; code: string; expiresAt: Date; attempts: number; verified: boolean; passwordHash?: string; purpose?: string }): Promise<any> {
     const id = randomUUID();
@@ -984,7 +1052,6 @@ export class MemStorage implements IStorage {
   }
 
   // ========== Calendar Events ==========
-  private calendarEvents: Map<string, CalendarEvent> = new Map();
 
   async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
     const id = randomUUID();
@@ -1009,7 +1076,6 @@ export class MemStorage implements IStorage {
   }
 
   // ========== Audit Trail ==========
-  private auditLogs: Map<string, AuditTrail> = new Map();
 
   async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
     const id = randomUUID();

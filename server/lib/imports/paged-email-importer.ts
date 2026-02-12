@@ -263,7 +263,7 @@ async function processEmailForLead(
 
             // Real-time notification and audit log
             try {
-              const { wsSync } = await import('../../websocket-sync.js');
+              const { wsSync } = await import('../websocket-sync.js');
               wsSync.notifyActivityUpdated(userId, { 
                 type: 'email_reply', 
                 leadId: lead.id,
@@ -314,6 +314,7 @@ async function processEmailForLead(
               .where(eq(outreachCampaigns.id, entry.campaignId))
               .limit(1);
             
+            let activeCampaign: any = null;
             if (campaigns.length > 0) {
               activeCampaign = campaigns[0];
             }
@@ -367,7 +368,14 @@ async function processEmailForLead(
             const scheduledTime = new Date(Date.now() + quickDelay);
 
             // Extract custom auto-reply body if it exists
-            const autoReplyBody = activeCampaign?.template?.autoReplyBody;
+            const { outreachCampaigns } = await import('../../../shared/schema.js');
+            const [activeCampaign] = await followUpDb
+              .select()
+              .from(outreachCampaigns)
+              .where(and(eq(outreachCampaigns.userId, userId), eq(outreachCampaigns.status, 'active')))
+              .limit(1);
+
+            const autoReplyBody = (activeCampaign?.template as any)?.autoReplyBody;
 
             await followUpDb.insert(followUpQueue).values({
               userId,

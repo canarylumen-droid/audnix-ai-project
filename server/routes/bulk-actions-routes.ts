@@ -27,8 +27,6 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsImported: 0,
       leadsUpdated: 0,
       leadsFiltered: 0,
-      leadsUpdated: 0,
-      leadsFiltered: 0,
       errors: [] as string[],
       leads: [] as any[]
     };
@@ -61,7 +59,8 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           const updates: Record<string, any> = {};
           if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-          
+
+          if (Object.keys(updates).length > 0) {
             await storage.updateLead(existingLead.id, updates);
             results.leadsUpdated++;
           }
@@ -69,6 +68,14 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           continue;
         }
 
+        const newLead = await storage.createLead({
+          userId,
+          name: leadData.name || 'Unknown',
+          email: leadData.email,
+          phone: leadData.phone,
+          company: leadData.company,
+          channel: channel as any,
+          aiPaused,
           metadata: { ...leadData }
         });
 

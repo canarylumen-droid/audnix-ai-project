@@ -73,7 +73,7 @@ export class OutreachEngine {
           )
         );
 
-      const uniqueUserIds = [...new Set(activeIntegrations.map(i => i.userId))];
+      const uniqueUserIds = [...new Set((activeIntegrations as any).map((i: any) => i.userId))] as string[];
 
       // 2. Process each user (non-blocking)
       for (const userId of uniqueUserIds) {
@@ -129,7 +129,7 @@ export class OutreachEngine {
 
     // Split logic: Process one campaign per tick to avoid overwhelming user SMTP
     // We'll pick the one that was updated least recently (round-robin feel)
-    const campaign = campaigns.sort((a, b) => 
+    const campaign = campaigns.sort((a: any, b: any) => 
       new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
     )[0];
 
@@ -162,7 +162,7 @@ export class OutreachEngine {
     if (nextLeadResult.length === 0) return false;
 
     const leadEntry = nextLeadResult[0];
-    const lead = await storage.getLeadById(leadEntry.leadId);
+    const lead = await storage.getLeadById(leadEntry.leadId as string);
 
     if (!lead || !lead.email) {
       await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));

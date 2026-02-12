@@ -123,7 +123,7 @@ async function sendCustomSMTP(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   const nodemailer = await import('nodemailer');
   const { imapIdleManager } = await import('../email/imap-idle-manager.js');
 
@@ -469,7 +469,7 @@ export async function sendEmail(
   content: string,
   subject: string,
   options: EmailOptions = {}
-): Promise<void> {
+): Promise<{ messageId: string }> {
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
 
   if (customEmailIntegration?.connected) {
@@ -674,7 +674,7 @@ async function sendGmailMessage(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
     emailBody = injectTrackingPixel(body, trackingId);
@@ -695,7 +695,7 @@ async function sendGmailMessage(
   });
 
   const data = await response.json() as GmailSendResponse;
-
+  if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to send Gmail');
   }
 
@@ -712,7 +712,7 @@ async function sendOutlookMessage(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
     emailBody = injectTrackingPixel(body, trackingId);
@@ -743,6 +743,7 @@ async function sendOutlookMessage(
     })
   });
 
+  if (!response.ok) {
     const data = await response.json() as OutlookSendResponse;
     throw new Error(data.error?.message || 'Failed to send Outlook email');
   }
