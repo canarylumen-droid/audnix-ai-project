@@ -176,26 +176,27 @@ function fallbackMapping(headers: string[]): MappingResult {
     const patterns: Record<string, RegExp[]> = {
         name: [
             /^name$/i, /^full[_\s-]?name$/i, /^contact[_\s-]?name$/i,
+            /^lead[_\s-]?name$/i, /^business[_\s-]?name$/i, /^client[_\s-]?name$/i,
             /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i,
             /^fname$/i, /^lname$/i, /^contact$/i, /^entity$/i, /^fullname$/i,
-            /^prospective[_\s-]?name$/i
+            /^prospective[_\s-]?name$/i, /^business$/i, /^company$/i
         ],
         email: [
             /^e?-?mail$/i, /^email[_\s-]?addr/i, /^contact[_\s-]?email$/i,
             /^e-?mail[_\s-]?address$/i, /^mail$/i, /^work[_\s-]?email$/i,
-            /^primary[_\s-]?email$/i, /^email[_\s-]?(1|2)$/i
+            /^primary[_\s-]?email$/i, /^email[_\s-]?(1|2)$/i, /^addr/i
         ],
         phone: [
             /^phone$/i, /^mobile$/i, /^cell$/i, /^tel/i, /^contact[_\s-]?number$/i,
-            /^phone[_\s-]?number$/i, /^telephone$/i, /^whatsapp$/i
+            /^phone[_\s-]?number$/i, /^telephone$/i, /^whatsapp$/i, /^mobile[_\s-]?number$/i
         ],
         company: [
             /^company$/i, /^org/i, /^business$/i, /^employer$/i, /^firm$/i,
-            /^account$/i, /^company[_\s-]?name$/i, /^organization$/i
+            /^account$/i, /^company[_\s-]?name$/i, /^organization$/i, /^corp/i
         ],
         role: [
             /^role$/i, /^title$/i, /^job[_\s-]?title$/i, /^position$/i, /^function$/i,
-            /^occupation$/i, /^work[_\s-]?role$/i
+            /^occupation$/i, /^work[_\s-]?role$/i, /^designation$/i
         ],
         channel: [
             /^channel$/i, /^source$/i, /^platform$/i, /^medium$/i, /^origin$/i
@@ -249,8 +250,12 @@ export function extractLeadFromRow(
     if (!email) {
         for (const value of Object.values(row)) {
             if (typeof value === 'string' && value.includes('@') && value.includes('.')) {
-                email = value.trim();
-                break;
+                // Heuristic for email: must contains @ and . and no spaces
+                const trimmed = value.trim();
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                    email = trimmed;
+                    break;
+                }
             }
         }
     }
@@ -258,7 +263,7 @@ export function extractLeadFromRow(
     return {
         name: mapping.name ? row[mapping.name]?.trim() : undefined,
         email,
-        phone: undefined, // Skip phone numbers per user request
+        phone: mapping.phone ? row[mapping.phone]?.trim() : undefined,
         company: mapping.company ? row[mapping.company]?.trim() : undefined,
         role: mapping.role ? row[mapping.role]?.trim() : undefined,
         bio: mapping.bio ? row[mapping.bio]?.trim() : (mapping.notes ? row[mapping.notes]?.trim() : undefined),
