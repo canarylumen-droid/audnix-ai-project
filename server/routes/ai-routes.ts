@@ -145,12 +145,6 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
     res.status(500).json({ error: errorMessage });
   }
 });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate analytics";
-    console.error("Analytics error:", error);
-    res.status(500).json({ error: errorMessage });
-  }
-});
 
 /**
  * Update all lead scores
