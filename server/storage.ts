@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns, notifications } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -65,12 +65,7 @@ export interface IStorage {
   disconnectIntegration(userId: string, provider: string): Promise<void>;
   deleteIntegration(userId: string, provider: string): Promise<void>;
 
-  // Notification methods
-  getNotifications(userId: string): Promise<any[]>;
-  markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
-  markAllNotificationsAsRead(userId: string): Promise<void>;
-  createNotification(data: any): Promise<any>;
-  markNotificationRead(id: string): Promise<void>;
+  // (Notification methods defined below with proper types)
 
   // Video monitor methods
   getVideoMonitors(userId: string): Promise<any[]>;
@@ -164,6 +159,15 @@ export interface IStorage {
 
   // Gmail/Outlook
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
+
+  // Notifications
+  getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  createNotification(data: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string, userId: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  clearAllNotifications(userId: string): Promise<void>;
+  deleteNotification(id: string, userId: string): Promise<void>;
 
   getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
     totalLeads: number;
@@ -794,46 +798,78 @@ export class MemStorage implements IStorage {
 
   // ========== Notification Methods ==========
 
-  private notifications: Map<string, any> = new Map();
-  private readNotifications: Set<string> = new Set();
+  private notificationStore: Map<string, Notification> = new Map();
 
-  async getNotifications(userId: string): Promise<any[]> {
-    // Return notifications from leads for demo purposes
-    const leads = await this.getLeads({ userId, limit: 10 });
-    return leads.map((lead, index) => ({
-      id: lead.id,
-      type: lead.status === 'converted' ? 'conversion' : 'lead_reply',
-      title: lead.status === 'converted' ? 'New conversion!' : 'New lead',
-      message: `${lead.name} from ${lead.channel}${lead.status === 'converted' ? ' converted to a customer' : ''}`,
-      timestamp: lead.createdAt,
-      read: this.readNotifications.has(lead.id),
-    }));
+  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+    let items = Array.from(this.notificationStore.values())
+      .filter(n => n.userId === userId);
+
+    if (opts?.dateFrom) {
+      items = items.filter(n => new Date(n.createdAt) >= opts.dateFrom!);
+    }
+    if (opts?.dateTo) {
+      items = items.filter(n => new Date(n.createdAt) <= opts.dateTo!);
+    }
+
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const offset = opts?.offset || 0;
+    const limit = opts?.limit || 50;
+    return items.slice(offset, offset + limit);
   }
 
-  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
-    this.readNotifications.add(notificationId);
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notificationStore.values())
+      .filter(n => n.userId === userId && !n.read).length;
   }
 
-  async markAllNotificationsAsRead(userId: string): Promise<void> {
-    const notifications = await this.getNotifications(userId);
-    notifications.forEach(n => this.readNotifications.add(n.id));
-  }
-
-  async createNotification(data: any): Promise<any> {
+  async createNotification(data: InsertNotification): Promise<Notification> {
     const id = randomUUID();
     const now = new Date();
-    // Ensure createdAt is always a valid Date object
-    const notification = {
+    const notification: Notification = {
       id,
-      ...data,
-      createdAt: data.createdAt instanceof Date ? data.createdAt : (data.createdAt ? new Date(data.createdAt) : now)
+      userId: data.userId,
+      type: data.type || 'system',
+      title: data.title,
+      message: data.message,
+      read: data.read ?? false,
+      metadata: data.metadata || {},
+      createdAt: data.createdAt instanceof Date ? data.createdAt : now,
     };
-    this.notifications.set(id, notification);
+    this.notificationStore.set(id, notification);
     return notification;
   }
 
-  async markNotificationRead(id: string): Promise<void> {
-    this.readNotifications.add(id);
+  async markNotificationAsRead(id: string, userId: string): Promise<void> {
+    const n = this.notificationStore.get(id);
+    if (n && n.userId === userId) {
+      n.read = true;
+      this.notificationStore.set(id, n);
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    for (const [id, n] of this.notificationStore) {
+      if (n.userId === userId) {
+        n.read = true;
+        this.notificationStore.set(id, n);
+      }
+    }
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    for (const [id, n] of this.notificationStore) {
+      if (n.userId === userId) {
+        this.notificationStore.delete(id);
+      }
+    }
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    const n = this.notificationStore.get(id);
+    if (n && n.userId === userId) {
+      this.notificationStore.delete(id);
+    }
   }
 
   // Video monitor methods
@@ -1325,6 +1361,80 @@ export class MemStorage implements IStorage {
             isNew: (Date.now() - updatedDate.getTime()) < 24 * 60 * 60 * 1000
           };
         })
+    };
+  }
+
+  async getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+    summary: {
+      totalLeads: number;
+      conversions: number;
+      conversionRate: string;
+      active: number;
+      ghosted: number;
+      notInterested: number;
+      leadsReplied: number;
+      bestReplyHour: number | null;
+    };
+    channelBreakdown: Array<{ channel: string; count: number; percentage: number }>;
+    statusBreakdown: Array<{ status: string; count: number; percentage: number }>;
+    timeline: Array<{ date: string; leads: number; conversions: number }>;
+    positiveSentimentRate: string;
+  }> {
+    const allLeads = Array.from(this.leads.values()).filter(
+      l => l.userId === userId && new Date(l.createdAt) >= startDate
+    );
+
+    const total = allLeads.length;
+    const conversions = allLeads.filter(l => l.status === 'converted').length;
+    const active = allLeads.filter(l => l.status === 'open' || l.status === 'replied').length;
+    const ghosted = allLeads.filter(l => l.status === 'cold').length;
+    const notInterested = allLeads.filter(l => l.status === 'not_interested').length;
+    const leadsReplied = allLeads.filter(l => l.status === 'replied' || l.status === 'converted').length;
+
+    const positiveCount = allLeads.filter(l => ['replied', 'converted', 'open'].includes(l.status)).length;
+    const negativeCount = allLeads.filter(l => ['not_interested', 'cold'].includes(l.status)).length;
+    const totalWithSentiment = positiveCount + negativeCount;
+    const positiveSentimentRate = totalWithSentiment > 0
+      ? ((positiveCount / totalWithSentiment) * 100).toFixed(1)
+      : '0';
+
+    // Channel breakdown
+    const channelMap = new Map<string, number>();
+    allLeads.forEach(l => {
+      channelMap.set(l.channel, (channelMap.get(l.channel) || 0) + 1);
+    });
+    const channelBreakdown = Array.from(channelMap.entries()).map(([channel, count]) => ({
+      channel,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0
+    }));
+
+    // Status breakdown
+    const statusMap = new Map<string, number>();
+    allLeads.forEach(l => {
+      statusMap.set(l.status, (statusMap.get(l.status) || 0) + 1);
+    });
+    const statusBreakdown = Array.from(statusMap.entries()).map(([status, count]) => ({
+      status,
+      count,
+      percentage: total > 0 ? (count / total) * 100 : 0
+    }));
+
+    return {
+      summary: {
+        totalLeads: total,
+        conversions,
+        conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0',
+        active,
+        ghosted,
+        notInterested,
+        leadsReplied,
+        bestReplyHour: null,
+      },
+      channelBreakdown,
+      statusBreakdown,
+      timeline: [],
+      positiveSentimentRate,
     };
   }
 }

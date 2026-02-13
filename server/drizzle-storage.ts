@@ -1,5 +1,5 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification } from "../shared/schema.js";
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
@@ -1324,17 +1324,17 @@ export class DrizzleStorage implements IStorage {
         leadsReplied: Number(mainSummary?.leadsReplied || 0),
         bestReplyHour: hourResults[0] ? Number(hourResults[0].hour) : null,
       },
-      channelBreakdown: channelResults.map(c => ({
+      channelBreakdown: channelResults.map((c: any) => ({
         channel: c.channel,
         count: Number(c.count),
         percentage: total > 0 ? (Number(c.count) / total) * 100 : 0
       })),
-      statusBreakdown: statusResults.map(s => ({
+      statusBreakdown: statusResults.map((s: any) => ({
         status: s.status,
         count: Number(s.count),
         percentage: total > 0 ? (Number(s.count) / total) * 100 : 0
       })),
-      timeline: timelineResults.map(t => ({
+      timeline: timelineResults.map((t: any) => ({
         date: t.date,
         leads: Number(t.leads),
         conversions: Number(t.conversions)
@@ -1656,8 +1656,8 @@ export class DrizzleStorage implements IStorage {
         openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
       },
       timeSeries,
-      channelPerformance: channelStats.map(s => ({ channel: s.channel || 'Unknown', value: Number(s.value) })),
-      recentEvents: recentLeads.map(l => {
+      channelPerformance: channelStats.map((s: any) => ({ channel: s.channel || 'Unknown', value: Number(s.value) })),
+      recentEvents: recentLeads.map((l: any) => {
         const updatedDate = new Date(l.updatedAt || l.createdAt);
         return {
           id: l.id,
@@ -1668,6 +1668,75 @@ export class DrizzleStorage implements IStorage {
         };
       })
     };
+  }
+
+  // ========== Notification Methods ==========
+
+  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+    const conditions = [eq(notifications.userId, userId)];
+    if (opts?.dateFrom) conditions.push(gte(notifications.createdAt, opts.dateFrom));
+    if (opts?.dateTo) conditions.push(lte(notifications.createdAt, opts.dateTo));
+
+    return await db.select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(opts?.limit || 50)
+      .offset(opts?.offset || 0);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+    return Number(result[0]?.count || 0);
+  }
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(data).returning();
+    return notification;
+  }
+
+  async markNotificationAsRead(id: string, userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+    await db.update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
   }
 }
 

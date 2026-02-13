@@ -114,7 +114,7 @@ export const leads = pgTable("leads", {
   email: text("email"),
   replyEmail: text("reply_email"),
   phone: text("phone"),
-  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy"] }).notNull().default("new"),
+  status: text("status", { enum: ["new", "open", "replied", "converted", "not_interested", "cold", "hardened", "recovered", "bouncy", "booked"] }).notNull().default("new"),
   verified: boolean("verified").notNull().default(false),
   verifiedAt: timestamp("verified_at"),
   score: integer("score").notNull().default(0),
@@ -128,6 +128,23 @@ export const leads = pgTable("leads", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// ========== NOTIFICATIONS ==========
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["lead_import", "lead_reply", "conversion", "campaign_sent", "system"] }).notNull().default("system"),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").notNull().default(false),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const notificationsSelect = createSelectSchema(notifications);
+export const notificationsInsert = createInsertSchema(notifications);
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
 
 export const leadSocialDetails = pgTable("lead_social_details", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -178,6 +195,7 @@ export const integrations = pgTable("integrations", {
   accountType: text("account_type"),
   lastSync: timestamp("last_sync"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const deals = pgTable("deals", {

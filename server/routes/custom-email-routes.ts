@@ -282,6 +282,21 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
       bounceRate: bounceStats.bounceRate,
       message: `Import completed: ${importResults.imported} leads imported, ${importResults.skipped} skipped`
     });
+
+    // Create notification for custom email import
+    if (importResults.imported > 0) {
+      try {
+        await storage.createNotification({
+          userId,
+          type: 'lead_import',
+          title: '\ud83d\udce5 Leads Imported',
+          message: `${importResults.imported} leads imported from custom email`,
+          metadata: { source: 'custom_email', count: importResults.imported }
+        });
+      } catch (notifErr) {
+        console.warn('[Custom Email Import] Failed to create notification:', notifErr);
+      }
+    }
   } catch (error: unknown) {
     console.error('Error importing custom emails:', error);
     res.status(500).json({ error: 'Failed to import emails' });
@@ -470,6 +485,36 @@ router.post('/sync-now', requireAuth, async (req: Request, res: Response): Promi
   } catch (error) {
     console.error('[Email Sync] Error:', error);
     res.status(500).json({ error: 'Failed to trigger sync' });
+  }
+});
+
+/**
+ * Trigger historical sync (e.g. last 30 days)
+ */
+router.post('/sync-history', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { days } = req.body;
+    const daysToSync = parseInt(days) || 30;
+
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+    
+    // Run in background to avoid timeout
+    imapIdleManager.syncHistoricalEmails(userId, daysToSync)
+      .then((result) => {
+        console.log(`[Historical Sync] Background job finished for ${userId}:`, result);
+      })
+      .catch((err) => {
+        console.error(`[Historical Sync] Background job failed for ${userId}:`, err);
+      });
+
+    res.json({
+      success: true,
+      message: `Historical sync started for last ${daysToSync} days. Check back in a few minutes.`
+    });
+  } catch (error) {
+    console.error('[Historical Sync] Error:', error);
+    res.status(500).json({ error: 'Failed to trigger historical sync' });
   }
 });
 

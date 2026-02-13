@@ -453,12 +453,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             </div>
             
             <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-transparent to-primary/5">
-                <Tabs defaultValue="p1" className="h-full">
-                  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1 bg-background/80 backdrop-blur border border-border/20 flex gap-1">
+                <Tabs key={viewMode} defaultValue="p1" className="h-full">
+                  <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1 bg-background/80 backdrop-blur border border-border/20 flex gap-1 h-auto">
                      <TabsTrigger value="p1" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S1</TabsTrigger>
                      <TabsTrigger value="p2" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S2</TabsTrigger>
                      <TabsTrigger value="p3" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S3</TabsTrigger>
-                  </div>
+                  </TabsList>
                   <TabsContent value="p1" className="h-full m-0">{renderPreview(subject, body)}</TabsContent>
                   <TabsContent value="p2" className="h-full m-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
                   <TabsContent value="p3" className="h-full m-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>

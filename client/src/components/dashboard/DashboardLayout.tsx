@@ -98,9 +98,11 @@ interface UserProfile {
 interface Notification {
   id: string;
   title: string;
+  message: string;
   description?: string;
   read: boolean;
   createdAt: string;
+  type?: string;
 }
 
 interface NotificationsData {
@@ -230,7 +232,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;
-  const recentNotifications = notificationsData?.notifications.slice(0, 5) || [];
+  const [notifDateFilter, setNotifDateFilter] = useState<'all' | 'today' | 'week'>('all');
 
   const handleSignOut = async () => {
     try {
@@ -567,7 +569,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col border-l border-border/40 bg-background/95 backdrop-blur-2xl">
                 <div className="p-8 border-b border-border/20 bg-muted/20">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-4">
                     <h4 className="text-2xl font-black tracking-tighter uppercase italic">Notifications</h4>
                     {unreadNotifications > 0 && (
                       <Badge className="bg-primary text-black font-black uppercase text-[10px] px-3 py-1">
@@ -575,13 +577,84 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground font-medium">Real-time alerts from your autonomous sales engine.</p>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Real-time alerts from your autonomous sales engine.</p>
+                  
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      {(['all', 'today', 'week'] as const).map(f => (
+                        <Button
+                          key={f}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNotifDateFilter(f)}
+                          className={cn(
+                            "h-7 px-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all", 
+                            notifDateFilter === f 
+                              ? "bg-primary text-primary-foreground shadow-sm" 
+                              : "hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {f === 'all' ? 'All' : f === 'today' ? 'Today' : 'Week'}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1"
+                        onClick={async () => {
+                          await apiRequest('POST', '/api/notifications/mark-all-read');
+                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                        }}
+                      >
+                        <Check className="w-3 h-3 mr-1.5" />
+                        Mark All Read
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          await apiRequest('POST', '/api/notifications/clear-all');
+                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                        }}
+                      >
+                        <LogOut className="w-3 h-3 mr-1.5 rotate-180" />
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
-                <ScrollArea className="flex-1">
+                <ScrollArea className="flex-1 h-[calc(100vh-220px)]">
                   {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
                     <div className="divide-y divide-border/10">
-                      {notificationsData.notifications.map((notification) => (
+                      {notificationsData.notifications
+                        .filter(n => {
+                          if (notifDateFilter === 'all') return true;
+                          const date = new Date(n.createdAt);
+                          const now = new Date();
+                          if (notifDateFilter === 'today') {
+                            return date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                          }
+                          if (notifDateFilter === 'week') {
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            return date >= weekAgo;
+                          }
+                          return true;
+                        })
+
+                          if (notifDateFilter === 'all') return true;
+                          const created = new Date(n.createdAt);
+                          const now = new Date();
+                          if (notifDateFilter === 'today') {
+                            return created.toDateString() === now.toDateString();
+                          }
+                          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                          return created >= weekAgo;
+                        })
+                        .map((notification) => (
                         <div 
                           key={notification.id} 
                           className={cn(
@@ -612,7 +685,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              {notification.description || "No details provided."}
+                              {notification.message || notification.description || "No details provided."}
                             </p>
                             {!notification.read && (
                               <button 
@@ -659,6 +732,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                     }}
                   >
                     Clear All Alerts
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-destructive hover:bg-destructive/10 mt-2"
+                    onClick={async () => {
+                      try {
+                        await apiRequest('POST', '/api/notifications/clear-all', {});
+                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                      } catch (err) {
+                        console.error("Failed to clear all notifications", err);
+                      }
+                    }}
+                  >
+                    Delete All Permanently
                   </Button>
                 </div>
               </SheetContent>

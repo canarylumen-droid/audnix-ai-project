@@ -331,6 +331,24 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             processId: processLog.id
           });
 
+          // Create notification for import
+          if (leadsToSave.length > 0) {
+            try {
+              await storage.createNotification({
+                userId,
+                type: 'lead_import',
+                title: '📥 Leads Imported',
+                message: `${leadsToSave.length} leads imported successfully from CSV`,
+                metadata: { source: 'csv_upload', count: leadsToSave.length, fileName: file.originalname }
+              });
+              const { wsSync } = await import('../lib/websocket-sync.js');
+              wsSync.notifyNotification(userId, { type: 'lead_import', count: leadsToSave.length });
+              wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: leadsToSave.length });
+            } catch (notifErr) {
+              console.warn('[CSV Import] Failed to create notification:', notifErr);
+            }
+          }
+
           console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${leadsToSave.length} leads (Standalone Mode)`);
 
 
@@ -633,6 +651,29 @@ router.post("/import/:provider", requireAuth, async (req: Request, res: Response
       errors: results.errors
     });
 
+    // Create notification for platform import
+    if (results.leadsImported > 0) {
+      try {
+        await storage.createNotification({
+          userId,
+          type: 'lead_import',
+          title: '📥 Leads Imported',
+          message: `${results.leadsImported} leads successfully imported from ${provider}.`,
+          metadata: { source: provider, count: results.leadsImported }
+        });
+        const { wsSync } = await import('../lib/websocket-sync.js');
+        // Send a specific event to trigger frontend refresh
+        wsSync.notifyNotification(userId, { 
+          type: 'lead_import', 
+          count: results.leadsImported,
+          title: '📥 Leads Imported',
+          message: `${results.leadsImported} leads successfully imported from ${provider}.`
+        });
+      } catch (notifErr) {
+        console.warn('[Platform Import] Failed to create notification:', notifErr);
+      }
+    }
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads";
     console.error("Import error:", error);
@@ -754,6 +795,24 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
       message: `Successfully processed ${results.leadsImported} new leads and ${results.leadsUpdated} updates. 100% capture enabled.`,
       leads: finalLeads // Return real leads with UUIDs
     });
+
+    // Create notification for bulk import
+    if (results.leadsImported > 0) {
+      try {
+        await storage.createNotification({
+          userId,
+          type: 'lead_import',
+          title: '📥 Leads Imported',
+          message: `${results.leadsImported} leads imported successfully`,
+          metadata: { source: 'bulk_import', count: results.leadsImported }
+        });
+        const { wsSync } = await import('../lib/websocket-sync.js');
+        wsSync.notifyNotification(userId, { type: 'lead_import', count: results.leadsImported });
+        wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: results.leadsImported });
+      } catch (notifErr) {
+        console.warn('[Bulk Import] Failed to create notification:', notifErr);
+      }
+    }
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to import leads";

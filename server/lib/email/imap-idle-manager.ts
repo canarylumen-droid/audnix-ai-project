@@ -553,6 +553,140 @@ class ImapIdleManager {
             }
         }
     }
+
+
+    /**
+     * Trigger a historical sync for a user (e.g. last 30 days)
+     */
+    public async syncHistoricalEmails(userId: string, daysToSync: number = 30): Promise<{ success: boolean; count: number; error?: string }> {
+        const imap = this.connections.get(userId);
+        if (!imap || imap.state !== 'authenticated') {
+            return { success: false, count: 0, error: 'IMAP connection not active' };
+        }
+
+        const userFolders = this.folders.get(userId);
+        if (!userFolders) {
+            return { success: false, count: 0, error: 'Folders not discovered yet' };
+        }
+
+        console.log(`📜 Starting historical sync for user ${userId} (${daysToSync} days)`);
+        let totalImported = 0;
+
+        try {
+            // Calculate date string for "SINCE" search criteria
+            const sinceDate = new Date();
+            sinceDate.setDate(sinceDate.getDate() - daysToSync);
+            // IMAP date format: "01-Jan-2023"
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const sinceStr = `${sinceDate.getDate()}-${months[sinceDate.getMonth()]}-${sinceDate.getFullYear()}`;
+
+            // Helper to sync a specific folder
+            const syncFolder = async (folderName: string, direction: 'inbound' | 'outbound') => {
+                return new Promise<number>((resolve) => {
+                    const fetchEmails = () => {
+                        imap.search([['SINCE', sinceStr]], (searchErr, results) => {
+                            if (searchErr || !results || results.length === 0) {
+                                resolve(0);
+                                return;
+                            }
+
+                            const fetch = imap.fetch(results, {
+                                bodies: '',
+                                struct: true
+                            });
+
+                            const emails: any[] = [];
+
+                            fetch.on('message', (msg: any, _seqno: number) => {
+                                let flags: string[] = [];
+                                msg.on('attributes', (attrs: any) => flags = attrs.flags || []);
+                                msg.on('body', (stream: any) => {
+                                    simpleParser(stream, async (err: any, parsed: any) => {
+                                        if (!err && parsed) {
+                                            emails.push({
+                                                from: parsed.from?.text,
+                                                to: parsed.to?.text,
+                                                subject: parsed.subject,
+                                                text: parsed.text || parsed.html || '',
+                                                date: parsed.date,
+                                                html: parsed.html,
+                                                flags,
+                                                messageId: parsed.messageId,
+                                                inReplyTo: parsed.inReplyTo
+                                            });
+                                        }
+                                    });
+                                });
+                            });
+
+                            fetch.once('end', async () => {
+                                if (emails.length > 0) {
+                                    console.log(`📜 Importing ${emails.length} historical ${direction} emails from ${folderName}`);
+                                    const importResult = await pagedEmailImport(userId, emails.map(e => ({
+                                        from: e.from?.split('<')[1]?.split('>')[0] || e.from,
+                                        to: e.to?.split('<')[1]?.split('>')[0] || e.to,
+                                        subject: e.subject,
+                                        text: e.text,
+                                        date: e.date,
+                                        html: e.html,
+                                        isRead: e.flags?.includes('\\Seen') || false,
+                                        messageId: e.messageId,
+                                        inReplyTo: e.inReplyTo
+                                    })), undefined, direction);
+                                    resolve(importResult.imported);
+                                } else {
+                                    resolve(0);
+                                }
+                            });
+                            
+                            fetch.once('error', (err) => {
+                                console.error(`[Historical] Fetch error in ${folderName}:`, err);
+                                resolve(0);
+                            });
+                        });
+                    };
+
+                    imap.openBox(folderName, true, (err) => {
+                        if (err) {
+                            console.warn(`[Historical] Could not open ${folderName}:`, err.message);
+                            resolve(0);
+                        } else {
+                            fetchEmails();
+                        }
+                    });
+                });
+            };
+
+            // 1. Sync Inbox(es)
+            for (const inbox of userFolders.inbox) {
+                totalImported += await syncFolder(inbox, 'inbound');
+            }
+
+            // 2. Sync Sent Folder(s)
+            for (const sent of userFolders.sent) {
+                totalImported += await syncFolder(sent, 'outbound');
+            }
+
+            // Return to primary Inbox and IDLE
+            const primaryInbox = userFolders.inbox[0] || 'INBOX';
+            imap.openBox(primaryInbox, false, (err) => {
+                if (!err) {
+                    try { (imap as any).idle(); } catch (e) { }
+                }
+            });
+
+            console.log(`✅ Historical sync complete for user ${userId}. Total imported: ${totalImported}`);
+
+            // Notify frontend via websocket (optional / good UX)
+            // (Assuming wsSync is available or we can trigger it elsewhere)
+            
+            return { success: true, count: totalImported };
+
+        } catch (error: any) {
+            console.error(`❌ Historical sync failed for user ${userId}:`, error);
+            return { success: false, count: totalImported, error: error.message };
+        }
+    }
 }
 
 

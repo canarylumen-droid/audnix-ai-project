@@ -82,6 +82,7 @@ const statusStyles = {
   new: "bg-primary/20 text-primary border-primary/20",
   open: "bg-primary/10 text-primary border-primary/10",
   replied: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  booked: "bg-sky-500/10 text-sky-500 border-sky-500/20",
   converted: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   not_interested: "bg-muted text-muted-foreground border-muted",
   cold: "bg-muted text-muted-foreground border-muted",
@@ -129,6 +130,14 @@ export default function InboxPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       if (data?.type === 'lead_updated' && data?.lead) {
         setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
+      }
+    });
+
+    socket.on('notification', (data: any) => {
+      if (data?.type === 'lead_import') {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+        toast({ title: "Leads Imported", description: "Your inbox has been updated with new leads." });
       }
     });
 
@@ -198,6 +207,9 @@ export default function InboxPage() {
           ? (lead.metadata?.isUnread || false)
           : lead.status === filterStatus;
 
+      const matchesArchived = showArchived ? true : !lead.archived;
+
+      return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
     });
   }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
 
@@ -312,6 +324,14 @@ export default function InboxPage() {
       const details = `Name: ${data.name}\nEmail: ${data.email || 'N/A'}\nPhone: ${data.phone || 'N/A'}\nCompany: ${data.company || 'N/A'}`;
       navigator.clipboard.writeText(details);
       toast({ title: "Copied!", description: "Lead details copied to clipboard" });
+    } else if (action === 'mark_booked') {
+      try {
+        await apiRequest("PATCH", `/api/leads/${data.id}`, { status: 'booked' });
+        toast({ title: "Lead Booked", description: `${data.name} has been marked as booked` });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to mark lead as booked", variant: "destructive" });
+      }
     }
   }, [toast, queryClient, leadId, setLocation]);
 
@@ -403,6 +423,9 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("booked")} className="cursor-pointer font-medium text-sky-500">Booked</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("converted")} className="cursor-pointer font-medium text-purple-500">Converted</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("not_interested")} className="cursor-pointer font-medium text-destructive/70">Not Interested</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 

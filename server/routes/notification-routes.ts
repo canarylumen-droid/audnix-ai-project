@@ -7,7 +7,7 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-// Get list of notifications for the current user
+// Get list of notifications for the current user (with pagination + date filter)
 router.get("/", requireAuth, async (req, res) => {
     try {
         const userId = req.session?.userId || (req.user as any)?.id;
@@ -15,8 +15,13 @@ router.get("/", requireAuth, async (req, res) => {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const notificationList = await storage.getNotifications(userId);
-        const unreadCount = notificationList.filter(n => !n.read).length;
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+        const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
+        const dateTo = req.query.dateTo ? new Date(req.query.dateTo as string) : undefined;
+
+        const notificationList = await storage.getNotifications(userId, { limit, offset, dateFrom, dateTo });
+        const unreadCount = await storage.getUnreadNotificationCount(userId);
 
         res.json({
             unreadCount,
@@ -58,6 +63,40 @@ router.post("/mark-all-read", requireAuth, async (req, res) => {
         res.json({ success: true });
     } catch (error: any) {
         console.error("Mark all notifications read error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear all notifications (permanently delete from DB)
+router.post("/clear-all", requireAuth, async (req, res) => {
+    try {
+        const userId = req.session?.userId || (req.user as any)?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        await storage.clearAllNotifications(userId);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error("Clear all notifications error:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete a single notification
+router.delete("/:id", requireAuth, async (req, res) => {
+    try {
+        const userId = req.session?.userId || (req.user as any)?.id;
+        const notificationId = req.params.id;
+
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        await storage.deleteNotification(notificationId, userId);
+        res.json({ success: true });
+    } catch (error: any) {
+        console.error("Delete notification error:", error);
         res.status(500).json({ error: error.message });
     }
 });
