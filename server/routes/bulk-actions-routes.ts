@@ -23,6 +23,16 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
     }
 
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+    
+    // Build lookup maps for O(1) deduplication
+    const emailMap = new Map<string, any>();
+    const nameMap = new Map<string, any>();
+    
+    existingLeads.forEach(l => {
+      if (l.email) emailMap.set(l.email.toLowerCase(), l);
+      if (l.name) nameMap.set(l.name.toLowerCase().trim(), l);
+    });
+
     const results = {
       leadsImported: 0,
       leadsUpdated: 0,
@@ -31,14 +41,14 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leads: [] as any[]
     };
 
-    const importedIdentifiers = new Set<string>();
+    const batchIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsData.length; i++) {
       const leadData = leadsData[i];
       try {
-        const email = leadData.email;
-        const name = leadData.name;
-        const identifier = email || name || 'unknown';
+        const email = leadData.email?.toLowerCase().trim();
+        const name = leadData.name?.trim();
+        const nameKey = name?.toLowerCase();
 
         if (!email && !name) {
           results.errors.push(`Row ${i + 1}: Missing name and email`);
@@ -46,34 +56,42 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           continue;
         }
 
-        if (importedIdentifiers.has(identifier.toLowerCase())) {
-          results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
-          continue;
-        }
+        // Batch deduplication (prevent duplicates within the same upload)
+        const batchKey = email || `name:${nameKey}`;
+        if (batchIdentifiers.has(batchKey)) continue;
+        batchIdentifiers.add(batchKey);
 
-        const existingLead = existingLeads.find(l => 
-          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase())
-        );
+        // Deduplication against DB
+        let existingLead = null;
+        if (email) {
+          existingLead = emailMap.get(email);
+        } else if (nameKey) {
+          existingLead = nameMap.get(nameKey);
+        }
 
         if (existingLead) {
           const updates: Record<string, any> = {};
           if (!existingLead.email && leadData.email) updates.email = leadData.email;
           if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
+          if (!existingLead.phone && leadData.phone) updates.phone = leadData.phone;
+          if (!existingLead.company && leadData.company) updates.company = leadData.company;
 
           if (Object.keys(updates).length > 0) {
-            await storage.updateLead(existingLead.id, updates);
+            const updated = await storage.updateLead(existingLead.id, updates);
             results.leadsUpdated++;
+            results.leads.push(updated || existingLead);
+          } else {
+            results.leads.push(existingLead);
           }
-          results.leads.push(existingLead);
           continue;
         }
 
         const newLead = await storage.createLead({
           userId,
           name: leadData.name || 'Unknown',
-          email: leadData.email,
-          phone: leadData.phone,
-          company: leadData.company,
+          email: leadData.email || null,
+          phone: leadData.phone || null,
+          company: leadData.company || null,
           channel: channel as any,
           aiPaused,
           metadata: { ...leadData }
@@ -81,7 +99,10 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
 
         results.leads.push(newLead);
         results.leadsImported++;
-        importedIdentifiers.add(identifier.toLowerCase());
+        
+        // Update local maps for subsequent rows in the same batch
+        if (newLead.email) emailMap.set(newLead.email.toLowerCase(), newLead);
+        if (newLead.name) nameMap.set(newLead.name.toLowerCase(), newLead);
       } catch (err: any) {
         results.errors.push(`Row ${i + 1}: ${err.message}`);
       }

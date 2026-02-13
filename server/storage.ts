@@ -526,6 +526,7 @@ export class MemStorage implements IStorage {
       snippet: insertLead.snippet || null,
       channel: insertLead.channel as "instagram" | "email",
       email: insertLead.email || null,
+      replyEmail: insertLead.replyEmail || insertLead.email || null,
       phone: insertLead.phone || null,
       status: (insertLead.status as any) || "new",
       score: insertLead.score || 0,

@@ -109,6 +109,7 @@ function convertToSchemaLead(lead: LeadWithProfile): Lead {
     externalId: lead.externalId || null,
     name: lead.name || lead.firstName || "Lead",
     email: lead.email || null,
+    replyEmail: (lead as any).replyEmail || lead.email || null,
     phone: lead.phone || null,
     company: lead.company || null,
     role: lead.role || null,

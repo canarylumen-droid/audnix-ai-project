@@ -11,7 +11,7 @@ import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
 import { outreachCampaigns, campaignLeads, messages, campaignEmails } from '../../shared/schema.js';
 import { storage } from '../storage.js';
 import { db } from '../db.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, ne } from 'drizzle-orm';
 
 const router = Router();
 

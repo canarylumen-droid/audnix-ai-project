@@ -420,6 +420,7 @@ export class DrizzleStorage implements IStorage {
         bio: insertLead.bio || null,
         channel: insertLead.channel as any,
         email: insertLead.email || null,
+        replyEmail: insertLead.replyEmail || insertLead.email || null,
         phone: insertLead.phone || null,
         status: insertLead.status || "new",
         score: insertLead.score || 0,

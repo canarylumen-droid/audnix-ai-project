@@ -275,7 +275,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
           // 2. Extract Leads — import everything we can
           const processedLeads = results.map(row => {
-            const basicLead = extractLeadFromRow(row, mapping);
+            const basicLead = extractLeadFromRow(row, mapping) as { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string; replyEmail?: string };
             // Use company as name fallback
             if (!basicLead.name && basicLead.company) basicLead.name = basicLead.company;
             // Only skip truly empty rows
@@ -288,6 +288,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
 
             return {
               ...basicLead,
+              replyEmail: basicLead.replyEmail || basicLead.email || null,
               metadata
             };
           }).filter(l => l !== null);
@@ -358,7 +359,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               userId,
               name: leadData.name || 'Unknown',
               email: leadData.email || null,
-              replyEmail: leadData.replyEmail || leadData.email || null, // Standardize reply email
+              replyEmail: leadData.replyEmail || (leadData as any).replyEmail || leadData.email || null, // Standardize reply email
               phone: leadData.phone || null,
               company: leadData.company || null,
               channel: 'email' as const,

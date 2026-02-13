@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,14 @@ export function LeadsDisplayModal({
   isImporting,
   canConfirm = true
 }: LeadsDisplayModalProps) {
+  const [visibleCount, setVisibleCount] = useState(50);
+  const visibleLeads = leads.slice(0, visibleCount);
+  const hasMore = leads.length > visibleCount;
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 50);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
@@ -62,7 +71,7 @@ export function LeadsDisplayModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/20">
-                {leads.map((lead, idx) => (
+                {visibleLeads.map((lead, idx) => (
                   <tr key={idx} className="group hover:bg-primary/5 transition-colors">
                     <td className="px-4 md:px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -125,6 +134,18 @@ export function LeadsDisplayModal({
                 ))}
               </tbody>
             </table>
+            {hasMore && (
+              <div className="p-6 text-center border-t border-border/20 bg-muted/5">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleShowMore}
+                  className="text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary/10"
+                >
+                  Show More (+{Math.min(50, leads.length - visibleCount)} of {leads.length - visibleCount} remaining)
+                </Button>
+              </div>
+            )}
           </div>
         </ScrollArea>
 

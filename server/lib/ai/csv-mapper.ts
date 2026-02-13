@@ -15,6 +15,7 @@ export const LEADS_SCHEMA = {
     role: { description: "Job title or role (e.g. Founder, CEO)", required: false },
     bio: { description: "Brief background or specific info about the lead", required: false },
     channel: { description: "Communication channel (instagram/email)", required: false },
+    reply_email: { description: "Alternative email address for replies", required: false },
 };
 
 export type LeadColumnMapping = {
@@ -25,6 +26,7 @@ export type LeadColumnMapping = {
     role?: string;
     bio?: string;
     channel?: string;
+    reply_email?: string;
     industry?: string;
     website?: string;
     notes?: string;
@@ -215,6 +217,10 @@ function fallbackMapping(headers: string[]): MappingResult {
         notes: [
             /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i,
             /^remarks$/i, /^feedback$/i, /^details$/i, /^extra$/i
+        ],
+        reply_email: [
+            /^reply[_\s-]?email$/i, /^reply[_\s-]?to$/i, /^alt[_\s-]?email$/i,
+            /^secondary[_\s-]?email$/i
         ]
     };
 
@@ -253,7 +259,7 @@ function fallbackMapping(headers: string[]): MappingResult {
 export function extractLeadFromRow(
     row: Record<string, string>,
     mapping: LeadColumnMapping
-): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string } {
+): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string; replyEmail?: string } {
     let email = mapping.email ? row[mapping.email]?.trim() : undefined;
     
     // Fallback: If no email was mapped, search all columns for an email pattern
@@ -278,6 +284,7 @@ export function extractLeadFromRow(
         role: mapping.role ? row[mapping.role]?.trim() : undefined,
         bio: mapping.bio ? row[mapping.bio]?.trim() : (mapping.notes ? row[mapping.notes]?.trim() : undefined),
         channel: mapping.channel ? row[mapping.channel]?.trim() : undefined,
+        replyEmail: mapping.reply_email ? row[mapping.reply_email]?.trim() : undefined,
     };
 }
 
