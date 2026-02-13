@@ -554,56 +554,115 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             )}
             <ThemeSwitcher />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-all hover:scale-105 active:scale-95">
                   <Bell className="h-5 w-5" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black border-2 border-background animate-in fade-in zoom-in duration-300">
+                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 flex items-center justify-center rounded-full bg-primary text-[10px] font-black text-black border-2 border-background animate-in fade-in zoom-in duration-300">
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
                     </span>
                   )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden mt-2 bg-[#030712] border-border/20 shadow-2xl">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                  <h4 className="font-bold text-sm text-white">Notifications</h4>
-                  {unreadNotifications > 0 && <Badge className="text-[10px] font-bold bg-primary text-black border-0">{unreadNotifications} new</Badge>}
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col border-l border-border/40 bg-background/95 backdrop-blur-2xl">
+                <div className="p-8 border-b border-border/20 bg-muted/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-2xl font-black tracking-tighter uppercase italic">Notifications</h4>
+                    {unreadNotifications > 0 && (
+                      <Badge className="bg-primary text-black font-black uppercase text-[10px] px-3 py-1">
+                        {unreadNotifications} NEW
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium">Real-time alerts from your autonomous sales engine.</p>
                 </div>
-                <ScrollArea className="h-[350px]">
-                  {recentNotifications.length > 0 ? (
-                    <div className="divide-y divide-border/20">
-                      {recentNotifications.map(notification => (
-                        <div key={notification.id} className={`p-4 hover:bg-white/5 transition-colors cursor-pointer flex gap-4 border-b border-white/[0.05] ${!notification.read ? 'bg-primary/5' : ''}`}>
-                          <div className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-white/20'}`} />
-                          <div className="space-y-1 flex-1">
-                            <p className="text-sm font-bold leading-none text-white/90">{notification.title}</p>
-                            <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">{notification.description}</p>
-                            <p className="text-[10px] font-bold text-white/20 uppercase tracking-wider">
-                              {(() => {
-                                try {
-                                  return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
-                                } catch (e) {
-                                  return 'Just now';
-                                }
-                              })()}
+
+                <ScrollArea className="flex-1">
+                  {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
+                    <div className="divide-y divide-border/10">
+                      {notificationsData.notifications.map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className={cn(
+                            "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
+                            !notification.read && "bg-primary/5"
+                          )}
+                        >
+                          {!notification.read && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                          )}
+                          <div className={cn(
+                            "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                            !notification.read ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Bell className="h-5 w-5" />
+                          </div>
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <p className="text-sm font-black leading-tight truncate pr-4">{notification.title}</p>
+                              <span className="text-[10px] font-bold text-muted-foreground/40 uppercase whitespace-nowrap pt-0.5">
+                                {(() => {
+                                  try {
+                                    return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+                                  } catch (e) {
+                                    return 'Just now';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {notification.description || "No details provided."}
                             </p>
+                            {!notification.read && (
+                              <button 
+                                className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await apiRequest('PATCH', `/api/notifications/${notification.id}/read`, {});
+                                    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                                  } catch (err) {
+                                    console.error("Failed to mark notification as read", err);
+                                  }
+                                }}
+                              >
+                                Mark as read
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground/40">
-                      <Inbox className="h-10 w-10 mb-4 opacity-20" />
-                      <p className="text-sm font-bold uppercase tracking-widest">Inbox Empty</p>
+                    <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center text-muted-foreground/20">
+                      <div className="w-20 h-20 rounded-full bg-muted/10 flex items-center justify-center mb-6">
+                        <Inbox className="h-10 w-10" />
+                      </div>
+                      <p className="text-sm font-black uppercase tracking-[0.2em]">Silence is golden</p>
+                      <p className="text-xs font-medium mt-2">No active alerts at this moment.</p>
                     </div>
                   )}
                 </ScrollArea>
-                <div className="p-2 border-t border-white/5 bg-white/[0.02]">
-                  <Button variant="ghost" size="sm" className="w-full text-[10px] font-bold uppercase tracking-wider h-9 text-white/40 hover:text-white hover:bg-white/5">View All Notifications</Button>
+
+                <div className="p-6 border-t border-border/20 bg-muted/10">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] border-border/40 hover:bg-background"
+                    onClick={async () => {
+                      try {
+                        await apiRequest('POST', '/api/notifications/mark-all-read', {});
+                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                      } catch (err) {
+                        console.error("Failed to mark all as read", err);
+                      }
+                    }}
+                  >
+                    Clear All Alerts
+                  </Button>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetContent>
+            </Sheet>
 
             <Separator orientation="vertical" className="h-6 mx-1 bg-border/40" />
 

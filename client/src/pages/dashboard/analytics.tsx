@@ -352,10 +352,20 @@ export default function AnalyticsPage() {
                     <div className="space-y-6 flex-1">
                         {(analytics?.recentEvents || []).length > 0 ? (
                             analytics?.recentEvents.map(event => (
-                                <div key={event.id} className="flex gap-4 group">
-                                    <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(59,130,246,0.5)] shrink-0" />
-                                    <div>
-                                        <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{event.description}</p>
+                                <div key={event.id} className="flex gap-4 group items-center">
+                                    <div className={cn(
+                                        "mt-1 w-2 h-2 rounded-full shrink-0 transition-all duration-500",
+                                        (event as any).isNew 
+                                            ? "bg-primary shadow-[0_0_15px_rgba(59,130,246,0.8)] scale-110 animate-pulse" 
+                                            : "bg-muted-foreground/30 shadow-none border border-white/5"
+                                    )} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-black text-foreground group-hover:text-primary transition-colors truncate">{event.description}</p>
+                                            {(event as any).isNew && (
+                                                <Badge className="h-4 px-1.5 text-[8px] font-black bg-primary text-black border-0 animate-in fade-in zoom-in">NEW</Badge>
+                                            )}
+                                        </div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 mt-1">{event.time}</p>
                                     </div>
                                 </div>

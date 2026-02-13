@@ -20,52 +20,7 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     }
 
     const user = await storage.getUserById(userId);
-    const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
-
-    // OPTIMIZATION: Skip message loading to prevent timeout - calculate from leads data only
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    const newLeads = leads.filter(l => new Date(l.createdAt) > sevenDaysAgo).length;
-    const activeLeads = leads.filter(l => l.status === 'open').length;
-    const convertedLeads = leads.filter(l => l.status === 'converted').length;
-
-    const hardenedLeads = leads.filter(l => l.verified).length;
-    const bouncyLeads = leads.filter(l => l.status === 'bouncy').length;
-    const recoveredLeads = leads.filter(l => l.status === 'recovered').length;
-
-    const totalMessages = await storage.getAllMessages(userId);
-
-    const messagesToday = totalMessages.filter(m => {
-      const d = new Date(m.createdAt);
-      return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).filter(m => m.direction === 'outbound').length;
-
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    const messagesYesterday = totalMessages.filter(m => {
-      const d = new Date(m.createdAt);
-      return d.getDate() === yesterday.getDate() && d.getMonth() === yesterday.getMonth() && d.getFullYear() === yesterday.getFullYear();
-    }).filter(m => m.direction === 'outbound').length;
-
-    // AI-Driven Deal Valuation Extraction
-    const deals = await storage.getDeals(userId);
-    const convertedDealsList = deals.filter(d => d.status === 'converted' || d.status === 'closed_won');
-
-    // Calculate values from real deal data
-    const totalPipelineValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-    const closedRevenue = convertedDealsList.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
-
-    // AI-Driven lead quality & intent extraction from messages
-    const inboxMessages = totalMessages.filter(m => m.direction === 'inbound');
-    const positiveIntents = inboxMessages.filter(m => {
-      const content = m.body?.toLowerCase() || "";
-      return content.includes('yes') ||
-        content.includes('book') ||
-        content.includes('interested') ||
-        content.includes('call') ||
-        content.includes('meeting');
-    }).length;
+    const stats = await storage.getDashboardStats(userId);
 
     // Real-time Engine Status & Synchronization
     const integrations = await storage.getIntegrations(userId);
@@ -91,51 +46,29 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
     const engineStatus = monitors.length > 0 ? "Autonomous" : "Paused";
 
     // Enhanced Domain Health Calculation (0-100)
-    // Factor 1: Bounce rate (hard bounces are severe)
     const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
     const softBounces = recentBounces.filter(b => b.bounceType === 'soft').length;
 
     let reputationScore = 100;
-    if (leads.length > 0) {
-      // Each hard bounce removes 5%, soft bounce 2%, capped at 100% loss
+    if (stats.totalLeads > 0) {
       const bouncePenalty = (hardBounces * 5) + (softBounces * 2);
       reputationScore = Math.max(0, 100 - bouncePenalty);
     }
 
-    // Factor 2: Domain Verification status
     const unverifiedDomains = domainVerifications.filter(v => v.verification_result !== 'pass').length;
     const verificationPenalty = unverifiedDomains * 10;
-
     const domainHealth = Math.max(0, reputationScore - verificationPenalty);
 
-    // Business Email Health based Reputation (%)
-    const reputationPercentage = domainHealth;
-
     res.json({
-      totalLeads: leads.length,
-      newLeads,
-      activeLeads,
-      convertedLeads,
-      hardenedLeads,
-      bouncyLeads,
-      recoveredLeads,
-      positiveIntents,
-      conversionRate: leads.length > 0 ? ((convertedLeads / leads.length) * 100).toFixed(1) : "0.0",
-      totalMessages: totalMessages.length,
-      messagesToday,
-      messagesYesterday,
-      averageResponseTime: '2.5h', // Still inferred/hardcoded for now as per minimal change scope
-      emailsThisMonth: leads.filter(l => l.channel === 'email').length,
-      instagramThisMonth: leads.filter(l => l.channel === 'instagram').length,
+      ...stats,
+      conversionRate: stats.totalLeads > 0 ? ((stats.convertedLeads / stats.totalLeads) * 100).toFixed(1) : "0.0",
+      averageResponseTime: '2.5h', 
       plan: user?.plan || 'trial',
-      filteredLeadsCount: user?.filteredLeadsCount || 0,
-      trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 0,
-      pipelineValue: totalPipelineValue,
-      closedRevenue: closedRevenue,
+      trialDaysLeft: user?.trialExpiresAt ? Math.ceil((new Date(user.trialExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
       lastSync: lastSyncTimestamp > 0 ? new Date(lastSyncTimestamp).toISOString() : null,
       engineStatus,
       domainHealth,
-      domainVerifications: domainVerifications.slice(0, 3) // Return brief status
+      domainVerifications: domainVerifications.slice(0, 3) 
     });
   } catch (error) {
     console.error('Dashboard stats error:', error);
@@ -155,31 +88,20 @@ router.get('/stats/previous', requireAuth, async (req: Request, res: Response): 
       return;
     }
 
-    const leads: Lead[] = await storage.getLeads({ userId, limit: 10000 });
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const previousLeads = leads.filter(l => {
-      const createdAt = new Date(l.createdAt);
-      return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo;
-    }).length;
-
-    const previousOpenLeads = leads.filter(l => {
-      const createdAt = new Date(l.createdAt);
-      return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo && l.status === 'open';
-    }).length;
-
-    const previousConvertedLeads = leads.filter(l => {
-      const createdAt = new Date(l.createdAt);
-      return createdAt >= fourteenDaysAgo && createdAt < sevenDaysAgo && l.status === 'converted';
-    }).length;
+    const stats = await storage.getDashboardStats(userId, {
+      start: fourteenDaysAgo,
+      end: sevenDaysAgo
+    });
 
     res.json({
-      totalLeads: previousLeads,
-      newLeads: previousLeads,
-      activeLeads: previousOpenLeads,
-      convertedLeads: previousConvertedLeads,
+      totalLeads: stats.totalLeads,
+      newLeads: stats.totalLeads,
+      activeLeads: stats.activeLeads,
+      convertedLeads: stats.convertedLeads,
     });
   } catch (error) {
     console.error('Previous stats error:', error);
@@ -531,50 +453,9 @@ router.get('/analytics/outreach', requireAuth, async (req: Request, res: Respons
 router.get('/analytics/full', requireAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.session?.userId!;
-    const user = await storage.getUserById(userId);
-    const leads = await storage.getLeads({ userId, limit: 10000 });
-
-    // Performance calculation
-    const conversions = leads.filter(l => l.status === 'converted').length;
-    const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
-    const allMessages = await storage.getAllMessages(userId);
-    const sent = allMessages.filter(m => m.direction === 'outbound').length;
-    const opened = allMessages.filter(m => m.direction === 'outbound' && m.openedAt).length;
-
-    // Time series (dynamic range) - Real data only
     const range = parseInt(req.query.days as string) || 7;
-    const timeSeries = [];
-
-    for (let i = range - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      const dayStart = new Date(date);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(date);
-      dayEnd.setHours(23, 59, 59, 999);
-
-      const dayMessages = allMessages.filter(m =>
-        new Date(m.createdAt) >= dayStart &&
-        new Date(m.createdAt) <= dayEnd
-      );
-
-      const dayLeads = leads.filter(l =>
-        l.updatedAt && new Date(l.updatedAt) >= dayStart &&
-        new Date(l.updatedAt) <= dayEnd
-      );
-
-      timeSeries.push({
-        name: dayStr,
-        sent_email: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'email').length,
-        sent_instagram: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'instagram').length,
-        opened: dayMessages.filter(m => m.direction === 'outbound' && m.openedAt).length,
-        replied_email: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'email').length,
-        replied_instagram: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'instagram').length,
-        booked: 0
-      });
-    }
+    
+    const analytics = await storage.getAnalyticsFull(userId, range);
 
     // Connection mapping
     const integrations = await storage.getIntegrations(userId);
@@ -582,31 +463,8 @@ router.get('/analytics/full', requireAuth, async (req: Request, res: Response): 
     const isAnyConnected = integrations.some(i => i.connected) || !!customEmail?.connected;
 
     res.json({
-      metrics: {
-        sent,
-        opened,
-        replied,
-        booked: conversions,
-        leadsFiltered: user?.filteredLeadsCount || 0,
-        conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
-        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
-        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
-      },
-      timeSeries,
-      channelPerformance: [
-        { channel: 'Email', value: leads.filter(l => l.channel === 'email').length },
-        { channel: 'Instagram', value: leads.filter(l => l.channel === 'instagram').length }
-      ],
-      isAnyConnected,
-      recentEvents: leads
-        .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
-        .slice(0, 5)
-        .map(l => ({
-          id: l.id,
-          type: 'interaction',
-          description: `${l.name} updated status to ${l.status}`,
-          time: new Date(l.updatedAt || l.createdAt).toLocaleTimeString()
-        }))
+      ...analytics,
+      isAnyConnected
     });
   } catch (error) {
     console.error('Full analytics error:', error);

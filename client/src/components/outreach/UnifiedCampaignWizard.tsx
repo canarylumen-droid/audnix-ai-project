@@ -286,12 +286,14 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                           </div>
                        </div>
 
-                       <Tabs defaultValue="initial" className="w-full" key={step}>
-                          <TabsList className="h-12 w-full bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6">
-                             <TabsTrigger value="initial" className="flex-1 rounded-xl text-xs font-bold uppercase tracking-widest">Step 1</TabsTrigger>
-                             <TabsTrigger value="followup" className="flex-1 rounded-xl text-xs font-bold uppercase tracking-widest">Step 2</TabsTrigger>
-                             <TabsTrigger value="followup2" className="flex-1 rounded-xl text-xs font-bold uppercase tracking-widest">Step 3</TabsTrigger>
-                          </TabsList>
+                        <Tabs defaultValue="initial" className="w-full" key={step}>
+                           <div className="bg-muted/40 p-1.5 rounded-2xl border border-border/10 mb-6">
+                             <TabsList className="h-10 w-full bg-transparent p-0 flex gap-1">
+                                <TabsTrigger value="initial" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 1</TabsTrigger>
+                                <TabsTrigger value="followup" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 2</TabsTrigger>
+                                <TabsTrigger value="followup2" className="flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all h-full">Step 3</TabsTrigger>
+                             </TabsList>
+                           </div>
 
                           <TabsContent value="initial" className="space-y-4 animate-in fade-in duration-300">
                              <Input 

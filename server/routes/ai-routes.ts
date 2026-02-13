@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { leads as leadsTable } from "../../shared/schema.js";
+import { db } from "../db.js";
 import multer from "multer";
 import csvParser from "csv-parser";
 import { Readable } from "stream";
@@ -56,21 +58,31 @@ router.get("/", requireAuth, async (req: Request, res: Response): Promise<void> 
     const limitNum = Math.min(parseInt(limit as string) || 50, 500);
     const offsetNum = parseInt(offset as string) || 0;
 
-    const allLeadsFiltered = await storage.getLeads({
+    // Get paginated leads directly from storage
+    const leads = await storage.getLeads({
       userId,
       channel: channel as string | undefined,
       status: status as string | undefined,
       search: search as string | undefined,
       includeArchived: includeArchived === 'true',
-      limit: 1000000, // Unlimited to ensure all leads are displayed
+      limit: limitNum,
+      offset: offsetNum
     });
 
-    const leads = allLeadsFiltered.slice(offsetNum, offsetNum + limitNum);
+    // Get total count for pagination UI
+    const totalLeads = await db.select({ count: sql<number>`count(*)` })
+      .from(leadsTable)
+      .where(and(
+        eq(leadsTable.userId, userId),
+        includeArchived === 'true' ? undefined : eq(leadsTable.archived, false),
+        status && status !== 'all' ? eq(leadsTable.status, status as any) : undefined,
+        channel ? eq(leadsTable.channel, channel as any) : undefined
+      ));
 
     res.json({
       leads: leads,
-      total: allLeadsFiltered.length,
-      hasMore: offsetNum + leads.length < allLeadsFiltered.length,
+      total: Number(totalLeads[0]?.count || 0),
+      hasMore: leads.length === limitNum,
     });
   } catch (error: unknown) {
     console.error("Get leads error:", error);
@@ -109,106 +121,30 @@ router.get("/analytics", requireAuth, async (req: Request, res: Response): Promi
     const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysBack);
+    startDate.setHours(0, 0, 0, 0);
 
-    const allLeads = await storage.getLeads({ userId, limit: 10000 });
-
-    const leads = allLeads.filter(l => new Date(l.createdAt) >= startDate);
-
-    const byStatus = leads.reduce<Record<string, number>>((acc, lead) => {
-      acc[lead.status] = (acc[lead.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    const byChannel = leads.reduce<Record<string, number>>((acc, lead) => {
-      acc[lead.channel] = (acc[lead.channel] || 0) + 1;
-      return acc;
-    }, {});
-
-    const conversions = leads.filter(l => l.status === 'converted').length;
-    const ghosted = leads.filter(l => l.status === 'cold').length;
-    const notInterested = leads.filter(l => l.status === 'not_interested').length;
-    const active = leads.filter(l => l.status === 'open' || l.status === 'replied').length;
-    const leadsReplied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
-
-    const conversionRate = leads.length > 0 ? (conversions / leads.length) * 100 : 0;
-
-    let bestReplyHour: number | null = null;
-    const replyHours: Record<number, number> = {};
-    for (const lead of leads) {
-      if (lead.lastMessageAt) {
-        const hour = new Date(lead.lastMessageAt).getHours();
-        replyHours[hour] = (replyHours[hour] || 0) + 1;
-      }
-    }
-    if (Object.keys(replyHours).length > 0) {
-      bestReplyHour = parseInt(Object.entries(replyHours).sort((a, b) => b[1] - a[1])[0][0]);
-    }
-
-    const channelBreakdown = Object.entries(byChannel).map(([channel, count]) => ({
-      channel,
-      count,
-      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
-    }));
-
-    const statusBreakdown = Object.entries(byStatus).map(([status, count]) => ({
-      status,
-      count,
-      percentage: leads.length > 0 ? (count / leads.length) * 100 : 0
-    }));
-
-    const timeline: Array<{ date: string; leads: number; conversions: number }> = [];
-    for (let i = daysBack; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-
-      const dayLeads = leads.filter(l => {
-        const createdAt = new Date(l.createdAt);
-        return createdAt >= date && createdAt < nextDate;
-      });
-
-      timeline.push({
-        date: date.toISOString().split('T')[0],
-        leads: dayLeads.length,
-        conversions: dayLeads.filter(l => l.status === 'converted').length
-      });
-    }
-
-    const positiveStatuses = ['replied', 'converted', 'open'];
-    const negativeStatuses = ['not_interested', 'cold'];
-    const positiveLeads = leads.filter(l => positiveStatuses.includes(l.status)).length;
-    const negativeLeads = leads.filter(l => negativeStatuses.includes(l.status)).length;
-    const totalWithSentiment = positiveLeads + negativeLeads;
-    const positiveSentimentRate = totalWithSentiment > 0
-      ? ((positiveLeads / totalWithSentiment) * 100).toFixed(1)
-      : '0';
+    // Use SQL-level aggregations via storage
+    const analytics = await storage.getAnalyticsSummary(userId, startDate);
 
     res.json({
       period,
-      summary: {
-        totalLeads: leads.length,
-        conversions,
-        conversionRate: conversionRate.toFixed(1),
-        active,
-        ghosted,
-        notInterested,
-        leadsReplied,
-        bestReplyHour
-      },
-      channelBreakdown,
-      statusBreakdown,
-      timeline,
+      ...analytics,
       behaviorInsights: {
-        bestReplyHour,
-        replyRate: leads.length > 0 ? ((leadsReplied / leads.length) * 100).toFixed(1) : '0',
+        ...analytics.summary,
+        replyRate: analytics.summary.totalLeads > 0 
+          ? ((analytics.summary.leadsReplied / analytics.summary.totalLeads) * 100).toFixed(1) 
+          : '0',
         avgResponseTime: await (await import('../lib/ai/analytics-engine.js')).calculateAvgResponseTime(userId),
-        positiveSentimentRate
+        positiveSentimentRate: analytics.positiveSentimentRate
       }
     });
 
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate analytics";
+    console.error("Analytics error:", error);
+    res.status(500).json({ error: errorMessage });
+  }
+});
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to generate analytics";
     console.error("Analytics error:", error);
@@ -373,7 +309,8 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               }
             }));
 
-            await db.insert(leads).values(leadsChunk as any).onConflictDoNothing();
+            // REMOVED onConflictDoNothing to allow duplicates/100% capture
+            await db.insert(leads).values(leadsChunk as any);
             leadsToSave.push(...leadsChunk);
 
             // Update process log
@@ -752,50 +689,21 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
     };
 
     const leadsToImportCount = Math.min(leadsData.length, maxLeads - currentLeadCount);
-    const importedIdentifiers = new Set<string>();
-    
-    // Efficiency: Use a Map for O(1) email lookups
-    const existingEmailMap = new Map(existingLeads.map(l => [l.email?.toLowerCase(), l]));
     
     const newLeadsToInsert: any[] = [];
-    const updatesDone: string[] = [];
 
     for (let i = 0; i < leadsToImportCount; i++) {
       const leadData = leadsData[i];
       try {
-        const email = leadData.email?.toLowerCase();
         const name = leadData.name;
-        const identifier = email || name || 'unknown';
+        const email = leadData.email;
 
         if (!email && !name) {
           results.errors.push(`Row ${i + 1}: Missing name and email`);
           continue;
         }
 
-        if (importedIdentifiers.has(identifier.toLowerCase())) {
-          results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
-          continue;
-        }
-        importedIdentifiers.add(identifier.toLowerCase());
-
-        const existingLead = email ? existingEmailMap.get(email) : null;
-
-        if (existingLead) {
-          // Merge strategy
-          const updates: Record<string, any> = {};
-          if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-          
-          const existingMeta = existingLead.metadata as Record<string, any> || {};
-          if (!existingMeta.company && leadData.company) {
-            updates.metadata = { ...existingMeta, company: leadData.company };
-          }
-
-          if (Object.keys(updates).length > 0) {
-            await storage.updateLead(existingLead.id, updates);
-            results.leadsUpdated++;
-          }
-          continue;
-        }
+        const identifier = email || name || 'unknown';
 
         // --- ENHANCEMENT: 100% Lead Capture (Neural Filter to Metadata Only) ---
         // Instead of dropping leads, we just tag them so the user knows
@@ -836,12 +744,12 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
 
     // --- BATCH INSERTION (PHASE 2 REQUIREMENT) ---
     // Chunked insert to handle 5k+ leads efficiently
-    const chunkSize = 50; // Drizzle/Postgres param limit is 65535, so 50-100 is safe and fast
+    const chunkSize = 50; 
+    const finalLeads = [];
     for (let i = 0; i < newLeadsToInsert.length; i += chunkSize) {
       const chunk = newLeadsToInsert.slice(i, i + chunkSize);
-      const { db } = await import('../db.js');
-      const { leads } = await import('../../shared/schema.js');
-      await db.insert(leads).values(chunk).onConflictDoNothing();
+      const inserted = await db.insert(leadsTable).values(chunk).returning();
+      finalLeads.push(...inserted);
     }
 
     res.json({
@@ -850,11 +758,7 @@ router.post("/import-bulk", requireAuth, async (req: Request, res: Response): Pr
       leadsUpdated: results.leadsUpdated,
       errors: results.errors.slice(0, 100), // Don't overwhelm response
       message: `Successfully processed ${results.leadsImported} new leads and ${results.leadsUpdated} updates. 100% capture enabled.`,
-      // Return ALL leads so the frontend has the full list for the campaign wizard
-      leads: newLeadsToInsert.map(l => ({ ...l, id: l.id || 'temp-id' })) // Note: ID might be missing if we used onConflictDoNothing without returning. 
-      // Actually, bulk insert doesn't return IDs easily in all drivers without specialized queries.
-      // Better approach: Since we know the users, we can just return the count and let frontend fetch, OR 
-      // we can do a fetch here.
+      leads: finalLeads // Return real leads with UUIDs
     });
 
   } catch (error: unknown) {

@@ -61,31 +61,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
         if (batchIdentifiers.has(batchKey)) continue;
         batchIdentifiers.add(batchKey);
 
-        // Deduplication against DB
-        let existingLead = null;
-        if (email) {
-          existingLead = emailMap.get(email);
-        } else if (nameKey) {
-          existingLead = nameMap.get(nameKey);
-        }
-
-        if (existingLead) {
-          const updates: Record<string, any> = {};
-          if (!existingLead.email && leadData.email) updates.email = leadData.email;
-          if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-          if (!existingLead.phone && leadData.phone) updates.phone = leadData.phone;
-          if (!existingLead.company && leadData.company) updates.company = leadData.company;
-
-          if (Object.keys(updates).length > 0) {
-            const updated = await storage.updateLead(existingLead.id, updates);
-            results.leadsUpdated++;
-            results.leads.push(updated || existingLead);
-          } else {
-            results.leads.push(existingLead);
-          }
-          continue;
-        }
-
+        // Create lead without deduplication for 100% capture
         const newLead = await storage.createLead({
           userId,
           name: leadData.name || 'Unknown',
@@ -94,7 +70,11 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           company: leadData.company || null,
           channel: channel as any,
           aiPaused,
-          metadata: { ...leadData }
+          metadata: { 
+            ...leadData,
+            imported_via: 'bulk_json',
+            import_date: new Date().toISOString()
+          }
         });
 
         results.leads.push(newLead);

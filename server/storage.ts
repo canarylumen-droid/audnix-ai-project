@@ -144,11 +144,66 @@ export interface IStorage {
   // Audit Trail (Recent Activities)
   createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
 
-  // Voice Balance
-  getVoiceMinutesBalance(userId: string): Promise<number>;
-  
+  // Analytics
+  getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+    summary: {
+      totalLeads: number;
+      conversions: number;
+      conversionRate: string;
+      active: number;
+      ghosted: number;
+      notInterested: number;
+      leadsReplied: number;
+      bestReplyHour: number | null;
+    };
+    channelBreakdown: Array<{ channel: string; count: number; percentage: number }>;
+    statusBreakdown: Array<{ status: string; count: number; percentage: number }>;
+    timeline: Array<{ date: string; leads: number; conversions: number }>;
+    positiveSentimentRate: string;
+  }>;
+
   // Gmail/Outlook
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
+
+  getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
+    totalLeads: number;
+    newLeads: number;
+    activeLeads: number;
+    convertedLeads: number;
+    hardenedLeads: number;
+    bouncyLeads: number;
+    recoveredLeads: number;
+    positiveIntents: number;
+    totalMessages: number;
+    messagesToday: number;
+    messagesYesterday: number;
+    pipelineValue: number;
+    closedRevenue: number;
+  }>;
+
+  getAnalyticsFull(userId: string, days: number): Promise<{
+    metrics: {
+      sent: number;
+      opened: number;
+      replied: number;
+      booked: number;
+      leadsFiltered: number;
+      conversionRate: number;
+      responseRate: number;
+      openRate: number;
+    };
+    timeSeries: Array<{
+      name: string;
+      sent_email: number;
+      sent_instagram: number;
+      opened: number;
+      replied_email: number;
+      replied_instagram: number;
+      booked: number;
+    }>;
+    channelPerformance: Array<{ channel: string; value: number }>;
+    recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -1114,6 +1169,163 @@ export class MemStorage implements IStorage {
 
   async getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined> {
     return undefined;
+  }
+
+  async getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
+    totalLeads: number;
+    newLeads: number;
+    activeLeads: number;
+    convertedLeads: number;
+    hardenedLeads: number;
+    bouncyLeads: number;
+    recoveredLeads: number;
+    positiveIntents: number;
+    totalMessages: number;
+    messagesToday: number;
+    messagesYesterday: number;
+    pipelineValue: number;
+    closedRevenue: number;
+  }> {
+    const leads = Array.from(this.leads.values()).filter(l => {
+      const matchUserId = l.userId === userId;
+      if (!matchUserId) return false;
+      if (overrideDates) {
+        const createdAt = new Date(l.createdAt);
+        return createdAt >= overrideDates.start && createdAt < overrideDates.end;
+      }
+      return true;
+    });
+
+    const messages = Array.from(this.messages.values()).filter(m => {
+      const matchUserId = m.userId === userId;
+      if (!matchUserId) return false;
+      if (overrideDates) {
+        const createdAt = new Date(m.createdAt);
+        return createdAt >= overrideDates.start && createdAt < overrideDates.end;
+      }
+      return true;
+    });
+
+    const deals = Array.from(this.deals.values()).filter(d => {
+      const matchUserId = d.userId === userId;
+      if (!matchUserId) return false;
+      if (overrideDates) {
+        const createdAt = new Date(d.createdAt);
+        return createdAt >= overrideDates.start && createdAt < overrideDates.end;
+      }
+      return true;
+    });
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    return {
+      totalLeads: leads.length,
+      newLeads: leads.filter(l => new Date(l.createdAt) >= sevenDaysAgo).length,
+      activeLeads: leads.filter(l => l.status === 'open' || l.status === 'replied').length,
+      convertedLeads: leads.filter(l => l.status === 'converted').length,
+      hardenedLeads: leads.filter(l => l.verified).length,
+      bouncyLeads: leads.filter(l => l.status === 'bouncy').length,
+      recoveredLeads: leads.filter(l => l.status === 'recovered').length,
+      positiveIntents: messages.filter(m => m.direction === 'inbound' && (m.body?.toLowerCase().includes('yes') || m.body?.toLowerCase().includes('book'))).length,
+      totalMessages: messages.length,
+      messagesToday: messages.filter(m => new Date(m.createdAt) >= today && m.direction === 'outbound').length,
+      messagesYesterday: messages.filter(m => {
+        const d = new Date(m.createdAt);
+        return d >= yesterday && d < today && m.direction === 'outbound';
+      }).length,
+      pipelineValue: deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+      closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    };
+  }
+
+  async getAnalyticsFull(userId: string, days: number): Promise<{
+    metrics: {
+      sent: number;
+      opened: number;
+      replied: number;
+      booked: number;
+      leadsFiltered: number;
+      conversionRate: number;
+      responseRate: number;
+      openRate: number;
+    };
+    timeSeries: Array<{
+      name: string;
+      sent_email: number;
+      sent_instagram: number;
+      opened: number;
+      replied_email: number;
+      replied_instagram: number;
+      booked: number;
+    }>;
+    channelPerformance: Array<{ channel: string; value: number }>;
+    recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
+  }> {
+    const leads = Array.from(this.leads.values()).filter(l => l.userId === userId);
+    const allMessages = Array.from(this.messages.values()).filter(m => m.userId === userId);
+    const user = Array.from(this.users.values()).find(u => u.id === userId);
+
+    const conversions = leads.filter(l => l.status === 'converted').length;
+    const replied = leads.filter(l => l.status === 'replied' || l.status === 'converted').length;
+    const sent = allMessages.filter(m => m.direction === 'outbound').length;
+    const opened = allMessages.filter(m => m.direction === 'outbound' && m.openedAt).length;
+
+    const timeSeries = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayStart = new Date(date.setHours(0, 0, 0, 0));
+      const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+
+      const dayMessages = allMessages.filter(m => new Date(m.createdAt) >= dayStart && new Date(m.createdAt) <= dayEnd);
+      const dayLeads = leads.filter(l => l.updatedAt && new Date(l.updatedAt) >= dayStart && new Date(l.updatedAt) <= dayEnd);
+
+      timeSeries.push({
+        name: dayStr,
+        sent_email: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'email').length,
+        sent_instagram: dayMessages.filter(m => m.direction === 'outbound' && m.provider === 'instagram').length,
+        opened: dayMessages.filter(m => m.direction === 'outbound' && m.openedAt).length,
+        replied_email: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'email').length,
+        replied_instagram: dayLeads.filter(l => (l.status === 'replied' || l.status === 'converted') && l.channel === 'instagram').length,
+        booked: 0
+      });
+    }
+
+    return {
+      metrics: {
+        sent,
+        opened,
+        replied,
+        booked: conversions,
+        leadsFiltered: user?.filteredLeadsCount || 0,
+        conversionRate: leads.length > 0 ? Math.round((conversions / leads.length) * 100) : 0,
+        responseRate: leads.length > 0 ? Math.round((replied / leads.length) * 100) : 0,
+        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
+      },
+      timeSeries,
+      channelPerformance: [
+        { channel: 'Email', value: leads.filter(l => l.channel === 'email').length },
+        { channel: 'Instagram', value: leads.filter(l => l.channel === 'instagram').length }
+      ],
+      recentEvents: leads
+        .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
+        .slice(0, 5)
+        .map(l => {
+          const updatedDate = new Date(l.updatedAt || l.createdAt);
+          return {
+            id: l.id,
+            type: 'interaction',
+            description: `${l.name} updated status to ${l.status}`,
+            time: updatedDate.toLocaleTimeString(),
+            isNew: (Date.now() - updatedDate.getTime()) < 24 * 60 * 60 * 1000
+          };
+        })
+    };
   }
 }
 

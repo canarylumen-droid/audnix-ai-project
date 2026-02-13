@@ -47,7 +47,6 @@
 
 /* GPU acceleration for animations */
 @media (prefers-reduced-motion: no-preference) {
-
   [data-vaul-drawer],
   [data-radix-dialog-overlay],
   [data-radix-dialog-content] {
@@ -58,7 +57,6 @@
 
 /* Reduce animations on low-end devices */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -77,26 +75,26 @@
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0, 0, 0, .10);
-  --badge-outline: rgba(0, 0, 0, .05);
+  --button-outline: rgba(0, 0, 0, 0.1);
+  --badge-outline: rgba(0, 0, 0, 0.05);
 
   /* Automatic computation of border around primary / danger buttons */
   --opaque-button-border-intensity: -8;
   /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0, 0, 0, .03);
-  --elevate-2: rgba(0, 0, 0, .08);
+  --elevate-1: rgba(0, 0, 0, 0.03);
+  --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 220 5% 96%;
+  --background: 0 0% 100%;
 
-  --foreground: 220 10% 12%;
+  --foreground: 220 10% 8%;
 
-  --border: 220 8% 88%;
+  --border: 220 10% 92%;
 
-  --card: 220 6% 94%;
+  --card: 0 0% 98%;
 
-  --card-foreground: 220 10% 12%;
+  --card-foreground: 220 10% 8%;
 
   --card-border: 220 8% 86%;
 
@@ -150,8 +148,9 @@
   --chart-5: 340 80% 48%;
 
   /* Professional Agency Font Stack */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', Menlo, monospace;
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", Menlo, monospace;
   --radius: 0.5rem;
   /* 8px - more modest, professional corners */
   --shadow-2xs: 0px 1px 2px 0px hsl(220 10% 10% / 0.05);
@@ -170,51 +169,72 @@
 
   /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --primary-border: hsl(
+    from hsl(var(--primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(
+    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) /
+      alpha
+  );
 
   /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(
+    from hsl(var(--accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 }
 
 .dark {
-  --button-outline: rgba(255, 255, 255, .10);
-  --badge-outline: rgba(255, 255, 255, .05);
+  --button-outline: rgba(255, 255, 255, 0.1);
+  --badge-outline: rgba(255, 255, 255, 0.05);
 
   --opaque-button-border-intensity: 9;
   /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255, 255, 255, .04);
-  --elevate-2: rgba(255, 255, 255, .09);
+  --elevate-1: rgba(255, 255, 255, 0.04);
+  --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: 230 35% 7%;
+  --background: 0 0% 0%;
 
   --foreground: 0 0% 100%;
 
-  --border: 220 30% 20%;
+  --border: 0 0% 12%;
 
-  --card: 230 35% 10%;
+  --card: 0 0% 4%;
 
   --card-foreground: 0 0% 100%;
 
@@ -272,36 +292,67 @@
   --chart-4: 280 70% 65%;
   --chart-5: 340 80% 68%;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 2% / 0.20);
+  --shadow-2xs: 0px 2px 0px 0px hsl(220 10% 2% / 0.2);
   --shadow-xs: 0px 2px 0px 0px hsl(220 10% 2% / 0.25);
-  --shadow-sm: 0px 2px 0px 0px hsl(220 10% 2% / 0.30), 0px 1px 2px -1px hsl(220 10% 2% / 0.35);
-  --shadow: 0px 8px 24px -4px hsl(220 10% 2% / 0.60), 0px 4px 12px -2px hsl(220 10% 2% / 0.40);
-  --shadow-md: 0px 12px 32px -8px hsl(220 10% 2% / 0.70), 0px 8px 16px -4px hsl(220 10% 2% / 0.50);
-  --shadow-lg: 0px 20px 48px -12px hsl(220 10% 2% / 0.80), 0px 12px 32px -8px hsl(220 10% 2% / 0.60);
-  --shadow-xl: 0px 32px 64px -16px hsl(0 0% 0% / 0.90), 0px 20px 48px -12px hsl(0 0% 0% / 0.70);
+  --shadow-sm:
+    0px 2px 0px 0px hsl(220 10% 2% / 0.3),
+    0px 1px 2px -1px hsl(220 10% 2% / 0.35);
+  --shadow:
+    0px 8px 24px -4px hsl(220 10% 2% / 0.6),
+    0px 4px 12px -2px hsl(220 10% 2% / 0.4);
+  --shadow-md:
+    0px 12px 32px -8px hsl(220 10% 2% / 0.7),
+    0px 8px 16px -4px hsl(220 10% 2% / 0.5);
+  --shadow-lg:
+    0px 20px 48px -12px hsl(220 10% 2% / 0.8),
+    0px 12px 32px -8px hsl(220 10% 2% / 0.6);
+  --shadow-xl:
+    0px 32px 64px -16px hsl(0 0% 0% / 0.9),
+    0px 20px 48px -12px hsl(0 0% 0% / 0.7);
   --shadow-2xl: 0px 48px 96px -24px hsl(0 0% 0% / 1);
 
   /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(
+    from hsl(var(--sidebar-primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(
+    from hsl(var(--sidebar-accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   --primary-border: hsl(var(--primary));
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --primary-border: hsl(
+    from hsl(var(--primary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(
+    from hsl(var(--secondary)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   --muted-border: hsl(var(--muted));
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(
+    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) /
+      alpha
+  );
 
   --accent-border: hsl(var(--accent));
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(
+    from hsl(var(--accent)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(
+    from hsl(var(--destructive)) h s
+      calc(l + var(--opaque-button-border-intensity)) / alpha
+  );
 }
 
 @layer base {
@@ -339,7 +390,6 @@
 }
 
 @layer components {
-
   /* Fast Hover Transitions */
   .hover-trigger,
   button,
@@ -359,22 +409,28 @@
 }
 
 .animated-border-card::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -1px;
   padding: 1.5px;
   border-radius: inherit;
-  background: conic-gradient(from 0deg,
-      transparent 0%,
-      transparent 10%,
-      hsl(var(--primary)) 20%,
-      transparent 30%,
-      transparent 50%,
-      hsl(var(--primary)) 60%,
-      transparent 70%,
-      transparent 100%);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 10%,
+    hsl(var(--primary)) 20%,
+    transparent 30%,
+    transparent 50%,
+    hsl(var(--primary)) 60%,
+    transparent 70%,
+    transparent 100%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: destination-out;
   opacity: 0.15;
@@ -410,7 +466,11 @@
   background-image:
     radial-gradient(at 0% 0%, hsla(195, 100%, 60%, 0.15) 0px, transparent 50%),
     radial-gradient(at 100% 0%, hsla(280, 60%, 60%, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(195, 100%, 60%, 0.1) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      hsla(195, 100%, 60%, 0.1) 0px,
+      transparent 50%
+    ),
     radial-gradient(at 0% 100%, hsla(280, 60%, 60%, 0.1) 0px, transparent 50%);
 }
 
@@ -451,8 +511,6 @@
   box-shadow: inset 0 0 40px hsla(var(--primary) / 0.05);
 }
 
-
-
 /* Low Performance Mode (Reduced Motion / Low Power) */
 @media (prefers-reduced-motion: reduce) {
   .glass-premium {
@@ -465,7 +523,7 @@
 
 /* Typing cursor animation */
 .cursor-blink::after {
-  content: '|';
+  content: "|";
   animation: blink 1s infinite step-start;
 }
 
@@ -495,7 +553,6 @@
   animation: shimmer 2s infinite;
 }
 
-
 /**
  * Using the elevate system.
  * Automatic contrast adjustment.
@@ -517,7 +574,6 @@
  * need to be distinguished from eachother visually.
  */
 @layer utilities {
-
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
@@ -533,7 +589,6 @@
   /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
    * buttons/badges can remove the automatic brightness adjustment on interactions
    * and program their own. */
-
 
   /**
    * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
@@ -666,7 +721,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(0, 210, 255, 0.5) 0%, rgba(0, 150, 200, 0.4) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 210, 255, 0.5) 0%,
+    rgba(0, 150, 200, 0.4) 100%
+  );
   border-radius: 20px;
   border: 3px solid transparent;
   background-clip: padding-box;
@@ -674,7 +733,11 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(0, 210, 255, 0.8) 0%, rgba(0, 180, 230, 0.7) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 210, 255, 0.8) 0%,
+    rgba(0, 180, 230, 0.7) 100%
+  );
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -689,12 +752,20 @@
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(0, 210, 255, 0.3) 0%, rgba(0, 120, 180, 0.2) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 210, 255, 0.3) 0%,
+    rgba(0, 120, 180, 0.2) 100%
+  );
   background-clip: padding-box;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(0, 210, 255, 0.6) 0%, rgba(0, 160, 220, 0.5) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 210, 255, 0.6) 0%,
+    rgba(0, 160, 220, 0.5) 100%
+  );
   background-clip: padding-box;
 }
 
@@ -733,7 +804,6 @@
 
 /* Prevent text/element overflow on mobile */
 @media (max-width: 640px) {
-
   .container,
   section,
   main {
@@ -778,7 +848,6 @@
 
 /* Touch device improvements */
 @media (hover: none) and (pointer: coarse) {
-
   /* Larger touch targets */
   button,
   a,
