@@ -1079,28 +1079,6 @@ router.get("/score/:leadId", requireAuth, async (req: Request, res: Response): P
 });
 
 /**
- * Update all lead scores
- * POST /api/ai/score-all
- */
-router.post("/score-all", requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = getCurrentUserId(req)!;
-
-    await updateAllLeadScores(userId);
-
-    res.json({
-      success: true,
-      message: "All leads scored successfully"
-    });
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to score leads";
-    console.error("Bulk scoring error:", error);
-    res.status(500).json({ error: errorMessage });
-  }
-});
-
-
-/**
  * Get competitor analytics
  * GET /api/ai/competitor-analytics
  */

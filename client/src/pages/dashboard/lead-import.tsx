@@ -275,13 +275,14 @@ export default function LeadImportPage() {
         leads: allLeads.leads || [] // Use real DB leads
       });
 
-      toast({
-        title: "Import Success",
-        description: `Successfully imported ${result.leadsImported} leads.`
-      });
-
       setMLeadsOpen(false); // Close modal on success
-      setTimeout(() => setFile(null), 2000);
+      setTimeout(() => {
+        setFile(null);
+        toast({
+          title: "Network Synchronization Complete",
+          description: `Successfully integrated ${result.leadsImported} leads into the intelligence core.`
+        });
+      }, 2000);
 
     } catch (error: any) {
       toast({
