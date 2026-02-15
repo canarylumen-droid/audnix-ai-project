@@ -62,7 +62,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
   try {
     const userId = getCurrentUserId(req)!;
     const { leadId } = req.params;
-    const { content, channel } = req.body;
+    const { content, channel, subject } = req.body;
 
     if (!content || typeof content !== "string" || content.trim().length === 0) {
       res.status(400).json({ error: "Message content is required" });
@@ -85,7 +85,9 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
           res.status(400).json({ error: "Lead has no email address" });
           return;
         }
-        await sendEmail(userId, lead.email, messageBody, `Re: ${lead.name || 'Conversation'}`, { isRaw: true });
+        // Use provided subject or fall back to standard Re: format
+        const emailSubject = subject || `Re: ${lead.name || 'Conversation'}`;
+        await sendEmail(userId, lead.email, messageBody, emailSubject, { isRaw: true });
       } else if (selectedChannel === 'instagram') {
         const leadMeta = lead.metadata as any;
         const igId = leadMeta?.instagram_id || leadMeta?.psid || lead.externalId;
@@ -123,6 +125,7 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
       provider: selectedChannel,
       direction: "outbound",
       body: messageBody,
+      subject: subject || undefined, // Store subject if provided
       audioUrl: null,
       metadata: { manual: true, sentAt: new Date() },
     });

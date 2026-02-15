@@ -480,22 +480,23 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     <p className="text-muted-foreground">Finalize your profile with your brand identity</p>
                   </div>
 
-                  <div className="space-y-4 mt-8">
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <Input
-                      id="companyName"
-                      placeholder="Enter your company name"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      autoFocus
-                      disabled={loading}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCompanyNameSubmit();
-                        }
-                      }}
-                    />
-                  </div>
+                    <div className="space-y-4">
+                      <Label htmlFor="companyName" className="text-xs font-black uppercase tracking-widest text-primary/60">Company Intelligence Name</Label>
+                      <Input
+                        id="companyName"
+                        placeholder="e.g. Audnix Operations"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        autoFocus
+                        disabled={loading}
+                        className="h-14 bg-white/5 border-white/10 rounded-2xl text-lg font-bold placeholder:text-white/20 focus:ring-primary/20"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCompanyNameSubmit();
+                          }
+                        }}
+                      />
+                    </div>
 
                   <Button
                     onClick={handleCompanyNameSubmit}

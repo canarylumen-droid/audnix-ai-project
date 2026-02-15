@@ -43,7 +43,7 @@ class ImapIdleManager {
     /**
      * Sync active connections with database integrations
      */
-    private async syncConnections(): Promise<void> {
+    public async syncConnections(): Promise<void> {
         try {
             const integrations = await storage.getIntegrationsByProvider('custom_email');
             const activeUserIds = new Set(integrations.filter(i => i.connected).map(i => i.userId));
@@ -103,10 +103,11 @@ class ImapIdleManager {
                             const lowerKey = key.toLowerCase();
                             const standardInboxes = ['inbox'];
                             const standardSents = [
-                                'sent', 'sent items', 'sent messages',
                                 'sent-mail', 'sent mail', 'sent items',
                                 'gesendet', 'enviados', 'envoyés', 'outbox',
-                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail'
+                                'inbox.sent', 'inbox.sent items', 'inbox.sent mail',
+                                'verzonden', 'posta inviata', 'skickat', 'elementos enviados',
+                                'sent messages', 'sent mails'
                             ];
 
                             if (standardInboxes.includes(lowerKey)) {
@@ -162,14 +163,28 @@ class ImapIdleManager {
                 port: imapPort,
                 tls: imapPort === 993,
                 tlsOptions: { rejectUnauthorized: false },
+                connTimeout: 45000,
+                authTimeout: 45000,
                 keepalive: {
                     interval: 10000,
                     idleInterval: 300000,
                     forceNoop: true
+                },
+                // Add debug to catch low-level socket errors
+                debug: (msg: string) => {
+                   // console.log(`[IMAP RAW ${userId}]`, msg); 
                 }
             });
 
             this.connections.set(userId, imap);
+
+            const safeEnd = () => {
+                try {
+                     if (imap.state !== 'disconnected') imap.end(); 
+                } catch (err) { 
+                    // Ignore errors during end
+                }
+            };
 
             imap.once('ready', async () => {
                 await this.discoverFolders(userId, imap);
@@ -178,6 +193,12 @@ class ImapIdleManager {
 
             imap.once('error', async (err: any) => {
                 console.error(`IMAP Error for user ${userId}:`, err.message);
+
+                // Ignore EPIPE/ECONNRESET during error handling as they are side effects of connection drop
+                if (err.code === 'EPIPE' || err.code === 'ECONNRESET') {
+                     safeEnd();
+                     return; 
+                }
 
                 // If it's a definitive configuration error, don't reconnect and mark integration as failing
                 const fatalErrors = ['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'AUTHENTICATIONFAILED'];
@@ -214,8 +235,14 @@ class ImapIdleManager {
                     this.reconnect(userId, integration);
                 }
             });
-
-            imap.connect();
+            
+            // Safety: Catch synchronous errors during connect
+            try {
+                imap.connect();
+            } catch (err: any) {
+                console.error(`IMAP synchronous connect error for user ${userId}:`, err.message);
+                this.reconnect(userId, integration);
+            }
         } catch (error) {
             console.error(`Failed to setup IMAP connection for user ${userId}:`, error);
         }
@@ -334,7 +361,9 @@ class ImapIdleManager {
                                     date: parsed.date,
                                     html: parsed.html,
                                     flags,
-                                    uid: seqno // Fallback UID
+                                    uid: seqno, // Fallback UID
+                                    messageId: parsed.messageId,
+                                    inReplyTo: parsed.inReplyTo
                                 });
                             }
                             bodyParsed = true;
@@ -358,7 +387,9 @@ class ImapIdleManager {
                             text: e.text,
                             date: e.date,
                             html: e.html,
-                            isRead: e.flags?.includes('\\Seen') || false
+                            isRead: e.flags?.includes('\\Seen') || false,
+                            messageId: e.messageId,
+                            inReplyTo: e.inReplyTo
                         })), undefined, direction);
 
                         if (results.imported > 0 || results.skipped < emails.length) {
@@ -406,88 +437,255 @@ class ImapIdleManager {
         console.log('🛑 IMAP IDLE Manager stopped');
     }
     public async appendSentMessage(userId: string, rawMessage: string, config: EmailConfig): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            // Use cached folders from the main connection if available
-            const discovered = this.folders.get(userId);
-            const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
+        const MAX_RETRIES = 3;
+        const BASE_DELAY = 1000;
 
-            // Force common Sent folder names if discovery yielded nothing or we just want to be sure
-            const fallbackFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT', 'INBOX.Sent'];
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    // Use cached folders from the main connection if available
+                    const discovered = this.folders.get(userId);
+                    const sentFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
 
-            const foldersToTry = discovered?.sent && discovered.sent.length > 0
-                ? [...new Set([...discovered.sent, ...fallbackFolders])]
-                : fallbackFolders;
+                    // Force common Sent folder names if discovery yielded nothing or we just want to be sure
+                    const fallbackFolders = ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT', 'INBOX.Sent'];
 
-            const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
-            const imapPort = config.imap_port || 993;
+                    const foldersToTry = discovered?.sent && discovered.sent.length > 0
+                        ? [...new Set([...discovered.sent, ...fallbackFolders])]
+                        : fallbackFolders;
 
-            if (!imapHost) {
-                console.warn(`[Append] No IMAP host for user ${userId}`);
-                resolve(); // Don't crash, just skip
+                    const imapHost = config.imap_host || config.smtp_host?.replace('smtp', 'imap') || '';
+                    const imapPort = config.imap_port || 993;
+
+                    if (!imapHost) {
+                        console.warn(`[Append] No IMAP host for user ${userId}`);
+                        resolve(); // Don't crash, just skip
+                        return;
+                    }
+
+                    // Create a dedicated transient connection for appending
+                    // This avoids conflicts with the main IDLE connection
+                    const appendImap = new Imap({
+                        user: config.smtp_user!,
+                        password: config.smtp_pass!,
+                        host: imapHost,
+                        port: imapPort,
+                        tls: imapPort === 993,
+                        tlsOptions: { rejectUnauthorized: false },
+                        authTimeout: 10000,
+                        connTimeout: 10000 // 10s connection timeout
+                    });
+
+                    const cleanup = () => {
+                        try {
+                            if (appendImap.state !== 'disconnected') appendImap.end();
+                        } catch (e) {
+                            // Suppress cleanup errors
+                        }
+                    };
+
+                    appendImap.once('ready', async () => {
+                        const appendToFolder = (folder: string) => {
+                            return new Promise<void>((res, rej) => {
+                                try {
+                                    appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
+                                        if (err) {
+                                            rej(err);
+                                        } else {
+                                            res();
+                                        }
+                                    });
+                                } catch (e) {
+                                    // Catch synchronous errors in append
+                                    rej(e);
+                                }
+                            });
+                        };
+
+                        // Try discovered and common names
+                        let appended = false;
+                        for (const folder of foldersToTry) {
+                            try {
+                                console.log(`[Append] Attempting to mirror message to '${folder}' for user ${userId}...`);
+                                await appendToFolder(folder);
+                                console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
+                                appended = true;
+                                break;
+                            } catch (e: any) {
+                                console.warn(`[Append] Failed to append to '${folder}': ${e.message}`);
+                                // Continue to next folder
+                            }
+                        }
+
+                        if (!appended) {
+                            console.error(`❌ Failed to append sent message for user ${userId}. Tried folders: ${foldersToTry.join(', ')}`);
+                        }
+
+                        cleanup();
+                        resolve();
+                    });
+
+                    appendImap.once('error', (err: any) => {
+                        console.error(`[Append] Connection error for user ${userId}:`, err.message);
+                        cleanup();
+                        reject(err); // Reject so we can retry
+                    });
+
+                    appendImap.connect();
+                });
+                
+                // If we get here, it succeeded (or resolved without crashing)
+                return;
+
+            } catch (error: any) {
+                const isLastAttempt = attempt === MAX_RETRIES;
+                const isTimeout = error.message && (error.message.includes('tim') || error.message.includes('TIM'));
+                
+                if (!isLastAttempt) {
+                    console.warn(`[Append] Attempt ${attempt} failed for ${userId}. Retrying in ${BASE_DELAY * attempt}ms...`);
+                    await new Promise(res => setTimeout(res, BASE_DELAY * attempt));
+                    continue;
+                }
+                
+                console.error(`[Append] All ${MAX_RETRIES} attempts failed for user ${userId}:`, error.message);
+                // We resolve cleanly to prevent blocking the send flow, but the error is logged
                 return;
             }
+        }
+    }
 
-            // Create a dedicated transient connection for appending
-            // This avoids conflicts with the main IDLE connection
-            const appendImap = new Imap({
-                user: config.smtp_user!,
-                password: config.smtp_pass!,
-                host: imapHost,
-                port: imapPort,
-                tls: imapPort === 993,
-                tlsOptions: { rejectUnauthorized: false },
-                authTimeout: 10000
-            });
 
-            const cleanup = () => {
-                appendImap.end();
+    /**
+     * Trigger a historical sync for a user (e.g. last 30 days)
+     */
+    public async syncHistoricalEmails(userId: string, daysToSync: number = 30): Promise<{ success: boolean; count: number; error?: string }> {
+        const imap = this.connections.get(userId);
+        if (!imap || imap.state !== 'authenticated') {
+            return { success: false, count: 0, error: 'IMAP connection not active' };
+        }
+
+        const userFolders = this.folders.get(userId);
+        if (!userFolders) {
+            return { success: false, count: 0, error: 'Folders not discovered yet' };
+        }
+
+        console.log(`📜 Starting historical sync for user ${userId} (${daysToSync} days)`);
+        let totalImported = 0;
+
+        try {
+            // Calculate date string for "SINCE" search criteria
+            const sinceDate = new Date();
+            sinceDate.setDate(sinceDate.getDate() - daysToSync);
+            // IMAP date format: "01-Jan-2023"
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const sinceStr = `${sinceDate.getDate()}-${months[sinceDate.getMonth()]}-${sinceDate.getFullYear()}`;
+
+            // Helper to sync a specific folder
+            const syncFolder = async (folderName: string, direction: 'inbound' | 'outbound') => {
+                return new Promise<number>((resolve) => {
+                    const fetchEmails = () => {
+                        imap.search([['SINCE', sinceStr]], (searchErr, results) => {
+                            if (searchErr || !results || results.length === 0) {
+                                resolve(0);
+                                return;
+                            }
+
+                            const fetch = imap.fetch(results, {
+                                bodies: '',
+                                struct: true
+                            });
+
+                            const emails: any[] = [];
+
+                            fetch.on('message', (msg: any, _seqno: number) => {
+                                let flags: string[] = [];
+                                msg.on('attributes', (attrs: any) => flags = attrs.flags || []);
+                                msg.on('body', (stream: any) => {
+                                    simpleParser(stream, async (err: any, parsed: any) => {
+                                        if (!err && parsed) {
+                                            emails.push({
+                                                from: parsed.from?.text,
+                                                to: parsed.to?.text,
+                                                subject: parsed.subject,
+                                                text: parsed.text || parsed.html || '',
+                                                date: parsed.date,
+                                                html: parsed.html,
+                                                flags,
+                                                messageId: parsed.messageId,
+                                                inReplyTo: parsed.inReplyTo
+                                            });
+                                        }
+                                    });
+                                });
+                            });
+
+                            fetch.once('end', async () => {
+                                if (emails.length > 0) {
+                                    console.log(`📜 Importing ${emails.length} historical ${direction} emails from ${folderName}`);
+                                    const importResult = await pagedEmailImport(userId, emails.map(e => ({
+                                        from: e.from?.split('<')[1]?.split('>')[0] || e.from,
+                                        to: e.to?.split('<')[1]?.split('>')[0] || e.to,
+                                        subject: e.subject,
+                                        text: e.text,
+                                        date: e.date,
+                                        html: e.html,
+                                        isRead: e.flags?.includes('\\Seen') || false,
+                                        messageId: e.messageId,
+                                        inReplyTo: e.inReplyTo
+                                    })), undefined, direction);
+                                    resolve(importResult.imported);
+                                } else {
+                                    resolve(0);
+                                }
+                            });
+                            
+                            fetch.once('error', (err) => {
+                                console.error(`[Historical] Fetch error in ${folderName}:`, err);
+                                resolve(0);
+                            });
+                        });
+                    };
+
+                    imap.openBox(folderName, true, (err) => {
+                        if (err) {
+                            console.warn(`[Historical] Could not open ${folderName}:`, err.message);
+                            resolve(0);
+                        } else {
+                            fetchEmails();
+                        }
+                    });
+                });
             };
 
-            appendImap.once('ready', async () => {
-                const appendToFolder = (folder: string) => {
-                    return new Promise<void>((res, rej) => {
-                        appendImap.append(rawMessage, { mailbox: folder, flags: ['\\Seen'] }, (err: any) => {
-                            if (err) {
-                                console.warn(`[Append] Error appending to ${folder}:`, err.message);
-                                rej(err);
-                            } else {
-                                res();
-                            }
-                        });
-                    });
-                };
+            // 1. Sync Inbox(es)
+            for (const inbox of userFolders.inbox) {
+                totalImported += await syncFolder(inbox, 'inbound');
+            }
 
-                // Try discovered and common names
-                let appended = false;
-                for (const folder of foldersToTry) {
-                    try {
-                        console.log(`[Append] Attempting to mirror message to '${folder}' for user ${userId}...`);
-                        await appendToFolder(folder);
-                        console.log(`✅ Message successfully mirrored to '${folder}' for user ${userId}`);
-                        appended = true;
-                        break;
-                    } catch (e: any) {
-                        console.warn(`[Append] Failed to append to '${folder}': ${e.message}`);
-                        // Continue to next folder
-                    }
+            // 2. Sync Sent Folder(s)
+            for (const sent of userFolders.sent) {
+                totalImported += await syncFolder(sent, 'outbound');
+            }
+
+            // Return to primary Inbox and IDLE
+            const primaryInbox = userFolders.inbox[0] || 'INBOX';
+            imap.openBox(primaryInbox, false, (err) => {
+                if (!err) {
+                    try { (imap as any).idle(); } catch (e) { }
                 }
-
-                if (!appended) {
-                    console.error(`❌ Failed to append sent message for user ${userId}. Tried folders: ${foldersToTry.join(', ')}`);
-                }
-
-                cleanup();
-                resolve();
             });
 
-            appendImap.once('error', (err: any) => {
-                console.error(`[Append] Connection error for user ${userId}:`, err.message);
-                cleanup();
-                resolve(); // resolve anyway
-            });
+            console.log(`✅ Historical sync complete for user ${userId}. Total imported: ${totalImported}`);
 
-            appendImap.connect();
-        });
+            // Notify frontend via websocket (optional / good UX)
+            // (Assuming wsSync is available or we can trigger it elsewhere)
+            
+            return { success: true, count: totalImported };
+
+        } catch (error: any) {
+            console.error(`❌ Historical sync failed for user ${userId}:`, error);
+            return { success: false, count: totalImported, error: error.message };
+        }
     }
 }
 

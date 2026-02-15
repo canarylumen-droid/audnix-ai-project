@@ -5,11 +5,13 @@
 import { Router } from 'express';
 import { createOutreachCampaign, validateCampaignSafety, formatCampaignMetrics } from '../lib/sales-engine/outreach-engine.js';
 import { requireAuth } from '../middleware/auth.js';
+import { isValidUUID } from '../lib/utils/validation.js';
 import { verifyDomainDns } from '../lib/email/dns-verification.js';
 import { generateExpertOutreach } from '../lib/ai/conversation-ai.js';
-import { outreachCampaigns, campaignLeads, messages } from '../../shared/schema.js';
+import { outreachCampaigns, campaignLeads, messages, campaignEmails } from '../../shared/schema.js';
+import { storage } from '../storage.js';
 import { db } from '../db.js';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, ne } from 'drizzle-orm';
 
 const router = Router();
 
@@ -38,69 +40,7 @@ router.post('/preview', requireAuth, async (req, res) => {
   }
 });
 
-/**
- * POST /api/outreach/campaign/create
- * Create a new outreach campaign from leads
- */
-router.post('/campaign/create', requireAuth, async (req, res) => {
-  try {
-    const { leads, campaignName } = req.body;
-
-    if (!leads || !Array.isArray(leads) || leads.length === 0) {
-      return res.status(400).json({ error: 'Leads array required' });
-    }
-
-    if (!campaignName) {
-      return res.status(400).json({ error: 'Campaign name required' });
-    }
-
-    // --- NEW: PRE-FLIGHT NEURAL CHECK ---
-    const filteredLeads = [];
-    let blockedCount = 0;
-
-    for (const lead of leads) {
-      if (lead.email) {
-        const domain = lead.email.split('@')[1];
-        if (domain) {
-          const dnsCheck = await verifyDomainDns(domain);
-          if (dnsCheck.overallStatus === 'poor' || !dnsCheck.mx.found) {
-            blockedCount++;
-            continue;
-          }
-        }
-      }
-      filteredLeads.push(lead);
-    }
-
-    if (filteredLeads.length === 0) {
-      return res.status(400).json({ error: 'No deliverable leads in batch after neural filtering' });
-    }
-
-    // Create campaign with filtered leads
-    const campaign = await createOutreachCampaign(filteredLeads, campaignName);
-
-    // Validate safety
-    const safety = validateCampaignSafety(campaign);
-
-    console.log('✅ Campaign created:', {
-      campaignId: campaign.campaignId,
-      totalLeads: campaign.totalLeads,
-      estimatedRevenue: campaign.estimatedRevenue,
-      safety,
-    });
-
-    return res.json({
-      success: true,
-      campaign,
-      safety,
-      blockedByNeuralFilter: blockedCount,
-      metrics: formatCampaignMetrics(campaign),
-    });
-  } catch (error: any) {
-    console.error('❌ Campaign creation failed:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// Merged with /api/outreach/campaigns
 
 /**
  * GET /api/outreach/campaigns
@@ -121,10 +61,6 @@ router.get('/campaigns', requireAuth, async (req, res) => {
   }
 });
 
-/**
- * POST /api/outreach/campaigns
- * Standard campaign creation endpoint used by frontend
- */
 router.post('/campaigns', requireAuth, async (req, res) => {
   try {
     const userId = req.session?.userId;
@@ -132,33 +68,122 @@ router.post('/campaigns', requireAuth, async (req, res) => {
 
     const { name, config, template, leads } = req.body;
 
-    if (!name || !config || !template || !leads) {
+    if (!name || !leads) {
       return res.status(400).json({ error: 'Missing required campaign data' });
+    }
+
+    // Default config and template if missing (for the "Neural Filter" style calls)
+    const campaignConfig = config || { dailyLimit: 50 };
+    const campaignTemplate = template || { subject: 'Re connecting', body: 'Hey {lead_name}, reaching out.' };
+
+    // Enforce 500 emails/day limit
+    if (campaignConfig.dailyLimit) {
+      campaignConfig.dailyLimit = Math.min(parseInt(campaignConfig.dailyLimit) || 50, 500);
     }
 
     const [campaign] = await db.insert(outreachCampaigns).values({
       userId,
       name,
-      config,
-      template,
-      status: 'draft'
+      config: campaignConfig,
+      template: campaignTemplate,
+      status: 'draft',
+      stats: { total: leads?.length || 0, sent: 0, replied: 0, bounced: 0 }
     }).returning();
 
-    // Link leads to campaign
+    // Link leads to campaign (with auto-upsert for non-UUIDs)
+    let addedCount = 0;
     if (leads && Array.isArray(leads)) {
-      const leadLinks = leads.map(leadId => ({
+      const finalLeadIds: string[] = [];
+
+      for (const leadItem of leads) {
+        // 1. If it's a valid UUID, use it directly
+        if (typeof leadItem === 'string' && isValidUUID(leadItem)) {
+          finalLeadIds.push(leadItem);
+          continue;
+        }
+
+        // 2. If it's an object with an ID that's a valid UUID
+        if (typeof leadItem === 'object' && leadItem !== null && leadItem.id && isValidUUID(leadItem.id)) {
+          finalLeadIds.push(leadItem.id);
+          continue;
+        }
+
+        // 3. Auto-Upsert: If it's an email string or object with email
+        const email = typeof leadItem === 'string' ? leadItem : leadItem?.email;
+        const name = typeof leadItem === 'object' ? leadItem?.name : (email?.split('@')[0] || 'Unknown');
+
+        if (email && email.includes('@')) {
+          try {
+            // Check if lead already exists by email
+            let existingLead = await storage.getLeadByEmail(email, userId);
+            
+            if (!existingLead) {
+              // Create new lead
+              existingLead = await storage.createLead({
+                userId,
+                name: name || 'Unknown',
+                email: email,
+                channel: 'email',
+                status: 'new',
+                aiPaused: false,
+                metadata: { 
+                  auto_created: true, 
+                  campaign_id: campaign.id,
+                  import_date: new Date().toISOString() 
+                }
+              });
+              console.log(`[Campaign] Auto-created lead: ${email}`);
+            } else if (existingLead.userId !== userId) {
+                continue;
+            }
+
+            // --- Deduplication Check (Phase 1 Requirement) ---
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const lastContacted = existingLead.lastMessageAt ? new Date(existingLead.lastMessageAt) : null;
+            const hasReplied = existingLead.status === 'replied' || existingLead.status === 'converted';
+            
+            if (hasReplied) {
+              console.log(`[Campaign] Skipping lead ${email}: Already replied/converted.`);
+              continue;
+            }
+
+            if (lastContacted && lastContacted > thirtyDaysAgo) {
+              console.log(`[Campaign] Skipping lead ${email}: Contacted in the last 30 days.`);
+              continue;
+            }
+            
+            finalLeadIds.push(existingLead.id);
+          } catch (err) {
+            console.error(`[Campaign] Failed to auto-upsert/dedupe lead ${email}:`, err);
+          }
+        }
+      }
+
+      const leadLinks = finalLeadIds.map(leadId => ({
         campaignId: campaign.id,
         leadId,
         status: 'pending' as const
       }));
+      addedCount = leadLinks.length;
 
-      // Batch insert in chunks of 50 to avoid parameter limits if leads is huge
+      // Batch insert in chunks of 50 to avoid parameter limits
       for (let i = 0; i < leadLinks.length; i += 50) {
         await db.insert(campaignLeads).values(leadLinks.slice(i, i + 50)).onConflictDoNothing();
       }
     }
 
-    res.json(campaign);
+    // Calculate metrics/safety for response (parity with old /campaign/create)
+    const metricsResult = await createOutreachCampaign(leads, name);
+    const safety = validateCampaignSafety(metricsResult);
+
+    res.json({ 
+      ...campaign, 
+      addedLeads: addedCount,
+      safety,
+      metrics: formatCampaignMetrics(metricsResult)
+    });
   } catch (error: any) {
     console.error('Campaign creation error:', error);
     res.status(500).json({ error: error.message });
@@ -186,6 +211,95 @@ router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
     }
 
     res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/pause
+ * Pause an active campaign
+ */
+router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'paused', updatedAt: new Date() })
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)))
+      .returning();
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/resume
+ * Resume a paused campaign
+ */
+router.post('/campaigns/:id/resume', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [campaign] = await db.update(outreachCampaigns)
+      .set({ status: 'active', updatedAt: new Date() })
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)))
+      .returning();
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+    res.json({ success: true, campaign });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/outreach/campaigns/:id
+ * Get campaign details with live stats
+ */
+router.get('/campaigns/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.userId;
+    
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const [campaign] = await db.select().from(outreachCampaigns)
+      .where(and(eq(outreachCampaigns.id, id), eq(outreachCampaigns.userId, userId)));
+
+    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
+
+    // Get live stats
+    const leadStats = await db.select({
+      status: campaignLeads.status,
+      count: sql<number>`count(*)`
+    })
+      .from(campaignLeads)
+      .where(eq(campaignLeads.campaignId, id))
+      .groupBy(campaignLeads.status);
+
+    const stats = {
+      total: 0,
+      sent: 0,
+      failed: 0,
+      pending: 0,
+      replied: 0
+    };
+
+    leadStats.forEach((s: any) => {
+      stats.total += Number(s.count);
+      // @ts-ignore
+      if (stats[s.status] !== undefined) stats[s.status] += Number(s.count);
+    });
+
+    res.json({ ...campaign, liveStats: stats });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -303,147 +417,7 @@ router.post('/demo-hvac', async (req, res) => {
 });
 
 
-// -- New Manual Campaign Routes --
 
-// Manual Campaign Routes logic follows...
-
-/**
- * GET /api/outreach/campaigns
- * List all manual campaigns
- */
-router.get('/campaigns', requireAuth, async (req, res) => {
-  try {
-    const userId = req.session?.userId!;
-    const campaigns = await db.select().from(outreachCampaigns)
-      .where(eq(outreachCampaigns.userId, userId))
-      .orderBy(desc(outreachCampaigns.createdAt));
-    res.json(campaigns);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * POST /api/outreach/campaigns
- * Create a new manual campaign
- */
-router.post('/campaigns', requireAuth, async (req, res) => {
-  try {
-    const userId = req.session?.userId!;
-    const { name, config, template, leads } = req.body;
-
-    if (!name || !config || !template) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Create campaign
-    const [campaign] = await db.insert(outreachCampaigns).values({
-      userId,
-      name,
-      config,
-      template,
-      status: 'draft',
-      stats: { total: leads?.length || 0, sent: 0, replied: 0, bounced: 0 }
-    }).returning();
-
-    // Add leads if provided
-    if (leads && Array.isArray(leads) && leads.length > 0) {
-      await db.insert(campaignLeads).values(
-        leads.map((leadId: string) => ({
-          campaignId: campaign.id,
-          leadId,
-          status: 'pending'
-        }))
-      );
-    }
-
-    res.json(campaign);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * GET /api/outreach/campaigns/:id
- * Get campaign details
- */
-router.get('/campaigns/:id', requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [campaign] = await db.select().from(outreachCampaigns).where(eq(outreachCampaigns.id, id));
-
-    if (!campaign) return res.status(404).json({ error: 'Campaign not found' });
-
-    // Get live stats
-    const leadStats = await db.select({
-      status: campaignLeads.status,
-      count: sql<number>`count(*)`
-    })
-      .from(campaignLeads)
-      .where(eq(campaignLeads.campaignId, id))
-      .groupBy(campaignLeads.status);
-
-    const stats = {
-      total: 0,
-      sent: 0,
-      failed: 0,
-      pending: 0,
-      replied: 0
-    };
-
-    leadStats.forEach((s: any) => {
-      stats.total += Number(s.count);
-      // @ts-ignore
-      if (stats[s.status] !== undefined) stats[s.status] += Number(s.count);
-    });
-
-    res.json({ ...campaign, liveStats: stats });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * POST /api/outreach/campaigns/:id/start
- * Start campaign
- */
-router.post('/campaigns/:id/start', requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [campaign] = await db.update(outreachCampaigns)
-      .set({ status: 'active' })
-      .where(eq(outreachCampaigns.id, id))
-      .returning();
-    res.json(campaign);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * POST /api/outreach/campaigns/:id/pause
- * Pause campaign
- */
-router.post('/campaigns/:id/pause', requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const [campaign] = await db.update(outreachCampaigns)
-      .set({ status: 'active' })
-      .where(eq(outreachCampaigns.id, id))
-      .returning();
-
-    // Trigger immediate worker processing if campaign is active
-    if (campaign) {
-      const { followUpWorker } = await import('../lib/ai/follow-up-worker.js');
-      // We don't await this as it might take time, just trigger it
-      followUpWorker.processQueue().catch(err => console.error('Immediate queue processing failed:', err));
-    }
-
-    res.json(campaign);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 /**
  * GET /api/outreach/track/:trackingId
@@ -454,7 +428,7 @@ router.get('/track/:trackingId', async (req, res) => {
     const { trackingId } = req.params;
     const { wsSync } = await import('../lib/websocket-sync.js');
 
-    // Update openedAt for the message
+    // 1. Update openedAt for the message in unified inbox
     const [message] = await db.update(messages)
       .set({
         openedAt: new Date(),
@@ -463,6 +437,27 @@ router.get('/track/:trackingId', async (req, res) => {
       .where(eq(messages.trackingId, trackingId))
       .returning();
 
+    // 2. Update campaign_emails status for detailed campaign tracking
+    const [campaignEmail] = await db.update(campaignEmails)
+      .set({ 
+        status: 'opened',
+        metadata: sql`jsonb_set(metadata, '{openedAt}', ${JSON.stringify(new Date().toISOString())}::jsonb)`
+      })
+      .where(and(eq(campaignEmails.messageId, trackingId), ne(campaignEmails.status, 'opened')))
+      .returning();
+
+    // 3. Roll up stats to campaign level
+    if (campaignEmail?.campaignId) {
+      await db.update(outreachCampaigns)
+        .set({
+          stats: sql`jsonb_set(stats, '{opened}', (COALESCE((stats->>'opened')::int, 0) + 1)::text::jsonb)`,
+          updatedAt: new Date()
+        })
+        .where(eq(outreachCampaigns.id, campaignEmail.campaignId));
+      
+      console.log(`📊 Campaign stat updated: campaignId=${campaignEmail.campaignId}, stat=opened`);
+    }
+
     if (message) {
       console.log(`👁️ Email opened: trackingId=${trackingId}, userId=${message.userId}`);
       // Notify UI in real-time
@@ -470,6 +465,24 @@ router.get('/track/:trackingId', async (req, res) => {
         type: 'UPDATE',
         messageId: message.id,
         event: 'opened'
+      });
+      wsSync.notifyActivityUpdated(message.userId, {
+        type: 'email_opened',
+        messageId: message.id,
+        leadId: message.leadId,
+        trackingId
+      });
+
+      // Create audit log for activity feed
+      await storage.createAuditLog({
+        userId: message.userId,
+        leadId: message.leadId,
+        action: 'email_opened',
+        details: {
+          message: `Email opened by lead`,
+          messageId: message.id,
+          trackingId
+        }
       });
     }
 

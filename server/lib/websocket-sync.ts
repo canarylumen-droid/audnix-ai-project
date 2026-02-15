@@ -100,6 +100,10 @@ class WebSocketSyncServer {
     this.emitToUser(userId, 'activity_updated', data);
   }
 
+  notifyNotification(userId: string, data: any) {
+    this.emitToUser(userId, 'notification', data);
+  }
+
   // Generic broadcast
   broadcastToUser(userId: string, message: { type: string, payload: any }) {
     this.emitToUser(userId, message.type as MessageType, message.payload);

@@ -271,7 +271,17 @@ export default function IntegrationsPage() {
       toast({ title: "Email Connected", description: "SMTP settings saved successfully." });
     },
     onError: (error: Error) => {
-      toast({ title: "Connection Failed", description: error.message, variant: "destructive" });
+      // apiRequest throws "400: {json}" - try to extract structured error
+      let errorMsg = error.message;
+      let tipMsg = '';
+      try {
+        const jsonStr = error.message.replace(/^\d+:\s*/, '');
+        const parsed = JSON.parse(jsonStr);
+        errorMsg = parsed.error || errorMsg;
+        tipMsg = parsed.tip || '';
+      } catch { /* use raw message */ }
+      const description = tipMsg ? `${errorMsg}\n\n💡 ${tipMsg}` : errorMsg;
+      toast({ title: "Connection Failed", description, variant: "destructive" });
     }
   });
 
@@ -477,18 +487,18 @@ export default function IntegrationsPage() {
                       <p className="text-xs text-muted-foreground font-medium">Primary Sending Address</p>
                     </div>
                   </div>
-                  <div className="flex gap-3 w-full md:w-auto">
-                    <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => syncNowMutation.mutate()} disabled={syncNowMutation.isPending}>
-                      <RefreshCw className={cn("h-3.5 w-3.5 mr-2", syncNowMutation.isPending && "animate-spin")} /> {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0 justify-start md:justify-end">
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => syncNowMutation.mutate()} disabled={syncNowMutation.isPending}>
+                      <RefreshCw className={cn("h-3 w-3 mr-1.5", syncNowMutation.isPending && "animate-spin")} /> {syncNowMutation.isPending ? 'Syncing...' : 'Sync Now'}
                     </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => setIsTestEmailOpen(true)}>
-                      <Mail className="h-3.5 w-3.5 mr-2" /> Test Send
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsTestEmailOpen(true)}>
+                      <Mail className="h-3 w-3 mr-1.5" /> Test Send
                     </Button>
-                    <Button variant="outline" size="sm" className="rounded-lg h-9" onClick={() => setIsEditingCustomEmail(true)}>
-                      <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                    <Button variant="outline" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap" onClick={() => setIsEditingCustomEmail(true)}>
+                      <Pencil className="h-3 w-3 mr-1.5" /> Edit
                     </Button>
-                    <Button variant="ghost" size="sm" className="rounded-lg h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email')}>
-                      <Unplug className="h-3.5 w-3.5 mr-2" /> Disconnect
+                    <Button variant="ghost" size="sm" className="rounded-lg h-7 md:h-9 text-[10px] md:text-xs px-2 md:px-3 whitespace-nowrap text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => confirmDisconnect('custom_email')}>
+                      <Unplug className="h-3 w-3 mr-1.5" /> Disconnect
                     </Button>
                   </div>
                 </div>

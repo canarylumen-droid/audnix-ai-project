@@ -70,13 +70,43 @@ class BounceHandler {
 
       console.log(`📧 ${event.bounceType.toUpperCase()} bounce recorded: ${event.email}`);
 
-      // Update Neural UI Dashboard in real-time
-      if ((wsSync as any).broadcastChange) {
-        (wsSync as any).broadcastChange(event.userId, 'stats_update', {
+      // Stop any active campaign for this lead
+      const { campaignLeads } = await import('../../../shared/schema.js');
+      await db.update(campaignLeads)
+        .set({ 
+          status: 'failed', 
+          error: `${event.bounceType.toUpperCase()} bounce: ${event.reason || 'No reason provided'}` 
+        })
+        .where(eq(campaignLeads.leadId, event.leadId));
+
+      // Notify UI in real-time
+      wsSync.notifyActivityUpdated(event.userId, {
+        type: 'email_bounce',
+        bounceType: event.bounceType,
+        leadId: event.leadId,
+        email: event.email
+      });
+
+      // Create audit log for activity feed
+      await storage.createAuditLog({
+        userId: event.userId,
+        leadId: event.leadId,
+        action: 'email_bounce',
+        details: {
+          message: `${event.bounceType.toUpperCase()} bounce from ${event.email}`,
           bounceType: event.bounceType,
-          leadId: event.leadId
-        });
-      }
+          reason: event.reason
+        }
+      });
+
+      // Create persistent notification
+      await storage.createNotification({
+        userId: event.userId,
+        type: 'email_bounce',
+        title: '⚠️ Email Delivery Failed',
+        message: `${event.bounceType.toUpperCase()} bounce from ${event.email}. Lead marked as cold.`,
+        actionUrl: `/dashboard/inbox?leadId=${event.leadId}`
+      });
     } catch (error) {
       console.error('Error recording bounce:', error);
     }

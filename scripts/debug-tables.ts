@@ -22,21 +22,29 @@ const pool = new Pool({ connectionString });
 async function checkColumns() {
     const client = await pool.connect();
     try {
-        console.log("🔍 Checking 'notifications' table columns...");
-        const resNotifications = await client.query(`
+        console.log("🔍 Checking 'email_messages' table columns...");
+        const resEmail = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'notifications';
+      WHERE table_name = 'email_messages';
     `);
-        console.table(resNotifications.rows);
+        console.table(resEmail.rows);
 
-        console.log("\n🔍 Checking 'onboarding_profiles' table columns...");
-        const resProfiles = await client.query(`
+        console.log("\n🔍 Checking 'campaign_leads' table columns...");
+        const resCampaignLeads = await client.query(`
       SELECT column_name, data_type 
       FROM information_schema.columns 
-      WHERE table_name = 'onboarding_profiles';
+      WHERE table_name = 'campaign_leads';
     `);
-        console.table(resProfiles.rows);
+        console.table(resCampaignLeads.rows);
+
+        console.log("\n🔍 Checking 'outreach_campaigns' table columns...");
+        const resOutreach = await client.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'outreach_campaigns';
+    `);
+        console.table(resOutreach.rows);
 
     } catch (error) {
         console.error("❌ Error checking columns:", error);

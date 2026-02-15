@@ -98,9 +98,11 @@ interface UserProfile {
 interface Notification {
   id: string;
   title: string;
+  message: string;
   description?: string;
   read: boolean;
   createdAt: string;
+  type?: string;
 }
 
 interface NotificationsData {
@@ -184,56 +186,23 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   const { socket } = useRealtime(user?.id);
 
-  // Custom alert effect
-  useEffect(() => {
-    if (!socket) return;
-    const handleNotification = (payload: any) => {
-      // Invalidate both notifications and stats as they might change
-      queryClient.invalidateQueries({ queryKey: ["/api/user/notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
-
-      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
-        setCurrentAlert({
-          title: payload.title,
-          message: payload.message,
-          type: payload.type
-        });
-        setTimeout(() => setCurrentAlert(null), 10000);
-      }
-    };
-    socket.on('notification', handleNotification);
-    return () => { socket.off('notification', handleNotification); };
-  }, [socket]);
-
-  const onboardingCompleted = !!user?.metadata?.onboardingCompleted;
-  const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
-
   const { data: notificationsData } = useQuery<NotificationsData | null>({
-    queryKey: ["/api/user/notifications"],
-    staleTime: Infinity, // Trust socket updates
+    queryKey: ["/api/notifications"],
+    staleTime: 1000 * 60, // 1 minute cache
   });
-
-  useEffect(() => {
-    if (notificationsData?.unreadCount && notificationsData.unreadCount > (localStorage.getItem('last_unread_count') ? parseInt(localStorage.getItem('last_unread_count')!) : 0)) {
-      const audio = new Audio('/sounds/notification.mp3');
-      audio.play().catch(e => console.log('Audio play blocked:', e));
-      localStorage.setItem('last_unread_count', notificationsData.unreadCount.toString());
-    }
-  }, [notificationsData]);
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
-    staleTime: Infinity,
+    staleTime: 1000 * 30, // 30 seconds cache
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;
-  const recentNotifications = notificationsData?.notifications.slice(0, 5) || [];
+  const [notifDateFilter, setNotifDateFilter] = useState<'all' | 'today' | 'week'>('all');
 
   const handleSignOut = async () => {
     try {
@@ -311,6 +280,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
+        data-testid="sidebar-desktop"
         className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border bg-sidebar"
         animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
@@ -502,7 +472,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                     </div>
                   </div>
                 </ScrollArea>
-                <div className="p-8 border-t border-border/10 bg-muted/10">
+                <div className="p-8 border-t border-border/10 bg-muted/10 space-y-4">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-background border border-border/40">
                     <Avatar className="h-12 w-12 rounded-2xl">
                       <AvatarImage src={user?.avatar} />
@@ -513,6 +483,14 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{user?.plan || "Free"} plan active</p>
                     </div>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-2xl border-destructive/20 text-destructive hover:bg-destructive/10 h-12 font-bold"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -548,57 +526,200 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             )}
             <ThemeSwitcher />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl hover:bg-muted/50 transition-all hover:scale-105 active:scale-95">
                   <Bell className="h-5 w-5" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 flex items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black border-2 border-background animate-in fade-in zoom-in duration-300">
+                    <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1.5 flex items-center justify-center rounded-full bg-primary text-[10px] font-black text-black border-2 border-background animate-in fade-in zoom-in duration-300">
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
                     </span>
                   )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden mt-2 bg-[#030712] border-border/20 shadow-2xl">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                  <h4 className="font-bold text-sm text-white">Notifications</h4>
-                  {unreadNotifications > 0 && <Badge className="text-[10px] font-bold bg-primary text-black border-0">{unreadNotifications} new</Badge>}
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col border-l border-border/40 bg-background/95 backdrop-blur-2xl">
+                <div className="p-8 border-b border-border/20 bg-muted/20">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-2xl font-black tracking-tighter uppercase italic">Notifications</h4>
+                    {unreadNotifications > 0 && (
+                      <Badge className="bg-primary text-black font-black uppercase text-[10px] px-3 py-1">
+                        {unreadNotifications} NEW
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Real-time alerts from your autonomous sales engine.</p>
+                  
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      {(['all', 'today', 'week'] as const).map(f => (
+                        <Button
+                          key={f}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setNotifDateFilter(f)}
+                          className={cn(
+                            "h-7 px-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all", 
+                            notifDateFilter === f 
+                              ? "bg-primary text-primary-foreground shadow-sm" 
+                              : "hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {f === 'all' ? 'All' : f === 'today' ? 'Today' : 'Week'}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1"
+                        onClick={async () => {
+                          await apiRequest('POST', '/api/notifications/mark-all-read');
+                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                        }}
+                      >
+                        <Check className="w-3 h-3 mr-1.5" />
+                        Mark All Read
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          await apiRequest('POST', '/api/notifications/clear-all');
+                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                        }}
+                      >
+                        <LogOut className="w-3 h-3 mr-1.5 rotate-180" />
+                        Clear All
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <ScrollArea className="h-[350px]">
-                  {recentNotifications.length > 0 ? (
-                    <div className="divide-y divide-border/20">
-                      {recentNotifications.map(notification => (
-                        <div key={notification.id} className={`p-4 hover:bg-white/5 transition-colors cursor-pointer flex gap-4 border-b border-white/[0.05] ${!notification.read ? 'bg-primary/5' : ''}`}>
-                          <div className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-primary' : 'bg-white/20'}`} />
-                          <div className="space-y-1 flex-1">
-                            <p className="text-sm font-bold leading-none text-white/90">{notification.title}</p>
-                            <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">{notification.description}</p>
-                            <p className="text-[10px] font-bold text-white/20 uppercase tracking-wider">
-                              {(() => {
-                                try {
-                                  const date = new Date(notification.createdAt);
-                                  return isNaN(date.getTime()) ? 'Just now' : formatDistanceToNow(date, { addSuffix: true });
-                                } catch (e) {
-                                  return 'Just now';
-                                }
-                              })()}
+
+                <ScrollArea className="flex-1 h-[calc(100vh-220px)]">
+                  {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
+                    <div className="divide-y divide-border/10">
+                      {notificationsData.notifications
+                        .filter(n => {
+                          if (notifDateFilter === 'all') return true;
+                          const date = new Date(n.createdAt);
+                          const now = new Date();
+                          if (notifDateFilter === 'today') {
+                            return date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                          }
+                          if (notifDateFilter === 'week') {
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            return date >= weekAgo;
+                          }
+                          return true;
+                        })
+
+                          if (notifDateFilter === 'all') return true;
+                          const created = new Date(n.createdAt);
+                          const now = new Date();
+                          if (notifDateFilter === 'today') {
+                            return created.toDateString() === now.toDateString();
+                          }
+                          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                          return created >= weekAgo;
+                        })
+                        .map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className={cn(
+                            "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
+                            !notification.read && "bg-primary/5"
+                          )}
+                        >
+                          {!notification.read && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
+                          )}
+                          <div className={cn(
+                            "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                            !notification.read ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                          )}>
+                            <Bell className="h-5 w-5" />
+                          </div>
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4">
+                              <p className="text-sm font-black leading-tight truncate pr-4">{notification.title}</p>
+                              <span className="text-[10px] font-bold text-muted-foreground/40 uppercase whitespace-nowrap pt-0.5">
+                                {(() => {
+                                  try {
+                                    return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+                                  } catch (e) {
+                                    return 'Just now';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {notification.message || notification.description || "No details provided."}
                             </p>
+                            {!notification.read && (
+                              <button 
+                                className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  try {
+                                    await apiRequest('PATCH', `/api/notifications/${notification.id}/read`, {});
+                                    queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                                  } catch (err) {
+                                    console.error("Failed to mark notification as read", err);
+                                  }
+                                }}
+                              >
+                                Mark as read
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center text-muted-foreground/40">
-                      <Inbox className="h-10 w-10 mb-4 opacity-20" />
-                      <p className="text-sm font-bold uppercase tracking-widest">Inbox Empty</p>
+                    <div className="flex flex-col items-center justify-center h-[400px] p-8 text-center text-muted-foreground/20">
+                      <div className="w-20 h-20 rounded-full bg-muted/10 flex items-center justify-center mb-6">
+                        <Inbox className="h-10 w-10" />
+                      </div>
+                      <p className="text-sm font-black uppercase tracking-[0.2em]">Silence is golden</p>
+                      <p className="text-xs font-medium mt-2">No active alerts at this moment.</p>
                     </div>
                   )}
                 </ScrollArea>
-                <div className="p-2 border-t border-white/5 bg-white/[0.02]">
-                  <Button variant="ghost" size="sm" className="w-full text-[10px] font-bold uppercase tracking-wider h-9 text-white/40 hover:text-white hover:bg-white/5">View All Notifications</Button>
+
+                <div className="p-6 border-t border-border/20 bg-muted/10">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] border-border/40 hover:bg-background"
+                    onClick={async () => {
+                      try {
+                        await apiRequest('POST', '/api/notifications/mark-all-read', {});
+                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                      } catch (err) {
+                        console.error("Failed to mark all as read", err);
+                      }
+                    }}
+                  >
+                    Clear All Alerts
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-destructive hover:bg-destructive/10 mt-2"
+                    onClick={async () => {
+                      try {
+                        await apiRequest('POST', '/api/notifications/clear-all', {});
+                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                      } catch (err) {
+                        console.error("Failed to clear all notifications", err);
+                      }
+                    }}
+                  >
+                    Delete All Permanently
+                  </Button>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </SheetContent>
+            </Sheet>
 
             <Separator orientation="vertical" className="h-6 mx-1 bg-border/40" />
 

@@ -165,7 +165,9 @@ export class AutonomousOutreachWorker {
     if (!db) return;
 
     try {
-      // Find users with connected email integrations AND autonomous mode enabled
+      // Find users with connected email integrations
+      // REMOVED: Global "autonomous_outreach_enabled" check.
+      // We now rely on Lead-level "aiPaused" flag.
       const usersWithEmail = await db
         .select({
           userId: integrations.userId,
@@ -188,13 +190,7 @@ export class AutonomousOutreachWorker {
         return; // No users with email integrations
       }
 
-      // Filter users who have autonomous outreach enabled
-      const activeUsers = usersWithEmail.filter((u: any) => {
-        const meta = (u.metadata as Record<string, any>) || {};
-        return meta.autonomous_outreach_enabled === true;
-      });
-
-      const uniqueUserIds = [...new Set(activeUsers.map((u: any) => u.userId))];
+      const uniqueUserIds = [...new Set(usersWithEmail.map((u: any) => u.userId))];
 
       for (const userId of uniqueUserIds) {
         if (this.activeOutreachQueue.has(userId as string)) continue;
@@ -204,7 +200,11 @@ export class AutonomousOutreachWorker {
           if (uncontactedLeads.length > 0) {
             console.log(`[AutoOutreach] User ${userId} has ${uncontactedLeads.length} uncontacted leads`);
             this.activeOutreachQueue.set(userId as string, true);
-            this.processLeadsWithDelay(userId as string, uncontactedLeads);
+            // Non-blocking processing
+            this.processLeadsWithDelay(userId as string, uncontactedLeads).catch(err => {
+                 console.error(`[AutoOutreach] Error in background process for user ${userId}:`, err);
+                 this.activeOutreachQueue.delete(userId as string);
+            });
           }
         } catch (innerErr) {
           console.error(`[AutoOutreach] Error processing user ${userId}:`, innerErr);
@@ -226,6 +226,7 @@ export class AutonomousOutreachWorker {
 
     try {
       // Get leads with status 'new' that don't have outbound messages
+      // AND have AI explicitly enabled (aiPaused = false)
       const userLeads = await db
         .select({
           id: leads.id,
@@ -241,7 +242,8 @@ export class AutonomousOutreachWorker {
           and(
             eq(leads.userId, userId),
             eq(leads.status, 'new'),
-            eq(leads.channel, 'email')
+            eq(leads.channel, 'email'),
+            eq(leads.aiPaused, false) // CRITICAL: Only process if AI is enabled for this lead
           )
         )
         .limit(50);

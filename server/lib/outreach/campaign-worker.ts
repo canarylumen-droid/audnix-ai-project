@@ -1,7 +1,7 @@
 
 import { storage } from '../../storage.js';
 import { sendEmail } from '../channels/email.js';
-import { outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
+import { outreachCampaigns, campaignLeads, campaignEmails } from '../../../shared/schema.js';
 import { eq, and, lte, sql, desc, or } from 'drizzle-orm';
 import { db } from '../../db.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
@@ -127,6 +127,11 @@ export class CampaignWorker {
           or(
             eq(campaignLeads.status, 'pending'),
             and(
+              eq(campaignLeads.status, 'failed'),
+              sql`${campaignLeads.retryCount} < 3`,
+              lte(campaignLeads.nextActionAt, new Date())
+            ),
+            and(
               eq(campaignLeads.status, 'sent'),
               lte(campaignLeads.nextActionAt, new Date()),
               sql`${campaignLeads.currentStep} <= ${campaign.template ? (campaign.template as any).followups?.length || 0 : 0}`
@@ -148,6 +153,20 @@ export class CampaignWorker {
       return;
     }
 
+    // NEW: Skip leads already contacted globally if it's the first step
+    if (leadEntry.currentStep === 0) {
+      const globalContacted = await db.select({ id: campaignEmails.id })
+        .from(campaignEmails)
+        .where(eq(campaignEmails.leadId, lead.id))
+        .limit(1);
+      
+      if (globalContacted.length > 0) {
+        console.log(`[Campaign] Skipping lead ${lead.email} - already has outreach in another campaign`);
+        await db.update(campaignLeads).set({ status: 'sent', currentStep: 1, sentAt: new Date(), error: 'Skipped - already contacted' }).where(eq(campaignLeads.id, leadEntry.id));
+        return;
+      }
+    }
+
     // 4. Determine content based on current step
     try {
       console.log(`[Campaign] Processing step ${leadEntry.currentStep} for ${lead.email} in campaign ${campaign.name}`);
@@ -157,6 +176,23 @@ export class CampaignWorker {
       let isFollowUp = leadEntry.status === 'sent';
 
       if (isFollowUp) {
+        // Check if lead replied since last email — if so, stop further follow-ups
+        const replyCheck = await db.execute(sql`
+          SELECT id FROM messages
+          WHERE lead_id = ${lead.id} AND direction = 'inbound'
+          AND created_at > ${leadEntry.sentAt}
+          LIMIT 1
+        `);
+        if (replyCheck.rows.length > 0) {
+          console.log(`[Campaign] Lead ${lead.email} replied — stopping follow-ups`);
+          await db.update(campaignLeads).set({
+            status: 'replied', nextActionAt: null
+          }).where(eq(campaignLeads.id, leadEntry.id));
+          // Also update the lead's status
+          try { await storage.updateLead(lead.id, { status: 'replied' }); } catch (e) {}
+          return;
+        }
+
         const followups = (campaign.template as any)?.followups || [];
         const followUpConfig = followups[leadEntry.currentStep - 1];
         if (!followUpConfig) {
@@ -188,28 +224,73 @@ export class CampaignWorker {
       const firstName = lead.name?.split(' ')[0] || 'there';
       const company = lead.company || '';
 
-      subject = subject.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
-      body = body.replace(/{{name}}/g, lead.name).replace(/{{firstName}}/g, firstName).replace(/{{company}}/g, company);
+      subject = subject.replace(/{{name}}/g, lead.name)
+        .replace(/{{firstName}}/g, firstName)
+        .replace(/{{company}}/g, company)
+        .replace(/{{subject}}/g, (campaign.template as any)?.subject || '');
+
+      body = body.replace(/{{name}}/g, lead.name)
+        .replace(/{{firstName}}/g, firstName)
+        .replace(/{{company}}/g, company)
+        .replace(/{{subject}}/g, (campaign.template as any)?.subject || '');
 
       const trackingId = Math.random().toString(36).substring(2, 15);
       await sendEmail(campaign.userId, lead.email, body, subject, { trackingId, isRaw: true });
 
-      // Record message
+      // Record to unified messages table for Inbox visibility
       await storage.createMessage({
+        userId: campaign.userId,
+        leadId: lead.id,
+        provider: 'email',
+        direction: 'outbound',
+        subject,
+        body,
+        trackingId,
+        metadata: { campaignId: campaign.id, stepIndex: leadEntry.currentStep }
+      });
+
+      // Record to campaign_emails for detailed tracking
+      await db.insert(campaignEmails).values({
+        campaignId: campaign.id,
         leadId: lead.id,
         userId: campaign.userId,
-        direction: "outbound",
-        body: body,
-        provider: "email",
-        trackingId,
-        isRead: true, // Sent emails are usually considered read
-        metadata: {
-          campaign_id: campaign.id,
-          subject: subject,
-          is_outreach: true,
-          step: leadEntry.currentStep
+        messageId: trackingId,
+        subject,
+        body,
+        status: 'sent',
+        stepIndex: leadEntry.currentStep,
+        sentAt: new Date()
+      });
+
+      const { wsSync } = await import('../websocket-sync.js');
+      wsSync.notifyActivityUpdated(campaign.userId, { 
+        type: 'outreach_sent', 
+        campaignId: campaign.id,
+        leadId: lead.id 
+      });
+
+      // Create audit log for activity feed
+      await storage.createAuditLog({
+        userId: campaign.userId,
+        leadId: lead.id,
+        action: 'outreach_sent',
+        details: {
+          message: `Campaign email sent to ${lead.name}`,
+          campaignId: campaign.id,
+          subject
         }
       });
+
+      // Update campaign level stats
+      await db.update(outreachCampaigns)
+        .set({
+          stats: sql`jsonb_set(
+            jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb),
+            '{total}', (stats->>'total')::jsonb
+          )`,
+          updatedAt: new Date()
+        })
+        .where(eq(outreachCampaigns.id, campaign.id));
 
       // 5. Update Status and Schedule Next Step
       const nextStep = leadEntry.currentStep + 1;
@@ -239,9 +320,17 @@ export class CampaignWorker {
 
     } catch (error: any) {
       console.error(`[Campaign] Failed lead ${lead.id}:`, error);
+      
+      const nextRetryCount = leadEntry.retryCount + 1;
+      const backoffHours = nextRetryCount === 1 ? 1 : nextRetryCount === 2 ? 4 : 24;
+      const nextRetryAt = new Date();
+      nextRetryAt.setHours(nextRetryAt.getHours() + backoffHours);
+
       await db.update(campaignLeads).set({
         status: 'failed',
-        error: error.message || 'Send failed'
+        error: error.message || 'Send failed',
+        retryCount: nextRetryCount,
+        nextActionAt: nextRetryCount < 3 ? nextRetryAt : null
       }).where(eq(campaignLeads.id, leadEntry.id));
     }
   }

@@ -270,8 +270,25 @@ export class FollowUpWorker {
         (Date.now() - (lead.createdAt?.getTime() || Date.now())) / (1000 * 60 * 60 * 24)
       );
 
-      // Generate AI reply with day-aware context and brand personalization
-      let aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+      // Generate AI reply or use custom auto-reply body
+      let aiReply = '';
+      const customAutoReply = (job.context as any)?.autoReplyBody;
+
+      if (customAutoReply) {
+        console.log(`[FOLLOW_UP_WORKER] Using custom auto-reply template for lead ${lead.email}`);
+        
+        // Basic template variable substitution
+        const firstName = lead.name.split(' ')[0] || 'there';
+        const company = (lead.metadata as any)?.company || 'your company';
+        
+        aiReply = customAutoReply
+          .replace(/{{firstName}}/g, firstName)
+          .replace(/{{name}}/g, lead.name)
+          .replace(/{{company}}/g, company);
+      } else {
+        // Generate AI reply with day-aware context and brand personalization
+        aiReply = await this.generateFollowUp(lead, conversationHistory, brandContext, campaignDay, lead.createdAt || new Date(), job.userId);
+      }
 
       // DEEP TRACKING: Generate unique ID for engagement detection
       const { TrackingEngine } = await import('../email/tracking-engine.js');
@@ -291,7 +308,7 @@ export class FollowUpWorker {
         console.warn('Failed to add disclaimer context:', disclaimerError);
       }
 
-      console.log(`[FOLLOW_UP_WORKER] Generated AI reply for ${lead.email} via ${job.channel}. Length: ${aiReply.length}`);
+      console.log(`[FOLLOW_UP_WORKER] Final reply for ${lead.email} via ${job.channel}. Length: ${aiReply.length}. Source: ${customAutoReply ? 'Custom Template' : 'AI'}`);
 
       // Send the message
       const sent = await this.sendMessage(job.userId, lead, aiReply, job.channel);

@@ -25,23 +25,6 @@ if (!openai) {
   console.warn('⚠️ OpenAI API Key missing. Conversation AI will use fallback responses.');
 }
 
-/**
- * Robust AI extraction/mapping fallback when quota is exceeded
- */
-export async function fallbackMapCSVColumns(headers: string[]): Promise<Record<string, string>> {
-  const mapping: Record<string, string> = {};
-  const emailAliases = ['email', 'mail', 'e-mail', 'contact'];
-  const nameAliases = ['name', 'entity', 'full name', 'lead', 'contact name'];
-  
-  headers.forEach(h => {
-    const clean = h.toLowerCase().trim();
-    if (emailAliases.includes(clean)) mapping['email'] = h;
-    if (nameAliases.includes(clean)) mapping['name'] = h;
-  });
-  
-  return mapping;
-}
-
 const isDemoMode = false;
 
 /**

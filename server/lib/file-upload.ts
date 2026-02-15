@@ -4,6 +4,9 @@ import { promises as fs } from "fs";
 import { createClient } from "@supabase/supabase-js";
 import { embed as generateEmbedding } from "./ai/openai.js";
 import type { Request } from "express";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -357,9 +360,8 @@ async function extractTextFromPDF(filePath: string): Promise<string> {
 
 async function extractTextFromPDFBuffer(fileBuffer: Buffer): Promise<string> {
   try {
-    // Import pdf-parse dynamically to handle potential loading issues
-    // @ts-ignore
-    const pdf = (await import('pdf-parse')).default;
+    // pdf-parse uses a CJS export that requires 'require' in ESM
+    const pdf = require('pdf-parse');
     const data = await pdf(fileBuffer);
     return data.text || "";
   } catch (error: any) {

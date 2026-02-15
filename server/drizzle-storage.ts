@@ -1,8 +1,9 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification } from "../shared/schema.js";
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
+import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
 import { wsSync } from './lib/websocket-sync.js';
@@ -26,17 +27,30 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getEmailMessages(userId: string): Promise<EmailMessage[]> {
+    checkDatabase();
     return await db.select().from(emailMessages).where(eq(emailMessages.userId, userId));
+  }
+
+  async getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(emailMessages)
+      .where(eq(emailMessages.messageId, messageId))
+      .limit(1);
+    return result;
   }
 
   async getFollowUpById(id: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const [result] = await db.select().from(followUpQueue).where(eq(followUpQueue.id, id)).limit(1);
     return result;
   }
 
   async updateFollowUp(id: string, updates: Partial<FollowUpQueue>): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const [result] = await db
       .update(followUpQueue)
       .set({ ...updates, updatedAt: new Date() })
@@ -56,6 +70,7 @@ export class DrizzleStorage implements IStorage {
   }
   async getPendingFollowUp(leadId: string): Promise<FollowUpQueue | undefined> {
     checkDatabase();
+    if (!isValidUUID(leadId)) return undefined;
     const [result] = await db
       .select()
       .from(followUpQueue)
@@ -66,6 +81,7 @@ export class DrizzleStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
@@ -171,6 +187,7 @@ export class DrizzleStorage implements IStorage {
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     checkDatabase();
+    if (!isValidUUID(id)) return undefined;
 
     // If metadata is being updated, merge it with existing metadata instead of overwriting
     if (updates.metadata) {
@@ -307,6 +324,7 @@ export class DrizzleStorage implements IStorage {
     search?: string;
     limit?: number;
     offset?: number;
+    includeArchived?: boolean;
   }): Promise<Lead[]> {
     checkDatabase();
     // Ensure userId is a string, not an object
@@ -315,47 +333,41 @@ export class DrizzleStorage implements IStorage {
       throw new Error(`Invalid user ID: ${String(options.userId)}`);
     }
 
-    let query = db.select().from(leads).where(eq(leads.userId, userId));
+    let conditions = [eq(leads.userId, userId)];
+
+    if (!options.includeArchived) {
+      conditions.push(eq(leads.archived, false));
+    }
 
     // Improved Status Filtering logic
     if (options.status === 'warm') {
       // Warm = replied status or engagement score >= 50
-      query = db.select().from(leads).where(
-        and(
-          eq(leads.userId, userId),
-          or(eq(leads.status, 'replied'), gte(leads.score, 50))
-        )
-      );
+      conditions.push(or(eq(leads.status, 'replied'), gte(leads.score, 50)) as any);
     } else if (options.status === 'cold') {
       // Cold = status is cold
-      query = db.select().from(leads).where(
-        and(
-          eq(leads.userId, userId),
-          eq(leads.status, 'cold')
-        )
-      );
+      conditions.push(eq(leads.status, 'cold'));
     } else if (options.status && options.status !== 'all') {
-      query = query.where(eq(leads.status, options.status as any));
+      conditions.push(eq(leads.status, options.status as any));
     }
 
     if (options.channel) {
-      query = query.where(eq(leads.channel, options.channel as any));
+      conditions.push(eq(leads.channel, options.channel as any));
     }
 
     if (options.search) {
       const searchPattern = `%${options.search}%`;
-      query = query.where(
+      conditions.push(
         or(
           like(leads.name, searchPattern),
           like(leads.email, searchPattern),
           like(leads.phone, searchPattern),
           like(leads.company, searchPattern),
           like(leads.role, searchPattern)
-        )
+        ) as any
       );
     }
 
-    query = query.orderBy(desc(leads.createdAt));
+    let query = db.select().from(leads).where(and(...conditions)).orderBy(desc(leads.createdAt));
 
     if (options.limit) {
       query = query.limit(options.limit);
@@ -372,8 +384,8 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     // Ensure id is a string, not an object
     const leadId = typeof id === 'string' ? id : String(id);
-    if (!leadId || leadId === '[object Object]') {
-      throw new Error(`Invalid lead ID: ${String(id)}`);
+    if (!isValidUUID(leadId) || leadId === '[object Object]') {
+      return undefined;
     }
     const result = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
     return result[0];
@@ -381,6 +393,16 @@ export class DrizzleStorage implements IStorage {
 
   async getLeadById(id: string): Promise<Lead | undefined> {
     return this.getLead(id);
+  }
+
+  async getLeadByEmail(email: string, userId: string): Promise<Lead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.email, email), eq(leads.userId, userId)))
+      .limit(1);
+    return result;
   }
 
 
@@ -398,6 +420,7 @@ export class DrizzleStorage implements IStorage {
         bio: insertLead.bio || null,
         channel: insertLead.channel as any,
         email: insertLead.email || null,
+        replyEmail: insertLead.replyEmail || insertLead.email || null,
         phone: insertLead.phone || null,
         status: insertLead.status || "new",
         score: insertLead.score || 0,
@@ -414,22 +437,98 @@ export class DrizzleStorage implements IStorage {
 
     if (result[0]) {
       wsSync.notifyLeadsUpdated(insertLead.userId, { event: 'INSERT', lead: result[0] });
+      
+      // Notify about new lead
+      this.createNotification({
+        userId: insertLead.userId,
+        type: 'new_lead',
+        title: '🆕 New Lead Imported',
+        message: `${result[0].name} has been added via ${result[0].channel}.`,
+        actionUrl: `/dashboard/leads/${result[0].id}`
+      });
     }
     return result[0];
   }
 
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     checkDatabase();
-    const result = await db
+    if (!isValidUUID(id)) return undefined;
+    
+    // Get old lead for status change detection if status is being updated
+    let oldLead: Lead | undefined;
+    if (updates.status) {
+      oldLead = await this.getLeadById(id);
+    }
+
+    const [result] = await db
       .update(leads)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(leads.id, id))
       .returning();
 
-    if (result[0]) {
-      wsSync.notifyLeadsUpdated(result[0].userId, { event: 'UPDATE', lead: result[0] });
+    if (result) {
+      wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', lead: result });
+      
+      // Trigger notification on status change
+      if (oldLead && updates.status && oldLead.status !== updates.status) {
+        this.createNotification({
+          userId: result.userId,
+          type: 'lead_status_change',
+          title: '📈 Lead Status Updated',
+          message: `${result.name} moved from ${oldLead.status} to ${updates.status}.`,
+          actionUrl: `/dashboard/leads/${result.id}`
+        });
+      }
     }
-    return result[0];
+    return result;
+  }
+
+  async archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .update(leads)
+      .set({ archived, updatedAt: new Date() })
+      .where(and(eq(leads.id, id), eq(leads.userId, userId)))
+      .returning();
+    
+    if (result) {
+      wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', lead: result });
+    }
+    return result;
+  }
+
+  async deleteLead(id: string, userId: string): Promise<void> {
+    checkDatabase();
+    const [lead] = await db.select().from(leads).where(and(eq(leads.id, id), eq(leads.userId, userId))).limit(1);
+    if (lead) {
+      await db.delete(leads).where(and(eq(leads.id, id), eq(leads.userId, userId)));
+      wsSync.notifyLeadsUpdated(userId, { event: 'DELETE', leadId: id });
+    }
+  }
+
+  async archiveMultipleLeads(ids: string[], userId: string, archived: boolean): Promise<void> {
+    checkDatabase();
+    await db.update(leads)
+      .set({ archived, updatedAt: new Date() })
+      .where(and(eq(leads.userId, userId), sql`${leads.id} IN ${ids}`));
+    
+    wsSync.notifyLeadsUpdated(userId, { event: 'BULK_UPDATE', leadIds: ids, updates: { archived } });
+  }
+
+  async deleteMultipleLeads(ids: string[], userId: string): Promise<void> {
+    checkDatabase();
+    await db.delete(leads).where(and(eq(leads.userId, userId), sql`${leads.id} IN ${ids}`));
+    wsSync.notifyLeadsUpdated(userId, { event: 'BULK_DELETE', leadIds: ids });
+  }
+
+  async getAuditLogs(userId: string): Promise<AuditTrail[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(auditTrail)
+      .where(eq(auditTrail.userId, userId))
+      .orderBy(desc(auditTrail.createdAt))
+      .limit(50);
   }
 
   async getTotalLeadsCount(): Promise<number> {
@@ -674,6 +773,8 @@ export class DrizzleStorage implements IStorage {
       .returning();
 
     if (result[0]) {
+      // Use both specific and generic notification events
+      wsSync.notifyNotification(data.userId, result[0]);
       wsSync.broadcastToUser(data.userId, { type: 'notification', payload: result[0] });
     }
     return result[0];
@@ -1129,7 +1230,118 @@ export class DrizzleStorage implements IStorage {
       .where(and(eq(oauthAccounts.userId, userId), eq(oauthAccounts.provider, provider as any)));
   }
 
-  // ========== Calendar Events ==========
+  async getAnalyticsSummary(userId: string, startDate: Date): Promise<{
+    summary: {
+      totalLeads: number;
+      conversions: number;
+      conversionRate: string;
+      active: number;
+      ghosted: number;
+      notInterested: number;
+      leadsReplied: number;
+      bestReplyHour: number | null;
+    };
+    channelBreakdown: Array<{ channel: string; count: number; percentage: number }>;
+    statusBreakdown: Array<{ status: string; count: number; percentage: number }>;
+    timeline: Array<{ date: string; leads: number; conversions: number }>;
+    positiveSentimentRate: string;
+  }> {
+    checkDatabase();
+
+    const [mainSummary] = await db.select({
+      totalLeads: sql<number>`count(*)`,
+      conversions: sql<number>`count(*) filter (where status = 'converted')`,
+      active: sql<number>`count(*) filter (where status in ('open', 'replied'))`,
+      ghosted: sql<number>`count(*) filter (where status = 'cold')`,
+      notInterested: sql<number>`count(*) filter (where status = 'not_interested')`,
+      leadsReplied: sql<number>`count(*) filter (where status in ('replied', 'converted'))`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+
+    const statusResults = await db.select({
+      status: leads.status,
+      count: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+    .groupBy(leads.status);
+
+    const channelResults = await db.select({
+      channel: leads.channel,
+      count: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+    .groupBy(leads.channel);
+
+    const hourResults = await db.select({
+      hour: sql<number>`extract(hour from last_message_at)`,
+      count: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt))))
+    .groupBy(sql`extract(hour from last_message_at)`)
+    .orderBy(desc(sql`count(*)`))
+    .limit(1);
+
+    const timelineResults = await db.select({
+      date: sql<string>`to_char(created_at, 'YYYY-MM-DD')`,
+      leads: sql<number>`count(*)`,
+      conversions: sql<number>`count(*) filter (where status = 'converted')`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+    .groupBy(sql`to_char(created_at, 'YYYY-MM-DD')`)
+    .orderBy(sql`to_char(created_at, 'YYYY-MM-DD')`);
+
+    const total = Number(mainSummary?.totalLeads || 0);
+    const conversions = Number(mainSummary?.conversions || 0);
+    
+    // Sentiment calculation
+    const [sentimentSummary] = await db.select({
+      positive: sql<number>`count(*) filter (where status in ('replied', 'converted', 'open'))`,
+      negative: sql<number>`count(*) filter (where status in ('not_interested', 'cold'))`,
+    })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+
+    const positiveCount = Number(sentimentSummary?.positive || 0);
+    const negativeCount = Number(sentimentSummary?.negative || 0);
+    const totalWithSentiment = positiveCount + negativeCount;
+    const positiveSentimentRate = totalWithSentiment > 0
+      ? ((positiveCount / totalWithSentiment) * 100).toFixed(1)
+      : '0';
+
+    return {
+      summary: {
+        totalLeads: total,
+        conversions,
+        conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0',
+        active: Number(mainSummary?.active || 0),
+        ghosted: Number(mainSummary?.ghosted || 0),
+        notInterested: Number(mainSummary?.notInterested || 0),
+        leadsReplied: Number(mainSummary?.leadsReplied || 0),
+        bestReplyHour: hourResults[0] ? Number(hourResults[0].hour) : null,
+      },
+      channelBreakdown: channelResults.map((c: any) => ({
+        channel: c.channel,
+        count: Number(c.count),
+        percentage: total > 0 ? (Number(c.count) / total) * 100 : 0
+      })),
+      statusBreakdown: statusResults.map((s: any) => ({
+        status: s.status,
+        count: Number(s.count),
+        percentage: total > 0 ? (Number(s.count) / total) * 100 : 0
+      })),
+      timeline: timelineResults.map((t: any) => ({
+        date: t.date,
+        leads: Number(t.leads),
+        conversions: Number(t.conversions)
+      })),
+      positiveSentimentRate
+    };
+  }
   async createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent> {
     checkDatabase();
     const [result] = await db.insert(calendarEvents).values(data).returning();
@@ -1138,6 +1350,15 @@ export class DrizzleStorage implements IStorage {
       wsSync.notifyCalendarUpdated(data.userId, { event: 'INSERT', eventData: result });
     }
     return result;
+  }
+
+  async getCalendarEvents(userId: string): Promise<CalendarEvent[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(calendarEvents)
+      .where(eq(calendarEvents.userId, userId))
+      .orderBy(desc(calendarEvents.startTime));
   }
 
   // ========== Audit Trail ==========
@@ -1240,6 +1461,282 @@ export class DrizzleStorage implements IStorage {
   async markNotificationRead(id: string): Promise<void> {
     checkDatabase();
     await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
+  }
+
+  async getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
+    totalLeads: number;
+    newLeads: number;
+    activeLeads: number;
+    convertedLeads: number;
+    hardenedLeads: number;
+    bouncyLeads: number;
+    recoveredLeads: number;
+    positiveIntents: number;
+    totalMessages: number;
+    messagesToday: number;
+    messagesYesterday: number;
+    pipelineValue: number;
+    closedRevenue: number;
+  }> {
+    checkDatabase();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+    const leadsBaseWhere = overrideDates 
+      ? and(eq(leads.userId, userId), gte(leads.createdAt, overrideDates.start), lte(leads.createdAt, overrideDates.end))
+      : eq(leads.userId, userId);
+
+    const messagesBaseWhere = overrideDates
+      ? and(eq(messages.userId, userId), gte(messages.createdAt, overrideDates.start), lte(messages.createdAt, overrideDates.end))
+      : eq(messages.userId, userId);
+
+    const dealsBaseWhere = overrideDates
+      ? and(eq(deals.userId, userId), gte(deals.createdAt, overrideDates.start), lte(deals.createdAt, overrideDates.end))
+      : eq(deals.userId, userId);
+
+    const [leadsStats] = await db.select({
+      totalLeads: sql<number>`count(*)`,
+      newLeads: sql<number>`count(*) filter (where ${leads.createdAt} >= ${sevenDaysAgo})`,
+      activeLeads: sql<number>`count(*) filter (where status in ('open', 'replied'))`,
+      convertedLeads: sql<number>`count(*) filter (where status = 'converted')`,
+      hardenedLeads: sql<number>`count(*) filter (where verified = true)`,
+      bouncyLeads: sql<number>`count(*) filter (where status = 'bouncy')`,
+      recoveredLeads: sql<number>`count(*) filter (where status = 'recovered')`,
+    })
+    .from(leads)
+    .where(leadsBaseWhere);
+
+    const [messagesStats] = await db.select({
+      totalMessages: sql<number>`count(*)`,
+      messagesToday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${todayStart} and direction = 'outbound')`,
+      messagesYesterday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${yesterdayStart} and ${messages.createdAt} < ${todayStart} and direction = 'outbound')`,
+      positiveIntents: sql<number>`count(*) filter (where direction = 'inbound' and (lower(body) like '%yes%' or lower(body) like '%book%' or lower(body) like '%interested%' or lower(body) like '%call%' or lower(body) like '%meeting%'))`,
+    })
+    .from(messages)
+    .where(messagesBaseWhere);
+
+    const [dealsStats] = await db.select({
+      pipelineValue: sql<number>`coalesce(sum(value), 0)`,
+      closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then value else 0 end), 0)`,
+    })
+    .from(deals)
+    .where(dealsBaseWhere);
+
+    return {
+      totalLeads: Number(leadsStats?.totalLeads || 0),
+      newLeads: Number(leadsStats?.newLeads || 0),
+      activeLeads: Number(leadsStats?.activeLeads || 0),
+      convertedLeads: Number(leadsStats?.convertedLeads || 0),
+      hardenedLeads: Number(leadsStats?.hardenedLeads || 0),
+      bouncyLeads: Number(leadsStats?.bouncyLeads || 0),
+      recoveredLeads: Number(leadsStats?.recoveredLeads || 0),
+      positiveIntents: Number(messagesStats?.positiveIntents || 0),
+      totalMessages: Number(messagesStats?.totalMessages || 0),
+      messagesToday: Number(messagesStats?.messagesToday || 0),
+      messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
+      pipelineValue: Number(dealsStats?.pipelineValue || 0),
+      closedRevenue: Number(dealsStats?.closedRevenue || 0),
+    };
+  }
+
+  async getAnalyticsFull(userId: string, days: number): Promise<{
+    metrics: {
+      sent: number;
+      opened: number;
+      replied: number;
+      booked: number;
+      leadsFiltered: number;
+      conversionRate: number;
+      responseRate: number;
+      openRate: number;
+    };
+    timeSeries: Array<{
+      name: string;
+      sent_email: number;
+      sent_instagram: number;
+      opened: number;
+      replied_email: number;
+      replied_instagram: number;
+      booked: number;
+    }>;
+    channelPerformance: Array<{ channel: string; value: number }>;
+    recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
+  }> {
+    checkDatabase();
+    
+    // 1. Basic Metrics
+    const [counts] = await db.select({
+      totalLeads: sql<number>`count(*)`,
+      conversions: sql<number>`count(*) filter (where status = 'converted')`,
+      replied: sql<number>`count(*) filter (where status in ('replied', 'converted'))`,
+    }).from(leads).where(eq(leads.userId, userId));
+
+    const [msgCounts] = await db.select({
+      sent: sql<number>`count(*) filter (where direction = 'outbound')`,
+      opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
+    }).from(messages).where(eq(messages.userId, userId));
+
+    const [user] = await db.select({
+      filteredLeadsCount: users.filteredLeadsCount
+    }).from(users).where(eq(users.id, userId)).limit(1);
+
+    const totalLeads = Number(counts?.totalLeads || 0);
+    const conversions = Number(counts?.conversions || 0);
+    const replied = Number(counts?.replied || 0);
+    const sent = Number(msgCounts?.sent || 0);
+    const opened = Number(msgCounts?.opened || 0);
+
+    // 2. Time Series
+    // We'll calculate this in JS loop but using targeted SQL counts to avoid loading all objects
+    const timeSeries = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayStart = new Date(date);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const [dayMsg] = await db.select({
+        sent_email: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'email')`,
+        sent_instagram: sql<number>`count(*) filter (where direction = 'outbound' and provider = 'instagram')`,
+        opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
+      }).from(messages).where(and(eq(messages.userId, userId), gte(messages.createdAt, dayStart), lte(messages.createdAt, dayEnd)));
+
+      const [dayLeads] = await db.select({
+        replied_email: sql<number>`count(*) filter (where status in ('replied', 'converted') and channel = 'email')`,
+        replied_instagram: sql<number>`count(*) filter (where status in ('replied', 'converted') and channel = 'instagram')`,
+      }).from(leads).where(and(eq(leads.userId, userId), gte(leads.updatedAt, dayStart), lte(leads.updatedAt, dayEnd)));
+
+      timeSeries.push({
+        name: dayStr,
+        sent_email: Number(dayMsg?.sent_email || 0),
+        sent_instagram: Number(dayMsg?.sent_instagram || 0),
+        opened: Number(dayMsg?.opened || 0),
+        replied_email: Number(dayLeads?.replied_email || 0),
+        replied_instagram: Number(dayLeads?.replied_instagram || 0),
+        booked: 0
+      });
+    }
+
+    // 3. Channel Performance
+    const channelStats = await db.select({
+      channel: leads.channel,
+      value: sql<number>`count(*)`,
+    }).from(leads).where(eq(leads.userId, userId)).groupBy(leads.channel);
+
+    // 4. Recent Events
+    const recentLeads = await db.select({
+      id: leads.id,
+      name: leads.name,
+      status: leads.status,
+      updatedAt: leads.updatedAt,
+      createdAt: leads.createdAt
+    })
+    .from(leads)
+    .where(eq(leads.userId, userId))
+    .orderBy(desc(leads.updatedAt))
+    .limit(5);
+
+    return {
+      metrics: {
+        sent,
+        opened,
+        replied,
+        booked: conversions,
+        leadsFiltered: user?.filteredLeadsCount || 0,
+        conversionRate: totalLeads > 0 ? Math.round((conversions / totalLeads) * 100) : 0,
+        responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
+        openRate: sent > 0 ? Math.round((opened / sent) * 100) : 0
+      },
+      timeSeries,
+      channelPerformance: channelStats.map((s: any) => ({ channel: s.channel || 'Unknown', value: Number(s.value) })),
+      recentEvents: recentLeads.map((l: any) => {
+        const updatedDate = new Date(l.updatedAt || l.createdAt);
+        return {
+          id: l.id,
+          type: 'interaction',
+          description: `${l.name} updated status to ${l.status}`,
+          time: updatedDate.toLocaleTimeString(),
+          isNew: (Date.now() - updatedDate.getTime()) < 24 * 60 * 60 * 1000
+        };
+      })
+    };
+  }
+
+  // ========== Notification Methods ==========
+
+  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+    const conditions = [eq(notifications.userId, userId)];
+    if (opts?.dateFrom) conditions.push(gte(notifications.createdAt, opts.dateFrom));
+    if (opts?.dateTo) conditions.push(lte(notifications.createdAt, opts.dateTo));
+
+    return await db.select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(opts?.limit || 50)
+      .offset(opts?.offset || 0);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+    return Number(result[0]?.count || 0);
+  }
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(data).returning();
+    return notification;
+  }
+
+  async markNotificationAsRead(id: string, userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+    await db.update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    await db.delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
   }
 }
 

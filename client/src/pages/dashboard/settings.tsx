@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon } from "lucide-react";
+import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon, RefreshCw } from "lucide-react";
 // Mock/Fallback for missing Mail definition if it was expected as a functional object
 const Mail = {
   isDefined: true,
@@ -334,6 +334,23 @@ export default function SettingsPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Test Send</Button>
                       <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold">Edit</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-[10px] font-bold"
+                        onClick={async () => {
+                          try {
+                            toast({ title: "Sync Started", description: "Fetching emails from the last 30 days..." });
+                            await apiRequest('POST', '/api/custom-email/sync-history', { days: 30 });
+                            toast({ title: "Sync Scheduled", description: "Emails are being imported in the background." });
+                          } catch (err) {
+                            toast({ title: "Sync Failed", description: "Could not start historical sync.", variant: "destructive" });
+                          }
+                        }}
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1.5" />
+                        Sync History
+                      </Button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 import { db } from '../../db.js';
-import { leads as leadsTable } from '../../../shared/schema.js';
+import { leads as leadsTable, emailReplyStore, campaignEmails, outreachCampaigns, campaignLeads } from '../../../shared/schema.js';
 import { storage } from '../../storage.js';
 import pLimit from 'p-limit';
 import { analyzeInboundMessage } from '../ai/inbound-message-analyzer.js';
@@ -72,8 +72,16 @@ async function processEmailForLead(
     }
 
     const emailAddress = direction === 'inbound' ? email.from : email.to; // For outbound, we care who we sent TO
-    console.log(`[DEBUG] Processing ${direction} email: ${emailAddress} - Subject: ${email.subject}`);
+    console.log(`[DEBUG] Processing ${direction} email: ${emailAddress} - Subject: ${email.subject} - Message-ID: ${email.messageId}`);
 
+    // [DEDUPLICATION] check by messageId if available
+    if (email.messageId) {
+      const existingEmail = await storage.getEmailMessageByMessageId(email.messageId);
+      if (existingEmail) {
+        results.skipped++;
+        return;
+      }
+    }
 
     // [ROBUST LOOKUP] Use direct DB query for case-insensitive email matching
     // storage.getLeads uses case-dependent 'like' which might fail for mismatches
@@ -211,20 +219,106 @@ async function processEmailForLead(
       try {
         // 1. MARK CAMPAIGN AS REPLIED: Stop follow-ups if lead replied
         // We do this immediately upon receiving an inbound message from a lead
+        let linkedCampaignId: string | null = null;
         try {
-          const { campaignLeads } = await import('../../../shared/schema.js');
+          const { campaignLeads, outreachCampaigns } = await import('../../../shared/schema.js');
           const { db } = await import('../../db.js');
-          const { eq, and } = await import('drizzle-orm');
+          const { eq, and, sql } = await import('drizzle-orm');
 
-          await db.update(campaignLeads)
-            .set({ status: 'replied' })
+          // DEEP LINKING: Try to find campaign via inReplyTo header
+          if (email.inReplyTo) {
+            const parentEmail = await storage.getEmailMessageByMessageId(email.inReplyTo);
+            if (parentEmail?.campaignId) {
+              linkedCampaignId = parentEmail.campaignId;
+              console.log(`[EMAIL_IMPORT] Deep linked inbound reply to campaign ${linkedCampaignId} via In-Reply-To: ${email.inReplyTo}`);
+            }
+          }
+
+          // Find the campaign lead entry (preferably the one linked, otherwise the most recent 'sent' one)
+          const campaignLeadEntries = await db.select()
+            .from(campaignLeads)
             .where(
               and(
                 eq(campaignLeads.leadId, lead.id),
-                eq(campaignLeads.status, 'sent') // Must be in 'sent' status (outreached) to be 'replied'
+                linkedCampaignId ? eq(campaignLeads.campaignId, linkedCampaignId) : eq(campaignLeads.status, 'sent')
               )
-            );
-          console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in active campaigns`);
+            )
+            .limit(1);
+
+          if (campaignLeadEntries.length > 0) {
+            const entry = campaignLeadEntries[0];
+            await db.update(campaignLeads)
+              .set({ status: 'replied' })
+              .where(eq(campaignLeads.id, entry.id));
+            
+            console.log(`[EMAIL_IMPORT] Lead ${lead.email} marked as 'replied' in campaign ${entry.campaignId}`);
+
+            // NEW: Increment replied stat in outreachCampaigns
+            await db.update(outreachCampaigns)
+              .set({
+                stats: sql`jsonb_set(stats, '{replied}', (COALESCE((stats->>'replied')::int, 0) + 1)::text::jsonb)`,
+                updatedAt: new Date()
+              })
+              .where(eq(outreachCampaigns.id, entry.campaignId));
+
+            // Real-time notification and audit log
+            try {
+              const { wsSync } = await import('../websocket-sync.js');
+              wsSync.notifyActivityUpdated(userId, { 
+                type: 'email_reply', 
+                leadId: lead.id,
+                campaignId: entry.campaignId 
+              });
+              
+              await storage.createAuditLog({
+                userId,
+                leadId: lead.id,
+                action: 'lead_reply',
+                details: { 
+                  message: `Received email reply from ${lead.name}`,
+                  campaignId: entry.campaignId,
+                  channel: 'email'
+                }
+              });
+
+              // Create persistent notification
+              await storage.createNotification({
+                userId,
+                type: 'lead_reply',
+                title: '📩 New Reply Received',
+                message: `${lead.name} replied to your outreach.`,
+                actionUrl: `/dashboard/inbox?leadId=${lead.id}`
+              });
+            } catch (notifyErr) {
+              console.error('Failed to notify reply activity:', notifyErr);
+            }
+
+            // NEW: Log to emailReplyStore
+            try {
+              await db.insert(emailReplyStore).values({
+                messageId: email.messageId || `reply_${Date.now()}_${Math.random()}`,
+                inReplyTo: email.inReplyTo || '',
+                campaignId: entry.campaignId,
+                leadId: lead.id,
+                userId: userId,
+                fromAddress: email.from || '',
+                subject: email.subject,
+                body: email.text || '',
+                receivedAt: email.date || new Date()
+              });
+            } catch (replyLogErr) {}
+
+            // Fetch the campaign to get the auto-reply template
+            const campaigns = await db.select()
+              .from(outreachCampaigns)
+              .where(eq(outreachCampaigns.id, entry.campaignId))
+              .limit(1);
+            
+            let activeCampaign: any = null;
+            if (campaigns.length > 0) {
+              activeCampaign = campaigns[0];
+            }
+          }
         } catch (campaignStatusError) {
           console.warn('[EMAIL_IMPORT] Failed to update campaign status:', campaignStatusError);
         }
@@ -270,8 +364,18 @@ async function processEmailForLead(
           const { followUpQueue } = await import('../../../shared/schema.js');
 
           if (followUpDb) {
-            const quickDelay = (2 + Math.random() * 2) * 60 * 1000; // 2-4 minutes
+            const quickDelay = (2 + Math.random() * 1) * 60 * 1000; // 2-3 minutes
             const scheduledTime = new Date(Date.now() + quickDelay);
+
+            // Extract custom auto-reply body if it exists
+            const { outreachCampaigns } = await import('../../../shared/schema.js');
+            const [activeCampaign] = await followUpDb
+              .select()
+              .from(outreachCampaigns)
+              .where(and(eq(outreachCampaigns.userId, userId), eq(outreachCampaigns.status, 'active')))
+              .limit(1);
+
+            const autoReplyBody = (activeCampaign?.template as any)?.autoReplyBody;
 
             await followUpDb.insert(followUpQueue).values({
               userId,
@@ -285,11 +389,12 @@ async function processEmailForLead(
                 campaign_day: 0,
                 sequence_number: 1,
                 inbound_message: email.text?.substring(0, 200) || email.html?.substring(0, 200) || '',
-                quick_reply: true
+                quick_reply: true,
+                autoReplyBody: autoReplyBody || null // Pass the custom body to the worker
               }
             });
 
-            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)`);
+            console.log(`🤖 [EMAIL_IMPORT] Quick auto-reply queued for inbound email from ${lead.name} (${Math.round(quickDelay / 60000)}min)${autoReplyBody ? ' using custom template' : ' using AI'}`);
           }
         } else {
           console.log(`[EMAIL_IMPORT] Auto-reply SKIPPED for ${lead.email}. Reasons: Paused=${lead.aiPaused}, RecentOutbound=${hoursSinceLastOutbound < 2}, Status=${lead.status}, IsRecent=${isRecent}`);

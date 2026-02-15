@@ -110,6 +110,11 @@ export function injectTrackingPixel(html: string, trackingId: string): string {
 /**
  * Send email via custom SMTP (for custom domain emails)
  */
+
+/**
+ * Send email via custom SMTP (for custom domain emails)
+ * Includes exponential backoff for transient failures
+ */
 async function sendCustomSMTP(
   userId: string,
   config: EmailConfig,
@@ -118,7 +123,7 @@ async function sendCustomSMTP(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   const nodemailer = await import('nodemailer');
   const { imapIdleManager } = await import('../email/imap-idle-manager.js');
 
@@ -135,26 +140,63 @@ async function sendCustomSMTP(
       user: config.smtp_user,
       pass: config.smtp_pass,
     },
+    // Increased timeouts for reliability
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
   });
+
+  const messageId = `<${import.meta.url ? (await import('crypto')).randomUUID() : Date.now() + Math.random()}@audnixai.com>`;
 
   const fromAddress = config.from_name
     ? `"${config.from_name}" <${config.smtp_user}>`
     : config.smtp_user;
 
-  await transporter.sendMail({
-    from: fromAddress,
-    to,
-    subject,
-    [isHtml ? 'html' : 'text']: emailBody,
-  });
+  const MAX_RETRIES = 3;
+  let lastError: any = null;
 
-  // Attempt to save to "Sent" folder via persistent IMAP connection
-  try {
-    const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml);
-    await imapIdleManager.appendSentMessage(userId, rawMessage, config);
-  } catch (error) {
-    console.error(`[CustomSMTP] ❌ CRITICAL: Failed to save to Sent folder via IdleManager:`, error);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        // Exponential backoff: 2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`[CustomSMTP] Retry attempt ${attempt} for ${to} after ${delay}ms...`);
+        await new Promise(res => setTimeout(res, delay));
+      }
+
+      const info = await transporter.sendMail({
+        from: fromAddress,
+        to,
+        subject,
+        [isHtml ? 'html' : 'text']: emailBody,
+        messageId: messageId.replace(/[<>]/g, ''), // nodemailer adds brackets
+      });
+
+      // If we reach here, it worked!
+      console.log(`[CustomSMTP] ✅ Successfully sent to ${to} (Attempt ${attempt + 1}) - Message-ID: ${info.messageId}`);
+
+      // Attempt to save to "Sent" folder via persistent IMAP connection
+      try {
+        const rawMessage = createMimeMessage(fromAddress || '', to, subject, emailBody, isHtml, messageId);
+        await imapIdleManager.appendSentMessage(userId, rawMessage, config);
+      } catch (error) {
+        console.error(`[CustomSMTP] ❌ Failed to save to Sent folder:`, error);
+      }
+      
+      return { messageId: info.messageId }; // Exit function successfully
+    } catch (error: any) {
+      lastError = error;
+      const isTransient = error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT' || error.responseCode >= 400 && error.responseCode < 500;
+      
+      if (!isTransient || attempt === MAX_RETRIES) {
+        console.error(`[CustomSMTP] ❌ Permanent failure sending to ${to}:`, error.message);
+        throw error;
+      }
+      console.warn(`[CustomSMTP] ⚠️ Transient failure (Attempt ${attempt + 1}):`, error.message);
+    }
   }
+
+  throw lastError || new Error('Failed to send email after retries');
 }
 
 
@@ -177,169 +219,198 @@ export async function importCustomEmails(
     throw new Error('IMAP host not configured. Please provide explicit IMAP settings.');
   }
 
-  return new Promise((resolve, reject) => {
-    let timeoutHandle: NodeJS.Timeout | null = null;
-    let completed = false;
+  const MAX_RETRIES = 3;
+  const BASE_DELAY = 1000;
 
-    const cleanup = () => {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-      completed = true;
-    };
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await new Promise((resolve, reject) => {
+        let timeoutHandle: NodeJS.Timeout | null = null;
+        let completed = false;
+        let connectionEnded = false;
 
-    timeoutHandle = setTimeout(() => {
-      if (!completed) {
-        completed = true;
-        console.warn(`IMAP timeout for user ${config.smtp_user}. Resolving with empty list instead of crashing.`);
-        resolve([]); // Resolve with empty instead of rejecting to prevent crash
-      }
-    }, timeoutMs);
-
-  const imap = new Imap({
-    user: config.smtp_user!,
-    password: config.smtp_pass!,
-    host: imapHost,
-    port: imapPort,
-    tls: imapPort === 993,
-    tlsOptions: { rejectUnauthorized: false },
-    connTimeout: 60000,
-    authTimeout: 60000,
-    keepalive: true,
-    debug: (msg: string) => {
-      // Filter out hostname not found errors from flooding logs
-      if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) {
-        return;
-      }
-      console.log(`[IMAP DEBUG] ${msg}`);
-    }
-  });
-
-    const emails: ImportedEmail[] = [];
-
-    const startFetch = (targetBox: any) => {
-      if (!targetBox || !targetBox.messages || targetBox.messages.total === 0) {
-        imap.end();
-        return;
-      }
-      const total = targetBox.messages.total;
-      const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
-      const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
-
-      fetch.on('message', (msg: any) => {
-        msg.on('body', (stream: NodeJS.ReadableStream) => {
-          simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
-            if (!parseErr && parsed) {
-              emails.push({
-                from: parsed.from?.text,
-                to: parsed.to?.text,
-                subject: parsed.subject,
-                text: parsed.text,
-                html: parsed.html,
-                date: parsed.date
-              });
-            }
-          });
+        const imap = new Imap({
+          user: config.smtp_user!,
+          password: config.smtp_pass!,
+          host: imapHost,
+          port: imapPort,
+          tls: imapPort === 993,
+          tlsOptions: { rejectUnauthorized: false },
+          connTimeout: 45000, // Increased to 45s
+          authTimeout: 45000, // Increased to 45s
+          keepalive: false,   // Disable keepalive for one-off fetch
+          debug: (msg: string) => {
+            if (msg.includes('ENOTFOUND') || msg.includes('EAI_AGAIN')) return;
+            // console.log(`[IMAP DEBUG] ${msg}`); // Uncomment for debugging
+          }
         });
-      });
 
-      fetch.once('error', (err: Error) => {
-        cleanup();
-        imap.end();
-        reject(new Error(`Failed to fetch emails: ${err.message}`));
-      });
+        const safeEnd = () => {
+          try {
+            if (imap.state !== 'disconnected') imap.end();
+          } catch (err) {
+            // Ignore
+          }
+        };
 
-      fetch.once('end', () => {
-        imap.end();
-      });
-    };
+        const cleanup = () => {
+            if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+                timeoutHandle = null;
+            }
+        };
 
-    imap.once('ready', () => {
-      // @ts-ignore
-      imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
-        if (err) {
-          // If folder not found, try with INBOX. prefix
-          if (!mailbox.startsWith('INBOX.') && err.message.toLowerCase().includes('nonexistent')) {
-            const prefixedMailbox = `INBOX.${mailbox}`;
-            console.log(`[IMAP] Folder ${mailbox} not found, retrying with ${prefixedMailbox}`);
-            imap.openBox(prefixedMailbox, true, (err3, box3) => {
-              if (!err3) {
-                startFetch(box3);
-              } else {
-                handleOpenError(err); // Original error
-              }
-            });
+        const emails: ImportedEmail[] = [];
+
+        const startFetch = (targetBox: any) => {
+          if (!targetBox || !targetBox.messages || targetBox.messages.total === 0) {
+            safeEnd();
             return;
           }
-          handleOpenError(err);
-        } else {
-          startFetch(box);
-        }
-      });
+          const total = targetBox.messages.total;
+          const fetchRange = total <= limit ? `1:${total}` : `${total - limit + 1}:${total}`;
+          const fetch = imap.seq.fetch(fetchRange, { bodies: '', struct: true });
 
-      async function handleOpenError(handleErr: Error) {
-        if (mailbox === 'Sent' || mailbox === 'Sent Items') {
-          try {
-            const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
-            const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
-
-            const findBox = (obj: any, prefix = ''): string | null => {
-              for (const key in obj) {
-                const fullName = prefix + key;
-                if (sentPatterns.includes(key.toLowerCase())) return fullName;
-                if (obj[key].children) {
-                  const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
-                  if (found) return found;
-                }
-              }
-              return null;
-            };
-
-            const discoveredSent = findBox(boxes);
-            if (discoveredSent) {
-              console.log(`[IMAP] Discovered Sent folder: ${discoveredSent}`);
-              imap.openBox(discoveredSent, true, (err2, box2) => {
-                if (err2) {
-                  cleanup(); imap.end();
-                  reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
-                } else {
-                  startFetch(box2);
+          fetch.on('message', (msg: any) => {
+            msg.on('body', (stream: NodeJS.ReadableStream) => {
+              simpleParser(stream as any, (parseErr: Error | null, parsed: any) => {
+                if (!parseErr && parsed) {
+                  emails.push({
+                    from: parsed.from?.text,
+                    to: parsed.to?.text,
+                    subject: parsed.subject,
+                    text: parsed.text,
+                    html: parsed.html,
+                    date: parsed.date
+                  });
                 }
               });
-              return;
+            });
+          });
+
+          fetch.once('error', (err: Error) => {
+            cleanup();
+            safeEnd();
+            reject(new Error(`Failed to fetch emails: ${err.message}`));
+          });
+
+          fetch.once('end', () => {
+            safeEnd();
+          });
+        };
+
+        imap.once('ready', () => {
+          // @ts-ignore
+          imap.openBox(mailbox, true, async (err: Error | null, box: any) => {
+            if (err) {
+              // If folder not found, try with INBOX. prefix
+              if (!mailbox.startsWith('INBOX.') && err.message.toLowerCase().includes('nonexistent')) {
+                const prefixedMailbox = `INBOX.${mailbox}`;
+                console.log(`[IMAP] Folder ${mailbox} not found, retrying with ${prefixedMailbox}`);
+                imap.openBox(prefixedMailbox, true, (err3, box3) => {
+                  if (!err3) {
+                    startFetch(box3);
+                  } else {
+                    handleOpenError(err); // Original error
+                  }
+                });
+                return;
+              }
+              handleOpenError(err);
+            } else {
+              startFetch(box);
             }
-          } catch (e) {
-            console.warn('[IMAP] Sent discovery failed', e);
+          });
+
+          async function handleOpenError(handleErr: Error) {
+            if (mailbox === 'Sent' || mailbox === 'Sent Items') {
+              try {
+                const boxes: any = await new Promise((res, rej) => imap.getBoxes((e, b) => e ? rej(e) : res(b)));
+                const sentPatterns = ['sent', 'sent items', 'sent mail', 'sent messages', '[gmail]/sent mail', 'sent-mail'];
+
+                const findBox = (obj: any, prefix = ''): string | null => {
+                  for (const key in obj) {
+                    const fullName = prefix + key;
+                    if (sentPatterns.includes(key.toLowerCase())) return fullName;
+                    if (obj[key].children) {
+                      const found = findBox(obj[key].children, fullName + (obj[key].delimiter || '/'));
+                      if (found) return found;
+                    }
+                  }
+                  return null;
+                };
+
+                const discoveredSent = findBox(boxes);
+                if (discoveredSent) {
+                  console.log(`[IMAP] Discovered Sent folder: ${discoveredSent}`);
+                  imap.openBox(discoveredSent, true, (err2, box2) => {
+                    if (err2) {
+                      cleanup(); safeEnd();
+                      reject(new Error(`Failed to open discovered box ${discoveredSent}: ${err2.message}`));
+                    } else {
+                      startFetch(box2);
+                    }
+                  });
+                  return;
+                }
+              } catch (e) {
+                console.warn('[IMAP] Sent discovery failed', e);
+              }
+            }
+            cleanup();
+            safeEnd();
+            reject(new Error(`Failed to open ${mailbox}: ${handleErr.message}`));
           }
-        }
-        cleanup();
-        imap.end();
-        reject(new Error(`Failed to open ${mailbox}: ${handleErr.message}`));
-      }
-    });
+        });
 
-    imap.once('error', (err: Error) => {
-      if (!completed) {
-        cleanup();
-        let errorMessage = `IMAP connection error: ${err.message}`;
-        if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
-          errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
-        } else if (err.message.toLowerCase().includes('etimedout') || err.message.toLowerCase().includes('timeout')) {
-          errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
-        } else if (err.message.toLowerCase().includes('econnrefused')) {
-          errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
-        }
-        reject(new Error(errorMessage));
-      }
-    });
+        imap.once('error', (err: Error) => {
+          if (!completed) {
+            cleanup();
+            // Don't safeEnd here necessarily, as error might have closed it
+            connectionEnded = true; 
+            
+            let errorMessage = `IMAP connection error: ${err.message}`;
+            if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
+              errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
+            } else if (err.message.toLowerCase().includes('etimedout') || err.message.toLowerCase().includes('timeout')) {
+              errorMessage = `Connection to IMAP server timed out. Check your firewall settings or port ${imapPort}.`;
+            } else if (err.message.toLowerCase().includes('econnrefused')) {
+              errorMessage = `IMAP Connection refused by the server. Verify your port ${imapPort} and SSL settings.`;
+            }
+            reject(new Error(errorMessage));
+          }
+        });
 
-    imap.once('end', () => {
-      if (!completed) {
-        cleanup();
-        resolve(emails);
-      }
-    });
+        imap.once('end', () => {
+          if (!completed) {
+            cleanup();
+            connectionEnded = true;
+            resolve(emails);
+          }
+        });
 
-    imap.connect();
-  });
+        imap.connect();
+      });
+    } catch (error: any) {
+      const isLastAttempt = attempt === MAX_RETRIES;
+      const isTimeout = error.message.includes('tim') || error.message.includes('TIM'); // catch timeout, ETIMEDOUT, etc.
+      
+      if (!isLastAttempt && (isTimeout || error.message.includes('ECONNRESET') || error.message.includes('socket hang up'))) {
+        console.warn(`[IMAP] Attempt ${attempt} failed for ${config.smtp_user}: ${error.message}. Retrying in ${BASE_DELAY * attempt}ms...`);
+        await new Promise(res => setTimeout(res, BASE_DELAY * attempt));
+        continue;
+      }
+      
+      // If we're out of retries or it's a fatal error, rethrow or return empty based on policy
+      if (isLastAttempt) {
+        console.error(`[IMAP] All ${MAX_RETRIES} attempts failed for ${config.smtp_user}: ${error.message}`);
+        // We resolve empty to avoid crashing the worker, but log the error
+        return []; 
+      }
+      throw error; // Propagate other errors
+    }
+  }
+  return [];
 }
 
 /**
@@ -384,6 +455,8 @@ export interface EmailOptions {
   buttonText?: string;
   isMeetingInvite?: boolean;
   isHtml?: boolean;
+  campaignId?: string;
+  leadId?: string;
 }
 
 /**
@@ -396,7 +469,7 @@ export async function sendEmail(
   content: string,
   subject: string,
   options: EmailOptions = {}
-): Promise<void> {
+): Promise<{ messageId: string }> {
   const customEmailIntegration = await storage.getIntegration(userId, 'custom_email');
 
   if (customEmailIntegration?.connected) {
@@ -426,10 +499,26 @@ export async function sendEmail(
       }
     }
 
-    await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
-    console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
-    return;
-  }
+      const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
+      if (result && result.messageId) {
+        await storage.createEmailMessage({
+            userId,
+            leadId: options.leadId || null,
+            campaignId: options.campaignId || null,
+            messageId: result.messageId,
+            subject,
+            from: credentials.smtp_user || '',
+            to: recipientEmail,
+            body: emailBody,
+            direction: 'outbound',
+            provider: 'custom_email',
+            sentAt: new Date(),
+            metadata: { trackingId: options.trackingId }
+        });
+      }
+      console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
+      return result;
+    }
 
   // Fallback to Gmail or Outlook via Storage
   const integrations = await storage.getIntegrations(userId);
@@ -519,7 +608,7 @@ export async function sendEmail(
   };
 
   if (emailIntegration.provider === 'gmail') {
-    await sendGmailMessage(
+    const result = await sendGmailMessage(
       credentials,
       recipientEmail,
       emailSubject,
@@ -527,8 +616,25 @@ export async function sendEmail(
       options.isHtml,
       options.trackingId
     );
+    if (result && result.messageId) {
+      await storage.createEmailMessage({
+        userId,
+        leadId: options.leadId || null,
+        campaignId: options.campaignId || null,
+        messageId: result.messageId,
+        subject: emailSubject,
+        from: credentials.email || '',
+        to: recipientEmail,
+        body: emailBody,
+        direction: 'outbound',
+        provider: 'gmail',
+        sentAt: new Date(),
+        metadata: { trackingId: options.trackingId }
+      });
+    }
+    return result;
   } else if (emailIntegration.provider === 'outlook') {
-    await sendOutlookMessage(
+    const result = await sendOutlookMessage(
       credentials,
       recipientEmail,
       emailSubject,
@@ -536,6 +642,23 @@ export async function sendEmail(
       options.isHtml,
       options.trackingId
     );
+    if (result && result.messageId) {
+      await storage.createEmailMessage({
+        userId,
+        leadId: options.leadId || null,
+        campaignId: options.campaignId || null,
+        messageId: result.messageId || `outlook-${Date.now()}`,
+        subject: emailSubject,
+        from: credentials.email || '',
+        to: recipientEmail,
+        body: emailBody,
+        direction: 'outbound',
+        provider: 'outlook',
+        sentAt: new Date(),
+        metadata: { trackingId: options.trackingId }
+      });
+    }
+    return result;
   } else {
     throw new Error('Unsupported email provider');
   }
@@ -551,7 +674,7 @@ async function sendGmailMessage(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
     emailBody = injectTrackingPixel(body, trackingId);
@@ -572,10 +695,11 @@ async function sendGmailMessage(
   });
 
   const data = await response.json() as GmailSendResponse;
-
   if (!response.ok) {
     throw new Error(data.error?.message || 'Failed to send Gmail');
   }
+
+  return { messageId: data.id || '' };
 }
 
 /**
@@ -588,7 +712,7 @@ async function sendOutlookMessage(
   body: string,
   isHtml: boolean = false,
   trackingId?: string
-): Promise<void> {
+): Promise<{ messageId: string }> {
   let emailBody = body;
   if (isHtml && trackingId) {
     emailBody = injectTrackingPixel(body, trackingId);
@@ -623,6 +747,10 @@ async function sendOutlookMessage(
     const data = await response.json() as OutlookSendResponse;
     throw new Error(data.error?.message || 'Failed to send Outlook email');
   }
+
+  // Outlook doesn't return the message ID in the sendMail response (202 Accepted)
+  // We return null/empty and rely on IMAP sync for the ID if needed later
+  return { messageId: '' };
 }
 
 /**
@@ -633,7 +761,8 @@ function createMimeMessage(
   to: string,
   subject: string,
   body: string,
-  isHtml: boolean = false
+  isHtml: boolean = false,
+  messageId?: string
 ): string {
   const boundary = '----=_Part_' + Date.now();
 
@@ -660,6 +789,7 @@ function createMimeMessage(
     `To: ${to}`,
     `Subject: ${subject}`,
     'MIME-Version: 1.0',
+    messageId ? `Message-ID: ${messageId}` : `Message-ID: <${Date.now()}@audnixai.com>`,
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
     `--${boundary}`,

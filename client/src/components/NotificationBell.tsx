@@ -2,6 +2,7 @@ import { Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns"; // Added import for formatDistanceToNow
 
 interface NotificationResponse {
   unreadCount: number;
@@ -10,9 +11,17 @@ interface NotificationResponse {
     title: string;
     message: string;
     read: boolean;
-    createdAt: string;
+    createdAt: string | Date;
   }>;
 }
+
+const SafeTimeAgo = ({ date }: { date: string | Date }) => {
+  try {
+    return <>{formatDistanceToNow(new Date(date), { addSuffix: true })}</>;
+  } catch (e) {
+    return <>Just now</>;
+  }
+};
 
 export function NotificationBell() {
   const [count, setCount] = useState<number>(0);

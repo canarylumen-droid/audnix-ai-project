@@ -7,7 +7,10 @@ import { sql } from "drizzle-orm";
 import OpenAI from "openai";
 import crypto from "crypto";
 import { detectUVP } from "../lib/ai/universal-sales-agent.js";
-import * as pdf from "pdf-parse";
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
+
 
 const router = Router();
 

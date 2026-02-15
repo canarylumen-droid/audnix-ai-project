@@ -34,9 +34,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       - Method: ${req.method}
       - Path: ${req.path}
       - SessionID: ${sessionID?.slice(0, 8)}...
-      - Has Cookie header: ${Boolean(req.headers.cookie)}
-      - Cookie length: ${req.headers.cookie?.length || 0}
-      - Session keys: ${Object.keys(req.session || {}).join(', ')}
+      - Has Cookie: ${Boolean(req.headers.cookie)}
+      - Cookie Length: ${req.headers.cookie?.length || 0}
+      - Session Object Present: ${Boolean(req.session)}
+      - Session Keys: ${Object.keys(req.session || {}).join(', ')}
+      - Referer: ${req.get('referer')}
     `);
 
     // Security: Add small delay to prevent timing attacks

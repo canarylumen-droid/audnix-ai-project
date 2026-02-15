@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -23,6 +24,7 @@ interface EmailConfig {
 }
 
 export function EmailSetupUI() {
+  const queryClient = useQueryClient();
   const [status, setStatus] = useState<EmailStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<EmailConfig>({
@@ -112,13 +114,18 @@ export function EmailSetupUI() {
           description: `Email connected! ${data.leadsImported} contacts imported.`
         });
 
+        // Force refresh of dashboard analytics to update "Connected" status
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard/analytics/full"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+
         setConfig({ smtpHost: '', smtpPort: 587, imapHost: '', imapPort: 993, email: '', password: '' });
         setShowFilterInfo(false);
         setShowSetup(false);
         await fetchStatus();
       } else {
         const error = await res.json();
-        toast({ title: 'Error', description: error.error, variant: 'destructive' });
+        const description = error.tip ? `${error.error}\n\n💡 ${error.tip}` : error.error;
+        toast({ title: 'Connection Failed', description, variant: 'destructive' });
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to connect email', variant: 'destructive' });
@@ -216,6 +223,17 @@ export function EmailSetupUI() {
 
             {/* Form Inputs */}
             <div className="space-y-3">
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-700 dark:text-amber-400">
+                <p className="font-bold mb-1">📢 Important: Authentication Failed?</p>
+                <p>If your password is rejected, you likely need an <strong>App Password</strong>.</p>
+                <ul className="list-disc list-inside mt-1 space-y-0.5 opacity-90">
+                  <li><strong>Gmail:</strong> Enable 2FA → Go to Security → Search "App Passwords"</li>
+                  <li><strong>Outlook/Office365:</strong> Security Info → Add Method → App Password</li>
+                  <li><strong>Zoho:</strong> Account → Security → App Passwords</li>
+                </ul>
+                <p className="mt-1">Do not use your regular login password if 2FA is on.</p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Email Address</label>
                 <Input

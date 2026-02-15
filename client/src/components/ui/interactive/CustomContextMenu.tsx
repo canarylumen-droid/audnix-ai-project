@@ -62,7 +62,10 @@ export function CustomContextMenu({
         const inboxItems: MenuItem[] = [
             { type: 'divider' },
             { icon: Link2, label: 'Mark as Unread', id: 'mark_unread' },
-            { icon: Trash2, label: 'Archive Thread', id: 'archive', variant: 'destructive' },
+            { icon: ClipboardPaste, label: 'Mark as Booked', id: 'mark_booked' },
+            { icon: Copy, label: 'Copy Details', id: 'copy_details' },
+            { icon: Trash2, label: 'Archive Thread', id: 'archive' },
+            { icon: Trash2, label: 'Delete Thread', id: 'delete', variant: 'destructive' },
         ];
         menuItems = [...menuItems, ...inboxItems];
     } else {

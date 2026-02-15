@@ -23,24 +23,41 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
     }
 
     const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+
+    // Build lookup maps for O(1) deduplication
+    const emailMap = new Map<string, any>();
+    const nameMap = new Map<string, any>();
+
+    existingLeads.forEach(l => {
+      if (l.email) emailMap.set(l.email.toLowerCase(), l);
+      if (l.name) nameMap.set(l.name.toLowerCase().trim(), l);
+    });
+
     const results = {
       leadsImported: 0,
       leadsUpdated: 0,
       leadsFiltered: 0,
-      errors: [] as string[]
+      errors: [] as string[],
+      leads: [] as any[]
     };
 
     const { mapCsvToLeadMetadata } = await import('../lib/imports/lead-importer.js');
 
-    const importedIdentifiers = new Set<string>();
+    const batchIdentifiers = new Set<string>();
 
     for (let i = 0; i < leadsData.length; i++) {
       const leadData = leadsData[i];
       try {
         const metadata = mapCsvToLeadMetadata(leadData);
-        const email = metadata.email || leadData.email;
-        const name = metadata.name || leadData.name;
-        const identifier = email || name || 'unknown';
+
+        // Combine extracted metadata with raw data
+        const rawEmail = metadata.email || leadData.email;
+        const rawName = metadata.name || leadData.name;
+
+        // Normalize (from Remote logic)
+        const email = rawEmail?.toLowerCase().trim();
+        const name = rawName?.trim();
+        const nameKey = name?.toLowerCase();
 
         if (!email && !name) {
           results.errors.push(`Row ${i + 1}: Missing name and email`);
@@ -48,28 +65,13 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           continue;
         }
 
-        if (importedIdentifiers.has(identifier.toLowerCase())) {
-          results.errors.push(`Row ${i + 1}: Duplicate in upload batch`);
-          continue;
-        }
+        // Batch deduplication (from Remote logic)
+        const batchKey = email || `name:${nameKey}`;
+        if (batchIdentifiers.has(batchKey)) continue;
+        batchIdentifiers.add(batchKey);
 
-        const existingLead = existingLeads.find(l => 
-          (leadData.email && l.email?.toLowerCase() === leadData.email.toLowerCase())
-        );
-
-        if (existingLead) {
-          const updates: Record<string, any> = {};
-          if (!existingLead.email && leadData.email) updates.email = leadData.email;
-          if ((!existingLead.name || existingLead.name === 'Unknown') && leadData.name) updates.name = leadData.name;
-          
-          if (Object.keys(updates).length > 0) {
-            await storage.updateLead(existingLead.id, updates);
-            results.leadsUpdated++;
-          }
-          continue;
-        }
-
-        await storage.createLead({
+        // Create lead without deduplication for 100% capture
+        const newLead = await storage.createLead({
           userId,
           name: name || 'Unknown',
           email: email || null,
@@ -78,11 +80,20 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
           channel: channel as any,
           status: 'new',
           aiPaused: aiPaused,
-          metadata: { ...leadData, ...metadata }
+          metadata: {
+            ...leadData,
+            ...metadata,
+            imported_via: 'bulk_json',
+            import_date: new Date().toISOString()
+          }
         });
 
+        results.leads.push(newLead);
         results.leadsImported++;
-        importedIdentifiers.add(identifier.toLowerCase());
+
+        // Update local maps for subsequent rows in the same batch
+        if (newLead.email) emailMap.set(newLead.email.toLowerCase(), newLead);
+        if (newLead.name) nameMap.set(newLead.name.toLowerCase(), newLead);
       } catch (err: any) {
         results.errors.push(`Row ${i + 1}: ${err.message}`);
       }
@@ -95,7 +106,8 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
       totalCount: (await storage.getLeads({ userId, limit: 1 })).length, // Just a hint for frontend
-      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`
+      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`,
+      leads: results.leads
     });
   } catch (error: any) {
     console.error('Bulk import error:', error);
@@ -357,6 +369,33 @@ router.post('/score-leads', requireAuth, async (req: Request, res: Response): Pr
 });
 
 /**
+ * Bulk archive leads
+ * POST /api/bulk/archive
+ */
+router.post('/archive', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { leadIds, archived = true } = req.body as { leadIds: string[]; archived?: boolean };
+    const userId = getCurrentUserId(req)!;
+
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      res.status(400).json({ error: 'leadIds must be a non-empty array' });
+      return;
+    }
+
+    await storage.archiveMultipleLeads(leadIds, userId, archived);
+
+    res.json({
+      success: true,
+      count: leadIds.length,
+      message: `Successfully ${archived ? 'archived' : 'unarchived'} ${leadIds.length} leads`
+    });
+  } catch (error: unknown) {
+    console.error('Bulk archive error:', error);
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+/**
  * Bulk delete leads
  * POST /api/bulk/delete
  */
@@ -370,34 +409,12 @@ router.post('/delete', requireAuth, async (req: Request, res: Response): Promise
       return;
     }
 
-    const results: BulkResult[] = [];
-    const errors: BulkError[] = [];
-
-    for (const leadId of leadIds) {
-      try {
-        const lead = await storage.getLeadById(leadId);
-        if (!lead || lead.userId !== userId) {
-          errors.push({ leadId, error: 'Lead not found or unauthorized' });
-          continue;
-        }
-
-        await storage.updateLead(leadId, {
-          status: 'cold',
-          tags: [...(lead.tags || []), 'archived']
-        });
-
-        results.push({ leadId, success: true });
-      } catch (error: unknown) {
-        errors.push({ leadId, error: getErrorMessage(error) });
-      }
-    }
+    await storage.deleteMultipleLeads(leadIds, userId);
 
     res.json({
-      success: errors.length === 0,
-      deleted: results.length,
-      failed: errors.length,
-      results,
-      errors
+      success: true,
+      count: leadIds.length,
+      message: `Successfully deleted ${leadIds.length} leads`
     });
   } catch (error: unknown) {
     console.error('Bulk delete error:', error);

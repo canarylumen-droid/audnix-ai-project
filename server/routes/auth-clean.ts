@@ -104,7 +104,24 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
 
     req.session.userId = user.id;
     req.session.email = email;
-    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+    if (req.session.cookie) {
+      req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+    }
+
+    // Explicitly save session before responding for serverless reliability
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('[Signup] Session save error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Small delay to ensure DB persistence
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     res.json({
       success: true,
@@ -155,7 +172,24 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
 
     req.session.userId = user.id;
     req.session.email = email;
-    req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+    if (req.session.cookie) {
+      req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+    }
+
+    // Explicitly save session before responding for serverless reliability
+    await new Promise<void>((resolve, reject) => {
+      req.session.save((err) => {
+        if (err) {
+          console.error('[Login] Session save error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Small delay to ensure DB persistence
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     res.json({
       success: true,

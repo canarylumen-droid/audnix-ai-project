@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PdfIcon, CsvIcon } from "@/components/ui/CustomIcons";
 import { EmailPreview } from "@/components/dashboard/EmailPreview";
 import { LeadsDisplayModal } from "@/components/dashboard/LeadsDisplayModal";
-import OutreachConfigModal from "@/components/outreach/OutreachConfigModal";
+import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
 
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -211,13 +211,27 @@ export default function LeadImportPage() {
         variant: "destructive"
       });
     } finally {
-      if (!isPDF) { // For CSV preview, we stop loading early in the success case
-        // if not preview (error case), we stop here
-      } else {
+      // Ensure we stop loading state if we are NOT showing the modal
+      // If result.preview is true, we keep loading (actually we stopped it inside the success block for preview)
+      // But if error occurred, we MUST stop it.
+      // The safest way is to check if we are still importing and not in preview mode success flow.
+      // Actually, let's just use a timeout to clear it if it's still stuck, or better:
+      if (isPDF) {
         setTimeout(() => {
           setImporting(false);
           setProgress(0);
         }, 2000);
+      } else {
+          // For CSV:
+          // If success & preview -> we already setImporting(false) in the try block
+          // If error -> we need to setImporting(false)
+          // If success & no preview -> we need to setImporting(false) (though we handled that in try block too?)
+          // Let's just enforce it here if it's still true and we didn't just open the modal?
+          // Actually, if we just opened the modal, we set mLeadsOpen=true.
+          if (!mLeadsOpen) {
+             setImporting(false);
+             setProgress(0);
+          }
       }
     }
   };
@@ -251,19 +265,24 @@ export default function LeadImportPage() {
 
       const result = await response.json();
 
+      // Refetch actual DB leads to get their IDs
+      const leadsRes = await apiRequest("GET", `/api/leads?limit=10000&offset=0`);
+      const allLeads = await leadsRes.json();
+      
       setImportResults({
         imported: result.leadsImported,
         skipped: result.leadsFiltered || 0,
-        leads: importResults.leads // Keep them visible
-      });
-
-      toast({
-        title: "Import Success",
-        description: `Successfully imported ${result.leadsImported} leads.`
+        leads: allLeads.leads || [] // Use real DB leads
       });
 
       setMLeadsOpen(false); // Close modal on success
-      setTimeout(() => setFile(null), 2000);
+      setTimeout(() => {
+        setFile(null);
+        toast({
+          title: "Network Synchronization Complete",
+          description: `Successfully integrated ${result.leadsImported} leads into the intelligence core.`
+        });
+      }, 2000);
 
     } catch (error: any) {
       toast({
@@ -433,7 +452,7 @@ export default function LeadImportPage() {
               onClick={handleOpenPreview}
               variant="outline"
               disabled={importing}
-              className="px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest border-border/40 hover:bg-muted/30 h-12 sm:h-14 w-full sm:w-auto"
+              className="px-6 rounded-2xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest border-border/40 hover:bg-muted/30 h-12 sm:h-14 w-full sm:w-auto"
             >
               Preview Outreach
             </Button>
@@ -469,10 +488,10 @@ export default function LeadImportPage() {
             canConfirm={!importing}
           />
 
-          <OutreachConfigModal
+          <UnifiedCampaignWizard
             isOpen={isOutreachModalOpen}
             onClose={() => setIsOutreachModalOpen(false)}
-            leads={importResults?.leads || []}
+            initialLeads={importResults?.leads || []}
             onSuccess={() => {
               toast({ title: "Outreach Started", description: "Emails will be sent according to your settings." });
             }}

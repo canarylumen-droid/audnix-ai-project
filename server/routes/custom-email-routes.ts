@@ -8,6 +8,71 @@ import { bounceHandler } from '../lib/email/bounce-handler.js';
 
 const router = Router();
 
+// Common SMTP hostname typos and their corrections
+const HOSTNAME_TYPO_MAP: Record<string, string> = {
+  'hostlinger.com': 'hostinger.com',
+  'hostlinger.io': 'hostinger.com',
+  'hostimer.com': 'hostinger.com',
+  'goggle.com': 'google.com',
+  'gogle.com': 'google.com',
+  'outllook.com': 'outlook.com',
+  'outook.com': 'outlook.com',
+};
+
+function getSmtpErrorDetails(error: any, host: string): { error: string; details: string; tip: string } {
+  const code = error?.code || '';
+  const hostDomain = host.replace(/^(smtp|imap|mail)\./, '');
+  const suggestedDomain = HOSTNAME_TYPO_MAP[hostDomain];
+  const typoHint = suggestedDomain
+    ? ` It looks like "${host}" may be a typo — did you mean "${host.replace(hostDomain, suggestedDomain)}"?`
+    : '';
+
+  if (code === 'ETIMEDOUT' || code === 'ESOCKET') {
+    return {
+      error: `Connection timed out to ${host}.${typoHint}`,
+      details: `The server at ${host} did not respond on the specified port. This usually means the hostname is wrong, the port is blocked, or the server is down.`,
+      tip: typoHint
+        ? `Check for typos in the hostname.${typoHint}`
+        : 'Double-check the SMTP hostname and port. Common ports: 465 (SSL), 587 (STARTTLS), 25 (unencrypted). If you have 2FA enabled, use an App Password.'
+    };
+  }
+
+  if (code === 'ENOTFOUND') {
+    return {
+      error: `Hostname "${host}" not found.${typoHint}`,
+      details: `DNS lookup failed for ${host}. The hostname does not exist or is misspelled.`,
+      tip: typoHint
+        ? `Check for typos.${typoHint}`
+        : 'Verify the SMTP hostname with your email provider.'
+    };
+  }
+
+  if (code === 'EHOSTUNREACH') {
+    return {
+      error: `Cannot reach ${host}.${typoHint}`,
+      details: `The server at ${host} is unreachable. It may be down or the hostname may be incorrect.`,
+      tip: typoHint
+        ? `Check for typos.${typoHint}`
+        : 'Verify the SMTP hostname is correct and the server is online.'
+    };
+  }
+
+  if (code === 'EAUTH' || error?.responseCode === 535) {
+    return {
+      error: 'Authentication failed. Please check your password.',
+      details: error.message,
+      tip: 'If you have 2FA enabled, you MUST use an App Password instead of your regular password.'
+    };
+  }
+
+  // Generic fallback
+  return {
+    error: 'Connection failed. Please verify your settings.',
+    details: error.message || String(error),
+    tip: 'Check your SMTP host, port, email, and password. If you have 2FA enabled, use an App Password.'
+  };
+}
+
 interface EmailConfig {
   smtp_host?: string;
   smtp_port?: number;
@@ -75,6 +140,36 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
       provider: 'custom'
     };
 
+    // --- VERIFY CREDENTIALS BEFORE SAVING ---
+    console.log(`[Email Connect] Verifying credentials for ${email}...`);
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: credentials.smtp_host,
+        port: credentials.smtp_port,
+        secure: credentials.smtp_port === 465,
+        auth: {
+          user: credentials.smtp_user,
+          pass: credentials.smtp_pass,
+        },
+        tls: {
+          rejectUnauthorized: false // Allow self-signed certs for broad compatibility
+        },
+        connectionTimeout: 15000, // 15s — enough for slow providers
+        greetingTimeout: 10000,   // 10s for SMTP greeting
+        socketTimeout: 15000      // 15s socket idle timeout
+      });
+
+      await transporter.verify();
+      console.log(`[Email Connect] SMTP Verification Successful`);
+    } catch (verifyError: any) {
+      console.error(`[Email Connect] Verification Failed:`, verifyError);
+      const errorInfo = getSmtpErrorDetails(verifyError, credentials.smtp_host!);
+      res.status(400).json(errorInfo);
+      return;
+    }
+    // ----------------------------------------
+
     let encryptedMeta: string;
     try {
       encryptedMeta = await encrypt(JSON.stringify(credentials));
@@ -102,53 +197,24 @@ router.post('/connect', requireAuth, async (req: Request, res: Response): Promis
 
     console.log(`[Email Connect] Email account saved for user ${userId}`);
 
-    // Try to import emails, but don't fail the connection if import fails
-    let importResults: any = null;
-    let importError: string | null = null;
-
-    try {
-      console.log(`[Email Connect] Attempting to fetch emails from IMAP...`);
-      const { importCustomEmails } = await import('../lib/channels/email.js');
-      const emails: ImportedEmailData[] = await importCustomEmails(credentials, 100, 120000);
-
-      const emailsForImport: EmailForImport[] = emails.map((emailData: ImportedEmailData) => ({
-        from: emailData.from?.split('<')[1]?.split('>')[0] || emailData.from || '',
-        subject: emailData.subject,
-        text: emailData.text || emailData.html || '',
-        date: emailData.date,
-        html: emailData.html
-      }));
-
-      if (emailsForImport.length > 0) {
-        importResults = await pagedEmailImport(userId, emailsForImport, (progress: number) => {
-          console.log(`[Email Connect] Import progress: ${progress}%`);
-        });
-        console.log(`[Email Connect] Imported ${importResults.imported} emails`);
-      } else {
-        console.log(`[Email Connect] No emails found in INBOX`);
-      }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      importError = errorMsg;
-      console.warn(`[Email Connect] Auto-import failed (non-critical): ${errorMsg}`);
-    }
-
-    // Trigger real-time sync manager to pick up new connection
+    // Trigger background sync — the emailSyncWorker and imapIdleManager
+    // will handle the full IMAP import asynchronously. We do NOT do it
+    // inline because it can take 60-120s and would timeout the serverless function.
     try {
       const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
-      // @ts-ignore - call is async but we don't need to wait for full connection to respond
+      // Fire-and-forget: triggers background IMAP connection + email import
       imapIdleManager.syncConnections();
+      console.log(`[Email Connect] Background sync triggered for user ${userId}`);
     } catch (idleErr) {
-      console.warn('[Email Connect] Could not trigger IDLE sync:', idleErr);
+      console.warn('[Email Connect] Could not trigger background sync:', idleErr);
     }
 
-    // Always return success if email was saved, even if import failed
     res.json({
       success: true,
-      message: 'Custom email connected successfully',
-      leadsImported: importResults?.imported || 0,
-      leadsSkipped: importResults?.skipped || 0,
-      importError: importError || undefined
+      message: 'Custom email connected successfully. Emails will be imported in the background.',
+      leadsImported: 0,
+      leadsSkipped: 0,
+      backgroundImport: true
     });
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -216,6 +282,21 @@ router.post('/import', requireAuth, async (req: Request, res: Response): Promise
       bounceRate: bounceStats.bounceRate,
       message: `Import completed: ${importResults.imported} leads imported, ${importResults.skipped} skipped`
     });
+
+    // Create notification for custom email import
+    if (importResults.imported > 0) {
+      try {
+        await storage.createNotification({
+          userId,
+          type: 'lead_import',
+          title: '\ud83d\udce5 Leads Imported',
+          message: `${importResults.imported} leads imported from custom email`,
+          metadata: { source: 'custom_email', count: importResults.imported }
+        });
+      } catch (notifErr) {
+        console.warn('[Custom Email Import] Failed to create notification:', notifErr);
+      }
+    }
   } catch (error: unknown) {
     console.error('Error importing custom emails:', error);
     res.status(500).json({ error: 'Failed to import emails' });
@@ -247,7 +328,12 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
         user: email,
         pass: password,
       },
-      connectionTimeout: 10000,
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 15000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
 
     // Verify connection
@@ -259,13 +345,10 @@ router.post('/test', requireAuth, async (req: Request, res: Response): Promise<v
       success: true,
       message: 'SMTP connection verified successfully'
     });
-  } catch (error: unknown) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error(`[Email Test] Connection failed:`, errorMsg);
-    res.status(400).json({
-      error: 'SMTP connection failed',
-      details: errorMsg
-    });
+  } catch (error: any) {
+    console.error(`[Email Test] Connection failed:`, error?.message || error);
+    const errorInfo = getSmtpErrorDetails(error, req.body.smtpHost);
+    res.status(400).json(errorInfo);
   }
 });
 
@@ -402,6 +485,36 @@ router.post('/sync-now', requireAuth, async (req: Request, res: Response): Promi
   } catch (error) {
     console.error('[Email Sync] Error:', error);
     res.status(500).json({ error: 'Failed to trigger sync' });
+  }
+});
+
+/**
+ * Trigger historical sync (e.g. last 30 days)
+ */
+router.post('/sync-history', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { days } = req.body;
+    const daysToSync = parseInt(days) || 30;
+
+    const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+    
+    // Run in background to avoid timeout
+    imapIdleManager.syncHistoricalEmails(userId, daysToSync)
+      .then((result) => {
+        console.log(`[Historical Sync] Background job finished for ${userId}:`, result);
+      })
+      .catch((err) => {
+        console.error(`[Historical Sync] Background job failed for ${userId}:`, err);
+      });
+
+    res.json({
+      success: true,
+      message: `Historical sync started for last ${daysToSync} days. Check back in a few minutes.`
+    });
+  } catch (error) {
+    console.error('[Historical Sync] Error:', error);
+    res.status(500).json({ error: 'Failed to trigger historical sync' });
   }
 });
 

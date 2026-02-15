@@ -259,10 +259,10 @@ export default function DashboardHome() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-foreground via-foreground/90 to-primary/80 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground">
               Welcome back, {user?.name?.split(' ')[0] || user?.username || 'User'}
             </h1>
-            <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
+            <p className="text-muted-foreground/60 text-lg font-medium tracking-tight">
               {isSmtpConnected ? "Your outreach system is performing optimally." : "Connect your SMTP to start outreach automation."}
             </p>
           </div>

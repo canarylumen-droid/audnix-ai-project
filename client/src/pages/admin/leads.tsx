@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import ManualOutreachModal from "@/components/outreach/ManualOutreachModal";
+import OutreachConfigModal from "@/components/outreach/OutreachConfigModal";
 import {
   Table,
   TableBody,
@@ -284,11 +284,18 @@ export default function AdminLeads() {
           </CardContent>
         </Card>
 
-        <ManualOutreachModal
+        <OutreachConfigModal
           isOpen={isCampaignModalOpen}
           onClose={() => setIsCampaignModalOpen(false)}
-          selectedLeadIds={selectedLeads}
-          totalLeads={leadsData?.pagination?.total}
+          leads={leadsData?.leads
+            .filter(item => selectedLeads.includes(item.lead.id))
+            .map(item => ({
+              id: item.lead.id,
+              name: item.lead.name,
+              email: item.lead.email || "",
+              company: "" // Admin view doesn't show company name directly in list, but we can pass placeholder or fetch if needed
+            })) || []
+          }
         />
       </div>
     </AdminLayout>

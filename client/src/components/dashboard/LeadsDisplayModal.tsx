@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -33,26 +34,34 @@ export function LeadsDisplayModal({
   isImporting,
   canConfirm = true
 }: LeadsDisplayModalProps) {
+  const [visibleCount, setVisibleCount] = useState(50);
+  const visibleLeads = leads.slice(0, visibleCount);
+  const hasMore = leads.length > visibleCount;
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 50);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
-        <DialogHeader className="p-8 pb-4">
-          <div className="flex items-center justify-between">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] p-0 overflow-hidden border-border/40 bg-card/95 backdrop-blur-xl rounded-[2rem]">
+        <DialogHeader className="p-6 md:p-8 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <DialogTitle className="text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-bold tracking-tight">Imported Lead Profiles</DialogTitle>
               <DialogDescription className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mt-1">
-                {leads.length} high-intent targets synchronized
+                {leads.length} leads ready to import
               </DialogDescription>
             </div>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1">
-              System Core Sync
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 font-bold uppercase tracking-widest text-[10px] px-3 py-1 self-start sm:self-auto">
+              Ready
             </Badge>
           </div>
         </DialogHeader>
 
         <ScrollArea className="flex-1 border-t border-border/40 max-h-[60vh]">
-          <div className="w-full">
-            <table className="w-full text-left border-collapse table-auto">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left border-collapse table-auto min-w-[600px] md:min-w-0">
               <thead className="sticky top-0 bg-background/95 backdrop-blur-xl z-20 border-b border-border/40">
                 <tr>
                   <th className="px-4 md:px-6 py-4 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap">Lead Details</th>
@@ -62,14 +71,14 @@ export function LeadsDisplayModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/20">
-                {leads.map((lead, idx) => (
+                {visibleLeads.map((lead, idx) => (
                   <tr key={idx} className="group hover:bg-primary/5 transition-colors">
                     <td className="px-4 md:px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                           <User className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 max-w-[120px] md:max-w-none">
                           <div className="font-bold text-sm tracking-tight truncate">{lead.name}</div>
                           <div className="md:hidden text-xs text-muted-foreground truncate">{lead.email}</div>
                           {lead.title && <div className="text-[10px] font-bold text-primary/60 uppercase tracking-widest truncate">{lead.title}</div>}
@@ -125,18 +134,30 @@ export function LeadsDisplayModal({
                 ))}
               </tbody>
             </table>
+            {hasMore && (
+              <div className="p-6 text-center border-t border-border/20 bg-muted/5">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleShowMore}
+                  className="text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary/10"
+                >
+                  Show More (+{Math.min(50, leads.length - visibleCount)} of {leads.length - visibleCount} remaining)
+                </Button>
+              </div>
+            )}
           </div>
         </ScrollArea>
 
         {onConfirm && (
-          <div className="p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-8">
-            <Button variant="outline" onClick={onClose} disabled={isImporting} className="font-bold rounded-xl border-border/50 h-11">
+          <div className="p-4 md:p-6 border-t border-border/40 bg-muted/20 flex flex-col-reverse sm:flex-row justify-end gap-3 px-4 md:px-8">
+            <Button variant="outline" onClick={onClose} disabled={isImporting} className="font-bold rounded-xl border-border/50 h-11 w-full sm:w-auto">
               Cancel
             </Button>
             <Button
               onClick={onConfirm}
               disabled={isImporting || !canConfirm}
-              className="bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider rounded-xl h-11 px-8 shadow-lg shadow-primary/20"
+              className="bg-primary hover:bg-primary/90 font-bold uppercase tracking-wider rounded-xl h-11 px-8 shadow-lg shadow-primary/20 w-full sm:w-auto"
             >
               {isImporting ? (
                 <>
@@ -144,7 +165,7 @@ export function LeadsDisplayModal({
                   Processing...
                 </>
               ) : (
-                'Confirm Sync'
+                'Import All Leads'
               )}
             </Button>
           </div>

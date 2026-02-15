@@ -15,6 +15,7 @@ export const LEADS_SCHEMA = {
     role: { description: "Job title or role (e.g. Founder, CEO)", required: false },
     bio: { description: "Brief background or specific info about the lead", required: false },
     channel: { description: "Communication channel (instagram/email)", required: false },
+    reply_email: { description: "Alternative email address for replies", required: false },
 };
 
 export type LeadColumnMapping = {
@@ -25,6 +26,7 @@ export type LeadColumnMapping = {
     role?: string;
     bio?: string;
     channel?: string;
+    reply_email?: string;
     industry?: string;
     website?: string;
     notes?: string;
@@ -50,9 +52,19 @@ const openai = process.env.OPENAI_API_KEY
  */
 export async function mapCSVColumnsToSchema(
     headers: string[],
-    sampleRows: Record<string, string>[] = []
+    sampleRows: Record<string, string>[] = [],
+    skipAI: boolean = false
 ): Promise<MappingResult> {
     const targetFields = Object.keys(LEADS_SCHEMA);
+
+    // Auto-skip AI if no API keys are configured OR if they are placeholders
+    const hasGemini = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.startsWith("AIza");
+    const hasOpenAI = process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 10;
+    
+    if (skipAI || (!hasGemini && !hasOpenAI)) {
+        console.log('[CSV] Skipping AI mapping — using header-based matching (No valid API keys found or AI paused)');
+        return fallbackMapping(headers);
+    }
 
     // Build sample data context
     const sampleContext = sampleRows.slice(0, 3).map(row =>
@@ -119,14 +131,9 @@ IMPORTANT: The "mapping" keys must be exactly from our TARGET SCHEMA. Values mus
             }
         }
     } catch (error) {
-        const { fallbackMapCSVColumns } = await import('./conversation-ai.js');
         console.warn(`[CSV] AI mapping failed (${error instanceof Error ? error.message : 'Unknown error'}), using robust fallback`);
-        const mapping = await fallbackMapCSVColumns(headers);
-        return {
-            mapping,
-            confidence: 0.5,
-            unmappedColumns: headers.filter(h => !Object.values(mapping).includes(h))
-        };
+        // Use local robust fallback instead of external one
+        return fallbackMapping(headers);
     }
 
     // Fallback: use fuzzy matching
@@ -176,30 +183,44 @@ function fallbackMapping(headers: string[]): MappingResult {
     const patterns: Record<string, RegExp[]> = {
         name: [
             /^name$/i, /^full[_\s-]?name$/i, /^contact[_\s-]?name$/i,
-            /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i
+            /^lead[_\s-]?name$/i, /^business[_\s-]?name$/i, /^client[_\s-]?name$/i,
+            /^first[_\s-]?name$/i, /^person$/i, /^lead$/i, /^customer$/i,
+            /^fname$/i, /^lname$/i, /^contact$/i, /^entity$/i, /^fullname$/i,
+            /^prospective[_\s-]?name$/i, /^business$/i, /^company$/i
         ],
         email: [
             /^e?-?mail$/i, /^email[_\s-]?addr/i, /^contact[_\s-]?email$/i,
-            /^e-?mail[_\s-]?address$/i
+            /^e-?mail[_\s-]?address$/i, /^mail$/i, /^work[_\s-]?email$/i,
+            /^primary[_\s-]?email$/i, /^email[_\s-]?(1|2)$/i, /^addr/i
         ],
         phone: [
             /^phone$/i, /^mobile$/i, /^cell$/i, /^tel/i, /^contact[_\s-]?number$/i,
-            /^phone[_\s-]?number$/i
+            /^phone[_\s-]?number$/i, /^telephone$/i, /^whatsapp$/i, /^mobile[_\s-]?number$/i
         ],
         company: [
-            /^company$/i, /^org/i, /^business$/i, /^employer$/i, /^firm$/i
+            /^company$/i, /^org/i, /^business$/i, /^employer$/i, /^firm$/i,
+            /^account$/i, /^company[_\s-]?name$/i, /^organization$/i, /^corp/i
+        ],
+        role: [
+            /^role$/i, /^title$/i, /^job[_\s-]?title$/i, /^position$/i, /^function$/i,
+            /^occupation$/i, /^work[_\s-]?role$/i, /^designation$/i
         ],
         channel: [
-            /^channel$/i, /^source$/i, /^platform$/i
+            /^channel$/i, /^source$/i, /^platform$/i, /^medium$/i, /^origin$/i
         ],
         industry: [
-            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i
+            /^industry$/i, /^niche$/i, /^sector$/i, /^category$/i, /^market$/i
         ],
         website: [
-            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i
+            /^website$/i, /^url$/i, /^link$/i, /^site$/i, /^domain$/i, /^web[_\s-]?addr/i
         ],
         notes: [
-            /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i
+            /^notes$/i, /^description$/i, /^info$/i, /^comments$/i, /^about$/i,
+            /^remarks$/i, /^feedback$/i, /^details$/i, /^extra$/i
+        ],
+        reply_email: [
+            /^reply[_\s-]?email$/i, /^reply[_\s-]?to$/i, /^alt[_\s-]?email$/i,
+            /^secondary[_\s-]?email$/i
         ]
     };
 
@@ -218,6 +239,11 @@ function fallbackMapping(headers: string[]): MappingResult {
         }
     }
 
+    // If no 'name' was mapped, use 'company' as a fallback for lead name
+    if (!mapping.name && mapping.company) {
+        mapping.name = mapping.company;
+    }
+
     const unmappedColumns = headers.filter(h => !mappedColumns.has(h));
 
     return {
@@ -233,15 +259,19 @@ function fallbackMapping(headers: string[]): MappingResult {
 export function extractLeadFromRow(
     row: Record<string, string>,
     mapping: LeadColumnMapping
-): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string } {
+): { name?: string; email?: string; phone?: string; company?: string; channel?: string; role?: string; bio?: string; replyEmail?: string } {
     let email = mapping.email ? row[mapping.email]?.trim() : undefined;
     
     // Fallback: If no email was mapped, search all columns for an email pattern
     if (!email) {
         for (const value of Object.values(row)) {
             if (typeof value === 'string' && value.includes('@') && value.includes('.')) {
-                email = value.trim();
-                break;
+                // Heuristic for email: must contains @ and . and no spaces
+                const trimmed = value.trim();
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                    email = trimmed;
+                    break;
+                }
             }
         }
     }
@@ -249,11 +279,12 @@ export function extractLeadFromRow(
     return {
         name: mapping.name ? row[mapping.name]?.trim() : undefined,
         email,
-        phone: undefined, // Skip phone numbers per user request
+        phone: mapping.phone ? row[mapping.phone]?.trim() : undefined,
         company: mapping.company ? row[mapping.company]?.trim() : undefined,
         role: mapping.role ? row[mapping.role]?.trim() : undefined,
         bio: mapping.bio ? row[mapping.bio]?.trim() : (mapping.notes ? row[mapping.notes]?.trim() : undefined),
         channel: mapping.channel ? row[mapping.channel]?.trim() : undefined,
+        replyEmail: mapping.reply_email ? row[mapping.reply_email]?.trim() : undefined,
     };
 }
 

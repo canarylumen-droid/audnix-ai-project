@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { LeadIntelligenceModal } from "@/components/dashboard/LeadIntelligenceModal";
 import { CustomContextMenu, useContextMenu } from "@/components/ui/interactive/CustomContextMenu";
-import ManualOutreachModal from "@/components/outreach/ManualOutreachModal";
+import UnifiedCampaignWizard from "@/components/outreach/UnifiedCampaignWizard";
 import {
   Search,
   Trash2,
@@ -82,6 +82,7 @@ const statusStyles = {
   new: "bg-primary/20 text-primary border-primary/20",
   open: "bg-primary/10 text-primary border-primary/10",
   replied: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  booked: "bg-sky-500/10 text-sky-500 border-sky-500/20",
   converted: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   not_interested: "bg-muted text-muted-foreground border-muted",
   cold: "bg-muted text-muted-foreground border-muted",
@@ -132,16 +133,25 @@ export default function InboxPage() {
       }
     });
 
+    socket.on('notification', (data: any) => {
+      if (data?.type === 'lead_import') {
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+        toast({ title: "Leads Imported", description: "Your inbox has been updated with new leads." });
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [user?.id, leadId, queryClient]);
 
+  const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 50;
 
   const { data: leadsData, isLoading: leadsLoading } = useQuery<any>({
-    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE }],
+    queryKey: ["/api/leads", { limit: PAGE_SIZE, offset: page * PAGE_SIZE, includeArchived: showArchived }],
   });
 
   const { data: messagesData, isLoading: messagesLoading } = useQuery<any>({
@@ -197,12 +207,23 @@ export default function InboxPage() {
           ? (lead.metadata?.isUnread || false)
           : lead.status === filterStatus;
 
-      return matchesSearch && matchesChannel && matchesStatus;
+      const matchesArchived = showArchived ? true : !lead.archived;
+
+      return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
     });
-  }, [allLeads, searchQuery, filterChannel, filterStatus]);
+  }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
 
   const sendMutation = useMutation({
     mutationFn: (content: string) => {
+      // If content has a subject line (first line), extract it
+      let subject: string | undefined = undefined;
+      let body = content;
+      
+      // Simple heuristic: if it looks like a subject line is intended (e.g. "Subject: ...")
+      // But for now, we'll just send content. 
+      // User requested "reply appending subject". 
+      // If we want to support subject, we can pass it here if the UI supported it.
+      // For now, we just pass content.
       return apiRequest("POST", `/api/messages/${leadId}`, { content, channel: activeLead?.channel });
     },
     onSuccess: () => {
@@ -248,14 +269,45 @@ export default function InboxPage() {
   const handleMenuAction = useCallback(async (action: string, data: any) => {
     if (action === 'archive') {
       try {
-        await apiRequest("POST", "/api/bulk/update-status", {
+        await apiRequest("POST", "/api/bulk/archive", {
           leadIds: [data.id],
-          status: 'cold'
+          archived: true
         });
-        toast({ title: "Thread Archived", description: "Lead has been moved to cold" });
+        toast({ title: "Lead Archived", description: "Successfully moved to archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
-        toast({ title: "Error", description: "Failed to archive thread", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
+      }
+    } else if (action === 'unarchive') {
+      try {
+        await apiRequest("POST", "/api/bulk/archive", {
+          leadIds: [data.id],
+          archived: false
+        });
+        toast({ title: "Lead Restored", description: "Successfully restored from archive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to unarchive lead", variant: "destructive" });
+      }
+    } else if (action === 'delete') {
+      if (confirm(`Are you sure you want to delete ${data.name}? This action cannot be undone.`)) {
+        // Optimistic UI updates
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
+
+        try {
+          await apiRequest("POST", "/api/bulk/delete", {
+            leadIds: [data.id]
+          });
+          toast({ title: "Lead Deleted", description: "Lead has been permanently removed" });
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        } catch (err) {
+          // Revert on failure (optional, but good practice would be to re-fetch)
+          toast({ title: "Error", description: "Failed to delete lead", variant: "destructive" });
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        }
       }
     } else if (action === 'mark_unread') {
       try {
@@ -268,8 +320,59 @@ export default function InboxPage() {
       } catch (err) {
         toast({ title: "Error", description: "Failed to mark as unread", variant: "destructive" });
       }
+    } else if (action === 'copy_details') {
+      const details = `Name: ${data.name}\nEmail: ${data.email || 'N/A'}\nPhone: ${data.phone || 'N/A'}\nCompany: ${data.company || 'N/A'}`;
+      navigator.clipboard.writeText(details);
+      toast({ title: "Copied!", description: "Lead details copied to clipboard" });
+    } else if (action === 'mark_booked') {
+      try {
+        await apiRequest("PATCH", `/api/leads/${data.id}`, { status: 'booked' });
+        toast({ title: "Lead Booked", description: `${data.name} has been marked as booked` });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      } catch (err) {
+        toast({ title: "Error", description: "Failed to mark lead as booked", variant: "destructive" });
+      }
     }
-  }, [toast, queryClient]);
+  }, [toast, queryClient, leadId, setLocation]);
+
+  const handleBulkAction = async (action: 'archive' | 'delete') => {
+    if (selectedLeadIds.length === 0) return;
+
+    if (action === 'delete' && !confirm(`Delete ${selectedLeadIds.length} selected leads?`)) return;
+
+    try {
+      // Optimistic UI updates for delete
+      if (action === 'delete') {
+         setAllLeads(prev => prev.filter(l => !selectedLeadIds.includes(l.id)));
+         if (leadId && selectedLeadIds.includes(leadId)) {
+           setLocation('/dashboard/inbox');
+         }
+         setSelectedLeadIds([]);
+      }
+
+      const endpoint = action === 'delete' ? '/api/bulk/delete' : '/api/bulk/archive';
+      const body = action === 'delete' ? { leadIds: selectedLeadIds } : { leadIds: selectedLeadIds, archived: true };
+      
+      await apiRequest("POST", endpoint, body);
+      
+      toast({ 
+        title: `Bulk ${action === 'delete' ? 'Delete' : 'Archive'}`, 
+        description: `Successfully processed ${selectedLeadIds.length} leads` 
+      });
+      
+      if (action !== 'delete') setSelectedLeadIds([]); // Clear selection for archive too if successful
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    } catch (err) {
+      toast({ title: "Error", description: "Bulk action failed", variant: "destructive" });
+    }
+  };
+
+  const toggleLeadSelection = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedLeadIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
   const bookCallMutation = useMutation({
     mutationFn: async () => {
@@ -320,6 +423,9 @@ export default function InboxPage() {
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("booked")} className="cursor-pointer font-medium text-sky-500">Booked</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("converted")} className="cursor-pointer font-medium text-purple-500">Converted</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("not_interested")} className="cursor-pointer font-medium text-destructive/70">Not Interested</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
@@ -332,6 +438,15 @@ export default function InboxPage() {
                 >
                   <Send className="h-3.5 w-3.5" />
                   Campaign
+                </Button>
+                <Button
+                  variant={showArchived ? "secondary" : "ghost"}
+                  size="icon"
+                  className={cn("h-8 w-8", showArchived && "text-primary")}
+                  onClick={() => setShowArchived(!showArchived)}
+                  title={showArchived ? "Hide Archived" : "Show Archived"}
+                >
+                  <Archive className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -351,6 +466,31 @@ export default function InboxPage() {
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("instagram")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'instagram' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Instagram</Button>
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'email' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Email</Button>
             </div>
+
+            {/* Bulk Action Bar */}
+            <AnimatePresence>
+              {selectedLeadIds.length > 0 && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="flex items-center justify-between pb-2"
+                >
+                  <span className="text-xs font-bold text-primary">{selectedLeadIds.length} Selected</span>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleBulkAction('archive')} title="Archive Selected">
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleBulkAction('delete')} title="Delete Selected">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setSelectedLeadIds([])}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Active Status Display */}
             {filterStatus !== 'all' && (
@@ -385,19 +525,40 @@ export default function InboxPage() {
                   <div
                     key={lead.id}
                     onClick={() => {
-                      setLocation(`/dashboard/inbox/${lead.id}`);
-                      setShowDetails(true);
+                      if (selectedLeadIds.length > 0) {
+                        toggleLeadSelection(lead.id);
+                      } else {
+                        setLocation(`/dashboard/inbox/${lead.id}`);
+                        setShowDetails(true);
+                      }
                     }}
                     onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
                     className={cn(
                       "p-4 cursor-pointer hover:bg-primary/5 transition-all border-b border-border/5 group relative",
                       leadId === lead.id ? "bg-primary/10" : "hover:pl-5",
-                      lead.metadata?.isUnread && "bg-primary/5"
+                      lead.metadata?.isUnread && "bg-primary/5",
+                      selectedLeadIds.includes(lead.id) && "bg-primary/20"
                     )}
                   >
+                    {/* Checkbox for selection */}
+                    <div 
+                      className={cn(
+                        "absolute left-2 top-1/2 -translate-y-1/2 z-10 transition-all",
+                        selectedLeadIds.includes(lead.id) || "opacity-0 group-hover:opacity-100"
+                      )}
+                      onClick={(e) => toggleLeadSelection(lead.id, e)}
+                    >
+                      <div className={cn(
+                        "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                        selectedLeadIds.includes(lead.id) ? "bg-primary border-primary" : "bg-background border-border"
+                      )}>
+                        {selectedLeadIds.includes(lead.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                      </div>
+                    </div>
+
                     {leadId === lead.id && <motion.div layoutId="activeLead" className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
-                    <div className="flex gap-3 items-center">
-                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105">
+                    <div className={cn("flex gap-3 items-center transition-all", (selectedLeadIds.length > 0 || selectedLeadIds.includes(lead.id)) && "pl-8")}>
+                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0">
                         <AvatarFallback className={cn(
                           "font-bold text-sm",
                           lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -420,7 +581,12 @@ export default function InboxPage() {
                           } as any)}>
                             {lead.status === 'hardened' ? 'Verified' : lead.status}
                           </Badge>
-                          {lead.metadata?.isUnread && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
+                          {lead.metadata?.isUnread && (
+                            (() => {
+                              const isOld = new Date().getTime() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000;
+                              return !isOld ? <span className="h-2 w-2 rounded-full bg-primary animate-pulse" /> : null;
+                            })()
+                          )}
                         </div>
                       </div>
                     </div>
@@ -804,11 +970,13 @@ export default function InboxPage() {
         onClose={closeMenu}
         onAction={handleMenuAction}
       />
-      <ManualOutreachModal
+      <UnifiedCampaignWizard
         isOpen={isCampaignModalOpen}
         onClose={() => setIsCampaignModalOpen(false)}
-        selectedLeadIds={selectedLeadIds}
-        totalLeads={filteredLeads.length}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        }}
+        initialLeads={selectedLeadIds.length > 0 ? selectedLeadIds : []}
       />
     </div >
   );
