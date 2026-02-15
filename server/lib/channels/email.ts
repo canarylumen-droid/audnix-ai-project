@@ -160,7 +160,7 @@ async function sendCustomSMTP(
       if (attempt > 0) {
         // Exponential backoff: 2s, 4s, 8s
         const delay = Math.pow(2, attempt) * 1000;
-        console.log(`[CustomSMTP] Retry attempt ${attempt} for ${to} after ${delay}ms...`);
+        console.log(`[CustomSMTP] Retry attempt ${attempt} for`, to, `after ${delay}ms...`);
         await new Promise(res => setTimeout(res, delay));
       }
 
@@ -182,14 +182,14 @@ async function sendCustomSMTP(
       } catch (error) {
         console.error(`[CustomSMTP] ❌ Failed to save to Sent folder:`, error);
       }
-      
+
       return { messageId: info.messageId }; // Exit function successfully
     } catch (error: any) {
       lastError = error;
       const isTransient = error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT' || error.responseCode >= 400 && error.responseCode < 500;
-      
+
       if (!isTransient || attempt === MAX_RETRIES) {
-        console.error(`[CustomSMTP] ❌ Permanent failure sending to ${to}:`, error.message);
+        console.error(`[CustomSMTP] ❌ Permanent failure sending to`, to, ':', error.message);
         throw error;
       }
       console.warn(`[CustomSMTP] ⚠️ Transient failure (Attempt ${attempt + 1}):`, error.message);
@@ -254,10 +254,10 @@ export async function importCustomEmails(
         };
 
         const cleanup = () => {
-            if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-                timeoutHandle = null;
-            }
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+            timeoutHandle = null;
+          }
         };
 
         const emails: ImportedEmail[] = [];
@@ -367,8 +367,8 @@ export async function importCustomEmails(
           if (!completed) {
             cleanup();
             // Don't safeEnd here necessarily, as error might have closed it
-            connectionEnded = true; 
-            
+            connectionEnded = true;
+
             let errorMessage = `IMAP connection error: ${err.message}`;
             if (err.message.toLowerCase().includes('enotfound') || err.message.toLowerCase().includes('not found')) {
               errorMessage = `IMAP Host not found: "${config.imap_host}". Please check the hostname and try again.`;
@@ -394,18 +394,18 @@ export async function importCustomEmails(
     } catch (error: any) {
       const isLastAttempt = attempt === MAX_RETRIES;
       const isTimeout = error.message.includes('tim') || error.message.includes('TIM'); // catch timeout, ETIMEDOUT, etc.
-      
+
       if (!isLastAttempt && (isTimeout || error.message.includes('ECONNRESET') || error.message.includes('socket hang up'))) {
         console.warn(`[IMAP] Attempt ${attempt} failed for ${config.smtp_user}: ${error.message}. Retrying in ${BASE_DELAY * attempt}ms...`);
         await new Promise(res => setTimeout(res, BASE_DELAY * attempt));
         continue;
       }
-      
+
       // If we're out of retries or it's a fatal error, rethrow or return empty based on policy
       if (isLastAttempt) {
         console.error(`[IMAP] All ${MAX_RETRIES} attempts failed for ${config.smtp_user}: ${error.message}`);
         // We resolve empty to avoid crashing the worker, but log the error
-        return []; 
+        return [];
       }
       throw error; // Propagate other errors
     }
@@ -499,26 +499,26 @@ export async function sendEmail(
       }
     }
 
-      const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
-      if (result && result.messageId) {
-        await storage.createEmailMessage({
-            userId,
-            leadId: options.leadId || null,
-            campaignId: options.campaignId || null,
-            messageId: result.messageId,
-            subject,
-            from: credentials.smtp_user || '',
-            to: recipientEmail,
-            body: emailBody,
-            direction: 'outbound',
-            provider: 'custom_email',
-            sentAt: new Date(),
-            metadata: { trackingId: options.trackingId }
-        });
-      }
-      console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
-      return result;
+    const result = await sendCustomSMTP(userId, credentials, recipientEmail, subject, emailBody, true, options.trackingId);
+    if (result && result.messageId) {
+      await storage.createEmailMessage({
+        userId,
+        leadId: options.leadId || null,
+        campaignId: options.campaignId || null,
+        messageId: result.messageId,
+        subject,
+        from: credentials.smtp_user || '',
+        to: recipientEmail,
+        body: emailBody,
+        direction: 'outbound',
+        provider: 'custom_email',
+        sentAt: new Date(),
+        metadata: { trackingId: options.trackingId }
+      });
     }
+    console.log(`📧 Email sent via user's SMTP: ${credentials.smtp_user} -> ${recipientEmail}`);
+    return result;
+  }
 
   // Fallback to Gmail or Outlook via Storage
   const integrations = await storage.getIntegrations(userId);

@@ -437,7 +437,7 @@ export class DrizzleStorage implements IStorage {
 
     if (result[0]) {
       wsSync.notifyLeadsUpdated(insertLead.userId, { event: 'INSERT', lead: result[0] });
-      
+
       // Notify about new lead
       this.createNotification({
         userId: insertLead.userId,
@@ -453,7 +453,7 @@ export class DrizzleStorage implements IStorage {
   async updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined> {
     checkDatabase();
     if (!isValidUUID(id)) return undefined;
-    
+
     // Get old lead for status change detection if status is being updated
     let oldLead: Lead | undefined;
     if (updates.status) {
@@ -468,7 +468,7 @@ export class DrizzleStorage implements IStorage {
 
     if (result) {
       wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', lead: result });
-      
+
       // Trigger notification on status change
       if (oldLead && updates.status && oldLead.status !== updates.status) {
         this.createNotification({
@@ -490,7 +490,7 @@ export class DrizzleStorage implements IStorage {
       .set({ archived, updatedAt: new Date() })
       .where(and(eq(leads.id, id), eq(leads.userId, userId)))
       .returning();
-    
+
     if (result) {
       wsSync.notifyLeadsUpdated(userId, { event: 'UPDATE', lead: result });
     }
@@ -511,7 +511,7 @@ export class DrizzleStorage implements IStorage {
     await db.update(leads)
       .set({ archived, updatedAt: new Date() })
       .where(and(eq(leads.userId, userId), sql`${leads.id} IN ${ids}`));
-    
+
     wsSync.notifyLeadsUpdated(userId, { event: 'BULK_UPDATE', leadIds: ids, updates: { archived } });
   }
 
@@ -1256,55 +1256,55 @@ export class DrizzleStorage implements IStorage {
       notInterested: sql<number>`count(*) filter (where status = 'not_interested')`,
       leadsReplied: sql<number>`count(*) filter (where status in ('replied', 'converted'))`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
 
     const statusResults = await db.select({
       status: leads.status,
       count: sql<number>`count(*)`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
-    .groupBy(leads.status);
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .groupBy(leads.status);
 
     const channelResults = await db.select({
       channel: leads.channel,
       count: sql<number>`count(*)`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
-    .groupBy(leads.channel);
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .groupBy(leads.channel);
 
     const hourResults = await db.select({
       hour: sql<number>`extract(hour from last_message_at)`,
       count: sql<number>`count(*)`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt))))
-    .groupBy(sql`extract(hour from last_message_at)`)
-    .orderBy(desc(sql`count(*)`))
-    .limit(1);
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate), not(isNull(leads.lastMessageAt))))
+      .groupBy(sql`extract(hour from last_message_at)`)
+      .orderBy(desc(sql`count(*)`))
+      .limit(1);
 
     const timelineResults = await db.select({
       date: sql<string>`to_char(created_at, 'YYYY-MM-DD')`,
       leads: sql<number>`count(*)`,
       conversions: sql<number>`count(*) filter (where status = 'converted')`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
-    .groupBy(sql`to_char(created_at, 'YYYY-MM-DD')`)
-    .orderBy(sql`to_char(created_at, 'YYYY-MM-DD')`);
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)))
+      .groupBy(sql`to_char(created_at, 'YYYY-MM-DD')`)
+      .orderBy(sql`to_char(created_at, 'YYYY-MM-DD')`);
 
     const total = Number(mainSummary?.totalLeads || 0);
     const conversions = Number(mainSummary?.conversions || 0);
-    
+
     // Sentiment calculation
     const [sentimentSummary] = await db.select({
       positive: sql<number>`count(*) filter (where status in ('replied', 'converted', 'open'))`,
       negative: sql<number>`count(*) filter (where status in ('not_interested', 'cold'))`,
     })
-    .from(leads)
-    .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
+      .from(leads)
+      .where(and(eq(leads.userId, userId), gte(leads.createdAt, startDate)));
 
     const positiveCount = Number(sentimentSummary?.positive || 0);
     const negativeCount = Number(sentimentSummary?.negative || 0);
@@ -1324,17 +1324,17 @@ export class DrizzleStorage implements IStorage {
         leadsReplied: Number(mainSummary?.leadsReplied || 0),
         bestReplyHour: hourResults[0] ? Number(hourResults[0].hour) : null,
       },
-      channelBreakdown: channelResults.map((c: any) => ({
+      channelBreakdown: channelResults.map((c: { channel: string; count: number | string }) => ({
         channel: c.channel,
         count: Number(c.count),
         percentage: total > 0 ? (Number(c.count) / total) * 100 : 0
       })),
-      statusBreakdown: statusResults.map((s: any) => ({
+      statusBreakdown: statusResults.map((s: { status: string; count: number | string }) => ({
         status: s.status,
         count: Number(s.count),
         percentage: total > 0 ? (Number(s.count) / total) * 100 : 0
       })),
-      timeline: timelineResults.map((t: any) => ({
+      timeline: timelineResults.map((t: { date: string; leads: number | string; conversions: number | string }) => ({
         date: t.date,
         leads: Number(t.leads),
         conversions: Number(t.conversions)
@@ -1481,13 +1481,13 @@ export class DrizzleStorage implements IStorage {
     checkDatabase();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const yesterdayStart = new Date(todayStart);
     yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-    const leadsBaseWhere = overrideDates 
+    const leadsBaseWhere = overrideDates
       ? and(eq(leads.userId, userId), gte(leads.createdAt, overrideDates.start), lte(leads.createdAt, overrideDates.end))
       : eq(leads.userId, userId);
 
@@ -1508,8 +1508,8 @@ export class DrizzleStorage implements IStorage {
       bouncyLeads: sql<number>`count(*) filter (where status = 'bouncy')`,
       recoveredLeads: sql<number>`count(*) filter (where status = 'recovered')`,
     })
-    .from(leads)
-    .where(leadsBaseWhere);
+      .from(leads)
+      .where(leadsBaseWhere);
 
     const [messagesStats] = await db.select({
       totalMessages: sql<number>`count(*)`,
@@ -1517,15 +1517,15 @@ export class DrizzleStorage implements IStorage {
       messagesYesterday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${yesterdayStart} and ${messages.createdAt} < ${todayStart} and direction = 'outbound')`,
       positiveIntents: sql<number>`count(*) filter (where direction = 'inbound' and (lower(body) like '%yes%' or lower(body) like '%book%' or lower(body) like '%interested%' or lower(body) like '%call%' or lower(body) like '%meeting%'))`,
     })
-    .from(messages)
-    .where(messagesBaseWhere);
+      .from(messages)
+      .where(messagesBaseWhere);
 
     const [dealsStats] = await db.select({
       pipelineValue: sql<number>`coalesce(sum(value), 0)`,
       closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then value else 0 end), 0)`,
     })
-    .from(deals)
-    .where(dealsBaseWhere);
+      .from(deals)
+      .where(dealsBaseWhere);
 
     return {
       totalLeads: Number(leadsStats?.totalLeads || 0),
@@ -1568,7 +1568,7 @@ export class DrizzleStorage implements IStorage {
     recentEvents: Array<{ id: string; type: string; description: string; time: string; isNew: boolean }>;
   }> {
     checkDatabase();
-    
+
     // 1. Basic Metrics
     const [counts] = await db.select({
       totalLeads: sql<number>`count(*)`,
@@ -1639,10 +1639,10 @@ export class DrizzleStorage implements IStorage {
       updatedAt: leads.updatedAt,
       createdAt: leads.createdAt
     })
-    .from(leads)
-    .where(eq(leads.userId, userId))
-    .orderBy(desc(leads.updatedAt))
-    .limit(5);
+      .from(leads)
+      .where(eq(leads.userId, userId))
+      .orderBy(desc(leads.updatedAt))
+      .limit(5);
 
     return {
       metrics: {
@@ -1719,25 +1719,25 @@ export class DrizzleStorage implements IStorage {
       .where(eq(notifications.userId, userId));
   }
     await db.update(notifications)
-      .set({ read: true })
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+  .set({ read: true })
+  .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
   }
 
-  async markAllNotificationsAsRead(userId: string): Promise<void> {
-    await db.update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.userId, userId));
-  }
+  async markAllNotificationsAsRead(userId: string): Promise < void> {
+  await db.update(notifications)
+    .set({ read: true })
+    .where(eq(notifications.userId, userId));
+}
 
-  async clearAllNotifications(userId: string): Promise<void> {
-    await db.delete(notifications)
-      .where(eq(notifications.userId, userId));
-  }
+  async clearAllNotifications(userId: string): Promise < void> {
+  await db.delete(notifications)
+    .where(eq(notifications.userId, userId));
+}
 
-  async deleteNotification(id: string, userId: string): Promise<void> {
-    await db.delete(notifications)
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-  }
+  async deleteNotification(id: string, userId: string): Promise < void> {
+  await db.delete(notifications)
+    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+}
 }
 
 export const drizzleStorage = new DrizzleStorage();

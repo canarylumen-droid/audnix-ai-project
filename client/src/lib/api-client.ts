@@ -27,13 +27,17 @@ export async function apiClient<T>(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      
+
       // User-friendly error messages
       let message = error.message || 'Something went wrong';
-      
+
       if (response.status === 401) {
         message = 'Please sign in to continue';
-        window.location.href = '/auth';
+        // Only redirect if we are in a protected route
+        const path = window.location.pathname;
+        if (path.startsWith('/dashboard') || path.startsWith('/admin')) {
+          window.location.href = '/auth';
+        }
       } else if (response.status === 403) {
         message = 'You do not have permission for this action';
       } else if (response.status === 429) {
@@ -41,13 +45,13 @@ export async function apiClient<T>(
       } else if (response.status >= 500) {
         message = 'Server error. Our team has been notified.';
       }
-      
+
       toast({
         variant: 'destructive',
         title: 'Error',
         description: message,
       });
-      
+
       throw new APIError(response.status, message, error.code);
     }
 
@@ -56,14 +60,14 @@ export async function apiClient<T>(
     if (error instanceof APIError) {
       throw error;
     }
-    
+
     // Network errors
     toast({
       variant: 'destructive',
       title: 'Connection Error',
       description: 'Please check your internet connection',
     });
-    
+
     throw new APIError(0, 'Network error');
   }
 }
