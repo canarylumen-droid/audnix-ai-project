@@ -67,7 +67,7 @@ export function Navigation() {
         <div className="flex items-center gap-12">
           <Magnetic>
             <Link href="/">
-              <Logo />
+              <Logo className="h-8 w-8" textClassName="text-xl font-black text-white" />
             </Link>
           </Magnetic>
 
