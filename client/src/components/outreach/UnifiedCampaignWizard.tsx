@@ -36,7 +36,6 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<"ios" | "android">("ios");
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
-  const [previewTab, setPreviewTab] = useState<"p1" | "p2" | "p3">("p1");
 
   // Step 1: Import State
   const [leads, setLeads] = useState<any[]>(initialLeads);
@@ -454,27 +453,16 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             </div>
             
             <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-transparent to-primary/5">
-                <div className="h-full relative">
-                  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1 bg-background/80 backdrop-blur border border-border/20 flex gap-1 h-auto">
-                     {['p1', 'p2', 'p3'].map((t) => (
-                       <button
-                         key={t}
-                         onClick={() => setPreviewTab(t as any)}
-                         className={cn(
-                           "h-7 text-[8px] font-black uppercase px-4 rounded-full transition-all",
-                           previewTab === t ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                         )}
-                       >
-                         {t === 'p1' ? 'S1' : t === 'p2' ? 'S2' : 'S3'}
-                       </button>
-                     ))}
-                  </div>
-                  <div className="h-full m-0">
-                    {previewTab === 'p1' && renderPreview(subject, body)}
-                    {previewTab === 'p2' && renderPreview(followUpSubject, followUpBody)}
-                    {previewTab === 'p3' && renderPreview(followUpSubject2, followUpBody2)}
-                  </div>
-                </div>
+                <Tabs key={viewMode} defaultValue="p1" className="h-full">
+                  <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1 bg-background/80 backdrop-blur border border-border/20 flex gap-1 h-auto">
+                     <TabsTrigger value="p1" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S1</TabsTrigger>
+                     <TabsTrigger value="p2" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S2</TabsTrigger>
+                     <TabsTrigger value="p3" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S3</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="p1" className="h-full m-0">{renderPreview(subject, body)}</TabsContent>
+                  <TabsContent value="p2" className="h-full m-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
+                  <TabsContent value="p3" className="h-full m-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
+                </Tabs>
             </div>
 
             <div className="p-6 border-t border-border/10 text-center">

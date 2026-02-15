@@ -100,7 +100,7 @@ interface Notification {
   title: string;
   message: string;
   description?: string;
-  isRead: boolean;
+  read: boolean;
   createdAt: string;
   type?: string;
 }
@@ -139,7 +139,6 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
 
-  const { showTour, completeTour, skipTour } = useTour();
   const { permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
 
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -607,7 +606,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           const date = new Date(n.createdAt);
                           const now = new Date();
                           if (notifDateFilter === 'today') {
-                            return date.toDateString() === now.toDateString();
+                            return date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
                           }
                           if (notifDateFilter === 'week') {
                             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -615,20 +614,30 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           }
                           return true;
                         })
+
+                          if (notifDateFilter === 'all') return true;
+                          const created = new Date(n.createdAt);
+                          const now = new Date();
+                          if (notifDateFilter === 'today') {
+                            return created.toDateString() === now.toDateString();
+                          }
+                          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                          return created >= weekAgo;
+                        })
                         .map((notification) => (
                         <div 
                           key={notification.id} 
                           className={cn(
                             "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
-                            !notification.isRead && "bg-primary/5"
+                            !notification.read && "bg-primary/5"
                           )}
                         >
-                          {!notification.isRead && (
+                          {!notification.read && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                           )}
                           <div className={cn(
                             "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                            !notification.isRead ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                            !notification.read ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                           )}>
                             <Bell className="h-5 w-5" />
                           </div>
@@ -648,7 +657,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                             <p className="text-xs text-muted-foreground leading-relaxed">
                               {notification.message || notification.description || "No details provided."}
                             </p>
-                            {!notification.isRead && (
+                            {!notification.read && (
                               <button 
                                 className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
                                 onClick={async (e) => {

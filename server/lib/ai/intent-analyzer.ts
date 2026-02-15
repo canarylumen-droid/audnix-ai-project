@@ -15,7 +15,6 @@ export interface IntentAnalysis {
   sentiment: 'positive' | 'negative' | 'neutral';
   suggestedAction: string;
   keywords: string[];
-  estimatedValue?: number;
 }
 
 export interface Lead {
@@ -52,8 +51,8 @@ export async function analyzeLeadIntent(
   try {
     const conversationContext = '';
 
-    const prompt = `Analyze this lead message for sales intent, sentiment, and POTENTIAL DEAL VALUE.
-    
+    const prompt = `Analyze this lead message for sales intent and sentiment.
+
 Lead Information:
 - Name: ${lead.name}
 - Channel: ${lead.channel}
@@ -77,8 +76,7 @@ Analyze and return a JSON object with these exact fields:
   "confidence": number (0-1 confidence in analysis),
   "sentiment": "positive" | "negative" | "neutral",
   "suggestedAction": string (next best action),
-  "keywords": string[] (important keywords/phrases),
-  "estimatedValue": number (estimated deal value in USD if mentioned or implied, otherwise 0)
+  "keywords": string[] (important keywords/phrases)
 }
 
 Focus on buying signals like:
@@ -86,10 +84,6 @@ Focus on buying signals like:
 - "how much", "pricing", "cost", "payment"
 - "when can we", "schedule", "meet", "call", "demo"
 - "sign up", "get started", "purchase", "buy"
-
-Money signals:
-- "$1000", "budget is 5k", "premium plan", "enterprise" (imply value)
-- If they mention a specific budget or price, extract it.
 
 Negative signals:
 - "not interested", "no thanks", "unsubscribe", "stop"
@@ -107,7 +101,7 @@ Return ONLY valid JSON, no explanation.`;
       messages: [
         {
           role: 'system',
-          content: 'You are an elite sales intent analyzer. Analyze messages for intent and deal value. Return raw JSON only.'
+          content: 'You are an elite sales intent analyzer. Analyze messages and return raw JSON only.'
         },
         {
           role: 'user',
@@ -137,49 +131,9 @@ Return ONLY valid JSON, no explanation.`;
         lastIntensity: analysis.confidence,
         lastIntent: analysis.sentiment,
         suggestedAction: analysis.suggestedAction,
-        estimatedValue: analysis.estimatedValue,
         intentAnalysis: analysis
       }
     });
-
-    // DEAL VALUATION LOGIC
-    // If we have a high confidence estimate or intent, update/create deal
-    if (analysis.estimatedValue && analysis.estimatedValue > 0 && analysis.confidence > 0.6) {
-      try {
-        const existingDeals = await storage.getDeals({ leadId: lead.id.toString() });
-        const openDeal = existingDeals.find(d => d.status === 'open' || d.status === 'pending');
-
-        if (openDeal) {
-          // Update existing deal if value changed significantly or confidence implies update
-          if (openDeal.value !== analysis.estimatedValue) {
-             await storage.updateDeal(openDeal.id, { 
-               value: analysis.estimatedValue,
-               aiAnalysis: { ...openDeal.aiAnalysis as object, lastUpdate: new Date(), reason: "AI Text Analysis update" }
-             });
-          }
-        } else {
-          // Create new deal
-          // We need userId. Lead has userId.
-          const leadData = await storage.getLead(lead.id.toString());
-          if (leadData) {
-             await storage.createDeal({
-               leadId: lead.id.toString(),
-               userId: leadData.userId,
-               organizationId: leadData.organizationId || undefined,
-               brand: leadData.company || leadData.name || "Unknown Brand",
-               channel: leadData.channel as any,
-               value: analysis.estimatedValue,
-               status: 'open',
-               dealValue: analysis.estimatedValue, // redundant field in schema but good to set
-               source: 'ai_analysis',
-               aiAnalysis: { originalAnalysis: analysis }
-             });
-          }
-        }
-      } catch (err) {
-        console.error("Error managing automatic deal creation:", err);
-      }
-    }
 
     return analysis;
 

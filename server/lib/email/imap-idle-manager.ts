@@ -297,7 +297,7 @@ class ImapIdleManager {
                 for (const folder of currentFolders.sent) {
                     await this.fetchNewEmails(userId, imap, folder, 'outbound');
                 }
-            }, 60 * 1000); // Every 60 seconds
+            }, 10 * 60 * 1000); // Every 10 minutes
         });
     }
 

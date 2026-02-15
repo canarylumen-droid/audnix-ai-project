@@ -12,7 +12,7 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    const deals = await storage.getDeals({ userId });
+    const deals = await storage.getDeals(userId);
     res.json(deals);
   } catch (error) {
     console.error('Error fetching deals:', error);

@@ -17,8 +17,7 @@ import {
   Filter,
   Activity,
   Plus,
-  Download,
-  Sparkles
+  Download
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -40,12 +39,6 @@ interface Deal {
   meetingUrl?: string | null;
   createdAt: string;
   leadName?: string;
-  source?: "manual" | "ai";
-  aiAnalysis?: {
-    confidence?: number;
-    reasoning?: string;
-    originalQuery?: string;
-  };
 }
 
 interface DealsApiResponse {
@@ -319,17 +312,7 @@ export default function DealsPage() {
                           </div>
                         </td>
                         <td className="p-4 align-middle font-medium">
-                          <div className="flex flex-col">
-                            <span>${deal.value ? deal.value.toLocaleString() : "0"}</span>
-                            {deal.source === 'ai' && deal.aiAnalysis?.confidence && (
-                              <div className="flex items-center gap-1 mt-0.5" title={deal.aiAnalysis.reasoning || "AI Estimated"}>
-                                <Badge variant="outline" className="text-[10px] h-4 px-1 bg-primary/5 text-primary border-primary/20">
-                                  <Sparkles className="w-2 h-2 mr-1" />
-                                  {Math.round(deal.aiAnalysis.confidence * 100)}% conf.
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
+                          ${deal.value ? deal.value.toLocaleString() : "0"}
                         </td>
                         <td className="p-4 align-middle">
                           <Badge variant={deal.status === 'converted' ? 'default' : 'secondary'} className="capitalize">

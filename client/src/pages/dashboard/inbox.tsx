@@ -326,8 +326,8 @@ export default function InboxPage() {
       toast({ title: "Copied!", description: "Lead details copied to clipboard" });
     } else if (action === 'mark_booked') {
       try {
-        await apiRequest("POST", `/api/leads/${data.id}/book`, { value: 0, notes: "Marked via Inbox Context Menu" });
-        toast({ title: "Lead Booked", description: `${data.name} has been marked as booked & converted!` });
+        await apiRequest("PATCH", `/api/leads/${data.id}`, { status: 'booked' });
+        toast({ title: "Lead Booked", description: `${data.name} has been marked as booked` });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
         toast({ title: "Error", description: "Failed to mark lead as booked", variant: "destructive" });
@@ -381,16 +381,6 @@ export default function InboxPage() {
     onSuccess: () => {
       toast({ title: "Booking link sent!", description: `Calendar invite sent to ${activeLead?.name}` });
       queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
-    }
-  });
-  
-  const markAsBookedMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/leads/${leadId}/book`, { value: 0, notes: "Marked via Inbox Header" });
-    },
-    onSuccess: () => {
-      toast({ title: "Lead Booked", description: `${activeLead?.name} has been marked as booked & converted!` });
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     }
   });
 
@@ -659,18 +649,6 @@ export default function InboxPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {activeLead?.status !== 'converted' && activeLead?.status !== 'booked' && (
-                       <Button
-                         variant="outline"
-                         size="sm"
-                         className="h-8 gap-1.5 text-xs uppercase font-bold tracking-wider hidden md:flex hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/20"
-                         onClick={() => markAsBookedMutation.mutate()}
-                         disabled={markAsBookedMutation.isPending}
-                       >
-                         {markAsBookedMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                         Mark Booked
-                       </Button>
-                    )}
                     <Sheet open={showDetails} onOpenChange={setShowDetails}>
                       <SheetTrigger asChild>
                         <Badge

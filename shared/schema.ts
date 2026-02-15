@@ -133,11 +133,10 @@ export const leads = pgTable("leads", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["lead_import", "lead_reply", "conversion", "campaign_sent", "system", "webhook_error", "billing_issue", "insight"] }).notNull().default("system"),
+  type: text("type", { enum: ["lead_import", "lead_reply", "conversion", "campaign_sent", "system"] }).notNull().default("system"),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  isRead: boolean("is_read").notNull().default(false),
-  actionUrl: text("action_url"),
+  read: boolean("read").notNull().default(false),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -294,7 +293,17 @@ export const processedComments = pgTable("processed_comments", {
   processedAt: timestamp("processed_at").notNull().defaultNow()
 });
 
-
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight"] }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  actionUrl: text("action_url"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
