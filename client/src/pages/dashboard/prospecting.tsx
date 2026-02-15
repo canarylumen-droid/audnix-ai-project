@@ -142,8 +142,8 @@ export default function ProspectingPage() {
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-4">
+                    <div className="space-y-4 text-center md:text-left">
+                        <div className="flex flex-col md:flex-row items-center gap-4">
                             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic">Lead Prospecting</h2>
                             <div className="px-3 py-1 rounded bg-primary/10 border border-primary/20 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,180,255,0.2)]">
                                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />

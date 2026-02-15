@@ -118,8 +118,8 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
           // Check if element is visible
           if (rect.width > 0 && rect.height > 0) {
             setTargetRect(rect);
-            // Scroll into view if needed
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Non-blocking scroll
+            element.scrollIntoView({ behavior: 'auto', block: 'center' });
             return;
           }
         }
@@ -127,8 +127,8 @@ export function GuidedTour({ isOpen, onComplete, onSkip }: GuidedTourProps) {
       setTargetRect(null); // Fallback to center if not found
     };
 
-    // Small delay to allow navigation/rendering to complete
-    const timer = setTimeout(findTarget, 300);
+    // Increase delay to ensure DOM is ready
+    const timer = setTimeout(findTarget, 1000);
     
     // Observers
     const observer = new MutationObserver(findTarget);

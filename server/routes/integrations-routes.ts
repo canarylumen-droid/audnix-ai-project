@@ -57,6 +57,10 @@ router.post('/:provider/connect', requireAuth, async (req: Request, res: Respons
       connected: integration.connected,
       message: `${provider} connected successfully`
     });
+
+    const { getIO } = await import('../lib/socket.js');
+    getIO().to(`user_${userId}`).emit('settings_updated', { provider, connected: true });
+
   } catch (error) {
     console.error('Error connecting integration:', error);
     res.status(500).json({ error: 'Failed to connect integration' });
@@ -74,6 +78,9 @@ router.post('/:provider/disconnect', requireAuth, async (req: Request, res: Resp
     const { provider } = req.params;
     
     await storage.disconnectIntegration(userId, provider);
+
+    const { getIO } = await import('../lib/socket.js');
+    getIO().to(`user_${userId}`).emit('settings_updated', { provider, connected: false });
 
     res.json({ message: `${provider} disconnected` });
   } catch (error) {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { io, Socket } from "socket.io-client";
 import {
   ArrowRight,
   Minus,
@@ -95,6 +96,8 @@ const channelIcons = {
   email: Mail,
 };
 
+let socket: Socket | null = null;
+
 export default function DashboardHome() {
   const prefersReducedMotion = useReducedMotion();
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -114,8 +117,58 @@ export default function DashboardHome() {
       const onboardingDismissedKey = `onboarding_dismissed_${user.id}`;
       const wasOnboardingDismissed = localStorage.getItem(onboardingDismissedKey);
       setShowOnboarding(!hasCompletedOnboarding && !wasOnboardingDismissed);
+
+      // Initialize Socket connection for real-time dashboard updates
+      if (!socket) {
+        const socketUrl = window.location.origin;
+        socket = io(socketUrl, {
+          path: '/socket.io',
+          query: { userId: user.id },
+          transports: ['websocket', 'polling']
+        });
+
+        socket.on('connect', () => {
+          console.log("Dashboard socket connected");
+        });
+
+        // Listen for specific dashboard events
+        socket.on('leads_updated', () => {
+          console.log("Leads updated event received");
+          queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+        });
+
+        socket.on('activity_updated', () => {
+           console.log("Activity updated event received");
+           queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
+        });
+
+        socket.on('insights_updated', () => {
+           console.log("Insights updated event received");
+           queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+        });
+        
+        // Also listen for general settings/integrations updates
+        socket.on('settings_updated', () => {
+           queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+        });
+
+        socket.on('disconnect', () => {
+           console.log("Dashboard socket disconnected");
+        });
+      }
     }
-  }, [user]);
+
+    return () => {
+      if (socket) {
+        socket.off('leads_updated');
+        socket.off('activity_updated');
+        socket.off('insights_updated');
+        socket.off('settings_updated');
+        // socket.disconnect(); // Keep connection alive if navigating
+      }
+    };
+  }, [user, queryClient]);
 
   const showCelebrationAfterOnboarding = () => {
     if (user?.username) {
@@ -138,7 +191,8 @@ export default function DashboardHome() {
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    refetchInterval: 30000,
+    // Reduce polling significantly as we rely on sockets now
+    refetchInterval: 60000, 
     staleTime: 10000,
   });
 
@@ -152,7 +206,7 @@ export default function DashboardHome() {
     queryKey: ["/api/dashboard/activity"],
     refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 30000,
+    staleTime: 10000,
   });
 
   const { data: integrations } = useQuery<any[]>({
@@ -259,10 +313,10 @@ export default function DashboardHome() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tighter bg-gradient-to-br from-foreground via-foreground/90 to-primary/80 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground">
               Welcome back, {user?.name?.split(' ')[0] || user?.username || 'User'}
             </h1>
-            <p className="text-muted-foreground/80 text-lg font-medium tracking-tight">
+            <p className="text-muted-foreground/60 text-lg font-medium tracking-tight">
               {isSmtpConnected ? "Your outreach system is performing optimally." : "Connect your SMTP to start outreach automation."}
             </p>
           </div>

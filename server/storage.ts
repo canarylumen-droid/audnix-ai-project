@@ -919,8 +919,12 @@ export class MemStorage implements IStorage {
   // Deal tracking
   private deals: Map<string, any> = new Map();
 
-  async getDeals(userId: string): Promise<any[]> {
-    return Array.from(this.deals.values()).filter(d => d.userId === userId);
+  async getDeals(options: { userId?: string; leadId?: string }): Promise<any[]> {
+    return Array.from(this.deals.values()).filter(d => {
+      if (options.userId && d.userId !== options.userId) return false;
+      if (options.leadId && d.leadId !== options.leadId) return false;
+      return true;
+    });
   }
 
   async createDeal(data: any): Promise<any> {
@@ -940,7 +944,7 @@ export class MemStorage implements IStorage {
   }
 
   async calculateRevenue(userId: string): Promise<{ total: number; thisMonth: number; deals: any[] }> {
-    const deals = await this.getDeals(userId);
+    const deals = await this.getDeals({ userId });
     const closedDeals = deals.filter(d => d.status === 'closed_won');
 
     const now = new Date();

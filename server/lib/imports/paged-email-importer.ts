@@ -350,8 +350,8 @@ async function processEmailForLead(
         // 1. Lead doesn't have AI paused
         // 2. We haven't replied in the last 2 hours (avoid rapid back-and-forth)
         // 3. Lead is not converted or not_interested
-        // 4. Email is RECENT (within last 1 hour) - SAFETY CHECK for imports
-        const isRecent = new Date(email.date).getTime() > Date.now() - 1000 * 60 * 60;
+        // 4. Email is RECENT (within last 24 hours) - SAFETY CHECK for imports
+        const isRecent = new Date(email.date).getTime() > Date.now() - 24 * 60 * 60 * 1000;
 
         if (!lead.aiPaused &&
           hoursSinceLastOutbound > 2 &&

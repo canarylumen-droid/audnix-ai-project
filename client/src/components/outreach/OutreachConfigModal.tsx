@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
     const [previewDevice, setPreviewDevice] = useState<"ios" | "android">("ios");
+    const [previewTab, setPreviewTab] = useState<"initial" | "followup" | "followup2" | "autoreply">("initial");
 
     // Campaign Config
     const [dailyLimit, setDailyLimit] = useState(30);
@@ -432,26 +434,33 @@ export default function OutreachConfigModal({ isOpen, onClose, leads, onSuccess 
                             </Button>
                         </div>
                         <div className="flex-1 relative overflow-hidden p-4">
-                            <Tabs defaultValue="preview-initial" className="w-full h-full">
-                                <TabsList className="absolute top-4 right-4 z-30 bg-background/80 backdrop-blur shadow-sm h-8">
-                                    <TabsTrigger value="preview-initial" className="text-[10px] h-6">S1</TabsTrigger>
-                                    <TabsTrigger value="preview-followup" className="text-[10px] h-6">S2</TabsTrigger>
-                                    <TabsTrigger value="preview-followup2" className="text-[10px] h-6">S3</TabsTrigger>
-                                    <TabsTrigger value="preview-autoreply" className="text-[10px] h-6">Reply</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="preview-initial" className="h-full m-0">
-                                    {renderPreview(subject, body)}
-                                </TabsContent>
-                                <TabsContent value="preview-followup" className="h-full m-0">
-                                    {renderPreview(followUpSubject, followUpBody)}
-                                </TabsContent>
-                                <TabsContent value="preview-followup2" className="h-full m-0">
-                                    {renderPreview(followUpSubject2, followUpBody2)}
-                                </TabsContent>
-                                <TabsContent value="preview-autoreply" className="h-full m-0">
-                                    {renderPreview(`Re: ${subject}`, autoReplyBody)}
-                                </TabsContent>
-                            </Tabs>
+                            <div className="w-full h-full relative">
+                                <div className="absolute top-4 right-4 z-30 bg-background/80 backdrop-blur shadow-sm h-8 flex gap-1 rounded-lg p-1 border">
+                                    {[
+                                      { id: 'initial', label: 'S1' },
+                                      { id: 'followup', label: 'S2' },
+                                      { id: 'followup2', label: 'S3' },
+                                      { id: 'autoreply', label: 'Reply' }
+                                    ].map(t => (
+                                      <button
+                                        key={t.id}
+                                        onClick={() => setPreviewTab(t.id as any)}
+                                        className={cn(
+                                          "text-[10px] h-6 px-2.5 rounded-md font-bold transition-all",
+                                          previewTab === t.id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                        )}
+                                      >
+                                        {t.label}
+                                      </button>
+                                    ))}
+                                </div>
+                                <div className="h-full m-0">
+                                    {previewTab === 'initial' && renderPreview(subject, body)}
+                                    {previewTab === 'followup' && renderPreview(followUpSubject, followUpBody)}
+                                    {previewTab === 'followup2' && renderPreview(followUpSubject2, followUpBody2)}
+                                    {previewTab === 'autoreply' && renderPreview(`Re: ${subject}`, autoReplyBody)}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

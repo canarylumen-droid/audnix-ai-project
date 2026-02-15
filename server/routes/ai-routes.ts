@@ -42,7 +42,7 @@ if (!process.env.GEMINI_API_KEY) {
 }
 import type { ProviderType, ChannelType } from '../../shared/types.js';
 
-type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight';
+type NotificationType = 'webhook_error' | 'billing_issue' | 'conversion' | 'lead_reply' | 'system' | 'insight' | 'lead_import' | 'campaign_sent';
 
 const router = Router();
 
@@ -349,6 +349,22 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             }
           }
 
+          // Trigger historical sync for new leads
+          if (leadsToSave.length > 0) {
+            // Trigger historical email sync in background
+            (async () => {
+              try {
+                console.log(`[CSV Import] Triggering historical sync for ${leadsToSave.length} leads...`);
+                // Import dynamically to avoid circular deps if any
+                const { imapIdleManager } = await import('../lib/email/imap-idle-manager.js');
+                await imapIdleManager.syncHistoricalEmails(userId);
+                console.log(`[CSV Import] Historical sync completed.`);
+              } catch (syncErr) {
+                console.error(`[CSV Import] Historical sync failed:`, syncErr);
+              }
+            })();
+          }
+
           console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${leadsToSave.length} leads (Standalone Mode)`);
 
 
@@ -427,6 +443,64 @@ router.get("/:leadId", requireAuth, async (req: Request, res: Response): Promise
   } catch (error: unknown) {
     console.error("Get lead error:", error);
     res.status(500).json({ error: "Failed to fetch lead" });
+  }
+});
+
+
+/**
+ * Mark lead as booked/converted manually
+ * POST /api/leads/:leadId/book
+ */
+router.post("/:leadId/book", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leadId } = req.params;
+    const { value, notes } = req.body;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    // Update lead status
+    const updatedLead = await storage.updateLead(leadId, {
+      status: 'converted',
+      metadata: {
+        ...lead.metadata,
+        conversion_notes: notes,
+        manual_booking: true,
+        booked_at: new Date().toISOString()
+      }
+    });
+
+    // Create a deal to track revenue
+    if (updatedLead) {
+      await storage.createDeal({
+        userId,
+        leadId,
+        title: `Deal with ${lead.name}`,
+        amount: value || 0,
+        currency: 'USD',
+        status: 'closed_won',
+        source: 'manual_booking',
+        metadata: { notes }
+      });
+      
+      // Notify
+      await storage.createNotification({
+        userId,
+        type: 'conversion',
+        title: '🎉 Manual Booking Recorded',
+        message: `You marked ${lead.name} as booked! Revenue: $${value || 0}`,
+        metadata: { leadId, value }
+      });
+    }
+
+    res.json({ success: true, lead: updatedLead });
+  } catch (error: unknown) {
+    console.error("Manual booking error:", error);
+    res.status(500).json({ error: "Failed to mark as booked" });
   }
 });
 

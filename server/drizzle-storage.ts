@@ -741,6 +741,14 @@ export class DrizzleStorage implements IStorage {
     }));
   }
 
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    checkDatabase();
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return Number(result[0].count);
+  }
+
   async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
     checkDatabase();
     await db
@@ -755,6 +763,20 @@ export class DrizzleStorage implements IStorage {
       .update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.userId, userId));
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    checkDatabase();
+    await db
+      .delete(notifications)
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    checkDatabase();
+    await db
+      .delete(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
   }
 
   async createNotification(data: any): Promise<any> {
@@ -894,6 +916,15 @@ export class DrizzleStorage implements IStorage {
       ORDER BY d.created_at DESC
     `);
     return result.rows as any[];
+  }
+
+  async getDeals(options: { userId?: string; leadId?: string }): Promise<Deal[]> {
+    checkDatabase();
+    const conditions = [];
+    if (options.userId) conditions.push(eq(deals.userId, options.userId));
+    if (options.leadId) conditions.push(eq(deals.leadId, options.leadId));
+
+    return await db.select().from(deals).where(and(...conditions));
   }
 
   async createDeal(data: any): Promise<any> {
@@ -1718,26 +1749,7 @@ export class DrizzleStorage implements IStorage {
     await db.delete(notifications)
       .where(eq(notifications.userId, userId));
   }
-    await db.update(notifications)
-      .set({ read: true })
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-  }
 
-  async markAllNotificationsAsRead(userId: string): Promise<void> {
-    await db.update(notifications)
-      .set({ read: true })
-      .where(eq(notifications.userId, userId));
-  }
-
-  async clearAllNotifications(userId: string): Promise<void> {
-    await db.delete(notifications)
-      .where(eq(notifications.userId, userId));
-  }
-
-  async deleteNotification(id: string, userId: string): Promise<void> {
-    await db.delete(notifications)
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-  }
 }
 
 export const drizzleStorage = new DrizzleStorage();

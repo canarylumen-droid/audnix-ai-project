@@ -100,7 +100,7 @@ interface Notification {
   title: string;
   message: string;
   description?: string;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
   type?: string;
 }
@@ -139,6 +139,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
 
+  const { showTour, completeTour, skipTour } = useTour();
   const { permission, isSubscribed, subscribe, loading: pushLoading } = usePushNotifications();
 
   const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -186,49 +187,19 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   const { socket } = useRealtime(user?.id);
 
-  // Custom alert effect
-  useEffect(() => {
-    if (!socket) return;
-    const handleNotification = (payload: any) => {
-      // Invalidate both notifications and stats as they might change
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
-
-      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
-        setCurrentAlert({
-          title: payload.title,
-          message: payload.message,
-          type: payload.type
-        });
-        setTimeout(() => setCurrentAlert(null), 10000);
-      }
-    };
-    socket.on('notification', handleNotification);
-    socket.on('activity_updated', handleNotification);
-    socket.on('leads_updated', handleNotification);
-    socket.on('messages_updated', handleNotification);
-    return () => { socket.off('notification', handleNotification); };
-  }, [socket]);
-
-  const onboardingCompleted = !!user?.metadata?.onboardingCompleted;
-  const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
-
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/notifications"],
-    staleTime: Infinity, // Trust socket updates
+    staleTime: 1000 * 60, // 1 minute cache
   });
-
-  // Sound logic moved to useRealtime hook to avoid duplication
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
-    staleTime: Infinity,
+    staleTime: 1000 * 30, // 30 seconds cache
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;
@@ -636,7 +607,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           const date = new Date(n.createdAt);
                           const now = new Date();
                           if (notifDateFilter === 'today') {
-                            return date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                            return date.toDateString() === now.toDateString();
                           }
                           if (notifDateFilter === 'week') {
                             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -644,30 +615,20 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           }
                           return true;
                         })
-
-                          if (notifDateFilter === 'all') return true;
-                          const created = new Date(n.createdAt);
-                          const now = new Date();
-                          if (notifDateFilter === 'today') {
-                            return created.toDateString() === now.toDateString();
-                          }
-                          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                          return created >= weekAgo;
-                        })
                         .map((notification) => (
                         <div 
                           key={notification.id} 
                           className={cn(
                             "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
-                            !notification.read && "bg-primary/5"
+                            !notification.isRead && "bg-primary/5"
                           )}
                         >
-                          {!notification.read && (
+                          {!notification.isRead && (
                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                           )}
                           <div className={cn(
                             "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                            !notification.read ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                            !notification.isRead ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                           )}>
                             <Bell className="h-5 w-5" />
                           </div>
@@ -687,7 +648,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                             <p className="text-xs text-muted-foreground leading-relaxed">
                               {notification.message || notification.description || "No details provided."}
                             </p>
-                            {!notification.read && (
+                            {!notification.isRead && (
                               <button 
                                 className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
                                 onClick={async (e) => {
