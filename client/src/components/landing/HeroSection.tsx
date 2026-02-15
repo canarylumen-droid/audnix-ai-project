@@ -210,11 +210,11 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white leading-[0.95] lg:max-w-2xl"
+              className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9] lg:max-w-3xl"
             >
-              The AI Sales Rep <br />
+              10x your Instagram outbound.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase">
-                That Never Sleeps.
+                Unlimited Agents, One Fixed Cost.
               </span>
             </motion.h1>
 
@@ -222,11 +222,10 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md"
+              className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl max-w-2xl"
             >
-              <h3 className="text-white font-bold text-lg mb-2">Autonomous Lead Acquisition</h3>
-              <p className="text-white/60 text-sm">
-                Deploy intelligent agents that identify, engage, and book high-ticket clients across Instagram and Email. No manual outreach, just results.
+              <p className="text-white/60 text-lg md:text-xl font-medium leading-relaxed">
+                For <span className="text-primary font-bold">agencies</span>, <span className="text-orange-400 font-bold">sales teams</span>, and <span className="text-emerald-400 font-bold">founders</span> who want to automate outreach, reach 1000+ leads weekly, and book more meetings without the overhead.
               </p>
             </motion.div>
 

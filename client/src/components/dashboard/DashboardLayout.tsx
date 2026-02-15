@@ -184,49 +184,19 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
   const { data: user, isLoading: isUserLoading } = useQuery<UserProfile | null>({
     queryKey: ["/api/user/profile"],
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
   const { socket } = useRealtime(user?.id);
 
-  // Custom alert effect
-  useEffect(() => {
-    if (!socket) return;
-    const handleNotification = (payload: any) => {
-      // Invalidate both notifications and stats as they might change
-      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/activity"] });
-
-      if (payload.type === 'billing_issue' || payload.type === 'webhook_error') {
-        setCurrentAlert({
-          title: payload.title,
-          message: payload.message,
-          type: payload.type
-        });
-        setTimeout(() => setCurrentAlert(null), 10000);
-      }
-    };
-    socket.on('notification', handleNotification);
-    socket.on('activity_updated', handleNotification);
-    socket.on('leads_updated', handleNotification);
-    socket.on('messages_updated', handleNotification);
-    return () => { socket.off('notification', handleNotification); };
-  }, [socket]);
-
-  const onboardingCompleted = !!user?.metadata?.onboardingCompleted;
-  const { showTour, completeTour, skipTour } = useTour(onboardingCompleted);
-
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/notifications"],
-    staleTime: Infinity, // Trust socket updates
+    staleTime: 1000 * 60, // 1 minute cache
   });
-
-  // Sound logic moved to useRealtime hook to avoid duplication
 
   const { data: dashboardStats } = useQuery<any>({
     queryKey: ["/api/dashboard/stats"],
-    staleTime: Infinity,
+    staleTime: 1000 * 30, // 30 seconds cache
   });
 
   const unreadNotifications = notificationsData?.unreadCount || 0;

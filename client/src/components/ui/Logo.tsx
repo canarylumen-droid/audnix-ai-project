@@ -29,8 +29,8 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                     <desc>Official logo of Audnix AI, representing autonomous sales intelligence.</desc>
                     <defs>
                         <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#60a5fa" />
+                            <stop offset="0%" stopColor="#10b981" />
+                            <stop offset="100%" stopColor="#059669" />
                         </linearGradient>
                     </defs>
 
