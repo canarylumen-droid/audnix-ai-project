@@ -12,7 +12,7 @@ import { ComparisonSection } from "@/components/landing/ComparisonSection";
 import { ROICalculator } from "@/components/landing/ROICalculator";
 import { Logo } from "@/components/ui/Logo";
 import { DeepFAQ } from "@/components/landing/DeepFAQ";
-import { Twitter, Linkedin, Github, ShieldCheck, Zap, ArrowRight, Instagram } from "lucide-react";
+import { Twitter, Linkedin, Github, ShieldCheck, Zap, ArrowRight, Instagram, Sparkles } from "lucide-react";
 import { useScroll, useSpring, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
