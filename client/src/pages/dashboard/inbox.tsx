@@ -990,10 +990,7 @@ export default function InboxPage() {
                   {isGenerating && typedText && (
                     <div className="flex justify-end">
                       <div className="max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-lg bg-primary/10 border border-primary/20 rounded-tr-none">
-                        <div className="whitespace-pre-wrap break-words italic text-primary/80">
-                          {typedText}
-                          <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary/80 align-middle animate-pulse" />
-                        </div>
+                        <div className="whitespace-pre-wrap break-words italic text-primary/80">{typedText}</div>
                         <div className="flex items-center gap-2 mt-3">
                           <Loader2 className="h-3 w-3 animate-spin text-primary" />
                           <span className="text-[10px] text-primary/70 font-bold uppercase tracking-widest">Optimizing response...</span>
@@ -1047,7 +1044,7 @@ export default function InboxPage() {
                           }
                         }}
                         placeholder="Compose a response..."
-                        className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto caret-primary"
+                        className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
                       />
                       <Button
                         size="icon"

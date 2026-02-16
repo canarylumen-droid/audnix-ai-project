@@ -29,7 +29,7 @@ export const CustomCursor = () => {
         const style = document.createElement('style');
         style.id = 'audnix-cursor-styles';
         style.textContent = `
-            @media (pointer: fine) {
+            @media (pointer: fine) and (min-width: 1024px) {
                 *, *::before, *::after { cursor: none !important; }
                 html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
                 ::-webkit-scrollbar { cursor: none !important; }
