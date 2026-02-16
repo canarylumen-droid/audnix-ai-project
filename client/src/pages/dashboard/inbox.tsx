@@ -63,6 +63,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  ArrowRight,
   Filter,
   Zap,
   Mail,
@@ -560,8 +561,26 @@ export default function InboxPage() {
                 )}
               </div>
             ) : (
-                    )}
-                  >
+              <>
+                <div className="flex-1 overflow-auto">
+                  {filteredLeads.map(lead => (
+                    <div
+                      key={lead.id}
+                      onClick={() => {
+                          if (selectedLeadIds.length > 0) {
+                            toggleLeadSelection(lead.id);
+                          } else {
+                            setLocation(`/dashboard/inbox/${lead.id}`);
+                          }
+                      }}
+                      onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
+                      className={cn(
+                        "p-5 cursor-pointer border-b border-border/10 transition-all relative group flex gap-4",
+                        leadId === lead.id ? "bg-primary/10" : "hover:bg-muted/30",
+                        lead.metadata?.isUnread && "bg-primary/5",
+                        selectedLeadIds.includes(lead.id) && "bg-primary/20"
+                      )}
+                    >
                     {/* Checkbox for selection */}
                     <div 
                       className={cn(
@@ -622,10 +641,10 @@ export default function InboxPage() {
                       onClick={() => setPage(p => p + 1)}
                       disabled={leadsLoading}
                     >
-                      {leadsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Load More"}
                     </Button>
                   </div>
                 )}
+              </div>
               </>
             )}
           </div>

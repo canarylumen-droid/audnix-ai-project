@@ -198,7 +198,6 @@ export function Navigation() {
               </AnimatePresence>
             </div>
           </div>
-        </div>
 
           <ThemeToggle />
           <Link href="/auth">
