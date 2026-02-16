@@ -407,7 +407,6 @@ export default function DashboardHome() {
                     ))}
                   </div>
                 ) : (
-                ) : (
                   <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
                     <div className="relative">
                       <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
