@@ -52,6 +52,7 @@ import {
   ExternalLink,
   User,
   Phone,
+  Plug,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -161,6 +162,19 @@ export default function InboxPage() {
     queryKey: ["/api/messages", leadId],
     enabled: !!leadId,
   });
+
+  const { data: channelStatus } = useQuery<any>({
+    queryKey: ["/api/channels/all"],
+  });
+
+  const isChannelConnected = (channel?: string) => {
+    if (!channel || !channelStatus?.channels) return false;
+    if (channel === 'email') return channelStatus.channels.email.connected;
+    if (channel === 'instagram') return channelStatus.channels.instagram.connected;
+    return false;
+  };
+
+  const hasAnyChannel = channelStatus?.channels?.email?.connected || channelStatus?.channels?.instagram?.connected;
 
   const activeLead = useMemo(() =>
     leadsData?.leads?.find((l: any) => l.id === leadId) || allLeads.find((l: any) => l.id === leadId),
@@ -516,11 +530,30 @@ export default function InboxPage() {
               </div>
             ) : filteredLeads.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 text-center h-64">
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                  <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
-                <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
+                {!hasAnyChannel ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-pulse">
+                      <Plug className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-sm font-bold text-foreground">Connect Sources</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mb-4">Connect your communication channels to start importing and engaging leads.</p>
+                    <Button 
+                      size="sm" 
+                      className="rounded-full font-bold uppercase tracking-wider text-[10px]"
+                      onClick={() => setLocation('/dashboard/integrations')}
+                    >
+                      Connect Now
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
+                      <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
+                    <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
+                  </>
+                )}
               </div>
             ) : (
               <>
@@ -654,7 +687,10 @@ export default function InboxPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">{activeLead?.status === 'hardened' ? 'Verified' : activeLead?.status}</span>
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-                        <ChannelIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <ChannelIcon className={cn("h-3 w-3 shrink-0", !isChannelConnected(activeLead?.channel) ? "text-destructive" : "text-muted-foreground")} />
+                        {!isChannelConnected(activeLead?.channel) && (
+                          <span className="text-[9px] font-bold text-destructive uppercase tracking-wide ml-1 hidden sm:inline">Disconnected</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -916,6 +952,27 @@ export default function InboxPage() {
                 </div>
 
                 {/* Reply Input */}
+                {!isChannelConnected(activeLead?.channel) ? (
+                   <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
+                      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center p-6 bg-destructive/5 border border-destructive/20 rounded-2xl text-center space-y-3">
+                         <div className="p-3 bg-destructive/10 rounded-full">
+                           <Plug className="h-5 w-5 text-destructive" />
+                         </div>
+                         <div>
+                           <h4 className="text-sm font-bold text-destructive uppercase tracking-wide">Channel Disconnected</h4>
+                           <p className="text-xs text-muted-foreground mt-1">Connect your {activeLead?.channel} account to reply to this lead.</p>
+                         </div>
+                         <Button 
+                           size="sm" 
+                           variant="outline"
+                           className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                           onClick={() => setLocation('/dashboard/integrations')}
+                         >
+                           Connect {activeLead?.channel === 'instagram' ? 'Instagram' : 'Email'}
+                         </Button>
+                      </div>
+                   </div>
+                ) : (
                 <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
                   <div className="flex gap-3 items-end max-w-5xl mx-auto">
                     <div className="flex-1 relative group">
@@ -959,6 +1016,7 @@ export default function InboxPage() {
                   </div>
                   <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
                 </div>
+              )}
               </div>
 
             </div>

@@ -692,32 +692,11 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
                 <div className="p-6 border-t border-border/20 bg-muted/10">
                   <Button
-                    variant="outline"
-                    className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[11px] border-border/40 hover:bg-background"
-                    onClick={async () => {
-                      try {
-                        await apiRequest('POST', '/api/notifications/mark-all-read', {});
-                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-                      } catch (err) {
-                        console.error("Failed to mark all as read", err);
-                      }
-                    }}
-                  >
-                    Clear All Alerts
-                  </Button>
-                  <Button
                     variant="ghost"
-                    className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-destructive hover:bg-destructive/10 mt-2"
-                    onClick={async () => {
-                      try {
-                        await apiRequest('POST', '/api/notifications/clear-all', {});
-                        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-                      } catch (err) {
-                        console.error("Failed to clear all notifications", err);
-                      }
-                    }}
+                    className="w-full h-10 rounded-2xl font-bold uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-muted/20"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
-                    Delete All Permanently
+                    Close
                   </Button>
                 </div>
               </SheetContent>
