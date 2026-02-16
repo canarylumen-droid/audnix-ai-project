@@ -19,6 +19,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { CookieConsent } from "@/components/landing/CookieConsent";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { Card } from "@/components/ui/card";
 
 gsap.registerPlugin(ScrollTrigger);
 
