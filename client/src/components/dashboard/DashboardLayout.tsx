@@ -39,7 +39,10 @@ import {
   CreditCard,
   User,
   Check,
-  Sparkles
+  Sparkles,
+  Trash2,
+  DollarSign,
+  Users
 } from "lucide-react";
 
 import { useTheme } from "next-themes";
@@ -286,7 +289,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         onClick={() => setLocation(item.path)}
         className={`relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer group mb-1 hover-bounce ${isActive
           ? "bg-primary/10 text-primary font-bold shadow-sm"
-          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+          : "text-muted-foreground hover:bg-white/5 dark:hover:bg-white/10 hover:text-foreground dark:hover:text-white"
           }`}
       >
         <Icon className={`h-4 w-4 transition-colors ${isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`} />
@@ -320,7 +323,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
         data-testid="sidebar-desktop"
-        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border bg-sidebar"
+        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-sidebar/95 backdrop-blur-xl"
         animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
         <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -364,7 +367,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   {!sidebarCollapsed ? (
                     <button
                       onClick={() => toggleGroup(group.label)}
-                      className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-primary/40 uppercase tracking-[0.2em] hover:text-foreground transition-colors group font-sans"
+                      className="flex items-center justify-between w-full px-4 py-1.5 text-[10px] font-bold text-primary/60 dark:text-primary/40 uppercase tracking-[0.2em] hover:text-foreground dark:hover:text-white transition-colors group font-sans"
                     >
                       <div className="flex items-center gap-2">
                         <div className="h-[1px] w-2 bg-primary/20" />
@@ -503,7 +506,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
+        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
           <div className="flex items-center gap-6 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

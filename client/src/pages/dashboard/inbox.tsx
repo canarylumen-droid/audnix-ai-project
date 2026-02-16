@@ -108,6 +108,7 @@ export default function InboxPage() {
   const [typedText, setTypedText] = useState("");
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
+  const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
@@ -140,14 +141,28 @@ export default function InboxPage() {
       }
     };
 
+    const handleActivityUpdated = (data: any) => {
+      if (data?.type === 'typing_status' && data.channel === 'instagram') {
+        if (data.status === 'typing_on') {
+          setTypingLeadId(data.leadId);
+          // Auto-clear after 5 seconds just in case 'typing_off' is missed
+          setTimeout(() => setTypingLeadId(null), 5000);
+        } else {
+          setTypingLeadId(null);
+        }
+      }
+    };
+
     socket.on('messages_updated', handleMessagesUpdated);
     socket.on('leads_updated', handleLeadsUpdated);
     socket.on('notification', handleNotification);
+    socket.on('activity_updated', handleActivityUpdated);
 
     return () => {
       socket.off('messages_updated', handleMessagesUpdated);
       socket.off('leads_updated', handleLeadsUpdated);
       socket.off('notification', handleNotification);
+      socket.off('activity_updated', handleActivityUpdated);
     };
   }, [socket, leadId, queryClient, toast]);
 
@@ -485,6 +500,30 @@ export default function InboxPage() {
               <Button variant="ghost" size="sm" onClick={() => setFilterChannel("email")} className={cn("h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest shrink-0 transition-all", filterChannel === 'email' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "hover:bg-muted")}>Email</Button>
             </div>
 
+            {/* Mobile/Desktop Connect Alert */}
+            {!hasAnyChannel && allLeads.length > 0 && (
+              <div className="mx-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                 <div className="p-1.5 bg-red-500/20 rounded-full shrink-0">
+                    <Plug className="h-3 w-3 text-red-500" />
+                 </div>
+                 <div className="flex-1">
+                    <h4 className="text-xs font-bold text-foreground">Channels Disconnected</h4>
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 mb-2">
+                       Connect Email or Instagram to sync replies.
+                    </p>
+                    <Button 
+                       size="sm" 
+                       variant="outline" 
+                       className="h-6 text-[9px] font-bold uppercase w-full bg-background hover:bg-red-500/5 hover:text-red-500 border-red-500/20"
+                       onClick={() => setLocation('/dashboard/integrations')}
+                    >
+                       Connect Now
+                    </Button>
+                 </div>
+              </div>
+            )}
+
+
             {/* Bulk Action Bar */}
             <AnimatePresence>
               {selectedLeadIds.length > 0 && (
@@ -612,8 +651,14 @@ export default function InboxPage() {
                             {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <p className={cn("text-xs truncate transition-colors", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
-                          {lead.lastMessageSnippet || "No messages"}
+                        <p className={cn("text-xs truncate transition-colors h-4", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
+                          {typingLeadId === lead.id ? (
+                             <span className="flex items-center gap-1 text-primary font-bold animate-pulse">
+                                Typinng...
+                             </span>
+                          ) : (
+                             lead.lastMessageSnippet || "No messages"
+                          )}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge {...({

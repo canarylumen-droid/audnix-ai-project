@@ -94,6 +94,15 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
       )
     `);
     
+    // Get userId and leadId to notify
+    const trackResult = await db.execute(sql`
+      SELECT user_id, lead_id, recipient_email, subject 
+      FROM email_tracking 
+      WHERE token = ${event.messageId}
+    `);
+    
+    const trackingInfo = trackResult.rows[0] as any;
+
     if (event.type === 'open') {
       await db.execute(sql`
         UPDATE email_tracking 
@@ -109,6 +118,34 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
         WHERE token = ${event.messageId}
       `);
     }
+
+    // Real-time Notification
+    if (trackingInfo) {
+      const { wsSync } = await import('../websocket-sync.js');
+      
+      // Notify activity feed
+      wsSync.notifyActivityUpdated(trackingInfo.user_id, {
+        type: event.type === 'open' ? 'email_opened' : 'email_clicked',
+        leadId: trackingInfo.lead_id,
+        details: {
+          email: trackingInfo.recipient_email,
+          subject: trackingInfo.subject,
+          link: event.linkUrl,
+          timestamp: event.timestamp
+        }
+      });
+
+      // Also trigger a generic notification toast
+      if (trackingInfo.lead_id) {
+         wsSync.notifyNotification(trackingInfo.user_id, {
+           type: 'lead_activity',
+           title: event.type === 'open' ? 'Email Opened' : 'Link Clicked',
+           message: `${trackingInfo.recipient_email} ${event.type === 'open' ? 'opened your email' : 'clicked a link in your email'}: "${trackingInfo.subject}"`,
+           leadId: trackingInfo.lead_id
+         });
+      }
+    }
+
   } catch (error) {
     console.error('Failed to record email event:', error);
   }
