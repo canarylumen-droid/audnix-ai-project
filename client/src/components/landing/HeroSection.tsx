@@ -130,17 +130,17 @@ const AIEngineMockup = () => {
 
 const GridPattern = () => {
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.08]">
+    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.05] dark:opacity-[0.08]">
       <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(59, 130, 246, 0.4)" strokeWidth="0.5" />
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-primary/40" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-black" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background" />
     </div>
   );
 };
@@ -171,160 +171,133 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[90vh] flex items-center pt-32 pb-20 px-4 overflow-hidden mesh-gradient-bg font-sans"
+      className="relative min-h-screen flex items-center pt-32 pb-20 px-4 overflow-hidden font-sans"
     >
-      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-background/80 dark:bg-black/40 pointer-events-none" />
       <GridPattern />
 
       {/* Ambient Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-40">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-fuchsia-500/10 blur-[130px] rounded-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-20 dark:opacity-40">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/20 blur-[150px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/20 blur-[130px] rounded-full" />
       </div>
 
       <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: mouseGlow }} />
 
       <div className="max-w-7xl mx-auto relative z-20 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div className="flex flex-col items-center text-center space-y-12 mb-20">
+          
+          {/* Status Chip */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-3xl shadow-xl shadow-primary/10 group cursor-default">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-black group-hover:tracking-[0.5em] transition-all duration-500">
+                System Online: 14,203 Agents
+              </span>
+            </div>
+          </motion.div>
 
-          {/* Left Side - Copy */}
-          <div className="space-y-8">
-            {/* Status Chip */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-xl">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                </span>
-                <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-black">
-                  System Online: 14,203 Agents
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Headline */}
+          {/* Headline */}
+          <div className="space-y-6 max-w-5xl">
             <motion.h1
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl md:text-8xl lg:text-9xl font-black tracking-tighter text-white leading-[0.85] lg:max-w-4xl"
+              className="text-6xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] mb-4 text-foreground"
             >
-              Autonomous Outbound.<br />
-              <span className="text-primary uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.5)]">
-                Unlimited Agents.
+              AUTONOMOUS<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
+                OUTBOUND.
               </span>
             </motion.h1>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="p-8 rounded-[2rem] glass-premium max-w-2xl"
-            >
-              <p className="text-white/80 text-lg md:text-2xl font-medium leading-relaxed">
-                Automate your entire sales cycle with <span className="text-primary font-bold">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
-              </p>
-            </motion.div>
-
-            {/* Subheadline */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 1 }}
-              className="text-base md:text-lg text-white/50 max-w-md font-medium leading-relaxed"
+              className="text-xl md:text-3xl text-muted-foreground/60 font-bold tracking-tight max-w-3xl mx-auto leading-tight"
             >
-              Automate your entire sales cycle with AI that understands your brand, handles objections, and schedules meetings 24/7.
+              Scale your sales cycle with <span className="text-foreground">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
             </motion.p>
-
-            {/* CTAs */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 1 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link href="/auth">
-                <Magnetic>
-                  <Button
-                    ref={buttonRef}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    size="lg"
-                    className="h-20 px-12 rounded-2xl bg-primary text-black font-black text-xl hover:bg-primary/90 transition-all shadow-[0_30px_60px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest"
-                  >
-                    Deploy Agents
-                    <ArrowRight className={`ml-3 w-6 h-6 transition-transform duration-500 ${isHovered ? "translate-x-2" : ""}`} />
-                  </Button>
-                </Magnetic>
-              </Link>
-              <Link href="#how-it-works">
-                <Magnetic>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-14 px-8 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-base backdrop-blur-md transition-all"
-                  >
-                    See System Logic
-                  </Button>
-                </Magnetic>
-              </Link>
-            </motion.div>
-
-            {/* Trust Indicators */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="flex items-center gap-6 pt-4 border-t border-white/5"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Intent Verified</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-blue-400" />
-                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Voice Cloning</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-purple-400" />
-                <span className="text-white/40 text-sm font-bold uppercase tracking-wider">Drop-off Detection</span>
-              </div>
-            </motion.div>
           </div>
 
-          {/* Right Side - Mockup */}
-          <div className="relative lg:pl-10 hidden lg:block">
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 1 }}
+            className="flex flex-col sm:flex-row gap-6 items-center"
+          >
+            <Link href="/auth">
+              <Magnetic>
+                <Button
+                  ref={buttonRef}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  size="lg"
+                  className="h-20 px-16 rounded-[2rem] bg-primary text-black font-black text-2xl hover:bg-primary/90 transition-all shadow-[0_30px_60px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest"
+                >
+                  Deploy Agents
+                  <ArrowRight className={`ml-3 w-8 h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
+                </Button>
+              </Magnetic>
+            </Link>
+            <Link href="#how-it-works">
+              <Magnetic>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-20 px-12 rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-xl backdrop-blur-md transition-all uppercase tracking-widest"
+                >
+                  See System Logic
+                </Button>
+              </Magnetic>
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Mockup Display */}
+        <div className="relative mt-20 max-w-6xl mx-auto px-4">
+          <div className="absolute inset-0 bg-primary/10 blur-[100px] rounded-full -z-10" />
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+          >
             <AIEngineMockup />
-          </div>
+          </motion.div>
         </div>
 
         {/* Trusted By Ribbon */}
-        <div className="mt-32 border-y border-white/5 bg-black/20 backdrop-blur-sm w-full py-10 overflow-hidden relative group">
+        <div className="mt-32 border-y border-border/10 bg-muted/5 backdrop-blur-sm w-screen relative left-1/2 -translate-x-1/2 py-10 overflow-hidden group">
           <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-          <div className="flex items-center gap-16 md:gap-20 animate-marquee whitespace-nowrap">
+          <div className="flex items-center gap-16 md:gap-24 animate-marquee whitespace-nowrap">
             {["LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI", "LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI"].map((brand, i) => (
               <span
                 key={`${brand}-${i}`}
-                className="text-lg md:text-xl font-black tracking-[-0.02em] text-white/20 hover:text-white transition-all duration-300 cursor-none select-none"
+                className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-muted-foreground/10 hover:text-primary transition-all duration-300 cursor-none select-none italic"
               >
                 {brand}
               </span>
             ))}
           </div>
 
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-5 py-1.5 bg-black border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-primary/60">
-            Trusted By Top Agencies
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-2 bg-background border border-primary/30 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-primary shadow-xl shadow-primary/5">
+            Trusted By Top Growth Agencies
           </div>
         </div>
       </div>
 
       {/* Bottom Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent pointer-events-none z-30" />
+      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-background to-transparent pointer-events-none z-30" />
     </section>
   );
 }

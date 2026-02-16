@@ -6,6 +6,8 @@ import { Sparkles as SparklesIcon, ChevronDown, Shield, FileText, LayoutGrid, Za
 import { Logo } from "@/components/ui/Logo";
 import { Magnetic } from "@/components/ui/Magnetic";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 const SOLUTIONS = [
   {
     name: "For Agencies",
@@ -67,7 +69,7 @@ export function Navigation() {
         <div className="flex items-center gap-12">
           <Magnetic>
             <Link href="/">
-              <Logo className="h-8 w-8" textClassName="text-xl font-black text-white" />
+              <Logo className="h-8 w-8" textClassName="text-xl font-black text-foreground" />
             </Link>
           </Magnetic>
 
@@ -101,7 +103,7 @@ export function Navigation() {
                             </div>
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-black text-white uppercase tracking-tight">{sol.displayName || sol.name}</span>
+                                <span className="text-sm font-black text-foreground uppercase tracking-tight">{sol.displayName || sol.name}</span>
                                 <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-wider">
                                   {sol.badge}
                                 </span>
@@ -198,7 +200,7 @@ export function Navigation() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/auth">
             <Button
               variant="ghost"

@@ -62,7 +62,8 @@ export default function SettingsPage() {
     ctaLink: "",
     ctaText: "",
     calendarLink: "",
-    voiceNotesEnabled: true
+    voiceNotesEnabled: true,
+    autonomousMode: true,
   });
 
   useEffect(() => {
@@ -75,13 +76,27 @@ export default function SettingsPage() {
         ctaLink: user.defaultCtaLink || "",
         ctaText: user.defaultCtaText || "",
         calendarLink: (user as any).calendarLink || "",
-        voiceNotesEnabled: user.voiceNotesEnabled ?? true
+        voiceNotesEnabled: user.voiceNotesEnabled ?? true,
+        autonomousMode: (user as any).config?.autonomousMode !== false,
       });
     }
   }, [user]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest("PUT", "/api/user/profile", data),
+    mutationFn: async (data: any) => {
+      // Ensure we nest config if it's in the data
+      const { autonomousMode, ...rest } = data;
+      const payload = {
+        ...rest,
+        ...(autonomousMode !== undefined && { 
+          config: { 
+            ...((user as any)?.config || {}), 
+            autonomousMode 
+          } 
+        })
+      };
+      return apiRequest("PUT", "/api/user/profile", payload);
+    },
     onSuccess: () => {
       setHasChanges(false);
       queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
@@ -376,6 +391,27 @@ export default function SettingsPage() {
               <CardDescription>Manage how the system interact with leads.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-6 bg-primary/5 rounded-xl border border-primary/20">
+                <div className="flex gap-4">
+                  <div className="p-3 rounded-xl bg-background border border-primary/20 text-primary">
+                    <Activity className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold flex items-center gap-2">
+                      Autonomous Engine
+                      <Badge className="bg-primary hover:bg-primary text-black text-[9px] font-bold">Recommended</Badge>
+                    </h4>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      Enable the global AI engine to handle outreach, replies, and follow-ups autonomously.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={formData.autonomousMode}
+                  onCheckedChange={c => handleFieldChange('autonomousMode', c)}
+                />
+              </div>
+
               <div className="flex items-center justify-between p-6 bg-muted/30 rounded-xl border border-border">
                 <div className="flex gap-4">
                   <div className="p-3 rounded-xl bg-background border border-border">

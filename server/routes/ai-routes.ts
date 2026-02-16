@@ -1091,7 +1091,7 @@ router.post("/brand-info", requireAuth, async (req: Request, res: Response): Pro
 
     const { db } = await import('../db.js');
     const { brandEmbeddings } = await import('../../shared/schema.js');
-    const { embed } = await import('../lib/ai/openai.js');
+    const { embed } = await import('../lib/ai/ai-service.js');
 
     await db.delete(brandEmbeddings).where(eq(brandEmbeddings.userId, userId));
 

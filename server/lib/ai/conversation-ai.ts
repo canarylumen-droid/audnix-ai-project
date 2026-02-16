@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { MODELS } from "./model-config.js";
 import { storage } from "../../storage.js";
 import type { Message, Lead } from "../../../shared/schema.js";
@@ -15,15 +14,7 @@ import { generateAutonomousObjectionResponse } from './autonomous-objection-resp
 import { universalSalesAI } from './universal-sales-agent.js';
 import { evaluateAndLogDecision } from './decision-engine.js';
 import { formatReplyForChannel } from './channel-reply-formatter.js';
-
-// Initialize OpenAI if key is present, otherwise use fallback
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
-
-if (!openai) {
-  console.warn('⚠️ OpenAI API Key missing. Conversation AI will use fallback responses.');
-}
+import { generateReply } from './ai-service.js';
 
 const isDemoMode = false;
 
@@ -517,21 +508,13 @@ ${detectionResult.shouldUseVoice ? '- They seem engaged - maybe a voice message 
       }
     }
 
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
-
-    const completion = await openai.chat.completions.create({
+    const aiResponse = await generateReply(systemPrompt, lastMessage.body, {
       model: MODELS.sales_reasoning,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messageContext
-      ],
       temperature: 0.8,
-      max_tokens: platform === 'email' ? 300 : 150,
+      maxTokens: platform === 'email' ? 300 : 150,
     });
 
-    let responseText = completion.choices[0]?.message?.content || "";
+    let responseText = aiResponse.text;
 
     // Conditional Link Injection: NO tracking/links in 1st email
     const isFirstTouch = conversationHistory.length <= 1;
@@ -624,21 +607,17 @@ Requirements:
 Script:`;
 
   try {
-    if (!openai) {
-      throw new Error("OpenAI not initialized");
-    }
+    const aiResponse = await generateReply(
+      "You are a top-performing salesman creating personalized voice notes. You're confident, articulate, and genuinely helpful. You build trust quickly and guide leads toward action naturally.",
+      prompt,
+      {
+        model: MODELS.sales_reasoning,
+        temperature: 0.8,
+        maxTokens: 120,
+      }
+    );
 
-    const completion = await openai.chat.completions.create({
-      model: MODELS.sales_reasoning,
-      messages: [
-        { role: "system", content: "You are a top-performing salesman creating personalized voice notes. You're confident, articulate, and genuinely helpful. You build trust quickly and guide leads toward action naturally." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.8,
-      max_tokens: 120,
-    });
-
-    return completion.choices[0]?.message?.content || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
+    return aiResponse.text || "Hey! Just wanted to check in and see if you'd like to discuss this further. Let me know!";
   } catch (error) {
     console.error("Voice script generation error:", error);
     return "Hey! Quick voice note - would love to connect and discuss how we can help. Let me know when you're free!";
@@ -810,18 +789,12 @@ export async function generateExpertOutreach(
       "body_html": "3-4 punchy sentences. High-contrast plain text style HTML (<p>). Focus on the 20% shift that drives 80% results. End with a curiosity-focused question."
     }`;
 
-    if (!openai) throw new Error("Neural Engine Offline");
-
-    const completion = await openai.chat.completions.create({
+    const aiResponse = await generateReply(systemPrompt, `Craft the opening disruption for ${lead.name} (${leadRole}) at ${lead.company || "their company"}. Use the brand offer to bridge their ${industry} gap and set up the bridge to a booked call.`, {
       model: MODELS.sales_reasoning,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Craft the opening disruption for ${lead.name} (${leadRole}) at ${lead.company || "their company"}. Use the brand offer to bridge their ${industry} gap and set up the bridge to a booked call.` }
-      ],
-      response_format: { type: 'json_object' }
+      jsonMode: true
     });
 
-    const result = JSON.parse(completion.choices[0]?.message?.content || '{}');
+    const result = JSON.parse(aiResponse.text || '{}');
 
     if (!result.subjects || !result.body_html) throw new Error("Incomplete Intel Generation");
 

@@ -529,51 +529,37 @@ export default function InboxPage() {
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 w-full rounded-2xl" />)}
               </div>
             ) : filteredLeads.length === 0 ? (
-              <div className="flex flex-col items-center justify-center p-8 text-center h-64">
+              <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px] animate-in fade-in zoom-in duration-700">
                 {!hasAnyChannel ? (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 animate-pulse">
-                      <Plug className="h-8 w-8 text-primary" />
+                  <div className="max-w-xs">
+                    <div className="w-20 h-20 rounded-[2.5rem] bg-primary/10 flex items-center justify-center mb-8 mx-auto relative group">
+                      <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Plug className="h-10 w-10 text-primary relative z-10 animate-pulse" />
+                      <div className="absolute -top-1 -right-1 h-4 w-4 bg-destructive rounded-full border-2 border-background" />
                     </div>
-                    <p className="text-sm font-bold text-foreground">Connect Sources</p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-[200px] mb-4">Connect your communication channels to start importing and engaging leads.</p>
+                    <h3 className="text-xl font-black tracking-tighter uppercase italic mb-2">Connect Sources</h3>
+                    <p className="text-sm text-muted-foreground/60 font-medium mb-8 leading-relaxed">
+                      Your inbox is ready. Just connect your email or Instagram to start importing and engaging leads in real-time.
+                    </p>
                     <Button 
-                      size="sm" 
-                      className="rounded-full font-bold uppercase tracking-wider text-[10px]"
+                      size="lg" 
+                      className="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-lg shadow-primary/20 hover:scale-105 transition-all w-full"
                       onClick={() => setLocation('/dashboard/integrations')}
                     >
-                      Connect Now
+                      Connect Sources Now <ArrowRight className="ml-2 w-4 h-4" />
                     </Button>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mb-4">
-                      <InboxIcon className="h-8 w-8 text-muted-foreground/50" />
+                  <div className="max-w-xs opacity-40">
+                    <div className="w-20 h-20 rounded-[2.5rem] bg-muted/20 flex items-center justify-center mb-6 mx-auto">
+                      <InboxIcon className="h-10 w-10 text-muted-foreground/30" />
                     </div>
-                    <p className="text-sm font-medium text-muted-foreground">No conversations found</p>
-                    <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">Try adjusting your filters or search query.</p>
-                  </>
+                    <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/50">No conversations</p>
+                    <p className="text-[10px] text-muted-foreground/30 font-bold mt-2 uppercase">Adjust filters or search query</p>
+                  </div>
                 )}
               </div>
             ) : (
-              <>
-                {filteredLeads.map(lead => (
-                  <div
-                    key={lead.id}
-                    onClick={() => {
-                      if (selectedLeadIds.length > 0) {
-                        toggleLeadSelection(lead.id);
-                      } else {
-                        setLocation(`/dashboard/inbox/${lead.id}`);
-                        setShowDetails(true);
-                      }
-                    }}
-                    onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
-                    className={cn(
-                      "p-4 cursor-pointer hover:bg-primary/5 transition-all border-b border-border/5 group relative",
-                      leadId === lead.id ? "bg-primary/10" : "hover:pl-5",
-                      lead.metadata?.isUnread && "bg-primary/5",
-                      selectedLeadIds.includes(lead.id) && "bg-primary/20"
                     )}
                   >
                     {/* Checkbox for selection */}

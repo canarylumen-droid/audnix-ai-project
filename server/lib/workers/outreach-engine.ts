@@ -243,11 +243,23 @@ export class OutreachEngine {
         if (Date.now() - lastSentAt < minDelayMs) return false;
     }
 
-    // 2. Daily limits (Campaign specific vs Global)
+    // 2. Daily limits and Autonomous Engine Toggle
     let dailyLimit = 50;
     try {
-        const settings = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-        if (settings[0]) dailyLimit = (settings[0].config as any)?.dailyLimit || 50;
+        const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (userResult[0]) {
+            const config = (userResult[0].config as any) || {};
+            dailyLimit = config.dailyLimit || 50;
+
+            // Global Autonomous Engine Toggle
+            // If NOT in autonomous mode, only allow manual campaigns
+            const isAutonomousMode = config.autonomousMode !== false;
+            const isManualCampaign = campaign?.config?.isManual === true;
+
+            if (!isAutonomousMode && !isManualCampaign) {
+                return false;
+            }
+        }
     } catch (e) {}
 
     // Overwrite with campaign limit if present

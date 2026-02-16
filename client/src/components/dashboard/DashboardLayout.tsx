@@ -65,6 +65,10 @@ import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { BellRing, ShieldCheck, Info } from "lucide-react";
 import { useRealtime, RealtimeProvider } from "@/hooks/use-realtime";
 import { formatDistanceToNow } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
 interface NavItem {
   label: string;
@@ -147,6 +151,31 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     "Tools": true,
     "Reports": true
   });
+
+  const toggleAutonomousMode = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const currentConfig = (user as any)?.config || {};
+      return apiRequest('PUT', '/api/user/profile', {
+        config: { ...currentConfig, autonomousMode: enabled }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/profile"] });
+      toast({
+        title: "Engine Updated",
+        description: `Autonomous AI mode has been ${((user as any)?.config?.autonomousMode === false) ? 'enabled' : 'disabled'}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update engine settings.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const isAutonomousMode = (user as any)?.config?.autonomousMode !== false;
 
   const [currentAlert, setCurrentAlert] = useState<{ title: string; message: string; type: string } | null>(null);
 
@@ -366,6 +395,31 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                 {sidebarCollapsed && <div className="h-px bg-white/5 mx-4 my-6" />}
                 {renderNavItem({ label: "Settings", icon: Settings, path: "/dashboard/settings" })}
               </div>
+
+              {/* Autonomous Mode Toggle */}
+              <div className={`mt-auto px-4 py-6 ${sidebarCollapsed ? "flex justify-center" : ""}`}>
+                <div className={`flex items-center justify-between p-3 rounded-2xl border border-primary/10 bg-primary/5 transition-all hover:bg-primary/10 ${sidebarCollapsed ? "w-12 h-12 p-0 justify-center" : "w-full"}`}>
+                  {!sidebarCollapsed && (
+                    <div className="flex flex-col gap-0.5">
+                      <Label htmlFor="autonomous-mode" className="text-[10px] font-bold uppercase tracking-wider text-primary cursor-pointer">
+                        AI Engine
+                      </Label>
+                      <span className="text-[9px] text-muted-foreground font-medium">
+                        {isAutonomousMode ? "Autonomous" : "Manual"}
+                      </span>
+                    </div>
+                  )}
+                  <div className={sidebarCollapsed ? "scale-75" : ""}>
+                    <Switch
+                      id="autonomous-mode"
+                      checked={isAutonomousMode}
+                      onCheckedChange={(checked) => toggleAutonomousMode.mutate(checked)}
+                      disabled={toggleAutonomousMode.isPending}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </ScrollArea>
 
@@ -559,7 +613,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   </div>
                   <p className="text-xs text-muted-foreground font-medium mb-4">Real-time alerts from your autonomous sales engine.</p>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
                     <div className="flex gap-2">
                       {(['all', 'today', 'week'] as const).map(f => (
                         <Button
@@ -568,10 +622,10 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           size="sm"
                           onClick={() => setNotifDateFilter(f)}
                           className={cn(
-                            "h-7 px-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
+                            "h-7 px-4 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all border border-transparent",
                             notifDateFilter === f
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "hover:bg-muted text-muted-foreground"
+                              ? "bg-primary text-black border-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                              : "hover:bg-muted text-muted-foreground border-border/10"
                           )}
                         >
                           {f === 'all' ? 'All' : f === 'today' ? 'Today' : 'Week'}
@@ -582,26 +636,28 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1"
+                        className="h-10 text-[10px] font-black uppercase tracking-[0.2em] flex-1 rounded-2xl border-primary/20 hover:bg-primary/5 transition-all"
                         onClick={async () => {
                           await apiRequest('POST', '/api/notifications/mark-all-read');
                           queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
                         }}
                       >
-                        <Check className="w-3 h-3 mr-1.5" />
+                        <Check className="w-4 h-4 mr-2 text-primary" />
                         Mark All Read
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-[10px] font-bold uppercase tracking-wider flex-1 text-muted-foreground hover:text-destructive"
+                        className="h-10 text-[10px] font-black uppercase tracking-[0.2em] flex-1 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-all"
                         onClick={async () => {
-                          await apiRequest('POST', '/api/notifications/clear-all');
-                          queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                          if (confirm("Permanently delete all notifications?")) {
+                            await apiRequest('POST', '/api/notifications/clear-all');
+                            queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+                          }
                         }}
                       >
-                        <LogOut className="w-3 h-3 mr-1.5 rotate-180" />
-                        Clear All
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete All
                       </Button>
                     </div>
                   </div>
@@ -609,7 +665,13 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
                 <ScrollArea className="flex-1 h-[calc(100vh-220px)]">
                   {notificationsData?.notifications && notificationsData.notifications.length > 0 ? (
-                    <div className="divide-y divide-border/10">
+                    <div className="flex flex-col">
+                      {/* Table Header */}
+                      <div className="grid grid-cols-[1fr_80px] px-6 py-3 border-b border-border/5 bg-muted/5 text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                        <span>Message & Detail</span>
+                        <span className="text-right">Time</span>
+                      </div>
+                      
                       {notificationsData.notifications
                         .filter(n => {
                           if (notifDateFilter === 'all') return true;
@@ -624,44 +686,39 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                           }
                           return true;
                         })
-
-
                         .map((notification) => (
                           <div
                             key={notification.id}
                             className={cn(
-                              "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
+                              "grid grid-cols-[auto_1fr_auto] p-4 hover:bg-muted/30 transition-all cursor-pointer gap-4 relative group border-b border-border/5",
                               !notification.isRead && "bg-primary/5"
                             )}
                           >
                             {!notification.isRead && (
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                             )}
+                            
                             <div className={cn(
-                              "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                              !notification.isRead ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                              "h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-all group-hover:scale-105 border border-transparent",
+                              !notification.isRead 
+                                ? "bg-primary/10 text-primary border-primary/20" 
+                                : "bg-muted/50 text-muted-foreground/40 border-border/10"
                             )}>
-                              <Bell className="h-5 w-5" />
+                              {notification.type === 'billing' ? <DollarSign className="h-4 w-4" /> : 
+                               notification.type === 'lead' ? <Users className="h-4 w-4" /> : 
+                               <Bell className="h-4 w-4" />}
                             </div>
-                            <div className="space-y-1.5 flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-4">
-                                <p className="text-sm font-black leading-tight truncate pr-4">{notification.title}</p>
-                                <span className="text-[10px] font-bold text-muted-foreground/40 uppercase whitespace-nowrap pt-0.5">
-                                  {(() => {
-                                    try {
-                                      return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
-                                    } catch (e) {
-                                      return 'Just now';
-                                    }
-                                  })()}
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground leading-relaxed">
+
+                            <div className="space-y-1 min-w-0">
+                              <p className={cn("text-sm tracking-tight leading-tight truncate", !notification.isRead ? "font-black" : "font-bold text-muted-foreground/80")}>
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground/60 leading-tight line-clamp-2">
                                 {notification.message || notification.description || "No details provided."}
                               </p>
                               {!notification.isRead && (
                                 <button
-                                  className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
+                                  className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors mt-2"
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     try {
@@ -672,9 +729,21 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                                     }
                                   }}
                                 >
-                                  Mark as read
+                                  Mark Read
                                 </button>
                               )}
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-[10px] font-black text-muted-foreground/30 uppercase whitespace-nowrap">
+                                {(() => {
+                                  try {
+                                    return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: false });
+                                  } catch (e) {
+                                    return 'now';
+                                  }
+                                })()}
+                              </span>
                             </div>
                           </div>
                         ))}

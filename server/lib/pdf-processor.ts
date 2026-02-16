@@ -63,8 +63,16 @@ export async function processPDF(
 
       // Trigger automatic outreach for existing leads now that we have brand context
       try {
-        const { triggerAutoOutreach } = await import('./sales-engine/outreach-engine.js');
-        await triggerAutoOutreach(userId);
+        const user = await storage.getUserById(userId);
+        const config = (user?.config as any) || {};
+        const isAutonomousMode = config.autonomousMode !== false;
+
+        if (isAutonomousMode) {
+          const { triggerAutoOutreach } = await import('./sales-engine/outreach-engine.js');
+          await triggerAutoOutreach(userId);
+        } else {
+          console.log(`[PDF] Autonomous Mode disabled for user ${userId}, skipping auto-outreach trigger`);
+        }
       } catch (outreachError) {
         console.warn('Failed to trigger auto-outreach after brand extraction:', outreachError);
       }
@@ -407,6 +415,14 @@ async function autoReachOutToLead(
 
     // Get user's extracted brand data
     const user = await storage.getUserById(userId);
+    const config = (user?.config as any) || {};
+    const isAutonomousMode = config.autonomousMode !== false;
+
+    if (!isAutonomousMode) {
+      console.log(`[PDF] Autonomous Mode disabled for user ${userId}, skipping individual auto-reachout`);
+      return;
+    }
+
     const brandData = user?.metadata?.extracted_brand || {};
     const brandColors = brandData.colors || {};
 

@@ -1,5 +1,5 @@
 import { storage } from "../../storage.js";
-import { generateInsights } from "./openai.js";
+import { generateInsights } from "./ai-service.js";
 import type { User, Lead, Message } from "../../../shared/schema.js";
 import type { WeeklyInsight, LeadInsights } from "../../../shared/types.js";
 

@@ -1,7 +1,7 @@
 import { db } from '../../db.js';
 import { followUpQueue, leads, messages, users, brandEmbeddings, integrations, contentLibrary } from '../../../shared/schema.js';
 import { eq, and, lte, asc } from 'drizzle-orm';
-import { generateReply } from './openai.js';
+import { generateReply } from './ai-service.js';
 import { InstagramOAuth } from '../oauth/instagram.js';
 import { sendInstagramMessage } from '../channels/instagram.js';
 

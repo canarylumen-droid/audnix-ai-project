@@ -43,7 +43,8 @@ router.get('/stats', requireAuth, async (req: Request, res: Response): Promise<v
       return currentSync > latest ? currentSync : latest;
     }, 0);
 
-    const engineStatus = monitors.length > 0 ? "Autonomous" : "Paused";
+    const isAutonomousMode = (user?.config as any)?.autonomousMode !== false;
+    const engineStatus = isAutonomousMode ? "Autonomous" : "Paused";
 
     // Enhanced Domain Health Calculation (0-100)
     const hardBounces = recentBounces.filter(b => b.bounceType === 'hard').length;
@@ -294,7 +295,7 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
       return;
     }
 
-    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink, voiceNotesEnabled } = req.body;
+    const { name, username, company, timezone, defaultCtaLink, defaultCtaText, calendarLink, voiceNotesEnabled, config } = req.body;
 
     const user = await storage.getUserById(userId);
     if (!user) {
@@ -318,6 +319,13 @@ router.put('/user/profile', requireAuth, async (req: Request, res: Response): Pr
         ...(defaultCtaText !== undefined && { defaultCtaText }),
         ...(calendarLink !== undefined && { calendarLink }),
         ...(voiceNotesEnabled !== undefined && { voiceNotesEnabled: voiceNotesEnabled === true }),
+      };
+    }
+
+    if (config !== undefined) {
+      updates.config = {
+        ...((user.config as any) || {}),
+        ...config
       };
     }
 

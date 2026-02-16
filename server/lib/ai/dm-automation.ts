@@ -247,6 +247,16 @@ async function executeAutomatedReply(job: AutomatedReplyJob): Promise<void> {
       return;
     }
 
+    const user = await storage.getUserById(job.userId);
+    const config = (user?.config as any) || {};
+    const isAutonomousMode = config.autonomousMode !== false;
+
+    if (!isAutonomousMode) {
+      console.log(`[DM_AUTO] Autonomous Mode disabled for user ${job.userId}, skipping reply`);
+      await updateQueueStatus(job.leadId, 'skipped', 'Autonomous Mode disabled');
+      return;
+    }
+
     if (lead.aiPaused) {
       console.log(`[DM_AUTO] AI paused for lead ${lead.name}, skipping reply`);
       await updateQueueStatus(job.leadId, 'skipped', 'AI paused by user');

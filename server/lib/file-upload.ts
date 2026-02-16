@@ -2,7 +2,7 @@ import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
 import { createClient } from "@supabase/supabase-js";
-import { embed as generateEmbedding } from "./ai/openai.js";
+import { embed as generateEmbedding } from "./ai/ai-service.js";
 import type { Request } from "express";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);

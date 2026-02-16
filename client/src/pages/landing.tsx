@@ -65,7 +65,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white selection:bg-primary selection:text-black overflow-x-hidden font-sans">
+    <div ref={containerRef} className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black overflow-x-hidden font-sans">
       {/* Progress Bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-[3px] bg-primary z-[200] origin-left"
@@ -192,7 +192,47 @@ export default function Landing() {
               </Button>
             </Link>
 
-            <div className="mt-16 flex flex-wrap justify-center gap-12 items-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
+            <Card className="glass-premium rounded-[2.5rem] border-primary/10 overflow-hidden group">
+              <div className="p-8 border-b border-white/5 bg-primary/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm">Audnix Intelligence</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">Real-time Decision Map</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-8 space-y-6">
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                  <span>Logic Branch</span>
+                  <span>Probability</span>
+                </div>
+                {[
+                  { label: "Check Lead Intent", val: 98, color: "bg-cyan-500" },
+                  { label: "Bypass Gatekeeper", val: 84, color: "bg-blue-500" },
+                  { label: "Handle Pricing Objection", val: 92, color: "bg-purple-500" }
+                ].map((item, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-muted-foreground/80">{item.label}</span>
+                      <span className="text-primary">{item.val}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${item.val}%` }}
+                        transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
+                        className={`h-full ${item.color}`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <div className="mt-16 flex flex-wrap justify-center gap-12 items-center text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/20">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                 Live Deployment Ready
@@ -232,83 +272,60 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="py-24 px-8 border-t border-white/5 bg-black relative overflow-hidden">
+      <footer className="relative overflow-hidden">
         <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 blur-[150px] rounded-full -z-10" />
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
-          <div className="lg:col-span-2 space-y-10">
-            <Link href="/">
-              <Logo />
-            </Link>
-            <p className="text-white/40 font-bold max-w-sm leading-relaxed text-xl tracking-tight">
-              Architecting the next generation of sales intelligence.
-              Autonomous agents designed for high-growth operations.
+        <div className="max-w-7xl mx-auto px-4 py-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-12 mb-20">
+            <div className="col-span-2 space-y-6">
+              <Logo className="h-8 w-8" textClassName="text-2xl font-black" />
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+                The world's most advanced autonomous outbound sales infrastructure. Unlimited agents, zero headcount.
+              </p>
+            </div>
+            {Object.entries({
+              Product: ["Find Leads", "ROI Calculator", "Pricing", "Status"],
+              Company: ["Process", "Playbooks", "Security", "About"],
+              Legal: ["Privacy", "Terms", "Complaints", "Contact"]
+            }).map(([cat, links]) => (
+              <div key={cat} className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40">{cat}</h4>
+                <ul className="space-y-2">
+                  {links.map(l => (
+                    <li key={l}><a href="#" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">{l}</a></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="pt-8 border-t border-border/10 flex flex-col md:flex-row items-center justify-between gap-6">
+            <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.4em]">
+              © 2026 AUDNIX OPERATIONS CO. ALL RIGHTS RESERVED.
             </p>
-            <div className="flex gap-6">
-              {[
-                { Icon: Twitter, href: "https://twitter.com/nleanyatreasure", label: "Twitter" },
-                { Icon: Linkedin, href: "https://linkedin.com/in/nleanyatreasure", label: "LinkedIn" },
-                { Icon: Github, href: "https://github.com/audnixai", label: "Github" },
-                { Icon: Instagram, href: "https://instagram.com/nleanyatreasure", label: "Instagram" }
-              ].map((social, i) => (
-                <a
-                  key={i}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary/10 hover:border-primary/50 transition-all duration-500 text-white group"
-                  title={`${social.label} - @nleanyatreasure`}
-                >
-                  <social.Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </a>
+            <div className="flex items-center gap-6">
+              {["Twitter", "LinkedIn", "YouTube", "Discord"].filter(p => p !== 'YouTube').map(p => (
+                <a key={p} href="#" className="text-[10px] font-black text-muted-foreground/30 hover:text-primary uppercase tracking-widest transition-colors">{p}</a>
               ))}
             </div>
           </div>
+          <div className="mt-32 border-y border-border/10 bg-muted/5 backdrop-blur-sm w-screen relative left-1/2 -translate-x-1/2 py-10 overflow-hidden group">
+          <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-          <div>
-            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Solutions</h4>
-            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/solutions/agencies" className="hover:text-primary transition-colors">Agencies</Link></li>
-              <li><Link href="/solutions/sales-teams" className="hover:text-primary transition-colors">Founders & Closers</Link></li>
-              <li><Link href="/solutions/creators" className="hover:text-primary transition-colors">Personal Brands</Link></li>
-              <li><Link href="/#calc" className="hover:text-primary transition-colors">ROI Modeling</Link></li>
-            </ul>
+          <div className="flex items-center gap-16 md:gap-24 animate-marquee whitespace-nowrap">
+            {["LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI", "LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI"].map((brand, i) => (
+              <span
+                key={`${brand}-${i}`}
+                className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-muted-foreground/10 hover:text-primary transition-all duration-300 cursor-none select-none italic"
+              >
+                {brand}
+              </span>
+            ))}
           </div>
 
-          <div>
-            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Intelligence</h4>
-            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/find-leads" className="hover:text-primary transition-colors">Intelligence Core (Find Leads)</Link></li>
-              <li><Link href="/resources/niche-vault" className="hover:text-primary transition-colors">Niche Vault (20+)</Link></li>
-              <li><Link href="/resources/outreach-playbooks" className="hover:text-primary transition-colors">Outreach Playbooks</Link></li>
-              <li><Link href="/#pricing" className="hover:text-primary transition-colors">Cloud Pricing</Link></li>
-              <li><Link href="/auth" className="hover:text-primary transition-colors">Access Console</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-[11px] font-black uppercase tracking-[0.4em] text-white mb-10">Security</h4>
-            <ul className="space-y-6 text-sm font-bold text-white/40 uppercase tracking-tighter">
-              <li><Link href="/privacy-policy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms-of-service" className="hover:text-primary transition-colors">Terms of Growth</Link></li>
-              <li><Link href="/data-deletion" className="hover:text-primary transition-colors">Data Erasure</Link></li>
-              <li className="flex items-center gap-3 text-emerald-500">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
-                All Systems Normal
-              </li>
-              <li className="text-[10px] text-white/10 font-mono">v2.4.0-stable</li>
-            </ul>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-2 bg-background border border-primary/30 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-primary shadow-xl shadow-primary/5">
+            Trusted By Top Growth Agencies
           </div>
         </div>
-
-        <div className="max-w-7xl mx-auto mt-40 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/10">
-            © 2026 AUDNIX OPERATIONS CO. ALL RIGHTS RESERVED.
-          </p>
-          <div className="flex gap-10 text-[10px] font-black uppercase tracking-[0.3em] text-white/10">
-            <Link href="#" className="hover:text-white transition-colors">Global Status</Link>
-            <Link href="/resources/api-docs" className="hover:text-white transition-colors">API Documentation</Link>
-          </div>
         </div>
       </footer>
 

@@ -17,7 +17,7 @@ import { workerHealthMonitor } from '../monitoring/worker-health.js';
  * Generate AI-powered cold outreach email based on lead metadata
  * Uses curiosity, FOMO, trust, and punchy triggers
  */
-import { generateReply } from '../ai/openai.js';
+import { generateReply } from '../ai/ai-service.js';
 
 interface UserWithEmail {
   id: string;
