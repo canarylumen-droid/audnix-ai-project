@@ -51,6 +51,10 @@ export function FeatureSection() {
                     >
                         Built for Performance
                     </motion.div>
+                    <motion.h2
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
                         className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]"
                     >
                         Engineered <br /> To <span className="text-primary italic">Win.</span>
