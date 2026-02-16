@@ -83,7 +83,7 @@ export async function importInstagramLeads(userId: string): Promise<{
             status: 'new',
             lastMessageAt: conversation.updated_time ? new Date(conversation.updated_time) : null,
             metadata: { username: conversation.participants?.[0]?.username }
-          });
+          }, { suppressNotification: true });
           results.leadsImported++;
         }
 
@@ -152,7 +152,7 @@ export async function importManychatLeads(userId: string): Promise<{
           channel: 'instagram',
           status: 'new',
           metadata: { manychat_id: sub.id, imported_from_manychat: true, industry: sub.industry || 'unknown', companySize: sub.company_size || 'unknown' }
-        });
+        }, { suppressNotification: true });
         results.leadsImported++;
       } catch (e) { }
     }
@@ -204,7 +204,7 @@ export async function importGmailLeads(userId: string): Promise<{
             status: 'new',
             lastMessageAt: date ? new Date(date) : null,
             metadata: { imported_from_gmail: true }
-          });
+          }, { suppressNotification: true });
           results.leadsImported++;
         }
 

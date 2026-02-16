@@ -169,10 +169,24 @@ export default function AnalyticsPage() {
                         />
                     </>
                 ) : (
-                    <div className="lg:col-span-4 flex flex-col items-center justify-center text-center py-10">
-                        <Unplug className="w-16 h-16 mb-4 text-muted-foreground/30" />
-                        <p className="text-lg font-black uppercase tracking-widest text-foreground">No data available yet.</p>
-                        <p className="text-sm text-foreground mt-2">Connect your channels to start seeing analytics.</p>
+                    <div className="lg:col-span-4 flex flex-col items-center justify-center py-32 text-center space-y-6">
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                            <div className="relative h-24 w-24 rounded-[2.5rem] bg-card border border-border/40 flex items-center justify-center shadow-2xl">
+                                <BarChart3 className="h-10 w-10 text-primary/40" />
+                            </div>
+                        </div>
+                        <div className="space-y-2 max-w-sm">
+                            <h2 className="text-2xl font-black text-foreground uppercase tracking-tighter">Intelligence Pending</h2>
+                            <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                                Your revenue engine is ready. Connect your communication channels to begin aggregating real-time performance metrics and AI decision logs.
+                            </p>
+                        </div>
+                        <Link href="/dashboard/integrations">
+                            <Button className="rounded-2xl px-10 h-12 bg-primary text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-lg shadow-primary/20">
+                                Connect Integration <Zap className="ml-2 h-4 w-4 fill-current" />
+                            </Button>
+                        </Link>
                     </div>
                 )}
             </div>

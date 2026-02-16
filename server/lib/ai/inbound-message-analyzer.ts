@@ -109,17 +109,24 @@ export async function analyzeInboundMessage(
   const shouldAutoReply = determineShouldAutoReply(lead, intent, urgencyLevel);
   const suggestedAction = determineBestAction(intent, deepIntent, objection, churnRisk, competitorMention, qualityResult);
 
-  await autoUpdateLeadStatus(leadId, allMessages);
+  // Status mapping based on deep AI intent
+  let finalStatus = lead.status;
+  if (deepIntent) {
+    if (deepIntent.intentLevel === "high" && !["converted", "booked"].includes(lead.status)) {
+      finalStatus = "open";
+    } else if (deepIntent.intentLevel === "not_interested" && lead.status !== "converted") {
+      finalStatus = "not_interested";
+    }
+  }
 
-  // Map back to expected output format
-  // Note: competitorMention has 'detected' instead of 'mentionFound'
-  // and 'competitor' (string) instead of 'competitors' (array)
+  // Preserve existing auto-update logic but allow deepIntent to override
+  await autoUpdateLeadStatus(leadId, allMessages);
 
   const mappedCompetitorMention = competitorMention ? {
     mentionFound: competitorMention.detected,
     competitors: competitorMention.competitor ? [competitorMention.competitor] : [],
     context: competitorMention.context,
-    actionSuggested: competitorMention.response // Mapping response to actionSuggested roughly 
+    actionSuggested: competitorMention.response 
   } : null;
 
   const analysisResult: InboundMessageAnalysis = {
@@ -130,7 +137,7 @@ export async function analyzeInboundMessage(
     deepIntent,
     objection,
     churnRisk,
-    competitorMention: mappedCompetitorMention, // mapped to match interface
+    competitorMention: mappedCompetitorMention,
     qualityScore: qualityResult?.score || 50,
     suggestedAction,
     shouldAutoReply,
@@ -145,12 +152,16 @@ export async function analyzeInboundMessage(
   };
 
   await storage.updateLead(leadId, {
+    status: finalStatus as any,
     score: qualityResult?.score || lead.score,
     metadata: {
       ...(lead.metadata as Record<string, unknown> || {}),
       lastAnalysis: {
         timestamp: timestamp.toISOString(),
         intent: intent?.sentiment,
+        intentLevel: deepIntent?.intentLevel,
+        intentScore: deepIntent?.intentScore,
+        buyerStage: deepIntent?.buyerStage,
         urgency: urgencyLevel,
         suggestedAction,
         qualityScore: qualityResult?.score,
@@ -160,6 +171,28 @@ export async function analyzeInboundMessage(
       },
     },
   });
+
+  // NEW: Also upsert into lead_insights table for dedicated analytical queries
+  try {
+    await storage.upsertLeadInsight({
+      leadId,
+      userId: lead.userId,
+      intent: deepIntent?.intentLevel || intent?.sentiment || "neutral",
+      intentScore: Math.round((deepIntent?.intentScore || (intent?.confidence || 0.5)) * 100),
+      summary: suggestedAction,
+      nextNextStep: suggestedAction,
+      competitors: competitorMention?.detected && competitorMention.competitor ? [competitorMention.competitor] : [],
+      painPoints: objection && objection.confidence >= 0.5 ? [objection.category] : [],
+      lastAnalyzedAt: timestamp,
+      metadata: {
+        deepIntent,
+        objection,
+        urgencyLevel
+      }
+    });
+  } catch (insightErr) {
+    console.error("Failed to upsert lead insight:", insightErr);
+  }
 
   console.log(`✅ [ANALYZER] Analysis complete for lead ${leadId}:`, {
     urgency: urgencyLevel,

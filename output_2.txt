@@ -1,0 +1,55 @@
+✅ Polyfilled DOMMatrix for PDF processing
+✅ Polyfilled Path2D for PDF processing
+✅ Polyfilled ImageData for PDF processing
+ℹ️  Redis not configured - using memory-based rate limiting
+✅ PostgreSQL database connected (Neon Serverless compatibility restored)
+✓ Using DrizzleStorage with PostgreSQL (persistent storage enabled)
+
+
+╔════════════════════════════════════════════════════════════════╗
+║          SENDGRID EMAIL CONFIGURATION DIAGNOSTIC               ║
+╚════════════════════════════════════════════════════════════════╝
+
+📋 ENVIRONMENT VARIABLES:
+   TWILIO_SENDGRID_API_KEY: ❌ MISSING
+   TWILIO_EMAIL_FROM: ✅ SET (auth@audnixai.com)
+
+🔴 CRITICAL: SendGrid API Key Missing!
+
+📝 FIX STEPS:
+   1. Get your SendGrid API Key from: https://app.sendgrid.com/settings/api_keys
+   2. Create a new API key (name: Audnix AI OTP)
+   3. Copy the key
+   4. Add to Replit Secrets: TWILIO_SENDGRID_API_KEY=<your-key>
+   5. Verify sender email in SendGrid: https://app.sendgrid.com/settings/sender_auth
+   6. Restart the app
+✅ Admin whitelist loaded: 0 emails
+⚠️ OpenAI API Key missing. Universal Sales Agent will use fallback logic.
+⚠️ OpenAI API Key missing. PDF analysis will use fallback logic.
+SUPER_MEMORY_API_KEY not set. Conversation memory will be limited to database storage only.
+⚠️ OpenAI API Key missing. Intent analysis will use basic keywords.
+⚠️ OpenAI API Key missing. Objection responder will use fallback logic.
+⚠️ OpenAI API Key missing. Conversation AI will use fallback responses.
+⚠️ OpenAI API Key missing. Smart replies will be disabled.
+[AI Service] Initialized with provider: demo
+⚠️ OpenAI API Key missing. Comment detection will use fallback logic.
+❌ CRITICAL: OPENAI_API_KEY not set
+📋 PDF analysis and AI features will be disabled
+GEMINI_API_KEY is missing from environment variables
+⏭️  Replit connection not available - Stripe disabled
+⚠️ OpenAI API Key missing. Lead Intelligence will use basic scoring.
+⚠️  Google Calendar: OAuth credentials not configured. Users cannot connect calendars.
+⚠️ Calendly OAuth: Credentials not configured. Users can still use manual API key.
+⚠️  Google Calendar: OAuth credentials not configured. Users cannot connect calendars.
+⚠️ Calendly OAuth: Credentials not configured. Users can still use manual API key.
+⚠️ OpenAI API Key missing. Video comment monitor will use fallback logic.
+⚠️ SESSION_SECRET not set - using stable derived fallback
+⚠️ ENCRYPTION_KEY not set - using stable derived fallback
+📧 Email Configuration Check:
+  - API Key Present: NO ❌
+  - Sender Email: Default (auth@audnixai.com)
+
+❌ CRITICAL: TWILIO_SENDGRID_API_KEY is missing! Emails will fail.
+✅ Using PostgreSQL session store with SSL (persistent)
+✅ Socket.IO server initialized
+[31mWebSocket server error: Port 24679 is already in use[39m

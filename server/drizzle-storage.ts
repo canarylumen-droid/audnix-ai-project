@@ -1,7 +1,7 @@
 import type { IStorage } from './storage.js';
-import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification } from "../shared/schema.js";
+import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight } from "../shared/schema.js";
 import { db } from './db.js';
-import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings } from "../shared/schema.js";
+import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights } from "../shared/schema.js";
 import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
@@ -235,6 +235,10 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(users);
   }
 
+  async getUsers(): Promise<User[]> {
+    return this.getAllUsers();
+  }
+
   async getUserCount(): Promise<number> {
     checkDatabase();
     const result = await db.select({ count: sql<number>`count(*)` }).from(users);
@@ -406,7 +410,7 @@ export class DrizzleStorage implements IStorage {
   }
 
 
-  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead> {
+  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {
     checkDatabase();
     const result = await db
       .insert(leads)
@@ -438,14 +442,16 @@ export class DrizzleStorage implements IStorage {
     if (result[0]) {
       wsSync.notifyLeadsUpdated(insertLead.userId, { event: 'INSERT', lead: result[0] });
 
-      // Notify about new lead
-      this.createNotification({
-        userId: insertLead.userId,
-        type: 'new_lead',
-        title: '🆕 New Lead Imported',
-        message: `${result[0].name} has been added via ${result[0].channel}.`,
-        actionUrl: `/dashboard/leads/${result[0].id}`
-      });
+      // Notify about new lead unless suppressed
+      if (!options?.suppressNotification) {
+        this.createNotification({
+          userId: insertLead.userId,
+          type: 'new_lead',
+          title: '🆕 New Lead Imported',
+          message: `${result[0].name} has been added via ${result[0].channel}.`,
+          actionUrl: `/dashboard/leads/${result[0].id}`
+        });
+      }
     }
     return result[0];
   }
@@ -581,6 +587,7 @@ export class DrizzleStorage implements IStorage {
       userId: string;
       direction: "inbound" | "outbound";
       body: string;
+      threadId?: string;
     }
   ): Promise<Message> {
     checkDatabase();
@@ -589,6 +596,7 @@ export class DrizzleStorage implements IStorage {
       .values({
         userId: message.userId,
         leadId: message.leadId,
+        threadId: message.threadId as any,
         direction: message.direction,
         body: message.body,
         provider: message.provider || 'system',
@@ -617,6 +625,95 @@ export class DrizzleStorage implements IStorage {
       wsSync.notifyLeadsUpdated(message.userId, { event: 'UPDATE', leadId: message.leadId });
     }
     return result[0];
+  }
+
+  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> {
+    checkDatabase();
+
+    if (providerThreadId) {
+      const existing = await db
+        .select()
+        .from(threads)
+        .where(
+          and(
+            eq(threads.userId, userId),
+            eq(threads.leadId, leadId),
+            sql`${threads.metadata}->>'providerThreadId' = ${providerThreadId}`
+          )
+        )
+        .limit(1);
+
+      if (existing[0]) return existing[0];
+    }
+
+    const result = await db
+      .insert(threads)
+      .values({
+        userId,
+        leadId,
+        subject,
+        metadata: providerThreadId ? { providerThreadId } : {},
+      })
+      .returning();
+
+    return result[0];
+  }
+
+  async getThreadsByLeadId(leadId: string): Promise<Thread[]> {
+    checkDatabase();
+    return await db
+      .select()
+      .from(threads)
+      .where(eq(threads.leadId, leadId))
+      .orderBy(desc(threads.lastMessageAt));
+  }
+  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> {
+    checkDatabase();
+    if (!isValidUUID(id)) return undefined;
+    const [result] = await db
+      .update(threads)
+      .set({ ...updates })
+      .where(eq(threads.id, id))
+      .returning();
+    return result;
+  }
+
+  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> {
+    checkDatabase();
+    if (!isValidUUID(leadId)) return undefined;
+    const [result] = await db
+      .select()
+      .from(leadInsights)
+      .where(eq(leadInsights.leadId, leadId))
+      .limit(1);
+    return result;
+  }
+
+  async upsertLeadInsight(insight: InsertLeadInsight): Promise<LeadInsight> {
+    checkDatabase();
+    const existing = await this.getLeadInsight(insight.leadId);
+
+    let result: LeadInsight;
+    if (existing) {
+      const [updated] = await db
+        .update(leadInsights)
+        .set({ ...insight, lastAnalyzedAt: new Date() })
+        .where(eq(leadInsights.id, existing.id))
+        .returning();
+      result = updated;
+    } else {
+      const [inserted] = await db
+        .insert(leadInsights)
+        .values({ ...insight, lastAnalyzedAt: new Date() })
+        .returning();
+      result = inserted;
+    }
+
+    if (result) {
+      wsSync.notifyLeadsUpdated(result.userId, { event: 'UPDATE', leadId: result.leadId });
+    }
+
+    return result;
   }
 
   async updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined> {
@@ -718,76 +815,6 @@ export class DrizzleStorage implements IStorage {
 
   async deleteIntegration(userId: string, provider: string): Promise<void> {
     return this.disconnectIntegration(userId, provider);
-  }
-
-  async getNotifications(userId: string): Promise<any[]> {
-    checkDatabase();
-    const result = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt))
-      .limit(20);
-
-    return result.map((n: any) => ({
-      id: n.id,
-      type: n.type,
-      title: n.title,
-      message: n.message,
-      timestamp: n.createdAt,
-      read: n.isRead,
-      actionUrl: n.actionUrl,
-      metadata: n.metadata
-    }));
-  }
-
-  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
-    checkDatabase();
-    await db
-      .update(notifications)
-      .set({ isRead: true })
-      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
-  }
-
-  async markAllNotificationsAsRead(userId: string): Promise<void> {
-    checkDatabase();
-    await db
-      .update(notifications)
-      .set({ isRead: true })
-      .where(eq(notifications.userId, userId));
-  }
-
-  async createNotification(data: any): Promise<any> {
-    checkDatabase();
-    const result = await db
-      .insert(notifications)
-      .values({
-        userId: data.userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        actionUrl: data.actionUrl || null,
-        isRead: false,
-        metadata: data.metadata || {}
-      })
-      .returning();
-
-    if (result[0]) {
-      // Use both specific and generic notification events
-      wsSync.notifyNotification(data.userId, result[0]);
-      wsSync.broadcastToUser(data.userId, { type: 'notification', payload: result[0] });
-    }
-    return result[0];
-  }
-
-  async createPayment(data: InsertPayment): Promise<Payment> {
-    checkDatabase();
-    const result = await db
-      .insert(payments)
-      .values(data)
-      .returning();
-
-    return result[0];
   }
 
 
@@ -1383,6 +1410,7 @@ export class DrizzleStorage implements IStorage {
     }
   }
 
+
   async recordLearningPattern(userId: string, key: string, success: boolean): Promise<void> {
     checkDatabase();
     try {
@@ -1411,13 +1439,20 @@ export class DrizzleStorage implements IStorage {
       console.error('Error recording learning pattern:', error);
     }
   }
+
   async getRecentBounces(userId: string, hours: number = 168): Promise<any[]> {
     checkDatabase();
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    return await db.select()
-      .from(bounceTracker)
-      .where(and(eq(bounceTracker.userId, userId), gte(bounceTracker.timestamp, since)))
-      .orderBy(desc(bounceTracker.timestamp));
+    try {
+      return await db
+        .select()
+        .from(bounceTracker)
+        .where(and(eq(bounceTracker.userId, userId), gte(bounceTracker.createdAt, since)))
+        .orderBy(desc(bounceTracker.createdAt));
+    } catch (error) {
+      console.warn('getRecentBounces: table may not exist');
+      return [];
+    }
   }
 
   async getDomainVerifications(userId: string, limit: number = 10): Promise<any[]> {
@@ -1441,6 +1476,16 @@ export class DrizzleStorage implements IStorage {
     return await db.select().from(smtpSettings).where(eq(smtpSettings.userId, userId));
   }
 
+  async createPayment(data: InsertPayment): Promise<Payment> {
+    checkDatabase();
+    const result = await db
+      .insert(payments)
+      .values(data)
+      .returning();
+
+    return result[0];
+  }
+
   async getPayments(userId: string): Promise<Payment[]> {
     checkDatabase();
     return await db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
@@ -1458,10 +1503,6 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
-  async markNotificationRead(id: string): Promise<void> {
-    checkDatabase();
-    await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, id));
-  }
 
   async getDashboardStats(userId: string, overrideDates?: { start: Date; end: Date }): Promise<{
     totalLeads: number;
@@ -1673,6 +1714,7 @@ export class DrizzleStorage implements IStorage {
   // ========== Notification Methods ==========
 
   async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+    checkDatabase();
     const conditions = [eq(notifications.userId, userId)];
     if (opts?.dateFrom) conditions.push(gte(notifications.createdAt, opts.dateFrom));
     if (opts?.dateTo) conditions.push(lte(notifications.createdAt, opts.dateTo));
@@ -1686,58 +1728,54 @@ export class DrizzleStorage implements IStorage {
   }
 
   async getUnreadNotificationCount(userId: string): Promise<number> {
+    checkDatabase();
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(notifications)
-      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
     return Number(result[0]?.count || 0);
   }
 
   async createNotification(data: InsertNotification): Promise<Notification> {
+    checkDatabase();
     const [notification] = await db.insert(notifications).values(data).returning();
+    
+    if (notification) {
+      wsSync.notifyNotification(data.userId, notification);
+      wsSync.broadcastToUser(data.userId, { type: 'notification', payload: notification });
+    }
+    
     return notification;
   }
 
-  async markNotificationAsRead(id: string, userId: string): Promise<void> {
+  async markNotificationAsRead(id: string, userId?: string): Promise<void> {
+    checkDatabase();
+    const conditions = [eq(notifications.id, id)];
+    if (userId) conditions.push(eq(notifications.userId, userId));
+    
     await db.update(notifications)
       .set({ isRead: true })
-      .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
+      .where(and(...conditions));
   }
 
   async markAllNotificationsAsRead(userId: string): Promise<void> {
+    checkDatabase();
     await db.update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.userId, userId));
   }
 
   async deleteNotification(id: string, userId: string): Promise<void> {
+    checkDatabase();
     await db.delete(notifications)
       .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
   }
 
   async clearAllNotifications(userId: string): Promise<void> {
+    checkDatabase();
     await db.delete(notifications)
       .where(eq(notifications.userId, userId));
   }
-    await db.update(notifications)
-  .set({ read: true })
-  .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-  }
 
-  async markAllNotificationsAsRead(userId: string): Promise < void> {
-  await db.update(notifications)
-    .set({ read: true })
-    .where(eq(notifications.userId, userId));
-}
-
-  async clearAllNotifications(userId: string): Promise < void> {
-  await db.delete(notifications)
-    .where(eq(notifications.userId, userId));
-}
-
-  async deleteNotification(id: string, userId: string): Promise < void> {
-  await db.delete(notifications)
-    .where(and(eq(notifications.id, id), eq(notifications.userId, userId)));
-}
 }
 
 export const drizzleStorage = new DrizzleStorage();

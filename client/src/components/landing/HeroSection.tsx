@@ -29,7 +29,7 @@ const AIEngineMockup = () => {
 
   // Simulating the "Deep Backend" analysis loop
   const systemLogs = [
-    { type: 'intent', text: 'Analyzing Lead Intent...', status: 'Verified', color: 'text-emerald-400' },
+    { type: 'intent', text: 'Analyzing Lead Intent...', status: 'Verified', color: 'text-cyan-400' },
     { type: 'objection', text: 'Checking 110+ Objections...', status: 'Clear', color: 'text-blue-400' },
     { type: 'timing', text: 'Predictive Timing Algorithm', status: 'Delay: 4m 12s (Humanizing)', color: 'text-purple-400' },
     { type: 'churn', text: 'Drop-off Risk Detection', status: 'Low (2%)', color: 'text-orange-400' }
@@ -58,10 +58,10 @@ const AIEngineMockup = () => {
       {/* Glow Background */}
       <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
 
-      {/* Main Dashboard Card */}
+      {/* Premium Glass Card */}
       <motion.div
-        className="relative bg-[#0a0f1a]/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl overflow-hidden"
-        whileHover={{ scale: 1.02, rotateY: -2 }}
+        className="relative glass-premium rounded-[2.5rem] p-8 shadow-2xl overflow-hidden group/card"
+        whileHover={{ scale: 1.02, rotateY: -1, rotateX: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         {/* Header */}
@@ -73,7 +73,7 @@ const AIEngineMockup = () => {
             <div>
               <h3 className="text-white font-bold text-sm">Audnix AI Core v2.4</h3>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
                 <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">System Active</span>
               </div>
             </div>
@@ -116,7 +116,7 @@ const AIEngineMockup = () => {
                   <p className="text-[10px] text-white/40">{convo.action}</p>
                 </div>
               </div>
-              <div className="px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-400 font-bold">
+              <div className="px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[10px] text-cyan-400 font-bold">
                 {convo.status}
               </div>
             </div>
@@ -171,8 +171,9 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-[85vh] flex items-center pt-24 pb-12 px-4 overflow-hidden bg-black font-sans"
+      className="relative min-h-[90vh] flex items-center pt-32 pb-20 px-4 overflow-hidden mesh-gradient-bg font-sans"
     >
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <GridPattern />
 
       {/* Ambient Glows */}
@@ -210,11 +211,11 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9] lg:max-w-3xl"
+              className="text-5xl md:text-8xl lg:text-9xl font-black tracking-tighter text-white leading-[0.85] lg:max-w-4xl"
             >
-              10x your Instagram outbound.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-white to-primary/50 uppercase">
-                Unlimited Agents, One Fixed Cost.
+              Autonomous Outbound.<br />
+              <span className="text-primary uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.5)]">
+                Unlimited Agents.
               </span>
             </motion.h1>
 
@@ -222,10 +223,10 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl max-w-2xl"
+              className="p-8 rounded-[2rem] glass-premium max-w-2xl"
             >
-              <p className="text-white/60 text-lg md:text-xl font-medium leading-relaxed">
-                For <span className="text-primary font-bold">agencies</span>, <span className="text-orange-400 font-bold">sales teams</span>, and <span className="text-emerald-400 font-bold">founders</span> who want to automate outreach, reach 1000+ leads weekly, and book more meetings without the overhead.
+              <p className="text-white/80 text-lg md:text-2xl font-medium leading-relaxed">
+                Automate your entire sales cycle with <span className="text-primary font-bold">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
               </p>
             </motion.div>
 
@@ -253,10 +254,10 @@ export function HeroSection() {
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     size="lg"
-                    className="h-14 px-8 rounded-xl bg-primary text-white font-bold text-base hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(0,210,255,0.4)] group"
+                    className="h-20 px-12 rounded-2xl bg-primary text-black font-black text-xl hover:bg-primary/90 transition-all shadow-[0_30px_60px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest"
                   >
-                    Deploy Your Agent
-                    <ArrowRight className={`ml-2 w-5 h-5 transition-transform duration-300 ${isHovered ? "translate-x-1" : ""}`} />
+                    Deploy Agents
+                    <ArrowRight className={`ml-3 w-6 h-6 transition-transform duration-500 ${isHovered ? "translate-x-2" : ""}`} />
                   </Button>
                 </Magnetic>
               </Link>

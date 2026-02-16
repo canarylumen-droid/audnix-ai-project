@@ -5,6 +5,7 @@ import { GoogleCalendarOAuth } from '../lib/oauth/google-calendar.js';
 import { CalendlyOAuth, registerCalendlyWebhook } from '../lib/oauth/calendly.js';
 import { storage } from '../storage.js';
 import { encrypt } from '../lib/crypto/encryption.js';
+import { wsSync } from '../lib/websocket-sync.js';
 
 interface AuthenticatedRequest extends Request {
   session: Request['session'] & {
@@ -204,6 +205,9 @@ router.get('/instagram/callback', async (req: Request, res: Response): Promise<v
       lastSync: new Date()
     });
 
+    // Notify frontend to update UI immediately
+    wsSync.notifySettingsUpdated(stateData.userId);
+
     console.log('[Instagram OAuth] Success! Redirecting...');
     res.redirect('/dashboard/integrations?success=instagram_connected');
   } catch (error: unknown) {
@@ -348,6 +352,9 @@ router.get('/gmail/callback', async (req: Request, res: Response): Promise<void>
       lastSync: new Date()
     });
 
+    // Notify frontend
+    wsSync.notifySettingsUpdated(stateData.userId);
+
     res.redirect('/dashboard/integrations?success=gmail_connected');
   } catch (error) {
     console.error('Gmail OAuth callback error:', error);
@@ -457,6 +464,9 @@ router.get('/google-calendar/callback', async (req: Request, res: Response): Pro
         connected: true,
         lastSync: new Date(),
       });
+
+      // Notify frontend
+      wsSync.notifySettingsUpdated(userId);
 
       res.redirect('/dashboard/integrations?success=google_calendar_connected');
     } catch (saveError) {
@@ -673,6 +683,9 @@ router.get('/calendly/callback', async (req: Request, res: Response): Promise<vo
       connected: true,
       lastSync: new Date()
     });
+
+    // Notify frontend
+    wsSync.notifySettingsUpdated(userId);
 
     try {
       await registerCalendlyWebhook(userId, tokenData.accessToken);

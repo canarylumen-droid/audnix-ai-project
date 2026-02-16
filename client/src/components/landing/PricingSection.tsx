@@ -48,7 +48,7 @@ export function PricingSection() {
                   whileInView={{ opacity: 1, scale: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1, duration: 0.8 }}
-                  className={`animated-border-card p-12 rounded-3xl border relative flex flex-col h-full transition-all duration-700 ${isPopular ? "bg-card border-primary/20 shadow-2xl z-10" : "bg-card/50 border-border/40"
+                  className={`p-12 rounded-[2.5rem] border relative flex flex-col h-full transition-all duration-700 ${isPopular ? "glass-premium !bg-primary/5 border-primary/40 shadow-2xl z-10" : "glass-premium border-border/40"
                     }`}
                 >
                   {isPopular && (
@@ -86,8 +86,8 @@ export function PricingSection() {
 
                   <Link href="/auth">
                     <Button
-                      className={`h-14 w-full rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-700 active:scale-95 group relative overflow-hidden ${isPopular
-                        ? "bg-primary text-primary-foreground shadow-2xl shadow-primary/20 hover:brightness-110"
+                      className={`h-16 w-full rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-700 active:scale-95 group relative overflow-hidden ${isPopular
+                        ? "bg-primary text-black shadow-2xl shadow-primary/30 hover:brightness-110"
                         : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 border-border/50"
                         }`}
                     >

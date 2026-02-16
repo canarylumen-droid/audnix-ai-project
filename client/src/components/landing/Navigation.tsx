@@ -56,8 +56,8 @@ export function Navigation() {
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center p-4 pointer-events-none">
       <motion.nav
-        className={`pointer-events-auto flex items-center justify-between px-8 py-3 transition-all duration-500 rounded-2xl border border-white/5 shadow-2xl ${scrolled
-          ? "bg-[#030712]/90 backdrop-blur-md w-full max-w-7xl border-white/5 shadow-premium"
+        className={`pointer-events-auto flex items-center justify-between px-8 py-3 transition-all duration-700 rounded-2xl border ${scrolled
+          ? "glass-premium w-full max-w-7xl shadow-2xl"
           : "bg-transparent backdrop-blur-none w-full md:w-[95%] lg:w-[85%] border-transparent"
           }`}
         initial={{ y: -50, opacity: 0 }}
@@ -90,7 +90,7 @@ export function Navigation() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2rem] p-4 min-w-[360px] shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
+                    className="absolute top-full left-0 mt-2 glass-premium rounded-[2.5rem] p-4 min-w-[360px] shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
                   >
                     <div className="grid gap-2">
                       {SOLUTIONS.map((sol) => (
@@ -156,7 +156,7 @@ export function Navigation() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-[2rem] p-4 min-w-[240px] shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
+                    className="absolute top-full left-0 mt-2 glass-premium rounded-[2.5rem] p-4 min-w-[240px] shadow-[0_25px_60px_rgba(0,0,0,0.6)]"
                   >
                     <div className="grid gap-2">
                       <Link href="/resources/niche-vault">
@@ -210,7 +210,7 @@ export function Navigation() {
           <Magnetic>
             <Link href="/auth">
               <Button
-                className="h-10 px-6 rounded-full text-[11px] font-semibold uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow"
+                className="h-10 px-8 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-black hover:scale-105"
               >
                 Get Started
               </Button>

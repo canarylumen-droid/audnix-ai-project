@@ -879,7 +879,7 @@ router.post('/notifications/:id/read', async (req: Request, res: Response): Prom
       return;
     }
 
-    await storage.markNotificationRead(id);
+    await storage.markNotificationAsRead(id);
     res.json({ success: true });
   } catch (error: unknown) {
     console.error('Mark notification read error:', error);

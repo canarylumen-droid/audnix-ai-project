@@ -70,7 +70,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
         if (batchIdentifiers.has(batchKey)) continue;
         batchIdentifiers.add(batchKey);
 
-        // Create lead without deduplication for 100% capture
+        // Create lead with suppressed notifications
         const newLead = await storage.createLead({
           userId,
           name: name || 'Unknown',
@@ -86,7 +86,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
             imported_via: 'bulk_json',
             import_date: new Date().toISOString()
           }
-        });
+        }, { suppressNotification: true });
 
         results.leads.push(newLead);
         results.leadsImported++;
@@ -99,6 +99,24 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       }
     }
 
+    // Create single aggregate notification if leads were imported
+    if (results.leadsImported > 0) {
+      try {
+        await storage.createNotification({
+          userId,
+          type: 'lead_import',
+          title: '📥 Bulk Leads Imported',
+          message: `${results.leadsImported} leads added to your active pipeline.`,
+          metadata: { count: results.leadsImported, source: 'bulk_json' }
+        });
+        
+        const { wsSync } = await import('../lib/websocket-sync.js');
+        wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: results.leadsImported });
+      } catch (notifErr) {
+        console.warn('[Bulk Import] Failed to create aggregate notification:', notifErr);
+      }
+    }
+
     res.json({
       success: true,
       leadsImported: results.leadsImported,
@@ -106,7 +124,7 @@ router.post('/import-bulk', requireAuth, async (req: Request, res: Response): Pr
       leadsFiltered: results.leadsFiltered,
       errors: results.errors,
       totalCount: (await storage.getLeads({ userId, limit: 1 })).length, // Just a hint for frontend
-      message: `Imported ${results.leadsImported} leads. Updated ${results.leadsUpdated} existing.`,
+      message: `Imported ${results.leadsImported} leads.`,
       leads: results.leads
     });
   } catch (error: any) {

@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { io } from "socket.io-client";
+import { useRealtime } from "@/hooks/use-realtime";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,40 +111,43 @@ export default function InboxPage() {
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
 
+  const { socket } = useRealtime();
+
   useEffect(() => {
-    if (!user?.id) return;
+    if (!socket) return;
 
-    const socket = io({
-      path: '/socket.io',
-      query: { userId: user.id }
-    });
-
-    socket.on('messages_updated', () => {
+    const handleMessagesUpdated = () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       if (leadId) {
         queryClient.invalidateQueries({ queryKey: ["/api/messages", leadId] });
       }
-    });
+    };
 
-    socket.on('leads_updated', (data: any) => {
+    const handleLeadsUpdated = (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       if (data?.type === 'lead_updated' && data?.lead) {
         setAllLeads(prev => prev.map(l => l.id === data.lead.id ? data.lead : l));
       }
-    });
+    };
 
-    socket.on('notification', (data: any) => {
+    const handleNotification = (data: any) => {
       if (data?.type === 'lead_import') {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
         queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
         toast({ title: "Leads Imported", description: "Your inbox has been updated with new leads." });
       }
-    });
+    };
+
+    socket.on('messages_updated', handleMessagesUpdated);
+    socket.on('leads_updated', handleLeadsUpdated);
+    socket.on('notification', handleNotification);
 
     return () => {
-      socket.disconnect();
+      socket.off('messages_updated', handleMessagesUpdated);
+      socket.off('leads_updated', handleLeadsUpdated);
+      socket.off('notification', handleNotification);
     };
-  }, [user?.id, leadId, queryClient]);
+  }, [socket, leadId, queryClient, toast]);
 
   const [showArchived, setShowArchived] = useState(false);
   const [page, setPage] = useState(0);
@@ -612,12 +615,19 @@ export default function InboxPage() {
         {/* Message Thread Pane */}
         <div className={cn("flex-1 flex flex-col bg-background h-full", !leadId && "hidden md:flex items-center justify-center")}>
           {!leadId ? (
-            <div className="text-center space-y-4 max-w-sm px-6">
-              <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <InboxIcon className="h-10 w-10 text-primary opacity-50" />
+            <div className="text-center space-y-6 max-w-sm px-6">
+              <div className="relative mx-auto w-24 h-24">
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                <div className="relative h-24 w-24 rounded-[2.5rem] bg-card border border-border/40 flex items-center justify-center shadow-2xl">
+                  <InboxIcon className="h-10 w-10 text-primary/40" />
+                </div>
               </div>
-              <h2 className="text-xl font-bold text-foreground">Select a conversation</h2>
-              <p className="text-sm text-muted-foreground">Pick a lead from the list to start the automated engagement flow or reply manually.</p>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-foreground uppercase tracking-tighter">Command Center</h2>
+                <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                  Select a live conversation to view deep lead intelligence, handle objections, or let the AI Agent take full control.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex flex-1 overflow-hidden h-full">

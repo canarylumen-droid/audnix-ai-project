@@ -159,10 +159,15 @@ async function processEmailForLead(
       return;
     }
 
+    // Resolve internal Thread ID
+    const thread = await storage.getOrCreateThread(userId, lead.id, email.subject || 'No Subject', email.threadId);
+    const threadId = (thread as any).id;
+
     // Create Message
     const newMessage = await storage.createMessage({
       userId,
       leadId: lead.id,
+      threadId,
       direction,
       body: email.text || email.html || '', // Prefer text, fallback html
       provider: 'email',
@@ -172,7 +177,8 @@ async function processEmailForLead(
         html: email.html, // Store full HTML in metadata if needed
         from: email.from,
         to: email.to,
-        date: email.date
+        date: email.date,
+        providerThreadId: email.threadId
       }
     });
 
@@ -182,7 +188,7 @@ async function processEmailForLead(
         userId,
         leadId: lead.id,
         messageId: email.messageId || `msg_${Date.now()}_${Math.random()}`,
-        threadId: email.threadId,
+        threadId: email.threadId || threadId, // Store provider thread ID if available, otherwise internal UUID
         subject: email.subject,
         from: email.from || '',
         to: email.to || '',
@@ -191,7 +197,9 @@ async function processEmailForLead(
         direction,
         provider: 'custom_email',
         sentAt: email.date || new Date(),
-        metadata: {}
+        metadata: {
+          internalThreadId: threadId
+        }
       });
     } catch (e) {
       // Ignore duplicates

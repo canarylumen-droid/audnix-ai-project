@@ -36,7 +36,7 @@ class EmailSyncWorker {
   private isRunning = false;
   private isSyncing = false;
   private syncTimeout: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 30 * 1000; // Updated to match dashboard sync interval
+  private readonly SYNC_INTERVAL_MS = 60 * 1000; // Updated to 60s per plan
   private readonly GHOSTED_THRESHOLD_HOURS = 48;
 
   /**
@@ -46,7 +46,7 @@ class EmailSyncWorker {
     if (this.isRunning) return;
 
     this.isRunning = true;
-    console.log('📬 Email sync worker started');
+    console.log('📬 Email sync worker started (60s interval)');
 
     this.scheduleNextSync();
   }
@@ -86,7 +86,7 @@ class EmailSyncWorker {
    */
   async syncAllUserEmails(): Promise<void> {
     try {
-      const emailProviders = ['custom_email', 'gmail', 'outlook'];
+      const emailProviders = ['gmail', 'outlook']; // Removed custom_email from here as it's handled by ImapIdleManager
       let integrations: Integration[] = [];
 
       for (const provider of emailProviders) {
@@ -111,12 +111,7 @@ class EmailSyncWorker {
     const result: SyncResult = { userId, imported: 0, skipped: 0, errors: 0, ghostedDetected: 0 };
 
     try {
-      if (integration.provider === 'custom_email') {
-        const syncRes = await this.syncCustomMessages(userId, integration, limit);
-        result.imported += syncRes.imported || 0;
-        result.skipped += syncRes.skipped || 0;
-        result.errors += syncRes.errors || 0;
-      } else if (integration.provider === 'gmail') {
+      if (integration.provider === 'gmail') {
         const syncRes = await this.syncGmailMessages(userId, integration, limit);
         result.imported += syncRes.imported || 0;
         result.skipped += syncRes.skipped || 0;
@@ -144,63 +139,8 @@ class EmailSyncWorker {
   }
 
   /**
-   * Fetch latest emails using IMAP for custom business emails
+   * Removed syncCustomMessages - now handled by ImapIdleManager
    */
-  private async syncCustomMessages(userId: string, integration: Integration, limit: number): Promise<Partial<SyncResult>> {
-    const res = { imported: 0, skipped: 0, errors: 0 };
-    try {
-      const { imapIdleManager } = await import('./imap-idle-manager.js');
-      const credentialsStr = await decrypt(integration.encryptedMeta);
-      const credentials = JSON.parse(credentialsStr);
-
-      const discoveredFolders = imapIdleManager.getDiscoveredFolders(userId);
-      const inboxFolders = discoveredFolders?.inbox || ['INBOX'];
-      const sentFolders = discoveredFolders?.sent || ['Sent', 'Sent Items', 'Sent Messages', '[Gmail]/Sent Mail', 'Sent-Mail', 'SENT'];
-
-      const mapEmail = (e: EmailData) => ({
-        from: e.from?.split('<')[1]?.split('>')[0] || e.from,
-        to: e.to?.split('<')[1]?.split('>')[0] || e.to,
-        subject: e.subject,
-        text: e.text || e.html || '',
-        date: e.date,
-        html: e.html
-      });
-
-      // 1. Sync Inbox Folders
-      for (const folder of inboxFolders) {
-        try {
-          const emails = await importCustomEmails(credentials, limit, 120000, folder);
-          if (emails.length > 0) {
-            const result = await pagedEmailImport(userId, emails.map(mapEmail), () => { }, 'inbound');
-            res.imported += result.imported;
-            res.skipped += result.skipped;
-            res.errors += result.errors.length;
-          }
-        } catch (e) {
-          console.warn(`[SyncWorker] Failed to sync custom INBOX folder ${folder}:`, e);
-        }
-      }
-
-      // 2. Sync Sent Folders
-      for (const folder of sentFolders) {
-        try {
-          const emails = await importCustomEmails(credentials, Math.floor(limit / 2), 120000, folder);
-          if (emails.length > 0) {
-            const result = await pagedEmailImport(userId, emails.map(mapEmail), () => { }, 'outbound');
-            res.imported += result.imported;
-            res.skipped += result.skipped;
-            res.errors += result.errors.length;
-          }
-        } catch (e) {
-          console.warn(`[SyncWorker] Failed to sync custom SENT folder ${folder}:`, e);
-        }
-      }
-    } catch (e) {
-      console.error(`[SyncWorker] Custom IMAP sync error for user ${userId}:`, e);
-      res.errors++;
-    }
-    return res;
-  }
 
   /**
    * Fetch latest emails using Gmail API

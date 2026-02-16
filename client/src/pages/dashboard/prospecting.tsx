@@ -41,7 +41,7 @@ export default function ProspectingPage() {
     const [query, setQuery] = useState('');
     const [logs, setLogs] = useState<LogMessage[]>([]);
     const [showConsole, setShowConsole] = useState(false);
-    const { socket } = useRealtime(user?.id);
+    const { socket } = useRealtime();
 
     // Fetch leads
     const { data: leads = [], refetch } = useQuery<Prospect[]>({

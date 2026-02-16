@@ -15,7 +15,7 @@ const FeatureCard = ({ title, description, icon: Icon, delay, index }: FeatureCa
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay, duration: 0.6 }}
-        className="group relative h-full rounded-[2.5rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8 hover:border-primary/20 hover:bg-white/[0.05] transition-all duration-500"
+        className="group relative h-full rounded-[2.5rem] glass-premium p-8 hover:bg-white/[0.05] transition-all duration-500"
     >
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[50px] rounded-full group-hover:bg-primary/10 transition-colors" />
         <div className="relative z-10">
@@ -51,13 +51,9 @@ export function FeatureSection() {
                     >
                         Built for Performance
                     </motion.div>
-                    <motion.h2
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase"
+                        className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]"
                     >
-                        Engineered <br /> To <span className="text-primary">Win.</span>
+                        Engineered <br /> To <span className="text-primary italic">Win.</span>
                     </motion.h2>
                     <p className="text-white/40 text-xl font-medium max-w-2xl mx-auto leading-tight">
                         Generic AI chats are toys. Audnix is an autonomous revenue engine that analyzes, strategizes, and closes.
@@ -96,8 +92,8 @@ export function FeatureSection() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 relative z-10">
-                    <div className="lg:col-span-2 group relative overflow-hidden rounded-[2.5rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8 md:p-12">
-                        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[100px] rounded-full group-hover:bg-primary/10 transition-colors duration-700" />
+                    <div className="lg:col-span-2 group relative overflow-hidden rounded-[2.5rem] glass-premium p-8 md:p-12">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 blur-[100px] rounded-full group-hover:bg-primary/20 transition-colors duration-700" />
                         <div className="relative z-10">
                             <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mb-8 group-hover:scale-110 transition-transform duration-500">
                                 <Zap className="w-6 h-6 text-primary" />
@@ -129,7 +125,7 @@ export function FeatureSection() {
                         </div>
                     </div>
 
-                    <div className="group relative overflow-hidden rounded-[2.5rem] bg-white/[0.03] backdrop-blur-xl border border-white/10 p-8 md:p-12">
+                    <div className="group relative overflow-hidden rounded-[2.5rem] glass-premium p-8 md:p-12">
                         <div className="relative z-10 h-full flex flex-col justify-between">
                             <div>
                                 <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mb-8 group-hover:scale-110 transition-transform duration-500">
@@ -153,10 +149,10 @@ export function FeatureSection() {
                                 <div className="pt-4 border-t border-white/5">
                                     <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-white/40 mb-2">
                                         <span>Buying Intent</span>
-                                        <span className="text-emerald-500">High (92%)</span>
+                                        <span className="text-cyan-500">High (92%)</span>
                                     </div>
                                     <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-emerald-500 w-[92%]" />
+                                        <div className="h-full bg-cyan-500 w-[92%]" />
                                     </div>
                                 </div>
                             </div>

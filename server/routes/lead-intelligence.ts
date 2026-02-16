@@ -168,9 +168,16 @@ router.post("/smart-reply", requireAuth, async (req: Request<any, any, SmartRepl
 });
 
 // ============ OBJECTION DETECTION ============
-router.post("/detect-objection", async (req: Request<any, any, ObjectionRequestBody>, res: Response): Promise<void> => {
+router.post("/detect-objection", requireAuth, async (req: Request<any, any, ObjectionRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { messageText, leadId } = req.body;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+        res.status(404).json({ error: "Lead not found" });
+        return;
+    }
     const objection = await detectObjection(messageText);
 
     res.json({
@@ -185,9 +192,19 @@ router.post("/detect-objection", async (req: Request<any, any, ObjectionRequestB
 });
 
 // ============ DEAL AMOUNT PREDICTION ============
-router.post("/predict-deal", async (req: Request<any, any, DealPredictionRequestBody>, res: Response): Promise<void> => {
+router.post("/predict-deal", requireAuth, async (req: Request<any, any, DealPredictionRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { lead, messages } = req.body;
+    
+    // Verify ownership if lead ID provided
+    if (lead.id) {
+        const dbLead = await storage.getLeadById(lead.id);
+        if (!dbLead || dbLead.userId !== userId) {
+            res.status(404).json({ error: "Lead not found" });
+            return;
+        }
+    }
     const prediction = await predictDealAmount(lead, messages || []);
 
     res.json({
@@ -203,9 +220,19 @@ router.post("/predict-deal", async (req: Request<any, any, DealPredictionRequest
 });
 
 // ============ CHURN RISK ASSESSMENT ============
-router.post("/churn-risk", async (req: Request<any, any, ChurnRiskRequestBody>, res: Response): Promise<void> => {
+router.post("/churn-risk", requireAuth, async (req: Request<any, any, ChurnRiskRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { lead, messages, daysAsCustomer } = req.body;
+
+    // Verify ownership if lead ID provided
+    if (lead.id) {
+        const dbLead = await storage.getLeadById(lead.id);
+        if (!dbLead || dbLead.userId !== userId) {
+            res.status(404).json({ error: "Lead not found" });
+            return;
+        }
+    }
     const churnRisk = await assessChurnRisk(lead, messages || [], daysAsCustomer || 0);
 
     res.json({
@@ -289,9 +316,19 @@ router.post("/intelligence-dashboard", requireAuth, async (req: Request<any, any
 });
 
 // ============ FIND DUPLICATES ============
-router.post("/find-duplicates", async (req: Request<any, any, DuplicatesRequestBody>, res: Response): Promise<void> => {
+router.post("/find-duplicates", requireAuth, async (req: Request<any, any, DuplicatesRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { lead, userLeads } = req.body;
+    
+     // Verify ownership if lead ID provided
+    if (lead.id) {
+        const dbLead = await storage.getLeadById(lead.id);
+        if (dbLead && dbLead.userId !== userId) {
+             res.status(404).json({ error: "Lead not found" });
+            return;
+        }
+    }
     const duplicates = await findDuplicateLeads(lead, userLeads || []);
 
     res.json({
@@ -311,12 +348,18 @@ router.post("/find-duplicates", async (req: Request<any, any, DuplicatesRequestB
 });
 
 // ============ COMPANY ENRICHMENT ============
-router.post("/enrich-company", async (req: Request<any, any, EnrichCompanyRequestBody>, res: Response): Promise<void> => {
+router.post("/enrich-company", requireAuth, async (req: Request<any, any, EnrichCompanyRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { lead } = req.body;
     
     // Check cache first
     const dbLead = await storage.getLead(lead.id);
+    if (dbLead && dbLead.userId !== userId) {
+         res.status(404).json({ error: "Lead not found" });
+         return;
+    }
+    
     if (dbLead?.metadata?.enrichment) {
       res.json({
         lead_id: lead.id,
@@ -350,9 +393,16 @@ router.post("/enrich-company", async (req: Request<any, any, EnrichCompanyReques
 });
 
 // ============ ADD TAG ============
-router.post("/tag", async (req: Request<any, any, TagRequestBody>, res: Response): Promise<void> => {
+router.post("/tag", requireAuth, async (req: Request<any, any, TagRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { leadId, tagName } = req.body;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+        res.status(404).json({ error: "Lead not found" });
+        return;
+    }
     await addLeadTag(leadId, tagName);
 
     res.json({
@@ -367,9 +417,16 @@ router.post("/tag", async (req: Request<any, any, TagRequestBody>, res: Response
 });
 
 // ============ SET CUSTOM FIELD ============
-router.post("/custom-field", async (req: Request<any, any, CustomFieldRequestBody>, res: Response): Promise<void> => {
+router.post("/custom-field", requireAuth, async (req: Request<any, any, CustomFieldRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { leadId, fieldName, value } = req.body;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+        res.status(404).json({ error: "Lead not found" });
+        return;
+    }
     await setCustomFieldValue(leadId, fieldName, value);
 
     res.json({
@@ -385,9 +442,16 @@ router.post("/custom-field", async (req: Request<any, any, CustomFieldRequestBod
 });
 
 // ============ LOG TIMELINE EVENT ============
-router.post("/timeline-event", async (req: Request<any, any, TimelineEventRequestBody>, res: Response): Promise<void> => {
+router.post("/timeline-event", requireAuth, async (req: Request<any, any, TimelineEventRequestBody>, res: Response): Promise<void> => {
   try {
+    const userId = getCurrentUserId(req)!;
     const { leadId, actionType, actionData, actorId } = req.body;
+    
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+        res.status(404).json({ error: "Lead not found" });
+        return;
+    }
     await addTimelineEvent(leadId, actionType, actionData, actorId);
 
     res.json({

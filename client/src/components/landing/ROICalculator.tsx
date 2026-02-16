@@ -306,7 +306,7 @@ export function ROICalculator() {
                 <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-2">Goal Attainment</p>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-black text-primary">{Math.round(calculations.goalAttainment)}%</p>
-                  {calculations.goalAttainment >= 100 && <TrendingUp className="w-4 h-4 text-emerald-500" />}
+                  {calculations.goalAttainment >= 100 && <TrendingUp className="w-4 h-4 text-cyan-500" />}
                 </div>
               </div>
               <div className="glass-premium p-6 rounded-3xl border-white/5">

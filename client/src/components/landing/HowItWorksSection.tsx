@@ -33,8 +33,8 @@ const STEPS = [
         title: "Deterministic Closing",
         desc: "Unlike standard bots that 'hallucinate', Audnix follows a deterministic closing script. It handles 110+ objections and only pushes for a call when intent is 90% verified.",
         icon: ShieldCheck,
-        color: "text-emerald-500",
-        bg: "bg-emerald-500/10"
+        color: "text-cyan-500",
+        bg: "bg-cyan-500/10"
     }
 ];
 

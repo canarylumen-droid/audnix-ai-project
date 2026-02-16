@@ -19,7 +19,7 @@ async function checkSchema() {
         const client = await pool.connect();
         
         const tables = ['email_messages', 'campaign_leads', 'outreach_campaigns'];
-        const diagnosticResults = {};
+        const diagnosticResults: Record<string, any> = {};
         
         for (const table of tables) {
             const res = await client.query(`

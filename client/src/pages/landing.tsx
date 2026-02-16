@@ -72,6 +72,53 @@ export default function Landing() {
         style={{ scaleX }}
       />
 
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "Audnix AI",
+            "url": "https://audnix.ai",
+            "logo": "https://audnix.ai/logo.png",
+            "sameAs": [
+              "https://twitter.com/nleanyatreasure",
+              "https://linkedin.com/in/nleanyatreasure"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "name": "Audnix AI",
+            "url": "https://audnix.ai",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://audnix.ai/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+             "@type": "FAQPage",
+             "mainEntity": [
+               {
+                 "@type": "Question",
+                 "name": "How does Audnix AI work?",
+                 "acceptedAnswer": {
+                   "@type": "Answer",
+                   "text": "Audnix AI uses advanced intent analysis to automate outbound sales on Instagram and Email."
+                 }
+               },
+               {
+                 "@type": "Question",
+                 "name": "Is it safe for my account?",
+                 "acceptedAnswer": {
+                   "@type": "Answer",
+                   "text": "Yes, Audnix uses human-like delays and randomization to ensure account safety."
+                 }
+               }
+             ]
+          }
+        ]
+      })}} />
+
       <Navigation />
 
       <main>

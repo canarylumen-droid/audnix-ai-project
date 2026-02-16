@@ -1,5 +1,5 @@
 import { drizzleStorage } from "./drizzle-storage.js";
-import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns, notifications } from "../shared/schema.js";
+import { type User, type InsertUser, type Lead, type InsertLead, type Message, type InsertMessage, type Integration, type InsertIntegration, type FollowUpQueue, type InsertFollowUpQueue, type OAuthAccount, type InsertOAuthAccount, type CalendarEvent, type InsertCalendarEvent, type AuditTrail, type InsertAuditTrail, type Organization, type InsertOrganization, type TeamMember, type InsertTeamMember, type Payment, type InsertPayment, type AiLearningPattern, type InsertAiLearningPattern, type SmtpSettings, type InsertSmtpSettings, type EmailMessage, type InsertEmailMessage, type Notification, type InsertNotification, type Thread, type InsertThread, type LeadInsight, type InsertLeadInsight, smtpSettings, users, leads, messages, integrations, followUpQueue, aiLearningPatterns, notifications, threads, leadInsights } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import { eq, and, sql } from "drizzle-orm";
 import { db } from "./db.js";
@@ -14,6 +14,7 @@ export interface IStorage {
   createUser(user: Partial<InsertUser> & { email: string }): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
+  getUsers(): Promise<User[]>; // Alias for getAllUsers
   getUserCount(): Promise<number>;
 
   // Organization methods
@@ -36,7 +37,7 @@ export interface IStorage {
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
-  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise<Lead>;
+  createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
   deleteLead(id: string, userId: string): Promise<void>;
@@ -45,16 +46,22 @@ export interface IStorage {
   getTotalLeadsCount(): Promise<number>;
   getEmailMessages(userId: string): Promise<EmailMessage[]>;
   createEmailMessage(message: InsertEmailMessage): Promise<EmailMessage>;
+  createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
   getAuditLogs(userId: string): Promise<AuditTrail[]>;
 
   // Message methods
   getMessagesByLeadId(leadId: string): Promise<Message[]>;
   getMessages(leadId: string): Promise<Message[]>; // Alias for getMessagesByLeadId
   getAllMessages(userId: string, options?: { limit?: number; channel?: string }): Promise<Message[]>;
-  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise<Message>;
+  createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }): Promise<Message>;
   updateMessage(id: string, updates: Partial<Message>): Promise<Message | undefined>;
   getMessageByTrackingId(trackingId: string): Promise<Message | undefined>;
   getEmailMessageByMessageId(messageId: string): Promise<EmailMessage | undefined>;
+
+  // Thread methods
+  getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread>;
+  getThreadsByLeadId(leadId: string): Promise<Thread[]>;
+  updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined>;
 
   // Integration methods
   getIntegrations(userId: string): Promise<Integration[]>;
@@ -136,8 +143,12 @@ export interface IStorage {
   createCalendarEvent(data: InsertCalendarEvent): Promise<CalendarEvent>;
   getCalendarEvents(userId: string): Promise<CalendarEvent[]>;
 
-  // Audit Trail (Recent Activities)
-  createAuditLog(data: InsertAuditTrail): Promise<AuditTrail>;
+  // Lead Insight methods
+  getLeadInsight(leadId: string): Promise<LeadInsight | undefined>;
+  upsertLeadInsight(insight: InsertLeadInsight): Promise<LeadInsight>;
+
+  // Voice Balance
+  getVoiceMinutesBalance(userId: string): Promise<number>;
 
   // Analytics
   getAnalyticsSummary(userId: string, startDate: Date): Promise<{
@@ -164,7 +175,7 @@ export interface IStorage {
   getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]>;
   getUnreadNotificationCount(userId: string): Promise<number>;
   createNotification(data: InsertNotification): Promise<Notification>;
-  markNotificationAsRead(id: string, userId: string): Promise<void>;
+  markNotificationAsRead(id: string, userId?: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   clearAllNotifications(userId: string): Promise<void>;
   deleteNotification(id: string, userId: string): Promise<void>;
@@ -218,6 +229,8 @@ export class MemStorage implements IStorage {
   private organizations: Map<string, Organization>;
   private teamMembers: Map<string, TeamMember>;
   private payments: Map<string, Payment>;
+  private threads: Map<string, Thread>;
+  private leadInsightsStore: Map<string, LeadInsight>;
 
   private followUps: Map<string, FollowUpQueue>;
   private learningPatterns: Map<string, AiLearningPattern>;
@@ -227,6 +240,7 @@ export class MemStorage implements IStorage {
   private otpCodes: Map<string, any>;
   private onboardingProfiles: Map<string, any>;
   private usageTopups: Map<string, any[]>;
+  private notifications: Map<string, Notification>;
 
   constructor() {
     this.users = new Map();
@@ -236,6 +250,8 @@ export class MemStorage implements IStorage {
     this.organizations = new Map();
     this.teamMembers = new Map();
     this.payments = new Map();
+    this.threads = new Map();
+    this.leadInsightsStore = new Map();
     this.followUps = new Map();
     this.learningPatterns = new Map();
     this.emailMessages = new Map();
@@ -244,6 +260,7 @@ export class MemStorage implements IStorage {
     this.otpCodes = new Map();
     this.onboardingProfiles = new Map();
     this.usageTopups = new Map();
+    this.notifications = new Map();
   }
 
   async getVoiceMinutesBalance(userId: string): Promise<number> {
@@ -300,48 +317,7 @@ export class MemStorage implements IStorage {
       .map(m => ({ ...m, user: this.users.get(m.userId)! }));
   }
 
-  // --- Analytics Methods (Stubs) ---
-  async getAnalyticsSummary(userId: string): Promise<any> {
-    return {
-      totalLeads: 0,
-      conversions: 0,
-      conversionRate: '0',
-      active: 0,
-      ghosted: 0,
-      notInterested: 0,
-      leadsReplied: 0,
-      bestReplyHour: null
-    };
-  }
 
-  async getDashboardStats(userId: string): Promise<any> {
-    return {
-      totalLeads: 0,
-      activeLeads: 0,
-      conversions: 0,
-      recoveryRate: '0'
-    };
-  }
-
-  async getAnalyticsFull(userId: string): Promise<any> {
-    return {
-      summary: {
-        totalLeads: 0,
-        conversions: 0,
-        conversionRate: '0',
-        active: 0,
-        ghosted: 0,
-        notInterested: 0,
-        leadsReplied: 0,
-        bestReplyHour: null
-      },
-      channelBreakdown: [],
-      statusBreakdown: [],
-      timeline: [],
-      positiveSentimentRate: 0
-    };
-  }
-}
 
   async getUserOrganizations(userId: string): Promise < (Organization & { role: TeamMember["role"] })[] > {
   return Array.from(this.teamMembers.values())
@@ -552,6 +528,10 @@ export class MemStorage implements IStorage {
   return this.users.size;
 }
 
+  async getUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
   // ========== Lead Methods ==========
 
   async getLeads(options: { userId: string; status?: string; channel?: string; search?: string; limit?: number; includeArchived?: boolean }): Promise < Lead[] > {
@@ -612,7 +592,7 @@ return leads;
 }
 
 
-  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }): Promise < Lead > {
+  async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {
   const id = randomUUID();
   const now = new Date();
 
@@ -695,11 +675,6 @@ return updated;
   }
 }
 
-  async getAuditLogs(userId: string): Promise < AuditTrail[] > {
-  return Array.from(this.auditLogs.values())
-    .filter(log => log.userId === userId)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-}
 
   async getCalendarEvents(userId: string): Promise < CalendarEvent[] > {
   return Array.from(this.calendarEvents.values())
@@ -736,31 +711,68 @@ return updated;
     return msgs;
 }
 
-  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string }): Promise < Message > {
-  const id = randomUUID();
-  const now = new Date();
+  async createMessage(message: Partial<InsertMessage> & { leadId: string; userId: string; direction: "inbound" | "outbound"; body: string; threadId?: string }): Promise < Message > {
+    const id = randomUUID();
+    const now = new Date();
+    const threadId = message.threadId || null;
 
-  const newMessage: Message = {
-    id,
-    leadId: message.leadId,
-    userId: message.userId,
-    provider: message.provider || "instagram",
-    direction: message.direction,
-    subject: message.subject || null,
-    body: message.body,
-    audioUrl: message.audioUrl || null,
-    trackingId: message.trackingId || null,
-    openedAt: message.openedAt || null,
-    clickedAt: message.clickedAt || null,
-    repliedAt: message.repliedAt || null,
-    isRead: message.isRead ?? (message.direction === 'outbound'),
-    metadata: message.metadata || {},
-    createdAt: now,
-  };
+    const newMessage: Message = {
+      id,
+      leadId: message.leadId,
+      userId: message.userId,
+      threadId: threadId as any,
+      provider: message.provider || "instagram",
+      direction: message.direction,
+      subject: message.subject || null,
+      body: message.body,
+      audioUrl: message.audioUrl || null,
+      trackingId: message.trackingId || null,
+      openedAt: message.openedAt || null,
+      clickedAt: message.clickedAt || null,
+      repliedAt: message.repliedAt || null,
+      isRead: message.isRead ?? (message.direction === 'outbound'),
+      metadata: message.metadata || {},
+      createdAt: now,
+    };
 
-  this.messages.set(id, newMessage);
-  return newMessage;
-}
+    this.messages.set(id, newMessage);
+    return newMessage;
+  }
+
+  async getOrCreateThread(userId: string, leadId: string, subject: string, providerThreadId?: string): Promise<Thread> {
+    const existing = Array.from(this.threads.values()).find(t => 
+      t.userId === userId && 
+      t.leadId === leadId && 
+      (providerThreadId ? (t.metadata as any)?.providerThreadId === providerThreadId : true)
+    );
+
+    if (existing) return existing;
+
+    const id = randomUUID();
+    const newThread: Thread = {
+      id,
+      userId,
+      leadId,
+      subject,
+      lastMessageAt: new Date(),
+      metadata: providerThreadId ? { providerThreadId } : {},
+      createdAt: new Date(),
+    };
+    this.threads.set(id, newThread);
+    return newThread;
+  }
+
+  async getThreadsByLeadId(leadId: string): Promise<Thread[]> {
+    return Array.from(this.threads.values()).filter(t => t.leadId === leadId);
+  }
+
+  async updateThread(id: string, updates: Partial<Thread>): Promise<Thread | undefined> {
+    const thread = this.threads.get(id);
+    if (!thread) return undefined;
+    const updated = { ...thread, ...updates };
+    this.threads.set(id, updated);
+    return updated;
+  }
 
   async updateMessage(id: string, updates: Partial<Message>): Promise < Message | undefined > {
   const message = this.messages.get(id);
@@ -807,6 +819,7 @@ return updated;
     accountType: integration.accountType || null,
     lastSync: integration.lastSync || null,
     createdAt: now,
+    updatedAt: now,
   };
 
   this.integrations.set(id, newIntegration);
@@ -839,81 +852,6 @@ return updated;
   return this.disconnectIntegration(userId, provider);
 }
 
-  // ========== Notification Methods ==========
-
-  private notificationStore: Map<string, Notification> = new Map();
-
-  async getNotifications(userId: string, opts ?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise < Notification[] > {
-  let items = Array.from(this.notificationStore.values())
-    .filter(n => n.userId === userId);
-
-  if(opts?.dateFrom) {
-    items = items.filter(n => new Date(n.createdAt) >= opts.dateFrom!);
-  }
-    if(opts?.dateTo) {
-    items = items.filter(n => new Date(n.createdAt) <= opts.dateTo!);
-  }
-
-    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  const offset = opts?.offset || 0;
-  const limit = opts?.limit || 50;
-  return items.slice(offset, offset + limit);
-}
-
-  async getUnreadNotificationCount(userId: string): Promise < number > {
-  return Array.from(this.notificationStore.values())
-    .filter(n => n.userId === userId && !n.read).length;
-}
-
-  async createNotification(data: InsertNotification): Promise < Notification > {
-  const id = randomUUID();
-  const now = new Date();
-  const notification: Notification = {
-    id,
-    userId: data.userId,
-    type: data.type || 'system',
-    title: data.title,
-    message: data.message,
-    read: data.read ?? false,
-    metadata: data.metadata || {},
-    createdAt: data.createdAt instanceof Date ? data.createdAt : now,
-  };
-  this.notificationStore.set(id, notification);
-  return notification;
-}
-
-  async markNotificationAsRead(id: string, userId: string): Promise < void> {
-  const n = this.notificationStore.get(id);
-  if(n && n.userId === userId) {
-  n.read = true;
-  this.notificationStore.set(id, n);
-}
-  }
-
-  async markAllNotificationsAsRead(userId: string): Promise < void> {
-  for(const [id, n] of this.notificationStore) {
-  if (n.userId === userId) {
-    n.read = true;
-    this.notificationStore.set(id, n);
-  }
-}
-  }
-
-  async clearAllNotifications(userId: string): Promise < void> {
-  for(const [id, n] of this.notificationStore) {
-  if (n.userId === userId) {
-    this.notificationStore.delete(id);
-  }
-}
-  }
-
-  async deleteNotification(id: string, userId: string): Promise < void> {
-  const n = this.notificationStore.get(id);
-  if(n && n.userId === userId) {
-  this.notificationStore.delete(id);
-}
-  }
 
   // Video monitor methods
   private videoMonitors: Map<string, any> = new Map();
@@ -1216,20 +1154,6 @@ return { deletedUsers: deletedCount };
 
   // ========== Audit Trail ==========
 
-  async createAuditLog(data: InsertAuditTrail): Promise < AuditTrail > {
-  const id = randomUUID();
-  const log: AuditTrail = {
-    id,
-    userId: data.userId,
-    leadId: data.leadId,
-    action: data.action,
-    messageId: data.messageId || null,
-    details: data.details || {},
-    createdAt: new Date(),
-  };
-  this.auditLogs.set(id, log);
-  return log;
-}
 
   async toggleAi(leadId: string, paused: boolean): Promise < void> {
   const lead = this.leads.get(leadId);
@@ -1301,25 +1225,44 @@ return { deletedUsers: deletedCount };
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  return {
-    totalLeads: leads.length,
-    newLeads: leads.filter(l => new Date(l.createdAt) >= sevenDaysAgo).length,
-    activeLeads: leads.filter(l => l.status === 'open' || l.status === 'replied').length,
-    convertedLeads: leads.filter(l => l.status === 'converted').length,
-    hardenedLeads: leads.filter(l => l.verified).length,
-    bouncyLeads: leads.filter(l => l.status === 'bouncy').length,
-    recoveredLeads: leads.filter(l => l.status === 'recovered').length,
-    positiveIntents: messages.filter(m => m.direction === 'inbound' && (m.body?.toLowerCase().includes('yes') || m.body?.toLowerCase().includes('book'))).length,
-    totalMessages: messages.length,
-    messagesToday: messages.filter(m => new Date(m.createdAt) >= today && m.direction === 'outbound').length,
-    messagesYesterday: messages.filter(m => {
-      const d = new Date(m.createdAt);
-      return d >= yesterday && d < today && m.direction === 'outbound';
-    }).length,
-    pipelineValue: deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-    closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
-  };
-}
+    const positiveIntents = leads.filter(l => {
+      // Use lead score or specific AI intent flags
+      const hasHighIntent = l.score > 75;
+      const aiIntent = (l.metadata as any)?.lastAnalysis?.intentLevel === 'high' || 
+                       (l.metadata as any)?.intelligence?.intent?.intentLevel === 'high';
+      return hasHighIntent || aiIntent;
+    }).length;
+
+    // Calculate pipeline value including AI-predicted amounts for leads without explicit deals
+    const explicitDealValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+    const predictedDealValue = leads
+      .filter(l => {
+        // Only include predicted value if there's no explicit deal for this lead
+        const hasNoDeal = !deals.some(d => d.leadId === l.id);
+        const prediction = (l.metadata as any)?.intelligence?.predictions?.predictedAmount;
+        return hasNoDeal && prediction && prediction > 0;
+      })
+      .reduce((sum, l) => sum + (Number((l.metadata as any).intelligence.predictions.predictedAmount) || 0), 0);
+
+    return {
+      totalLeads: leads.length,
+      newLeads: leads.filter(l => new Date(l.createdAt) >= sevenDaysAgo).length,
+      activeLeads: leads.filter(l => l.status === 'open' || l.status === 'replied').length,
+      convertedLeads: leads.filter(l => l.status === 'converted').length,
+      hardenedLeads: leads.filter(l => l.verified).length,
+      bouncyLeads: leads.filter(l => l.status === 'bouncy').length,
+      recoveredLeads: leads.filter(l => l.status === 'recovered').length,
+      positiveIntents,
+      totalMessages: messages.length,
+      messagesToday: messages.filter(m => new Date(m.createdAt) >= today && m.direction === 'outbound').length,
+      messagesYesterday: messages.filter(m => {
+        const d = new Date(m.createdAt);
+        return d >= yesterday && d < today && m.direction === 'outbound';
+      }).length,
+      pipelineValue: explicitDealValue + predictedDealValue,
+      closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+    };
+  }
 
   async getAnalyticsFull(userId: string, days: number): Promise < {
   metrics: {
@@ -1434,8 +1377,19 @@ return {
   const notInterested = allLeads.filter(l => l.status === 'not_interested').length;
   const leadsReplied = allLeads.filter(l => l.status === 'replied' || l.status === 'converted').length;
 
-  const positiveCount = allLeads.filter(l => ['replied', 'converted', 'open'].includes(l.status)).length;
-  const negativeCount = allLeads.filter(l => ['not_interested', 'cold'].includes(l.status)).length;
+  // Use AI sentiment if available, otherwise fallback to status
+  const positiveCount = allLeads.filter(l => {
+    const aiSentiment = (l.metadata as any)?.lastAnalysis?.intent === 'positive' || 
+                        (l.metadata as any)?.intelligence?.intent?.sentiment === 'positive';
+    return aiSentiment || ['replied', 'converted', 'open'].includes(l.status);
+  }).length;
+  
+  const negativeCount = allLeads.filter(l => {
+    const aiSentiment = (l.metadata as any)?.lastAnalysis?.intent === 'negative' || 
+                        (l.metadata as any)?.intelligence?.intent?.sentiment === 'negative';
+    return aiSentiment || ['not_interested', 'cold'].includes(l.status);
+  }).length;
+  
   const totalWithSentiment = positiveCount + negativeCount;
   const positiveSentimentRate = totalWithSentiment > 0
     ? ((positiveCount / totalWithSentiment) * 100).toFixed(1)
@@ -1463,23 +1417,128 @@ return {
     percentage: total > 0 ? (count / total) * 100 : 0
   }));
 
-  return {
-    summary: {
-      totalLeads: total,
-      conversions,
-      conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0',
-      active,
-      ghosted,
-      notInterested,
-      leadsReplied,
-      bestReplyHour: null,
-    },
-    channelBreakdown,
-    statusBreakdown,
-    timeline: [],
-    positiveSentimentRate,
-  };
-}
+    return {
+      summary: {
+        totalLeads: total,
+        conversions,
+        conversionRate: total > 0 ? ((conversions / total) * 100).toFixed(1) : '0',
+        active,
+        ghosted,
+        notInterested,
+        leadsReplied,
+        bestReplyHour: null,
+      },
+      channelBreakdown,
+      statusBreakdown,
+      timeline: [],
+      positiveSentimentRate,
+    };
+  }
+
+  async createAuditLog(data: InsertAuditTrail): Promise<AuditTrail> {
+    const id = randomUUID();
+    const entry: AuditTrail = {
+      ...data,
+      id,
+      messageId: data.messageId || null,
+      details: data.details || {},
+      createdAt: new Date(),
+    };
+    this.auditLogs.set(id, entry);
+    return entry;
+  }
+
+  async getAuditLogs(userId: string): Promise<AuditTrail[]> {
+    return Array.from(this.auditLogs.values())
+      .filter(log => log.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  // --- Notification Methods ---
+  async getNotifications(userId: string, opts?: { limit?: number; offset?: number; dateFrom?: Date; dateTo?: Date }): Promise<Notification[]> {
+    let results = Array.from(this.notifications.values()).filter(n => n.userId === userId);
+    if (opts?.dateFrom) results = results.filter(n => n.createdAt >= opts.dateFrom!);
+    if (opts?.dateTo) results = results.filter(n => n.createdAt <= opts.dateTo!);
+    results.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    if (opts?.offset) results = results.slice(opts.offset);
+    if (opts?.limit) results = results.slice(0, opts.limit);
+    return results;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notifications.values()).filter(n => n.userId === userId && !n.isRead).length;
+  }
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const id = randomUUID();
+    const now = new Date();
+    const notification: Notification = {
+      ...data,
+      id,
+      isRead: false,
+      createdAt: now,
+      metadata: data.metadata || {},
+      actionUrl: data.actionUrl || null,
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async markNotificationAsRead(id: string, userId?: string): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification && (!userId || notification.userId === userId)) {
+      notification.isRead = true;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .forEach(n => n.isRead = true);
+  }
+
+  async clearAllNotifications(userId: string): Promise<void> {
+    Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .forEach(n => this.notifications.delete(n.id));
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification && notification.userId === userId) {
+      this.notifications.delete(id);
+    }
+  }
+
+  async getLeadInsight(leadId: string): Promise<LeadInsight | undefined> {
+    return Array.from(this.leadInsightsStore.values()).find(i => i.leadId === leadId);
+  }
+
+  async upsertLeadInsight(insight: InsertLeadInsight): Promise<LeadInsight> {
+    const existing = await this.getLeadInsight(insight.leadId);
+    const id = existing ? existing.id : randomUUID();
+    const now = new Date();
+
+    const newInsight: LeadInsight = {
+      id,
+      leadId: insight.leadId,
+      userId: insight.userId,
+      intent: insight.intent || null,
+      intentScore: insight.intentScore ?? 0,
+      summary: insight.summary || null,
+      nextNextStep: insight.nextNextStep || null,
+      competitors: insight.competitors || [],
+      painPoints: insight.painPoints || [],
+      budget: insight.budget || null,
+      timeline: insight.timeline || null,
+      lastAnalyzedAt: insight.lastAnalyzedAt instanceof Date ? insight.lastAnalyzedAt : now,
+      metadata: insight.metadata || {},
+      createdAt: existing ? existing.createdAt : now,
+    };
+
+    this.leadInsightsStore.set(id, newInsight);
+    return newInsight;
+  }
 }
 
 export const storage: IStorage = drizzleStorage;

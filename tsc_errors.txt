@@ -1,0 +1,20 @@
+﻿scripts/simple-diag.ts(31,13): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+server/drizzle-storage.ts(1068,7): error TS2322: Type '"topup_success"' is not assignable to type '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"'.
+server/lib/ai/comment-detection.ts(252,7): error TS2322: Type '"info"' is not assignable to type '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"'.
+server/lib/ai/comment-detection.ts(358,11): error TS2322: Type '"info"' is not assignable to type '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"'.
+server/lib/ai/comment-detection.ts(414,7): error TS2322: Type '"info"' is not assignable to type '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"'.
+server/lib/ai/comment-detection.ts(457,11): error TS2367: This comparison appears to be unintentional because the types '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"' and '"info"' have no overlap.
+server/lib/ai/comment-detection.ts(511,27): error TS2551: Property 'markNotificationRead' does not exist on type 'IStorage'. Did you mean 'markNotificationAsRead'?
+server/lib/ai/inbound-message-analyzer.ts(185,30): error TS2339: Property 'detected' does not exist on type 'ObjectionDetectionResult'.
+server/lib/ai/warm-lead-voice-automation.ts(20,35): error TS2339: Property 'getVoiceMinutesBalance' does not exist on type 'IStorage'.
+server/lib/email/bounce-handler.ts(105,9): error TS2322: Type '"email_bounce"' is not assignable to type '"billing_issue" | "lead_import" | "system" | "webhook_error" | "conversion" | "lead_reply" | "insight" | "campaign_sent" | "new_lead" | "lead_status_change"'.
+server/routes/user-auth.ts(882,19): error TS2551: Property 'markNotificationRead' does not exist on type 'IStorage'. Did you mean 'markNotificationAsRead'?
+server/scripts/debug-list-leads.ts(6,33): error TS2551: Property 'getUsers' does not exist on type 'IStorage'. Did you mean 'getUser'?
+server/scripts/list-all.ts(6,33): error TS2551: Property 'getUsers' does not exist on type 'IStorage'. Did you mean 'getUser'?
+server/scripts/test-verify-ai.ts(10,33): error TS2551: Property 'getUsers' does not exist on type 'IStorage'. Did you mean 'getUser'?
+shared/schema.ts(323,13): error TS2300: Duplicate identifier 'Notification'.
+shared/schema.ts(324,13): error TS2300: Duplicate identifier 'InsertNotification'.
+shared/schema.ts(507,3): error TS1117: An object literal cannot have multiple properties with the same name.
+shared/schema.ts(934,13): error TS2300: Duplicate identifier 'Notification'.
+shared/schema.ts(935,13): error TS2300: Duplicate identifier 'InsertNotification'.

@@ -442,6 +442,10 @@ async function runMigrations() {
     startWorker("Payment approval", () => paymentAutoApprovalWorker.start());
     startWorker("Email warmup", () => emailWarmupWorker.start());
     startWorker("Outreach", () => outreachEngine.start());
+    
+    // Real-time IMAP IDLE Manager
+    const { imapIdleManager } = await import("./lib/email/imap-idle-manager.js");
+    startWorker("IMAP IDLE", () => imapIdleManager.start());
   }
 })();
 

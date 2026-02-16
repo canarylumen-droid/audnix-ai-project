@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, createContext, useContext, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,12 +61,29 @@ const getRelativeTime = (timestamp: string | Date): string => {
   return `${Math.floor(diffSeconds / 86400)} days ago`;
 };
 
-export function useRealtime(userId?: string) {
+interface RealtimeContextType {
+  socket: Socket | null;
+  isConnected: boolean;
+}
+
+const RealtimeContext = createContext<RealtimeContextType>({ socket: null, isConnected: false });
+
+export function useRealtime() {
+  return useContext(RealtimeContext);
+}
+
+interface RealtimeProviderProps {
+  children: ReactNode;
+  userId?: string;
+}
+
+export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const lastNotificationTime = useRef<number>(0);
   const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // Register service worker on mount
@@ -78,7 +95,7 @@ export function useRealtime(userId?: string) {
 
     // Connect to Socket.IO server
     // Use relative path for production compatibility or configured URL
-    const socket = io(undefined, {
+    const socketInstance = io(undefined, {
       path: '/socket.io',
       query: { userId },
       reconnection: true,
@@ -87,24 +104,33 @@ export function useRealtime(userId?: string) {
       transports: ['websocket', 'polling']
     });
 
-    socketRef.current = socket;
+    socketRef.current = socketInstance;
 
-    socket.on('connect', () => {
+    socketInstance.on('connect', () => {
       console.log('✅ Socket connected');
-      setSocket(socket);
+      setSocket(socketInstance);
+      setIsConnected(true);
     });
 
-    socket.on('connect_error', (err) => {
+    socketInstance.on('disconnect', () => {
+      console.log('❌ Socket disconnected');
+      setIsConnected(false);
+    });
+
+    socketInstance.on('connect_error', (err) => {
       console.error('Socket connection error:', err);
+      setIsConnected(false);
     });
 
     // LEADS UPDATES
-    socket.on('leads_updated', (payload: any) => {
+    socketInstance.on('leads_updated', (payload: any) => {
       console.log('Lead update:', payload);
       // Data payload: { event: 'INSERT'|'UPDATE', lead: object }
 
       // Invalidate leads queries and dashboard stats
       queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['prospects'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
       queryClient.invalidateQueries({ queryKey: ['/api/leads/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
@@ -140,23 +166,23 @@ export function useRealtime(userId?: string) {
     });
 
     // PROSPECTING EVENTS
-    socket.on('PROSPECTING_LOG', (payload: any) => {
+    socketInstance.on('PROSPECTING_LOG', (payload: any) => {
       console.log('Prospecting log:', payload);
       // Let individual pages handle logs via custom event or status
     });
 
-    socket.on('PROSPECT_FOUND', () => {
+    socketInstance.on('PROSPECT_FOUND', () => {
       queryClient.invalidateQueries({ queryKey: ['prospects'] });
       queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
     });
 
-    socket.on('PROSPECT_UPDATED', () => {
+    socketInstance.on('PROSPECT_UPDATED', () => {
       queryClient.invalidateQueries({ queryKey: ['prospects'] });
       queryClient.invalidateQueries({ queryKey: ['/api/prospecting/leads'] });
     });
 
     // MESSAGES UPDATES
-    socket.on('messages_updated', (payload: any) => {
+    socketInstance.on('messages_updated', (payload: any) => {
       console.log('Message update:', payload);
       // Payload: { event: 'INSERT', message: object }
 
@@ -186,7 +212,7 @@ export function useRealtime(userId?: string) {
 
     // NOTIFICATIONS UPDATES
     // Assuming backend emits 'notification' event when creating rows in 'notifications' table
-    socket.on('notification', (payload: any) => {
+    socketInstance.on('notification', (payload: any) => {
       console.log('New notification:', payload);
       // Invalidate notifications queries
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -207,7 +233,7 @@ export function useRealtime(userId?: string) {
     });
 
     // CALENDAR UPDATES
-    socket.on('calendar_updated', (payload: any) => {
+    socketInstance.on('calendar_updated', (payload: any) => {
       console.log('Calendar update:', payload);
       queryClient.invalidateQueries({ queryKey: ['/api/oauth/google-calendar/events'] });
       queryClient.invalidateQueries({ queryKey: ['/api/calendar'] });
@@ -228,23 +254,23 @@ export function useRealtime(userId?: string) {
     });
 
     // SETTINGS/USER UPDATES
-    socket.on('settings_updated', () => {
+    socketInstance.on('settings_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
     });
 
-    socket.on('insights_updated', () => {
+    socketInstance.on('insights_updated', () => {
       queryClient.invalidateQueries({ queryKey: ['/api/insights'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     });
 
-    socket.on('activity_updated', (payload: any) => {
+    socketInstance.on('activity_updated', (payload: any) => {
       console.log('Activity update:', payload);
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/activity'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/stats'] });
     });
 
     // FORCE DISCONNECT/LOGOUT
-    socket.on('TERMINATE_SESSION', () => {
+    socketInstance.on('TERMINATE_SESSION', () => {
       console.warn('Session terminated by server');
       localStorage.removeItem('userId');
       localStorage.removeItem('user');
@@ -252,39 +278,15 @@ export function useRealtime(userId?: string) {
     });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+      if (socketInstance) {
+        socketInstance.disconnect();
       }
     };
   }, [userId, queryClient, toast]);
 
-  return { socket };
-}
-
-// Hook to use in dashboard layout
-export function useDashboardRealtime() {
-  // Get current user ID from state management or localStorage
-  // Ideally this comes from a proper Auth Context
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    // Try to get from storage 
-    const id = localStorage.getItem('userId');
-    // Also check if we have a user object in storage (common pattern)
-    const userStr = localStorage.getItem('user');
-    let finalId = id;
-
-    if (!finalId && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.id) finalId = user.id;
-      } catch (e) { }
-    }
-
-    if (finalId) {
-      setUserId(finalId);
-    }
-  }, []);
-
-  useRealtime(userId);
+  return (
+    <RealtimeContext.Provider value={{ socket, isConnected }}>
+      {children}
+    </RealtimeContext.Provider>
+  );
 }

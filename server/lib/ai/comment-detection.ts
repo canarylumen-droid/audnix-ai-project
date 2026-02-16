@@ -250,7 +250,7 @@ export async function scheduleCommentFollowUp(
       title: '⏰ Comment Follow-Up Scheduled',
       message: `Auto follow-up set for 6 hours - Lead from ${channel} comment`,
       type: 'info',
-      read: false,
+      isRead: false,
       metadata: {
         leadId,
         followUpType: 'comment_automation',
@@ -356,7 +356,7 @@ export async function processCommentAutomation(
           title: '💬 Comment Reply Sent',
           message: `Replied "${shortReply}" to ${username}'s comment. DM will be sent shortly.`,
           type: 'info',
-          read: false,
+          isRead: false,
           metadata: {
             username,
             shortReply,
@@ -412,7 +412,7 @@ export async function processCommentAutomation(
       title: '⏰ DM Scheduled',
       message: `DM to ${username} will be sent in ${delayMinutes} minutes (after comment reply)`,
       type: 'info',
-      read: false,
+      isRead: false,
       metadata: {
         leadId: lead.id,
         dmBody: initialDM,
@@ -508,7 +508,7 @@ export async function executeCommentFollowUps(): Promise<void> {
             });
 
             // Mark notification as read
-            await storage.markNotificationRead(notification.id);
+            await storage.markNotificationAsRead(notification.id);
 
             console.log(`✓ Sent 6-hour follow-up to ${lead.name}`);
           }

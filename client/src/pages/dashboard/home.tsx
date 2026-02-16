@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useReducedMotion } from "@/lib/animation-utils";
+import { useRealtime } from "@/hooks/use-realtime";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { WelcomeCelebration } from "@/components/WelcomeCelebration";
 import { useState, useEffect } from "react";
@@ -101,6 +102,23 @@ export default function DashboardHome() {
   const [showWelcomeCelebration, setShowWelcomeCelebration] = useState(false);
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { socket } = useRealtime();
+
+  // Listen for socket updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleSettingsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    };
+
+    socket.on('settings_updated', handleSettingsUpdated);
+
+    return () => {
+      socket.off('settings_updated', handleSettingsUpdated);
+    };
+  }, [socket, queryClient]);
 
   // Fetch real user profile
   const { data: user } = useQuery<UserProfile>({
@@ -389,18 +407,28 @@ export default function DashboardHome() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <Activity className="h-12 w-12 text-muted-foreground/20" />
-                    <div className="space-y-1">
-                      <p className="font-bold text-lg text-muted-foreground/60">Your lead insights will appear here</p>
-                      <p className="text-sm text-muted-foreground px-8 max-w-sm">Connect your channels to start tracking real-time activity.</p>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full animate-pulse" />
+                      <div className="relative h-20 w-20 rounded-[2rem] bg-card border border-border/40 flex items-center justify-center shadow-xl">
+                        <Activity className="h-10 w-10 text-primary/40" />
+                      </div>
+                      <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-xl bg-background border border-border/40 flex items-center justify-center shadow-lg">
+                        <Zap className="h-4 w-4 text-amber-500" />
+                      </div>
+                    </div>
+                    <div className="space-y-2 max-w-sm px-4">
+                      <p className="font-black text-2xl tracking-tighter text-foreground uppercase">Ready to launch?</p>
+                      <p className="text-sm text-muted-foreground/60 leading-relaxed">
+                        Connect your email or Instagram channels to start tracking real-time lead intent and automated outreach.
+                      </p>
                     </div>
                     <Button
-                      variant="outline"
-                      className="rounded-full px-6"
+                      className="rounded-2xl px-10 h-12 bg-primary text-black font-black uppercase tracking-widest text-xs hover:scale-105 transition-all shadow-lg shadow-primary/20"
                       onClick={() => setLocation('/dashboard/integrations')}
                     >
-                      Connect Integration
+                      Connect Integration <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 )}

@@ -63,7 +63,7 @@ import { Logo } from "@/components/ui/Logo";
 import { PremiumLoader } from "@/components/ui/premium-loader";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { BellRing, ShieldCheck, Info } from "lucide-react";
-import { useRealtime } from "@/hooks/use-realtime";
+import { useRealtime, RealtimeProvider } from "@/hooks/use-realtime";
 import { formatDistanceToNow } from "date-fns";
 
 interface NavItem {
@@ -100,7 +100,7 @@ interface Notification {
   title: string;
   message: string;
   description?: string;
-  read: boolean;
+  isRead: boolean;
   createdAt: string;
   type?: string;
 }
@@ -131,7 +131,13 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
     queryKey: ["/api/user/profile"],
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
-  const { showTour, completeTour, skipTour } = useTour(user?.metadata?.onboardingCompleted);
+  const tourState = useTour(user?.metadata?.onboardingCompleted);
+  const { showTour, completeTour, skipTour, replayTour } = tourState || { 
+    showTour: false, 
+    completeTour: () => {}, 
+    skipTour: () => {},
+    replayTour: () => {}
+  };
   const [location, setLocation] = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -191,7 +197,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
 
 
 
-  const { socket } = useRealtime(user?.id);
+
+  const { isConnected } = useRealtime();
 
   const { data: notificationsData } = useQuery<NotificationsData | null>({
     queryKey: ["/api/notifications"],
@@ -275,7 +282,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
   }
 
   return (
-    <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden relative">
+    <RealtimeProvider userId={user?.id}>
+      <div className="flex h-[100dvh] bg-background font-sans text-foreground overflow-hidden relative">
       <InternetConnectionBanner />
       <InstallPWAPrompt />
       <GuidedTour isOpen={showTour} onComplete={completeTour} onSkip={skipTour} />
@@ -415,23 +423,23 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                   </div>
                 </div>
 
-                <div className="p-1">
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-                      <User className="mr-3 h-4 w-4" />
-                      Profile Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
-                      <CreditCard className="mr-3 h-4 w-4" />
-                      Subscription
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="my-1 mx-2" />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/settings')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                    <User className="mr-3 h-4 w-4" />
+                    Profile Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/dashboard/pricing')} className="rounded-xl cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
+                    <CreditCard className="mr-3 h-4 w-4" />
+                    Subscription
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator className="my-1 mx-2" />
+                <DropdownMenuGroup>
                   <DropdownMenuItem onClick={handleSignOut} className="rounded-xl text-destructive hover:bg-destructive/10 cursor-pointer py-2.5 font-bold text-xs uppercase tracking-wider">
                     <LogOut className="mr-3 h-4 w-4" />
                     Sign out
                   </DropdownMenuItem>
-                </div>
+                </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -623,15 +631,15 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                             key={notification.id}
                             className={cn(
                               "p-6 hover:bg-muted/30 transition-all cursor-pointer flex gap-4 relative group",
-                              !notification.read && "bg-primary/5"
+                              !notification.isRead && "bg-primary/5"
                             )}
                           >
-                            {!notification.read && (
+                            {!notification.isRead && (
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                             )}
                             <div className={cn(
                               "mt-1 h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
-                              !notification.read ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                              !notification.isRead ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                             )}>
                               <Bell className="h-5 w-5" />
                             </div>
@@ -651,7 +659,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                               <p className="text-xs text-muted-foreground leading-relaxed">
                                 {notification.message || notification.description || "No details provided."}
                               </p>
-                              {!notification.read && (
+                              {!notification.isRead && (
                                 <button
                                   className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline mt-2 inline-block"
                                   onClick={async (e) => {
@@ -760,6 +768,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
           </div>
         </main>
       </div>
-    </div>
+      </div>
+    </RealtimeProvider>
   );
 }

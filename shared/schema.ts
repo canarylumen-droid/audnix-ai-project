@@ -129,22 +129,7 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// ========== NOTIFICATIONS ==========
-export const notifications = pgTable("notifications", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["lead_import", "lead_reply", "conversion", "campaign_sent", "system"] }).notNull().default("system"),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  read: boolean("read").notNull().default(false),
-  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
 
-export const notificationsSelect = createSelectSchema(notifications);
-export const notificationsInsert = createInsertSchema(notifications);
-export type Notification = typeof notifications.$inferSelect;
-export type InsertNotification = typeof notifications.$inferInsert;
 
 export const leadSocialDetails = pgTable("lead_social_details", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -172,6 +157,7 @@ export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  threadId: uuid("thread_id"),
   provider: text("provider", { enum: ["instagram", "gmail", "email", "system"] }).notNull(),
   direction: text("direction", { enum: ["inbound", "outbound"] }).notNull(),
   subject: text("subject"),
@@ -182,6 +168,33 @@ export const messages = pgTable("messages", {
   clickedAt: timestamp("clicked_at"),
   repliedAt: timestamp("replied_at"),
   isRead: boolean("is_read").notNull().default(false),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const threads = pgTable("threads", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  subject: text("subject"),
+  lastMessageAt: timestamp("last_message_at").notNull().defaultNow(),
+  metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const leadInsights = pgTable("lead_insights", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: uuid("lead_id").notNull().unique().references(() => leads.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  intent: text("intent"), // "interested", "not_interested", "oos", "job_seeker", etc.
+  intentScore: integer("intent_score").notNull().default(0),
+  summary: text("summary"),
+  nextNextStep: text("next_step"),
+  competitors: jsonb("competitors").$type<string[]>().default(sql`'[]'::jsonb`),
+  painPoints: jsonb("pain_points").$type<string[]>().default(sql`'[]'::jsonb`),
+  budget: text("budget"),
+  timeline: text("timeline"),
+  lastAnalyzedAt: timestamp("last_analyzed_at"),
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -296,7 +309,7 @@ export const processedComments = pgTable("processed_comments", {
 export const notifications = pgTable("notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight"] }).notNull(),
+  type: text("type", { enum: ["webhook_error", "billing_issue", "conversion", "lead_reply", "system", "insight", "lead_import", "campaign_sent", "new_lead", "lead_status_change", "topup_success", "info", "email_bounce"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").notNull().default(false),
@@ -304,6 +317,9 @@ export const notifications = pgTable("notifications", {
   metadata: jsonb("metadata").$type<Record<string, any>>().notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const notificationsSelect = createSelectSchema(notifications);
+export const notificationsInsert = createInsertSchema(notifications);
 
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -883,6 +899,8 @@ export const insertCalendarBookingSchema = createInsertSchema(calendarBookings);
 export const insertAutomationRuleSchema = createInsertSchema(automationRules);
 export const insertContentLibrarySchema = createInsertSchema(contentLibrary);
 export const insertConversationEventSchema = createInsertSchema(conversationEvents);
+export const insertThreadSchema = createInsertSchema(threads);
+export const insertLeadInsightSchema = createInsertSchema(leadInsights);
 export const insertProspectSchema = createInsertSchema(prospects);
 export const insertScrapingSessionSchema = createInsertSchema(scrapingSessions);
 export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true, createdAt: true });
@@ -972,6 +990,11 @@ export type InsertFollowUpQueue = typeof followUpQueue.$inferInsert;
 
 export type AiLearningPattern = typeof aiLearningPatterns.$inferSelect;
 export type InsertAiLearningPattern = typeof aiLearningPatterns.$inferInsert;
+
+export type Thread = typeof threads.$inferSelect;
+export type InsertThread = typeof threads.$inferInsert;
+export type LeadInsight = typeof leadInsights.$inferSelect;
+export type InsertLeadInsight = typeof leadInsights.$inferInsert;
 
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
