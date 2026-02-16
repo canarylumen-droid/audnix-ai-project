@@ -277,7 +277,7 @@ function App() {
           <TooltipProvider>
             <InternetConnectionBanner />
             <Toaster />
-            <CustomCursor />
+            {/* <CustomCursor /> Custom cursor removed for usability */}
             <Router />
             <ExpertChat />
             <PrivacyModal />
