@@ -4,6 +4,7 @@ import { pushSubscriptions } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage.js";
 import { requireAuth } from "../middleware/auth.js";
+import { wsSync } from "../lib/websocket-sync.js";
 
 const router = Router();
 
@@ -44,6 +45,10 @@ router.patch("/:id/read", requireAuth, async (req, res) => {
         }
 
         await storage.markNotificationAsRead(notificationId, userId);
+
+        // Notify client to update UI immediately
+        wsSync.notifyNotification(userId, { type: 'update', action: 'read', id: notificationId });
+
         res.json({ success: true });
     } catch (error: any) {
         console.error("Mark notification read error:", error);
@@ -60,6 +65,10 @@ router.post("/mark-all-read", requireAuth, async (req, res) => {
         }
 
         await storage.markAllNotificationsAsRead(userId);
+
+        // Notify client
+        wsSync.notifyNotification(userId, { type: 'update', action: 'read_all' });
+
         res.json({ success: true });
     } catch (error: any) {
         console.error("Mark all notifications read error:", error);

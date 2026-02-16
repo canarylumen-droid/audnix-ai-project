@@ -211,11 +211,16 @@ export function RealtimeProvider({ children, userId }: RealtimeProviderProps) {
     });
 
     // NOTIFICATIONS UPDATES
-    // Assuming backend emits 'notification' event when creating rows in 'notifications' table
+    // Backend emits 'notification' event when creating rows or updating status
     socketInstance.on('notification', (payload: any) => {
-      console.log('New notification:', payload);
+      console.log('Notification event:', payload);
       // Invalidate notifications queries
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+
+      // If it's just a status update (read/unread), don't play sound or show toast
+      if (payload.type === 'update') {
+        return;
+      }
 
       // Throttle sound
       const now = Date.now();
