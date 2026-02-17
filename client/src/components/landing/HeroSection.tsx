@@ -65,20 +65,20 @@ const AIEngineMockup = () => {
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
+        <div className="flex items-center justify-between mb-8 border-b border-border/5 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
               <Server className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-white font-bold text-sm">Audnix AI Core v2.4</h3>
+              <h3 className="text-foreground font-bold text-sm">Audnix AI Core v2.4</h3>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                <span className="text-[10px] text-white/40 uppercase tracking-widest font-mono">System Active</span>
+                <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-mono">System Active</span>
               </div>
             </div>
           </div>
-          <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/50">
+          <div className="px-3 py-1 rounded-full bg-muted border border-border text-[10px] font-mono text-muted-foreground">
             Latency: 42ms
           </div>
         </div>
@@ -210,7 +210,7 @@ export function HeroSection() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-6xl md:text-8xl lg:text-[10rem] font-black tracking-tighter leading-[0.8] mb-4 text-foreground"
+              className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-4 text-foreground"
             >
               AUTONOMOUS<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">

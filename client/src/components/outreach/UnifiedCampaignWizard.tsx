@@ -38,6 +38,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [viewMode, setViewMode] = useState<"edit" | "preview">("edit");
 
   // Step 1: Import State
+  const [sourceType, setSourceType] = useState<'upload' | 'database'>('upload');
   const [leads, setLeads] = useState<any[]>(initialLeads);
   const [importProgress, setImportProgress] = useState(0);
   const [importing, setImporting] = useState(false);
@@ -155,7 +156,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           {/* Header */}
           <div className="px-4 py-3 border-b border-border/40">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{sampleLead.name[0]}</div>
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{sampleLead.name?.[0] || 'P'}</div>
               <div className="text-[11px] font-bold truncate">{sampleLead.name}</div>
             </div>
             <div className="text-xs font-bold line-clamp-2 leading-tight">{filledSubject}</div>
@@ -206,12 +207,44 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 {step === 1 && (
                   <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
                     <div className="space-y-2">
-                      <h2 className="text-3xl font-black tracking-tighter">DATA INGESTION</h2>
-                      <p className="text-muted-foreground text-sm font-medium">Upload leads, select from inbox, or connect your platforms.</p>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">Lead Import</h2>
+                      <p className="text-muted-foreground text-sm font-medium">Select existing leads or upload new ones.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <label className="border-2 border-dashed border-border/40 hover:border-primary/40 hover:bg-primary/5 transition-all p-6 rounded-3xl text-center cursor-pointer relative group flex flex-col items-center justify-center gap-2 h-full min-h-[200px]">
+                    <div className="space-y-4">
+                      <Label className="text-xs font-black uppercase tracking-widest text-primary/60">Select Source</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          onClick={() => setSourceType('database')}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 transition-all text-left",
+                            sourceType === 'database' 
+                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
+                              : "border-white/5 bg-white/5 hover:border-white/10"
+                          )}
+                        >
+                          <Target className={cn("w-6 h-6 mb-2", sourceType === 'database' ? "text-primary" : "text-white/40")} />
+                          <p className="text-sm font-bold">Imported Leads</p>
+                          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">From Database</p>
+                        </button>
+                        <button
+                          onClick={() => setSourceType('upload')}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 transition-all text-left",
+                            sourceType === 'upload' 
+                              ? "border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" 
+                              : "border-white/5 bg-white/5 hover:border-white/10"
+                          )}
+                        >
+                          <Download className={cn("w-6 h-6 mb-2", sourceType === 'upload' ? "text-primary" : "text-white/40")} />
+                          <p className="text-sm font-bold">New CSV/Excel</p>
+                          <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Fresh Upload</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {sourceType === 'upload' ? (
+                      <label className="border-2 border-dashed border-border/40 hover:border-primary/40 hover:bg-primary/5 transition-all p-6 rounded-3xl text-center cursor-pointer relative group flex flex-col items-center justify-center gap-2 min-h-[160px]">
                         <input type="file" className="hidden" onChange={handleFileUpload} accept=".csv,.xlsx,.pdf" />
                         <div className="p-4 bg-primary/10 rounded-2xl group-hover:scale-110 transition-transform">
                           <Upload className="h-6 w-6 text-primary" />
@@ -219,62 +252,37 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         <div className="font-bold text-lg">Upload File</div>
                         <div className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-1 opacity-50">CSV • EXCEL • PDF</div>
                       </label>
-
-                      <button
-                        onClick={() => {
-                          if (initialLeads && initialLeads.length > 0) {
-                            setLeads(initialLeads);
-                            toast({ title: "Leads Selected", description: `${initialLeads.length} leads selected from inbox.` });
-                            setStep(2);
-                          } else {
-                            toast({ title: "No Leads Available", description: "No leads found to select.", variant: "secondary" });
-                          }
-                        }}
-                        className="border-2 border-transparent bg-muted/20 hover:bg-muted/40 transition-all p-6 rounded-3xl text-center cursor-pointer relative group flex flex-col items-center justify-center gap-2 h-full min-h-[200px]"
-                      >
-                        <div className="p-4 bg-blue-500/10 rounded-2xl group-hover:scale-110 transition-transform">
-                          <Users className="h-6 w-6 text-blue-500" />
+                    ) : (
+                      <div className="p-6 rounded-3xl bg-card border border-border/40 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Users className="h-5 w-5 text-primary" />
+                            <div className="font-bold">Available Leads</div>
+                          </div>
+                          <Badge variant="secondary">{initialLeads?.length || 0}</Badge>
                         </div>
-                        <div className="font-bold text-lg">Existing Leads</div>
-                        <div className="text-[10px] uppercase font-black tracking-widest text-muted-foreground mt-1 opacity-50">
-                          {initialLeads?.length ? `${initialLeads.length} AVAILABLE` : '0 AVAILABLE'}
-                        </div>
-                      </button>
-
-                      <div className="border border-border/40 bg-card p-6 rounded-3xl space-y-4 flex flex-col justify-center h-full min-h-[200px]">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center"><Smartphone className="h-5 w-5 text-purple-500" /></div>
-                          <div className="font-bold text-sm">Connect Platform</div>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-tight">Import directly from ManyChat, Instagram, or Gmail.</p>
-                        <Button variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest h-10 rounded-xl border-border/60" onClick={() => toast({ title: "Integration", description: "Go to Integrations page to connect." })}>Connect Sources</Button>
+                        <p className="text-xs text-muted-foreground">Select leads from your inbox to start a campaign.</p>
+                        <Button 
+                          onClick={() => {
+                            if (initialLeads?.length) {
+                              setLeads(initialLeads);
+                              setStep(2);
+                            } else {
+                              toast({ title: "No leads selected", description: "Select leads in your inbox first.", variant: "secondary" });
+                            }
+                          }}
+                          className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest"
+                          disabled={!initialLeads?.length}
+                        >
+                          Use {initialLeads?.length || 0} Leads
+                        </Button>
                       </div>
-                    </div>
+                    )}
 
                     {importing && (
                       <div className="space-y-4 animate-in fade-in duration-500">
                         <Progress value={importProgress} className="h-1 bg-muted rounded-full overflow-hidden shadow-inner" />
                         <p className="text-xs font-bold text-center animate-pulse text-muted-foreground">Analyzing network data clusters...</p>
-                      </div>
-                    )}
-
-                    {leads.length > 0 && (
-                      <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-between animate-in slide-in-from-bottom-5">
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-bold text-xl">{leads.length}</div>
-                          <div>
-                            <div className="font-bold">Leads Ready</div>
-                            <div className="text-xs text-muted-foreground">Intelligence core synchronization complete.</div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => setLeads([])} className="rounded-xl font-bold text-destructive hover:text-destructive hover:bg-destructive/10">
-                            Clear
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setStep(2)} className="rounded-xl font-bold gap-2 group bg-primary/10 text-primary hover:bg-primary/20">
-                            Configure <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                          </Button>
-                        </div>
                       </div>
                     )}
                   </motion.div>
@@ -394,6 +402,16 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                         </div>
 
                         <div className="pt-6 border-t border-emerald-500/20 space-y-4">
+                          <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Sparkles className="w-4 h-4 text-primary" />
+                              <p className="text-[10px] font-black uppercase tracking-widest">Automation Protocol</p>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              Campaign will drip-send to selected leads based on your daily limit. 
+                              Replies will automatically sync back to your <span className="text-primary font-bold">Inbox</span> for manual or AI follow-up.
+                            </p>
+                          </div>
                           <div className="flex items-center justify-between p-4 bg-background/40 rounded-2xl border border-emerald-500/10">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-emerald-500/20 rounded-lg"><Sparkles className="h-4 w-4 text-emerald-600" /></div>

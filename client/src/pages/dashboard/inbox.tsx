@@ -110,7 +110,11 @@ export default function InboxPage() {
   const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu({
+    onUnarchive: (leadId) => handleMenuAction('unarchive', { id: leadId }),
+    onArchive: (leadId) => handleMenuAction('archive', { id: leadId }),
+  });
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
 
@@ -240,7 +244,7 @@ export default function InboxPage() {
           ? (lead.metadata?.isUnread || false)
           : lead.status === filterStatus;
 
-      const matchesArchived = showArchived ? true : !lead.archived;
+      const matchesArchived = showArchived ? lead.archived : !lead.archived;
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
     });
