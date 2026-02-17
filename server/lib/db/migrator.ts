@@ -74,6 +74,11 @@ export async function runDatabaseMigrations() {
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='deals' AND column_name='deal_value') THEN
                         ALTER TABLE deals ADD COLUMN deal_value INTEGER DEFAULT 0;
                     END IF;
+
+                    -- Messages: thread_id
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='messages' AND column_name='thread_id') THEN
+                        ALTER TABLE "messages" ADD COLUMN "thread_id" uuid;
+                    END IF;
                 END $$;
             `);
             console.log("✅ Emergency schema synchronization completed.");
