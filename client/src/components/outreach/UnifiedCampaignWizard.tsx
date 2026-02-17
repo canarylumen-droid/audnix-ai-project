@@ -43,6 +43,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [importProgress, setImportProgress] = useState(0);
   const [importing, setImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
   // Step 2: Campaign Config
   const [campaignName, setCampaignName] = useState("");
@@ -105,6 +106,24 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
       toast({ title: "Import failed", description: err.message, variant: "destructive" });
     } finally {
       setTimeout(() => setImporting(false), 500);
+    }
+  };
+
+  const handleFetchLeads = async () => {
+    setIsLoadingLeads(true);
+    try {
+      const res = await apiRequest("GET", "/api/leads?limit=1000");
+      const data = await res.json();
+      if (data.leads && Array.isArray(data.leads)) {
+        setLeads(data.leads);
+        toast({ title: "Leads Fetched", description: `Successfully loaded ${data.leads.length} leads from database.` });
+      } else {
+        toast({ title: "No leads found", description: "Database seems empty.", variant: "secondary" });
+      }
+    } catch (err: any) {
+      toast({ title: "Fetch failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLoadingLeads(false);
     }
   };
 
@@ -255,23 +274,36 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             <Users className="h-5 w-5 text-primary" />
                             <div className="font-bold">Available Leads</div>
                           </div>
-                          <Badge variant="secondary">{initialLeads?.length || 0}</Badge>
+                          <Badge variant="secondary">{leads.length > 0 ? leads.length : (initialLeads?.length || 0)}</Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">Select leads from your inbox to start a campaign.</p>
-                        <Button 
-                          onClick={() => {
-                            if (initialLeads?.length) {
-                              setLeads(initialLeads);
-                              setStep(2);
-                            } else {
-                              toast({ title: "No leads selected", description: "Select leads in your inbox first.", variant: "secondary" });
-                            }
-                          }}
-                          className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest"
-                          disabled={!initialLeads?.length}
-                        >
-                          Use {initialLeads?.length || 0} Leads
-                        </Button>
+
+                        {(leads.length === 0 && (!initialLeads || initialLeads.length === 0)) ? (
+                          <Button 
+                            onClick={handleFetchLeads}
+                            disabled={isLoadingLeads}
+                            variant="secondary"
+                            className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest gap-2"
+                          >
+                           {isLoadingLeads ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                           Fetch from Database
+                          </Button>
+                        ) : (
+                          <Button 
+                            onClick={() => {
+                              if (leads.length > 0) {
+                                setStep(2);
+                              } else if (initialLeads?.length) {
+                                setLeads(initialLeads);
+                                setStep(2);
+                              }
+                            }}
+                            className="w-full h-12 rounded-xl text-xs font-black uppercase tracking-widest"
+                            disabled={leads.length === 0 && !initialLeads?.length}
+                          >
+                            Use {leads.length || initialLeads?.length || 0} Leads
+                          </Button>
+                        )}
                       </div>
                     )}
 
