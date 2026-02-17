@@ -110,7 +110,11 @@ export default function InboxPage() {
   const [showDetails, setShowDetails] = useState(false); // Controls the right sidebar
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
+
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu({
+    onUnarchive: (leadId) => handleMenuAction('unarchive', { id: leadId }),
+    onArchive: (leadId) => handleMenuAction('archive', { id: leadId }),
+  });
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
 
@@ -240,7 +244,7 @@ export default function InboxPage() {
           ? (lead.metadata?.isUnread || false)
           : lead.status === filterStatus;
 
-      const matchesArchived = showArchived ? true : !lead.archived;
+      const matchesArchived = showArchived ? lead.archived : !lead.archived;
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
     });
@@ -251,7 +255,7 @@ export default function InboxPage() {
       // If content has a subject line (first line), extract it
       let subject: string | undefined = undefined;
       let body = content;
-      
+
       // Simple heuristic: if it looks like a subject line is intended (e.g. "Subject: ...")
       // But for now, we'll just send content. 
       // User requested "reply appending subject". 
@@ -306,10 +310,16 @@ export default function InboxPage() {
           leadIds: [data.id],
           archived: true
         });
+        // Optimistic update
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
         toast({ title: "Lead Archived", description: "Successfully moved to archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
         toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       }
     } else if (action === 'unarchive') {
       try {
@@ -317,10 +327,16 @@ export default function InboxPage() {
           leadIds: [data.id],
           archived: false
         });
+        // Optimistic update
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
         toast({ title: "Lead Restored", description: "Successfully restored from archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
         toast({ title: "Error", description: "Failed to unarchive lead", variant: "destructive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       }
     } else if (action === 'delete') {
       if (confirm(`Are you sure you want to delete ${data.name}? This action cannot be undone.`)) {
@@ -376,23 +392,23 @@ export default function InboxPage() {
     try {
       // Optimistic UI updates for delete
       if (action === 'delete') {
-         setAllLeads(prev => prev.filter(l => !selectedLeadIds.includes(l.id)));
-         if (leadId && selectedLeadIds.includes(leadId)) {
-           setLocation('/dashboard/inbox');
-         }
-         setSelectedLeadIds([]);
+        setAllLeads(prev => prev.filter(l => !selectedLeadIds.includes(l.id)));
+        if (leadId && selectedLeadIds.includes(leadId)) {
+          setLocation('/dashboard/inbox');
+        }
+        setSelectedLeadIds([]);
       }
 
       const endpoint = action === 'delete' ? '/api/bulk/delete' : '/api/bulk/archive';
       const body = action === 'delete' ? { leadIds: selectedLeadIds } : { leadIds: selectedLeadIds, archived: true };
-      
+
       await apiRequest("POST", endpoint, body);
-      
-      toast({ 
-        title: `Bulk ${action === 'delete' ? 'Delete' : 'Archive'}`, 
-        description: `Successfully processed ${selectedLeadIds.length} leads` 
+
+      toast({
+        title: `Bulk ${action === 'delete' ? 'Delete' : 'Archive'}`,
+        description: `Successfully processed ${selectedLeadIds.length} leads`
       });
-      
+
       if (action !== 'delete') setSelectedLeadIds([]); // Clear selection for archive too if successful
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
     } catch (err) {
@@ -402,7 +418,7 @@ export default function InboxPage() {
 
   const toggleLeadSelection = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setSelectedLeadIds(prev => 
+    setSelectedLeadIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -503,23 +519,23 @@ export default function InboxPage() {
             {/* Mobile/Desktop Connect Alert */}
             {!hasAnyChannel && allLeads.length > 0 && (
               <div className="mx-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
-                 <div className="p-1.5 bg-red-500/20 rounded-full shrink-0">
-                    <Plug className="h-3 w-3 text-red-500" />
-                 </div>
-                 <div className="flex-1">
-                    <h4 className="text-xs font-bold text-foreground">Channels Disconnected</h4>
-                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 mb-2">
-                       Connect Email or Instagram to sync replies.
-                    </p>
-                    <Button 
-                       size="sm" 
-                       variant="outline" 
-                       className="h-6 text-[9px] font-bold uppercase w-full bg-background hover:bg-red-500/5 hover:text-red-500 border-red-500/20"
-                       onClick={() => setLocation('/dashboard/integrations')}
-                    >
-                       Connect Now
-                    </Button>
-                 </div>
+                <div className="p-1.5 bg-red-500/20 rounded-full shrink-0">
+                  <Plug className="h-3 w-3 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-xs font-bold text-foreground">Channels Disconnected</h4>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 mb-2">
+                    Connect Email or Instagram to sync replies.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 text-[9px] font-bold uppercase w-full bg-background hover:bg-red-500/5 hover:text-red-500 border-red-500/20"
+                    onClick={() => setLocation('/dashboard/integrations')}
+                  >
+                    Connect Now
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -527,7 +543,7 @@ export default function InboxPage() {
             {/* Bulk Action Bar */}
             <AnimatePresence>
               {selectedLeadIds.length > 0 && (
-                <motion.div 
+                <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -570,7 +586,8 @@ export default function InboxPage() {
               </div>
             ) : filteredLeads.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-12 text-center h-full min-h-[400px] animate-in fade-in zoom-in duration-700">
-                {!hasAnyChannel ? (
+                {/* Only show "Connect Sources" if ABSOLUTELY no channels are connected AND no leads exist */}
+                {!hasAnyChannel && allLeads.length === 0 ? (
                   <div className="max-w-xs">
                     <div className="w-20 h-20 rounded-[2.5rem] bg-primary/10 flex items-center justify-center mb-8 mx-auto relative group">
                       <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -581,8 +598,8 @@ export default function InboxPage() {
                     <p className="text-sm text-muted-foreground/60 font-medium mb-8 leading-relaxed">
                       Your inbox is ready. Just connect your email or Instagram to start importing and engaging leads in real-time.
                     </p>
-                    <Button 
-                      size="lg" 
+                    <Button
+                      size="lg"
                       className="rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] h-12 px-10 shadow-lg shadow-primary/20 hover:scale-105 transition-all w-full"
                       onClick={() => setLocation('/dashboard/integrations')}
                     >
@@ -594,8 +611,10 @@ export default function InboxPage() {
                     <div className="w-20 h-20 rounded-[2.5rem] bg-muted/20 flex items-center justify-center mb-6 mx-auto">
                       <InboxIcon className="h-10 w-10 text-muted-foreground/30" />
                     </div>
-                    <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/50">No conversations</p>
-                    <p className="text-[10px] text-muted-foreground/30 font-bold mt-2 uppercase">Adjust filters or search query</p>
+                    <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/50">No conversations found</p>
+                    <p className="text-[10px] text-muted-foreground/30 font-bold mt-2 uppercase">
+                      {searchQuery || filterStatus !== 'all' ? "Try adjusting your filters" : "Wait for new leads to arrive"}
+                    </p>
                   </div>
                 )}
               </div>
@@ -606,11 +625,11 @@ export default function InboxPage() {
                     <div
                       key={lead.id}
                       onClick={() => {
-                          if (selectedLeadIds.length > 0) {
-                            toggleLeadSelection(lead.id);
-                          } else {
-                            setLocation(`/dashboard/inbox/${lead.id}`);
-                          }
+                        if (selectedLeadIds.length > 0) {
+                          toggleLeadSelection(lead.id);
+                        } else {
+                          setLocation(`/dashboard/inbox/${lead.id}`);
+                        }
                       }}
                       onContextMenu={(e) => handleContextMenu(e, 'inbox', lead)}
                       className={cn(
@@ -620,76 +639,76 @@ export default function InboxPage() {
                         selectedLeadIds.includes(lead.id) && "bg-primary/20"
                       )}
                     >
-                    {/* Checkbox for selection */}
-                    <div 
-                      className={cn(
-                        "absolute left-2 top-1/2 -translate-y-1/2 z-10 transition-all",
-                        selectedLeadIds.includes(lead.id) || "opacity-0 group-hover:opacity-100"
-                      )}
-                      onClick={(e) => toggleLeadSelection(lead.id, e)}
-                    >
-                      <div className={cn(
-                        "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
-                        selectedLeadIds.includes(lead.id) ? "bg-primary border-primary" : "bg-background border-border"
-                      )}>
-                        {selectedLeadIds.includes(lead.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                      {/* Checkbox for selection */}
+                      <div
+                        className={cn(
+                          "absolute left-2 top-1/2 -translate-y-1/2 z-10 transition-all",
+                          selectedLeadIds.includes(lead.id) || "opacity-0 group-hover:opacity-100"
+                        )}
+                        onClick={(e) => toggleLeadSelection(lead.id, e)}
+                      >
+                        <div className={cn(
+                          "h-5 w-5 rounded-md border flex items-center justify-center transition-colors",
+                          selectedLeadIds.includes(lead.id) ? "bg-primary border-primary" : "bg-background border-border"
+                        )}>
+                          {selectedLeadIds.includes(lead.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                        </div>
                       </div>
-                    </div>
 
-                    {leadId === lead.id && <motion.div layoutId="activeLead" className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
-                    <div className={cn("flex gap-3 items-center transition-all", (selectedLeadIds.length > 0 || selectedLeadIds.includes(lead.id)) && "pl-8")}>
-                      <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0">
-                        <AvatarFallback className={cn(
-                          "font-bold text-sm",
-                          lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                        )}>{lead.name?.[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-bold truncate text-foreground" title={lead.name}>{lead.name}</span>
-                          <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
-                            {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <p className={cn("text-xs truncate transition-colors h-4", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
-                          {typingLeadId === lead.id ? (
-                             <span className="flex items-center gap-1 text-primary font-bold animate-pulse">
+                      {leadId === lead.id && <motion.div layoutId="activeLead" className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
+                      <div className={cn("flex gap-3 items-center transition-all", (selectedLeadIds.length > 0 || selectedLeadIds.includes(lead.id)) && "pl-8")}>
+                        <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0">
+                          <AvatarFallback className={cn(
+                            "font-bold text-sm",
+                            lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}>{lead.name?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold truncate text-foreground" title={lead.name}>{lead.name}</span>
+                            <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
+                              {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          <p className={cn("text-xs truncate transition-colors h-4", lead.metadata?.isUnread ? "text-foreground font-bold" : "text-muted-foreground")}>
+                            {typingLeadId === lead.id ? (
+                              <span className="flex items-center gap-1 text-primary font-bold animate-pulse">
                                 Typinng...
-                             </span>
-                          ) : (
-                             lead.lastMessageSnippet || "No messages"
-                          )}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge {...({
-                            variant: "outline",
-                            className: cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status as keyof typeof statusStyles] || statusStyles.cold)
-                          } as any)}>
-                            {lead.status === 'hardened' ? 'Verified' : lead.status}
-                          </Badge>
-                          {lead.metadata?.isUnread && (
-                            (() => {
-                              const isOld = new Date().getTime() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000;
-                              return !isOld ? <span className="h-2 w-2 rounded-full bg-primary animate-pulse" /> : null;
-                            })()
-                          )}
+                              </span>
+                            ) : (
+                              lead.lastMessageSnippet || "No messages"
+                            )}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge {...({
+                              variant: "outline",
+                              className: cn("text-[9px] h-4 px-1 rounded-sm border-0 uppercase font-black tracking-wider", statusStyles[lead.status as keyof typeof statusStyles] || statusStyles.cold)
+                            } as any)}>
+                              {lead.status === 'hardened' ? 'Verified' : lead.status}
+                            </Badge>
+                            {lead.metadata?.isUnread && (
+                              (() => {
+                                const isOld = new Date().getTime() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000;
+                                return !isOld ? <span className="h-2 w-2 rounded-full bg-primary animate-pulse" /> : null;
+                              })()
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {leadsData?.hasMore && (
-                  <div className="p-4">
-                    <Button
-                      variant="outline"
-                      className="w-full text-xs font-bold uppercase tracking-widest rounded-xl h-10 border-dashed"
-                      onClick={() => setPage(p => p + 1)}
-                      disabled={leadsLoading}
-                    >
-                    </Button>
-                  </div>
-                )}
-              </div>
+                  ))}
+                  {leadsData?.hasMore && (
+                    <div className="p-4">
+                      <Button
+                        variant="outline"
+                        className="w-full text-xs font-bold uppercase tracking-widest rounded-xl h-10 border-dashed"
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={leadsLoading}
+                      >
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -1003,70 +1022,70 @@ export default function InboxPage() {
 
                 {/* Reply Input */}
                 {!isChannelConnected(activeLead?.channel) ? (
-                   <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
-                      <div className="max-w-5xl mx-auto flex flex-col items-center justify-center p-6 bg-destructive/5 border border-destructive/20 rounded-2xl text-center space-y-3">
-                         <div className="p-3 bg-destructive/10 rounded-full">
-                           <Plug className="h-5 w-5 text-destructive" />
-                         </div>
-                         <div>
-                           <h4 className="text-sm font-bold text-destructive uppercase tracking-wide">Channel Disconnected</h4>
-                           <p className="text-xs text-muted-foreground mt-1">Connect your {activeLead?.channel} account to reply to this lead.</p>
-                         </div>
-                         <Button 
-                           size="sm" 
-                           variant="outline"
-                           className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                           onClick={() => setLocation('/dashboard/integrations')}
-                         >
-                           Connect {activeLead?.channel === 'instagram' ? 'Instagram' : 'Email'}
-                         </Button>
+                  <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
+                    <div className="max-w-5xl mx-auto flex flex-col items-center justify-center p-6 bg-destructive/5 border border-destructive/20 rounded-2xl text-center space-y-3">
+                      <div className="p-3 bg-destructive/10 rounded-full">
+                        <Plug className="h-5 w-5 text-destructive" />
                       </div>
-                   </div>
-                ) : (
-                <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
-                  <div className="flex gap-3 items-end max-w-5xl mx-auto">
-                    <div className="flex-1 relative group">
-                      <textarea
-                        value={replyMessage}
-                        onChange={e => {
-                          setReplyMessage(e.target.value);
-                          // Auto-grow logic
-                          e.target.style.height = 'auto';
-                          e.target.style.height = e.target.scrollHeight + 'px';
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            if (replyMessage.trim() && !sendMutation.isPending) {
-                              sendMutation.mutate(replyMessage);
-                              (e.target as HTMLTextAreaElement).style.height = 'auto';
-                            }
-                          }
-                        }}
-                        placeholder="Compose a response..."
-                        className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
-                      />
+                      <div>
+                        <h4 className="text-sm font-bold text-destructive uppercase tracking-wide">Channel Disconnected</h4>
+                        <p className="text-xs text-muted-foreground mt-1">Connect your {activeLead?.channel} account to reply to this lead.</p>
+                      </div>
                       <Button
-                        size="icon"
-                        onClick={handleAiReply}
-                        disabled={isGenerating}
-                        className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
-                        title="Generate AI Reply"
+                        size="sm"
+                        variant="outline"
+                        className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                        onClick={() => setLocation('/dashboard/integrations')}
                       >
-                        {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                        Connect {activeLead?.channel === 'instagram' ? 'Instagram' : 'Email'}
                       </Button>
                     </div>
-                    <Button
-                      onClick={() => sendMutation.mutate(replyMessage)}
-                      disabled={!replyMessage.trim() || sendMutation.isPending}
-                      className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
-                    >
-                      {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
                   </div>
-                  <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="p-4 md:p-6 border-t bg-background shrink-0 shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.05)] sticky bottom-0 z-20 w-full mb-[env(safe-area-inset-bottom)]">
+                    <div className="flex gap-3 items-end max-w-5xl mx-auto">
+                      <div className="flex-1 relative group">
+                        <textarea
+                          value={replyMessage}
+                          onChange={e => {
+                            setReplyMessage(e.target.value);
+                            // Auto-grow logic
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (replyMessage.trim() && !sendMutation.isPending) {
+                                sendMutation.mutate(replyMessage);
+                                (e.target as HTMLTextAreaElement).style.height = 'auto';
+                              }
+                            }
+                          }}
+                          placeholder="Compose a response..."
+                          className="w-full bg-muted/30 border border-border/50 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[56px] max-h-40 resize-none transition-all overflow-y-auto"
+                        />
+                        <Button
+                          size="icon"
+                          onClick={handleAiReply}
+                          disabled={isGenerating}
+                          className="absolute right-3 bottom-0 mb-3 h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg hover:shadow-primary/25 hover:scale-105 transition-all"
+                          title="Generate AI Reply"
+                        >
+                          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 fill-white/20" />}
+                        </Button>
+                      </div>
+                      <Button
+                        onClick={() => sendMutation.mutate(replyMessage)}
+                        disabled={!replyMessage.trim() || sendMutation.isPending}
+                        className="rounded-2xl h-14 w-14 p-0 shadow-xl shadow-primary/20 shrink-0 transition-transform active:scale-95"
+                      >
+                        {sendMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                      </Button>
+                    </div>
+                    <p className="text-center text-[10px] text-muted-foreground/40 mt-3 font-medium">Shift + Enter for new line. AI suggestions enabled.</p>
+                  </div>
+                )}
               </div>
 
             </div>

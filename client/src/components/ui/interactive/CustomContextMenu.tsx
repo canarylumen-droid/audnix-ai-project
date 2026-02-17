@@ -59,12 +59,17 @@ export function CustomContextMenu({
         ];
         menuItems = [...menuItems, ...videoItems];
     } else if (config.type === 'inbox') {
+        const isArchived = config.data?.archived;
         const inboxItems: MenuItem[] = [
             { type: 'divider' },
             { icon: Link2, label: 'Mark as Unread', id: 'mark_unread' },
             { icon: ClipboardPaste, label: 'Mark as Booked', id: 'mark_booked' },
             { icon: Copy, label: 'Copy Details', id: 'copy_details' },
-            { icon: Trash2, label: 'Archive Thread', id: 'archive' },
+            { 
+              icon: isArchived ? RefreshCw : Trash2, 
+              label: isArchived ? 'Unarchive Thread' : 'Archive Thread', 
+              id: isArchived ? 'unarchive' : 'archive' 
+            },
             { icon: Trash2, label: 'Delete Thread', id: 'delete', variant: 'destructive' },
         ];
         menuItems = [...menuItems, ...inboxItems];
@@ -79,6 +84,9 @@ export function CustomContextMenu({
         menuItems = [...menuItems, ...defaultExtras];
     }
 
+    const menuX = Math.min(config.x, window.innerWidth - 270);
+    const menuY = Math.min(config.y, window.innerHeight - 400);
+
     return (
         <AnimatePresence>
             {config.visible && (
@@ -88,8 +96,8 @@ export function CustomContextMenu({
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     style={{
-                        top: config.y,
-                        left: config.x
+                        top: menuY,
+                        left: menuX
                     }}
                     className="fixed z-[999999] w-64 min-w-[200px] bg-background/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-2 overflow-hidden"
                     onContextMenu={(e) => e.preventDefault()}

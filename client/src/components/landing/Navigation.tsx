@@ -66,14 +66,14 @@ export function Navigation() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="flex items-center gap-12">
+        <div className="flex items-center gap-4 lg:gap-12">
           <Magnetic>
             <Link href="/">
-              <Logo className="h-8 w-8" textClassName="text-xl font-black text-foreground" />
+              <Logo className="h-8 w-8" textClassName="text-lg lg:text-xl font-black text-foreground" />
             </Link>
           </Magnetic>
 
-          <div className="hidden lg:flex items-center gap-10">
+          <div className="hidden lg:flex items-center gap-6 xl:gap-10">
             {/* Solutions Dropdown */}
             <div
               className="relative py-2 group"
@@ -211,7 +211,7 @@ export function Navigation() {
           <Magnetic>
             <Link href="/auth">
               <Button
-                className="h-10 px-8 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-black hover:scale-105"
+                className="h-10 px-6 lg:px-8 rounded-full text-[10px] lg:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-white hover:scale-105"
               >
                 Get Started
               </Button>
@@ -264,7 +264,7 @@ export function Navigation() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Navigation</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-2">Navigation</p>
                 {navLinks.map((link) => (
                   <a
                     key={link.name}
@@ -289,7 +289,7 @@ export function Navigation() {
                         }
                       }, 300);
                     }}
-                    className="text-lg font-bold tracking-tight text-white/60 hover:text-primary transition-colors py-3 border-b border-white/5 block w-full cursor-pointer"
+                    className="text-lg font-bold tracking-tight text-foreground/60 hover:text-primary transition-colors py-3 border-b border-border block w-full cursor-pointer"
                   >
                     {link.name}
                   </a>
@@ -297,11 +297,11 @@ export function Navigation() {
               </div>
 
               <div className="mt-8 flex flex-col gap-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-2">Solutions</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-2">Solutions</p>
                 {SOLUTIONS.map((sol) => (
                   <div
                     key={sol.name}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 border border-transparent transition-all cursor-pointer"
+                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted border border-transparent transition-all cursor-pointer"
                     onClick={() => {
                       setMobileMenuOpen(false);
                       setTimeout(() => {
@@ -310,7 +310,7 @@ export function Navigation() {
                     }}
                   >
                     <sol.icon className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-bold text-white/60">{sol.name}</span>
+                    <span className="text-sm font-bold text-foreground/60">{sol.name}</span>
                   </div>
                 ))}
               </div>
@@ -327,7 +327,7 @@ export function Navigation() {
                 >
                   Get Started
                 </Button>
-                <p className="text-[9px] font-black text-white/10 uppercase tracking-[0.4em] text-center">v4.0.0 Stable</p>
+                <p className="text-[9px] font-black text-foreground/10 uppercase tracking-[0.4em] text-center">v4.0.0 Stable</p>
               </div>
             </motion.div>
           </div>
