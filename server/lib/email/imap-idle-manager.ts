@@ -299,7 +299,7 @@ class ImapIdleManager {
                 for (const folder of currentFolders.sent) {
                     await this.fetchNewEmails(userId, imap, folder, 'outbound');
                 }
-            }, 60 * 1000); // Every 60 seconds
+            }, 20 * 1000); // Every 20 seconds (Optimized for real-time)
         });
     }
 

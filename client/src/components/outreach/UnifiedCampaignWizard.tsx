@@ -191,7 +191,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden">
+      <DialogContent className="max-w-6xl w-[98vw] md:w-[95vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden">
         {/* Header */}
         <div className="p-4 md:p-8 md:pb-6 border-b border-border/20 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
@@ -525,14 +525,14 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
             <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-transparent to-primary/5">
               <Tabs key={viewMode} defaultValue="p1" className="h-full">
-                <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1 bg-background/80 backdrop-blur border border-border/20 flex gap-1 h-auto">
-                  <TabsTrigger value="p1" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S1</TabsTrigger>
-                  <TabsTrigger value="p2" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S2</TabsTrigger>
-                  <TabsTrigger value="p3" className="h-7 text-[8px] font-black uppercase px-4 rounded-full">S3</TabsTrigger>
+                <TabsList className="absolute top-6 left-1/2 -translate-x-1/2 z-30 shadow-2xl rounded-full p-1.5 bg-background/80 backdrop-blur border border-border/20 flex gap-2 h-auto md:scale-110 lg:scale-125">
+                  <TabsTrigger value="p1" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S1</TabsTrigger>
+                  <TabsTrigger value="p2" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S2</TabsTrigger>
+                  <TabsTrigger value="p3" className="h-8 md:h-10 text-[9px] md:text-[10px] font-black uppercase px-5 md:px-8 rounded-full transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">S3</TabsTrigger>
                 </TabsList>
-                <TabsContent value="p1" className="h-full m-0">{renderPreview(subject, body)}</TabsContent>
-                <TabsContent value="p2" className="h-full m-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
-                <TabsContent value="p3" className="h-full m-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
+                <TabsContent value="p1" className="h-full m-0 pt-16 md:pt-0">{renderPreview(subject, body)}</TabsContent>
+                <TabsContent value="p2" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject, followUpBody)}</TabsContent>
+                <TabsContent value="p3" className="h-full m-0 pt-16 md:pt-0">{renderPreview(followUpSubject2, followUpBody2)}</TabsContent>
               </Tabs>
             </div>
 

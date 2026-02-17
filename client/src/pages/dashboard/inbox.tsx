@@ -228,6 +228,7 @@ export default function InboxPage() {
         metadata: restMetadata
       }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       });
     }
   }, [leadId, activeLead, queryClient]);
@@ -664,9 +665,9 @@ export default function InboxPage() {
                           )}>{lead.name?.[0]}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold truncate text-foreground" title={lead.name}>{lead.name}</span>
-                            <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="text-sm font-bold truncate text-foreground flex-1" title={lead.name}>{lead.name}</span>
+                            <span className="text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider shrink-0 mt-0.5">
                               {new Date(lead.lastMessageAt || lead.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                             </span>
                           </div>

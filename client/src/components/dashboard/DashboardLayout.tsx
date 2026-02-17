@@ -323,10 +323,12 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
         data-testid="sidebar-desktop"
-        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-sidebar/95 backdrop-blur-xl"
+        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-white/70 dark:bg-sidebar/95 backdrop-blur-2xl shadow-[10px_0_30px_rgba(0,0,0,0.02)] dark:shadow-none"
         animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
       >
         <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Liquid Glass Accent for Light Mode */}
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent opacity-50 dark:opacity-0 pointer-events-none" />
 
 
           {/* Sidebar Header */}
@@ -506,7 +508,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
+        <header className="h-20 border-b border-border/40 bg-white/60 dark:bg-background/80 backdrop-blur-2xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
           <div className="flex items-center gap-6 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>

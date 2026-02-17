@@ -85,17 +85,17 @@ const AIEngineMockup = () => {
 
         {/* Real-time System Logs */}
         <div className="space-y-3 mb-8">
-          <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold mb-2">Live Logic Stream</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold mb-2">Live Logic Stream</p>
           {systemLogs.map((log, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0.3 }}
               animate={{ opacity: activeStep === i ? 1 : 0.3, x: activeStep === i ? 5 : 0 }}
-              className={`flex items-center justify-between p-3 rounded-lg border ${activeStep === i ? 'border-white/10 bg-white/5' : 'border-transparent'}`}
+              className={`flex items-center justify-between p-3 rounded-lg border ${activeStep === i ? 'border-primary/20 bg-primary/5' : 'border-transparent'}`}
             >
               <div className="flex items-center gap-3">
                 <Activity className={`w-3 h-3 ${log.color}`} />
-                <span className="text-xs font-mono text-white/80">{log.text}</span>
+                <span className="text-xs font-mono text-foreground/80">{log.text}</span>
               </div>
               <span className={`text-[10px] font-bold ${log.color}`}>{log.status}</span>
             </motion.div>
@@ -104,19 +104,19 @@ const AIEngineMockup = () => {
 
         {/* Active Conversations Preview */}
         <div className="space-y-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/30 font-bold">Active Threads</p>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold">Active Threads</p>
           {conversations.map((convo, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10">
               <div className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${convo.channel === 'instagram' ? 'bg-fuchsia-500/20 text-fuchsia-500' : 'bg-blue-500/20 text-blue-500'}`}>
                   {convo.channel === 'instagram' ? <Instagram className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white">{convo.name}</p>
-                  <p className="text-[10px] text-white/40">{convo.action}</p>
+                  <p className="text-xs font-bold text-foreground"> {convo.name}</p>
+                  <p className="text-[10px] text-muted-foreground"> {convo.action}</p>
                 </div>
               </div>
-              <div className="px-2 py-1 rounded-md bg-cyan-500 border border-cyan-500/20 text-[10px] text-white font-bold">
+              <div className="px-2 py-1 rounded-md bg-cyan-500/20 border border-cyan-500/30 text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">
                 {convo.status}
               </div>
             </div>
@@ -185,94 +185,96 @@ export function HeroSection() {
       <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: mouseGlow }} />
 
       <div className="max-w-7xl mx-auto relative z-20 w-full">
-        <div className="flex flex-col items-center text-center space-y-12 mb-20">
-          
-          {/* Status Chip */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-3xl shadow-xl shadow-primary/10 group cursor-default">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-black group-hover:tracking-[0.5em] transition-all duration-500">
-                System Online: 14,203 Agents
-              </span>
-            </div>
-          </motion.div>
-
-          {/* Headline */}
-          <div className="space-y-6 max-w-5xl">
-            <motion.h1
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-foreground"
-            >
-              AUTONOMOUS<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
-                OUTBOUND.
-              </span>
-            </motion.h1>
-
-            <motion.p
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-12">
+            
+            {/* Status Chip */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 1 }}
-              className="text-xl md:text-3xl text-muted-foreground/60 font-bold tracking-tight max-w-3xl mx-auto leading-tight"
+              transition={{ duration: 0.8 }}
             >
-              Scale your sales cycle with <span className="text-foreground">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
-            </motion.p>
+              <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-3xl shadow-xl shadow-primary/10 group cursor-default">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.4em] text-primary font-black group-hover:tracking-[0.5em] transition-all duration-500">
+                  System Online: 14,203 Agents
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Headline */}
+            <div className="space-y-6 max-w-5xl">
+              <motion.h1
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-foreground"
+              >
+                AUTONOMOUS<br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
+                  OUTBOUND.
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 1 }}
+                className="text-xl md:text-3xl text-muted-foreground/60 font-bold tracking-tight max-w-3xl lg:mx-0 mx-auto leading-tight"
+              >
+                Scale your sales cycle with <span className="text-foreground">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
+              </motion.p>
+            </div>
+
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 1 }}
+              className="flex flex-col sm:flex-row gap-6 items-center w-full lg:justify-start justify-center"
+            >
+              <Link href="/auth">
+                <Magnetic>
+                  <Button
+                    ref={buttonRef}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    size="lg"
+                    className="h-16 md:h-20 px-8 md:px-16 rounded-[1.5rem] md:rounded-[2rem] bg-primary text-white font-black text-lg md:text-2xl hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest w-full sm:w-auto"
+                  >
+                    Deploy Agents
+                    <ArrowRight className={`ml-3 w-6 h-6 md:w-8 md:h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
+                  </Button>
+                </Magnetic>
+              </Link>
+              <Link href="#how-it-works">
+                <Magnetic>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.5rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
+                  >
+                    See System Logic
+                  </Button>
+                </Magnetic>
+              </Link>
+            </motion.div>
           </div>
 
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 1 }}
-            className="flex flex-col sm:flex-row gap-6 items-center"
-          >
-            <Link href="/auth">
-              <Magnetic>
-                <Button
-                  ref={buttonRef}
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                  size="lg"
-                  className="h-16 md:h-20 px-8 md:px-16 rounded-[1.5rem] md:rounded-[2rem] bg-primary text-white font-black text-lg md:text-2xl hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest w-full sm:w-auto"
-                >
-                  Deploy Agents
-                  <ArrowRight className={`ml-3 w-6 h-6 md:w-8 md:h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
-                </Button>
-              </Magnetic>
-            </Link>
-            <Link href="#how-it-works">
-              <Magnetic>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-16 md:h-20 px-8 md:px-12 rounded-[1.5rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
-                >
-                  See System Logic
-                </Button>
-              </Magnetic>
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* Mockup Display */}
-        <div className="relative mt-20 max-w-6xl mx-auto px-4">
-          <div className="absolute inset-0 bg-primary/10 blur-[100px] rounded-full -z-10" />
-          <motion.div
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <AIEngineMockup />
-          </motion.div>
+          {/* Mockup Display */}
+          <div className="relative mt-20 lg:mt-0 max-w-xl mx-auto lg:ml-auto w-full">
+            <div className="absolute inset-0 bg-primary/10 blur-[100px] rounded-full -z-10" />
+            <motion.div
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8, duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AIEngineMockup />
+            </motion.div>
+          </div>
         </div>
 
         {/* Trusted By Ribbon */}

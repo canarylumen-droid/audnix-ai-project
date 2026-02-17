@@ -136,8 +136,8 @@ export class OutreachEngine {
     // Check daily limits and delays
     if (!(await this.isUserReadyToSend(userId, campaign))) return false;
 
-    // Find next lead in this campaign
-    const nextLeadResult = await db.select()
+    // Find next leads in this campaign (Batch size increased to 5)
+    const nextLeadsResult = await db.select()
       .from(campaignLeads)
       .where(
         and(
@@ -157,26 +157,30 @@ export class OutreachEngine {
           )
         )
       )
-      .limit(1);
+      .limit(5);
 
-    if (nextLeadResult.length === 0) return false;
-
-    const leadEntry = nextLeadResult[0];
-    const lead = await storage.getLeadById(leadEntry.leadId as string);
-
-    if (!lead || !lead.email) {
-      await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));
-      return true;
+    if (nextLeadsResult.length === 0) {
+      console.log(`[OutreachEngine] No leads due for campaign: ${campaign.name} (ID: ${campaign.id})`);
+      return false;
     }
 
-    // Process delivery
-    try {
-        await this.deliverCampaignEmail(userId, campaign, lead, leadEntry);
-        return true;
-    } catch (err) {
-        console.error(`[OutreachEngine] Campaign delivery failed for ${lead.email}:`, err);
-        return true; 
+    console.log(`[OutreachEngine] Processing batch of ${nextLeadsResult.length} leads for campaign: ${campaign.name}`);
+    for (const leadEntry of nextLeadsResult) {
+      const lead = await storage.getLeadById(leadEntry.leadId as string);
+
+      if (!lead || !lead.email) {
+        await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));
+        continue;
+      }
+
+      // Process delivery
+      try {
+          await this.deliverCampaignEmail(userId, campaign, lead, leadEntry);
+      } catch (err) {
+          console.error(`[OutreachEngine] Campaign delivery failed for ${lead.email}:`, err);
+      }
     }
+    return true;
   }
 
   /**
@@ -237,10 +241,14 @@ export class OutreachEngine {
     if (lastSentResult.rows.length > 0) {
         const lastSentAt = new Date(lastSentResult.rows[0].created_at as string).getTime();
         
-        // Random drift: 120s - 240s (2-4 minutes)
-        const minDelayMs = 120000 + (Math.random() * 120000); 
+        // Optimized Randomized Delay: 30s - 60s (Human-like but significantly faster)
+        const minDelayMs = 30000 + (Math.random() * 30000); 
         
-        if (Date.now() - lastSentAt < minDelayMs) return false;
+        if (Date.now() - lastSentAt < minDelayMs) {
+          const remaining = Math.round((minDelayMs - (Date.now() - lastSentAt)) / 1000);
+          console.log(`[OutreachEngine] User ${userId} throttled. Waiting ${remaining}s...`);
+          return false;
+        }
     }
 
     // 2. Daily limits and Autonomous Engine Toggle
