@@ -189,12 +189,8 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
-            <div className="bg-muted/50 p-1 rounded-xl hidden sm:flex">
-              <Button variant={viewMode === 'edit' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('edit')} className="h-8 text-[10px] font-bold uppercase tracking-widest">Construct</Button>
-              <Button variant={viewMode === 'preview' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('preview')} className="h-8 text-[10px] font-bold uppercase tracking-widest">Simulate</Button>
-            </div>
             <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="rounded-full hover:bg-destructive/10 hover:text-destructive h-8 w-8 md:h-10 md:w-10">×</Button>
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-destructive/10 hover:text-destructive h-8 w-8 md:h-10 md:w-10 text-xl font-light">×</Button>
             </DialogClose>
           </div>
         </div>
@@ -207,7 +203,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                 {step === 1 && (
                   <motion.div key="step1" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
                     <div className="space-y-2">
-                      <h2 className="text-3xl font-black tracking-tighter uppercase">Lead Import</h2>
+                      <h2 className="text-3xl font-black tracking-tighter uppercase">Lead Source</h2>
                       <p className="text-muted-foreground text-sm font-medium">Select existing leads or upload new ones.</p>
                     </div>
 
@@ -223,7 +219,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               : "border-white/5 bg-white/5 hover:border-white/10"
                           )}
                         >
-                          <Target className={cn("w-6 h-6 mb-2", sourceType === 'database' ? "text-primary" : "text-white/40")} />
+                          <Inbox className={cn("w-6 h-6 mb-2", sourceType === 'database' ? "text-primary" : "text-white/40")} />
                           <p className="text-sm font-bold">Imported Leads</p>
                           <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">From Database</p>
                         </button>
@@ -236,7 +232,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               : "border-white/5 bg-white/5 hover:border-white/10"
                           )}
                         >
-                          <Download className={cn("w-6 h-6 mb-2", sourceType === 'upload' ? "text-primary" : "text-white/40")} />
+                          <Upload className={cn("w-6 h-6 mb-2", sourceType === 'upload' ? "text-primary" : "text-white/40")} />
                           <p className="text-sm font-bold">New CSV/Excel</p>
                           <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Fresh Upload</p>
                         </button>

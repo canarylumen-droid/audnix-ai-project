@@ -310,10 +310,16 @@ export default function InboxPage() {
           leadIds: [data.id],
           archived: true
         });
+        // Optimistic update
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
         toast({ title: "Lead Archived", description: "Successfully moved to archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
         toast({ title: "Error", description: "Failed to archive lead", variant: "destructive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       }
     } else if (action === 'unarchive') {
       try {
@@ -321,10 +327,16 @@ export default function InboxPage() {
           leadIds: [data.id],
           archived: false
         });
+        // Optimistic update
+        setAllLeads(prev => prev.filter(l => l.id !== data.id));
+        if (leadId === data.id) {
+          setLocation('/dashboard/inbox');
+        }
         toast({ title: "Lead Restored", description: "Successfully restored from archive" });
         queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       } catch (err) {
         toast({ title: "Error", description: "Failed to unarchive lead", variant: "destructive" });
+        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       }
     } else if (action === 'delete') {
       if (confirm(`Are you sure you want to delete ${data.name}? This action cannot be undone.`)) {
