@@ -803,16 +803,23 @@ export async function generateExpertOutreach(
       body: result.body_html,
       alternatives: result.subjects
     };
-  } catch (error) {
-    console.error("Expert Outreach Error (Switching to Elite Fallback):", error);
+  } catch (error: any) {
+    const isQuotaError = error?.message?.includes('quota') || error?.status === 429;
+    if (isQuotaError) {
+      console.error("🚀 [AI Quota Alert] Provider limit reached. Activating Elite Fallback Engine.");
+    } else {
+      console.error("Expert Outreach Error (Switching to Elite Fallback):", error);
+    }
 
     // Elite Fallback Engine - No generic strings
     const usp = typeof offer === 'string' ? offer.substring(0, 80) : "high-velocity neural optimization";
+    const leadName = lead?.name || "there";
+    const leadCompany = lead?.company || "your team";
     const leadTarget = leadRole === 'Founder' || leadRole === 'CEO' ? 'roadmap' : 'workflow';
 
     return {
       subject: `The ${leadRole} gap in ${industry} implementation ([Live Context])`,
-      body: `<p>Hey ${lead.name},</p><p>I noticed a specific friction point in how ${lead.company || "your team"} is scaling its ${industry} operations. Most teams in your space miss the 20% shift that drives 80% of the conversion velocity.</p><p>I have a theory on how ${usp} maps to your current ${leadTarget}. Is efficiency a core focus for the team this quarter?</p>`,
+      body: `<p>Hey ${leadName},</p><p>I noticed a specific friction point in how ${leadCompany} is scaling its ${industry} operations. Most teams in your space miss the 20% shift that drives 80% of the conversion velocity.</p><p>I have a theory on how ${usp} maps to your current ${leadTarget}. Is efficiency a core focus for the team this quarter?</p>`,
       alternatives: [
         `Disruptive question for ${lead.company || "the team"}`,
         `Regarding the ${leadRole} roadmap at ${lead.company || "the company"}`,

@@ -138,20 +138,21 @@ export interface LeadQuality {
 }
 
 export function rankLeadQuality(
-  leadData: Record<string, any>
+  leadData: Record<string, any> = {}
 ): LeadQuality {
+  const data = leadData || {};
   let score = 0;
 
   // Engagement signals (+points)
-  if (leadData.recentActivity) score += 30;
-  if (leadData.websiteTraffic) score += 20;
-  if (leadData.openedEmailBefore) score += 15;
-  if (leadData.respondedBefore) score += 25;
-  if (leadData.industryMatch) score += 10;
+  if (data.recentActivity) score += 30;
+  if (data.websiteTraffic) score += 20;
+  if (data.openedEmailBefore) score += 15;
+  if (data.respondedBefore) score += 25;
+  if (data.industryMatch) score += 10;
 
   // Cold signals (-points)
-  if (leadData.unsubscribed) score = 0;
-  if (leadData.bounced) score = Math.max(0, score - 50);
+  if (data.unsubscribed) score = 0;
+  if (data.bounced) score = Math.max(0, score - 50);
 
   // Tier assignment
   let tier: 'cold' | 'warm' | 'hot' = 'cold';

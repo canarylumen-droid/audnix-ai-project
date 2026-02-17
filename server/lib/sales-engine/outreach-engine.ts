@@ -102,8 +102,10 @@ function segmentByQuality(
     TRIAL: [],
   };
 
-  leads.forEach(({ id, data }) => {
-    const quality = rankLeadQuality(data);
+  leads.forEach((lead) => {
+    if (!lead) return;
+    const { id, data } = lead;
+    const quality = rankLeadQuality(data || {});
 
     if (quality.tier === 'hot') {
       segments.ENTERPRISE.push(id);
