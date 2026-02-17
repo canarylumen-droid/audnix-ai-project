@@ -28,16 +28,11 @@ async function setupDatabase() {
 
     // Read and execute migration files in order
     const migrationsDir = path.join(process.cwd(), 'migrations');
-    const migrationFiles = [
-      '000_SETUP_SUPABASE.sql',
-      '001_create_users.sql',
-      '002_audnix_schema.sql',
-      '003_production_upgrade.sql',
-      '004_add_user_fields.sql',
-      '005_voice_minutes_migration.sql',
-      '006_comment_automation.sql',
-      '007_video_monitors.sql'
-    ];
+    // Read and execute migration files in order
+    const migrationsDir = path.join(process.cwd(), 'migrations');
+    const migrationFiles = fs.readdirSync(migrationsDir)
+      .filter(file => file.endsWith('.sql'))
+      .sort();
 
     console.log('📦 Running migrations...\n');
 

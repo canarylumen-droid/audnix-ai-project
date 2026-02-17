@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
+import 'dotenv/config';
+import { db, pool } from '../server/db';
 import * as schema from '../shared/schema';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -182,8 +182,9 @@ async function main() {
         process.exit(1);
     }
 
-    const client = postgres(databaseUrl);
-    const db = drizzle(client, { schema });
+    // Client is already initialized in db.ts
+    // const client = postgres(databaseUrl);
+    // const db = drizzle(client, { schema });
 
     console.log(`🌱 Seeding ${TEMPLATES.length} content templates...`);
 
@@ -197,7 +198,8 @@ async function main() {
     const users = await db.select().from(schema.users).limit(1);
     if (users.length === 0) {
         console.log("⚠️ No users found. Skipping seed.");
-        await client.end();
+        console.log("⚠️ No users found. Skipping seed.");
+        process.exit(0);
         return;
     }
 
@@ -230,7 +232,10 @@ async function main() {
     }
 
     console.log(`✅ Added ${count} new templates.`);
-    await client.end();
+    console.log(`✅ Added ${count} new templates.`);
+    // Close pool if it exists (for script termination)
+    // process.exit(0) will handle it, but clean up if possible
+    process.exit(0);
 }
 
 main().catch(err => {

@@ -279,7 +279,9 @@ class ImapIdleManager {
             }
 
             // Start IDLE
-            (imap as any).idle();
+            if (typeof (imap as any).idle === 'function') {
+                (imap as any).idle();
+            }
 
             // Periodically check all specialized folders sequentially to avoid connection state issues
             setInterval(async () => {
@@ -319,12 +321,20 @@ class ImapIdleManager {
                     if (folderName !== primaryInbox) {
                         imap.openBox(primaryInbox, false, (openErr) => {
                             if (!openErr) {
-                                try { (imap as any).idle(); } catch (e) { }
+                                try {
+                                    if (typeof (imap as any).idle === 'function') {
+                                        (imap as any).idle();
+                                    }
+                                } catch (e) { }
                             }
                             resolve();
                         });
                     } else {
-                        try { (imap as any).idle(); } catch (e) { }
+                        try {
+                            if (typeof (imap as any).idle === 'function') {
+                                (imap as any).idle();
+                            }
+                        } catch (e) { }
                         resolve();
                     }
                     return;
@@ -402,12 +412,20 @@ class ImapIdleManager {
                     if (folderName !== primaryInbox) {
                         imap.openBox(primaryInbox, false, (openErr) => {
                             if (!openErr) {
-                                try { (imap as any).idle(); } catch (e) { }
+                                try {
+                                    if (typeof (imap as any).idle === 'function') {
+                                        (imap as any).idle();
+                                    }
+                                } catch (e) { }
                             }
                             resolve();
                         });
                     } else {
-                        try { (imap as any).idle(); } catch (e) { }
+                        try {
+                            if (typeof (imap as any).idle === 'function') {
+                                (imap as any).idle();
+                            }
+                        } catch (e) { }
                         resolve();
                     }
                 });
@@ -671,7 +689,11 @@ class ImapIdleManager {
             const primaryInbox = userFolders.inbox[0] || 'INBOX';
             imap.openBox(primaryInbox, false, (err) => {
                 if (!err) {
-                    try { (imap as any).idle(); } catch (e) { }
+                    try {
+                        if (typeof (imap as any).idle === 'function') {
+                            (imap as any).idle();
+                        }
+                    } catch (e) { }
                 }
             });
 
