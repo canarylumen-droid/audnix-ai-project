@@ -143,6 +143,8 @@ export function NotificationBell() {
                       )}
                       onClick={async () => {
                         if (!n.read) {
+                          // Optimistically update local count to feel faster
+                          setCount(prev => Math.max(0, prev - 1));
                           await apiRequest("PATCH", `/api/notifications/${n.id}/read`, { read: true });
                           queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
                         }

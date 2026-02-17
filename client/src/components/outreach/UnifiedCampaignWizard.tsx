@@ -409,6 +409,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                             </div>
                             <p className="text-[11px] text-muted-foreground leading-relaxed">
                               Campaign will drip-send to selected leads based on your daily limit. 
+                              The system will pick leads sequentially from your import list.
                               Replies will automatically sync back to your <span className="text-primary font-bold">Inbox</span> for manual or AI follow-up.
                             </p>
                           </div>
