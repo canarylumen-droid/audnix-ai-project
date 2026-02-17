@@ -66,14 +66,14 @@ export function Navigation() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="flex items-center gap-12">
+        <div className="flex items-center gap-4 lg:gap-12">
           <Magnetic>
             <Link href="/">
-              <Logo className="h-8 w-8" textClassName="text-xl font-black text-foreground" />
+              <Logo className="h-8 w-8" textClassName="text-lg lg:text-xl font-black text-foreground" />
             </Link>
           </Magnetic>
 
-          <div className="hidden lg:flex items-center gap-10">
+          <div className="hidden lg:flex items-center gap-6 xl:gap-10">
             {/* Solutions Dropdown */}
             <div
               className="relative py-2 group"
@@ -211,7 +211,7 @@ export function Navigation() {
           <Magnetic>
             <Link href="/auth">
               <Button
-                className="h-10 px-8 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-black hover:scale-105"
+                className="h-10 px-6 lg:px-8 rounded-full text-[10px] lg:text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all bg-primary text-white hover:scale-105"
               >
                 Get Started
               </Button>

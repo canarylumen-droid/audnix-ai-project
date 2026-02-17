@@ -116,7 +116,7 @@ const AIEngineMockup = () => {
                   <p className="text-[10px] text-white/40">{convo.action}</p>
                 </div>
               </div>
-              <div className="px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[10px] text-cyan-400 font-bold">
+              <div className="px-2 py-1 rounded-md bg-cyan-500 border border-cyan-500/20 text-[10px] text-white font-bold">
                 {convo.status}
               </div>
             </div>
@@ -210,7 +210,7 @@ export function HeroSection() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-4 text-foreground"
+              className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-foreground"
             >
               AUTONOMOUS<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
@@ -242,10 +242,10 @@ export function HeroSection() {
                   onMouseEnter={() => setIsHovered(true)}
                   onMouseLeave={() => setIsHovered(false)}
                   size="lg"
-                  className="h-20 px-16 rounded-[2rem] bg-primary text-black font-black text-2xl hover:bg-primary/90 transition-all shadow-[0_30px_60px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest"
+                  className="h-16 md:h-20 px-8 md:px-16 rounded-[1.5rem] md:rounded-[2rem] bg-primary text-white font-black text-lg md:text-2xl hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest w-full sm:w-auto"
                 >
                   Deploy Agents
-                  <ArrowRight className={`ml-3 w-8 h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
+                  <ArrowRight className={`ml-3 w-6 h-6 md:w-8 md:h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
                 </Button>
               </Magnetic>
             </Link>
@@ -254,7 +254,7 @@ export function HeroSection() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-20 px-12 rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-xl backdrop-blur-md transition-all uppercase tracking-widest"
+                  className="h-16 md:h-20 px-8 md:px-12 rounded-[1.5rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
                 >
                   See System Logic
                 </Button>

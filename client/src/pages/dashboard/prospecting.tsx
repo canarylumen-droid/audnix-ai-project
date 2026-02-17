@@ -248,8 +248,8 @@ export default function ProspectingPage() {
                         { label: 'Recoveries', value: leads.filter(l => l.status === 'recovered').length, color: 'text-cyan-400' },
                         { label: 'Bouncy', value: leads.filter(l => l.status === 'bouncy').length, color: 'text-red-400' }
                     ].map((stat, i) => (
-                        <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-sm">
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1">{stat.label}</p>
+                        <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-sm group hover:border-primary/30 transition-all">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-1 group-hover:text-primary transition-colors">{stat.label}</p>
                             <p className={`text-2xl font-black tracking-tighter ${stat.color}`}>{stat.value}</p>
                         </div>
                     ))}
@@ -300,17 +300,17 @@ export default function ProspectingPage() {
 
                                                     {/* Never Bounce / Deliverability Status */}
                                                     {lead.status === 'bouncy' ? (
-                                                        <Badge className="bg-red-500/20 text-red-400 border-red-500/30 font-bold tracking-widest text-[9px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                                        <Badge className="bg-red-500 text-white border-red-500 font-bold tracking-widest text-[9px] uppercase shadow-[0_0_10px_rgba(239,68,68,0.2)]">
                                                             <XCircle className="w-3 h-3 mr-1" />
                                                             Bouncy / Invalid
                                                         </Badge>
                                                     ) : lead.status === 'recovered' ? (
-                                                        <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 font-bold tracking-widest text-[9px] uppercase animate-pulse">
+                                                        <Badge className="bg-cyan-500 text-white border-cyan-500 font-bold tracking-widest text-[9px] uppercase animate-pulse">
                                                             <Zap className="w-3 h-3 mr-1" />
                                                             Deliverability Fix
                                                         </Badge>
                                                     ) : lead.verified ? (
-                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-bold tracking-widest text-[9px] uppercase">
+                                                        <Badge className="bg-emerald-500 text-white border-emerald-500 font-bold tracking-widest text-[9px] uppercase">
                                                             <ShieldCheck className="w-3 h-3 mr-1 shadow-emerald-500/50" />
                                                             Verified & Safe
                                                         </Badge>
