@@ -230,9 +230,9 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <h2 className="text-4xl font-extrabold tracking-tighter">System Initialized</h2>
-                    <p className="text-muted-foreground text-lg max-w-md mx-auto">
-                      Connecting to the high-speed network and calibrating the Sales Engine.
+                    <h2 className="text-4xl font-black tracking-tighter text-white">System Synchronized</h2>
+                    <p className="text-white/60 text-lg max-w-md mx-auto leading-tight">
+                      Calibrating your autonomous sales infrastructure and establishing initial data parameters.
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto pt-6">
@@ -247,9 +247,9 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   </div>
                   <Button
                     onClick={() => setStep(1)}
-                    className="w-full max-w-sm h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 group"
+                    className="w-full max-w-sm h-14 rounded-2xl text-lg font-black shadow-xl shadow-cyan-500/20 group bg-cyan-500 text-black hover:bg-cyan-400"
                   >
-                    Enter Dashboard
+                    Begin Configuration
                     <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </motion.div>
@@ -268,8 +268,8 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <h2 className="text-3xl font-extrabold tracking-tight">Identify Your Strategy</h2>
-                    <p className="text-muted-foreground">We'll tailor the system to your specific business model</p>
+                    <h2 className="text-3xl font-black tracking-tight text-white">Professional Vertical</h2>
+                    <p className="text-white/60">Select your primary operational focus for specialized AI fine-tuning.</p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
@@ -311,11 +311,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
-                      <Search className="w-8 h-8 text-primary" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-4 shadow-inner shadow-cyan-500/20">
+                      <Search className="w-8 h-8 text-cyan-500" />
                     </div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Channel Attribution</h2>
-                    <p className="text-muted-foreground">How did you first discover the Audnix platform?</p>
+                    <h2 className="text-3xl font-black tracking-tight text-white">Traffic Attribution</h2>
+                    <p className="text-white/60">Specify the primary channel through which you discovered Audnix.</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-8">
@@ -473,11 +473,11 @@ export function OnboardingWizard({ isOpen, onComplete }: OnboardingWizardProps) 
                   className="space-y-6"
                 >
                   <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4 shadow-inner shadow-primary/20">
-                      <Zap className="w-8 h-8 text-primary" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-cyan-500/10 mb-4 shadow-inner shadow-cyan-500/20">
+                      <Zap className="w-8 h-8 text-cyan-500" />
                     </div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Setup Signature</h2>
-                    <p className="text-muted-foreground">Finalize your profile with your brand identity</p>
+                    <h2 className="text-3xl font-black tracking-tight text-white">Brand Identity</h2>
+                    <p className="text-white/60">Finalize your profile by establishing your organizational presence.</p>
                   </div>
 
                     <div className="space-y-4">

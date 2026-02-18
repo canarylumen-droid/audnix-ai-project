@@ -788,6 +788,36 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         </header>
 
         {/* Page Content */}
+        {/* Liquid Glass Background Logic (Light Mode) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[#f8fafc] dark:bg-[#020617] transition-colors duration-700" />
+        
+        {/* Animated Orbs for Liquid Effect */}
+        <motion.div 
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-cyan-500/10 blur-[120px] dark:opacity-20"
+        />
+        <motion.div 
+          animate={{
+            x: [0, -80, 0],
+            y: [0, 100, 0],
+            scale: [1.2, 1, 1.2],
+          }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 blur-[150px] dark:opacity-20"
+        />
+
+        {/* Liquid Mesh Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none mix-blend-overlay" 
+             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} />
+      </div>
+
+      <div className="relative z-10 flex h-screen overflow-hidden">
         <main className="flex-1 overflow-auto bg-background relative">
           <AnimatePresence>
             {currentAlert && (
@@ -822,6 +852,52 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         </main>
       </div>
       </div>
+      {/* Notification Permission Slide-in */}
+      <AnimatePresence>
+        {permission === 'default' && (
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            className="fixed bottom-6 right-24 z-[100] w-80 p-6 bg-background/80 backdrop-blur-xl border border-primary/20 rounded-[2rem] shadow-2xl overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                  <BellRing className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black uppercase tracking-tight text-foreground line-height-1">Stay Synchronized</h4>
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Real-time alerts</p>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground font-medium mb-6 leading-relaxed">
+                Enable desktop notifications to receive immediate intelligence on lead conversions and meeting confirmations.
+              </p>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={subscribe}
+                  disabled={pushLoading}
+                  className="flex-1 h-10 rounded-xl bg-primary text-black font-black text-[10px] uppercase tracking-widest hover:bg-primary/90"
+                >
+                  {pushLoading ? "Enabling..." : "Enable Alerts"}
+                </Button>
+                <Button 
+                  variant="ghost"
+                  onClick={() => {/* Maybe add a 'remind me later' logic */}}
+                  className="px-4 h-10 rounded-xl text-muted-foreground font-bold text-[9px] uppercase tracking-widest hover:bg-muted/50"
+                >
+                  Later
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </RealtimeProvider>
   );
 }

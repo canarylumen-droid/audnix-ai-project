@@ -7,11 +7,18 @@ import { db } from "../db.js";
 import { auditTrail, pdfAnalytics } from "../../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 
-export type AuditActionType = "ai_message_sent" | "opt_out_toggled" | "pdf_processed" | "upload_rate_limited";
+export type AuditActionType = 
+  | "ai_message_sent" 
+  | "opt_out_toggled" 
+  | "pdf_processed" 
+  | "upload_rate_limited"
+  | "campaign_started"
+  | "campaign_completed"
+  | "campaign_pause_toggled";
 
 export interface AuditAction {
   userId: string;
-  leadId: string;
+  leadId?: string;
   action: AuditActionType;
   messageId?: string;
   details: Record<string, unknown>;
@@ -144,6 +151,32 @@ export class AuditTrailService {
       );
     } catch (error) {
       console.error("PDF analytics error:", error);
+    }
+  }
+
+  /**
+   * Log high-level campaign actions
+   */
+  static async logCampaignAction(
+    userId: string,
+    campaignId: string,
+    action: "campaign_started" | "campaign_completed" | "campaign_pause_toggled",
+    details: Record<string, unknown> = {}
+  ): Promise<void> {
+    try {
+      await db.insert(auditTrail).values({
+        userId,
+        leadId: "", // Campaign-level action
+        action,
+        details: {
+          campaignId,
+          ...details,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      console.log(`✓ Audit: Campaign ${action} (${campaignId})`);
+    } catch (error) {
+      console.error("Audit trail error:", error);
     }
   }
 

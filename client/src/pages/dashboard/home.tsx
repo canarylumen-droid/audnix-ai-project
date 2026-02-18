@@ -391,20 +391,31 @@ export default function DashboardHome() {
                   <div className="p-12 flex justify-center"><PremiumLoader text="Loading stream..." /></div>
                 ) : activities.length > 0 ? (
                   <div className="divide-y divide-border/30">
-                    {activities.map((activity: any, i: number) => (
-                      <div key={activity.id} className="p-6 flex gap-6 hover:bg-muted/20 transition-colors">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary mt-1">
-                          {activity.type === 'message' ? <MessageSquare className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start mb-1">
-                            <p className="font-medium text-sm text-foreground truncate">{activity.title || "Activity Event"}</p>
-                            <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-medium">{formatTimeAgo(activity.time)}</span>
+                    {activities.map((activity: any, i: number) => {
+                      const isCampaign = activity.type.startsWith('campaign_');
+                      return (
+                        <div key={activity.id} className="p-6 flex gap-6 hover:bg-muted/20 transition-colors">
+                          <div className={cn(
+                            "h-10 w-10 rounded-full flex items-center justify-center shrink-0 mt-1",
+                            isCampaign ? "bg-emerald-500/10 text-emerald-500" : "bg-primary/10 text-primary"
+                          )}>
+                            {activity.type === 'message' || activity.type === 'ai_message_sent' ? <MessageSquare className="h-5 w-5" /> : 
+                             isCampaign ? <Send className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
                           </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{activity.message}</p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-1">
+                              <p className="font-bold text-sm text-foreground truncate">{activity.title || "Activity Event"}</p>
+                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50">{formatTimeAgo(activity.time)}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground/80 leading-relaxed">
+                              {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` : 
+                               activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
+                               activity.message}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-24 text-center space-y-6">

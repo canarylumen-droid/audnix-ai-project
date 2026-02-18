@@ -58,12 +58,27 @@ const AIEngineMockup = () => {
       {/* Glow Background */}
       <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
 
-      {/* Premium Glass Card */}
+      {/* Premium Liquid Glass Card */}
       <motion.div
-        className="relative glass-premium rounded-[2.5rem] p-8 shadow-2xl overflow-hidden group/card"
+        className="relative rounded-[2.5rem] p-8 overflow-hidden group/card shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 bg-white/[0.02] backdrop-blur-2xl"
         whileHover={{ scale: 1.02, rotateY: -1, rotateX: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)",
+        }}
       >
+        {/* Liquid Animation Layer */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
+          <motion.div
+            animate={{
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-cyan-500/20 via-transparent to-blue-500/20 blur-3xl"
+          />
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between mb-8 border-b border-border/5 pb-4">
           <div className="flex items-center gap-3">
@@ -211,10 +226,10 @@ export function HeroSection() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-foreground"
+                className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-white"
               >
                 AUTONOMOUS<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-cyan-400 to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-primary to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">
                   OUTBOUND.
                 </span>
               </motion.h1>
@@ -223,9 +238,9 @@ export function HeroSection() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 1 }}
-                className="text-xl md:text-3xl text-muted-foreground/60 font-bold tracking-tight max-w-3xl lg:mx-0 mx-auto leading-tight"
+                className="text-lg md:text-2xl lg:text-3xl text-white/60 font-medium tracking-tight max-w-3xl lg:mx-0 mx-auto leading-tight"
               >
-                Scale your sales cycle with <span className="text-foreground">AI Agents</span> that understand your brand, handle objections, and schedule meetings 24/7.
+                Scale your sales pipeline with <span className="text-white">Autonomous Agents</span> that master your brand voice, handle complex objections, and secure meetings 24/7.
               </motion.p>
             </div>
 
@@ -243,7 +258,7 @@ export function HeroSection() {
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     size="lg"
-                    className="h-16 md:h-20 px-8 md:px-16 rounded-[1.5rem] md:rounded-[2rem] bg-primary text-white font-black text-lg md:text-2xl hover:bg-primary/90 transition-all shadow-[0_20px_40px_-10px_rgba(var(--primary),0.5)] group uppercase tracking-widest w-full sm:w-auto"
+                    className="h-16 md:h-20 px-8 md:px-16 rounded-[1.25rem] md:rounded-[2rem] bg-cyan-500 text-black font-black text-lg md:text-2xl hover:bg-cyan-400 transition-all shadow-[0_20px_40px_-10px_rgba(6,182,212,0.3)] group uppercase tracking-widest w-full sm:w-auto"
                   >
                     Deploy Agents
                     <ArrowRight className={`ml-3 w-6 h-6 md:w-8 md:h-8 transition-transform duration-500 ${isHovered ? "translate-x-3" : ""}`} />
@@ -255,9 +270,9 @@ export function HeroSection() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.5rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
+                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.25rem] md:rounded-[2rem] border-white/10 bg-white/5 hover:bg-white/10 text-white font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
                   >
-                    See System Logic
+                    View Logic Hub
                   </Button>
                 </Magnetic>
               </Link>

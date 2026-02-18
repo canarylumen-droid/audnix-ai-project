@@ -58,7 +58,7 @@ export function Navigation() {
   return (
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center p-4 pointer-events-none">
       <motion.nav
-        className={`pointer-events-auto flex items-center justify-between px-8 py-3 transition-all duration-700 rounded-2xl border ${scrolled
+        className={`pointer-events-auto flex items-center justify-between px-6 md:px-8 py-3 transition-all duration-700 rounded-2xl border ${scrolled
           ? "glass-premium w-full max-w-7xl shadow-2xl"
           : "bg-transparent backdrop-blur-none w-full md:w-[95%] lg:w-[85%] border-transparent"
           }`}
@@ -257,22 +257,25 @@ export function Navigation() {
               className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-10">
-                <span className="text-lg font-black tracking-tighter uppercase">Audnix<span className="text-primary">.AI</span></span>
-                <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="rounded-xl hover:bg-white/5">
-                  <ChevronDown className="w-5 h-5 rotate-90" />
+                <span className="text-lg font-black tracking-tighter uppercase text-white">Audnix<span className="text-cyan-500">.AI</span></span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="rounded-xl hover:bg-white/5 text-white/60 hover:text-white"
+                >
+                  <ChevronDown className="w-6 h-6 rotate-90" />
                 </Button>
               </div>
 
               <div className="flex flex-col gap-4">
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/20 mb-2">Navigation</p>
                 {navLinks.map((link) => (
-                  <a
+                  <div
                     key={link.name}
-                    href={link.href}
-                    onClick={(e) => {
-                      e.preventDefault();
+                    className="relative group w-full"
+                    onClick={() => {
                       setMobileMenuOpen(false);
-                      // Navigate after menu closes
                       setTimeout(() => {
                         if (link.href?.includes("#")) {
                           const [path, hash] = link.href.split("#");
@@ -289,10 +292,14 @@ export function Navigation() {
                         }
                       }, 300);
                     }}
-                    className="text-lg font-bold tracking-tight text-foreground/60 hover:text-primary transition-colors py-3 border-b border-border block w-full cursor-pointer"
                   >
-                    {link.name}
-                  </a>
+                    <div className="flex items-center justify-between py-4 border-b border-white/5 group-active:translate-x-2 transition-transform cursor-pointer">
+                      <span className="text-xl font-bold tracking-tight text-white/60 group-hover:text-cyan-500 transition-colors">
+                        {link.name}
+                      </span>
+                      <ChevronDown className="w-5 h-5 -rotate-90 text-white/20 group-hover:text-cyan-500 transition-colors" />
+                    </div>
+                  </div>
                 ))}
               </div>
 

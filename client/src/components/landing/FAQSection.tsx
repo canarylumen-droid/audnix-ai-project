@@ -44,19 +44,19 @@ export function FAQSection() {
                         <div className="p-2 rounded-xl bg-primary/5 border border-primary/10 text-primary">
                             <Orbit className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60">Intelligence Hub</span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/40">Knowledge Base</span>
                     </motion.div>
                     <motion.h2
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-5xl md:text-8xl font-bold tracking-tight text-foreground mb-10 leading-[0.95]"
+                        className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tight text-white mb-10 leading-[0.95]"
                     >
-                        Got questions? <br />
-                        <span className="text-muted-foreground">We have answers.</span>
+                        Strategic <br />
+                        <span className="text-white/40">Inquiries.</span>
                     </motion.h2>
-                    <p className="text-muted-foreground font-medium text-lg max-w-2xl mx-auto leading-relaxed">
-                        Everything you need to know about <span className="text-foreground">scaling your revenue with autonomous intelligence.</span>
+                    <p className="text-white/60 font-medium text-lg max-w-2xl mx-auto leading-relaxed">
+                        Architecting the future of <span className="text-white">autonomous market dominance.</span>
                     </p>
                 </div>
 

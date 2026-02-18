@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +58,52 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
   const [followUpBody, setFollowUpBody] = useState("");
   const [followUpSubject2, setFollowUpSubject2] = useState("");
   const [followUpBody2, setFollowUpBody2] = useState("");
+
+  // Persistence: Load from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("campaign_draft");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.campaignName) setCampaignName(data.campaignName);
+        if (data.subject) setSubject(data.subject);
+        if (data.body) setBody(data.body);
+        if (data.followUpSubject) setFollowUpSubject(data.followUpSubject);
+        if (data.followUpBody) setFollowUpBody(data.followUpBody);
+        if (data.followUpSubject2) setFollowUpSubject2(data.followUpSubject2);
+        if (data.followUpBody2) setFollowUpBody2(data.followUpBody2);
+        if (data.dailyLimit) setDailyLimit(data.dailyLimit);
+        if (data.followUpDays) setFollowUpDays(data.followUpDays);
+      } catch (e) {
+        console.error("Failed to load campaign draft", e);
+      }
+    }
+  }, []);
+
+  // Persistence: Save to localStorage
+  useEffect(() => {
+    if (isOpen) {
+      const draft = {
+        campaignName, subject, body,
+        followUpSubject, followUpBody,
+        followUpSubject2, followUpBody2,
+        dailyLimit, followUpDays
+      };
+      localStorage.setItem("campaign_draft", JSON.stringify(draft));
+    }
+  }, [campaignName, subject, body, followUpSubject, followUpBody, followUpSubject2, followUpBody2, dailyLimit, followUpDays, isOpen]);
+
+  // "RE: " Logic for Follow-up Subjects
+  useEffect(() => {
+    if (subject && subject.trim() !== "") {
+      if (!followUpSubject || followUpSubject.trim() === "") {
+        setFollowUpSubject(`RE: ${subject}`);
+      }
+      if (!followUpSubject2 || followUpSubject2.trim() === "") {
+        setFollowUpSubject2(`RE: ${subject}`);
+      }
+    }
+  }, [subject]);
 
   // Transitions
   const variants = {
@@ -156,8 +202,19 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   const renderPreview = (subj: string, content: string) => {
     const sampleLead = leads[0] || { name: "Prospect Name", company: "Company Inc." };
-    const filledSubject = (subj || "").replace(/{{name}}/g, sampleLead.name).replace(/{{firstName}}/g, sampleLead.name.split(' ')[0]).replace(/{{company}}/g, sampleLead.company || 'Acme');
-    const filledBody = (content || "").replace(/{{name}}/g, sampleLead.name).replace(/{{firstName}}/g, sampleLead.name.split(' ')[0]).replace(/{{company}}/g, sampleLead.company || 'Acme');
+    const firstName = sampleLead.name?.trim().split(' ')[0] || 'Prospect';
+    
+    const replaceTags = (text: string) => {
+      return (text || "")
+        .replace(/{{name}}/g, sampleLead.name)
+        .replace(/{{firstName}}/g, firstName)
+        .replace(/{{lead_name}}/g, firstName)
+        .replace(/{{company}}/g, sampleLead.company || 'Acme Corp')
+        .replace(/{{business_name}}/g, sampleLead.company || 'Acme Corp');
+    };
+
+    const filledSubject = replaceTags(subj);
+    const filledBody = replaceTags(content);
 
     return (
       <div className="flex justify-center h-full items-center p-4">
@@ -191,7 +248,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[98vw] md:w-[95vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden">
+      <DialogContent className="max-w-7xl w-[98vw] md:w-[95vw] lg:w-[90vw] h-[100dvh] md:h-[90vh] p-0 flex flex-col border-border/40 bg-card/95 backdrop-blur-2xl md:rounded-[2.5rem] overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)]">
         {/* Header */}
         <div className="p-4 md:p-8 md:pb-6 border-b border-border/20 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 md:gap-4">
@@ -227,7 +284,42 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                     </div>
 
                     <div className="space-y-4">
-                      <Label className="text-xs font-black uppercase tracking-widest text-primary/60">Select Source</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-black uppercase tracking-widest text-primary/60">Select Source</Label>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 text-[10px] font-bold uppercase gap-1.5 opacity-60 hover:opacity-100">
+                              <Sparkles className="w-3 h-3" /> Syntax Guide
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/40">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-black uppercase italic italic">Personalization Tags</DialogTitle>
+                              <DialogDescription>Use these dynamic variables in your message templates to maximize engagement.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 mt-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                {[
+                                  { tag: "{{firstName}}", desc: "Lead's first name" },
+                                  { tag: "{{company}}", desc: "Target company name" },
+                                  { tag: "{{name}}", desc: "Lead's full name" },
+                                  { tag: "{{industry}}", desc: "Detected niche" }
+                                ].map(item => (
+                                  <div key={item.tag} className="p-3 bg-muted/30 rounded-xl border border-border/10">
+                                    <code className="text-primary font-bold text-xs">{item.tag}</code>
+                                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black opacity-50">{item.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                <p className="text-[11px] leading-relaxed">
+                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {{firstName || 'there'}}" for the most human feel.
+                                </p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <button
                           onClick={() => setSourceType('database')}
@@ -318,10 +410,45 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
 
                 {step === 2 && (
                   <motion.div key="step2" initial="enter" animate="center" exit="exit" variants={variants} className="space-y-8 pb-10">
-                    <div className="space-y-2">
-                      <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
-                      <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
-                    </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <h2 className="text-3xl font-black tracking-tighter">CAMPAIGN DESIGN</h2>
+                          <p className="text-muted-foreground text-sm font-medium">Construct your outreach sequence with AI assistance.</p>
+                        </div>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:bg-primary/5 hover:text-primary transition-all">
+                              <Sparkles className="w-3.5 h-3.5 mr-2" /> View Syntax Guide
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md bg-card border-border/40 rounded-[2.5rem] p-8">
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-black uppercase tracking-widest">Personalization Syntax</h3>
+                              <p className="text-xs text-muted-foreground leading-relaxed">Use these tags to dynamically inject lead data into your messages. The AI will automatically clean and humanize these values.</p>
+                            </div>
+                            <div className="space-y-4 mt-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                {[
+                                  { tag: "{{firstName}}", desc: "Lead's first name" },
+                                  { tag: "{{company}}", desc: "Target company name" },
+                                  { tag: "{{name}}", desc: "Lead's full name" },
+                                  { tag: "{{industry}}", desc: "Detected niche" }
+                                ].map(item => (
+                                  <div key={item.tag} className="p-3 bg-muted/30 rounded-xl border border-border/10">
+                                    <code className="text-primary font-bold text-xs">{item.tag}</code>
+                                    <p className="text-[10px] text-muted-foreground mt-1 uppercase font-black opacity-50">{item.desc}</p>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                <p className="text-[11px] leading-relaxed">
+                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {{firstName || 'there'}}" for the most human feel.
+                                </p>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
 
                     <div className="space-y-6">
                       <div className="p-6 bg-card rounded-3xl border border-border/40 space-y-4">

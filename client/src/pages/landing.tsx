@@ -285,15 +285,40 @@ export default function Landing() {
               </p>
             </div>
             {Object.entries({
-              Product: ["Find Leads", "ROI Calculator", "Pricing", "Status"],
-              Company: ["Process", "Playbooks", "Security", "About"],
-              Legal: ["Privacy", "Terms", "Complaints", "Contact"]
+              Solutions: [
+                { name: "Agencies", href: "/solutions/agencies" },
+                { name: "Founders", href: "/solutions/founders" },
+                { name: "Creators", href: "/solutions/creators" },
+                { name: "Sales Teams", href: "/solutions/sales-teams" }
+              ],
+              Product: [
+                { name: "Lead Discovery", href: "/find-leads" },
+                { name: "Logic Hub", href: "/#how-it-works" },
+                { name: "ROI Engine", href: "/#calc" },
+                { name: "Pricing Model", href: "/#pricing" }
+              ],
+              Company: [
+                { name: "Our Process", href: "/process" },
+                { name: "Intelligence docs", href: "/resources/api-docs" },
+                { name: "Engineering", href: "/engineering" },
+                { name: "Contact Hub", href: "/contact" }
+              ],
+              Legal: [
+                { name: "Data Privacy", href: "/privacy" },
+                { name: "Service Terms", href: "/terms" },
+                { name: "DPA Agreement", href: "/dpa" },
+                { name: "Security Port", href: "/security" }
+              ]
             }).map(([cat, links]) => (
               <div key={cat} className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40">{cat}</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{cat}</h4>
                 <ul className="space-y-2">
                   {links.map(l => (
-                    <li key={l}><a href="#" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">{l}</a></li>
+                    <li key={l.name}>
+                      <a href={l.href} className="text-xs font-bold text-white/60 hover:text-cyan-500 transition-colors">
+                        {l.name}
+                      </a>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -309,24 +334,7 @@ export default function Landing() {
               ))}
             </div>
           </div>
-          <div className="mt-32 border-y border-border/10 bg-muted/5 backdrop-blur-sm w-screen relative left-1/2 -translate-x-1/2 py-10 overflow-hidden group">
-          <div className="absolute inset-0 bg-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-
-          <div className="flex items-center gap-16 md:gap-24 animate-marquee whitespace-nowrap">
-            {["LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI", "LUXE PATH", "REPLYFLOW", "ORBIEON", "SAS REC", "KYNOX AI"].map((brand, i) => (
-              <span
-                key={`${brand}-${i}`}
-                className="text-2xl md:text-3xl font-black tracking-[-0.05em] text-muted-foreground/10 hover:text-primary transition-all duration-300 cursor-none select-none italic"
-              >
-                {brand}
-              </span>
-            ))}
-          </div>
-
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-6 py-2 bg-background border border-primary/30 rounded-full text-[10px] font-black uppercase tracking-[0.3em] text-primary shadow-xl shadow-primary/5">
-            Trusted By Top Growth Agencies
-          </div>
-        </div>
+          {/* Removed duplicate marquee as requested */}
         </div>
       </footer>
 

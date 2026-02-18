@@ -29,8 +29,8 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                     <desc>Official logo of Audnix AI, representing autonomous sales intelligence.</desc>
                     <defs>
                         <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#10b981" />
-                            <stop offset="100%" stopColor="#059669" />
+                            <stop offset="0%" stopColor="#06b6d4" />
+                            <stop offset="100%" stopColor="#0891b2" />
                         </linearGradient>
                     </defs>
 
@@ -55,14 +55,15 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
 
                     <motion.circle
                         variants={{
-                            hover: { scale: 1.5, opacity: 1 },
-                            idle: { scale: 1.2, opacity: 0.8 }
+                            hover: { scale: 1.3, opacity: 1 },
+                            idle: { scale: 1.1, opacity: 0.8 }
                         }}
                         transition={{ duration: 0.3 }}
                         cx="20"
                         cy="19"
                         r="3"
-                        fill="url(#logo-gradient)"
+                        fill="black"
+                        className="dark:fill-white"
                     />
 
                     <path
@@ -77,35 +78,18 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
 
             {/* Text Container */}
             <div className="relative">
-                <span className={`${textClassName} tracking-tighter text-white uppercase flex items-baseline gap-0.5 relative z-10 whitespace-nowrap`}>
+                <span className={`${textClassName} tracking-tighter text-foreground uppercase flex items-baseline gap-0.5 relative z-10 whitespace-nowrap transition-colors`}>
                     Audnix
                     <motion.span
                         variants={{
-                            hover: { y: -2, color: "#60a5fa" },
-                            idle: { y: 0, color: "#3b82f6" }
+                            hover: { color: "#06b6d4" },
+                            idle: { color: "#0891b2" }
                         }}
                         className="text-primary text-[10px] font-black"
                     >
                         .AI
                     </motion.span>
                 </span>
-
-                {/* Orbiting Satellite on Hover */}
-                <motion.div
-                    className="absolute -inset-2 rounded-full border border-primary/20 pointer-events-none"
-                    variants={{
-                        hover: { opacity: 1, scale: 1 },
-                        idle: { opacity: 0, scale: 0.8 }
-                    }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <motion.div
-                        className="absolute top-1/2 -right-1 w-1.5 h-1.5 bg-primary rounded-full shadow-[0_0_10px_rgba(59,130,246,1)]"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        style={{ originX: "-50px" }} // Orbit center offset
-                    />
-                </motion.div>
             </div>
         </motion.div>
     );

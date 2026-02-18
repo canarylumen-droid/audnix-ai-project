@@ -93,7 +93,7 @@ router.post('/set-username', async (req: Request<object, object, SetUsernameBody
 router.post('/complete-onboarding', requireAuth, async (req: Request<object, object, CompleteOnboardingBody>, res: Response): Promise<void> => {
   try {
     const userId = req.session?.userId;
-    const { companyName, businessDescription, industry } = req.body;
+    const { userRole, source, useCase, businessSize, tags, companyName } = req.body;
 
     if (!userId) {
       res.status(401).json({ error: 'User not authenticated' });
@@ -104,8 +104,11 @@ router.post('/complete-onboarding', requireAuth, async (req: Request<object, obj
     const user = await storage.updateUser(userId, {
       businessName: companyName,
       metadata: {
-        businessDescription,
-        industry,
+        userRole,
+        source,
+        useCase,
+        businessSize,
+        tags,
         onboardingCompleted: true,
         onboardedAt: new Date().toISOString(),
       },

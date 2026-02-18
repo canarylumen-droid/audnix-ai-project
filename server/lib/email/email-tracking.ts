@@ -121,6 +121,20 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
 
     // Real-time Notification
     if (trackingInfo) {
+      // Update lead metadata for filtering
+      if (trackingInfo.lead_id && event.type === 'open') {
+        try {
+          await db.execute(sql`
+            UPDATE leads 
+            SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
+                updated_at = NOW()
+            WHERE id = ${trackingInfo.lead_id}
+          `);
+        } catch (err) {
+          console.error('Failed to update lead metadata for open event:', err);
+        }
+      }
+
       const { wsSync } = await import('../websocket-sync.js');
       
       // Notify activity feed

@@ -149,6 +149,7 @@ export function rankLeadQuality(
   if (data.openedEmailBefore) score += 15;
   if (data.respondedBefore) score += 25;
   if (data.industryMatch) score += 10;
+  if (data.isWarm === true || data.warm === true) score += 40; // High boost for manually qualified leads
 
   // Cold signals (-points)
   if (data.unsubscribed) score = 0;

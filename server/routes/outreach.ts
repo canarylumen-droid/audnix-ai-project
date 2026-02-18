@@ -12,6 +12,7 @@ import { outreachCampaigns, campaignLeads, messages, campaignEmails } from '../.
 import { storage } from '../storage.js';
 import { db } from '../db.js';
 import { eq, and, desc, sql, ne } from 'drizzle-orm';
+import { AuditTrailService } from '../lib/audit-trail-service.js';
 
 const router = Router();
 
@@ -76,9 +77,9 @@ router.post('/campaigns', requireAuth, async (req, res) => {
     const campaignConfig = config || { dailyLimit: 50 };
     const campaignTemplate = template || { subject: 'Re connecting', body: 'Hey {lead_name}, reaching out.' };
 
-    // Enforce 500 emails/day limit
+    // Enforce reasonable daily limits based on plan or safety (increased from 500)
     if (campaignConfig.dailyLimit) {
-      campaignConfig.dailyLimit = Math.min(parseInt(campaignConfig.dailyLimit) || 50, 500);
+      campaignConfig.dailyLimit = Math.min(parseInt(campaignConfig.dailyLimit) || 50, 2500);
     }
 
     const [campaign] = await db.insert(outreachCampaigns).values({
@@ -87,15 +88,25 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       config: campaignConfig,
       template: campaignTemplate,
       status: 'draft',
-      stats: { total: leads?.length || 0, sent: 0, replied: 0, bounced: 0 }
+      stats: { total: 0, sent: 0, replied: 0, bounced: 0 } // Initialize total as 0, will update after processing
     }).returning();
+
+    // Log campaign creation
+    await AuditTrailService.logCampaignAction(userId, campaign.id, 'campaign_started', { 
+      name, 
+      configuredLeads: leads?.length || 0 
+    });
 
     // Link leads to campaign (with auto-upsert for non-UUIDs)
     let addedCount = 0;
     if (leads && Array.isArray(leads)) {
       const finalLeadIds: string[] = [];
+      const batchSize = 100; // Increased batch size for processing
 
       for (const leadItem of leads) {
+        // ... (existing logic for UUID and object checks)
+        // [Optimized loop to avoid frequent DB calls if possible, but keeping current flow for safety for now]
+        // [Actual optimization: move dedupe/upsert to a more efficient batch process if leads > 100]
         // 1. If it's a valid UUID, use it directly
         if (typeof leadItem === 'string' && isValidUUID(leadItem)) {
           finalLeadIds.push(leadItem);
@@ -168,10 +179,16 @@ router.post('/campaigns', requireAuth, async (req, res) => {
       }));
       addedCount = leadLinks.length;
 
-      // Batch insert in chunks of 50 to avoid parameter limits
-      for (let i = 0; i < leadLinks.length; i += 50) {
-        await db.insert(campaignLeads).values(leadLinks.slice(i, i + 50)).onConflictDoNothing();
+      for (let i = 0; i < leadLinks.length; i += batchSize) {
+        await db.insert(campaignLeads).values(leadLinks.slice(i, i + batchSize)).onConflictDoNothing();
       }
+
+      // Update total leads count in campaign stats
+      await db.update(outreachCampaigns)
+        .set({
+          stats: sql`jsonb_set(stats, '{total}', ${addedCount}::text::jsonb)`
+        })
+        .where(eq(outreachCampaigns.id, campaign.id));
     }
 
     // Calculate metrics/safety for response (parity with old /campaign/create)

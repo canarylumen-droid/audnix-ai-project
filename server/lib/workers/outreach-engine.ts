@@ -15,6 +15,7 @@ import { sendEmail } from '../channels/email.js';
 import { generateExpertOutreach } from '../ai/conversation-ai.js';
 import { wsSync } from '../websocket-sync.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
+import { AuditTrailService } from '../audit-trail-service.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -136,7 +137,6 @@ export class OutreachEngine {
     // Check daily limits and delays
     if (!(await this.isUserReadyToSend(userId, campaign))) return false;
 
-    // Find next leads in this campaign (Batch size increased to 5)
     const nextLeadsResult = await db.select()
       .from(campaignLeads)
       .where(
@@ -157,10 +157,24 @@ export class OutreachEngine {
           )
         )
       )
-      .limit(5);
+      .limit(50); // Increased from 5 to 50
 
     if (nextLeadsResult.length === 0) {
       console.log(`[OutreachEngine] No leads due for campaign: ${campaign.name} (ID: ${campaign.id})`);
+      
+      // Check if campaign is actually finished (no pending leads at all)
+      const pendingCount = await db.select({ count: sql`count(*)` })
+        .from(campaignLeads)
+        .where(and(eq(campaignLeads.campaignId, campaign.id), eq(campaignLeads.status, 'pending')));
+      
+      if (Number((pendingCount[0] as any).count) === 0) {
+        console.log(`[OutreachEngine] Campaign "${campaign.name}" has no more pending leads. Marking as completed.`);
+        await db.update(outreachCampaigns)
+          .set({ status: 'completed', updatedAt: new Date() })
+          .where(eq(outreachCampaigns.id, campaign.id));
+        
+        await AuditTrailService.logCampaignAction(userId, campaign.id, 'campaign_completed');
+      }
       return false;
     }
 
@@ -312,9 +326,19 @@ export class OutreachEngine {
         }
     }
 
-    // Variable replacement fallback
-    const firstName = lead.name?.split(' ')[0] || 'there';
-    body = body.replace(/{{firstName}}/g, firstName).replace(/{{lead_name}}/g, firstName);
+    // Variable replacement fallback (Expanded for safety)
+    const firstName = lead.name?.trim().split(' ')[0] || 'there';
+    const company = lead.company?.trim() || 'your company';
+    body = body
+      .replace(/{{firstName}}/g, firstName)
+      .replace(/{{lead_name}}/g, lead.name?.trim() || firstName)
+      .replace(/{{company}}/g, company)
+      .replace(/{{business_name}}/g, company);
+
+    // Subject variable replacement
+    subject = subject
+      .replace(/{{firstName}}/g, firstName)
+      .replace(/{{lead_name}}/g, lead.name?.trim() || firstName);
 
     // Send the email (ensure plain text)
     const trackingId = Math.random().toString(36).substring(2, 11);

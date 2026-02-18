@@ -236,14 +236,26 @@ export default function InboxPage() {
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead: any) => {
       const matchesSearch = !searchQuery ||
-        lead.name.toLowerCase().includes(searchQuery.toLowerCase());
+        lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lead.email?.toLowerCase().includes(searchQuery.toLowerCase());
+      
       const matchesChannel = filterChannel === "all" || lead.channel === filterChannel;
 
-      const matchesStatus = filterStatus === "all"
-        ? true
-        : filterStatus === "unread"
-          ? (lead.metadata?.isUnread || false)
-          : lead.status === filterStatus;
+      let matchesStatus = true;
+      if (filterStatus !== "all") {
+        if (filterStatus === "unread") {
+          matchesStatus = !!lead.metadata?.isUnread;
+        } else if (filterStatus === "read") {
+          matchesStatus = !lead.metadata?.isUnread;
+        } else if (filterStatus === "opened") {
+          matchesStatus = !!lead.metadata?.isOpened;
+        } else if (filterStatus === "warm") {
+          // Warm = Replied OR Score > 50 OR manually marked warm
+          matchesStatus = lead.status === 'replied' || (lead.score && lead.score > 50) || lead.metadata?.isWarm;
+        } else {
+          matchesStatus = lead.status === filterStatus;
+        }
+      }
 
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
 
@@ -470,6 +482,8 @@ export default function InboxPage() {
                   <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={() => setFilterStatus("all")} className="cursor-pointer font-medium">All Chats</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("unread")} className="cursor-pointer font-medium">Unread</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("read")} className="cursor-pointer font-medium">Read</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setFilterStatus("opened")} className="cursor-pointer font-medium">Opened (Tracking)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("replied")} className="cursor-pointer font-medium text-emerald-500">Replied</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("warm")} className="cursor-pointer font-medium text-orange-500">Warm (Engaged)</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setFilterStatus("cold")} className="cursor-pointer font-medium text-muted-foreground">Cold (No Reply)</DropdownMenuItem>

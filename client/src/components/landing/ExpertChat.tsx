@@ -148,6 +148,8 @@ export function ExpertChat() {
                 {(!isOpen || isMinimized) && (
                     <motion.button
                         id="expert-chat-trigger"
+                        drag
+                        dragConstraints={{ left: -window.innerWidth + 80, right: 0, top: -window.innerHeight + 80, bottom: 0 }}
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
@@ -156,12 +158,12 @@ export function ExpertChat() {
                             setIsOpen(true);
                             setIsMinimized(false);
                         }}
-                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-14 h-14 md:w-16 md:h-16 rounded-full bg-black border-[3px] border-primary shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all group overflow-hidden hidden sm:flex items-center justify-center"
+                        className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-14 h-14 md:w-16 md:h-16 rounded-full bg-black border-[3px] border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all group overflow-hidden hidden sm:flex items-center justify-center cursor-grab active:cursor-grabbing"
                     >
                         {/* Hover Background Glow */}
-                        <div className="absolute inset-0 bg-primary translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
 
-                        <MessageCircle className="w-6 h-6 md:w-7 md:h-7 text-primary group-hover:text-white transition-colors relative z-10" />
+                        <MessageCircle className="w-6 h-6 md:w-7 md:h-7 text-cyan-500 group-hover:text-black transition-colors relative z-10" />
                     </motion.button>
                 )}
             </AnimatePresence>
@@ -177,10 +179,10 @@ export function ExpertChat() {
                         exit={{ opacity: 0, y: 100, scale: 0.95 }}
                         className="fixed md:bottom-10 md:right-10 bottom-6 right-6 z-[100] w-[380px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[80vh] bg-background rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-border"
                     >
-                        {/* Header */}
+                         {/* Header */}
                         <div className="p-5 border-b border-border flex items-center justify-between bg-muted/40 backdrop-blur-md">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                <div className="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-500 border border-cyan-500/20">
                                     <SparklesIcon className="w-4 h-4" />
                                 </div>
                                 <div>

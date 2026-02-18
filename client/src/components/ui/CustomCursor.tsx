@@ -49,15 +49,20 @@ export const CustomCursor = () => {
         const handleMouseMove = (e: MouseEvent) => {
             positionRef.current = { x: e.clientX, y: e.clientY };
 
-            // Check if hovering over a button or link or input or textarea
             const target = e.target as HTMLElement;
-            const isClickable = target.closest('button, a, [role="button"], input, textarea, select, .cursor-pointer');
+            const isClickable = target.closest('button, a, [role="button"], select, .cursor-pointer');
+            const isText = target.closest('p, span, h1, h2, h3, h4, h5, h6, input, textarea, code, pre');
 
             if (cursorRef.current) {
                 if (isClickable) {
                     cursorRef.current.classList.add('is-grabbing');
+                    cursorRef.current.classList.remove('is-text');
+                } else if (isText) {
+                    cursorRef.current.classList.add('is-text');
+                    cursorRef.current.classList.remove('is-grabbing');
                 } else {
                     cursorRef.current.classList.remove('is-grabbing');
+                    cursorRef.current.classList.remove('is-text');
                 }
             }
 
@@ -135,7 +140,8 @@ export const CustomCursor = () => {
                 }}
             >
                 <style>{`
-                    .custom-cursor-main.is-grabbing svg {
+                    .custom-cursor-main.is-grabbing svg,
+                    .custom-cursor-main.is-text svg {
                         display: none;
                     }
                     .custom-cursor-main.is-grabbing::after {
@@ -148,16 +154,24 @@ export const CustomCursor = () => {
                         transform: translate(-50%, -50%);
                         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
                     }
+                    .custom-cursor-main.is-text::after {
+                        content: '';
+                        display: block;
+                        width: 1px;
+                        height: 20px;
+                        background: currentColor;
+                        transform: translate(-50%, -50%);
+                        box-shadow: 0 0 8px rgba(var(--primary), 0.5);
+                    }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
                     <path
                         d="M5.5 3L5.5 19L9.5 15L13 22L15 21L11.5 14L17.5 14L5.5 3Z"
                         fill="white"
-                        stroke="#1e293b"
+                        stroke="black"
                         strokeWidth="1.2"
                         strokeLinejoin="round"
-                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
                     />
                 </svg>
             </div>
