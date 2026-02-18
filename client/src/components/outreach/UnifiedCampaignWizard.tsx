@@ -164,7 +164,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
         setLeads(data.leads);
         toast({ title: "Leads Fetched", description: `Successfully loaded ${data.leads.length} leads from database.` });
       } else {
-        toast({ title: "No leads found", description: "Database seems empty.", variant: "secondary" });
+        toast({ title: "No leads found", description: "Database seems empty." });
       }
     } catch (err: any) {
       toast({ title: "Fetch failed", description: err.message, variant: "destructive" });
@@ -313,7 +313,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               </div>
                               <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
                                 <p className="text-[11px] leading-relaxed">
-                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {{firstName || 'there'}}" for the most human feel.
+                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {"{{firstName || 'there'}}"}" for the most human feel.
                                 </p>
                               </div>
                             </div>
@@ -442,7 +442,7 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
                               </div>
                               <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
                                 <p className="text-[11px] leading-relaxed">
-                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {{firstName || 'there'}}" for the most human feel.
+                                  <span className="font-bold text-primary">Pro Tip:</span> Always include a fallback like "Hi {"{{firstName || 'there'}}"}" for the most human feel.
                                 </p>
                               </div>
                             </div>

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Scissors, Copy, ClipboardPaste, Link2, Download, Trash2 } from 'lucide-react';
+import { Scissors, Copy, ClipboardPaste, Link2, Download, Trash2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ContextMenuConfig {

@@ -409,6 +409,16 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined> {
+    checkDatabase();
+    const [result] = await db
+      .select()
+      .from(leads)
+      .where(and(eq(leads.externalId, socialId), eq(leads.channel, channel as any)))
+      .limit(1);
+    return result;
+  }
+
 
   async createLead(insertLead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead> {
     checkDatabase();

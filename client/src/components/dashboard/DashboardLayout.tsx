@@ -852,6 +852,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
         </main>
       </div>
       </div>
+      </div>
       {/* Notification Permission Slide-in */}
       <AnimatePresence>
         {permission === 'default' && (

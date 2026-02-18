@@ -174,7 +174,7 @@ export default function registerInstagramWebhookRoutes(app: Express) {
         try {
           if (Array.isArray(body.entry)) {
             const { wsSync } = await import('../lib/websocket-sync.js'); // Lazy import to avoid cycle if any
-            const { storage } = await import('../lib/storage.js');
+            const { storage } = await import('../storage.js');
             const { db } = await import('../db.js');
             const { leads } = await import('../../shared/schema.js');
             const { eq } = await import('drizzle-orm');
@@ -210,7 +210,7 @@ export default function registerInstagramWebhookRoutes(app: Express) {
                   // COMPROMISE: We will try to find the integration by matching metadata.
                   // This is slow but functional for V1.
                   const allIntegrations = await storage.getIntegrationsByProvider('instagram');
-                  const relevantIntegration = allIntegrations.find(i => {
+                  const relevantIntegration = allIntegrations.find((i: any) => {
                      try {
                         const meta = JSON.parse(i.encryptedMeta || '{}'); // This is actually encrypted, we can't grep it easily without decryption.
                         // Wait, storage.getIntegrationsByProvider returns the raw rows?

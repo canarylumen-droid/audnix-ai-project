@@ -13,6 +13,11 @@ interface CompleteOnboardingBody {
   companyName?: string;
   businessDescription?: string;
   industry?: string;
+  userRole?: string;
+  source?: string;
+  useCase?: string;
+  businessSize?: string;
+  tags?: string[];
 }
 
 /**

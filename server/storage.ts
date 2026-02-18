@@ -37,6 +37,7 @@ export interface IStorage {
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
+  getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
   updateLead(id: string, updates: Partial<Lead>): Promise<Lead | undefined>;
   archiveLead(id: string, userId: string, archived: boolean): Promise<Lead | undefined>;
@@ -588,6 +589,13 @@ return leads;
   return Array.from(this.leads.values()).find(lead =>
     lead.email?.toLowerCase() === email.toLowerCase() &&
     lead.userId === userId
+  );
+}
+
+  async getLeadBySocialId(socialId: string, channel: string): Promise < Lead | undefined > {
+  return Array.from(this.leads.values()).find(lead =>
+    lead.externalId === socialId &&
+    lead.channel === channel
   );
 }
 

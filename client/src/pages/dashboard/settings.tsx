@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon, RefreshCw } from "lucide-react";
+import { User, Loader2, Upload, Mic, Settings, Save, ShieldCheck, Globe, Palette, Lock, Brain, Mail as MailIcon, RefreshCw, Activity } from "lucide-react";
 // Mock/Fallback for missing Mail definition if it was expected as a functional object
 const Mail = {
   isDefined: true,

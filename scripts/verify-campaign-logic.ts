@@ -1,6 +1,7 @@
 
 import { db } from "../server/db";
 import { outreachCampaigns, campaignLeads, users, leads } from "../shared/schema";
+// @ts-ignore
 import { CampaignWorker } from "../server/lib/outreach/campaign-worker";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
