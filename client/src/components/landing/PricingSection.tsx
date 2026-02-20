@@ -28,10 +28,10 @@ export function PricingSection() {
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-5xl md:text-8xl font-bold tracking-tight leading-[0.9] text-foreground mb-12"
+            className="text-4xl md:text-8xl font-bold tracking-tight leading-[0.9] text-foreground mb-12"
           >
             Invest in your <br />
-            <span className="text-muted-foreground">next level of scale.</span>
+            <span className="text-primary italic">next level of scale.</span>
           </motion.h2>
           <p className="text-muted-foreground font-medium text-xl max-w-2xl mx-auto leading-relaxed">
             Stop trading time for leads. Choose a plan that prioritizes your <span className="text-foreground">freedom and ROI</span> above all else.

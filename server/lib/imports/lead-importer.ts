@@ -1,8 +1,10 @@
-
 import { db } from '../../db.js';
 import { storage } from '../../storage.js';
 import { decrypt } from "../crypto/encryption.js";
 import type { Lead, Message } from "../../../shared/schema.js";
+import { EmailVerifier } from "../scraping/email-verifier.js";
+
+const verifier = new EmailVerifier();
 
 /**
  * Neural CSV Mapper - Maps dynamic column names to internal lead keys
@@ -44,12 +46,11 @@ export async function importInstagramLeads(userId: string): Promise<{
   const results = { leadsImported: 0, messagesImported: 0, errors: [] as string[] };
   try {
     const user = await storage.getUserById(userId);
-    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-    const currentLeadCount = existingLeads.length;
+    const currentLeadCount = await storage.getLeadsCount(userId);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
 
-    const maxLeads = user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500;
-    if (currentLeadCount >= maxLeads) {
-      results.errors.push(`Lead limit reached (${maxLeads} leads).`);
+    if (currentLeadCount >= limit) {
+      results.errors.push(`Lead limit reached (${limit} leads).`);
       return results;
     }
 
@@ -124,6 +125,10 @@ export async function importManychatLeads(userId: string): Promise<{
 }> {
   const results = { leadsImported: 0, messagesImported: 0, errors: [] as string[] };
   try {
+    const user = await storage.getUserById(userId);
+    const existingLeadsCount = await storage.getLeadsCount(userId);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
+
     const integrations = await storage.getIntegrations(userId);
     const mcIntegration = integrations.find(i => i.provider === 'manychat' && i.connected);
     if (!mcIntegration) return results;
@@ -141,8 +146,27 @@ export async function importManychatLeads(userId: string): Promise<{
     const data = await response.json() as any;
     const subscribers = data.data || [];
 
+    // Pre-extract emails for duplicate check
+    const mcEmails = subscribers.map((s: any) => s.email).filter((e: any): e is string => !!e);
+    const existingEmails = await storage.getExistingEmails(userId, mcEmails);
+    const existingEmailSet = new Set(existingEmails);
+
     for (const sub of subscribers) {
       try {
+        if (results.leadsImported + existingLeadsCount >= limit) break;
+
+        // Duplicate check
+        if (sub.email && existingEmailSet.has(sub.email)) continue;
+
+        // Bouncer check
+        let verified = false;
+        let isBouncy = false;
+        if (sub.email) {
+          const vResult = await verifier.verify(sub.email);
+          verified = vResult.valid;
+          isBouncy = !vResult.valid && vResult.reason.includes('rejected');
+        }
+
         await storage.createLead({
           userId,
           externalId: sub.id,
@@ -150,8 +174,15 @@ export async function importManychatLeads(userId: string): Promise<{
           email: sub.email || null,
           phone: sub.phone || null,
           channel: 'instagram',
-          status: 'new',
-          metadata: { manychat_id: sub.id, imported_from_manychat: true, industry: sub.industry || 'unknown', companySize: sub.company_size || 'unknown' }
+          status: isBouncy ? 'bouncy' : 'new',
+          verified,
+          metadata: { 
+            manychat_id: sub.id, 
+            imported_from_manychat: true, 
+            industry: sub.industry || 'unknown', 
+            companySize: sub.company_size || 'unknown',
+            bouncer_verification: verified ? 'pass' : 'fail'
+          }
         }, { suppressNotification: true });
         results.leadsImported++;
       } catch (e) { }
@@ -170,16 +201,20 @@ export async function importGmailLeads(userId: string): Promise<{
 }> {
   const results = { leadsImported: 0, messagesImported: 0, errors: [] as string[] };
   try {
+    const user = await storage.getUserById(userId);
+    const existingLeadsCount = await storage.getLeadsCount(userId);
+    const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
+
     const { GmailOAuth } = await import('../oauth/gmail.js');
     const gmailOAuth = new GmailOAuth();
 
     // Get recent messages
     const messages = await gmailOAuth.listMessages(userId, 50);
 
-    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
-
     for (const msgSummary of messages) {
       try {
+        if (results.leadsImported + existingLeadsCount >= limit) break;
+
         const fullMsg = await gmailOAuth.getMessageDetails(userId, msgSummary.id);
         const headers = fullMsg.payload?.headers || [];
 
@@ -194,16 +229,25 @@ export async function importGmailLeads(userId: string): Promise<{
 
         if (!email) continue;
 
-        let lead = existingLeads.find(l => l.email === email);
+        // Duplicate check
+        let lead = await storage.getLeadByEmail(email, userId);
         if (!lead) {
+          // Bouncer check
+          const vResult = await verifier.verify(email);
+          const isBouncy = !vResult.valid && vResult.reason.includes('rejected');
+
           lead = await storage.createLead({
             userId,
             name,
             email,
             channel: 'email',
-            status: 'new',
+            status: isBouncy ? 'bouncy' : 'new',
+            verified: vResult.valid,
             lastMessageAt: date ? new Date(date) : null,
-            metadata: { imported_from_gmail: true }
+            metadata: { 
+              imported_from_gmail: true,
+              bouncer_verification: vResult.valid ? 'pass' : 'fail'
+            }
           }, { suppressNotification: true });
           results.leadsImported++;
         }
@@ -212,7 +256,6 @@ export async function importGmailLeads(userId: string): Promise<{
         const exists = existingMessages.some(m => (m.metadata as any)?.gmail_message_id === fullMsg.id);
 
         if (!exists) {
-          // Extract snippet or body
           const body = fullMsg.snippet || '';
 
           await storage.createMessage({

@@ -101,13 +101,57 @@ router.get("/insights", requireAuth, async (req: Request, res: Response): Promis
 
     const insights = await generateAnalyticsInsights(userId, period as string);
 
-    res.json(insights);
+    // Template-based summarization fallback (works without AI)
+    const summary = generateTemplateSummary(insights, period as string);
+
+    res.json({ ...insights, summary });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Failed to generate insights";
     console.error("Advanced insights error:", error);
     res.status(500).json({ error: errorMessage });
   }
 });
+
+function generateTemplateSummary(insights: any, period: string): string | null {
+  const { trends, predictions, topPerformers, recommendations } = insights;
+  if (!trends) return null;
+
+  const parts: string[] = [];
+
+  // Lead growth
+  if (trends.leadGrowth > 0) {
+    parts.push(`Lead volume grew ${Math.abs(trends.leadGrowth).toFixed(0)}% this period`);
+  } else if (trends.leadGrowth < 0) {
+    parts.push(`Lead volume declined ${Math.abs(trends.leadGrowth).toFixed(0)}% this period`);
+  } else {
+    parts.push(`Lead volume is stable this period`);
+  }
+
+  // Conversion growth
+  if (trends.conversionGrowth > 10) {
+    parts.push(`with conversions up ${trends.conversionGrowth.toFixed(0)}%`);
+  } else if (trends.conversionGrowth < -10) {
+    parts.push(`but conversions dropped ${Math.abs(trends.conversionGrowth).toFixed(0)}%`);
+  }
+
+  // Top channel
+  if (topPerformers?.channels?.length > 0) {
+    const topChannel = topPerformers.channels[0];
+    parts.push(`Your top channel is ${topChannel.channel || 'email'}`);
+  }
+
+  // Predictions
+  if (predictions?.expectedConversions > 0) {
+    parts.push(`AI projects ~${predictions.expectedConversions} conversions ahead`);
+  }
+
+  // First recommendation
+  if (recommendations?.length > 0) {
+    parts.push(recommendations[0]);
+  }
+
+  return parts.length > 0 ? parts.join('. ') + '.' : null;
+}
 
 /**
  * Get AI-powered insights and analytics
@@ -236,7 +280,17 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             return;
           }
 
-          // 4. Save to DB (Standalone Mode)
+          // 4. Enforce Limits
+          const user = await storage.getUserById(userId);
+          const existingLeadsCount = await storage.getLeadsCount(userId);
+          const limit = user?.email === 'team.replyflow@gmail.com' ? 20000 : (user?.plan === 'pro' || user?.plan === 'enterprise' ? 10000 : 500);
+          
+          if (existingLeadsCount >= limit) {
+             res.status(400).json({ error: `Lead limit reached (${limit} leads). Please upgrade your plan.` });
+             return;
+          }
+
+          // 5. Save to DB (Standalone Mode)
           const { db } = await import('../db.js');
           const { leads, aiProcessLogs } = await import('../../shared/schema.js');
 
@@ -254,17 +308,42 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
             }
           }).returning();
 
-          // 5. Verify Emails if requested (or default to sample)
+          // 6. Duplicate Detection & Verification
           const leadsToSave = [];
           const chunkSize = 50;
+          let duplicateCount = 0;
+          let filteredCount = 0;
           
           console.log(`[CSV Import] Verifying and saving ${processedLeads.length} leads...`);
+
+          // Check for existing emails in the whole set first (or in chunks)
+          const allEmails = processedLeads.map(l => l.email).filter((e): e is string => !!e);
+          const existingEmails = await storage.getExistingEmails(userId, allEmails);
+          const existingEmailSet = new Set(existingEmails);
 
           for (let i = 0; i < processedLeads.length; i += chunkSize) {
             const chunk = processedLeads.slice(i, i + chunkSize);
             
-            // Fast verification for the chunk
-            const verifiedChunk = await Promise.all(chunk.map(async (leadData) => {
+            // Filter out duplicates
+            const uniqueChunk = chunk.filter(leadData => {
+              if (leadData.email && existingEmailSet.has(leadData.email)) {
+                duplicateCount++;
+                return false;
+              }
+              return true;
+            });
+
+            if (uniqueChunk.length === 0) continue;
+
+            // Check if adding this chunk exceeds the limit
+            if (leadsToSave.length + existingLeadsCount + uniqueChunk.length > limit) {
+              const remainingSpace = limit - (leadsToSave.length + existingLeadsCount);
+              if (remainingSpace <= 0) break;
+              uniqueChunk.splice(remainingSpace);
+            }
+
+            // Fast verification for the unique chunk
+            const verifiedChunk = await Promise.all(uniqueChunk.map(async (leadData) => {
               if (leadData.email) {
                 try {
                   // Use verifier for basic check (fast)
@@ -272,6 +351,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
                   return {
                     ...leadData,
                     verified: vResult.valid,
+                    bouncy: !vResult.valid && vResult.reason.includes('rejected'),
                     metadata: {
                       ...leadData.metadata,
                       verification_reason: vResult.reason,
@@ -293,7 +373,7 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               phone: leadData.phone || null,
               company: leadData.company || null,
               channel: 'email' as const,
-              status: 'new' as const,
+              status: (leadData as any).bouncy ? 'bouncy' as const : 'new' as const,
               aiPaused,
               verified: (leadData as any).verified || false,
               metadata: {
@@ -303,9 +383,11 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
               }
             }));
 
-            // REMOVED onConflictDoNothing to allow duplicates/100% capture
-            await db.insert(leads).values(leadsChunk as any);
-            leadsToSave.push(...leadsChunk);
+            if (leadsChunk.length > 0) {
+              await db.insert(leads).values(leadsChunk as any);
+              leadsToSave.push(...leadsChunk);
+              filteredCount += verifiedChunk.filter(l => (l as any).bouncy).length;
+            }
 
             // Update process log
             await db.update(aiProcessLogs)
@@ -320,36 +402,43 @@ router.post("/import-csv", requireAuth, upload.single('csv'), async (req: Reques
           await db.update(aiProcessLogs)
             .set({ 
               status: 'completed',
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              metadata: {
+                ...processLog.metadata,
+                leadsImported: leadsToSave.length,
+                duplicatesSkipped: duplicateCount,
+                invalidFiltered: filteredCount
+              }
             })
             .where(eq(aiProcessLogs.id, processLog.id));
 
           res.json({
             success: true,
             leadsImported: leadsToSave.length,
-            leads: leadsToSave, // Return all leads in response
+            duplicatesSkipped: duplicateCount,
+            invalidFiltered: filteredCount,
             processId: processLog.id
           });
 
           // Create notification for import
-          if (leadsToSave.length > 0) {
+          if (leadsToSave.length > 0 || duplicateCount > 0 || filteredCount > 0) {
             try {
               await storage.createNotification({
                 userId,
                 type: 'lead_import',
-                title: '📥 Leads Imported',
-                message: `${leadsToSave.length} leads imported successfully from CSV`,
-                metadata: { source: 'csv_upload', count: leadsToSave.length, fileName: file.originalname }
+                title: '📥 CSV Import Summary',
+                message: `Import complete: ${leadsToSave.length} new leads, ${duplicateCount} duplicates skipped, ${filteredCount} invalid emails filtered.`,
+                metadata: { source: 'csv_upload', count: leadsToSave.length, duplicates: duplicateCount, filtered: filteredCount, fileName: file.originalname }
               });
               const { wsSync } = await import('../lib/websocket-sync.js');
-              wsSync.notifyNotification(userId, { type: 'lead_import', count: leadsToSave.length });
+              wsSync.notifyNotification(userId, { type: 'lead_import', count: leadsToSave.length, duplicates: duplicateCount, filtered: filteredCount });
               wsSync.notifyLeadsUpdated(userId, { type: 'leads_imported', count: leadsToSave.length });
             } catch (notifErr) {
               console.warn('[CSV Import] Failed to create notification:', notifErr);
             }
           }
 
-          console.log(`[CSV Import] Success: Processed ${results.length} rows, extracted ${processedLeads.length} leads, saved ${leadsToSave.length} leads (Standalone Mode)`);
+          console.log(`[CSV Import] Success: Imported ${leadsToSave.length}, Skipped ${duplicateCount}, Filtered ${filteredCount}`);
 
 
         } catch (error: any) {

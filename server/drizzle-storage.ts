@@ -2,7 +2,7 @@ import type { IStorage } from './storage.js';
 import type { User, InsertUser, Lead, InsertLead, Message, InsertMessage, Integration, InsertIntegration, Deal, OnboardingProfile, OtpCode, FollowUpQueue, InsertFollowUpQueue, OAuthAccount, InsertOAuthAccount, CalendarEvent, InsertCalendarEvent, AuditTrail, InsertAuditTrail, Organization, InsertOrganization, TeamMember, InsertTeamMember, Payment, InsertPayment, SmtpSettings, InsertSmtpSettings, EmailMessage, InsertEmailMessage, Notification, InsertNotification, Thread, InsertThread, LeadInsight, InsertLeadInsight } from "../shared/schema.js";
 import { db } from './db.js';
 import { users, leads, messages, integrations, notifications, deals, usageTopups, onboardingProfiles, otpCodes, payments, followUpQueue, oauthAccounts, calendarEvents, auditTrail, organizations, teamMembers, aiLearningPatterns, bounceTracker, smtpSettings, videoMonitors, processedComments, emailMessages, brandEmbeddings, threads, leadInsights } from "../shared/schema.js";
-import { eq, desc, and, gte, lte, sql, not, isNull, or, like } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, not, isNull, or, like, inArray } from "drizzle-orm";
 import { isValidUUID } from './lib/utils/validation.js';
 import crypto from 'crypto';
 import process from 'process';
@@ -409,6 +409,25 @@ export class DrizzleStorage implements IStorage {
     return result;
   }
 
+  async getExistingEmails(userId: string, emails: string[]): Promise<string[]> {
+    checkDatabase();
+    if (emails.length === 0) return [];
+    const results = await db
+      .select({ email: leads.email })
+      .from(leads)
+      .where(and(eq(leads.userId, userId), inArray(leads.email, emails)));
+    return results.map(r => r.email).filter((e): e is string => !!e);
+  }
+
+  async getLeadsCount(userId: string): Promise<number> {
+    checkDatabase();
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(leads)
+      .where(eq(leads.userId, userId));
+    return Number(result?.count || 0);
+  }
+
   async getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined> {
     checkDatabase();
     const [result] = await db
@@ -626,6 +645,7 @@ export class DrizzleStorage implements IStorage {
         .set({
           lastMessageAt: new Date(),
           updatedAt: new Date(),
+          snippet: message.body.substring(0, 150).replace(/\n/g, ' '),
           status: message.direction === 'inbound' ? 'replied' : undefined
         })
         .where(eq(leads.id, message.leadId));
@@ -1528,6 +1548,8 @@ export class DrizzleStorage implements IStorage {
     messagesYesterday: number;
     pipelineValue: number;
     closedRevenue: number;
+    openRate: number;
+    responseRate: number;
   }> {
     checkDatabase();
     const sevenDaysAgo = new Date();
@@ -1563,7 +1585,8 @@ export class DrizzleStorage implements IStorage {
       .where(leadsBaseWhere);
 
     const [messagesStats] = await db.select({
-      totalMessages: sql<number>`count(*)`,
+      totalSent: sql<number>`count(*) filter (where direction = 'outbound')`,
+      opened: sql<number>`count(*) filter (where direction = 'outbound' and opened_at is not null)`,
       messagesToday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${todayStart} and direction = 'outbound')`,
       messagesYesterday: sql<number>`count(*) filter (where ${messages.createdAt} >= ${yesterdayStart} and ${messages.createdAt} < ${todayStart} and direction = 'outbound')`,
       positiveIntents: sql<number>`count(*) filter (where direction = 'inbound' and (lower(body) like '%yes%' or lower(body) like '%book%' or lower(body) like '%interested%' or lower(body) like '%call%' or lower(body) like '%meeting%'))`,
@@ -1572,14 +1595,19 @@ export class DrizzleStorage implements IStorage {
       .where(messagesBaseWhere);
 
     const [dealsStats] = await db.select({
-      pipelineValue: sql<number>`coalesce(sum(value), 0)`,
+      pipelineValue: sql<number>`coalesce(sum(case when status = 'open' then value else 0 end), 0)`,
       closedRevenue: sql<number>`coalesce(sum(case when status in ('converted', 'closed_won') then value else 0 end), 0)`,
     })
       .from(deals)
       .where(dealsBaseWhere);
 
+    const totalSent = Number(messagesStats?.totalSent || 0);
+    const totalLeads = Number(leadsStats?.totalLeads || 0);
+    const opened = Number(messagesStats?.opened || 0);
+    const replied = Number(leadsStats?.convertedLeads || 0) + Number(leadsStats?.activeLeads || 0); // Leads that engaged
+
     return {
-      totalLeads: Number(leadsStats?.totalLeads || 0),
+      totalLeads,
       newLeads: Number(leadsStats?.newLeads || 0),
       activeLeads: Number(leadsStats?.activeLeads || 0),
       convertedLeads: Number(leadsStats?.convertedLeads || 0),
@@ -1587,11 +1615,13 @@ export class DrizzleStorage implements IStorage {
       bouncyLeads: Number(leadsStats?.bouncyLeads || 0),
       recoveredLeads: Number(leadsStats?.recoveredLeads || 0),
       positiveIntents: Number(messagesStats?.positiveIntents || 0),
-      totalMessages: Number(messagesStats?.totalMessages || 0),
+      totalMessages: totalSent,
       messagesToday: Number(messagesStats?.messagesToday || 0),
       messagesYesterday: Number(messagesStats?.messagesYesterday || 0),
       pipelineValue: Number(dealsStats?.pipelineValue || 0),
       closedRevenue: Number(dealsStats?.closedRevenue || 0),
+      openRate: totalSent > 0 ? Math.round((opened / totalSent) * 100) : 0,
+      responseRate: totalLeads > 0 ? Math.round((replied / totalLeads) * 100) : 0,
     };
   }
 
@@ -1765,6 +1795,19 @@ export class DrizzleStorage implements IStorage {
     await db.update(notifications)
       .set({ isRead: true })
       .where(and(...conditions));
+  }
+
+  async markLeadNotificationsAsRead(leadId: string, userId: string): Promise<void> {
+    checkDatabase();
+    await db.update(notifications)
+      .set({ isRead: true })
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(sql`${notifications.metadata}->>'leadId'`, leadId)
+      ));
+    
+    // Broadcast update so the UI counter drops
+    wsSync.notifyNotification(userId, { type: 'update', action: 'read_lead', leadId });
   }
 
   async markAllNotificationsAsRead(userId: string): Promise<void> {

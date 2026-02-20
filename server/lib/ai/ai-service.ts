@@ -23,6 +23,39 @@ const AI_MODEL = process.env.OPENAI_MODEL || OPENAI_INTELLIGENCE_MODEL;
 console.log(`[AI Service] Unified initialization with provider: ${PREFERRED_PROVIDER}`);
 
 /**
+ * Registry to track AI provider health and cooldowns
+ */
+const PROVIDER_STATUS = {
+  openai: { cooldownUntil: 0, consecutiveErrors: 0 },
+  gemini: { cooldownUntil: 0, consecutiveErrors: 0 },
+};
+
+const COOLDOWN_BASE_MS = 60000; // 1 minute
+const MAX_COOLDOWN_MS = 3600000; // 1 hour
+
+function updateProviderHealth(provider: 'openai' | 'gemini', isSuccess: boolean, errorStatus?: number) {
+  const status = PROVIDER_STATUS[provider];
+  if (isSuccess) {
+    status.consecutiveErrors = 0;
+    status.cooldownUntil = 0;
+  } else {
+    status.consecutiveErrors++;
+    const isRateLimit = errorStatus === 429;
+    const cooldownMultiplier = isRateLimit ? Math.pow(2, status.consecutiveErrors) : 1;
+    const cooldownDuration = Math.min(COOLDOWN_BASE_MS * cooldownMultiplier, MAX_COOLDOWN_MS);
+    status.cooldownUntil = Date.now() + cooldownDuration;
+    
+    console.warn(`[AI Service] Provider ${provider} entered cooldown for ${Math.round(cooldownDuration/1000)}s due to ${isRateLimit ? '429 Quota' : 'Error'}`);
+  }
+}
+
+function isProviderAvailable(provider: 'openai' | 'gemini'): boolean {
+  if (provider === 'openai' && !openai) return false;
+  if (provider === 'gemini' && !gemini) return false;
+  return Date.now() >= PROVIDER_STATUS[provider].cooldownUntil;
+}
+
+/**
  * Normalizes embedding to 1536 dimensions.
  * Gemini (text-embedding-004) returns 768 dimensions.
  * OpenAI (text-embedding-3-small) returns 1536 dimensions.
@@ -43,26 +76,30 @@ function normalizeEmbedding(values: number[]): number[] {
  */
 export async function embed(text: string): Promise<number[]> {
   // 1. Try OpenAI (Native 1536 dims)
-  if (openai) {
+  if (isProviderAvailable('openai')) {
     try {
-      const response = await openai.embeddings.create({
+      const response = await openai!.embeddings.create({
         model: "text-embedding-3-small",
         input: text.replace(/\n/g, " "),
       });
+      updateProviderHealth('openai', true);
       return response.data[0].embedding;
     } catch (error: any) {
       console.error("[AI Service] OpenAI embedding error:", error.message);
+      updateProviderHealth('openai', false, error.status);
     }
   }
 
   // 2. Try Gemini (768 dims -> padded to 1536)
-  if (gemini) {
+  if (isProviderAvailable('gemini')) {
     try {
-      const model = gemini.getGenerativeModel({ model: "text-embedding-004" });
+      const model = gemini!.getGenerativeModel({ model: "text-embedding-004" });
       const result = await model.embedContent(text);
+      updateProviderHealth('gemini', true);
       return normalizeEmbedding(result.embedding.values);
     } catch (error: any) {
        console.error("[AI Service] Gemini embedding error:", error.message);
+       updateProviderHealth('gemini', false, error.status);
     }
   }
 
@@ -74,15 +111,17 @@ export async function embed(text: string): Promise<number[]> {
  * Batch generate embeddings for multiple texts
  */
 export async function embedBatch(texts: string[]): Promise<number[][]> {
-  if (openai) {
+  if (isProviderAvailable('openai')) {
     try {
-      const response = await openai.embeddings.create({
+      const response = await openai!.embeddings.create({
         model: "text-embedding-3-small",
         input: texts.map(t => t.replace(/\n/g, " ")),
       });
+      updateProviderHealth('openai', true);
       return response.data.map((d) => d.embedding);
     } catch (error: any) {
       console.error("[AI Service] OpenAI batch embedding error:", error.message);
+      updateProviderHealth('openai', false, error.status);
     }
   }
 
@@ -110,9 +149,9 @@ export async function generateReply(
 ): Promise<{ text: string; tokensUsed: number }> {
   
   const tryOpenAI = async () => {
-    if (!openai) return null;
+    if (!isProviderAvailable('openai')) return null;
     try {
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: options?.model || MODELS.sales_reasoning || AI_MODEL,
         messages: [
           { role: "system", content: systemPrompt },
@@ -123,24 +162,23 @@ export async function generateReply(
         temperature: options?.temperature || 0.7
       });
 
+      updateProviderHealth('openai', true);
       return {
         text: response.choices[0].message.content || "",
         tokensUsed: response.usage?.total_tokens || 0
       };
     } catch (error: any) {
       console.error("[AI Service] OpenAI error:", error.message);
-      if (error.status === 429 || error.message.includes("quota")) {
-        return "FALLBACK_TRIGGERED";
-      }
+      updateProviderHealth('openai', false, error.status);
       return null;
     }
   };
 
   const tryGemini = async () => {
-    if (!gemini) return null;
+    if (!isProviderAvailable('gemini')) return null;
     try {
       const modelName = options?.model?.includes("gemini") ? options.model : MODELS.content_generation || "gemini-1.5-pro";
-      const model = gemini.getGenerativeModel({ 
+      const model = gemini!.getGenerativeModel({ 
         model: modelName,
         generationConfig: {
           temperature: options?.temperature || 0.7,
@@ -153,27 +191,29 @@ export async function generateReply(
       const result = await model.generateContent(userPrompt);
       const data = result.response;
       
+      updateProviderHealth('gemini', true);
       return {
         text: data.text(),
         tokensUsed: data.usageMetadata?.totalTokenCount || 0
       };
     } catch (error: any) {
       console.error("[AI Service] Gemini error:", error.message);
+      updateProviderHealth('gemini', false, error.status);
       return null;
     }
   };
 
-  // Execution flow
+  // Execution flow with circuit breaking availability
   if (PREFERRED_PROVIDER === "openai") {
     const res = await tryOpenAI();
-    if (res && res !== "FALLBACK_TRIGGERED") return res;
+    if (res) return res;
     const geminiRes = await tryGemini();
     if (geminiRes) return geminiRes;
   } else {
     const res = await tryGemini();
     if (res) return res;
     const openaiRes = await tryOpenAI();
-    if (openaiRes && openaiRes !== "FALLBACK_TRIGGERED") return openaiRes;
+    if (openaiRes) return openaiRes;
   }
 
   // Demo Fallback
@@ -197,31 +237,35 @@ export async function classify(
   const systemPrompt = `Classify text into: ${categories.join(", ")}. Respond JSON: { "category": "...", "confidence": 0.0-1.0 }`;
 
   const geminiClassify = async () => {
-    if (!gemini) return null;
+    if (!isProviderAvailable('gemini')) return null;
     try {
-      const model = gemini.getGenerativeModel({ 
+      const model = gemini!.getGenerativeModel({ 
         model: MODELS.intent_classification?.includes("gemini") ? MODELS.intent_classification : "gemini-1.5-flash",
         generationConfig: { responseMimeType: "application/json" },
         systemInstruction: systemPrompt
       });
       const result = await model.generateContent(text);
+      updateProviderHealth('gemini', true);
       return JSON.parse(result.response.text());
     } catch (e) {
+      updateProviderHealth('gemini', false);
       return null;
     }
   };
 
   const openaiClassify = async () => {
-    if (!openai) return null;
+    if (!isProviderAvailable('openai')) return null;
     try {
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: MODELS.intent_classification || "gpt-4o-mini",
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: text }],
         response_format: { type: "json_object" },
         max_completion_tokens: 100,
       });
+      updateProviderHealth('openai', true);
       return JSON.parse(response.choices[0].message.content || "{}");
-    } catch (e) {
+    } catch (e: any) {
+      updateProviderHealth('openai', false, e.status);
       return null;
     }
   };
@@ -242,24 +286,32 @@ export async function generateInsights(data: any, prompt: string): Promise<strin
   const systemPrompt = "Analyze data and generate concise, actionable insights.";
 
   const geminiInsights = async () => {
-    if (!gemini) return null;
+    if (!isProviderAvailable('gemini')) return null;
     try {
-      const model = gemini.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
+      const model = gemini!.getGenerativeModel({ model: "gemini-1.5-flash", systemInstruction: systemPrompt });
       const result = await model.generateContent(fullPrompt);
+      updateProviderHealth('gemini', true);
       return result.response.text();
-    } catch (e) { return null; }
+    } catch (e) { 
+      updateProviderHealth('gemini', false);
+      return null; 
+    }
   };
 
   const openaiInsights = async () => {
-    if (!openai) return null;
+    if (!isProviderAvailable('openai')) return null;
     try {
-      const response = await openai.chat.completions.create({
+      const response = await openai!.chat.completions.create({
         model: AI_MODEL,
         messages: [{ role: "system", content: systemPrompt }, { role: "user", content: fullPrompt }],
         max_completion_tokens: 500,
       });
+      updateProviderHealth('openai', true);
       return response.choices[0].message.content || "";
-    } catch (e) { return null; }
+    } catch (e: any) { 
+      updateProviderHealth('openai', false, e.status);
+      return null; 
+    }
   };
 
   return (PREFERRED_PROVIDER === "gemini" ? await geminiInsights() : await openaiInsights()) || "Revenue performance is stable with 12% growth in engagement signals.";

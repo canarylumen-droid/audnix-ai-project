@@ -87,22 +87,22 @@ export function ProblemSection() {
                                 scale: 1.02,
                             }}
                             transition={{ delay: i * 0.1, duration: 0.6 }}
-                            className="p-8 rounded-3xl bg-white/[0.03] backdrop-blur-xl border border-white/10 hover:border-primary/20 hover:bg-white/[0.05] transition-all group shadow-sm"
+                            className="p-8 rounded-3xl bg-card backdrop-blur-xl border border-border/40 hover:border-primary/20 hover:bg-card/80 transition-all group shadow-sm"
                         >
                             <div className="flex justify-between items-start mb-8">
-                                <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
+                                <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 shadow-sm">
                                     <point.icon className="w-6 h-6" />
                                 </div>
-                                <span className="text-[10px] font-black text-white/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
+                                <span className="text-[10px] font-black text-foreground/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
                                     0{i + 1}
                                 </span>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-4 tracking-tight uppercase">{point.title}</h3>
-                            <p className="text-white/40 text-sm leading-relaxed mb-8 font-medium">
+                            <h3 className="text-xl font-bold text-foreground mb-4 tracking-tight uppercase">{point.title}</h3>
+                            <p className="text-muted-foreground text-sm leading-relaxed mb-8 font-medium">
                                 {point.desc}
                             </p>
-                            <div className="pt-6 border-t border-white/5 flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">Performance Impact</span>
+                            <div className="pt-6 border-t border-border/10 flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/30">Performance Impact</span>
                                 <span className="text-xs font-bold text-primary">{point.impact}</span>
                             </div>
                         </motion.div>
@@ -113,7 +113,7 @@ export function ProblemSection() {
                     initial={{ opacity: 0, scale: 0.98 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
-                    className="mt-16 p-12 md:p-20 rounded-[3rem] bg-white/[0.02] border border-white/5 text-center relative overflow-hidden group shadow-sm"
+                    className="mt-16 p-12 md:p-20 rounded-[3rem] bg-card border border-border/40 text-center relative overflow-hidden group shadow-sm"
                 >
                     <div className="absolute inset-0 bg-grid opacity-5" />
                     <div className="relative z-10">
@@ -121,10 +121,10 @@ export function ProblemSection() {
                             <div className="p-3 rounded-xl bg-primary/10 mb-6 group-hover:scale-110 transition-transform">
                                 <DollarSign className="w-6 h-6 text-primary" />
                             </div>
-                            <span className="text-6xl md:text-9xl font-bold tracking-tighter text-white mb-6">$142,000</span>
+                            <span className="text-6xl md:text-9xl font-bold tracking-tighter text-foreground mb-6">$142,000</span>
                         </div>
-                        <p className="text-white/40 font-bold uppercase tracking-[0.2em] max-w-2xl mx-auto text-xs md:text-sm leading-relaxed">
-                            Mean annual revenue loss for companies with 50+ monthly leads due to <span className="text-white">manual latency and follow-up errors.</span>
+                        <p className="text-muted-foreground font-bold uppercase tracking-[0.2em] max-w-2xl mx-auto text-xs md:text-sm leading-relaxed">
+                            Mean annual revenue loss for companies with 50+ monthly leads due to <span className="text-foreground font-semibold">manual latency and follow-up errors.</span>
                         </p>
                     </div>
                 </motion.div>

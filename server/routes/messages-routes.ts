@@ -6,19 +6,6 @@ import { sendInstagramMessage } from "../lib/channels/instagram.js";
 
 const router = Router();
 
-/**
- * GET /api/smtp/settings
- * Get SMTP settings for the current user
- */
-router.get("/smtp/settings", requireAuth, async (req: Request, res: Response) => {
-  try {
-    const userId = getCurrentUserId(req)!;
-    const settings = await storage.getSmtpSettings(userId);
-    res.json(settings);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch SMTP settings" });
-  }
-});
 
 /**
  * GET /api/messages/:leadId
@@ -153,6 +140,29 @@ router.post("/:leadId", requireAuth, async (req: Request, res: Response): Promis
   } catch (error: unknown) {
     console.error("Send message error:", error);
     res.status(500).json({ error: "Failed to send message" });
+  }
+});
+
+/**
+ * POST /api/messages/:leadId/read
+ * Mark all notifications for this lead as read
+ */
+router.post("/:leadId/read", requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const { leadId } = req.params;
+
+    const lead = await storage.getLeadById(leadId);
+    if (!lead || lead.userId !== userId) {
+      res.status(404).json({ error: "Lead not found" });
+      return;
+    }
+
+    await storage.markLeadNotificationsAsRead(leadId, userId);
+    res.json({ success: true });
+  } catch (error: unknown) {
+    console.error("Mark messages read error:", error);
+    res.status(500).json({ error: "Failed to mark messages as read" });
   }
 });
 

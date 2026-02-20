@@ -82,11 +82,11 @@ export function ROICalculator() {
   };
 
   return (
-    <section className="py-40 px-4 relative overflow-hidden bg-black">
+    <section className="py-40 px-4 relative overflow-hidden bg-background">
       {/* Background Ambience */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[600px] bg-primary/5 blur-[120px] rounded-full" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black to-transparent z-10" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent z-10" />
       </div>
 
       <div className="max-w-6xl mx-auto relative z-20">
@@ -99,11 +99,11 @@ export function ROICalculator() {
           >
             Profitability Projection
           </motion.div>
-          <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter uppercase leading-[0.9]">
+          <h2 className="text-5xl md:text-8xl font-black text-foreground mb-8 tracking-tighter uppercase leading-[0.9]">
             Architect your <br />
             <span className="text-primary">Revenue Engine.</span>
           </h2>
-          <p className="text-xl text-white/50 max-w-2xl mx-auto font-medium">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium">
             Most legacy CRMs track leads. Audnix converts them. Use our deterministic model to see exactly how much revenue you're leaving on the table.
           </p>
         </div>
@@ -117,12 +117,12 @@ export function ROICalculator() {
               <div className="space-y-6">
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
-                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <label className="text-muted-foreground text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                       <Users className="w-3 h-3 text-primary" /> Monthly Leads
                     </label>
-                    <p className="text-white text-sm font-bold">Volume of inbound prospects</p>
+                    <p className="text-foreground text-sm font-bold">Volume of inbound prospects</p>
                   </div>
-                  <span className="text-4xl font-black text-white tracking-tighter">{leadsPerMonth}</span>
+                  <span className="text-4xl font-black text-foreground tracking-tighter">{leadsPerMonth}</span>
                 </div>
                 <Slider
                   value={[leadsPerMonth]}
@@ -201,12 +201,12 @@ export function ROICalculator() {
               <div className="space-y-6">
                 <div className="flex justify-between items-end">
                   <div className="space-y-1">
-                    <label className="text-white/40 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <label className="text-muted-foreground text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                       <Target className="w-3 h-3 text-primary" /> Annual Target
                     </label>
-                    <p className="text-white text-sm font-bold">Revenue goal for the year</p>
+                    <p className="text-foreground text-sm font-bold">Revenue goal for the year</p>
                   </div>
-                  <span className="text-3xl font-black text-white tracking-tighter">{formatCurrency(annualRevenueGoal)}</span>
+                  <span className="text-3xl font-black text-foreground tracking-tighter">{formatCurrency(annualRevenueGoal)}</span>
                 </div>
                 <Slider
                   value={[annualRevenueGoal]}
@@ -256,12 +256,12 @@ export function ROICalculator() {
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                   <X className="w-12 h-12 text-red-500" />
                 </div>
-                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]">Manual Baseline ({currentConvRate}%)</h4>
+                <h4 className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">Manual Baseline ({currentConvRate}%)</h4>
                 <div className="space-y-1">
-                  <p className="text-5xl font-black text-white tracking-tighter">
+                  <p className="text-5xl font-black text-foreground tracking-tighter">
                     <Counter value={calculations.manualRevenue} prefix="$" />
                   </p>
-                  <p className="text-white/40 text-sm font-bold">Revenue Per Month</p>
+                  <p className="text-muted-foreground text-sm font-bold">Revenue Per Month</p>
                 </div>
                 <div className="pt-6 border-t border-white/5">
                   <p className="text-white/60 font-medium text-sm">
@@ -321,10 +321,10 @@ export function ROICalculator() {
 
               <div className="space-y-4 text-center md:text-left">
                 <p className="text-primary text-[10px] font-black uppercase tracking-[0.3em]">Potential Incremental Yield</p>
-                <p className="text-6xl md:text-7xl font-black text-white tracking-tighter">
+                <p className="text-6xl md:text-7xl font-black text-foreground tracking-tighter">
                   +<Counter value={calculations.additionalRevenue} prefix="$" />
                 </p>
-                <p className="text-white/40 text-sm font-medium max-w-sm">
+                <p className="text-muted-foreground text-sm font-medium max-w-sm">
                   Additional revenue reclaimed from "lost" leads using autonomous follow-up and objection mastery.
                 </p>
               </div>

@@ -36,6 +36,8 @@ export interface IStorage {
   getLead(id: string): Promise<Lead | undefined>;
   getLeadById(id: string): Promise<Lead | undefined>;
   getLeadByEmail(email: string, userId: string): Promise<Lead | undefined>;
+  getExistingEmails(userId: string, emails: string[]): Promise<string[]>;
+  getLeadsCount(userId: string): Promise<number>;
   getLeadByUsername(username: string, channel: string): Promise<Lead | undefined>;
   getLeadBySocialId(socialId: string, channel: string): Promise<Lead | undefined>;
   createLead(lead: Partial<InsertLead> & { userId: string; name: string; channel: string }, options?: { suppressNotification?: boolean }): Promise<Lead>;
@@ -195,6 +197,8 @@ export interface IStorage {
     messagesYesterday: number;
     pipelineValue: number;
     closedRevenue: number;
+    openRate: number;
+    responseRate: number;
   }>;
 
   getAnalyticsFull(userId: string, days: number): Promise<{
@@ -267,6 +271,15 @@ export class MemStorage implements IStorage {
   async getVoiceMinutesBalance(userId: string): Promise<number> {
     const user = this.users.get(userId);
     return (Number(user?.voiceMinutesUsed) || 0) + (Number(user?.voiceMinutesTopup) || 0);
+  }
+
+  async getExistingEmails(userId: string, emails: string[]): Promise<string[]> {
+    const userLeads = Array.from(this.leads.values()).filter(l => l.userId === userId);
+    return emails.filter(e => userLeads.some(l => l.email === e));
+  }
+
+  async getLeadsCount(userId: string): Promise<number> {
+    return Array.from(this.leads.values()).filter(l => l.userId === userId).length;
   }
 
   // --- Organization Methods ---
@@ -1196,6 +1209,8 @@ return { deletedUsers: deletedCount };
   messagesYesterday: number;
   pipelineValue: number;
   closedRevenue: number;
+  openRate: number;
+  responseRate: number;
 } > {
   const leads = Array.from(this.leads.values()).filter(l => {
     const matchUserId = l.userId === userId;
@@ -1269,6 +1284,8 @@ return { deletedUsers: deletedCount };
       }).length,
       pipelineValue: explicitDealValue + predictedDealValue,
       closedRevenue: deals.filter(d => d.status === 'converted' || d.status === 'closed_won').reduce((sum, d) => sum + (Number(d.value) || 0), 0),
+      openRate: 0,
+      responseRate: 0,
     };
   }
 

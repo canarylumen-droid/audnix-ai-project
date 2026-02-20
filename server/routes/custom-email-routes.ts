@@ -436,6 +436,20 @@ router.post('/send-test', requireAuth, async (req: Request, res: Response): Prom
 });
 
 /**
+ * Get SMTP settings for the current user
+ */
+router.get('/settings', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = getCurrentUserId(req)!;
+    const settings = await storage.getSmtpSettings(userId);
+    res.json(settings);
+  } catch (error) {
+    console.error('[Email Settings] Error:', error);
+    res.status(500).json({ error: 'Failed to fetch SMTP settings' });
+  }
+});
+
+/**
  * Get discovered folders for the connected account
  */
 router.get('/folders', requireAuth, async (req: Request, res: Response): Promise<void> => {

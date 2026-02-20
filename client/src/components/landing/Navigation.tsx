@@ -59,8 +59,8 @@ export function Navigation() {
     <div className="fixed top-0 left-0 right-0 z-[100] flex justify-center p-4 pointer-events-none">
       <motion.nav
         className={`pointer-events-auto flex items-center justify-between px-6 md:px-8 py-3 transition-all duration-700 rounded-2xl border ${scrolled
-          ? "glass-premium w-full max-w-7xl shadow-2xl"
-          : "bg-transparent backdrop-blur-none w-full md:w-[95%] lg:w-[85%] border-transparent"
+          ? "glass-premium w-[95%] max-w-7xl shadow-2xl border-primary/20"
+          : "bg-transparent backdrop-blur-none w-full border-transparent"
           }`}
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -254,18 +254,18 @@ export function Navigation() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-[#030712] border-l border-white/10 p-6 flex flex-col shadow-2xl overflow-y-auto"
+              className="absolute right-0 top-0 bottom-0 w-[85%] sm:w-[320px] bg-background border-l border-border/40 p-6 flex flex-col shadow-2xl overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-10">
-                <span className="text-lg font-black tracking-tighter uppercase text-white">Audnix<span className="text-cyan-500">.AI</span></span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setMobileMenuOpen(false)} 
-                  className="rounded-xl hover:bg-white/5 text-white/60 hover:text-white"
-                >
-                  <ChevronDown className="w-6 h-6 rotate-90" />
-                </Button>
+                <span className="text-lg font-black tracking-tighter uppercase text-foreground">Audnix<span className="text-primary">.AI</span></span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setMobileMenuOpen(false)} 
+                    className="rounded-xl hover:bg-primary/10 text-primary hover:text-primary-foreground"
+                  >
+                    <ChevronDown className="w-6 h-6 rotate-90" />
+                  </Button>
               </div>
 
               <div className="flex flex-col gap-4">
@@ -293,11 +293,11 @@ export function Navigation() {
                       }, 300);
                     }}
                   >
-                    <div className="flex items-center justify-between py-4 border-b border-white/5 group-active:translate-x-2 transition-transform cursor-pointer">
-                      <span className="text-xl font-bold tracking-tight text-white/60 group-hover:text-cyan-500 transition-colors">
+                    <div className="flex items-center justify-between py-5 border-b border-primary/5 group-active:bg-primary/5 px-2 rounded-xl transition-all cursor-pointer w-full h-full min-h-[60px]">
+                      <span className="text-xl font-bold tracking-tight text-foreground group-hover:text-primary transition-colors">
                         {link.name}
                       </span>
-                      <ChevronDown className="w-5 h-5 -rotate-90 text-white/20 group-hover:text-cyan-500 transition-colors" />
+                      <ChevronDown className="w-5 h-5 -rotate-90 text-primary/40 group-hover:text-primary transition-colors" />
                     </div>
                   </div>
                 ))}

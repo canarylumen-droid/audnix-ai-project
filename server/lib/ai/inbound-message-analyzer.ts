@@ -194,6 +194,24 @@ export async function analyzeInboundMessage(
     console.error("Failed to upsert lead insight:", insightErr);
   }
 
+  // NEW: Log intent detection to audit trail for dashboard activity
+  try {
+    await storage.createAuditLog({
+      userId: lead.userId,
+      leadId,
+      action: 'intent_detected',
+      details: {
+        message: `AI detected ${deepIntent?.intentLevel || 'neutral'} intent from ${lead.name}`,
+        intentLevel: deepIntent?.intentLevel,
+        intentScore: deepIntent?.intentScore,
+        suggestedAction,
+        urgencyLevel
+      }
+    });
+  } catch (auditErr) {
+    console.error("Failed to log intent to audit trail:", auditErr);
+  }
+
   console.log(`✅ [ANALYZER] Analysis complete for lead ${leadId}:`, {
     urgency: urgencyLevel,
     qualityScore: qualityResult?.score,

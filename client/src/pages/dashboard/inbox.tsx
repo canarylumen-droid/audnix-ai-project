@@ -32,7 +32,7 @@ import {
   Inbox as InboxIcon,
   Star,
   Instagram,
-  Mail as MailIcon,
+  Mail,
   RefreshCw,
   MoreVertical,
   Check,
@@ -66,7 +66,6 @@ import {
   ArrowRight,
   Filter,
   Zap,
-  Mail,
 } from "lucide-react";
 import {
   Accordion,
@@ -77,7 +76,7 @@ import {
 
 const channelIcons = {
   instagram: Instagram,
-  email: MailIcon,
+  email: Mail,
 };
 
 const statusStyles = {
@@ -111,10 +110,7 @@ export default function InboxPage() {
   const [typingLeadId, setTypingLeadId] = useState<string | null>(null); // Track which lead is typing
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu({
-    onUnarchive: (leadId) => handleMenuAction('unarchive', { id: leadId }),
-    onArchive: (leadId) => handleMenuAction('archive', { id: leadId }),
-  });
+  const { contextConfig, handleContextMenu, closeMenu } = useContextMenu();
 
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/user/profile"] });
 
@@ -222,16 +218,23 @@ export default function InboxPage() {
 
   // Handle clearing unread status when lead is selected
   useEffect(() => {
-    if (leadId && activeLead?.metadata?.isUnread) {
-      const { isUnread, ...restMetadata } = activeLead.metadata;
-      apiRequest("PATCH", `/api/leads/${leadId}`, {
-        metadata: restMetadata
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
-      });
+    if (leadId) {
+      // Clear lead-specific notifications on the server
+      apiRequest("POST", `/api/messages/${leadId}/read`).catch(console.error);
+
+      if (activeLead?.metadata?.isUnread) {
+        const { isUnread, ...restMetadata } = activeLead.metadata;
+        apiRequest("PATCH", `/api/leads/${leadId}`, {
+          metadata: restMetadata
+        }).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+        });
+      }
+      
+      // Always refresh notifications when a lead is opened
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
     }
-  }, [leadId, activeLead, queryClient]);
+  }, [leadId, activeLead?.id, queryClient]); // Use activeLead?.id to prevent loop if metadata object changes but ID is same
 
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead: any) => {
@@ -672,9 +675,10 @@ export default function InboxPage() {
 
                       {leadId === lead.id && <motion.div layoutId="activeLead" className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                       <div className={cn("flex gap-3 items-center transition-all", (selectedLeadIds.length > 0 || selectedLeadIds.includes(lead.id)) && "pl-8")}>
-                        <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0">
+                        <Avatar className="h-12 w-12 border-2 border-background shadow-sm transition-transform group-hover:scale-105 shrink-0 rounded-full">
+                          <AvatarImage src={lead.avatar} />
                           <AvatarFallback className={cn(
-                            "font-bold text-sm",
+                            "font-bold text-sm rounded-full",
                             lead.id === leadId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                           )}>{lead.name?.[0]}</AvatarFallback>
                         </Avatar>
@@ -691,7 +695,7 @@ export default function InboxPage() {
                                 Typinng...
                               </span>
                             ) : (
-                              lead.lastMessageSnippet || "No messages"
+                              lead.snippet || "No messages"
                             )}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
@@ -763,8 +767,9 @@ export default function InboxPage() {
                       <ChevronLeft className="h-5 w-5" />
                     </Button>
 
-                    <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm">
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold">{activeLead?.name?.[0]}</AvatarFallback>
+                    <Avatar className="h-10 w-10 shrink-0 border-2 border-background shadow-sm rounded-full">
+                      <AvatarImage src={activeLead?.avatar} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-full">{activeLead?.name?.[0]}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
                       <h3 className="text-base font-bold truncate leading-none mb-1" title={activeLead?.name}>{activeLead?.name}</h3>
@@ -988,8 +993,8 @@ export default function InboxPage() {
                       <div className={cn(
                         "max-w-[85%] md:max-w-[70%] p-4 rounded-2xl text-sm shadow-sm relative group transition-all hover:shadow-md",
                         msg.direction === 'inbound'
-                          ? "bg-card text-foreground rounded-tl-none border border-border/50"
-                          : "bg-primary text-primary-foreground rounded-tr-none shadow-primary/20"
+                          ? "bg-white text-black rounded-tl-none border border-border/50 shadow-sm"
+                          : "bg-primary text-primary-foreground rounded-tr-none shadow-md shadow-primary/20"
                       )}>
                         <div className="whitespace-pre-wrap break-words leading-relaxed">{msg.body}</div>
                         {msg.metadata?.disclaimer && (

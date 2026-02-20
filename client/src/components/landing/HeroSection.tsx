@@ -27,118 +27,84 @@ import { Magnetic } from "@/components/ui/Magnetic";
 const AIEngineMockup = () => {
   const [activeStep, setActiveStep] = useState(0);
 
-  // Simulating the "Deep Backend" analysis loop
   const systemLogs = [
-    { type: 'intent', text: 'Analyzing Lead Intent...', status: 'Verified', color: 'text-cyan-400' },
-    { type: 'objection', text: 'Checking 110+ Objections...', status: 'Clear', color: 'text-blue-400' },
-    { type: 'timing', text: 'Predictive Timing Algorithm', status: 'Delay: 4m 12s (Humanizing)', color: 'text-purple-400' },
-    { type: 'churn', text: 'Drop-off Risk Detection', status: 'Low (2%)', color: 'text-orange-400' }
+    { type: 'intent', text: 'Analyzing Lead Psychographics...', status: 'Verified', color: 'text-cyan-400' },
+    { type: 'objection', text: 'Resolving 12+ Active Objections', status: 'Clear', color: 'text-blue-400' },
+    { type: 'timing', text: 'Humanizing Sequence Timing', status: 'Active', color: 'text-purple-400' },
+    { type: 'conversion', text: 'Securing Calendar Commit...', status: 'Booked', color: 'text-cyan-500' }
   ];
 
-  const conversations = [
-    { name: "Sarah M.", action: "Deploying 'Closing System'...", status: "Intent Verified", channel: "instagram" },
-    { name: "James K.", action: "Simulating Objection (Price)...", status: "Handling...", channel: "email" },
-    { name: "Alex R.", action: "Scheduling Call (Auto-Pilot)", status: "Booked", channel: "instagram" },
+  const threads = [
+    { name: "Sarah Miller", status: "Closing Flow", color: "bg-cyan-500/10 text-cyan-400" },
+    { name: "James Wilson", status: "Inbound Analysis", color: "bg-blue-500/10 text-blue-400" },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveStep((prev) => (prev + 1) % systemLogs.length);
-    }, 2000);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.8, duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-      className="relative w-full max-w-xl"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="relative w-full aspect-[4/3] rounded-[2rem] border border-border/10 bg-card/40 backdrop-blur-3xl overflow-hidden shadow-2xl p-6 md:p-8 flex flex-col gap-6 group/mockup"
     >
-      {/* Glow Background */}
-      <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+      <div className="flex items-center justify-between border-b border-border/5 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
+            <Zap className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Audnix Engine v4.0</h3>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50">System: Operational</p>
+          </div>
+        </div>
+        <div className="px-3 py-1 rounded-full bg-muted border border-border/10 text-[10px] font-mono text-muted-foreground">
+          4ms Response
+        </div>
+      </div>
 
-      {/* Premium Liquid Glass Card */}
-      <motion.div
-        className="relative rounded-[2.5rem] p-8 overflow-hidden group/card shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/5 bg-white/[0.02] backdrop-blur-2xl"
-        whileHover={{ scale: 1.02, rotateY: -1, rotateX: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        style={{
-          background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)",
-        }}
-      >
-        {/* Liquid Animation Layer */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
+      <div className="flex-1 space-y-4 overflow-hidden">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/20">Live Neural Stream</p>
+        {systemLogs.map((log, i) => (
           <motion.div
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-              scale: [1, 1.2, 1],
+            key={i}
+            animate={{ 
+              opacity: activeStep === i ? 1 : 0.4,
+              x: activeStep === i ? 10 : 0
             }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-cyan-500/20 via-transparent to-blue-500/20 blur-3xl"
-          />
-        </div>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 border-b border-border/5 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
-              <Server className="w-5 h-5 text-primary" />
+            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+              activeStep === i ? 'bg-primary/10 border-primary/20' : 'border-transparent'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Activity className={`w-3.5 h-3.5 ${log.color}`} />
+              <span className="text-xs font-medium text-foreground/80">{log.text}</span>
             </div>
-            <div>
-              <h3 className="text-foreground font-bold text-sm">Audnix AI Core v2.4</h3>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-mono">System Active</span>
-              </div>
-            </div>
-          </div>
-          <div className="px-3 py-1 rounded-full bg-muted border border-border text-[10px] font-mono text-muted-foreground">
-            Latency: 42ms
-          </div>
-        </div>
+            <span className={`text-[10px] font-black tracking-widest ${log.color}`}>{log.status}</span>
+          </motion.div>
+        ))}
+      </div>
 
-        {/* Real-time System Logs */}
-        <div className="space-y-3 mb-8">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold mb-2">Live Logic Stream</p>
-          {systemLogs.map((log, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0.3 }}
-              animate={{ opacity: activeStep === i ? 1 : 0.3, x: activeStep === i ? 5 : 0 }}
-              className={`flex items-center justify-between p-3 rounded-lg border ${activeStep === i ? 'border-primary/20 bg-primary/5' : 'border-transparent'}`}
-            >
-              <div className="flex items-center gap-3">
-                <Activity className={`w-3 h-3 ${log.color}`} />
-                <span className="text-xs font-mono text-foreground/80">{log.text}</span>
-              </div>
-              <span className={`text-[10px] font-bold ${log.color}`}>{log.status}</span>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Active Conversations Preview */}
-        <div className="space-y-4">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-bold">Active Threads</p>
-          {conversations.map((convo, i) => (
+      <div className="space-y-3 pt-4 border-t border-border/5">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/20">Active Deployments</p>
+        <div className="grid grid-cols-1 gap-2">
+          {threads.map((thread, i) => (
             <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/10">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${convo.channel === 'instagram' ? 'bg-fuchsia-500/20 text-fuchsia-500' : 'bg-blue-500/20 text-blue-500'}`}>
-                  {convo.channel === 'instagram' ? <Instagram className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-primary">{thread.name[0]}</span>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground"> {convo.name}</p>
-                  <p className="text-[10px] text-muted-foreground"> {convo.action}</p>
-                </div>
+                <span className="text-xs font-bold text-foreground">{thread.name}</span>
               </div>
-              <div className="px-2 py-1 rounded-md bg-cyan-500/20 border border-cyan-500/30 text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">
-                {convo.status}
-              </div>
+              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${thread.color}`}>{thread.status}</span>
             </div>
           ))}
         </div>
-
-      </motion.div>
+      </div>
     </motion.div>
   );
 };
@@ -186,15 +152,15 @@ export function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex items-center pt-32 pb-20 px-4 overflow-hidden font-sans"
+      className="relative min-h-[100vh] lg:h-[100vh] flex items-center pt-24 pb-12 px-4 overflow-hidden"
     >
-      <div className="absolute inset-0 bg-background/80 dark:bg-black/40 pointer-events-none" />
+      <div className="absolute inset-0 bg-background/95 dark:bg-black/80 pointer-events-none" />
       <GridPattern />
 
       {/* Ambient Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-20 dark:opacity-40">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/20 blur-[150px] rounded-full" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/20 blur-[130px] rounded-full" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120vw] h-[120vh] z-0 pointer-events-none opacity-10 dark:opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 blur-[150px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-500/10 blur-[130px] rounded-full" />
       </div>
 
       <motion.div className="absolute inset-0 z-[1] pointer-events-none" style={{ background: mouseGlow }} />
@@ -226,10 +192,10 @@ export function HeroSection() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                className="text-4xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-4 text-white"
+                className="text-5xl md:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-4 text-foreground break-words sm:break-normal"
               >
                 AUTONOMOUS<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-primary to-blue-500 uppercase drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 via-primary to-blue-600 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]">
                   OUTBOUND.
                 </span>
               </motion.h1>
@@ -238,9 +204,9 @@ export function HeroSection() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 1 }}
-                className="text-lg md:text-2xl lg:text-3xl text-white/60 font-medium tracking-tight max-w-3xl lg:mx-0 mx-auto leading-tight"
+                className="text-lg md:text-2xl lg:text-3xl text-muted-foreground font-medium tracking-tight max-w-3xl lg:mx-0 mx-auto leading-relaxed"
               >
-                Scale your sales pipeline with <span className="text-white">Autonomous Agents</span> that master your brand voice, handle complex objections, and secure meetings 24/7.
+                Scale your sales pipeline with <span className="text-foreground">Autonomous Agents</span> that master your brand voice, handle complex objections, and secure meetings 24/7.
               </motion.p>
             </div>
 
@@ -270,7 +236,7 @@ export function HeroSection() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.25rem] md:rounded-[2rem] border-white/10 bg-white/5 hover:bg-white/10 text-white font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
+                    className="h-16 md:h-20 px-8 md:px-12 rounded-[1.25rem] md:rounded-[2rem] border-primary/20 bg-primary/5 hover:bg-primary/10 text-foreground font-black text-base md:text-xl backdrop-blur-md transition-all uppercase tracking-widest w-full sm:w-auto"
                   >
                     View Logic Hub
                   </Button>

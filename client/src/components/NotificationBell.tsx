@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtime } from "@/hooks/use-realtime";
 
 interface NotificationResponse {
   unreadCount: number;
@@ -32,11 +33,12 @@ export function NotificationBell() {
   const [showDropdown, setShowDropdown] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { socket } = useRealtime();
 
   // Fetch notifications count
   const { data: notifications } = useQuery<NotificationResponse>({
     queryKey: ["/api/notifications"],
-    refetchInterval: 5000,
+    refetchInterval: 10000, // Increased interval since we have WS now
   });
 
   // Play notification sound
@@ -51,7 +53,7 @@ export function NotificationBell() {
 
   // Monitor for changes
   useEffect(() => {
-    if (notifications && notifications.unreadCount) {
+    if (notifications) {
       if (notifications.unreadCount > count) {
         // New notification came in
         setIsWiggling(true);
@@ -65,7 +67,28 @@ export function NotificationBell() {
       }
       setCount(notifications.unreadCount);
     }
-  }, [notifications, count]);
+  }, [notifications?.unreadCount, count]);
+
+  // Real-time sync via WebSocket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotificationUpdate = (data: any) => {
+      // Refresh the query when a notification event occurs
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+      
+      if (data?.type === 'lead_reply' || data?.type === 'conversion' || data?.type === 'new_lead') {
+        setIsWiggling(true);
+        playNotificationSound();
+        setTimeout(() => setIsWiggling(false), 1000);
+      }
+    };
+
+    socket.on('notification', handleNotificationUpdate);
+    return () => {
+      socket.off('notification', handleNotificationUpdate);
+    };
+  }, [socket, queryClient]);
 
   // Handle clear all
   const handleClearAll = async () => {

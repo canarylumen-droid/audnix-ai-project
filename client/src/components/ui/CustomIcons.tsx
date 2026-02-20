@@ -64,41 +64,24 @@ export const CursorIcon = ({ className }: { className?: string }) => (
 
 import { motion } from "framer-motion";
 
-export const AudnixLogo = () => {
+export const AudnixLogo = ({ size = 80 }: { size?: number }) => {
     return (
         <div className="flex flex-col items-center gap-6">
-            <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative h-20 w-20"
-            >
-                <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl animate-pulse" />
-                <svg viewBox="0 0 40 40" fill="none" className="w-full h-full relative z-10 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">
+            <div className="relative" style={{ height: size, width: size }}>
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-3xl" />
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full relative z-10 drop-shadow-[0_0_20px_rgba(34,211,238,0.3)]">
                     <defs>
-                        <linearGradient id="premium-brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#60a5fa" />
+                        <linearGradient id="audnixGradient" x1="20" y1="4" x2="20" y2="31" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stopColor="#67e8f9" />
+                            <stop offset="100%" stopColor="#22d3ee" />
                         </linearGradient>
                     </defs>
-                    <motion.path
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: 1 }}
-                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.5 }}
-                        d="M20 7L30 28H10L20 7Z"
-                        stroke="url(#premium-brand-grad)"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    <motion.circle
-                        animate={{ scale: [1, 1.6, 1], opacity: [0.6, 1, 0.6] }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                        cx="20" cy="19" r="3.5"
-                        fill="url(#premium-brand-grad)"
-                    />
+                    <path d="M20 4L34 31H6L20 4Z" stroke="url(#audnixGradient)" strokeWidth="2.5" strokeLinejoin="round" opacity="0.25" />
+                    <path d="M20 7L30 28H10L20 7Z" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="20" cy="19" r="3.5" fill="#22d3ee" />
+                    <path d="M14 22H26" stroke="url(#audnixGradient)" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
                 </svg>
-            </motion.div>
+            </div>
         </div>
     );
 };

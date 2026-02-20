@@ -65,6 +65,10 @@ interface DashboardStats {
   lastSync?: string | null;
   engineStatus?: string;
   domainHealth?: number;
+  openRate?: number;
+  responseRate?: number;
+  pipelineValue?: number;
+  closedRevenue?: number;
 }
 
 interface PreviousDashboardStats {
@@ -216,16 +220,7 @@ export default function DashboardHome() {
 
   const kpis = [
     {
-      label: "TOTAL LEADS",
-      value: stats?.totalLeads || 0,
-      icon: Users,
-      percentage: calculatePercentageChange(stats?.totalLeads || 0, previousStats?.totalLeads),
-      trend: previousStats ? ((stats?.totalLeads || 0) > (previousStats?.totalLeads || 0) ? "up" : (stats?.totalLeads || 0) < (previousStats?.totalLeads || 0) ? "down" : "neutral") : "neutral",
-      color: "text-primary",
-      glow: "hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
-    },
-    {
-      label: "LEADS SENT",
+      label: "TOTAL SENT",
       value: stats?.totalMessages || 0,
       icon: Send,
       percentage: calculatePercentageChange(stats?.totalMessages || 0, previousStats?.messages),
@@ -234,23 +229,34 @@ export default function DashboardHome() {
       glow: "hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
     },
     {
-      label: "REPLIES",
-      value: stats?.convertedLeads || 0,
-      icon: Zap,
-      percentage: calculatePercentageChange(stats?.convertedLeads || 0, previousStats?.convertedLeads),
-      trend: previousStats ? ((stats?.convertedLeads || 0) > (previousStats?.convertedLeads || 0) ? "up" : (stats?.convertedLeads || 0) < (previousStats?.convertedLeads || 0) ? "down" : "neutral") : "neutral",
-      color: "text-amber-500",
-      glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-    },
-    {
-      label: "PIPELINE VALUE",
-      value: (stats as any)?.pipelineValue?.toLocaleString() || "0",
-      suffix: "$",
-      icon: DollarSign,
+      label: "OPEN RATE",
+      value: stats?.openRate || 0,
+      suffix: "%",
+      icon: Mail,
       percentage: "—",
       trend: "neutral" as const,
       color: "text-emerald-500",
       glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+    },
+    {
+      label: "RESPONSE RATE",
+      value: stats?.responseRate || 0,
+      suffix: "%",
+      icon: MessageSquare,
+      percentage: "—",
+      trend: "neutral" as const,
+      color: "text-amber-500",
+      glow: "hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+    },
+    {
+      label: "REVENUE",
+      value: stats?.closedRevenue?.toLocaleString() || "0",
+      prefix: "$",
+      icon: DollarSign,
+      percentage: "—",
+      trend: "neutral" as const,
+      color: "text-primary",
+      glow: "hover:shadow-[0_0_20px_rgba(var(--primary),0.15)]"
     },
   ];
 
@@ -277,11 +283,11 @@ export default function DashboardHome() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-border/20">
           <div className="space-y-1">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-foreground">
-              Welcome back, {user?.name?.split(' ')[0] || user?.username || 'User'}
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter text-foreground break-words sm:break-normal">
+              Welcome, {user?.name?.split(' ')[0] || user?.username || 'User'}
             </h1>
-            <p className="text-muted-foreground/60 text-lg font-medium tracking-tight">
-              {isSmtpConnected ? "Your outreach system is performing optimally." : "Connect your SMTP to start outreach automation."}
+            <p className="text-muted-foreground/60 text-base md:text-lg font-medium tracking-tight">
+              {isSmtpConnected ? "Outreach engine performing optimally." : "Connect SMTP to start automation."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -335,15 +341,15 @@ export default function DashboardHome() {
                   </CardHeader>
                   <CardContent className="flex flex-col h-[calc(100%-60px)]">
                     <div className="text-3xl font-extrabold tracking-tighter mb-2 truncate">
-                      {kpi.label === "PIPELINE VALUE" ? `${kpi.suffix}${kpi.value}` : `${kpi.value}${(kpi as any).suffix || ''}`}
+                      {kpi.prefix || ''}{kpi.value}{kpi.suffix || ''}
                     </div>
                     {kpi.percentage !== "—" && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`text-[10px] font-bold flex items-center px-2 py-0.5 rounded-full shrink-0 ${kpi.trend === "up" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
-                          <TrendIcon className="h-3 w-3 mr-0.5" />
+                      <div className="flex items-center gap-2 flex-wrap min-h-[20px]">
+                        <span className={`text-[9px] md:text-[10px] font-bold flex items-center px-1.5 md:px-2 py-0.5 rounded-full shrink-0 ${kpi.trend === "up" ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"}`}>
+                          <TrendIcon className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5" />
                           {kpi.percentage}
                         </span>
-                        <span className="text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest truncate">Growth</span>
+                        <span className="text-[8px] md:text-[9px] font-bold text-muted-foreground/30 uppercase tracking-widest truncate">Growth</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between mt-auto pt-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-3 group-hover:translate-y-0 duration-300">
@@ -405,9 +411,9 @@ export default function DashboardHome() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start mb-1">
                               <p className="font-bold text-sm text-foreground truncate">{activity.title || "Activity Event"}</p>
-                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50">{formatTimeAgo(activity.time)}</span>
+                              <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
-                            <p className="text-sm text-muted-foreground/80 leading-relaxed">
+                            <p className="text-xs md:text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
                               {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` : 
                                activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
                                activity.message}

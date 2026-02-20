@@ -29,19 +29,16 @@ export const CustomCursor = () => {
         const style = document.createElement('style');
         style.id = 'audnix-cursor-styles';
         style.textContent = `
+            * { cursor: none !important; }
+            html, body, a, button, input, textarea, select, [role="button"], label, .cursor-pointer { 
+                cursor: none !important; 
+            }
             @media (pointer: fine) {
-                *, *::before, *::after { cursor: none !important; }
-                html, body, a, button, input, textarea, select, [role="button"], label { cursor: none !important; }
-                ::-webkit-scrollbar { cursor: none !important; }
-                ::-webkit-scrollbar-thumb { cursor: none !important; }
+                body { cursor: none !important; }
             }
             .custom-cursor-main svg {
                 width: 24px;
                 height: 24px;
-            }
-            .custom-cursor-main.is-grabbing::after {
-                width: 32px;
-                height: 32px;
             }
         `;
         document.head.appendChild(style);
@@ -57,12 +54,15 @@ export const CustomCursor = () => {
                 if (isClickable) {
                     cursorRef.current.classList.add('is-grabbing');
                     cursorRef.current.classList.remove('is-text');
+                    cursorRef.current.style.opacity = '1';
                 } else if (isText) {
                     cursorRef.current.classList.add('is-text');
                     cursorRef.current.classList.remove('is-grabbing');
+                    cursorRef.current.style.opacity = '1';
                 } else {
                     cursorRef.current.classList.remove('is-grabbing');
                     cursorRef.current.classList.remove('is-text');
+                    cursorRef.current.style.opacity = '1';
                 }
             }
 
@@ -142,7 +142,7 @@ export const CustomCursor = () => {
                 <style>{`
                     .custom-cursor-main.is-grabbing svg,
                     .custom-cursor-main.is-text svg {
-                        display: none;
+                        display: none !important;
                     }
                     .custom-cursor-main.is-grabbing::after {
                         content: '';
@@ -157,11 +157,12 @@ export const CustomCursor = () => {
                     .custom-cursor-main.is-text::after {
                         content: '';
                         display: block;
-                        width: 1px;
-                        height: 20px;
-                        background: currentColor;
+                        width: 2px;
+                        height: 24px;
+                        background: #06b6d4;
                         transform: translate(-50%, -50%);
-                        box-shadow: 0 0 8px rgba(var(--primary), 0.5);
+                        box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+                        border-radius: 1px;
                     }
                 `}</style>
                 {/* Premium Unified MacBook-style Arrow */}

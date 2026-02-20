@@ -16,6 +16,7 @@ import { generateExpertOutreach } from '../ai/conversation-ai.js';
 import { wsSync } from '../websocket-sync.js';
 import { workerHealthMonitor } from '../monitoring/worker-health.js';
 import { AuditTrailService } from '../audit-trail-service.js';
+import { sendInstagramOutreach } from '../channels/instagram.js';
 
 export class OutreachEngine {
   private isRunning: boolean = false;
@@ -69,7 +70,8 @@ export class OutreachEngine {
             or(
               eq(integrations.provider, 'custom_email'),
               eq(integrations.provider, 'gmail'),
-              eq(integrations.provider, 'outlook')
+              eq(integrations.provider, 'outlook'),
+              eq(integrations.provider, 'instagram')
             )
           )
         );
@@ -134,8 +136,8 @@ export class OutreachEngine {
       new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
     )[0];
 
-    // Check daily limits and delays
-    if (!(await this.isUserReadyToSend(userId, campaign))) return false;
+    // campaign.config is where we might store preferred channel, but leads have their own
+    // We will check readines PER LEAD in the loop below to handle mixed-channel batches
 
     const nextLeadsResult = await db.select()
       .from(campaignLeads)
@@ -180,18 +182,27 @@ export class OutreachEngine {
 
     console.log(`[OutreachEngine] Processing batch of ${nextLeadsResult.length} leads for campaign: ${campaign.name}`);
     for (const leadEntry of nextLeadsResult) {
-      const lead = await storage.getLeadById(leadEntry.leadId as string);
-
-      if (!lead || !lead.email) {
-        await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing email' }).where(eq(campaignLeads.id, leadEntry.id));
+      if (!lead || (!lead.email && lead.channel === 'email')) {
+        await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing contact info' }).where(eq(campaignLeads.id, leadEntry.id));
         continue;
+      }
+
+      // Check daily limits and delays for this specific lead's channel
+      if (!(await this.isUserReadyToSend(userId, campaign, lead.channel as 'email' | 'instagram'))) {
+          continue; // Skip this lead for now, try next one or wait for next tick
       }
 
       // Process delivery
       try {
-          await this.deliverCampaignEmail(userId, campaign, lead, leadEntry);
+          if (lead.channel === 'instagram') {
+              await this.deliverCampaignInstagram(userId, campaign, lead, leadEntry);
+              return true; // We sent ONE, campaign tick should probably finish to respect delays
+          } else {
+              await this.deliverCampaignEmail(userId, campaign, lead, leadEntry);
+              return true; // We sent ONE
+          }
       } catch (err) {
-          console.error(`[OutreachEngine] Campaign delivery failed for ${lead.email}:`, err);
+          console.error(`[OutreachEngine] Campaign delivery failed for ${lead.email || lead.id}:`, err);
       }
     }
     return true;
@@ -201,8 +212,7 @@ export class OutreachEngine {
    * Logic for autonomous AI outreach (replacing outreach-worker.ts)
    */
   private async tickAutonomousOutreach(userId: string): Promise<void> {
-    // Check if user is ready (use global limits)
-    if (!(await this.isUserReadyToSend(userId))) return;
+    // We check readiness per lead
 
     // Get leads with status 'new', channel 'email', and AI explicitly enabled
     const userLeads = await db
@@ -212,7 +222,7 @@ export class OutreachEngine {
           and(
             eq(leads.userId, userId),
             eq(leads.status, 'new'),
-            eq(leads.channel, 'email'),
+            or(eq(leads.channel, 'email'), eq(leads.channel, 'instagram')),
             eq(leads.aiPaused, false)
           )
         )
@@ -230,12 +240,21 @@ export class OutreachEngine {
 
         if (alreadyContacted.length > 0) continue;
 
+        // Check readiness for this channel
+        if (!(await this.isUserReadyToSend(userId, undefined, lead.channel as 'email' | 'instagram'))) {
+            continue;
+        }
+
         // Process autonomous outreach
         try {
-            await this.deliverAutonomousOutreach(userId, lead);
+            if (lead.channel === 'instagram') {
+                await this.deliverAutonomousInstagram(userId, lead);
+            } else {
+                await this.deliverAutonomousOutreach(userId, lead);
+            }
             return; // Only one per tick per user
         } catch (err) {
-            console.error(`[OutreachEngine] Autonomous outreach failed for ${lead.email}:`, err);
+            console.error(`[OutreachEngine] Autonomous outreach failed for ${lead.email || lead.id}:`, err);
         }
     }
   }
@@ -243,38 +262,45 @@ export class OutreachEngine {
   /**
    * Checks daily limits and mandatory randomized delays
    */
-  private async isUserReadyToSend(userId: string, campaign?: any): Promise<boolean> {
-    // 1. Global delay (don't blast multiple users at once if we are a small server, 
-    // but here we check per-user randomized delay between 2-4 mins)
+  private async isUserReadyToSend(userId: string, campaign?: any, channel: 'email' | 'instagram' = 'email'): Promise<boolean> {
+    // 1. Channel-specific delay
     const lastSentResult = await db.execute(sql`
         SELECT created_at FROM messages 
-        WHERE user_id = ${userId} AND direction = 'outbound' 
+        WHERE user_id = ${userId} AND direction = 'outbound' AND provider = ${channel === 'email' ? 'email' : 'instagram'}
         ORDER BY created_at DESC LIMIT 1
     `);
 
     if (lastSentResult.rows.length > 0) {
         const lastSentAt = new Date(lastSentResult.rows[0].created_at as string).getTime();
         
-        // Optimized Randomized Delay: 30s - 60s (Human-like but significantly faster)
-        const minDelayMs = 30000 + (Math.random() * 30000); 
+        let minDelayMs = 30000; // Default 30s
+        
+        if (channel === 'instagram') {
+            // Instagram requires much slower pacing to avoid shadowban/blocks
+            // Randomized 5-10 minutes for DMs
+            minDelayMs = (5 + Math.random() * 5) * 60 * 1000;
+        } else {
+            // Email: 30s - 60s
+            minDelayMs = 30000 + (Math.random() * 30000); 
+        }
         
         if (Date.now() - lastSentAt < minDelayMs) {
           const remaining = Math.round((minDelayMs - (Date.now() - lastSentAt)) / 1000);
-          console.log(`[OutreachEngine] User ${userId} throttled. Waiting ${remaining}s...`);
+          console.log(`[OutreachEngine] User ${userId} (${channel}) throttled. Waiting ${remaining}s...`);
+          
           return false;
         }
     }
 
-    // 2. Daily limits and Autonomous Engine Toggle
+    // 2. Daily limits
     let dailyLimit = 50;
     try {
         const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
         if (userResult[0]) {
             const config = (userResult[0].config as any) || {};
             dailyLimit = config.dailyLimit || 50;
-
+            
             // Global Autonomous Engine Toggle
-            // If NOT in autonomous mode, only allow manual campaigns
             const isAutonomousMode = config.autonomousMode !== false;
             const isManualCampaign = campaign?.config?.isManual === true;
 
@@ -284,7 +310,6 @@ export class OutreachEngine {
         }
     } catch (e) {}
 
-    // Overwrite with campaign limit if present
     if (campaign?.config?.dailyLimit) dailyLimit = campaign.config.dailyLimit;
 
     const sentTodayResult = await db.execute(sql`
@@ -295,7 +320,9 @@ export class OutreachEngine {
     `);
     const sentToday = Number(sentTodayResult.rows[0].count);
 
-    if (sentToday >= dailyLimit) return false;
+    if (sentToday >= dailyLimit) {
+      return false;
+    }
 
     return true;
   }
@@ -321,8 +348,8 @@ export class OutreachEngine {
             // If it's a follow-up, we use the template body but maybe AI personalized?
             // User requested "RE:" subject logic
             body = fuConfig.body;
-            const originalSubject = (campaign.template as any)?.subject || 'Following up';
-            subject = originalSubject.startsWith('Re:') ? originalSubject : `Re: ${originalSubject}`;
+            const originalSubject = fuConfig.subject || (campaign.template as any)?.subject || 'Following up';
+            subject = originalSubject.toLowerCase().startsWith('re:') ? originalSubject : `Re: ${originalSubject}`;
         }
     }
 
@@ -429,6 +456,112 @@ export class OutreachEngine {
         provider: 'email',
         direction: 'outbound',
         subject: aiContent.subject,
+        body: aiContent.body,
+        metadata: { autonomous: true }
+    });
+
+    await storage.updateLead(lead.id, {
+        status: 'open',
+        lastMessageAt: new Date(),
+        metadata: {
+            ...(lead.metadata as Record<string, any>),
+            outreach_sent: true,
+            outreach_at: new Date().toISOString()
+        }
+    });
+
+    wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'autonomous_sent' });
+  }
+
+  /**
+   * Helper to deliver campaign Instagram message
+   */
+  private async deliverCampaignInstagram(userId: string, campaign: any, lead: any, leadEntry: any): Promise<void> {
+    const instagramId = (lead.metadata as any)?.instagramId || lead.externalId;
+    if (!instagramId) {
+        throw new Error(`No Instagram ID found for lead ${lead.id}`);
+    }
+
+    console.log(`[OutreachEngine] Delivering IG campaign "${campaign.name}" step ${leadEntry.currentStep} to ${lead.name}`);
+
+    // Generate content
+    const aiContent = await generateExpertOutreach(lead, userId);
+    let body = aiContent.body;
+
+    if (leadEntry.currentStep > 0) {
+        const followups = (campaign.template as any)?.followups || [];
+        const fuConfig = followups[leadEntry.currentStep - 1];
+        if (fuConfig) body = fuConfig.body;
+    }
+
+    // Variable replacement
+    const firstName = lead.name?.trim().split(' ')[0] || 'there';
+    body = body.replace(/{{firstName}}/g, firstName).replace(/{{lead_name}}/g, lead.name?.trim() || firstName);
+
+    // Send Instagram DM
+    await sendInstagramOutreach(userId, instagramId, body);
+
+    // Recording and state updates
+    await storage.createMessage({
+        userId,
+        leadId: lead.id,
+        provider: 'instagram',
+        direction: 'outbound',
+        body,
+        metadata: { campaignId: campaign.id, step: leadEntry.currentStep }
+    });
+
+    // Update campaign lead status
+    const nextStep = leadEntry.currentStep + 1;
+    const followupsArr = (campaign.template as any)?.followups || [];
+    const hasMore = nextStep <= followupsArr.length;
+    let nextActionAt = null;
+
+    if (hasMore) {
+        const delayDays = followupsArr[nextStep - 1]?.delayDays || 3;
+        nextActionAt = new Date();
+        nextActionAt.setDate(nextActionAt.getDate() + delayDays);
+    }
+
+    await db.update(campaignLeads)
+        .set({
+            status: 'sent',
+            currentStep: nextStep,
+            nextActionAt: nextActionAt,
+            sentAt: new Date(),
+            error: null
+        })
+        .where(eq(campaignLeads.id, leadEntry.id));
+
+    // Update stats
+    await db.update(outreachCampaigns)
+        .set({
+            stats: sql`jsonb_set(stats, '{sent}', (COALESCE((stats->>'sent')::int, 0) + 1)::text::jsonb)`,
+            updatedAt: new Date()
+        })
+        .where(eq(outreachCampaigns.id, campaign.id));
+
+    wsSync.notifyLeadsUpdated(userId, { leadId: lead.id, action: 'campaign_sent' });
+  }
+
+  /**
+   * Helper to deliver autonomous Instagram outreach
+   */
+  private async deliverAutonomousInstagram(userId: string, lead: any): Promise<void> {
+    const instagramId = (lead.metadata as any)?.instagramId || lead.externalId;
+    if (!instagramId) return;
+
+    console.log(`[OutreachEngine] Delivering autonomous IG outreach to ${lead.name}`);
+    
+    const aiContent = await generateExpertOutreach(lead, userId);
+    
+    await sendInstagramOutreach(userId, instagramId, aiContent.body);
+
+    await storage.createMessage({
+        userId,
+        leadId: lead.id,
+        provider: 'instagram',
+        direction: 'outbound',
         body: aiContent.body,
         metadata: { autonomous: true }
     });

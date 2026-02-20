@@ -85,6 +85,10 @@ router.post("/clear-all", requireAuth, async (req, res) => {
         }
 
         await storage.clearAllNotifications(userId);
+        
+        // Notify client to clear UI
+        wsSync.notifyNotification(userId, { type: 'update', action: 'clear_all' });
+        
         res.json({ success: true });
     } catch (error: any) {
         console.error("Clear all notifications error:", error);
@@ -103,6 +107,10 @@ router.delete("/:id", requireAuth, async (req, res) => {
         }
 
         await storage.deleteNotification(notificationId, userId);
+        
+        // Notify client
+        wsSync.notifyNotification(userId, { type: 'update', action: 'delete', id: notificationId });
+        
         res.json({ success: true });
     } catch (error: any) {
         console.error("Delete notification error:", error);

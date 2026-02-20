@@ -48,10 +48,10 @@ const COMPARISON_DATA = [
 
 export function ComparisonSection() {
     return (
-        <section id="comparison" className="py-40 px-4 bg-black relative overflow-hidden">
-            {/* Dark Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black via-[#050505] to-black" />
-            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[150px] rounded-full pointer-events-none" />
+        <section id="comparison" className="py-40 px-4 bg-background relative overflow-hidden">
+            {/* Atmosphere Background */}
+            <div className="absolute inset-0 bg-background" />
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
 
             <div className="max-w-7xl mx-auto relative z-10">
                 <div className="text-center mb-24 max-w-4xl mx-auto">
@@ -68,12 +68,12 @@ export function ComparisonSection() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-5xl md:text-7xl font-black text-white tracking-tight leading-[0.9] mb-8"
+                        className="text-5xl md:text-7xl font-black text-foreground tracking-tight leading-[0.9] mb-8"
                     >
-                        Why Wrappers <span className="text-red-500">Fail.</span> <br />
-                        Why Humans <span className="text-red-500">Burn Out.</span>
+                        Why Wrappers <span className="text-destructive">Fail.</span> <br />
+                        Why Humans <span className="text-destructive">Burn Out.</span>
                     </motion.h2>
-                    <p className="text-white/40 text-xl font-medium leading-relaxed">
+                    <p className="text-muted-foreground text-xl font-medium leading-relaxed">
                         The market is flooded with "AI Tools" that are just simple ChatGPT wrappers. They lack memory, safety, and nuanced timing. Audnix is an Operating System, not a tool.
                     </p>
                 </div>
@@ -82,10 +82,10 @@ export function ComparisonSection() {
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr>
-                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold border-b border-white/5">Core Capability</th>
-                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-red-400/80 font-bold border-b border-white/5 bg-red-500/[0.02]">Generic AI Wrappers</th>
-                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-orange-400/80 font-bold border-b border-white/5 bg-orange-500/[0.02]">Human VAs / SDRs</th>
-                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-primary font-bold border-b border-white/5 bg-primary/[0.05] border-t-2 border-t-primary relative">
+                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-foreground/30 font-bold border-b border-border/10">Core Capability</th>
+                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-destructive/80 font-bold border-b border-border/10 bg-destructive/5">Generic AI Wrappers</th>
+                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-orange-500/80 font-bold border-b border-border/10 bg-orange-500/5">Human VAs / SDRs</th>
+                                <th className="py-8 px-6 text-[10px] uppercase tracking-[0.2em] text-primary font-bold border-b border-border/10 bg-primary/5 border-t-2 border-t-primary relative">
                                     <div className="absolute top-0 left-0 right-0 h-32 bg-primary/10 blur-[60px] -z-10" />
                                     Audnix System
                                 </th>
@@ -103,10 +103,10 @@ export function ComparisonSection() {
                                 >
                                     <td className="py-8 px-6">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-colors">
+                                            <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center text-foreground/40 group-hover:text-foreground transition-colors border border-border/10">
                                                 <row.icon className="w-5 h-5" />
                                             </div>
-                                            <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">{row.feature}</span>
+                                            <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{row.feature}</span>
                                         </div>
                                     </td>
                                     <td className="py-8 px-6">
@@ -134,18 +134,18 @@ export function ComparisonSection() {
                 </div>
 
                 <div className="mt-20 grid md:grid-cols-2 gap-8">
-                    <div className="p-10 rounded-[2.5rem] bg-white/[0.02] border border-white/5 relative overflow-hidden">
+                    <div className="p-10 rounded-[2.5rem] bg-card border border-border/40 relative overflow-hidden shadow-sm">
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-bold text-white mb-4">The "Wrapper" Trap</h3>
-                            <p className="text-white/50 leading-relaxed font-medium">
+                            <h3 className="text-2xl font-bold text-foreground mb-4">The "Wrapper" Trap</h3>
+                            <p className="text-muted-foreground leading-relaxed font-medium">
                                 Most tools are just accessing OpenAI's API directly. This means they have no "state". If a lead asks a question, the bot forgets who they are in the next message. Audnix maintains a persistent "Identity Layer" for every lead.
                             </p>
                         </div>
                     </div>
-                    <div className="p-10 rounded-[2.5rem] bg-gradient-to-br from-primary/10 to-primary/[0.02] border border-primary/20 relative overflow-hidden">
+                    <div className="p-10 rounded-[2.5rem] bg-primary/5 border border-primary/20 relative overflow-hidden shadow-sm">
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-bold text-white mb-4">The Human Error Factor</h3>
-                            <p className="text-white/60 leading-relaxed font-medium">
+                            <h3 className="text-2xl font-bold text-foreground mb-4">The Human Error Factor</h3>
+                            <p className="text-muted-foreground leading-relaxed font-medium">
                                 Humans have bad days. They get tired, they misread tones, and they forget to follow up. Audnix is deterministic. It never forgets a follow-up, never gets angry, and never sleeps.
                             </p>
                         </div>

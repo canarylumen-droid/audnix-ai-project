@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    /* Default cursor - custom SVG cursor removed for accessibility */
+  body, html {
     cursor: default;
   }
 
@@ -12,9 +11,10 @@
   a,
   [role="button"],
   .cursor-pointer,
-  input[type="submit"],
-  input[type="button"] {
-    cursor: auto !important;
+  input,
+  textarea,
+  select {
+    cursor: pointer;
   }
 
   /* Ensure hover effects are immediate */
@@ -42,8 +42,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-/* Re-enable cursor for interactive elements is handled by CustomCursor per-route */
 
 /* GPU acceleration for animations */
 @media (prefers-reduced-motion: no-preference) {
@@ -78,53 +76,53 @@
   --button-outline: rgba(0, 0, 0, 0.1);
   --badge-outline: rgba(0, 0, 0, 0.05);
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8;
+  --opaque-button-border-intensity: 0;
   /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 210 20% 98%;
-  --foreground: 222 47% 11%;
+  --background: 210 20% 99%; /* Slightly cleaner white */
+  --foreground: 222 47% 12%;
 
-  --border: 214 32% 91%;
+  --border: 214 32% 88%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
+  --card-foreground: 222 47% 12%;
+  --card-border: 214 32% 88%;
 
-  --sidebar: 210 20% 96%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-primary: 191 100% 45%;
+  --sidebar: 210 20% 97%;
+  --sidebar-foreground: 222 47% 12%;
+  --sidebar-border: 214 32% 88%;
+  --sidebar-primary: 191 100% 42%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 191 100% 96%;
-  --sidebar-accent-foreground: 191 100% 25%;
-  --sidebar-ring: 191 100% 45%;
+  --sidebar-accent: 191 100% 97%;
+  --sidebar-accent-foreground: 191 100% 22%;
+  --sidebar-ring: 191 100% 42%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
+  --popover-foreground: 222 47% 12%;
+  --popover-border: 214 32% 88%;
 
-  --primary: 191 100% 45%;
+  --primary: 189 95% 42%;
   --primary-foreground: 0 0% 100%;
+  --primary-glow: 189 95% 42% / 0.3;
 
-  --secondary: 210 20% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 210 20% 95%;
+  --secondary-foreground: 222 47% 12%;
 
-  --muted: 210 20% 96%;
-  --muted-foreground: 215 16% 47%;
+  --muted: 210 20% 95%;
+  --muted-foreground: 215 16% 45%;
 
-  --accent: 191 100% 96%;
-  --accent-foreground: 191 100% 25%;
+  --accent: 191 100% 97%;
+  --accent-foreground: 191 100% 22%;
 
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 20% 98%;
+  --destructive: 0 84.2% 58.2%;
+  --destructive-foreground: 210 20% 99%;
 
-  --input: 214 32% 91%;
-  --ring: 191 100% 45%;
+  --input: 214 32% 88%;
+  --ring: 191 100% 42%;
   --chart-1: 191 100% 45%;
   --chart-2: 217 91% 60%;
   --chart-3: 199 89% 48%;
@@ -149,64 +147,21 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
-
-  /* Fallback for older browsers */
+  /* Automatically computed borders */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(
-    from hsl(var(--sidebar-primary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(
-    from hsl(var(--sidebar-accent)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
-  --primary-border: hsl(
-    from hsl(var(--primary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(
-    from hsl(var(--secondary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
-  --muted-border: hsl(
-    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) /
-      alpha
-  );
-
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
-  --accent-border: hsl(
-    from hsl(var(--accent)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(
-    from hsl(var(--destructive)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
 }
 
 .dark {
   --button-outline: rgba(255, 255, 255, 0.1);
   --badge-outline: rgba(255, 255, 255, 0.05);
 
-  --opaque-button-border-intensity: 9;
-  /* In terms of percentages */
+  --opaque-button-border-intensity: 0;
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(255, 255, 255, 0.04);
@@ -215,31 +170,31 @@
   --background: 222 47% 4%;
   --foreground: 210 20% 98%;
 
-  --border: 217 33% 17%;
+  --border: 217 33% 12%;
 
   --card: 222 47% 6%;
   --card-foreground: 210 20% 98%;
-  --card-border: 217 33% 20%;
+  --card-border: 217 33% 8%;
 
   --sidebar: 222 47% 8%;
   --sidebar-foreground: 210 20% 80%;
-  --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 191 100% 50%;
-  --sidebar-primary-foreground: 222 47% 4%;
+  --sidebar-border: 217 33% 6%;
+  --sidebar-primary: 191 100% 42%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 191 100% 12%;
   --sidebar-accent-foreground: 191 100% 80%;
-  --sidebar-ring: 191 100% 50%;
+  --sidebar-ring: 191 100% 42%;
 
   --popover: 222 47% 5%;
   --popover-foreground: 210 20% 98%;
-  --popover-border: 217 33% 18%;
+  --popover-border: 217 33% 8%;
 
-  --primary: 191 100% 50%;
-  --primary-glow: 191 100% 50% / 0.3;
+  --primary: 189 95% 42%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 189 95% 42% / 0.3;
   --secondary: 217 91% 60%;
   --secondary-glow: 217 91% 60% / 0.2;
 
-  --primary-foreground: 0 0% 100%;
   --secondary-foreground: 210 20% 98%;
 
   --muted: 217 33% 12%;
@@ -278,48 +233,14 @@
     0px 20px 48px -12px hsl(0 0% 0% / 0.7);
   --shadow-2xl: 0px 48px 96px -24px hsl(0 0% 0% / 1);
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
+  /* Automatically computed borders */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
-  --sidebar-primary-border: hsl(
-    from hsl(var(--sidebar-primary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
   --sidebar-accent-border: hsl(var(--sidebar-accent));
-  --sidebar-accent-border: hsl(
-    from hsl(var(--sidebar-accent)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
   --primary-border: hsl(var(--primary));
-  --primary-border: hsl(
-    from hsl(var(--primary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
   --secondary-border: hsl(var(--secondary));
-  --secondary-border: hsl(
-    from hsl(var(--secondary)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
   --muted-border: hsl(var(--muted));
-  --muted-border: hsl(
-    from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) /
-      alpha
-  );
-
   --accent-border: hsl(var(--accent));
-  --accent-border: hsl(
-    from hsl(var(--accent)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
-
   --destructive-border: hsl(var(--destructive));
-  --destructive-border: hsl(
-    from hsl(var(--destructive)) h s
-      calc(l + var(--opaque-button-border-intensity)) / alpha
-  );
 }
 
 @layer base {
@@ -478,6 +399,19 @@
   box-shadow: inset 0 0 40px hsla(var(--primary) / 0.05);
 }
 
+/* Light Mode Liquid Glass Overrides */
+:root {
+  .glass-premium {
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-blur: blur(20px);
+    --glass-border: rgba(6, 182, 212, 0.2);
+    box-shadow: 
+      0 8px 32px 0 rgba(31, 38, 135, 0.07),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--glass-border);
+  }
+}
+
 /* Low Performance Mode (Reduced Motion / Low Power) */
 @media (prefers-reduced-motion: reduce) {
   .glass-premium {
@@ -522,23 +456,6 @@
 
 /**
  * Using the elevate system.
- * Automatic contrast adjustment.
- *
- * <element className="hover-elevate" />
- * <element className="active-elevate-2" />
- *
- * // Using the tailwind utility when a data attribute is "on"
- * <element className="toggle-elevate data-[state=on]:toggle-elevated" />
- * // Or manually controlling the toggle state
- * <element className="toggle-elevate toggle-elevated" />
- *
- * Elevation systems have to handle many states.
- * - not-hovered, vs. hovered vs. active  (three mutually exclusive states)
- * - toggled or not
- * - focused or not (this is not handled with these utilities)
- *
- * Even without handling focused or not, this is six possible combinations that
- * need to be distinguished from eachother visually.
  */
 @layer utilities {
   /* Hide ugly search cancel button in Chrome until we can style it properly */
@@ -553,38 +470,24 @@
     pointer-events: none;
   }
 
-  /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
-   * buttons/badges can remove the automatic brightness adjustment on interactions
-   * and program their own. */
-
-  /**
-   * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
-   * This way they can stack/compound. Both will overlap the parent's borders!
-   * So borders will be automatically adjusted both on toggle, and hover/active,
-   * and they will be compounded.
-   */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: -1;
-    /* sits behind content but above backdrop */
   }
 
   .toggle-elevate.toggle-elevated::before {
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.toggle-elevate::before {
     inset: -1px;
   }
 
-  /* Does not work on elements with overflow:hidden! */
   .hover-elevate:not(.no-default-hover-elevate),
   .active-elevate:not(.no-default-active-elevate),
   .hover-elevate-2:not(.no-default-hover-elevate),
@@ -601,10 +504,8 @@
     pointer-events: none;
     position: absolute;
     inset: 0px;
-    /*border-radius: inherit;   match rounded corners */
     border-radius: inherit;
     z-index: 999;
-    /* sits in front of content */
   }
 
   .hover-elevate:hover:not(.no-default-hover-elevate)::after,
@@ -617,12 +518,10 @@
     background-color: var(--elevate-2);
   }
 
-  /* If there's a 1px border, adjust the inset so that it covers that parent's border */
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
   .border.active-elevate:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+  .border.active-elevate-2:not(.no-active-interaction-elevate)::after {
     inset: -1px;
   }
 }
@@ -636,7 +535,7 @@
     @apply bg-gradient-to-br from-[#0a0f1f] via-[#020409] to-[#0a0f1f];
   }
 
-  /* Marquee Animation - Seamless infinite scroll */
+  /* Marquee Animation */
   .animate-marquee {
     animation: marquee 25s linear infinite;
   }
@@ -645,38 +544,23 @@
     animation-play-state: paused;
   }
 
-  /* Shimmer Animation for active states */
+  /* Shimmer Animation */
   .animate-shimmer {
     animation: shimmer 2s ease-in-out infinite;
   }
 }
 
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-/* ============================================
-   PREMIUM CUSTOM SCROLLBAR
-   Matches Audnix branding, cursor compatible
-   ============================================ */
-
-/* WebKit (Chrome, Safari, Edge) */
+/* PREMIUM CUSTOM SCROLLBAR */
 ::-webkit-scrollbar {
   width: 16px;
   height: 16px;
@@ -713,7 +597,6 @@
   background: transparent;
 }
 
-/* Dark mode scrollbar */
 .dark ::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -746,19 +629,13 @@
   scrollbar-color: rgba(0, 210, 255, 0.25) rgba(255, 255, 255, 0.03);
 }
 
-/* Hide cursor on scrollbar for consistency */
 ::-webkit-scrollbar,
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-thumb {
-  cursor: none !important;
+  cursor: default;
 }
 
-/* ============================================
-   MOBILE RESPONSIVE UTILITIES
-   Prevents overlapping on low-end devices
-   ============================================ */
-
-/* Safe area handling for mobile */
+/* MOBILE RESPONSIVE UTILITIES */
 @supports (padding: max(0px)) {
   .safe-area-bottom {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
@@ -769,7 +646,6 @@
   }
 }
 
-/* Prevent text/element overflow on mobile */
 @media (max-width: 640px) {
   .container,
   section,
@@ -788,18 +664,15 @@
     word-break: break-word;
   }
 
-  /* Prevent horizontal scrolling */
   body {
     overflow-x: hidden;
   }
 
-  /* Cards fit screen */
   .grid {
     gap: 1rem;
   }
 }
 
-/* Super low-end device optimizations */
 @media (max-width: 360px) {
   html {
     font-size: 14px;
@@ -813,9 +686,7 @@
   }
 }
 
-/* Touch device improvements */
 @media (hover: none) and (pointer: coarse) {
-  /* Larger touch targets */
   button,
   a,
   [role="button"] {
@@ -823,7 +694,6 @@
     min-width: 44px;
   }
 
-  /* Disable hover effects that feel wrong on touch */
   .hover\:scale-105:hover {
     transform: none;
   }

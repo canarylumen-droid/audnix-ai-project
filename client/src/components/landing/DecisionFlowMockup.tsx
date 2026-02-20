@@ -25,7 +25,7 @@ const StreamLine = ({ text, delay }: { text: string, delay: number }) => (
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: [0, 1, 0], x: [0, 10, 20] }}
         transition={{ duration: 2, repeat: Infinity, delay }}
-        className="text-[8px] font-black uppercase tracking-tighter text-white/20 whitespace-nowrap"
+        className="text-[8px] font-black uppercase tracking-tighter text-muted-foreground/20 whitespace-nowrap"
     >
         {text}
     </motion.div>
@@ -65,28 +65,28 @@ export function DecisionFlowMockup() {
                         className="relative"
                     >
                         <div className={`
-                          relative p-8 rounded-[2.5rem] bg-white/[0.03] border border-white/10 backdrop-blur-xl
+                          relative p-8 rounded-[2.5rem] bg-card border border-border/40 backdrop-blur-xl
                           hover:border-primary/40 transition-all duration-700 group/node hover:-translate-y-2
-                          shadow-[0_20px_40px_rgba(0,0,0,0.3)]
+                          shadow-[0_20px_40px_rgba(0,0,0,0.1)]
                         `}>
                             {/* Node Header */}
                             <div className="flex items-start justify-between mb-8">
-                                <div className="w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-primary group-hover/node:scale-110 group-hover/node:border-primary/50 transition-all duration-500 shadow-xl">
+                                <div className="w-16 h-16 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary group-hover/node:scale-110 group-hover/node:border-primary/50 transition-all duration-500 shadow-sm">
                                     <node.icon className="w-7 h-7" />
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <div className="flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white">Live Sync</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-foreground">Live Sync</span>
                                     </div>
-                                    <span className="text-[8px] font-black uppercase tracking-widest text-white/20">Node ID: 0x{node.id}</span>
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/20">Node ID: 0x{node.id}</span>
                                 </div>
                             </div>
 
                             {/* Node Info */}
                             <div className="space-y-4 mb-10">
                                 <div className="space-y-1">
-                                    <h4 className="text-lg font-black text-white tracking-tighter uppercase">{node.label}</h4>
+                                    <h4 className="text-lg font-black text-foreground tracking-tighter uppercase">{node.label}</h4>
                                     <p className="text-[10px] font-bold text-primary uppercase tracking-widest">{node.sub}</p>
                                 </div>
 
@@ -99,14 +99,14 @@ export function DecisionFlowMockup() {
                             </div>
 
                             {/* Node Footer */}
-                            <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+                            <div className="pt-6 border-t border-border/10 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center">
-                                        <Cpu className="w-3 h-3 text-white/40" />
+                                    <div className="w-6 h-6 rounded-lg bg-foreground/5 flex items-center justify-center">
+                                        <Cpu className="w-3 h-3 text-foreground/40" />
                                     </div>
-                                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">Logic Layer v2.1</span>
+                                    <span className="text-[9px] font-black text-foreground/30 uppercase tracking-[0.2em]">Logic Layer v2.1</span>
                                 </div>
-                                <Share2 className="w-4 h-4 text-white/10" />
+                                <Share2 className="w-4 h-4 text-foreground/10" />
                             </div>
 
                             {/* Animated Pulse Ring */}

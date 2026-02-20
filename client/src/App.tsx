@@ -36,8 +36,7 @@ const VideoAutomationPage = lazy(() => import("./pages/dashboard/video-automatio
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ComponentShowcase } from '@/pages/dashboard/component-test';
 import { AuthGuard } from '@/components/auth-guard';
-import { CustomCursor } from "@/components/ui/CustomCursor";
-import { ExpertChat } from "@/components/landing/ExpertChat";
+// import { ExpertChat } from "@/components/landing/ExpertChat";
 
 
 
@@ -277,9 +276,8 @@ function App() {
           <TooltipProvider>
             <InternetConnectionBanner />
             <Toaster />
-            <CustomCursor />
             <Router />
-            <ExpertChat />
+            {/* <ExpertChat /> Removed as requested */}
             <PrivacyModal />
           </TooltipProvider>
         </QueryClientProvider>

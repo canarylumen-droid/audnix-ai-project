@@ -12,7 +12,7 @@ export function ProcessTimeline() {
   return (
     <section className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold mb-16 text-center">
+        <h2 className="text-4xl md:text-5xl font-bold mb-16 text-center text-foreground">
           Simple Setup
         </h2>
 
@@ -124,7 +124,7 @@ export function ProcessTimeline() {
                   viewport={{ once: true }}
                   className="text-center"
                 >
-                  <p className="text-white/90 font-medium text-sm">{step.text}</p>
+                  <p className="text-foreground/90 font-medium text-sm">{step.text}</p>
                 </motion.div>
               ))}
             </div>
@@ -172,7 +172,7 @@ export function ProcessTimeline() {
 
                   {/* Step text and connector */}
                   <div className="flex-1 pt-1">
-                    <p className="text-white/90 font-medium text-sm mb-4">{step.text}</p>
+                    <p className="text-foreground/90 font-medium text-sm mb-4">{step.text}</p>
 
                     {/* Vertical arrow for mobile */}
                     {idx < steps.length - 1 && (

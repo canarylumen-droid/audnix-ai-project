@@ -7,6 +7,8 @@
 
 import FormData from 'form-data';
 import { Readable } from 'stream';
+import { storage } from '../storage.js';
+import { decrypt } from '../crypto/encryption.js';
 
 interface InstagramMessage {
   id: string;
@@ -299,4 +301,48 @@ export async function subscribeToInstagramWebhooks(
   // Instagram webhook subscription logic
   // This would be configured in the Facebook App Dashboard
   console.log('Instagram webhook subscription should be configured in Facebook App Dashboard');
+}
+
+/**
+ * High-level helper to send an Instagram outreach message for a given user
+ * Automatically retrieves and decrypts credentials
+ */
+export async function sendInstagramOutreach(
+  userId: string,
+  recipientId: string,
+  message: string
+): Promise<void> {
+  const integration = await storage.getIntegration(userId, 'instagram');
+  
+  if (!integration || !integration.connected || !integration.encryptedMeta) {
+    throw new Error('Instagram integration not connected');
+  }
+
+  try {
+    const credentialsStr = await decrypt(integration.encryptedMeta);
+    const credentials = JSON.parse(credentialsStr);
+    
+    const accessToken = credentials.accessToken || credentials.access_token;
+    const instagramBusinessAccountId = credentials.instagramBusinessAccountId || credentials.instagram_business_account_id;
+
+    if (!accessToken || !instagramBusinessAccountId) {
+      throw new Error('Missing Instagram access token or business account ID');
+    }
+
+    await sendInstagramMessage(
+      accessToken,
+      instagramBusinessAccountId,
+      recipientId,
+      message
+    );
+  } catch (error: any) {
+    console.error(`[IG_OUTREACH] Failed for user ${userId}:`, error.message);
+    
+    // If it's a permanent auth error, we might want to mark as disconnected
+    if (error.message.includes('token') || error.message.includes('OAuth') || error.message.includes('401')) {
+      await storage.updateIntegration(integration.id, { connected: false });
+    }
+    
+    throw error;
+  }
 }

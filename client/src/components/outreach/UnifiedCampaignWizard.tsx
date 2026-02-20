@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { CsvIcon, PdfIcon } from "@/components/ui/CustomIcons";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface UnifiedCampaignWizardProps {
@@ -232,7 +233,12 @@ export default function UnifiedCampaignWizard({ isOpen, onClose, onSuccess, init
           {/* Header */}
           <div className="px-4 py-3 border-b border-border/40">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">{sampleLead.name?.[0] || 'P'}</div>
+              <Avatar className="w-7 h-7 border border-border shadow-sm rounded-full">
+                <AvatarImage src={sampleLead.avatar} />
+                <AvatarFallback className="rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  {sampleLead.name?.[0] || 'P'}
+                </AvatarFallback>
+              </Avatar>
               <div className="text-[11px] font-bold truncate">{sampleLead.name}</div>
             </div>
             <div className="text-xs font-bold line-clamp-2 leading-tight">{filledSubject}</div>

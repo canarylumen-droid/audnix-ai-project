@@ -323,8 +323,8 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       {/* Desktop Sidebar (Standard Variant) */}
       <motion.aside
         data-testid="sidebar-desktop"
-        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-out relative border-r border-border/40 bg-white/70 dark:bg-sidebar/95 backdrop-blur-2xl shadow-[10px_0_30px_rgba(0,0,0,0.02)] dark:shadow-none"
-        animate={{ width: sidebarCollapsed ? "5.5rem" : "18rem" }}
+        className="hidden md:flex flex-col z-50 transition-all duration-500 ease-in-out relative border-r border-border/10 bg-card/60 backdrop-blur-3xl shadow-[4px_0_24px_rgba(0,0,0,0.02)]"
+        animate={{ width: sidebarCollapsed ? "5rem" : "18rem" }}
       >
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Liquid Glass Accent for Light Mode */}
@@ -334,10 +334,10 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
           {/* Sidebar Header */}
           <div className="h-20 flex items-center justify-between px-6 border-b border-border/40">
             {!sidebarCollapsed ? (
-              <Logo className="h-8 w-8" textClassName="text-lg font-bold text-foreground" />
+              <Logo className="h-9 w-9" textClassName="text-xl font-bold text-foreground" />
             ) : (
               <div className="w-full flex justify-center">
-                <Logo className="h-8 w-8" textClassName="hidden" />
+                <Logo className="h-7 w-7" textClassName="hidden" />
               </div>
             )}
           </div>
@@ -434,13 +434,13 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               <DropdownMenuTrigger asChild>
                 <div className={`flex items-center gap-3 cursor-pointer p-2 rounded-xl hover:bg-muted transition-all group ${sidebarCollapsed ? "justify-center" : ""}`}>
                   <div className="relative">
-                    <Avatar className="h-10 w-10 rounded-lg border border-border shadow-sm transition-transform group-hover:scale-105">
+                    <Avatar className="h-10 w-10 rounded-full border border-border shadow-sm transition-transform group-hover:scale-105">
                       <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="rounded-lg bg-primary/20 text-primary font-bold text-sm">
+                      <AvatarFallback className="rounded-full bg-primary/20 text-primary font-bold text-sm">
                         {(user?.name || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-sidebar" />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background" />
                   </div>
                   {!sidebarCollapsed && (
                     <div className="flex-1 min-w-0">
@@ -453,9 +453,9 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               <DropdownMenuContent align={sidebarCollapsed ? "start" : "end"} className="w-72 p-1 rounded-2xl" side={sidebarCollapsed ? "right" : "top"} sideOffset={12}>
                 <div className="p-4 border-b border-border/40 bg-muted/20 rounded-t-xl mb-1">
                   <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-xl">
+                    <Avatar className="h-12 w-12 border-2 border-primary/20 rounded-full">
                       <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-xl">
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold rounded-full">
                         {(user?.name || "U").charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -506,19 +506,19 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
       </motion.aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500">
+      <div className="flex-1 flex flex-col min-w-0 bg-background relative z-10 transition-all duration-500 overflow-hidden">
         {/* Top Header */}
-        <header className="h-20 border-b border-border/40 bg-white/60 dark:bg-background/80 backdrop-blur-2xl flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-300">
+        <header className="h-16 md:h-20 border-b border-border/10 bg-background/60 backdrop-blur-3xl flex items-center justify-between px-4 md:px-10 sticky top-0 z-40 transition-all duration-300">
           <div className="flex items-center gap-6 flex-1">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden -ml-2 text-foreground/80 hover:bg-primary/10 hover:text-primary rounded-2xl w-12 h-12 transition-all shadow-sm border border-border/10">
-                  <Menu className="h-6 w-6" />
+                <Button variant="ghost" size="icon" className="md:hidden -ml-1 text-foreground/80 hover:bg-primary/10 hover:text-primary rounded-xl w-10 h-10 transition-all border border-border/5">
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-[70%] sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
-                <div className="h-24 flex items-center px-8 border-b border-border/40 bg-[#030712] text-white">
-                  <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter text-white" />
+              <SheetContent side="left" className="p-0 w-[85%] sm:w-[380px] bg-background border-r border-border/40 flex flex-col pt-0">
+                <div className="h-24 flex items-center px-8 border-b border-border/40 bg-background text-foreground">
+                  <Logo className="h-10 w-10" textClassName="text-2xl font-black tracking-tighter text-foreground" />
                 </div>
                 <ScrollArea className="flex-1 px-4 py-8">
                   <div className="space-y-10">
@@ -543,9 +543,9 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
                 </ScrollArea>
                 <div className="p-8 border-t border-border/10 bg-muted/10 space-y-4">
                   <div className="flex items-center gap-4 p-4 rounded-3xl bg-background border border-border/40">
-                    <Avatar className="h-12 w-12 rounded-2xl">
+                    <Avatar className="h-12 w-12 rounded-full">
                       <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="font-black bg-primary text-black">{(user?.name || "U")[0]}</AvatarFallback>
+                      <AvatarFallback className="font-black bg-primary text-black rounded-full">{(user?.name || "U")[0]}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-black truncate">{user?.name || "Member"}</p>
@@ -567,7 +567,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             <div className="relative max-w-lg w-full hidden md:block group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-all" />
               <Input
-                placeholder="Search leads and messages..."
+                placeholder="Search leads..."
                 className="h-12 pl-12 bg-muted/40 border-border/10 focus:bg-background focus:ring-4 focus:ring-primary/5 rounded-[1.25rem] font-bold text-sm placeholder:text-muted-foreground/40 dark:placeholder:text-white/60 transition-all shadow-inner text-foreground dark:text-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -609,7 +609,7 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
               <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col border-l border-border/40 bg-background/95 backdrop-blur-2xl">
                 <div className="p-8 border-b border-border/20 bg-muted/20">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-2xl font-black tracking-tighter uppercase italic">Notifications</h4>
+                    <h4 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic">Notifications</h4>
                     {unreadNotifications > 0 && (
                       <Badge className="bg-primary text-black font-black uppercase text-[10px] px-3 py-1">
                         {unreadNotifications} NEW
@@ -779,9 +779,9 @@ export function DashboardLayout({ children, fullHeight = false }: { children: Re
             <Separator orientation="vertical" className="h-6 mx-1 bg-border/40" />
 
             <div className="md:hidden">
-              <Avatar className="h-10 w-10 rounded-xl border border-border/40">
+              <Avatar className="h-10 w-10 rounded-full border border-border/40">
                 <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="font-bold rounded-xl">{(user?.name || "U")[0]}</AvatarFallback>
+                <AvatarFallback className="font-bold rounded-full">{(user?.name || "U")[0]}</AvatarFallback>
               </Avatar>
             </div>
           </div>

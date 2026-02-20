@@ -24,18 +24,18 @@ export function ProspectionVideo() {
     ];
 
     return (
-        <div className="w-full max-w-4xl mx-auto mt-12 mb-20 rounded-[2.5rem] bg-[#030712] border border-white/10 shadow-[0_0_50px_rgba(0,210,255,0.1)] overflow-hidden relative group">
+        <div className="w-full max-w-4xl mx-auto mt-12 mb-20 rounded-[2.5rem] bg-card border border-border/40 shadow-[0_0_50px_rgba(0,210,255,0.05)] overflow-hidden relative group">
             <div className="absolute inset-0 bg-primary/5 opacity-20 group-hover:opacity-30 transition-opacity" />
 
             {/* Header / Title Bar */}
-            <div className="px-8 py-5 border-b border-white/5 bg-black/40 flex items-center justify-between">
+            <div className="px-8 py-5 border-b border-border/10 bg-muted/20 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="flex gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
                         <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/40" />
                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/40" />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 px-3 py-1 border border-white/10 rounded-full bg-white/5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 px-3 py-1 border border-border/10 rounded-full bg-muted/10">
                         AI Prospecting Engine :: LIVE_DEMO
                     </span>
                 </div>
@@ -50,11 +50,11 @@ export function ProspectionVideo() {
                 <div className="space-y-8">
                     <div className="space-y-6">
                         <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                                <MessageCircle className="w-5 h-5 text-white/40" />
+                            <div className="w-10 h-10 rounded-2xl bg-muted/60 border border-border/40 flex items-center justify-center">
+                                <MessageCircle className="w-5 h-5 text-muted-foreground/60" />
                             </div>
-                            <div className="flex-1 p-5 rounded-2xl rounded-tl-none bg-white/5 border border-white/5">
-                                <p className="text-sm font-bold text-white leading-relaxed">
+                            <div className="flex-1 p-5 rounded-2xl rounded-tl-none bg-muted/40 border border-border/10">
+                                <p className="text-sm font-bold text-foreground leading-relaxed">
                                     I need 2,000 leads of agency owners losing money on lead generation and bleeding.
                                 </p>
                             </div>
@@ -85,7 +85,7 @@ export function ProspectionVideo() {
                     </div>
 
                     {/* Progress Circle & Metrics Section */}
-                    <div className="flex items-center gap-8 p-6 rounded-[2rem] bg-black/40 border border-white/5 relative overflow-hidden">
+                    <div className="flex items-center gap-8 p-6 rounded-[2rem] bg-muted/30 border border-border/10 relative overflow-hidden">
                         <div className="relative w-20 h-20 flex items-center justify-center">
                             <svg className="w-full h-full -rotate-90">
                                 <circle
@@ -95,7 +95,7 @@ export function ProspectionVideo() {
                                     fill="none"
                                     stroke="currentColor"
                                     strokeWidth="6"
-                                    className="text-white/5"
+                                    className="text-muted/10"
                                 />
                                 <motion.circle
                                     cx="40"
@@ -117,10 +117,10 @@ export function ProspectionVideo() {
                         </div>
                         <div className="flex-1 space-y-2">
                             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                                <span className="text-white/30">Ingestion Velocity</span>
+                                <span className="text-muted-foreground/30">Ingestion Velocity</span>
                                 <span className="text-primary">821 Leads/sec</span>
                             </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
                                 <motion.div
                                     animate={{ x: ["-100%", "100%"] }}
                                     transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
@@ -129,13 +129,13 @@ export function ProspectionVideo() {
                             </div>
                             <div className="flex gap-4 pt-1">
                                 <div className="space-y-0.5">
-                                    <p className="text-[10px] font-black text-white">2,042</p>
-                                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">Verified Leads</p>
+                                    <p className="text-[10px] font-black text-foreground">2,042</p>
+                                    <p className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">Verified Leads</p>
                                 </div>
-                                <div className="w-px h-6 bg-white/10" />
+                                <div className="w-px h-6 bg-border/20" />
                                 <div className="space-y-0.5">
                                     <p className="text-[10px] font-black text-emerald-500">99.8%</p>
-                                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">Validity</p>
+                                    <p className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">Validity</p>
                                 </div>
                             </div>
                         </div>
@@ -143,9 +143,9 @@ export function ProspectionVideo() {
                 </div>
 
                 {/* Right side: Terminal UI */}
-                <div className="bg-[#0b0e14] rounded-2xl border border-white/10 p-6 font-mono text-[11px] h-full flex flex-col relative overflow-hidden">
+                <div className="bg-card/80 rounded-2xl border border-border/20 p-6 font-mono text-[11px] h-full flex flex-col relative overflow-hidden shadow-inner">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none" />
-                    <div className="flex items-center gap-2 mb-4 text-white/20 border-b border-white/5 pb-3">
+                    <div className="flex items-center gap-2 mb-4 text-muted-foreground/20 border-b border-border/10 pb-3">
                         <Terminal className="w-3.5 h-3.5" />
                         <span className="font-bold tracking-tighter">bash --audnix-core</span>
                     </div>
@@ -171,16 +171,16 @@ export function ProspectionVideo() {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-[8px] font-bold text-white/60">Revenue Leakages Identified</span>
+                                <span className="text-[8px] font-bold text-muted-foreground/60">Revenue Leakages Identified</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-[8px] font-bold text-white/60">SDR Ghosting Detection</span>
+                                <span className="text-[8px] font-bold text-muted-foreground/60">SDR Ghosting Detection</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-4 flex justify-between items-center text-[10px] text-white/20">
+                    <div className="mt-4 flex justify-between items-center text-[10px] text-muted-foreground/20">
                         <span>CPU: 42%</span>
                         <span>NET: 1.2 GB/s</span>
                         <span>LATENCY: 12ms</span>

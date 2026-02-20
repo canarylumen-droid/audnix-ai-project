@@ -91,17 +91,17 @@ export const DeepFAQ = () => {
     return (
         <div className="max-w-4xl mx-auto py-24 px-8" id="faq">
             <div className="text-center mb-16">
-                <h2 className="text-3xl font-black uppercase tracking-widest mb-4 italic">Intelligence Archive</h2>
-                <p className="text-white/40 font-bold uppercase tracking-tighter">Everything you need to know about the future of sales.</p>
+                <h2 className="text-3xl font-black uppercase tracking-widest mb-4 italic text-foreground">Intelligence Archive</h2>
+                <p className="text-muted-foreground font-bold uppercase tracking-tighter">Everything you need to know about the future of sales.</p>
             </div>
 
             <Accordion type="single" collapsible className="w-full">
                 {faqData.map((item, i) => (
-                    <AccordionItem key={i} value={`item-${i}`} className="border-white/5">
+                    <AccordionItem key={i} value={`item-${i}`} className="border-border/10">
                         <AccordionTrigger className="text-left font-bold uppercase tracking-tighter hover:text-primary transition-colors italic">
                             {item.q}
                         </AccordionTrigger>
-                        <AccordionContent className="text-white/60 leading-relaxed py-6 font-medium">
+                        <AccordionContent className="text-muted-foreground leading-relaxed py-6 font-medium">
                             {item.a}
                         </AccordionContent>
                     </AccordionItem>

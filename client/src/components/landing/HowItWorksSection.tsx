@@ -40,7 +40,7 @@ const STEPS = [
 
 export function HowItWorksSection() {
     return (
-        <section id="how-it-works" className="py-24 px-4 bg-black relative overflow-hidden">
+        <section id="how-it-works" className="py-24 px-4 bg-background relative overflow-hidden">
             <div className="max-w-7xl mx-auto relative z-10">
                 <div className="text-center mb-24">
                     <motion.div
@@ -51,7 +51,7 @@ export function HowItWorksSection() {
                     >
                         Engine Activation
                     </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase">
+                    <h2 className="text-5xl md:text-8xl font-black text-foreground tracking-tighter leading-[0.85] mb-8 uppercase">
                         The Intelligent <br /> <span className="text-primary">Workflow.</span>
                     </h2>
                 </div>
@@ -69,7 +69,7 @@ export function HowItWorksSection() {
                             {/* Text Side */}
                             <div className={`w-full lg:w-1/2 space-y-8 ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
                                 <div className="flex items-center gap-6">
-                                    <span className="text-6xl md:text-8xl font-black text-white/10 tracking-tighter">
+                                    <span className="text-6xl md:text-8xl font-black text-foreground/10 tracking-tighter">
                                         {step.id}
                                     </span>
                                     <div className={`p-4 rounded-2xl ${step.bg} border border-white/5`}>
@@ -77,10 +77,10 @@ export function HowItWorksSection() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <h3 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+                                    <h3 className="text-3xl md:text-5xl font-black text-foreground tracking-tight uppercase">
                                         {step.title}
                                     </h3>
-                                    <p className="text-white/40 text-lg md:text-xl font-medium leading-relaxed">
+                                    <p className="text-muted-foreground text-lg md:text-xl font-medium leading-relaxed">
                                         {step.desc}
                                     </p>
                                 </div>
@@ -97,7 +97,7 @@ export function HowItWorksSection() {
                                             <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
                                             <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
                                         </div>
-                                        <div className="px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[8px] font-mono text-white/40 tracking-tight">
+                                        <div className="px-3 py-1 rounded-md bg-foreground/5 border border-foreground/10 text-[8px] font-mono text-foreground/40 tracking-tight">
                                             AUDNIX_ENGINE_v2.4.0
                                         </div>
                                     </div>

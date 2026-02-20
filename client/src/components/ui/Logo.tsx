@@ -63,7 +63,7 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
                         cy="19"
                         r="3"
                         fill="black"
-                        className="dark:fill-white"
+                        className="fill-black dark:fill-white"
                     />
 
                     <path
@@ -78,14 +78,14 @@ export const Logo = ({ className = "h-10 w-10", textClassName = "text-2xl font-b
 
             {/* Text Container */}
             <div className="relative">
-                <span className={`${textClassName} tracking-tighter text-foreground uppercase flex items-baseline gap-0.5 relative z-10 whitespace-nowrap transition-colors`}>
-                    Audnix
+                <span className={`${textClassName} tracking-tighter text-foreground uppercase flex items-baseline gap-0.5 relative z-10 whitespace-nowrap transition-all duration-500 group-hover:text-primary`}>
+                    <span className="opacity-90">Audnix</span>
                     <motion.span
                         variants={{
-                            hover: { color: "#06b6d4" },
-                            idle: { color: "#0891b2" }
+                            hover: { color: "#06b6d4", scale: 1.1 },
+                            idle: { color: "#0891b2", scale: 1 }
                         }}
-                        className="text-primary text-[10px] font-black"
+                        className="text-primary text-[10px] sm:text-[11px] font-black"
                     >
                         .AI
                     </motion.span>

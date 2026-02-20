@@ -23,12 +23,12 @@ const FeatureCard = ({ title, description, icon: Icon, delay, index }: FeatureCa
                 <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 group-hover:bg-primary group-hover:text-black transition-all duration-500">
                     <Icon className="w-6 h-6" />
                 </div>
-                <span className="text-[10px] font-black text-white/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
+                <span className="text-[10px] font-black text-foreground/10 group-hover:text-primary/40 transition-colors tracking-widest mt-2">
                     0{index + 1}
                 </span>
             </div>
-            <h3 className="text-xl font-black text-white mb-4 tracking-tight uppercase">{title}</h3>
-            <p className="text-white/40 text-sm leading-relaxed font-medium">
+            <h3 className="text-xl font-black text-foreground mb-4 tracking-tight uppercase">{title}</h3>
+            <p className="text-muted-foreground text-sm leading-relaxed font-medium">
                 {description}
             </p>
         </div>
@@ -37,7 +37,7 @@ const FeatureCard = ({ title, description, icon: Icon, delay, index }: FeatureCa
 
 export function FeatureSection() {
     return (
-        <section id="features" className="py-24 px-4 bg-black relative overflow-hidden">
+        <section id="features" className="py-24 px-4 bg-background relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-primary/5 blur-[150px] rounded-full pointer-events-none" />
 
@@ -55,11 +55,11 @@ export function FeatureSection() {
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] mb-8 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]"
+                        className="text-4xl md:text-8xl font-black text-foreground tracking-tighter leading-[0.85] mb-8 uppercase drop-shadow-[0_0_30px_rgba(var(--primary),0.3)]"
                     >
                         Engineered <br /> To <span className="text-primary italic">Win.</span>
                     </motion.h2>
-                    <p className="text-white/40 text-xl font-medium max-w-2xl mx-auto leading-tight">
+                    <p className="text-muted-foreground text-xl font-medium max-w-2xl mx-auto leading-tight">
                         Generic AI chats are toys. Audnix is an autonomous revenue engine that analyzes, strategizes, and closes.
                     </p>
                 </div>
@@ -103,13 +103,13 @@ export function FeatureSection() {
                                 <Zap className="w-6 h-6 text-primary" />
                             </div>
 
-                            <h3 className="text-3xl font-black mb-6 tracking-tight uppercase">
+                            <h3 className="text-3xl font-black mb-6 tracking-tight uppercase text-foreground">
                                 High-Ticket Closer Engine
                             </h3>
 
-                            <p className="text-white/40 font-medium text-lg mb-8 max-w-xl leading-relaxed">
+                            <p className="text-muted-foreground font-medium text-lg mb-8 max-w-xl leading-relaxed">
                                 Most bots just answer questions. Audnix is programmed to
-                                <span className="text-white"> close the deal</span>.
+                                <span className="text-foreground"> close the deal</span>.
                                 It systematically overcomes objections, builds value, and pushes for the meeting only when intent is verified.
                             </p>
 
@@ -135,8 +135,8 @@ export function FeatureSection() {
                                 <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 mb-8 group-hover:scale-110 transition-transform duration-500">
                                     <Search className="w-6 h-6 text-primary" />
                                 </div>
-                                <h3 className="text-3xl font-black mb-4 tracking-tight uppercase">Smart Lead Profile</h3>
-                                <p className="text-white/40 font-medium leading-relaxed mb-6">
+                                <h3 className="text-2xl md:text-3xl font-black mb-4 tracking-tight uppercase text-foreground">Smart Lead Profile</h3>
+                                <p className="text-muted-foreground font-medium leading-relaxed mb-6">
                                     Audnix scans public data to build a profile of every lead before engaging.
                                 </p>
                             </div>
@@ -144,19 +144,19 @@ export function FeatureSection() {
                             <div className="space-y-4">
                                 <div className="flex flex-wrap gap-2">
                                     {["URGENT", "ENTERPRISE", "PRICE SENSITIVE", "STARTUP", "AGENCY", "HIGH INTENT"].map((tag, i) => (
-                                        <span key={i} className="px-3 py-1 bg-white/5 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-wider text-white/40 group-hover:border-primary/20 group-hover:text-white/60 transition-colors cursor-default">
+                                        <span key={i} className="px-3 py-1 bg-primary/5 border border-primary/10 rounded-full text-[10px] font-black uppercase tracking-wider text-muted-foreground group-hover:border-primary/20 group-hover:text-foreground transition-colors cursor-default">
                                             {tag}
                                         </span>
                                     ))}
                                 </div>
 
-                                <div className="pt-4 border-t border-white/5">
-                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-white/40 mb-2">
+                                <div className="pt-4 border-t border-border/10">
+                                    <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                                         <span>Buying Intent</span>
-                                        <span className="text-cyan-500">High (92%)</span>
+                                        <span className="text-primary">High (92%)</span>
                                     </div>
-                                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                        <div className="h-full bg-cyan-500 w-[92%]" />
+                                    <div className="h-1 w-full bg-primary/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-primary w-[92%]" />
                                     </div>
                                 </div>
                             </div>

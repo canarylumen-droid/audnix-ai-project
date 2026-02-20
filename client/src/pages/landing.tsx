@@ -83,7 +83,9 @@ export default function Landing() {
             "logo": "https://audnix.ai/logo.png",
             "sameAs": [
               "https://twitter.com/nleanyatreasure",
-              "https://linkedin.com/in/nleanyatreasure"
+              "https://twitter.com/FortuneUch",
+              "https://linkedin.com/in/nleanyatreasure",
+              "https://instagram.com/uchendu_fortune",
             ]
           },
           {
@@ -177,7 +179,7 @@ export default function Landing() {
               <span className="bg-gradient-to-r from-foreground to-foreground/50 bg-clip-text text-transparent">AI ENGINE</span><br />
               <span className="text-primary italic">FOR REELS.</span>
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground font-medium mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-muted-foreground font-medium mb-12 max-w-3xl mx-auto leading-relaxed">
               Audnix transforms your Instagram engagement into a deterministic revenue stream using advanced intent analysis and automated outbound logic.
             </p>
             <Link href="/auth">
@@ -193,8 +195,8 @@ export default function Landing() {
               </Button>
             </Link>
 
-            <Card className="glass-premium rounded-[2.5rem] border-primary/10 overflow-hidden group">
-              <div className="p-8 border-b border-white/5 bg-primary/5">
+            <Card className="glass-premium rounded-[2.5rem] border-primary/10 overflow-hidden group max-w-4xl mx-auto">
+              <div className="p-8 border-b border-border/10 bg-primary/5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
                     <Sparkles className="w-5 h-5 text-primary" />
@@ -281,7 +283,7 @@ export default function Landing() {
             <div className="col-span-2 space-y-6">
               <Logo className="h-8 w-8" textClassName="text-2xl font-black" />
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-                The world's most advanced autonomous outbound sales infrastructure. Unlimited agents, zero headcount.
+                The world's most advanced autonomous outbound sales infrastructure. High-performance agents, human-level intelligence, infinite scale.
               </p>
             </div>
             {Object.entries({
@@ -304,20 +306,22 @@ export default function Landing() {
                 { name: "Contact Hub", href: "/contact" }
               ],
               Legal: [
-                { name: "Data Privacy", href: "/privacy" },
-                { name: "Service Terms", href: "/terms" },
+                { name: "Data Privacy", href: "/privacy-policy" },
+                { name: "Service Terms", href: "/terms-of-service" },
                 { name: "DPA Agreement", href: "/dpa" },
                 { name: "Security Port", href: "/security" }
               ]
             }).map(([cat, links]) => (
               <div key={cat} className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{cat}</h4>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-foreground/40">{cat}</h4>
                 <ul className="space-y-2">
                   {links.map(l => (
                     <li key={l.name}>
-                      <a href={l.href} className="text-xs font-bold text-white/60 hover:text-cyan-500 transition-colors">
-                        {l.name}
-                      </a>
+                      <Link href={l.href}>
+                        <span className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors cursor-pointer">
+                          {l.name}
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -329,7 +333,7 @@ export default function Landing() {
               © 2026 AUDNIX OPERATIONS CO. ALL RIGHTS RESERVED.
             </p>
             <div className="flex items-center gap-6">
-              {["Twitter", "LinkedIn", "YouTube", "Discord"].filter(p => p !== 'YouTube').map(p => (
+              {["Twitter", "LinkedIn", "GitHub", "Discord"].map(p => (
                 <a key={p} href="#" className="text-[10px] font-black text-muted-foreground/30 hover:text-primary uppercase tracking-widest transition-colors">{p}</a>
               ))}
             </div>
