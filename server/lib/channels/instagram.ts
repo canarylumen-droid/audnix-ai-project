@@ -7,7 +7,7 @@
 
 import FormData from 'form-data';
 import { Readable } from 'stream';
-import { storage } from '../storage.js';
+import { storage } from '../../storage.js';
 import { decrypt } from '../crypto/encryption.js';
 
 interface InstagramMessage {
