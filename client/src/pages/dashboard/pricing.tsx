@@ -90,7 +90,7 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="flex flex-wrap justify-center gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-6xl mx-auto">
           {pricingTiers.filter(tier => isPaidUser ? tier.id !== 'trial' : true).map((tier, index) => {
             const isPopular = tier.id === 'pro';
             const isCurrentPlan = currentPlan === tier.id;
@@ -103,23 +103,23 @@ export default function PricingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className={`
-                  relative w-full max-w-[380px] p-12 rounded-[3.5rem] border flex flex-col h-full transition-all duration-700 group
+                  relative w-full p-10 rounded-[2.5rem] border flex flex-col h-full transition-all duration-500 group
                   ${isCurrentPlan
-                    ? "bg-primary/[0.03] border-primary/40 shadow-[0_40px_80px_rgba(var(--primary),0.1)]"
+                    ? "bg-primary/[0.05] border-primary/50 shadow-[0_0_50px_rgba(var(--primary),0.15)] z-10 scale-[1.02]"
                     : isPopular
-                      ? "bg-white/[0.03] border-primary/20 shadow-2xl hover:border-primary/50"
-                      : "bg-white/[0.02] border-white/5 hover:border-white/20"
+                      ? "bg-white/[0.03] border-primary/30 shadow-2xl hover:border-primary/60 hover:bg-white/[0.05] z-10 lg:-mt-6 lg:mb-6"
+                      : "bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]"
                   }
                 `}
               >
                 {isPopular && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-6 py-2 bg-primary rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-[0_10px_30px_rgba(var(--primary),0.4)]">
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 bg-primary rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-[0_10px_30px_rgba(var(--primary),0.4)]">
                     Most Popular
                   </div>
                 )}
 
-                <div className="mb-12">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="mb-10">
+                  <div className="flex items-center justify-between mb-8">
                     <h3 className="text-white/40 text-[10px] font-black uppercase tracking-[0.4em]">{tier.name}</h3>
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-colors duration-500
                         ${isPopular ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-white/5 border-white/10 text-white/20'}
@@ -128,27 +128,27 @@ export default function PricingPage() {
                     </div>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-black text-white tracking-tighter">
+                    <span className="text-5xl font-black text-white tracking-tighter">
                       ${tier.price}
                     </span>
                     <span className="text-white/30 font-bold text-xs uppercase tracking-widest">/ {tier.period}</span>
                   </div>
                 </div>
 
-                <div className="space-y-6 mb-12 flex-1">
+                <div className="space-y-5 mb-10 flex-1">
                   {tier.features.map((feature, i) => (
                     <div key={i} className="flex items-start gap-4">
-                      <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-primary/30 transition-colors">
+                      <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-primary/30 transition-colors">
                         <Check className="w-3 h-3 text-primary" />
                       </div>
-                      <span className="text-white/60 font-bold text-[13px] leading-snug uppercase tracking-tight">
+                      <span className="text-white/70 font-bold text-[13px] leading-snug uppercase tracking-tight">
                         {feature}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-auto pt-10 border-t border-white/5 space-y-8">
+                <div className="mt-auto pt-8 border-t border-white/5 space-y-6">
                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="w-3.5 h-3.5 text-primary" />
@@ -164,7 +164,7 @@ export default function PricingPage() {
 
                   <Button
                     className={`
-                        h-16 w-full rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500
+                        h-14 w-full rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-500
                         ${isCurrentPlan
                         ? "bg-white/5 text-white/20 cursor-default border-white/5"
                         : isPopular

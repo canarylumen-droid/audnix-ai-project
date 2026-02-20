@@ -18,7 +18,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useParams, useLocation } from "wouter";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -936,7 +936,7 @@ export default function InboxPage() {
                                 setIsCampaignModalOpen(true);
                               }}
                             >
-                              <MailIcon className="w-4 h-4 mr-2" />
+                              <Mail className="w-4 h-4 mr-2" />
                               Start Campaign
                             </Button>
                           </div>
