@@ -158,7 +158,14 @@ router.post("/:leadId/read", requireAuth, async (req: Request, res: Response): P
       return;
     }
 
-    await storage.markLeadNotificationsAsRead(leadId, userId);
+    // Mark all notifications for this lead as read
+    const notifications = await storage.getNotifications(userId);
+    const leadNotifications = notifications.filter((n: any) => 
+      n.metadata && (n.metadata as any).leadId === leadId && !n.read
+    );
+    for (const n of leadNotifications) {
+      await storage.markNotificationAsRead(n.id);
+    }
     res.json({ success: true });
   } catch (error: unknown) {
     console.error("Mark messages read error:", error);

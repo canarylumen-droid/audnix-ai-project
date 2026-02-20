@@ -340,7 +340,7 @@ export async function sendInstagramOutreach(
     
     // If it's a permanent auth error, we might want to mark as disconnected
     if (error.message.includes('token') || error.message.includes('OAuth') || error.message.includes('401')) {
-      await storage.updateIntegration(integration.id, { connected: false });
+      await storage.updateIntegration(userId, 'instagram', { connected: false });
     }
     
     throw error;

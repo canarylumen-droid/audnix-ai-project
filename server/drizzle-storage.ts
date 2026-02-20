@@ -416,7 +416,7 @@ export class DrizzleStorage implements IStorage {
       .select({ email: leads.email })
       .from(leads)
       .where(and(eq(leads.userId, userId), inArray(leads.email, emails)));
-    return results.map(r => r.email).filter((e): e is string => !!e);
+    return results.map((r: { email: string | null }) => r.email).filter((e: string | null): e is string => !!e);
   }
 
   async getLeadsCount(userId: string): Promise<number> {

@@ -182,6 +182,7 @@ export class OutreachEngine {
 
     console.log(`[OutreachEngine] Processing batch of ${nextLeadsResult.length} leads for campaign: ${campaign.name}`);
     for (const leadEntry of nextLeadsResult) {
+      const lead = (leadEntry as any).lead || leadEntry;
       if (!lead || (!lead.email && lead.channel === 'email')) {
         await db.update(campaignLeads).set({ status: 'failed', error: 'Invalid lead or missing contact info' }).where(eq(campaignLeads.id, leadEntry.id));
         continue;

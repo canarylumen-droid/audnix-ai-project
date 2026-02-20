@@ -72,9 +72,11 @@ export async function importInstagramLeads(userId: string): Promise<{
     const oauth = new InstagramOAuth();
     const conversations = await oauth.getConversations(accessToken);
 
+    const existingLeads = await storage.getLeads({ userId, limit: 10000 });
+
     for (const conversation of conversations) {
       try {
-        let lead = existingLeads.find(l => l.externalId === conversation.id);
+        let lead = existingLeads.find((l: any) => l.externalId === conversation.id);
         if (!lead) {
           lead = await storage.createLead({
             userId,
