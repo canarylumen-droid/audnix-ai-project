@@ -413,7 +413,7 @@ export default function DashboardHome() {
                               <p className="font-bold text-sm text-foreground truncate">{activity.title || "Activity Event"}</p>
                               <span className="text-[11px] text-muted-foreground shrink-0 ml-4 font-black uppercase opacity-50 italic">{formatTimeAgo(activity.time || activity.timestamp || new Date())}</span>
                             </div>
-                            <p className="text-xs md:text-sm text-muted-foreground/80 leading-relaxed line-clamp-2">
+                            <p className="text-xs md:text-sm text-foreground leading-relaxed line-clamp-2">
                               {activity.type === 'campaign_started' ? `Neural outreach campaign "${activity.metadata?.name || 'Inbound Strategy'}" launched with ${activity.metadata?.configuredLeads || 0} prospects.` : 
                                activity.type === 'campaign_completed' ? `Outreach campaign completed successfully. All scheduled messages delivered.` :
                                activity.message}

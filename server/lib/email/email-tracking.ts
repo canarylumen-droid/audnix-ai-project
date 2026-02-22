@@ -127,6 +127,7 @@ export async function recordEmailEvent(event: EmailEvent): Promise<void> {
           await db.execute(sql`
             UPDATE leads 
             SET metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{isOpened}', 'true'::jsonb),
+                status = CASE WHEN status = 'new' THEN 'open'::lead_status ELSE status END,
                 updated_at = NOW()
             WHERE id = ${trackingInfo.lead_id}
           `);

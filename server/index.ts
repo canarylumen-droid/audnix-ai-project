@@ -1,5 +1,16 @@
 // server/index.ts snippet for context
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
+
+// Initialize Sentry before any other imports if possible
+if (process.env.OBSERVABILITY_SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.OBSERVABILITY_SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    tracesSampleRate: 1.0,
+  });
+  console.log("✅ Sentry initialized on server");
+}
 import "./lib/pdf-polyfills.js";
 try {
   // Ensure @napi-rs/canvas is loadable if needed by dependencies
@@ -185,7 +196,7 @@ if (process.env.DATABASE_URL) {
         : false,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
   });
 
   sessionStore = new PgSession({

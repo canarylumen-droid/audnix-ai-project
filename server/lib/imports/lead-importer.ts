@@ -172,6 +172,7 @@ export async function importManychatLeads(userId: string): Promise<{
         await storage.createLead({
           userId,
           externalId: sub.id,
+
           name: sub.name || sub.first_name || 'Manychat User',
           email: sub.email || null,
           phone: sub.phone || null,

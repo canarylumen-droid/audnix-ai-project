@@ -263,6 +263,10 @@ export default function InboxPage() {
       const matchesArchived = showArchived ? lead.archived : !lead.archived;
 
       return matchesSearch && matchesChannel && matchesStatus && matchesArchived;
+    }).sort((a: any, b: any) => {
+      const timeA = new Date(a.lastMessageAt || a.createdAt).getTime();
+      const timeB = new Date(b.lastMessageAt || b.createdAt).getTime();
+      return timeB - timeA;
     });
   }, [allLeads, searchQuery, filterChannel, filterStatus, showArchived]);
 

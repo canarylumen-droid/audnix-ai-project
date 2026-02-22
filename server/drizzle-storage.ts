@@ -97,7 +97,7 @@ export class DrizzleStorage implements IStorage {
       const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
       return result[0];
     } catch (error) {
-      console.error(`Error in getUserByEmail for ${email}:`, error);
+      console.error("Error in getUserByEmail:", { email, error });
       // Fallback: If 'config' or other columns are missing, we'll try to get basic info
       try {
         const rawResult = await db.execute(sql`SELECT id, email, password, role, username FROM users WHERE email = ${email} LIMIT 1`);
@@ -371,7 +371,9 @@ export class DrizzleStorage implements IStorage {
       );
     }
 
-    let query = db.select().from(leads).where(and(...conditions)).orderBy(desc(leads.createdAt));
+    let query = db.select().from(leads)
+      .where(and(...conditions))
+      .orderBy(sql`COALESCE(${leads.lastMessageAt}, ${leads.createdAt}) DESC`);
 
     if (options.limit) {
       query = query.limit(options.limit);
