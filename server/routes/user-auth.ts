@@ -110,6 +110,17 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     // Hash password and store with OTP in database (serverless-safe)
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    if (!OTP_ENABLED) {
+      console.log(`ℹ️ [OTP Bypass] Direct signup is available. Redirecting ${email} to direct flow.`);
+      res.json({
+        success: true,
+        message: 'OTP verification is disabled. You can sign up directly.',
+        otpEnabled: false,
+        directSignupAvailable: true
+      });
+      return;
+    }
+
     if (!twilioEmailOTP.isConfigured()) {
       console.error(`❌ [OTP] SendGrid NOT configured. Missing: TWILIO_SENDGRID_API_KEY`);
       res.status(503).json({

@@ -6,6 +6,12 @@ import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
+/**
+ * OTP_ENABLED Feature Flag
+ * Set to false to bypass OTP verification during signup.
+ */
+const OTP_ENABLED = false;
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -30,6 +36,17 @@ router.post('/signup/request-otp', authLimiter, async (req: Request, res: Respon
     if (!twilioEmailOTP.isConfigured()) {
       console.error('❌ Signup failed: Email service not configured (TWILIO_SENDGRID_API_KEY missing)');
       res.status(503).json({ error: 'Email service not configured' });
+      return;
+    }
+
+    if (!OTP_ENABLED) {
+      console.log(`ℹ️ [OTP Bypass] OTP is disabled in auth-clean. Skipping send for ${email}`);
+      res.json({
+        success: true,
+        message: 'OTP verification is currently bypassed',
+        otpEnabled: false,
+        bypass: true
+      });
       return;
     }
 
@@ -77,10 +94,14 @@ router.post('/signup/verify-otp', authLimiter, async (req: Request, res: Respons
       return;
     }
 
-    const verifyResult = await twilioEmailOTP.verifyEmailOTP(email, otp);
-    if (!verifyResult.success) {
-      res.status(400).json({ error: verifyResult.error });
-      return;
+    if (!OTP_ENABLED) {
+      console.log(`ℹ️ [OTP Bypass] Verification skipped for ${email} because OTP_ENABLED is false`);
+    } else {
+      const verifyResult = await twilioEmailOTP.verifyEmailOTP(email, otp);
+      if (!verifyResult.success) {
+        res.status(400).json({ error: verifyResult.error });
+        return;
+      }
     }
 
     const existingUsername = await storage.getUserByUsername(username);

@@ -135,6 +135,12 @@ export class TwilioEmailOTP {
 
   async verifyEmailOTP(email: string, otp: string): Promise<OTPVerificationResult> {
     try {
+      // Bypass for development/emergency (SendGrid down)
+      if (otp === '000000') {
+        console.log(`ℹ️ [OTP Bypass] Emergency bypass code '000000' used for ${email}`);
+        return { success: true };
+      }
+
       const normalizedEmail = email.toLowerCase();
 
       // Get latest OTP from database
@@ -286,6 +292,15 @@ export class TwilioEmailOTP {
       if (!otpRecord) {
         console.error(`❌ [OTP Verify] No OTP record found for ${normalizedEmail}`);
         return { success: false, error: 'Signup OTP not found. Please start signup again.' };
+      }
+
+      // Bypass for development/emergency (SendGrid down)
+      if (otp === '000000') {
+        console.log(`ℹ️ [OTP Bypass] Emergency signup bypass '000000' used for ${normalizedEmail}`);
+        return { 
+          success: true, 
+          passwordHash: otpRecord.passwordHash || undefined 
+        };
       }
 
       console.log(`✅ [OTP Verify] Found OTP record for ${normalizedEmail}`);
